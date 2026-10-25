@@ -1,0 +1,4 @@
+{"id":"P2-transport-003","crates":["aegis-transport","aegis-bin"],
+ "spec_refs":["F3 (FrontEnd hooks frozen; App/Server API is not frozen)","TBI-4/5/6/7 on every inbound path","CANON-4"],
+ "acceptance":{"cmd":"oracles/proxy-e2e/run --subject target/release/aegis && oracles/proxy-e2e/run --self-test && oracles/h2-conformance/run --subject target/release/transport-subject","must":"aegis-bin serves through aegis_transport::Server (its own h1in/h2in drivers deleted); all PASS"},
+ "write_scope":["crates/aegis-transport/**","crates/aegis-bin/**","subjects/transport-subject/**","oracles/proxy-e2e/**"],"infeasible_exit":true,"max_retries":30,"passes":false}

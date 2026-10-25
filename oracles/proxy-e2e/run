@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# AEGIS oracle: reverse-proxy end-to-end (unit P2-proxy-001). Contract: oracles/README.md.
+# Last line: PROXY-E2E: PASS|FAIL (...)  /  PROXY-E2E SELF-TEST: PASS|FAIL (...).
+#   ./run --subject target/release/aegis     drive the real binary (h1 over TLS; h2 via curl --http2 if present)
+#   ./run --self-test                        the same checks against target/e2e-mutants/release/aegis (built with
+#                                            --features e2e-mutants through ci/heavy.sh if missing): the unmutated
+#                                            run must PASS and every mutant (raw-path, skip-authz-deny, skip-lkg)
+#                                            must FAIL.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/e2e.py" "$@"

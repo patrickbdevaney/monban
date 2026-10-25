@@ -298,11 +298,66 @@ pub fn elf_has_section(b: &[u8], name: &str) -> Option<bool> {
     Some(false)
 }
 
+/// Directory names that hold code compiled only for other architectures or operating systems than the shipped
+/// x86_64/aarch64 Linux targets (e.g. linux-raw-sys ships 20 per-arch binding trees, only one of which builds).
+/// Approximate by design: it measures closer to compiled code than a raw grep; cargo-geiger replaces it later.
+const NON_TARGET_DIRS: &[&str] = &[
+    "arm",
+    "csky",
+    "hexagon",
+    "loongarch64",
+    "m68k",
+    "mips",
+    "mips32r6",
+    "mips64",
+    "mips64r6",
+    "powerpc",
+    "powerpc64",
+    "riscv32",
+    "riscv64",
+    "s390x",
+    "sparc",
+    "sparc64",
+    "x32",
+    "x86",
+    "windows",
+    "wasi",
+    "apple",
+    "freebsd",
+    "netbsd",
+    "openbsd",
+    "dragonfly",
+    "solarish",
+    "illumos",
+    "haiku",
+    "hurd",
+    "redox",
+    "fuchsia",
+    "emscripten",
+    "vxworks",
+    "solid",
+    "hermit",
+    "espidf",
+    "horizon",
+    "nto",
+    "aix",
+    "cygwin",
+    "uefi",
+    "wasm",
+];
+
+/// (crate, path prefix) pairs excluded because that backend is not selected on Linux: rustix uses its
+/// `linux_raw` backend there, never `backend/libc`.
+const NON_TARGET_PATHS: &[(&str, &str)] = &[("rustix", "src/backend/libc")];
+
 fn rs_files(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
     for e in rd.flatten() {
         let p = e.path();
         match e.file_type() {
+            Ok(t)
+                if t.is_dir()
+                    && p.file_name().and_then(|n| n.to_str()).is_some_and(|n| NON_TARGET_DIRS.contains(&n)) => {}
             Ok(t) if t.is_dir() => rs_files(&p, out),
             Ok(t) if t.is_file() && p.extension().is_some_and(|x| x == "rs") => out.push(p),
             _ => {}
@@ -330,6 +385,11 @@ fn count_unsafe(third_party: &[(String, String)]) -> UnsafeCounts {
         };
         let mut files = Vec::new();
         rs_files(&dir.join("src"), &mut files);
+        // Crate-specific backends that do not build on the shipped Linux targets.
+        files.retain(|f| {
+            let rel = f.strip_prefix(&dir).unwrap_or(f);
+            !NON_TARGET_PATHS.iter().any(|(c, sub)| c == name && rel.starts_with(sub))
+        });
         let mut n = 0u64;
         for f in files {
             if let Ok(bytes) = std::fs::read(&f) {
