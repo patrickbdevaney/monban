@@ -1,0 +1,9 @@
+# Phase 1 verdicts and how they were applied (spec author log)
+
+| spike | verdict | applied |
+|---|---|---|
+| q2-007 double fault + EIO | keep SQLite WAL FULL default | aegis-state startup assertions recorded (journal-mode re-check after first write, atomic create, bootstrap dir fsync, fsync error fatal); to land as Phase 4 unit acceptance criteria |
+| q4-004 3VL reference | **flip** | spec/AegisIR/ThreeValued.lean added (19 theorems + eval3/refQ3/readsOf), §E rewritten (three-valued policy semantics), F4: `Not` allowed only for `Fidelity::Exact`, `NotRequiresExact` error, `check_schema(op, schema, fidelity)`; ledgers re-frozen. Follow-ups: lowering-read oracle gates on refQ3; IR has no `isNull` atom |
+| q4-003 procurement | **flip D-13** → "visible compliance, invisible proofs" | SBOM/CBOM/provenance move into the Phase 2 release; Phase 6 FIPS/jurisdiction profiles + 0x11ED + signed reproducible release justified by MUSTs (OMB M-26-15, EO 14412, NSS 2027, Canada 2026-04); Phases 4–5 justified only by agent-infra evidence + velocity, not procurement. Open design question: M-26-15 lists runtime-selectable crypto as an agility option → group/sigalg lists selectable at runtime *within* a lock profile (F8 change at Phase 2 freeze) |
+| q1-009 AI-found exploitation | keep R-THR-2 scope, tighten | own attacker-reachable code ≤24 h; release drill target ≤6 h (unmeasured); Tier-S dependency rebuild ≤48 h (was ≤7 d) when fix is critical, KEV-listed or pre-auth reachable |
+| q4-005 MariaDB/Cockroach write oracle | **flip** (leaks with naive forms; 0 with hardened forms + gate) | §E W3 amended (only unique index, full-length, no-pad binary) + mandated forms extended; F4: `Collation::PadSpace`, `Schema.unique_indexes`, `UpsertArbiterNotTenantScoped`; MariaDB and Cockroach golden-eligible conditional on forms; MySQL untested (image 829 MB > limit) → non-golden. Cockroach needs its own dialect (PG upsert guard unsound under collated columns) |

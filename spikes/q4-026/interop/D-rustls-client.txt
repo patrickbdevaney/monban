@@ -1,0 +1,8 @@
+rustls client handshake OK with 127.0.0.1:18445: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+  < HTTP/1.0 200 ok
+  < Content-type: text/html
+  < 
+  < <HTML><BODY BGCOLOR="#ffffff">
+  < <pre>
+  < 
+  (4400 bytes of application data received)

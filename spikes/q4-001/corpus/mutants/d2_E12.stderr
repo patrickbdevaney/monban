@@ -1,0 +1,31 @@
+error[E0277]: `D` cannot be sent between threads safely
+  --> mutants/d2_E12.rs:24:36
+   |
+24 |         ctx.detach(&done, KeepDb { db })?;
+   |                                    ^^ `D` cannot be sent between threads safely
+   |
+note: required by a bound in `KeepDb`
+  --> mutants/d2_E12.rs:13:18
+   |
+13 | struct KeepDb<T: Send + Sync + 'static> { db: &'static T }
+   |                  ^^^^ required by this bound in `KeepDb`
+help: consider further restricting type parameter `D` with trait `Send`
+   |
+19 |     fn handle<'r, D: TenantDb<'r> + std::marker::Send>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |                                   +++++++++++++++++++
+
+error[E0277]: `D` cannot be shared between threads safely
+  --> mutants/d2_E12.rs:24:36
+   |
+24 |         ctx.detach(&done, KeepDb { db })?;
+   |                                    ^^ `D` cannot be shared between threads safely
+   |
+note: required by a bound in `KeepDb`
+  --> mutants/d2_E12.rs:13:25
+   |
+13 | struct KeepDb<T: Send + Sync + 'static> { db: &'static T }
+   |                         ^^^^ required by this bound in `KeepDb`
+help: consider further restricting type parameter `D` with trait `Sync`
+   |
+19 |     fn handle<'r, D: TenantDb<'r> + std::marker::Sync>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |                                   +++++++++++++++++++

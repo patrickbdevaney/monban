@@ -1,0 +1,53 @@
+  mariadb 11.8.9-MariaDB-ubu2404; collation_connection=utf8mb4_uca1400_ai_ci
+  cockroach CockroachDB CCL v25.4.18 (x86_64-pc-linu; isolation=serializable
+== mariadb
+family                                                                                cases   W1   W2   W4   W7    E  blk  ref
+mariadb U update SET .. WHERE lowerQ RETURNING | plain id PK, tenant utf8mb4_general   1200    0    0    0    0    0    0  111
+mariadb D delete WHERE lowerQ RETURNING | plain id PK, tenant utf8mb4_general_ci       1200    0    0    0    0    0    0    0
+mariadb UPG upsert on global-key table (must refuse or be W-safe) | plain id PK, ten   1200    0    0    0    0    0    0 1200
+mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_nopad_   1200    0    0    0    0    0    0  111
+mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_nopad_bin       1200    0    0    0    0    0    0    0
+mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant utf8mb4_nopad   1200    0    0    0    0    0    0  118
+mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant VARBINARY        1200    0    0    0    0    0    0  111
+mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant VARBINARY               1200    0    0    0    0    0    0    0
+mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant VARBINARY       1200    0    0    0    0    0    0  118
+[schema-gate demo, not in verdict] mariadb U update SET .. WHERE lowerQ RETURNING |    1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] mariadb D delete WHERE lowerQ RETURNING | composi   1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] mariadb UP upsert composite arbiter (tenant,id) |   1200    0    0   17    0   27   10  118
+    e.g. {"op": "upsert", "tenant": "acme", "req": {"dialect": "mariadb", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "acme", "row": {"id": 53, "grp": "g1", "x": "N", "y": "n"}, "update": ["x", "y"], "returning": ["id", "tenant", "x"]}, "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST
+[schema-gate demo, not in verdict] mariadb U update SET .. WHERE lowerQ RETURNING |    1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] mariadb D delete WHERE lowerQ RETURNING | composi   1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] mariadb UP upsert composite arbiter (tenant,id) |   1200    0    0   86    0  141   55  118
+    e.g. {"op": "upsert", "tenant": "acme", "req": {"dialect": "mariadb", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "acme", "row": {"id": 1, "grp": "g1", "x": "N", "y": "n"}, "update": ["x", "y"], "returning": ["id", "tenant", "x"]}, "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(
+[schema-gate demo, not in verdict] mariadb U update SET .. WHERE lowerQ RETURNING |    1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] mariadb D delete WHERE lowerQ RETURNING | composi   1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] mariadb UP upsert composite arbiter (tenant,id) |   1200    0    0  107    0  176   69  118
+    e.g. {"op": "upsert", "tenant": "\u00df", "req": {"dialect": "mariadb", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "\u00df", "row": {"id": 46, "grp": "g1", "x": "N", "y": "n"}, "update": [], "returning": ["id", "x"]}, "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) SELECT ?, ?, ?, ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE CAST(`tenant` AS BINARY) = C
+[schema-gate demo, not in verdict] mariadb U update SET .. WHERE lowerQ RETURNING |    1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] mariadb D delete WHERE lowerQ RETURNING | composi   1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] mariadb UP upsert composite arbiter (tenant,id) |   1200    0    0  528    0  817  289  118
+    e.g. {"op": "upsert", "tenant": "ss", "req": {"dialect": "mariadb", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "ss", "row": {"id": 40, "grp": "g1", "x": "N", "y": "n"}, "update": ["x"], "returning": ["id", "x"]}, "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) A
+total: cases=10800 W1=0 W2=0 W4=0 W7=0 E=0 blocked=0 refused=1769 illformed=1769 wall=77.8s
+mariadb: PASS (cases=10800 families=9)
+== cockroachdb
+family                                                                                cases   W1   W2   W4   W7    E  blk  ref
+crdb U update SET .. WHERE lowerQ RETURNING | plain id PK                              1200    0    0    0    0    0    0  111
+crdb D delete WHERE lowerQ RETURNING | plain id PK                                     1200    0    0    0    0    0    0    0
+crdb UPG upsert on global-key table (must refuse or be W-safe) | plain id PK           1200    0    0    0    0    0    0 1200
+crdb U update SET .. WHERE lowerQ RETURNING | composite PK (tenant,id)                 1200    0    0    0    0    0    0  111
+crdb D delete WHERE lowerQ RETURNING | composite PK (tenant,id)                        1200    0    0    0    0    0    0    0
+crdb UP upsert composite arbiter (tenant,id) | composite PK (tenant,id)                1200    0    0    0    0    0    0  118
+crdb U update SET .. WHERE lowerQ RETURNING | collated tenant en_u_ks_level2, id PK    1200    0    0    0    0    0    0  111
+crdb D delete WHERE lowerQ RETURNING | collated tenant en_u_ks_level2, id PK           1200    0    0    0    0    0    0    0
+crdb UPG upsert on global-key table (must refuse or be W-safe) | collated tenant en_   1200    0    0    0    0    0    0 1200
+[schema-gate demo, not in verdict] crdb U update SET .. WHERE lowerQ RETURNING | com   1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] crdb D delete WHERE lowerQ RETURNING | composite    1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] crdb UP upsert composite arbiter (tenant,id) | co   1200    0    0    0    0   51    0  118
+    e.g. {"op": "upsert", "tenant": "acme", "req": {"dialect": "postgres", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "acme", "row": {"id": 1, "grp": "g1", "x": "N", "y": "n"}, "update": ["x", "y"], "returning": ["id", "tenant", "x"]}, "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET 
+[schema-gate demo, not in verdict] crdb U update SET .. WHERE lowerQ RETURNING | com   1200    0    0    0    0    0    0  111
+[schema-gate demo, not in verdict] crdb D delete WHERE lowerQ RETURNING | composite    1200    0    0    0    0    0    0    0
+[schema-gate demo, not in verdict] crdb UP upsert composite arbiter (tenant,id) | co   1200    0    0    0    0  817  817  118
+    e.g. {"op": "upsert", "tenant": "ss", "req": {"dialect": "postgres", "table": "t", "tenant_field": "tenant", "key": ["tenant", "id"], "op": "upsert", "tenant": "ss", "row": {"id": 40, "grp": "g1", "x": "N", "y": "n"}, "update": ["x"], "returning": ["id", "x"]}, "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\
+total: cases=10800 W1=0 W2=0 W4=0 W7=0 E=0 blocked=0 refused=2851 illformed=2851 wall=77.8s
+cockroachdb: PASS (cases=10800 families=9)
+wall 77.8s

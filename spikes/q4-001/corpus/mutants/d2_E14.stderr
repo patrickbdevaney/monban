@@ -1,0 +1,7 @@
+error: lifetime may not live long enough
+  --> mutants/d2_E14.rs:13:19
+   |
+12 |     fn open<'r, D: Db<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<G, SdkError> {
+   |             -- lifetime `'r` defined here
+13 |         Ok(G { g: ctx.grant::<SELECT>()? })
+   |                   ^^^^^^^^^^^^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`

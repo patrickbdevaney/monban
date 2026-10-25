@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E19.rs:13:13
+   |
+10 | ...ssion<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut ws: WsSession<'r>)
+   |          -- lifetime `'r` defined here
+...
+13 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; let _ = ws.send("late".to_string()).await; });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`

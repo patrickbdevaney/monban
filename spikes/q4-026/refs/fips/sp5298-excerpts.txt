@@ -1,0 +1,117 @@
+# Excerpts (verbatim, pdftotext -layout) from CMVP #5298 Security Policy v1.3, sha256 4e285b54...96a0
+# https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5298.pdf
+--- lines 158,166
+
+1 General
+
+1.1 Overview
+This document is the non-proprietary FIPS 140-3 Security Policy for version AWS-LC FIPS
+3.1.0 of the AWS-LC 3 Cryptographic Module (dynamic). It contains the security rules under
+which the module must operate and describes how this module meets the requirements as
+specified in FIPS PUB 140-3 (Federal Information Processing Standards Publication 140-3) for
+an overall Security Level 1 module.
+--- lines 256,296
+2.2 Tested and Vendor Affirmed Module Version and
+Identification
+Tested Module Identification – Hardware:
+N/A for this module.
+
+
+
+Tested Module Identification – Software, Firmware, Hybrid (Executable Code
+Sets):
+Package or File Name Software/ Firmware                 Features                      Integrity Test
+                     Version
+bcm.o on Amazon Linux AWS-LC FIPS 3.1.0                 N/A                           HMAC-SHA2-256
+2023 on Graviton4 on
+r8g.metal-24xl
+bcm.o on Amazon Linux AWS-LC FIPS 3.1.0                 N/A                           HMAC-SHA2-256
+2023 on Intel Xeon
+Platinum 8375C on
+c6i.metal
+Table 2: Tested Module Identification – Software, Firmware, Hybrid (Executable Code Sets)
+
+
+
+Tested Module Identification – Hybrid Disjoint Hardware:
+N/A for this module.
+
+
+
+Tested Operational Environments - Software, Firmware, Hybrid:
+Operating          Hardware        Processors                        PAA/PAI Hypervisor Version(s)
+System             Platform                                                  or Host OS
+Amazon Linux       r8g.metal-      Graviton4 (ARMv9)                 Yes        N/A            AWS-LC FIPS
+2023               24xl                                                                        3.1.0
+Amazon Linux       c6i.metal       Intel Xeon Platinum 8375C         Yes        N/A            AWS-LC FIPS
+2023                               (AES-NI)                                                    3.1.0
+Amazon Linux       r8g.metal-      Graviton4 (ARMv9)                 No         N/A            AWS-LC FIPS
+2023               24xl                                                                        3.1.0
+Amazon Linux       c6i.metal       Intel Xeon Platinum 8375C         No         N/A            AWS-LC FIPS
+2023                               (AES-NI)                                                    3.1.0
+Table 3: Tested Operational Environments - Software, Firmware, Hybrid
+
+
+--- lines 444,453
+KAS-ECC-SSC      A6176, A6177, A6178, A6179,            Domain Parameter Generation          SP 800-56A
+Sp800-56Ar3      A6180, A6184, A6278, A6279             Methods - P-224, P-256, P-384, P-521 Rev. 3
+                                                        Scheme -
+                                                        ephemeralUnified -
+                                                        KAS Role - initiator, responder
+KDA HKDF         A6176, A6177, A6178, A6179,            Derived Key Length - 2048            SP 800-56C
+Sp800-56Cr1      A6180, A6184, A6278, A6279             Shared Secret Length - Shared Secret Rev. 2
+                                                        Length: 224-2048 Increment 8
+                                                        HMAC Algorithm - SHA-1, SHA2-224,
+                                                        SHA2-256, SHA2-384, SHA2-512,
+--- lines 464,472
+KDF TLS (CVL) A6176, A6177, A6178, A6179,               TLS Version - v1.0/1.1, v1.2               SP 800-135
+              A6180, A6184, A6278, A6279                Hash Algorithm - SHA2-256, SHA2-           Rev. 1
+                                                        384, SHA2-512
+ML-KEM           A6176, A6177, A6178, A6179,            Parameter Sets - ML-KEM-1024, ML-          FIPS 203
+EncapDecap       A6180, A6184, A6278, A6279             KEM-512, ML-KEM-768
+                                                        Functions - Decapsulation,
+                                                        Encapsulation
+ML-KEM           A6176, A6177, A6178, A6179,            Parameter Sets - ML-KEM-1024, ML-          FIPS 203
+KeyGen           A6180, A6184, A6278, A6279             KEM-512, ML-KEM-768
+--- lines 750,762
+Name                            Type                Description          Properties          Algorithms
+Key Verification with ECDSA AsymKeyPair-            FIPS186-5. Key                           ECDSA KeyVer
+                            KeyVer                  verification                             (FIPS186-5):
+                                                                                             (A6176, A6177,
+                                                                                             A6178, A6179,
+                                                                                             A6180, A6184,
+                                                                                             A6278, A6279)
+Encapsulation/Decapsulation KEM-Decap               FIPS203.             FIPS 203:Section ML-KEM
+with ML-KEM                 KEM-Encap               Encapsulation        7.2 and 7.3       EncapDecap:
+                                                    and                  IG:D.S Scenario 1 (A6176, A6177,
+                                                    decapsulation                          A6178, A6179,
+                                                                                           A6180, A6184,
+                                                                                           A6278, A6279)
+--- lines 1085,1098
+
+Compliance to SP 800-56ARev3 assurances
+The module offers ECDH shared secret computation services compliant to the SP 800-
+56ARev3 and meeting IG D.F scenario 2 path (1). To meet the required assurances listed in
+section 5.6 of SP 800-56ARev3, the module shall be used together with an application that
+implements the “TLS protocol” and the following steps shall be performed.
+    •     The entity using the module, must use the module's "Key Pair Generation" service for
+          generating ECDH ephemeral keys. This meets the assurances required by key pair
+          owner defined in the section 5.6.2.1 of SP 800-56ARev3.
+    •     As part of the module's shared secret computation (SSC) service, the module
+          internally performs the public key validation on the peer's public key passed in as
+          input to the SSC function. This meets the public key validity assurance required by
+          the sections 5.6.2.2.1/5.6.2.2.2 of SP 800-56Arev3.
+    •     The module does not support static keys therefore the "assurance of peer's
+--- lines 1174,1180
+The module implements the SSH key derivation function for use in the SSH protocol (RFC
+4253 and RFC 6668).
+GCM with internal IV generation in the approved mode is compliant with versions 1.2 and 1.3
+of the TLS protocol (RFC 5288 and 8446) and shall only be used in conjunction with the TLS
+protocol. Additionally, the module implements the TLS 1.2 and TLS 1.3 key derivation
+functions for use in the TLS protocol.
+
+--- lines 583,586
+                                                                      Verification, Shared Secret
+                                                                      Computation
+Diffie Hellman                                                        Shared Secret Computation (not CAVP
+                                                                      tested)

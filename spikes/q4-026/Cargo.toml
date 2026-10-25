@@ -1,0 +1,34 @@
+# Spike q4-026: SecP384r1MLKEM1024 (0x11ED) as a rustls SupportedKxGroup on aws-lc-rs primitives.
+# Not a workspace member; own Cargo.lock (copied from oracles/hrr-verdicts, all pins >= 7 days old on 2026-10-25).
+# Build only via ci/heavy.sh with CARGO_TARGET_DIR=spikes/q4-026/target (see README "Reproduce").
+[package]
+name = "q4-026-kx11ed"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[lib]
+name = "kx11ed"
+path = "src/kx.rs"
+
+[[bin]]
+name = "kx11ed"
+path = "src/main.rs"
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+rustls-webpki = { version = "=0.103.15", default-features = false, features = ["alloc", "aws-lc-rs"] }
+rcgen = { version = "=0.14.10", default-features = false, features = ["aws_lc_rs", "crypto"] }
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+
+[profile.dev]
+debug = 0
+incremental = false

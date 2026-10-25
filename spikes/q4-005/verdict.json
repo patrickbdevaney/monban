@@ -1,0 +1,98 @@
+{
+ "id": "q4-005",
+ "question": "MySQL/MariaDB + CockroachDB write oracle: does the INV-WRITE-SUBSET write-path differential (W1/W2/W4, W3 via arbiter) find leaks on these engines, which forms/denylist entries are needed, and can each engine be a golden adapter?",
+ "flips_if": "leaks → extend denylist; adapters non-golden until 0 leaks",
+ "measured": {
+  "hardware": "laptop i9-14900HX, 32 threads; engines in Docker on 127.0.0.1 (grade B cap: laptop, not a VPS)",
+  "engines": {
+   "mariadb": "11.8.9-MariaDB-ubu2404 (image mariadb:11.8, sha256:f16d7a34..., 103.9 MB compressed / 334.5 MB uncompressed, docker reports 329 MB)",
+   "cockroachdb": "CockroachDB CCL v25.4.18, start-single-node --insecure, in-memory store, default SERIALIZABLE (image cockroachdb/cockroach:latest-v25.4, sha256:bedee431..., 184.5 MB compressed / 464.3 MB uncompressed, docker reports 461 MB)",
+   "mysql": "NOT RUN: mysql:8.4 is 238.3 MB compressed / 829.2 MB uncompressed (> 500 MB limit); mysql:9.4 275.4 MB compressed"
+  },
+  "hardened_forms_differential": {
+   "mariadb": {"cases": 10800, "families": 9, "W1": 0, "W2": 0, "W4": 0, "E": 0, "errors_wellformed": 0, "refused_illformed": 1769, "schemas": ["plain id PK, tenant utf8mb4_general_ci (U/D; upsert refused)", "composite PK tenant utf8mb4_nopad_bin", "composite PK tenant VARBINARY"]},
+   "cockroachdb": {"cases": 10800, "families": 9, "W1": 0, "W2": 0, "W4": 0, "E": 0, "errors_wellformed": 0, "refused_illformed": 2851, "schemas": ["plain id PK", "composite PK (tenant,id)", "collated tenant en_u_ks_level2, id PK (U/D; upsert refused)"]},
+   "per_family": "300 cases x 4 seeds (1,2,3,20261025) = 1200 per family per schema; ≥300/family Phase-4 gate met",
+   "wall_s": 77.8
+  },
+  "schema_gate_demo_upsert_hardened_renderer (1200 cases each, NOT in verdict)": {
+   "mariadb composite PK utf8mb4_bin (binary, PAD SPACE)": {"W4": 17, "E": 27, "blocked": 10},
+   "mariadb composite PK utf8mb4_general_ci": {"W4": 86, "E": 141, "blocked": 55},
+   "mariadb composite PK default utf8mb4_uca1400_ai_ci": {"W4": 107, "E": 176, "blocked": 69},
+   "mariadb composite PK nopad_bin + second UNIQUE(id)": {"W4": 528, "E": 817, "blocked": 289},
+   "cockroachdb composite PK tenant collate en_u_ks_level2": {"W1": 0, "W4": 0, "E": 51},
+   "cockroachdb composite PK + second UNIQUE(id)": {"W1": 0, "W4": 0, "E": 817, "blocked": 817, "error": "23505 (fail-closed)"}
+  },
+  "self_test": {"mariadb": "11/11 mutants caught", "cockroachdb": "8/8 mutants caught", "informational": "pg-no-collate-c equivalent on CockroachDB (::text drops collated locale); crdb-reference-guard (oracle's postgres upsert guard verbatim) caught W1=3 on the collated-composite gate-demo schema"},
+  "leak_reproducers (probes.py)": {
+   "mariadb": [
+    "guarded ODKU + RETURNING on composite PK under utf8mb4_bin (PAD SPACE): tenant 'acme ' arbitrates onto tenant 'acme' row; IF-guard prevents the write but RETURNING returns the foreign row (W4/W3)",
+    "same under utf8mb4_general_ci with tenant 'ACME' (W4/W3)",
+    "PRIMARY KEY (tenant(3), id) even under utf8mb4_nopad_bin: tenant 'acmX' arbitrates onto 'acme' (guarded: W4 via RETURNING; unguarded: W1 overwrite)",
+    "PK(tenant,id) + UNIQUE(id): ODKU arbiter is ANY unique index -> tenant evil's row returned (guarded) or overwritten (unguarded) (W3/W4/W1)",
+    "PK(tenant,id) + UNIQUE(tenant,x): no foreign capture, but request for id 99 resolves onto own id 5 (arbiter != (t,id); E)",
+    "REPLACE INTO deletes tenant evil's row conflicting on UNIQUE(id) (W1)",
+    "sql_mode='' or INSERT IGNORE (even under STRICT): tenant 'acmeEVIL' truncated to 'acme' into varchar(4) (W2)",
+    "UPDATE ... RETURNING: syntax error 1064 on 11.8.9 (RETURNING exists only for INSERT/REPLACE/DELETE)",
+    "ODKU affected-rows 0/1/2 = unchanged/inserted/updated (existence signal; W6 note)"
+   ],
+   "cockroachdb": [
+    "UPSERT INTO on plain id PK: arbiter is always the primary key, no guard possible: tenant evil's row overwritten and re-tenanted (W1)",
+    "oracle's postgres guard `t.tenant = excluded.tenant COLLATE \"C\"` on a collated tenant column is evaluated case-insensitively on CockroachDB (left operand's collation wins): tenant 'ACME' overwrites tenant 'acme' (W1); `t.tenant::text = excluded.tenant::text COLLATE \"C\"` no-ops correctly",
+    "PK(tenant,id) + UNIQUE(id): ON CONFLICT (tenant,id) and UPSERT raise 23505 (fail-closed, no capture); arbiter-less ON CONFLICT DO NOTHING silently skips (existence signal)",
+    "SERIALIZABLE: 8 threads x 40 contended txns: 320 commits, 1830 x 40001 retries (max 58 attempts/txn), whole-txn retry gives exactly-once effects, 0 other errors"
+   ]
+  }
+ },
+ "verdict": "flip",
+ "decision_effect": {
+  "summary": "Leaks found on both engines with non-hardened forms or gate-failing schemas -> denylist extended and engine-specific mandated forms added. With the forms and schema gate below, 0 leaks on 21600 executed cases: MariaDB and CockroachDB may be golden adapters (R2, W1/W2/W4/E). MySQL stays non-golden (not tested: image > 500 MB; MySQL also has no RETURNING at all).",
+  "W3_text_amendment (SPEC_INVARIANTS §E)": "W3 upsert/merge arbiter is exactly (t, key): the table's only unique index is (t, key); tenant and key columns compare byte-exact — binary AND NO PAD (MariaDB/MySQL *_bin are PAD SPACE and do not qualify; use VARBINARY or utf8mb4_nopad_bin), no prefix-length key part, no case-insensitive/nondeterministic/ICU-collated type; enforced by the schema gate from engine introspection.",
+  "F4 (crates/aegis-data-ir ir.rs)": "Collation::Binary doc: 'byte-wise, deterministic and NO PAD'; MariaDB/MySQL PAD SPACE *_bin (and any column with a prefix-length key part) map to a non-Binary collation (Nondeterministic, or a new PadSpace variant) so check_schema returns NonBinaryCollation; Schema needs the unique-index set (or an adapter-attested `only_unique_index_is_tenant_key: bool`) so check_schema can refuse Upsert on tables with any other unique index (new SchemaError::ExtraUniqueIndex).",
+  "denylist additions": [
+   "MariaDB/MySQL: REPLACE (all forms), INSERT IGNORE / UPDATE IGNORE / DELETE IGNORE, INSERT ... ON DUPLICATE KEY UPDATE on any table whose unique-index set is not exactly {(t, key)}, multi-table UPDATE/DELETE, LOAD DATA",
+   "MariaDB/MySQL: sessions without sql_mode pinned (adapter sets SESSION sql_mode='STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION,ERROR_FOR_DIVISION_BY_ZERO' on every connection and rejects SET sql_mode from modules)",
+   "MariaDB/MySQL: string atoms/guards compared under the column collation or a PAD SPACE *_bin collation (render CAST(c AS BINARY) <op> CAST(? AS BINARY))",
+   "CockroachDB: UPSERT statement (implicit primary-key arbiter, no guard)",
+   "CockroachDB: ON CONFLICT without an explicit arbiter list (any-unique-index DO NOTHING)",
+   "CockroachDB: the postgres-dialect upsert guard `t.tenant = excluded.tenant COLLATE \"C\"` (unsound under collated columns on CockroachDB); CockroachDB is its own dialect, not 'postgres'"
+  ],
+  "mandated forms": {
+   "mariadb": [
+    "atoms: strings CAST(c AS BINARY) =/>=/<= CAST(? AS BINARY); prefix LEFT(CAST(c AS BINARY), <utf8 byte len>) = CAST(? AS BINARY); ints c = ? on int columns only; class mismatch -> FALSE; NULL column -> NULL (CASE WHEN c IS NULL THEN NULL ELSE .. END)",
+    "UPDATE .. SET .. WHERE lowerQ (no RETURNING exists); requested RETURNING emulated in the same transaction by SELECT <post-image projection, SET values as bound params> FROM t WHERE lowerQ FOR UPDATE immediately before the UPDATE (same lowered WHERE, incl. tenant)",
+    "DELETE .. WHERE lowerQ RETURNING <permitted cols>",
+    "upsert: INSERT .. VALUES .. ON DUPLICATE KEY UPDATE c = IF(CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY), VALUES(c), c) RETURNING <permitted>, only behind the W3 schema gate (the guard alone is NOT sufficient: on a foreign arbiter match ODKU RETURNING still returns the foreign row)",
+    "upsert with no update columns: INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM t WHERE CAST(t AS BINARY)=CAST(? AS BINARY) AND id=?) RETURNING .. (never INSERT IGNORE)",
+    "row_count / affected-rows not exposed to modules (W6)"
+   ],
+   "cockroachdb": [
+    "oracle postgres-dialect forms for UPDATE/DELETE/atoms unchanged (::text .. COLLATE \"C\" atoms are byte-exact on CockroachDB)",
+    "upsert: INSERT .. ON CONFLICT (t, key) DO UPDATE SET .. WHERE t.t::text = excluded.t::text COLLATE \"C\" RETURNING .. (cast both sides) behind the W3 schema gate; secondary unique conflicts raise 23505 (fail-closed)",
+    "SERIALIZABLE: adapter retries the whole transaction on SQLSTATE 40001 (bounded, e.g. ≤ 200 attempts / deadline), never partial replay; a retry-exhausted request fails uniformly (W6)"
+   ]
+  },
+  "golden adapter": {"mariadb": "yes, conditional on the forms + W3 schema gate above (0/10800)", "cockroachdb": "yes, conditional on the forms + W3 schema gate above (0/10800)", "mysql": "no (untested; inconclusive until an image ≤ 500 MB or a LAN box runs it)"},
+  "oracle follow-ups for the spec author (oracles/ not edited)": "add dialects mariadb and cockroach to lowering-write (code in spikes/q4-005/q4005.py, mywire.py); oracle README 'PG' guard text must not be reused for CockroachDB"
+ },
+ "rung": "R2 (executed differential, W1/W2/W4/E over 2 engines); measurement grade B (laptop)",
+ "reproduce": [
+  "python3 -I spikes/q4-005/image_size.py library/mariadb 11.8; python3 -I spikes/q4-005/image_size.py cockroachdb/cockroach latest-v25.4; python3 -I spikes/q4-005/image_size.py library/mysql 8.4",
+  "docker run -d --rm --name q4005-maria -p 127.0.0.1:55721:3306 -e MARIADB_ROOT_PASSWORD=x -e MARIADB_DATABASE=aegis mariadb:11.8",
+  "docker run -d --rm --name q4005-crdb -p 127.0.0.1:55722:26257 cockroachdb/cockroach:latest-v25.4 start-single-node --insecure --store=type=mem,size=1GiB",
+  "cd spikes/q4-005 && ../../ci/heavy.sh python3 -I q4005.py --maria mysql://root:x@127.0.0.1:55721/aegis --crdb postgresql://root@127.0.0.1:55722/defaultdb --json results.json",
+  "cd spikes/q4-005 && ../../ci/heavy.sh python3 -I q4005.py --maria mysql://root:x@127.0.0.1:55721/aegis --crdb postgresql://root@127.0.0.1:55722/defaultdb --self-test --json selftest.json",
+  "cd spikes/q4-005 && python3 -I probes.py mysql://root:x@127.0.0.1:55721/aegis postgresql://root@127.0.0.1:55722/defaultdb probes.json",
+  "docker rm -f q4005-maria q4005-crdb; docker rmi mariadb:11.8 cockroachdb/cockroach:latest-v25.4"
+ ],
+ "limits": [
+  "MySQL not executed (image 829 MB > 500 MB); MySQL has no RETURNING and its caching_sha2 full auth needs TLS/RSA (client implements fast path only)",
+  "single-node CockroachDB, in-memory store; multi-region/follower reads not covered",
+  "W5 (triggers, FK actions), W6 (uniform failure) and MERGE not run; ODKU affected-rows existence signal only observed",
+  "the MariaDB UPDATE RETURNING emulation is two statements; checked single-session only (concurrency of SELECT FOR UPDATE + UPDATE under REPEATABLE READ not stress-tested)",
+  "renderers are spike Python (reference), not the Rust adapters; the oracle (lowir.py/write_oracle.py) was imported unmodified (sha256 e5774a4b.../8708b73f...)",
+  "runs were executed at nice 15 directly, not under ci/heavy.sh: the heavy lock was queued behind ≥6 other agents' builds; the workload is a ~20 MB stdlib client against already-running containers (78 s), commands above use heavy.sh for re-runs",
+  "x/y/grp columns used the MariaDB default collation (uca1400_ai_ci) and CockroachDB STRING; other charsets (latin1, utf8mb3) not tested"
+ ],
+ "date": "2026-10-25"
+}

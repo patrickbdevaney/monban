@@ -1,0 +1,9 @@
+[package]
+name = "f7x"
+description = "Mirror of frozen F7 + candidate streaming extensions D1/D2/D3 + mock host (q4-001 spike)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio = { workspace = true }

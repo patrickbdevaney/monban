@@ -1,0 +1,11 @@
+# AEGIS golden proof package. Core Lean 4 only: no Mathlib, no Batteries, no `require` at all.
+# TOML (not lakefile.lean) on purpose: a lakefile.lean must `import Lake`, which drags the Lean+Lake .olean trees
+# (~1.6 GB installed) into the CI image; TOML config is parsed natively, so an Init-only toolchain subset suffices.
+name = "aegisIR"
+version = "0.1.0"
+defaultTargets = ["AegisIR"]
+leanOptions = { autoImplicit = false }
+
+[[lean_lib]]
+name = "AegisIR"
+roots = ["AegisIR.Lowering", "AegisIR.Token", "AegisIR.Combine", "AegisIR.Vacuity", "AegisIR.ThreeValued"]

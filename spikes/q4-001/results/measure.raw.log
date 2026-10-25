@@ -1,0 +1,777 @@
+heavy.sh: waiting for the heavy-job lock (one at a time)...
+test detached_job_after_session_revocation ... ok
+test session_revoked_mid_stream_fails_closed_in_d1_and_d2 ... ok
+test tenant_binding_holds_in_all_designs ... ok
+test cap_revoked_mid_ws_session ... ok
+test d1_body_sse_ws_run_in_static_task_without_leak ... ok
+test d2_all_four_features_with_per_step_ctx ... ok
+test d3_all_four_features_via_handler_spawn ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   Compiling corpus v0.0.0 (/home/patrickd/aegis/spikes/q4-001/corpus)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.28s
+     Running tests/mutants.rs (target/debug/deps/mutants-efc5152c7d9c42ac)
+    Checking corpus-tests v0.0.0 (/home/patrickd/aegis/spikes/q4-001/target/tests/trybuild/corpus)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s
+
+
+test mutants/d1_C1.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d1_C2.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d1_E1.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E1.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E1.rs:14:13
+   |
+10 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+14 |             tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; drop(g); });
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E2.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E2.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E2.rs:13:13
+   |
+10 | ...ream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |         -- lifetime `'r` defined here
+...
+13 | ...   tokio::spawn(async move { let c = ctx; tokio::time::sleep(std::time::Duration::from_millis(5)).await; let _ = c.grant::<SELECT>(); });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E3.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E3.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E3.rs:14:13
+   |
+10 | ...ents<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Event>)
+   |         -- lifetime `'r` defined here
+...
+14 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E4.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E4.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0599]: no method named `clone` found for struct `f7x::Ctx<'r>` in the current scope
+  --> mutants/d1_E4.rs:13:26
+   |
+13 |             let c2 = ctx.clone();
+   |                          ^^^^^ method not found in `f7x::Ctx<'r>`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E5.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E5.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E5.rs:14:21
+   |
+11 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+14 |             let _ = CELL.set(ctx.grant::<SELECT>()?);
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E6.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E6.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E6.rs:14:13
+   |
+11 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+14 |             STASH.with(|s| *s.borrow_mut() = Some(ctx));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E7.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E7.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E7.rs:15:30
+   |
+11 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+15 |             if let Some(t) = TX.get() { if let Ok(t) = t.lock() { let _ = t.send(g); } }
+   |                              ^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E8.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E8.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E8.rs:13:118
+   |
+10 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+13 |             let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<Box<dyn std::any::Any + Send>>(); let _ = tx.send(Box::new(ctx));
+   |                                                                                                                      ^^^^^^^^^^^^^ coercion requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E9.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E9.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E9.rs:13:86
+   |
+10 | ...am<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |       -- lifetime `'r` defined here
+...
+13 | ... let g = std::sync::Arc::new(ctx.grant::<SELECT>()?); let g2 = g.clone(); tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; drop(g2); });
+   |                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E10.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E10.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E10.rs:13:20
+   |
+10 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+13 |             let g: &'static Granted<'_, DataCap<SELECT>> = Box::leak(Box::new(ctx.grant::<SELECT>()?)); tokio::spawn(async move { to...
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ type annotation requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E14.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d1_E15.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d1_E16.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E16.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0382]: borrow of moved value: `tx`
+  --> mutants/d1_E16.rs:17:20
+   |
+14 |             let mut tx = db.begin()?;
+   |                 ------ move occurs because `tx` has type `Tx<'_, Open>`, which does not implement the `Copy` trait
+15 |             db.run(&mut tx, &g, Op::insert(1, "a"))?;
+16 |             let done = db.commit(tx)?;
+   |                                  -- value moved here
+17 |             db.run(&mut tx, &g, Op::insert(2, "dup"))?;
+   |                    ^^^^^^^ value borrowed here after move
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E17.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E17.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0451]: fields `_c` and `_r` of struct `f7x::Granted` are private
+  --> mutants/d1_E17.rs:13:61
+   |
+13 |             let g: Granted<'_, DataCap<INSERT>> = Granted { _c: PhantomData, _r: PhantomData };
+   |                                                             ^^ private field ^^ private field
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E18.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E18.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: usage of an `unsafe` block
+  --> mutants/d1_E18.rs:13:56
+   |
+13 | ...   let g: Granted<'static, DataCap<SELECT>> = unsafe { core::mem::transmute(ctx.grant::<SELECT>()?) }; tokio::spawn(async move { ...
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> mutants/d1_E18.rs:2:11
+   |
+ 2 | #![forbid(unsafe_code)]
+   |           ^^^^^^^^^^^
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d1_E19.rs ... wip
+
+NOTE: writing the following output to `mutants/d1_E19.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d1_E19.rs:13:13
+   |
+10 | ...ssion<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut ws: WsSession<'r>)
+   |          -- lifetime `'r` defined here
+...
+13 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; let _ = ws.send("late".to_string()).await; });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_C1.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d2_C2.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d2_E1.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E1.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E1.rs:20:9
+   |
+18 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             --                        --- `ctx` is a reference that is only valid in the method body
+   |             |
+   |             lifetime `'m` defined here
+19 |         let g = ctx.grant::<SELECT>()?;
+20 |         tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; drop(g); });
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E2.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E2.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E2.rs:19:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |           --                        --- `ctx` is a reference that is only valid in the method body
+   |           |
+   |           lifetime `'m` defined here
+19 | ...   tokio::spawn(async move { let c = ctx; tokio::time::sleep(std::time::Duration::from_millis(5)).await; let _ = c.grant::<SELECT>(); });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `ctx` escapes the method body here
+   |       argument requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E3.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E3.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E3.rs:20:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Event>, SdkError> {
+   |           --                        --- `ctx` is a reference that is only valid in the method body
+   |           |
+   |           lifetime `'m` defined here
+19 | ...   let g = ctx.grant::<SELECT>()?;
+20 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `ctx` escapes the method body here
+   |       argument requires that `'m` must outlive `'static`
+
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E3.rs:20:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Event>, SdkError> {
+   |                                                   --  - let's call the lifetime of this reference `'1`
+   |                                                   |
+   |                                                   `db` is a reference that is only valid in the method body
+19 | ...   let g = ctx.grant::<SELECT>()?;
+20 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `db` escapes the method body here
+   |       argument requires that `'1` must outlive `'static`
+
+help: replace `'m` with `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E4.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E4.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0599]: no method named `clone` found for struct `f7x::Ctx<'r>` in the current scope
+  --> mutants/d2_E4.rs:19:22
+   |
+19 |         let c2 = ctx.clone();
+   |                      ^^^^^ method not found in `f7x::Ctx<'m>`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E5.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E5.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E5.rs:20:17
+   |
+19 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             --                        --- `ctx` is a reference that is only valid in the method body
+   |             |
+   |             lifetime `'m` defined here
+20 |         let _ = CELL.set(ctx.grant::<SELECT>()?);
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                 |
+   |                 `ctx` escapes the method body here
+   |                 argument requires that `'m` must outlive `'static`
+   |
+   = note: requirement occurs because of the type `OnceLock<f7x::Granted<'_, f7x::DataCap<1>>>`, which makes the generic argument `f7x::Granted<'_, f7x::DataCap<1>>` invariant
+   = note: the struct `OnceLock<T>` is invariant over the parameter `T`
+   = help: see <https://doc.rust-lang.org/nomicon/subtyping.html> for more information about variance
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E6.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E6.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E6.rs:20:9
+   |
+19 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             --                        --- `ctx` is a reference that is only valid in the method body
+   |             |
+   |             lifetime `'m` defined here
+20 |         STASH.with(|s| *s.borrow_mut() = Some(ctx));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E7.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E7.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E7.rs:21:26
+   |
+19 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             --                        --- `ctx` is a reference that is only valid in the method body
+   |             |
+   |             lifetime `'m` defined here
+20 |         let g = ctx.grant::<SELECT>()?;
+21 |         if let Some(t) = TX.get() { if let Ok(t) = t.lock() { let _ = t.send(g); } }
+   |                          ^^^^^^^^
+   |                          |
+   |                          `ctx` escapes the method body here
+   |                          argument requires that `'m` must outlive `'static`
+   |
+   = note: requirement occurs because of the type `OnceLock<std::sync::Mutex<std::sync::mpsc::Sender<f7x::Granted<'_, f7x::DataCap<1>>>>>`, which makes the generic argument `std::sync::Mutex<std::sync::mpsc::Sender<f7x::Granted<'_, f7x::DataCap<1>>>>` invariant
+   = note: the struct `OnceLock<T>` is invariant over the parameter `T`
+   = help: see <https://doc.rust-lang.org/nomicon/subtyping.html> for more information about variance
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E8.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E8.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E8.rs:19:114
+   |
+18 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             -- lifetime `'m` defined here
+19 |         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<Box<dyn std::any::Any + Send>>(); let _ = tx.send(Box::new(ctx));
+   |                                                                                                                  ^^^^^^^^^^^^^ coercion requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E9.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E9.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E9.rs:19:82
+   |
+18 | ...xt<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |       --                        --- `ctx` is a reference that is only valid in the method body
+   |       |
+   |       lifetime `'m` defined here
+19 | ...et g = std::sync::Arc::new(ctx.grant::<SELECT>()?); let g2 = g.clone(); tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; drop(g2); });
+   |                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                                                                            |
+   |                                                                            `ctx` escapes the method body here
+   |                                                                            argument requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E10.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E10.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E10.rs:19:16
+   |
+18 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             -- lifetime `'m` defined here
+19 |         let g: &'static Granted<'_, DataCap<SELECT>> = Box::leak(Box::new(ctx.grant::<SELECT>()?)); tokio::spawn(async move { tokio:...
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ type annotation requires that `'m` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E11.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E11.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E11.rs:24:40
+   |
+19 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |               -- lifetime `'r` defined here
+...
+24 |         ctx.detach(&done, KeepCap { g: ctx.grant::<INSERT>()? })?;
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E12.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E12.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0277]: `D` cannot be sent between threads safely
+  --> mutants/d2_E12.rs:24:36
+   |
+24 |         ctx.detach(&done, KeepDb { db })?;
+   |                                    ^^ `D` cannot be sent between threads safely
+   |
+note: required by a bound in `KeepDb`
+  --> mutants/d2_E12.rs:13:18
+   |
+13 | struct KeepDb<T: Send + Sync + 'static> { db: &'static T }
+   |                  ^^^^ required by this bound in `KeepDb`
+help: consider further restricting type parameter `D` with trait `Send`
+   |
+19 |     fn handle<'r, D: TenantDb<'r> + std::marker::Send>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |                                   +++++++++++++++++++
+
+error[E0277]: `D` cannot be shared between threads safely
+  --> mutants/d2_E12.rs:24:36
+   |
+24 |         ctx.detach(&done, KeepDb { db })?;
+   |                                    ^^ `D` cannot be shared between threads safely
+   |
+note: required by a bound in `KeepDb`
+  --> mutants/d2_E12.rs:13:25
+   |
+13 | struct KeepDb<T: Send + Sync + 'static> { db: &'static T }
+   |                         ^^^^ required by this bound in `KeepDb`
+help: consider further restricting type parameter `D` with trait `Sync`
+   |
+19 |     fn handle<'r, D: TenantDb<'r> + std::marker::Sync>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |                                   +++++++++++++++++++
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E12b.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E12b.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E12b.rs:24:46
+   |
+19 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |               -- lifetime `'r` defined here
+...
+24 |         ctx.detach(&done, KeepPrincipal { p: ctx.principal() })?;
+   |                                              ^^^^^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E13.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E13.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0308]: mismatched types
+  --> mutants/d2_E13.rs:20:20
+   |
+20 |         ctx.detach(&tx, AuditJob { key: 7 })?;
+   |             ------ ^^^ expected `&Tx<'_, Committed>`, found `&Tx<'_, Open>`
+   |             |
+   |             arguments to this method are incorrect
+   |
+   = note: expected reference `&Tx<'_, Committed>`
+              found reference `&Tx<'_, Open>`
+note: method defined here
+  --> $WORKSPACE/f7x/src/d2.rs
+   |
+   |     pub fn detach<J: Job>(&self, _after: &Tx<'r, Committed>, job: J) -> Result<(), SdkError> {
+   |            ^^^^^^
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E14.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E14.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E14.rs:13:19
+   |
+12 |     fn open<'r, D: Db<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<G, SdkError> {
+   |             -- lifetime `'r` defined here
+13 |         Ok(G { g: ctx.grant::<SELECT>()? })
+   |                   ^^^^^^^^^^^^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E15.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E15.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: lifetime may not live long enough
+  --> mutants/d2_E15.rs:13:20
+   |
+12 |     fn open<'r, D: Db<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<G, SdkError> {
+   |             -- lifetime `'r` defined here
+13 |         Ok(G { tx: db.begin()? })
+   |                    ^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E16.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E16.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0382]: borrow of moved value: `tx`
+  --> mutants/d2_E16.rs:21:16
+   |
+18 |         let mut tx = db.begin()?;
+   |             ------ move occurs because `tx` has type `Tx<'_, Open>`, which does not implement the `Copy` trait
+19 |         db.run(&mut tx, &g, Op::insert(1, "a"))?;
+20 |         let done = db.commit(tx)?;
+   |                              -- value moved here
+21 |         db.run(&mut tx, &g, Op::insert(2, "dup"))?;
+   |                ^^^^^^^ value borrowed here after move
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E17.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E17.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0451]: fields `_c` and `_r` of struct `f7x::Granted` are private
+  --> mutants/d2_E17.rs:19:57
+   |
+19 |         let g: Granted<'_, DataCap<INSERT>> = Granted { _c: PhantomData, _r: PhantomData };
+   |                                                         ^^ private field ^^ private field
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d2_E18.rs ... wip
+
+NOTE: writing the following output to `mutants/d2_E18.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: usage of an `unsafe` block
+  --> mutants/d2_E18.rs:19:52
+   |
+19 | ...   let g: Granted<'static, DataCap<SELECT>> = unsafe { core::mem::transmute(ctx.grant::<SELECT>()?) }; tokio::spawn(async move { ...
+   |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> mutants/d2_E18.rs:2:11
+   |
+ 2 | #![forbid(unsafe_code)]
+   |           ^^^^^^^^^^^
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3strict_S1.rs ... wip
+
+NOTE: writing the following output to `mutants/d3strict_S1.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: future cannot be sent between threads safely
+  --> mutants/d3strict_S1.rs:12:9
+   |
+12 | /         tokio::spawn(async move {
+13 | |             let Ok(g) = ctx.grant::<SELECT>() else { return };
+14 | |             let Ok(mut t) = db.begin() else { return };
+15 | |             if db.run(&mut t, &g, Op::select(0)).is_ok() { let _ = tx.send("row".to_string()).await; }
+16 | |         });
+   | |__________^ future created by async block is not `Send`
+   |
+note: captured value is not `Send` because `&` references cannot be sent unless their referent is `Sync`
+  --> mutants/d3strict_S1.rs:14:29
+   |
+14 |             let Ok(mut t) = db.begin() else { return };
+   |                             ^^ has type `&D` which is not `Send`, because `D` is not `Sync`
+note: required by a bound in `tokio::spawn`
+  --> $CARGO/tokio-$VERSION/src/task/spawn.rs
+   |
+   |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+   |            ----- required by a bound in this function
+   |     where
+   |         F: Future + Send + 'static,
+   |                     ^^^^ required by this bound in `spawn`
+help: consider further restricting type parameter `D` with trait `Sync`
+   |
+10 |     fn handle<'r, D: TenantDb<'r> + std::marker::Sync>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Response, SdkError> {
+   |                                   +++++++++++++++++++
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3strict_S2.rs ... wip
+
+NOTE: writing the following output to `mutants/d3strict_S2.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d3strict_S2.rs:13:9
+   |
+10 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Response, SdkError> {
+   |               --                          --- `ctx` is a reference that is only valid in the method body
+   |               |
+   |               lifetime `'r` defined here
+...
+13 |         tokio::spawn(async move { let _g = g; let _ = tx.send("tick".to_string()).await; });
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3strict_S3.rs ... wip
+
+NOTE: writing the following output to `mutants/d3strict_S3.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d3strict_S3.rs:12:9
+   |
+10 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Response, SdkError> {
+   |               --                          --- `ctx` is a reference that is only valid in the method body
+   |               |
+   |               lifetime `'r` defined here
+11 |         let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(8);
+12 |         tokio::spawn(async move { while let Some(_m) = rx.recv().await { let _ = ctx.grant::<SELECT>(); } });
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3strict_S4.rs ... wip
+
+NOTE: writing the following output to `mutants/d3strict_S4.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d3strict_S4.rs:15:9
+   |
+10 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |               --                          --- `ctx` is a reference that is only valid in the method body
+   |               |
+   |               lifetime `'r` defined here
+...
+15 |         tokio::spawn(async move { let Ok(g) = ctx.grant::<INSERT>() else { return }; let _ = g; });
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'r` must outlive `'static`
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3_C1.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_C2.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E1.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E2.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E3.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E4.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E5.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E6.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E7.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E8.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E9.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E10.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E11.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E12.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E12b.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E13.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E14.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E15.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+test mutants/d3_E16.rs ... wip
+
+NOTE: writing the following output to `mutants/d3_E16.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0382]: borrow of moved value: `tx`
+  --> mutants/d3_E16.rs:16:16
+   |
+13 |         let mut tx = db.begin()?;
+   |             ------ move occurs because `tx` has type `OwnedTx<Open>`, which does not implement the `Copy` trait
+14 |         db.run(&mut tx, &g, Op::insert(1, "a"))?;
+15 |         let done = db.commit(tx)?;
+   |                              -- value moved here
+16 |         db.run(&mut tx, &g, Op::insert(2, "dup"))?;
+   |                ^^^^^^^ value borrowed here after move
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3_E17.rs ... wip
+
+NOTE: writing the following output to `mutants/d3_E17.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error[E0423]: cannot initialize a tuple struct which contains private fields
+  --> mutants/d3_E17.rs:11:17
+   |
+11 |         let g = OwnedGranted::<INSERT>(PhantomData);
+   |                 ^^^^^^^^^^^^
+   |
+   = note: a struct named `OwnedGranted` exists in another namespace
+note: constructor is not visible here due to private fields
+  --> $WORKSPACE/f7x/src/d3.rs
+   |
+   | pub struct OwnedGranted<const K: u8>(PhantomData<()>);
+   |                                      ^^^^^^^^^^^^^^^ private field
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3_E18.rs ... wip
+
+NOTE: writing the following output to `mutants/d3_E18.stderr`.
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+error: usage of an `unsafe` block
+  --> mutants/d3_E18.rs:11:27
+   |
+11 |         let c: OwnedCtx = unsafe { core::mem::transmute::<OwnedCtx, OwnedCtx>(ctx) };
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> mutants/d3_E18.rs:2:11
+   |
+ 2 | #![forbid(unsafe_code)]
+   |           ^^^^^^^^^^^
+┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+test mutants/d3_E19.rs ... error
+Expected test case to fail to compile, but it succeeded.
+
+
+
+error: test failed, to rerun pass `-p corpus --test mutants`
+0 results/measure-summary.txt

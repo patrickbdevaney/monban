@@ -8,4 +8,4 @@ leanOptions = { autoImplicit = false }
 
 [[lean_lib]]
 name = "AegisIR"
-roots = ["AegisIR.Lowering", "AegisIR.Token", "AegisIR.Combine", "AegisIR.Vacuity"]
+roots = ["AegisIR.Lowering", "AegisIR.Token", "AegisIR.Combine", "AegisIR.Vacuity", "AegisIR.ThreeValued"]

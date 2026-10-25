@@ -1,0 +1,13 @@
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d3strict_S3.rs:12:9
+   |
+10 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Response, SdkError> {
+   |               --                          --- `ctx` is a reference that is only valid in the method body
+   |               |
+   |               lifetime `'r` defined here
+11 |         let (tx, mut rx) = tokio::sync::mpsc::channel::<String>(8);
+12 |         tokio::spawn(async move { while let Some(_m) = rx.recv().await { let _ = ctx.grant::<SELECT>(); } });
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'r` must outlive `'static`

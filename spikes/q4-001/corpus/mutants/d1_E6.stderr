@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E6.rs:14:13
+   |
+11 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+14 |             STASH.with(|s| *s.borrow_mut() = Some(ctx));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`

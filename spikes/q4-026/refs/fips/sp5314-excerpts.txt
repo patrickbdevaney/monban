@@ -1,0 +1,14 @@
+# Excerpts from CMVP #5314 (static) Security Policy, sha256 9e0c9f57...f34e
+KAS-ECC-SSC      A6288, A6289, A6291, A6295,            Domain Parameter Generation          SP 800-56A
+Sp800-56Ar3      A6312, A6313, A6314, A6315             Methods - P-224, P-256, P-384, P-521 Rev. 3
+                                                        Scheme -
+                                                        ephemeralUnified -
+                                                        KAS Role - initiator, responder
+KDA HKDF         A6288, A6289, A6291, A6295,            Derived Key Length - 2048            SP 800-56C
+ML-KEM           A6288, A6289, A6291, A6295,            Parameter Sets - ML-KEM-1024, ML-          FIPS 203
+EncapDecap       A6312, A6313, A6314, A6315             KEM-512, ML-KEM-768
+                                                        Functions - Decapsulation,
+                                                        Encapsulation
+ML-KEM           A6288, A6289, A6291, A6295,            Parameter Sets - ML-KEM-1024, ML-          FIPS 203
+KeyGen           A6312, A6313, A6314, A6315             KEM-512, ML-KEM-768
+PBKDF            A6288, A6289, A6291, A6295,            Iteration Count - Iteration Count:         SP 800-132

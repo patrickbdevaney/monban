@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E7.rs:15:30
+   |
+11 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+15 |             if let Some(t) = TX.get() { if let Ok(t) = t.lock() { let _ = t.send(g); } }
+   |                              ^^^^^^^^ argument requires that `'r` must outlive `'static`

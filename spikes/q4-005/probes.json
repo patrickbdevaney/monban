@@ -1,0 +1,732 @@
+{
+ "mariadb_version": "11.8.9-MariaDB-ubu2404",
+ "mariadb": {
+  "update-returning": {
+   "steps": [
+    {
+     "sql": "UPDATE z SET x = ? WHERE id = ? RETURNING id, x",
+     "params": [
+      "b",
+      1
+     ],
+     "error": "1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'RETURNING id, x' at line 1"
+    }
+   ],
+   "finding": "UPDATE ... RETURNING is a syntax error (1064) on 11.8.9-MariaDB-ubu2404: RETURNING only on INSERT/REPLACE/DELETE"
+  },
+  "guarded-odku-composite-pk-utf8mb4_bin": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "acme ",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W4/W3: arbiter matched tenant 'acme' row for tenant 'acme '; guard blocked the write (silent no-op) but RETURNING returned the foreign row"
+  },
+  "guarded-odku-composite-pk-utf8mb4_general_ci": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "ACME",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W4/W3: arbiter matched tenant 'acme' row for tenant 'ACME'; guard blocked the write (silent no-op) but RETURNING returned the foreign row"
+  },
+  "guarded-odku-composite-pk-utf8mb4_nopad_bin": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "acme ",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme ",
+        1,
+        "N"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ],
+       [
+        "acme ",
+        1,
+        "N"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "no capture (exact arbiter)"
+  },
+  "prefix-length-key-part": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "acmX",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "secret-of-acme"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = VALUES(x) RETURNING tenant, id, x",
+     "params": [
+      "acmY",
+      1,
+      "PWN"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W3: PRIMARY KEY (tenant(3), id) under NO PAD binary still lets tenant 'acmX' arbitrate onto 'acme' (guarded: RETURNING leak; unguarded: foreign row overwritten). Schema gate must reject prefix key parts"
+  },
+  "second-unique-index-odku": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "evil",
+        1,
+        "secret-of-evil"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = VALUES(x) RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "PWN"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "evil",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "evil",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W3/W4 (+W1 unguarded): ODKU arbiter is ANY unique index; UNIQUE(id) beside PK(tenant,id) selects tenant evil's row; guarded form returns it via RETURNING, unguarded form overwrites it"
+  },
+  "tenant-scoped-second-unique": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?) ON DUPLICATE KEY UPDATE x = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      99,
+      "a"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        5,
+        "a"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z order by id",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        5,
+        "a"
+       ],
+       [
+        "acme",
+        6,
+        "b"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "no foreign capture (secondary key contains tenant under NO PAD binary), but arbiter != (t,id): request for id 99 resolved onto own row id 5 (no insert) -> E/W3 violation; ODKU needs exactly one unique index"
+  },
+  "replace-family": {
+   "steps": [
+    {
+     "sql": "REPLACE INTO z (tenant, id, x) VALUES (?,?,?) RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "R"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "R"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z order by id",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "R"
+       ],
+       [
+        "evil",
+        2,
+        "e2"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W1: REPLACE deletes tenant evil's row conflicting on UNIQUE(id) (REPLACE family stays denylisted)"
+  },
+  "non-strict-truncation": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?)",
+     "params": [
+      "acmeEVIL",
+      7,
+      "N"
+     ],
+     "result": [
+      null,
+      []
+     ]
+    },
+    {
+     "sql": "show warnings",
+     "params": [],
+     "result": [
+      [
+       "Level",
+       "Code",
+       "Message"
+      ],
+      [
+       [
+        "Warning",
+        1265,
+        "Data truncated for column 'tenant' at row 1"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        7,
+        "N"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES (?,?,?)",
+     "params": [
+      "acmeEVIL",
+      8,
+      "N"
+     ],
+     "error": "1406 (22001): Data too long for column 'tenant' at row 1"
+    },
+    {
+     "sql": "INSERT IGNORE INTO z (tenant, id, x) VALUES (?,?,?)",
+     "params": [
+      "acmeEVIL",
+      9,
+      "N"
+     ],
+     "result": [
+      null,
+      []
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z order by id",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        7,
+        "N"
+       ],
+       [
+        "acme",
+        9,
+        "N"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W2: with sql_mode='' (or INSERT IGNORE even under STRICT) tenant 'acmeEVIL' is truncated to 'acme' (post-image owned by another tenant). Mandate: session sql_mode pinned STRICT_ALL_TABLES, no IGNORE"
+  },
+  "odku-affected-rows": {
+   "steps": [
+    {
+     "odku": [
+      "acme",
+      1,
+      "a"
+     ],
+     "row_count": 0
+    },
+    {
+     "odku": [
+      "acme",
+      1,
+      "b"
+     ],
+     "row_count": 2
+    },
+    {
+     "odku": [
+      "acme",
+      2,
+      "c"
+     ],
+     "row_count": 1
+    }
+   ],
+   "finding": "ODKU affected rows 0 (unchanged) / 2 (updated) / 1 (inserted): an existence signal; W6 (uniform failure) requires the adapter to hide row_count from modules"
+  }
+ },
+ "cockroach_version": "CockroachDB CCL v25.4.18 (x86_64-pc-linux-gnu, built 2026/10/21 01:51:14, go1.23.12 X:nocoverageredesign)",
+ "cockroachdb": {
+  "upsert-statement-global-pk": {
+   "steps": [
+    {
+     "sql": "UPSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) RETURNING tenant, id, x, y",
+     "params": [
+      "acme",
+      1,
+      "PWN"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x",
+       "y"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN",
+        null
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x, y from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x",
+       "y"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN",
+        null
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W1: UPSERT arbiter is always the primary key (no arbiter list, no WHERE guard): tenant evil's row id 1 is overwritten and re-tenanted (W1). Denylist UPSERT"
+  },
+  "second-unique-index": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE z.tenant = excluded.tenant COLLATE \"C\" RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "N"
+     ],
+     "error": "ERROR 23505: duplicate key value violates unique constraint \"z_id_key\""
+    },
+    {
+     "sql": "UPSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "N"
+     ],
+     "error": "ERROR 23505: duplicate key value violates unique constraint \"z_id_key\""
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING tenant, id, x",
+     "params": [
+      "acme",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      []
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "evil",
+        1,
+        "secret-of-evil"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "no capture: ON CONFLICT (tenant,id) and UPSERT raise 23505 on the other unique index (fail-closed); arbiter-less ON CONFLICT DO NOTHING silently skips (existence signal, W6) -> require explicit arbiter"
+  },
+  "collated-composite-pk": {
+   "steps": [
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE z.tenant = excluded.tenant COLLATE \"C\" RETURNING tenant, id, x",
+     "params": [
+      "ACME",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "N"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE z.tenant::text = excluded.tenant::text COLLATE \"C\" RETURNING tenant, id, x",
+     "params": [
+      "ACME",
+      1,
+      "N"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      []
+     ]
+    },
+    {
+     "sql": "INSERT INTO z (tenant, id, x) VALUES ($1,$2,$3) ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x RETURNING tenant, id, x",
+     "params": [
+      "ACME",
+      1,
+      "PWN"
+     ],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    },
+    {
+     "sql": "select tenant, id, x from z",
+     "params": [],
+     "result": [
+      [
+       "tenant",
+       "id",
+       "x"
+      ],
+      [
+       [
+        "acme",
+        1,
+        "PWN"
+       ]
+      ]
+     ]
+    }
+   ],
+   "finding": "LEAK W1/W3: collated (case-insensitive) tenant in the PK. The oracle's postgres guard `t.tenant = excluded.tenant COLLATE \"C\"` is evaluated under the column collation on CockroachDB and lets tenant 'ACME' overwrite tenant 'acme' (on PostgreSQL the explicit COLLATE wins). The ::text-cast guard no-ops (E, no leak); unguarded form overwrites. Schema gate must refuse collated tenant/key columns and the CockroachDB guard must cast both sides to text"
+  },
+  "serializable-retries": {
+   "commits": 320,
+   "retries_40001": 1830,
+   "other_errors": 0,
+   "max_attempts": 58,
+   "abandoned_after_200": 0,
+   "commits_per_tenant": {
+    "acme": 160,
+    "evil": 160
+   },
+   "wall_s": 3.56,
+   "sum_n_per_tenant": {
+    "acme": 1600,
+    "evil": 1600
+   },
+   "expected_sum_n": {
+    "acme": 1600,
+    "evil": 1600
+   },
+   "ok": true,
+   "finding": "40001 retries observed and handled by whole-transaction retry; increments exactly once per commit (no partial or duplicated writes)"
+  }
+ }
+}

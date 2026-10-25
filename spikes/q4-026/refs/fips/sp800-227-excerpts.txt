@@ -1,0 +1,35 @@
+# Excerpts from NIST SP 800-227 (Sept 2025) sha256 41e427a4...4614, https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-227.pdf
+Key combiners derived from SP 800-56C. In both one-step and two-step key derivation,
+SP 800-56C allows the shared secret Z to have the form Z = (S1 , S2 ), where S1 is a shared
+
+                                               29
+NIST SP 800-227
+September 2025                                                           Recommendations for KEMs
+
+
+
+secret generated as specified in SP 800-56A [1] or SP 800-56B [2], while S2 is a shared secret
+generated in some other (not necessarily approved) manner. This yields a key combiner
+K ← KDM((S1 , S2 ), OtherInput) for a two-algorithm key-establishment scheme. One can
+also combine many shared secrets:
+
+                          K ← KDM((S1 , S2 , · · · , St ), OtherInput) .                          (14)
+
+This publication approves the use of the key combiner (14) for any t > 1 if at least one
+shared secret (i.e., S j for some j) is generated from the key-establishment methods in SP
+800-56A [1] or SP 800-56B [2] or an approved KEM. If the KDM in the combiner (14) is a
+
+Key combiners derived from SP 800-133. SP 800-133 [18] provides three approved meth-
+ods for combining cryptographic keys that were generated in an approved way. These
+methods can be broadly described as concatenation, XORing, and key extraction using
+HMAC. Some of these methods can also be applied to just a single key. As discussed in
+Sec. 4.3, these methods are approved for key derivation for approved KEMs.
+When combining multiple keys K1 , K2 , . . . , Kt , the key-combination methods found in SP
+800-133 [18] require every key K j for j ∈ {1, 2, . . . ,t} to be generated using approved
+methods. These methods can be used directly as key combiners for constructing multi-
+algorithm schemes in cases where all of the component schemes are approved, and each
+one produces a key. Any protocol using multi-algorithm KEMs with a concatenation key
+combiner should ensure that the final shared secret key from the key combiner is passed
+through a KDF before use.
+
+                                                 30

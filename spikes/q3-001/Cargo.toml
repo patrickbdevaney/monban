@@ -1,0 +1,23 @@
+# q3-001 handshake-capacity spike. Own workspace; dependency set = oracles/hrr-verdicts/Cargo.lock (cooldown-clean)
+# plus libc (already present in that lock). Build only via ci/heavy.sh (see ./run.sh).
+[package]
+name = "hsbench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+rustls-webpki = { version = "=0.103.15", default-features = false, features = ["alloc", "aws-lc-rs"] }
+rcgen = { version = "=0.14.10", default-features = false, features = ["aws_lc_rs", "crypto"] }
+libc = "=0.2.191"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+debug = false

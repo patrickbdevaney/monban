@@ -1,0 +1,170 @@
+{
+ "mariadb:drop-tenant": {
+  "expect": "W1",
+  "W1": 300,
+  "W2": 144,
+  "W4": 303,
+  "E": 303,
+  "caught": true
+ },
+ "mariadb:upsert-global-arbiter": {
+  "expect": "W1",
+  "W1": 45,
+  "W2": 45,
+  "W4": 70,
+  "E": 2,
+  "caught": true
+ },
+ "mariadb:replace-into": {
+  "expect": "W1",
+  "W1": 70,
+  "W2": 0,
+  "W4": 0,
+  "E": 20,
+  "caught": true
+ },
+ "mariadb:returning-star": {
+  "expect": "W4",
+  "W1": 0,
+  "W2": 0,
+  "W4": 733,
+  "E": 461,
+  "caught": true
+ },
+ "mariadb:set-tenant-passthrough": {
+  "expect": "W2",
+  "W1": 0,
+  "W2": 15,
+  "W4": 6,
+  "E": 0,
+  "caught": true
+ },
+ "mariadb:upsert-tenant-from-row": {
+  "expect": "W2",
+  "W1": 4,
+  "W2": 16,
+  "W4": 16,
+  "E": 0,
+  "caught": true
+ },
+ "mariadb:like-prefix": {
+  "expect": "W1",
+  "W1": 9,
+  "W2": 0,
+  "W4": 0,
+  "E": 9,
+  "caught": true
+ },
+ "mariadb:my-column-collation": {
+  "expect": "W1",
+  "W1": 56,
+  "W2": 22,
+  "W4": 41,
+  "E": 68,
+  "caught": true
+ },
+ "mariadb:my-bin-padspace": {
+  "expect": "W1",
+  "W1": 45,
+  "W2": 24,
+  "W4": 45,
+  "E": 45,
+  "caught": true
+ },
+ "mariadb:my-update-returning-naive": {
+  "expect": "W4",
+  "W1": 0,
+  "W2": 0,
+  "W4": 147,
+  "E": 147,
+  "caught": true
+ },
+ "mariadb:refuse-all": {
+  "expect": "E",
+  "W1": 0,
+  "W2": 0,
+  "W4": 0,
+  "E": 461,
+  "caught": true
+ },
+ "cockroachdb:drop-tenant": {
+  "expect": "W1",
+  "W1": 300,
+  "W2": 144,
+  "W4": 303,
+  "E": 303,
+  "caught": true
+ },
+ "cockroachdb:upsert-global-arbiter": {
+  "expect": "W1",
+  "W1": 90,
+  "W2": 90,
+  "W4": 140,
+  "E": 91,
+  "caught": true
+ },
+ "cockroachdb:returning-star": {
+  "expect": "W4",
+  "W1": 0,
+  "W2": 0,
+  "W4": 665,
+  "E": 370,
+  "caught": true
+ },
+ "cockroachdb:set-tenant-passthrough": {
+  "expect": "W2",
+  "W1": 0,
+  "W2": 15,
+  "W4": 6,
+  "E": 0,
+  "caught": true
+ },
+ "cockroachdb:upsert-tenant-from-row": {
+  "expect": "W2",
+  "W1": 2,
+  "W2": 8,
+  "W4": 8,
+  "E": 0,
+  "caught": true
+ },
+ "cockroachdb:crdb-upsert-stmt": {
+  "expect": "W1",
+  "W1": 152,
+  "W2": 0,
+  "W4": 0,
+  "E": 9,
+  "caught": true
+ },
+ "cockroachdb:crdb-column-collation": {
+  "expect": "W1",
+  "W1": 32,
+  "W2": 17,
+  "W4": 32,
+  "E": 32,
+  "caught": true
+ },
+ "cockroachdb:refuse-all": {
+  "expect": "E",
+  "W1": 0,
+  "W2": 0,
+  "W4": 0,
+  "E": 370,
+  "caught": true
+ },
+ "cockroachdb (informational, not in verdict):pg-no-collate-c": {
+  "expect": "W1",
+  "W1": 0,
+  "W2": 0,
+  "W4": 0,
+  "E": 73,
+  "caught": false
+ },
+ "cockroachdb (informational, not in verdict):crdb-reference-guard": {
+  "expect": "W1",
+  "W1": 3,
+  "W2": 3,
+  "W4": 3,
+  "E": 73,
+  "caught": true
+ }
+}

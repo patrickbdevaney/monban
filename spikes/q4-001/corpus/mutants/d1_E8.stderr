@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E8.rs:13:118
+   |
+10 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+13 |             let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<Box<dyn std::any::Any + Send>>(); let _ = tx.send(Box::new(ctx));
+   |                                                                                                                      ^^^^^^^^^^^^^ coercion requires that `'r` must outlive `'static`

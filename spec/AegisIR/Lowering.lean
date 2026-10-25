@@ -87,7 +87,7 @@ structure Backend.Refines (B : Backend) : Prop where
 inductive SqlExpr where
   | lit    : Bool → SqlExpr
   | cmpEq  : Field → Value → SqlExpr
-  | inList : Field → List Value → SqlExpr          -- rendered as (f = v1 OR f = v2 ...) ; [] ⇒ FALSE
+  | inList : Field → List Value → SqlExpr          -- (f = v1 OR f = v2 ...); [] ⇒ FALSE on a non-NULL column, UNKNOWN on NULL (sql3_inList_nil)
   | between: Field → Value → Value → SqlExpr
   | pfx    : Field → String → SqlExpr
   | and    : SqlExpr → SqlExpr → SqlExpr

@@ -1,0 +1,32 @@
+== openssl 3.5.9 s_server -tls1_3 -groups SecP384r1MLKEM1024 -www   <-   kx11ed client (kx_groups=[0x11ED])
+rustls client handshake OK with 127.0.0.1:18444: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+  < HTTP/1.0 200 ok
+  < Content-type: text/html
+  < <HTML><BODY BGCOLOR="#ffffff">
+  < <pre>
+  < s_server -accept 18444 -cert /c.pem -key /k.pem -tls1_3 -groups SecP384r1MLKEM1024 -www -naccept 1 
+  < Ciphers supported in s_server binary
+  < Ciphers common between both SSL end points:
+  < Supported groups: SecP384r1MLKEM1024
+  < Shared groups: SecP384r1MLKEM1024
+  < New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+  <     Protocol  : TLSv1.3
+  <     Cipher    : TLS_AES_256_GCM_SHA384
+  (4378 bytes of application data received)
+
+== openssl 3.5.9 s_server -tls1_3 -groups X25519MLKEM768:SecP384r1MLKEM1024 -www   <-   kx11ed client (kx_groups=[0x11ED])
+rustls client handshake OK with 127.0.0.1:18444: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+  < HTTP/1.0 200 ok
+  < Content-type: text/html
+  < <HTML><BODY BGCOLOR="#ffffff">
+  < <pre>
+  < s_server -accept 18444 -cert /c.pem -key /k.pem -tls1_3 -groups X25519MLKEM768:SecP384r1MLKEM1024 -www -naccept 1 
+  < Ciphers supported in s_server binary
+  < Ciphers common between both SSL end points:
+  < Supported groups: SecP384r1MLKEM1024
+  < Shared groups: SecP384r1MLKEM1024
+  < New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+  <     Protocol  : TLSv1.3
+  <     Cipher    : TLS_AES_256_GCM_SHA384
+  (4393 bytes of application data received)
+

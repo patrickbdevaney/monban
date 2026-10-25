@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# AEGIS oracle: isolation-fi (Phase-5 P2 isolation fault gates). Contract: oracles/README.md.
+# Last line: ISOLATION-FI: PASS|FAIL (...)  /  ISOLATION-FI SELF-TEST: PASS|FAIL (...)
+#   ./run                          reduced run: both reference P2 paths (fresh-Wasm cordon, fork+Wasm), 7 fault
+#                                  classes at 1%, n=3000 per cell (< 10 min incl. build)
+#   ./run --self-test              5 mutated subjects that must be caught + unmutated control that must pass
+#   ./run --subject '<cmd>' --path cordon|forkwasm
+#                                  plug in a real server: it inherits a listening Unix socket on fd 3, speaks the
+#                                  8-byte protocol (README) and runs {guest} per request; {data} = host I/O file
+#   --keep-build                   keep rust/target (default: deleted at exit, laptop disk rule)
+#   other options are passed to isofi.py (--n, --rate, --server-core, --client-cores, --conc, --seed)
+# The whole run (build + fault injection) holds the machine-wide heavy-job lock via ci/heavy.sh.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ -z "${AEGIS_ISOFI_UNDER_HEAVY:-}" ]; then
+  exec env AEGIS_ISOFI_UNDER_HEAVY=1 HEAVY_TIMEOUT="${HEAVY_TIMEOUT:-1500}" "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+keep=0; args=()
+for x in "$@"; do if [ "$x" = "--keep-build" ]; then keep=1; else args+=("$x"); fi; done
+T="$HERE/rust/target"; W="$HERE/.work"
+cleanup() { [ "$keep" = 1 ] || rm -rf "$T"; rm -rf "$W"; }
+trap cleanup EXIT
+mkdir -p "$W"
+if ! "$HERE/rust/build.sh" "$T" >&2; then
+  echo "ISOLATION-FI: FAIL (build of the reference subjects / driver failed)"; exit 1
+fi
+python3 -I "$HERE/isofi.py" --bin "$T/release/isofi" --guest "$T/wasm32-unknown-unknown/release/guest.wasm" \
+  --data "$HERE/rust/data.bin" --workdir "$W" "${args[@]}"

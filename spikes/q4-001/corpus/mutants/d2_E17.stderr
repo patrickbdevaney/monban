@@ -1,0 +1,5 @@
+error[E0451]: fields `_c` and `_r` of struct `f7x::Granted` are private
+  --> mutants/d2_E17.rs:19:57
+   |
+19 |         let g: Granted<'_, DataCap<INSERT>> = Granted { _c: PhantomData, _r: PhantomData };
+   |                                                         ^^ private field ^^ private field

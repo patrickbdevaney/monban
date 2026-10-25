@@ -1,0 +1,10 @@
+error[E0382]: borrow of moved value: `tx`
+  --> mutants/d2_E16.rs:21:16
+   |
+18 |         let mut tx = db.begin()?;
+   |             ------ move occurs because `tx` has type `Tx<'_, Open>`, which does not implement the `Copy` trait
+19 |         db.run(&mut tx, &g, Op::insert(1, "a"))?;
+20 |         let done = db.commit(tx)?;
+   |                              -- value moved here
+21 |         db.run(&mut tx, &g, Op::insert(2, "dup"))?;
+   |                ^^^^^^^ value borrowed here after move

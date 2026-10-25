@@ -1,0 +1,7 @@
+error: lifetime may not live long enough
+  --> mutants/d2_E8.rs:19:114
+   |
+18 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             -- lifetime `'m` defined here
+19 |         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel::<Box<dyn std::any::Any + Send>>(); let _ = tx.send(Box::new(ctx));
+   |                                                                                                                  ^^^^^^^^^^^^^ coercion requires that `'m` must outlive `'static`

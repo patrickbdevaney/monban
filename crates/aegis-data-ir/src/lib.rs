@@ -4,9 +4,8 @@
 //! `eval` there (two-valued, absent field ⇒ atom false). Every adapter renders `lowerQ tenant p`: the tenant conjunct
 //! is added by the host from the minted `Principal`, never from request bytes.
 //!
-//! F4 freeze decision (provisional until spike q4-004 re-proves a three-valued reference): `check_schema` rejects
-//! `Not` over any subtree that reads a nullable field, because Kleene NOT over an absent field can admit rows the
-//! two-valued reference excludes (`refines_insufficient_for_not`, `not_absent_permits` in Lowering.lean).
+//! Policy semantics are three-valued (`eval3`/`refQ3` in spec/AegisIR/ThreeValued.lean, adopted from spike q4-004):
+//! on an exact backend the rendered SQL returns exactly the permitted rows; `Not` is accepted only by exact adapters.
 #![forbid(unsafe_code)]
 #![no_std]
 

@@ -1,0 +1,7 @@
+rustls server listening on :18443, kx_groups=[0x11ED], TLS1.3 only, ECDSA-P384 cert
+[127.0.0.1:52084] handshake OK: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+[127.0.0.1:52084] received 18 bytes: Some("GET / HTTP/1.0")
+[127.0.0.1:52086] handshake OK: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+[127.0.0.1:52086] received 18 bytes: Some("GET / HTTP/1.0")
+[127.0.0.1:52088] handshake OK: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_256_GCM_SHA384) version=Some(TLSv1_3)
+[127.0.0.1:52088] received 18 bytes: Some("GET / HTTP/1.0")

@@ -1,0 +1,11 @@
+error: usage of an `unsafe` block
+  --> mutants/d3_E18.rs:11:27
+   |
+11 |         let c: OwnedCtx = unsafe { core::mem::transmute::<OwnedCtx, OwnedCtx>(ctx) };
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> mutants/d3_E18.rs:2:11
+   |
+ 2 | #![forbid(unsafe_code)]
+   |           ^^^^^^^^^^^

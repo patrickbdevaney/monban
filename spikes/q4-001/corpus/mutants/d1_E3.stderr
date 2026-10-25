@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E3.rs:14:13
+   |
+10 | ...ents<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Event>)
+   |         -- lifetime `'r` defined here
+...
+14 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`
