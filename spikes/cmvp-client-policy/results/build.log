@@ -1,0 +1,21 @@
+heavy.sh: waiting for the heavy-job lock (one at a time)...
+total 48376
+-rwxrwxr-x 1 patrickd patrickd 5743880 Oct 25 09:54 bad_client
+-rw-rw-r-- 1 patrickd patrickd 2125223 Oct 25 09:54 bad_client.map
+-rwxrwxr-x 1 patrickd patrickd 5742032 Oct 25 09:54 bad_resume
+-rw-rw-r-- 1 patrickd patrickd 2124543 Oct 25 09:54 bad_resume.map
+-rw-rw-r-- 1 patrickd patrickd     497 Oct 25 09:55 clippy-bad_client.log
+-rw-rw-r-- 1 patrickd patrickd     549 Oct 25 09:55 clippy-bad_resume.log
+-rw-rw-r-- 1 patrickd patrickd     523 Oct 25 09:55 clippy-dead_client.log
+-rw-rw-r-- 1 patrickd patrickd       0 Oct 25 09:55 clippy-pq_client.log
+-rw-rw-r-- 1 patrickd patrickd       0 Oct 25 09:55 clippy-srv_only.log
+-rwxrwxr-x 1 patrickd patrickd 5432088 Oct 25 09:54 dead_client
+-rw-rw-r-- 1 patrickd patrickd 1921076 Oct 25 09:54 dead_client.map
+-rwxrwxr-x 1 patrickd patrickd 5742712 Oct 25 09:54 pq_client
+-rw-rw-r-- 1 patrickd patrickd 2117985 Oct 25 09:54 pq_client.map
+-rwxrwxr-x 1 patrickd patrickd 3722656 Oct 25 09:55 pq_client.stripped
+-rw-rw-r-- 1 patrickd patrickd 2115698 Oct 25 09:55 pq_client.stripped.map
+-rwxrwxr-x 1 patrickd patrickd 5431872 Oct 25 09:54 srv_only
+-rw-rw-r-- 1 patrickd patrickd 1903250 Oct 25 09:54 srv_only.map
+-rwxrwxr-x 1 patrickd patrickd 3467800 Oct 25 09:54 srv_only.stripped
+-rw-rw-r-- 1 patrickd patrickd 1900686 Oct 25 09:54 srv_only.stripped.map

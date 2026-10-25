@@ -1,0 +1,5 @@
+{"variant":"base","stripped_bytes":4124888,"idle_rss_kb_start":4196,"idle_rss_kb_after_200req":5300,"threads_start":2,"threads_after":2,"openmetrics_series":""}
+{"variant":"metrics","stripped_bytes":4173888,"idle_rss_kb_start":4324,"idle_rss_kb_after_200req":5244,"threads_start":2,"threads_after":2,"openmetrics_series":"4"}
+{"variant":"metrics+logs","stripped_bytes":4706728,"idle_rss_kb_start":4992,"idle_rss_kb_after_200req":5984,"threads_start":2,"threads_after":2,"openmetrics_series":"4"}
+{"variant":"metrics+logs+otlp","stripped_bytes":5851224,"idle_rss_kb_start":5764,"idle_rss_kb_after_200req":7540,"threads_start":2,"threads_after":2,"openmetrics_series":"4"}
+{"variant":"metrics+logs+otlp-grpc","stripped_bytes":5870280,"idle_rss_kb_start":6136,"idle_rss_kb_after_200req":7992,"threads_start":2,"threads_after":2,"openmetrics_series":"4"}

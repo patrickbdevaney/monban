@@ -14,7 +14,7 @@ check() { # name expected-verdict expected-mode args...
   local ok=ok; { [ "$v" = "$ev" ] && [ "$m" = "$em" ]; } || { ok=MISMATCH; fails=$((fails+1)); }
   printf '%-28s expect %-5s %-13s got %-5s %-13s exit %s  %s\n' "$n" "$ev" "$em" "$v" "$m" "$code" "$ok"
 }
-{
+exec > >(tee "$r/selftest.txt")
 check srv_only            PASS compiled-out --features "" --bin "$o/srv_only" --map "$o/srv_only.stripped.map" --clippy-log "$o/clippy-srv_only.log"
 check pq_client           PASS pq-only      --features tls-client --bin "$o/pq_client" --map "$o/pq_client.stripped.map" --clippy-log "$o/clippy-pq_client.log" --probe "$r/probe-pq_client.json"
 check bad_client          FAIL -            --features tls-client --bin "$o/bad_client" --map "$o/bad_client.map" --clippy-log "$o/clippy-bad_client.log" --probe "$r/probe-bad_client.json"
@@ -33,5 +33,4 @@ n=mut_pq_second_suppression; G --features tls-client --bin "$o/pq_client" --clip
 v=$(python3 -c "import json;print(json.load(open('$r/gate-$n.json'))['verdict'])"); [ "$v" = FAIL ] && ok=ok || { ok=MISMATCH; fails=$((fails+1)); }
 printf '%-28s expect %-5s %-13s got %-5s %-13s %s\n' "$n" FAIL - "$v" - "$ok"; rm -rf "$r/mut-src"
 echo "self-test mismatches: $fails"
-} | tee "$r/selftest.txt"
 exit $fails

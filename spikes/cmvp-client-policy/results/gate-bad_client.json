@@ -1,0 +1,61 @@
+{
+ "manifest": "/home/patrickd/aegis/spikes/cmvp-client-policy/tlsbins",
+ "features": "tls-client",
+ "bin": "/home/patrickd/aegis/spikes/cmvp-client-policy/out/bad_client",
+ "checks": {
+  "M1_root_features": [
+   "default",
+   "tls-client"
+  ],
+  "M1_tls_client_feature_on": true,
+  "M0_rustls_in_graph": true,
+  "M2_third_party_client_ctors": [],
+  "M2_unallowlisted": [],
+  "B_symbols_total": 4088,
+  "B0_server_symbols": 95,
+  "B1_client_symbols": 143,
+  "B1_client_symbol_sample": [
+   "<&rustls::client::client_conn::EarlyDataState as core::fmt::Debug>::fmt",
+   "<alloc::sync::Arc<rustls::client::client_conn::ClientConfig>>::drop_slow",
+   "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<rustls::msgs::handshake::PresharedKeyBinder>, <rustls::client::ech::EchState>::grease_psk::{closure#0}>, core::result::Result<core::convert::Infallible, rustls::error::Error>> as core::iter::traits::iterator::Iterator>::next",
+   "<core::slice::iter::Iter<&dyn rustls::crypto::SupportedKxGroup> as core::iter::traits::iterator::Iterator>::find::<<rustls::client::tls12::ExpectServerDone as rustls::common_state::State<rustls::client::client_conn::ClientConnectionData>>::handle::{closure#2}>",
+   "<hashbrown::map::HashMap<rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData, std::hash::random::RandomState>>::remove::<rustls_pki_types::server_name::ServerName>",
+   "<hashbrown::map::HashMap<rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData, std::hash::random::RandomState>>::rustc_entry",
+   "<hashbrown::raw::RawTable<(rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData)>>::find::<hashbrown::map::equivalent_key<rustls_pki_types::server_name::ServerName, rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData>::{closure#0}>",
+   "<hashbrown::raw::RawTable<(rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData)>>::reserve_rehash::<hashbrown::map::make_hasher<rustls_pki_types::server_name::ServerName, rustls::client::handy::cache::ServerData, std::hash::random::RandomState>::{closure#0}>"
+  ],
+  "B2_map_client_refs": 167,
+  "B2_map_server_refs": 112,
+  "S1_clippy_disallowed_hits": 1,
+  "S2_suppressions": [
+   "/home/patrickd/aegis/spikes/cmvp-client-policy/tlsbins/src/lib.rs:68:    #[expect(clippy::disallowed_methods, reason = \"blessed cmvp PQ-only client constructor (P-PQ6)\")]"
+  ],
+  "P1_probes": [
+   {
+    "probe": "probe-bad_client.json",
+    "violations": [
+     "kx_groups=['X25519MLKEM768', 'X25519', 'secp256r1', 'secp384r1']",
+     "resumption=Resumption { store: ClientSessionMemoryCache, tls12_resumption: SessionIdOrTickets }",
+     "hello1 groups=['0x11EC', '0x001D', '0x0017', '0x0018'] shares=['0x11EC', '0x001D']",
+     "hello1 negotiated=X25519",
+     "hello2 groups=['0x11EC', '0x001D', '0x0017', '0x0018'] shares=['0x001D']",
+     "hello2 negotiated=X25519",
+     "hello2 resumes (session store present)",
+     "key-share prediction: hello2 shares ['0x001D'] != hello1 ['0x11EC', '0x001D']"
+    ]
+   }
+  ]
+ },
+ "verdict": "FAIL",
+ "reason": {
+  "compiled-out": [
+   "feature tls-client on",
+   "143 rustls::client symbols",
+   "167 rustls::client map refs"
+  ],
+  "pq-only": [
+   "S1 clippy clean",
+   "P1 probes present and clean"
+  ]
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "manifest": "/home/patrickd/aegis/spikes/cmvp-client-policy/tlsbins",
+ "features": "tls-client",
+ "bin": "/home/patrickd/aegis/spikes/cmvp-client-policy/out/dead_client",
+ "checks": {
+  "M1_root_features": [
+   "default",
+   "tls-client"
+  ],
+  "M1_tls_client_feature_on": true,
+  "M0_rustls_in_graph": true,
+  "M2_third_party_client_ctors": [],
+  "M2_unallowlisted": [],
+  "B_symbols_total": 3788,
+  "B0_server_symbols": 98,
+  "B1_client_symbols": 0,
+  "B1_client_symbol_sample": [],
+  "B2_map_client_refs": 0,
+  "B2_map_server_refs": 116,
+  "S1_clippy_disallowed_hits": 1,
+  "S2_suppressions": [
+   "/home/patrickd/aegis/spikes/cmvp-client-policy/tlsbins/src/lib.rs:68:    #[expect(clippy::disallowed_methods, reason = \"blessed cmvp PQ-only client constructor (P-PQ6)\")]"
+  ],
+  "P1_probes": []
+ },
+ "verdict": "FAIL",
+ "reason": {
+  "compiled-out": [
+   "feature tls-client on"
+  ],
+  "pq-only": [
+   "S1 clippy clean",
+   "P1 probes present and clean"
+  ]
+ }
+}

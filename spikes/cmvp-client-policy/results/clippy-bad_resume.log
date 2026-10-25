@@ -1,0 +1,10 @@
+warning: use of a disallowed method `rustls::ClientConfig::builder_with_provider`
+  --> src/bin/bad_resume.rs:10:15
+   |
+10 |     let cfg = rustls::ClientConfig::builder_with_provider(tlsbins::provider_with(&[kx_group::SECP256R1MLKEM768]))
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: P-PQ6: use pqclient::pq_only_client_config
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+   = note: `#[warn(clippy::disallowed_methods)]` on by default
+

@@ -17,7 +17,7 @@ def main():
         k = f"{p['name']}@{p['version']}"
         if k not in cache:
             req = urllib.request.Request(f"https://crates.io/api/v1/crates/{p['name']}/{p['version']}",
-                                         headers={"User-Agent": "aegis-spike lockage (patrickbdevaney@gmail.com)"})
+                                         headers={"User-Agent": "aegis-ci"})
             v = json.load(urllib.request.urlopen(req, timeout=30))["version"]
             cache[k] = {"created": v["created_at"][:10], "yanked": v["yanked"]}
         c = cache[k]

@@ -1,0 +1,47 @@
+{
+  "id": "cmvp-client-policy",
+  "question": "Can P-PQ6 (cmvp: no rustls client reachable, or every client kx_groups = [SECP256R1MLKEM768] with no key-share-prediction store) be checked mechanically, so the RUSTSEC-2026-0349 exception-ledger entry can cite a passing `fips_client_policy` gate (mode compiled-out | pq-only)?",
+  "flips_if": "cmvp client policy (compiled-out vs PQ-only): neither gate passes -> cmvp ledger entry for 0349 invalid; cmvp ships without clients",
+  "measured": {
+    "hardware": "developer laptop (i9-14900HX), rustc 1.99.1; gate correctness only, no performance claim",
+    "profile": "FLOOR (rustls 0.23.46 + aws-lc-rs 1.18.2 / aws-lc-sys 0.46.0, webpki 0.103.15), NOT the cmvp lock (rustls =0.23.43, aws-lc-rs =1.15.3, aws-lc-fips-sys =0.13.11); release profile = root Cargo.toml except strip (none for the twin, symbols for the shipped build)",
+    "rustls_feature_split": "rustls 0.23.46 features = aws-lc-rs, aws_lc_rs, brotli, custom-provider, default, fips, logging, prefer-post-quantum, read_buf, ring, std, tls12, zlib: there is NO client/server feature, so 'no client' cannot be proved from rustls features; it needs a first-party feature (tls-client) plus binary evidence",
+    "binaries": {
+      "srv_only":    {"nm_client_syms": 0,   "nm_server_syms": 98, "map_client_refs": 0,   "clippy_disallowed": 0, "gate": "PASS compiled-out"},
+      "dead_client": {"nm_client_syms": 0,   "nm_server_syms": 98, "map_client_refs": 0,   "clippy_disallowed": 1, "gate": "FAIL (feature tls-client on; client source present but LTO removed it)"},
+      "pq_client":   {"nm_client_syms": 151, "nm_server_syms": 95, "map_client_refs": 175, "clippy_disallowed": 0, "gate": "PASS pq-only", "probe": "both ClientHellos supported_groups=[0x11EB] key_share=[0x11EB], hello2 no pre_shared_key, negotiated secp256r1MLKEM768, resumption=NoClientSessionStorage/Disabled"},
+      "bad_client":  {"nm_client_syms": 143, "nm_server_syms": 95, "map_client_refs": 167, "clippy_disallowed": 1, "gate": "FAIL", "probe": "hello1 shares [0x11EC,0x001D] -> X25519; hello2 supported_groups still lists 0x11EC first but key_share=[0x001D] only + pre_shared_key: the RUSTSEC-2026-0349 shape (here recorded after a genuine handshake)"},
+      "bad_resume":  {"nm_client_syms": 143, "nm_server_syms": 95, "map_client_refs": 167, "clippy_disallowed": 1, "gate": "FAIL", "probe": "groups PQ-only but default ClientSessionMemoryCache: hello2 resumes (pre_shared_key)"}
+    },
+    "self_test": "12/12 expected verdicts (results/selftest.txt): 5 binaries + 7 mutants (feature on, stripped artifact -> ERROR via positive control, client binary under features-off, missing probe, bad probe, dirty clippy log, second suppression in source)",
+    "strip_twin_finding": "strip=none vs strip=symbols builds are NOT byte-identical (.text sha256 differs; ~0.55 M differing bytes, profile change alters crate hashes and layout), but their linker maps list the same symbol set modulo v0 crate-hash/back-reference encodings; objcopy --strip-all of the unstripped twin has the same size as the rustc-stripped binary but different bytes",
+    "store_symbol_finding": "pq_client still links ClientSessionMemoryCache drop glue (ClientConfig::builder installs the default store before it is replaced), so 'no key-share-prediction store' is NOT decidable from symbols; only the behavioural probe / startup assertion decides it",
+    "m2_scan": "pattern ClientConfig::builder | with_platform_verifier( | ClientConfig { flags hyper-rustls 0.27.10, reqwest 0.13.3, tonic 0.14.6, rustls-platform-verifier 0.7.0; not tokio-rustls 0.26.6, hyper-util 0.1.21, opentelemetry-http 0.33.1 (results/m2-registry-scan.txt)"
+  },
+  "verdict": "keep",
+  "decision_effect": {
+    "summary": "Both P-PQ6 modes are mechanically checkable and the prototype gate tells them apart correctly in both directions (12/12 self-test). The 0349 ledger entry stays valid on the condition that `fips_client_policy` passes on the cmvp artifact. Recommended cmvp mode: compiled-out (the strongest evidence, and it matches 'ACME as an external process' and the otlp-footprint verdict of an out-of-process exporter); pq-only is the fallback for a cmvp build that must dial origins.",
+    "gate_fips_client_policy": "PASS iff (A) compiled-out: M1 the cmvp feature set has `tls-client` off on every first-party crate (cargo metadata resolve features / cargo tree -e features) ∧ B0 positive control: the artifact carries rustls::server symbols (else ERROR: blind scan) ∧ B1 zero `rustls::client::` symbols (nm -C, unstripped twin) ∧ B2 zero `6rustls6client` sections in the linker map of the shipped (stripped) link; OR (B) pq-only: S1 clippy `disallowed-methods` (rustls::ClientConfig::builder, builder_with_provider, builder_with_protocol_versions, client::Resumption::in_memory_sessions/store) and `disallowed-types` (ClientSessionMemoryCache) clean at -D ∧ S2 exactly one suppression in first-party source, on the blessed constructor `aegis_tls::client::pq_only_client_config` ∧ M2 no third-party crate in the resolved graph whose source builds a ClientConfig unless allowlisted as taking an injected config ∧ P1 probe per blessed constructor: kx_groups == [secp256r1MLKEM768], resumption == NoClientSessionStorage + Tls12Resumption::Disabled, both ClientHellos list and share only 0x11EB, 2nd ClientHello has no pre_shared_key/early_data and the same key_share as the 1st, negotiated SECP256R1MLKEM768. Exit 0 PASS / 1 FAIL / 2 ERROR. Self-test: the 12-case matrix in spikes/cmvp-client-policy/selftest.sh.",
+    "type_level_rule": "First-party APIs that dial out take `PqClientConfig` (opaque newtype, constructor only in aegis-tls::client); `pq_only_client_config()` runs `assert_pq_only` at construction (startup assertion) and sets `resumption = Resumption::disabled()`, `enable_early_data = false`, TLS 1.3 only.",
+    "release_pipeline_rule": "The attested cmvp build passes `-C link-arg=-Wl,-Map=<out>/aegis.map` to the final binary (cargo rustc), and the gate reads that map (B2) so the evidence comes from the shipped link itself; B1 runs on an unstripped twin as a second, demangled view. Do not claim the twin is byte-identical: it is not.",
+    "ledger_entry_reachability_text": "client-side key-share prediction; cmvp gate fips_client_policy=PASS (mode: compiled-out: tls-client off, 0 rustls::client symbols/map sections, server-symbol positive control | pq-only: single blessed constructor, kx=[SECP256R1MLKEM768], Resumption::disabled, ClientHello probe clean)",
+    "SPEC_P_PQ6_note": "No text change needed. Add 'key-share-prediction store' := any ClientSessionStore other than NoClientSessionStorage (rustls Resumption::disabled()); a single-group client cannot be steered to another group, and with no store kx_hint() is always None (advisory text: 'clients with resumption disabled' are not affected)."
+  },
+  "rung": "R2 (executed checks with a 12-case self-test on the floor profile); not run against the cmvp lock",
+  "reproduce": [
+    "cd /home/patrickd/aegis/spikes/cmvp-client-policy",
+    "python3 -I lockage.py tlsbins/Cargo.lock --today 2026-10-25     # 35 packages, 0 violations",
+    "HEAVY_TIMEOUT=3600 ../../ci/heavy.sh ./build.sh > out-build.log 2>&1",
+    "./selftest.sh    # expect 'self-test mismatches: 0'",
+    "rm -rf target out"
+  ],
+  "limits": [
+    "Floor profile only. The cmvp lock (rustls 0.23.43, aws-lc-rs 1.15.3, aws-lc-fips-sys 0.13.11) was not built here (fips-sys needs Go/CMake and the certified AL2023 OE); the API surface the gate uses (ClientConfig builders, Resumption::disabled, kx_group::SECP256R1MLKEM768, handshake_kind, negotiated_key_exchange_group, client:: module path) was confirmed in the rustls 0.23.40 sources (older than 0.23.43, which is not cached locally; in 0.23.40 tls13.rs records set_kx_hint while processing the ServerHello, i.e. before authentication), but the gate must be re-run on the real cmvp artifact. In 0.23.43 the kx hint is recorded pre-authentication (the 0349 bug); pq-only remains safe there because a single-group client has nothing to downgrade to and NoClientSessionStorage stores nothing.",
+    "Symbol absence is evidence of 'not linked', which is stronger than 'not reachable' (it over-approximates reachability). Full inlining could in principle hide a small client function, but the client handshake is reached through vtable-dispatched State impls (ExpectServerHello::handle etc.), which cannot be inlined away; dead_client shows that unreachable client code is removed by LTO, which the gate deliberately does not rely on (M1 still fails it).",
+    "M2 is a source grep: it over-approximates (a hit does not mean the code is compiled) and misses construction through macros or exotic paths; the denylist is a backstop to B1/B2 and P1, not a proof.",
+    "S1/S2 cover first-party code only; clippy path resolution for re-exported rustls paths was confirmed on clippy 1.99.1 (lints fired on rustls::ClientConfig::builder and builder_with_provider).",
+    "The probe exercises each blessed constructor in process; in the real gate it is a unit test in aegis-tls plus the startup assertion. It checks behaviour against a well-behaved in-memory server, not against an active attacker.",
+    "M1 checks the root package's features here; in the workspace it must check `tls-client` on aegis-tls (and any crate that gains such a feature) in the resolved cmvp feature set."
+  ],
+  "date": "2026-10-25"
+}

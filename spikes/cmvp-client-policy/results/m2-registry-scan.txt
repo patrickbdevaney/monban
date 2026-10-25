@@ -1,0 +1,8 @@
+# M2 pattern ClientConfig::builder|with_platform_verifier(|ClientConfig { over local registry sources (2026-10-25)
+hyper-rustls-0.27.10: hyper-rustls-0.27.10/src/connector.rs hyper-rustls-0.27.10/src/connector/builder.rs hyper-rustls-0.27.10/src/config.rs 
+reqwest-0.13.3: reqwest-0.13.3/src/async_impl/h3_client/connect.rs reqwest-0.13.3/src/async_impl/client.rs 
+tonic-0.14.6: tonic-0.14.6/src/transport/channel/service/tls.rs 
+rustls-platform-verifier-0.7.0: rustls-platform-verifier-0.7.0/src/lib.rs 
+tokio-rustls-0.26.6: 
+hyper-util-0.1.21: 
+opentelemetry-http-0.33.1: 

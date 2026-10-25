@@ -224,16 +224,16 @@ pub mod probe {
             let neg = c.negotiated_key_exchange_group().map(|g| format!("{:?}", g.name())).unwrap_or_default();
             hellos.push(format!(
                 "{{\"supported_groups\":{},\"key_share\":{},\"pre_shared_key\":{psk},\"early_data\":{early},\
-                 \"negotiated\":\"{neg}\",\"kind\":\"{:?}\"}}",
+                 \"negotiated\":\"{neg}\",\"kind\":\"{}\"}}",
                 hex(&g),
                 hex(&k),
-                c.handshake_kind()
+                c.handshake_kind().map(|k| format!("{k:?}")).unwrap_or_default()
             ));
         }
         let groups: Vec<String> =
             cfg.crypto_provider().kx_groups.iter().map(|g| format!("\"{:?}\"", g.name())).collect();
         Ok(format!(
-            "{{\"kx_groups\":[{}],\"resumption\":\"{:?}\",\"hellos\":[{}]}}",
+            "{{\"kx_groups\":[{}],\"resumption\":\"{}\",\"hellos\":[{}]}}",
             groups.join(","),
             format!("{:?}", cfg.resumption).replace('"', "'"),
             hellos.join(",")

@@ -1,0 +1,10 @@
+warning: use of a disallowed method `rustls::ClientConfig::builder`
+ --> src/bin/dead_client.rs:6:15
+  |
+6 |     let cfg = rustls::ClientConfig::builder().with_root_certificates(rustls::RootCertStore::empty()).with_no_client_auth();
+  |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: P-PQ6: use pqclient::pq_only_client_config
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+  = note: `#[warn(clippy::disallowed_methods)]` on by default
+

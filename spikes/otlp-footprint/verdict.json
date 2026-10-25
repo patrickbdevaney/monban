@@ -1,0 +1,64 @@
+{
+  "id": "otlp-footprint",
+  "question": "Does an in-process OTLP exporter (opentelemetry + opentelemetry-otlp, http/protobuf, tracing integration) fit R-PERF-1 next to the always-compiled OpenMetrics endpoint, or must OTLP run as an out-of-process exporter over the existing IPC (ARCHITECTURE §3.10)?",
+  "flips_if": "ARCHITECTURE §3.10: OTLP stays behind a Cargo feature pending a footprint spike; if it busts R-PERF-1, run it as an out-of-process exporter over the existing IPC.",
+  "measured": {
+    "hardware": "developer laptop, Intel i9-14900HX, Linux 6.17.0-14-generic; rustc/cargo 1.99.1; NOT a VPS (grade cap B)",
+    "build": "release profile copied from /home/patrickd/aegis/Cargo.toml (lto=fat, codegen-units=1, panic=abort, strip=symbols, debug=false); x86_64-unknown-linux-gnu, glibc; all builds via ci/heavy.sh",
+    "pins": "tokio 1.53.3, hyper 1.12.0, hyper-util 0.1.21, tokio-rustls 0.26.6, rustls 0.23.46 (aws_lc_rs, prefer-post-quantum, tls12), aws-lc-rs 1.18.2 / aws-lc-sys 0.46.0, rustls-webpki 0.103.15, tracing 0.1.44, tracing-subscriber 0.3.23 (fmt,json), opentelemetry/_sdk/-otlp 0.33.1, tracing-opentelemetry 0.34.0; every registry package in the lock >= 7 days old (lockage.py: 139/139)",
+    "runtime_conditions": "tokio multi-thread, 1 worker; TLS 1.3 on loopback; RSS = VmRSS 2 s after 'ready' (start) and 3 s after 200 TLS requests (100 h1 + 100 h2, new connection each); OTLP variants export to a local dummy collector every 1 s (metrics) / 5 s batch (traces); 3 runs, median reported",
+    "variants": {
+      "base (tokio+hyper+rustls hello)": {"stripped_bytes": 4124888, "crates_shipped": 41, "crates_tree_normal": 46, "crates_metadata_normal": 49, "idle_rss_kb_start": 4212, "idle_rss_kb_after_200req": 5376},
+      "+metrics (hand-written OpenMetrics, admin listener)": {"stripped_bytes": 4173888, "crates_shipped": 41, "crates_tree_normal": 46, "crates_metadata_normal": 49, "idle_rss_kb_start": 4428, "idle_rss_kb_after_200req": 5284},
+      "+metrics+logs (tracing-subscriber JSON)": {"stripped_bytes": 4706728, "crates_shipped": 52, "crates_tree_normal": 57, "crates_metadata_normal": 59, "idle_rss_kb_start": 4736, "idle_rss_kb_after_200req": 5760},
+      "+metrics+logs+otlp (http/protobuf over hyper, traces+metrics)": {"stripped_bytes": 5851224, "crates_shipped": 74, "crates_tree_normal": 87, "crates_metadata_normal": 89, "idle_rss_kb_start": 5540, "idle_rss_kb_after_200req": 7508, "exports_seen": "POST /v1/traces + /v1/metrics, application/x-protobuf"},
+      "+metrics+logs+otlp-grpc (tonic, comparison)": {"stripped_bytes": 5870280, "crates_shipped": 83, "crates_tree_normal": 98, "crates_metadata_normal": 100, "idle_rss_kb_start": 5884, "idle_rss_kb_after_200req": 7900}
+    },
+    "deltas": {
+      "openmetrics_handwritten_vs_base": "+49,000 B (+0.05 MB), +0 crates, RSS within run-to-run noise",
+      "otlp_vs_logs (tracing already present)": "+1,144,496 B (+1.14 MB), +22 shipped / +30 tree crates, RSS +0.8 MB start / +1.75 MB after load",
+      "otlp+tracing_vs_metrics_only (tracing not otherwise present)": "+1,677,336 B (+1.68 MB), +33 shipped / +41 tree crates, RSS +1.1 MB start / +2.2 MB after load",
+      "grpc_vs_http": "+19 KB, +9 shipped crates (tonic, tower, prost-types, ...), RSS +0.4 MB",
+      "unsafe_proxy (lines with the token 'unsafe' in added crates' src, grade D, not cargo-geiger)": "otlp_vs_logs +1,009; logs_vs_metrics +535"
+    },
+    "against_R_PERF_1 (core baseline 4.21 MB / 40 crates / 3,325 unsafe / RSS 3.4-5.9 MB, ARCHITECTURE §6 w02.L5-lean-budget)": {
+      "stripped_<=6.0MB": "core + otlp = 5.36 MB (tracing already in core) to 5.89 MB (not) -> uses 64-94% of the 1.79 MB headroom",
+      "crates_<=60": "core 40 + 22..33 shipped (30..41 tree) = 62..81 -> BUSTS under every counting method",
+      "idle_rss_<=8MB": "core top 5.9 + 1.75..2.2 = 7.7..8.1 MB -> at/over the limit at the measured top of the core range",
+      "unsafe_<=5000": "3,325 + ~1,009 (proxy) = ~4,334 -> uses ~60% of the 1,675-line headroom",
+      "lock_surface": "opentelemetry crates enter Cargo.lock even with the feature off: +30 packages for cargo-vet (zero exemptions), cooldown, deny and repo-advisories in every profile; new duplicate syn 2/3 (proc-macro side)"
+    },
+    "out_of_process_estimate (grade E, not built)": {
+      "core_side": "span/metric records serialized onto the existing IPC (postcard frame, bounded ring, drop-with-counter, never block): ~+20-60 KB, 0 new crates if postcard/serde already in the core, ~+0.3 MB RSS for a 256 KiB ring; metrics need no exporter (OTel Collector prometheus receiver scrapes the always-on OpenMetrics endpoint)",
+      "exporter_process": "aegis-otel-export ~= measured otlp variant minus the TLS server: ~5-6 MB stripped, ~7.5 MB RSS, 70-90 crates, built and vetted as a separate artifact, unprivileged, the only process with egress to the collector",
+      "per_batch_cost": "one IPC hop 4.8-8.1 us (w02.ipc-hop-cost-1core) per batch, amortized"
+    }
+  },
+  "verdict": "flip",
+  "decision_effect": {
+    "summary": "OTLP leaves the core: no `otlp` Cargo feature in the AEGIS binary. An OTLP-enabled core busts the R-PERF-1 crate budget (62-81 > 60) and sits at the edge of the size (up to 5.89/6.0 MB) and idle-RSS (up to 8.1/8.0 MB) budgets; its crates load the lock, and the vet burden, of every profile even with the feature off. The always-compiled hand-written OpenMetrics endpoint costs 49 KB and 0 crates, so §3.10's 'metrics always compiled' is confirmed.",
+    "ARCHITECTURE_3_10_text_new": "Only **OTLP** runs **out of process**: the core writes span and metric records to the existing IPC (bounded, drop with a counter, never blocks); a separate `aegis-otel-export` binary (own lock section, vetted like any other) converts them to OTLP/HTTP-protobuf. Metrics-only deployments point an OpenTelemetry Collector's Prometheus receiver at the admin listener and need no exporter. Measured (otlp-footprint, laptop B): in-process OTLP = +1.14-1.68 MB, +22-33 shipped crates, +1.75-2.2 MB RSS after load, which busts R-PERF-1's crate budget; hand-written OpenMetrics = +49 KB, +0 crates.",
+    "REPO_LAYOUT_6_note": "Count crates with `cargo tree -e normal,no-proc-macro` (or `-e normal`) as well as `cargo metadata`: metadata's resolve lists weak `dep?/feature` deps as present (rustls-webpki `ring?/alloc` adds ring + getrandom 0.2 that are not built), so a metadata-only 'features-off build contains none of the feature's crates' gate can false-fail. State which count the ≤60 budget uses (core baseline 40 was not labelled).",
+    "cmvp_interaction": "An in-process OTLP exporter reaching a collector over HTTPS is a rustls client inside the core (hyper-rustls; flagged by the fips_client_policy M2 scan), which would rule out P-PQ6 mode 'compiled-out' for the cmvp core. Out of process keeps the core client-free."
+  },
+  "rung": "Measurement grade B (laptop, single host, 3 runs; absolute sizes are reproducible build outputs, RSS is noisy ±0.3 MB); out-of-process numbers are grade E estimates",
+  "reproduce": [
+    "cd /home/patrickd/aegis/spikes/otlp-footprint",
+    "python3 -I lockage.py hello/Cargo.lock --today 2026-10-25        # 0 violations",
+    "HEAVY_TIMEOUT=3600 ../../ci/heavy.sh ./build.sh > results/build.log 2>&1",
+    "for f in '' metrics metrics,logs metrics,logs,otlp metrics,logs,otlp-grpc; do n=${f:-base}; python3 -I crates.py hello \"$f\" > results/crates-${n//,/+}.json; done",
+    "for i in 1 2 3; do ./measure.sh > results/measure-run$i.jsonl 2> results/measure-run$i.stderr; done",
+    "rm -rf target bins"
+  ],
+  "limits": [
+    "A hello server is not the AEGIS core: deltas are added to the w02 core baseline (4.21 MB / 40 crates), whose crate-count method is not recorded; the hello's own base is 41 shipped / 46 tree / 49 metadata crates.",
+    "OTLP was exported over plain HTTP; HTTPS to a collector needs hyper-rustls (more crates, a rustls client) and was not measured, so the in-process numbers are a lower bound.",
+    "OTLP logs signal not exported (JSON logs stay on stderr/journald); traces + metrics only.",
+    "tokio 1.53.3 and rustls-webpki 0.103.15 were used instead of the floors 1.54.1 / 0.103.16 because the floors are < 7 days old (spike contract); footprint effect expected to be negligible, not measured.",
+    "Idle RSS is from loopback with 1 worker thread; 1k-idle-TLS RSS not measured; run-to-run RSS spread ~0.3-0.5 MB.",
+    "Unsafe delta is a token-count proxy (grade D), not cargo-geiger (not installed).",
+    "Run 1 (results/run1-unfiltered) had no level filter on the OTLP subscriber: the exporter's own hyper-client TRACE events fed back into the pipeline (11 MB RSS for grpc); fixed with LevelFilter::INFO before the reported runs. Shipping OTLP in process would need that filter as a hard rule.",
+    "The out-of-process exporter was not built; its numbers are estimates."
+  ],
+  "date": "2026-10-25"
+}
