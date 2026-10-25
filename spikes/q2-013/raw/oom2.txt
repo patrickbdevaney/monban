@@ -1,0 +1,2 @@
+cgroup-150M-continue: kani_exit=1 | VERIFICATION:- FAILED  | CBMC failed CBMC appears to have run out of memory. You may want to rerun your proof in an environment with additional memory or use stubbing to reduce the size of the code the verifier reasons about.  | HEAVY rc=1 wall_s=11.975990454 cgroup_peak_bytes=157286400 memmax=157286400 oom_events=oom_kill 1
+control-k8-6G: kani_exit=1 | 	 - Description: ""real bug"" Failed Checks: "real bug" VERIFICATION:- FAILED  | HEAVY rc=1 wall_s=15.074105807 cgroup_peak_bytes=164401152 memmax=6442450944 oom_events=oom_kill 0

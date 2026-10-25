@@ -1,0 +1,71 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: 1 warning emitted
+
+Checking harness proofs::gcra_window_inductive_fixed_t...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/budget__RNvNtCs2MpPnsOOfbk_6budget6proofs29gcra_window_inductive_fixed_t.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Runtime Symex: 0.0515361s
+size of program expression: 1494 steps
+slicing removed 780 assignments
+Generated 212 VCC(s), 43 remaining after simplification
+Runtime Postprocess Equation: 0.000596374s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.026261s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 9.323e-06s
+Solving with CaDiCaL 3.0.0
+13236 variables, 66570 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.00288702s
+Runtime decision procedure: 0.0296461s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+13237 variables, 66571 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.01221s
+Runtime decision procedure: 0.012516s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+13238 variables, 66572 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0107886s
+Runtime decision procedure: 0.0111074s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+13239 variables, 66573 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0185712s
+Runtime decision procedure: 0.0188969s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+13240 variables, 66574 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0525812s
+Runtime decision procedure: 0.0529372s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+13241 variables, 66575 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0462741s
+Runtime decision procedure: 0.0465974s
+Running propositional reduction
+HEAVY rc=124 wall_s=900.035216987 cgroup_peak_bytes=73498624 memmax=6442450944 oom_events=oom_kill 0

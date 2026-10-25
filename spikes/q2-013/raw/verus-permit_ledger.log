@@ -1,0 +1,61 @@
+verification results:: 10 verified, 0 errors
+warning: Outdated syntax for broadcast use.
+         Use curly braces for multiple uses.
+ --> permit_ledger.rs:8:1
+  |
+8 | broadcast use vstd::multiset::group_multiset_axioms, vstd::multiset::group_multiset_properties;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: 1 warning emitted
+
+(use --output-json for machine-readable output)
+verus-build-info
+Verus
+  Version: 0.2026.10.18.7d82994
+  Profile: release
+  Platform: linux_x86_64
+  Toolchain: 1.99.1-x86_64-unknown-linux-gnu (overridden by environment variable RUSTUP_TOOLCHAIN)
+
+total-time:            1503 ms
+    rust-time:                 183 ms
+        init-and-types:             54 ms
+        trait-conflicts:            63 ms
+        compile-time:               65 ms
+    verification-time:         977 ms
+        vir-time:                  719 ms
+            hir-time:                   18 ms
+            import-time:               523 ms
+            rust-to-vir:                70 ms
+        verify-crate-time:         257 ms
+    unaccounted-time:          342 ms
+
+verify-crate-time-breakdown
+    total verify-time:            235 ms   (1 threads)
+        total air-time:                84 ms   (1 threads)
+        total smt-time:               108 ms   (1 threads)
+            total smt-init:                 1 ms,     1638 rlimit (1 threads)
+            total smt-run:                107 ms,   154286 rlimit (1 threads)
+	Command being timed: "/home/patrickd/aegis-ci/verus/verus-x86-linux/verus permit_ledger.rs --time"
+	User time (seconds): 1.26
+	System time (seconds): 0.31
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.58
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 364836
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 62328
+	Voluntary context switches: 580
+	Involuntary context switches: 34
+	Swaps: 0
+	File system inputs: 240
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+HEAVY rc=0 wall_s=1.615385569 cgroup_peak_bytes=223551488 memmax=6442450944 oom_events=oom_kill 0

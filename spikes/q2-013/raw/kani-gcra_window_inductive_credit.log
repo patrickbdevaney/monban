@@ -1,0 +1,369 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: 1 warning emitted
+
+Checking harness proofs::gcra_window_inductive_credit...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/budget__RNvNtCs2MpPnsOOfbk_6budget6proofs28gcra_window_inductive_credit.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Runtime Symex: 0.0387437s
+size of program expression: 1136 steps
+slicing removed 534 assignments
+Generated 86 VCC(s), 41 remaining after simplification
+Runtime Postprocess Equation: 0.00052334s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.0639971s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 1.3497e-05s
+Solving with CaDiCaL 3.0.0
+30188 variables, 157281 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.415585s
+Runtime decision procedure: 0.481005s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+30189 variables, 157282 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0499276s
+Runtime decision procedure: 0.0510358s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+30190 variables, 157283 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0356834s
+Runtime decision procedure: 0.0367739s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+30191 variables, 157284 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.272266s
+Runtime decision procedure: 0.2732s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+30192 variables, 157285 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.340358s
+Runtime decision procedure: 0.341421s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+30193 variables, 157286 clauses
+SAT checker: instance is UNSATISFIABLE
+Runtime Solver: 493.148s
+Runtime decision procedure: 493.149s
+
+RESULTS:
+Check 1: proofs::gcra_window_inductive_credit.assertion.1
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:225:31 in function proofs::gcra_window_inductive_credit
+
+Check 2: proofs::gcra_window_inductive_credit.assertion.2
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget.rs:225:51 in function proofs::gcra_window_inductive_credit
+
+Check 3: proofs::gcra_window_inductive_credit.assertion.3
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:225:31 in function proofs::gcra_window_inductive_credit
+
+Check 4: proofs::gcra_window_inductive_credit.assertion.4
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget.rs:228:32 in function proofs::gcra_window_inductive_credit
+
+Check 5: proofs::gcra_window_inductive_credit.assertion.5
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:229:45 in function proofs::gcra_window_inductive_credit
+
+Check 6: proofs::gcra_window_inductive_credit.assertion.6
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget.rs:229:62 in function proofs::gcra_window_inductive_credit
+
+Check 7: proofs::gcra_window_inductive_credit.assertion.7
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:229:45 in function proofs::gcra_window_inductive_credit
+
+Check 8: proofs::gcra_window_inductive_credit.assertion.8
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget.rs:231:27 in function proofs::gcra_window_inductive_credit
+
+Check 9: proofs::gcra_window_inductive_credit.assertion.9
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:231:27 in function proofs::gcra_window_inductive_credit
+
+Check 10: proofs::gcra_window_inductive_credit.assertion.10
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget.rs:231:56 in function proofs::gcra_window_inductive_credit
+
+Check 11: proofs::gcra_window_inductive_credit.assertion.11
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:231:27 in function proofs::gcra_window_inductive_credit
+
+Check 12: proofs::gcra_window_inductive_credit.assertion.12
+	 - Status: SUCCESS
+	 - Description: "assertion failed: credit <= (last_now - t_first) + tau + t * MAX_COST"
+	 - Location: budget.rs:231:9 in function proofs::gcra_window_inductive_credit
+
+Check 13: proofs::gcra_window_inductive_credit.assertion.13
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget.rs:235:64 in function proofs::gcra_window_inductive_credit
+
+Check 14: proofs::gcra_window_inductive_credit.assertion.14
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:235:55 in function proofs::gcra_window_inductive_credit
+
+Check 15: proofs::gcra_window_inductive_credit.assertion.15
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget.rs:236:28 in function proofs::gcra_window_inductive_credit
+
+Check 16: proofs::gcra_window_inductive_credit.assertion.16
+	 - Status: SUCCESS
+	 - Description: "assertion failed: credit2 <= core::cmp::max(g.tat, t_first) - t_first"
+	 - Location: budget.rs:236:9 in function proofs::gcra_window_inductive_credit
+
+Check 17: proofs::gcra_window_inductive_credit.assertion.17
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:237:42 in function proofs::gcra_window_inductive_credit
+
+Check 18: proofs::gcra_window_inductive_credit.assertion.18
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget.rs:237:54 in function proofs::gcra_window_inductive_credit
+
+Check 19: proofs::gcra_window_inductive_credit.assertion.19
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget.rs:237:42 in function proofs::gcra_window_inductive_credit
+
+Check 20: proofs::gcra_window_inductive_credit.assertion.20
+	 - Status: SUCCESS
+	 - Description: "assertion failed: credit2 == 0 || g.tat <= now + tau + t * MAX_COST"
+	 - Location: budget.rs:237:9 in function proofs::gcra_window_inductive_credit
+
+Check 21: Gcra::admit.assertion.1
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget.rs:47:12 in function Gcra::admit
+
+Check 22: Gcra::admit.unreachable.1
+	 - Status: SUCCESS
+	 - Description: "unreachable code"
+	 - Location: budget.rs:0:0 in function Gcra::admit
+
+Check 23: core::num::<impl u64>::checked_add.arithmetic_overflow.1
+	 - Status: SUCCESS
+	 - Description: "attempt to compute `unchecked_add` which would overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs:966:31 in function core::num::<impl u64>::checked_add
+
+Check 24: Gcra::admit.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 25: Gcra::admit.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 26: Gcra::admit.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 27: Gcra::admit.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 28: Gcra::admit.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 29: Gcra::admit.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget.rs:46:22 in function Gcra::admit
+
+Check 30: Gcra::admit.pointer_dereference.7
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 31: Gcra::admit.pointer_dereference.8
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 32: Gcra::admit.pointer_dereference.9
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 33: Gcra::admit.pointer_dereference.10
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 34: Gcra::admit.pointer_dereference.11
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 35: Gcra::admit.pointer_dereference.12
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget.rs:46:39 in function Gcra::admit
+
+Check 36: Gcra::admit.pointer_dereference.13
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 37: Gcra::admit.pointer_dereference.14
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 38: Gcra::admit.pointer_dereference.15
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 39: Gcra::admit.pointer_dereference.16
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 40: Gcra::admit.pointer_dereference.17
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 41: Gcra::admit.pointer_dereference.18
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget.rs:50:9 in function Gcra::admit
+
+Check 42: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 43: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 44: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 45: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 46: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 47: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:50 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 48: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.7
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 49: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.8
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 50: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.9
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 51: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.10
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 52: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.11
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+Check 53: std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt.pointer_dereference.12
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/cmp.rs:2215:59 in function std::cmp::impls::<impl std::cmp::PartialOrd for u64>::lt
+
+
+SUMMARY:
+ ** 0 of 53 failed
+
+VERIFICATION:- SUCCESSFUL
+Verification Time: 494.63156s
+
+Manual Harness Summary:
+Complete - 1 successfully verified harnesses, 0 failures, 1 total.
+	Command being timed: "kani budget.rs --harness proofs::gcra_window_inductive_credit --exact"
+	User time (seconds): 494.64
+	System time (seconds): 0.31
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 8:15.04
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 176480
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 44439
+	Voluntary context switches: 1189
+	Involuntary context switches: 5265
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 1520
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+HEAVY rc=0 wall_s=495.133773433 cgroup_peak_bytes=67698688 memmax=6442450944 oom_events=oom_kill 0

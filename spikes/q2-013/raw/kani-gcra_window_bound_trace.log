@@ -1,0 +1,65 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: Found the following unsupported constructs:
+             - caller_location (1)
+             - foreign function (1)
+         
+         Verification will fail if one or more of these constructs is reachable.
+         See https://model-checking.github.io/kani/rust-feature-support.html for more details.
+
+warning: 2 warnings emitted
+
+Checking harness proofs::gcra_window_bound_trace...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/budget__RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 1 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 2 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 3 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 4 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 5 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+aborting path on assume(false) at file budget.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCs2MpPnsOOfbk_6budget6proofs23gcra_window_bound_trace.0 iteration 6 file budget.rs line 128 column 9 function proofs::gcra_window_bound_trace thread 0
+Runtime Symex: 0.157619s
+size of program expression: 3812 steps
+slicing removed 2140 assignments
+Generated 324 VCC(s), 59 remaining after simplification
+Runtime Postprocess Equation: 0.00273561s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.195383s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 9.982e-06s
+Solving with CaDiCaL 3.0.0
+102307 variables, 534143 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 1.57584s
+Runtime decision procedure: 1.77515s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+102308 variables, 534144 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 1.92384s
+Runtime decision procedure: 1.92849s
+Running propositional reduction
+HEAVY rc=124 wall_s=1800.013908526 cgroup_peak_bytes=166563840 memmax=6442450944 oom_events=oom_kill 0

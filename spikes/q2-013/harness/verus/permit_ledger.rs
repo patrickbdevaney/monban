@@ -5,6 +5,8 @@ use vstd::multiset::Multiset;
 
 verus! {
 
+broadcast use vstd::multiset::group_multiset_axioms, vstd::multiset::group_multiset_properties;
+
 pub const S: u64 = 100;     // handlers per connection (TBI-4)
 pub const QMAX: u64 = 400;  // queued requests per connection (TBI-4)
 
@@ -35,13 +37,14 @@ impl Ledger {
     pub fn acquire(&mut self) -> (r: Option<Permit>)
         requires old(self).wf(), old(self).next_id < u64::MAX,
         ensures
-            self.wf(),
-            self.next_id <= old(self).next_id + 1,
+            final(self).wf(),
+            final(self).next_id <= old(self).next_id + 1,
+            final(self).queued == old(self).queued,
             match r {
-                Some(p) => old(self).available > 0 && self.permits_out@ == old(self).permits_out@.insert(p.id)
-                           && self.available == old(self).available - 1,
-                None => old(self).available == 0 && self.permits_out@ == old(self).permits_out@
-                        && self.available == 0,
+                Some(p) => old(self).available > 0 && final(self).permits_out@ == old(self).permits_out@.insert(p.id)
+                           && final(self).available == old(self).available - 1,
+                None => old(self).available == 0 && final(self).permits_out@ == old(self).permits_out@
+                        && final(self).available == 0,
             },
     {
         if self.available == 0 {
@@ -69,17 +72,11 @@ impl Ledger {
     pub fn release(&mut self, p: Permit)
         requires old(self).wf(), old(self).permits_out@.contains(p.id),
         ensures
-            self.wf(),
-            self.available == old(self).available + 1,
-            self.permits_out@ == old(self).permits_out@.remove(p.id),
-            self.next_id == old(self).next_id,
+            final(self).wf(),
+            final(self).available == old(self).available + 1,
+            final(self).permits_out@ == old(self).permits_out@.remove(p.id),
+            final(self).next_id == old(self).next_id,
     {
-        proof {
-            assert(old(self).permits_out@.len() >= 1) by {
-                assert(old(self).permits_out@.count(p.id) >= 1);
-                old(self).permits_out@.lemma_count_le_len(p.id) ;
-            }
-        }
         self.available = self.available + 1;
         self.permits_out = Ghost(self.permits_out@.remove(p.id));
         proof {
@@ -92,14 +89,14 @@ impl Ledger {
     /// Admission of a request into the per-connection queue: bounded by QMAX.
     pub fn enqueue(&mut self) -> (ok: bool)
         requires old(self).wf(),
-        ensures self.wf(), ok <==> old(self).queued < QMAX, self.permits_out@ == old(self).permits_out@,
+        ensures final(self).wf(), ok <==> old(self).queued < QMAX, final(self).permits_out@ == old(self).permits_out@,
     {
         if self.queued < QMAX { self.queued = self.queued + 1; true } else { false }
     }
 
     pub fn dequeue_and_start(&mut self) -> (r: Option<Permit>)
         requires old(self).wf(), old(self).next_id < u64::MAX,
-        ensures self.wf(), r.is_some() ==> self.queued == old(self).queued - 1,
+        ensures final(self).wf(), r.is_some() ==> final(self).queued == old(self).queued - 1,
     {
         if self.queued == 0 { return None; }
         let r = self.acquire();
@@ -111,7 +108,7 @@ impl Ledger {
 /// Loop obligation: draining up to k acquisitions never exceeds S outstanding.
 pub fn burst(l: &mut Ledger, k: u64) -> (got: u64)
     requires old(l).wf(), old(l).next_id + k < u64::MAX,
-    ensures l.wf(), got <= S, l.permits_out@.len() == old(l).permits_out@.len() + got,
+    ensures final(l).wf(), got <= S, final(l).permits_out@.len() == old(l).permits_out@.len() + got,
 {
     let mut got: u64 = 0;
     let mut i: u64 = 0;

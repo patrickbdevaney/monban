@@ -1,0 +1,390 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: Found the following unsupported constructs:
+             - caller_location (1)
+             - foreign function (1)
+         
+         Verification will fail if one or more of these constructs is reachable.
+         See https://model-checking.github.io/kani/rust-feature-support.html for more details.
+
+warning: 2 warnings emitted
+
+Checking harness oom_with_real_bug...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/oom_k8__RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 3 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 4 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 5 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 6 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 7 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 1 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 3 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 4 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 5 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 6 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 2 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 3 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 4 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 5 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 3 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 3 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 4 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 4 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 3 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 5 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 2 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 6 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.0 iteration 1 file oom_k8.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 7 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.1 iteration 8 file oom_k8.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 1 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 2 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 3 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 4 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 5 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 6 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsbk9cdOgSjWg_6oom_k817oom_with_real_bug.2 iteration 7 file oom_k8.rs line 21 column 5 function oom_with_real_bug thread 0
+Runtime Symex: 4.07052s
+size of program expression: 35640 steps
+slicing removed 25778 assignments
+Generated 2789 VCC(s), 545 remaining after simplification
+Runtime Postprocess Equation: 0.047286s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.344152s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 6.0954e-05s
+Solving with CaDiCaL 3.0.0
+119682 variables, 138520 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0112092s
+Runtime decision procedure: 0.367002s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+119683 variables, 138521 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.00299224s
+Runtime decision procedure: 0.00479222s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+119684 variables, 138522 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.00726893s
+Runtime decision procedure: 0.00851815s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+119685 variables, 138523 clauses
+SAT checker: instance is UNSATISFIABLE
+Runtime Solver: 7.49505s
+Runtime decision procedure: 7.4955s
+
+RESULTS:
+Check 1: std::ptr::const_ptr::<impl *const ()>::is_aligned_to.assertion.1
+	 - Status: UNREACHABLE
+	 - Description: "attempt to subtract with overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/const_ptr.rs:1359:23 in function std::ptr::const_ptr::<impl *const ()>::is_aligned_to
+
+Check 2: std::ptr::const_ptr::<impl *const ()>::is_aligned_to.assertion.2
+	 - Status: SUCCESS
+	 - Description: "This is a placeholder message; Kani doesn't support message formatted at runtime"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/const_ptr.rs:1356:13 in function std::ptr::const_ptr::<impl *const ()>::is_aligned_to
+
+Check 3: oom_with_real_bug.assertion.1
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:14:15 in function oom_with_real_bug
+
+Check 4: oom_with_real_bug.assertion.2
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: oom_k8.rs:14:23 in function oom_with_real_bug
+
+Check 5: oom_with_real_bug.assertion.3
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:15:16 in function oom_with_real_bug
+
+Check 6: oom_with_real_bug.assertion.4
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:15:25 in function oom_with_real_bug
+
+Check 7: oom_with_real_bug.assertion.5
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:15:23 in function oom_with_real_bug
+
+Check 8: oom_with_real_bug.assertion.6
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:15:44 in function oom_with_real_bug
+
+Check 9: oom_with_real_bug.assertion.7
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:16:13 in function oom_with_real_bug
+
+Check 10: oom_with_real_bug.assertion.8
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:18:9 in function oom_with_real_bug
+
+Check 11: oom_with_real_bug.assertion.9
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:21:11 in function oom_with_real_bug
+
+Check 12: oom_with_real_bug.assertion.10
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:21:31 in function oom_with_real_bug
+
+Check 13: oom_with_real_bug.assertion.11
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:21:41 in function oom_with_real_bug
+
+Check 14: oom_with_real_bug.assertion.12
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:21:39 in function oom_with_real_bug
+
+Check 15: oom_with_real_bug.assertion.13
+	 - Status: SUCCESS
+	 - Description: "assertion failed: a[k] <= a[k + 1]"
+	 - Location: oom_k8.rs:21:23 in function oom_with_real_bug
+
+Check 16: oom_with_real_bug.assertion.14
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: oom_k8.rs:21:50 in function oom_with_real_bug
+
+Check 17: oom_with_real_bug.assertion.15
+	 - Status: FAILURE
+	 - Description: ""real bug""
+	 - Location: oom_k8.rs:23:5 in function oom_with_real_bug
+
+Check 18: std::ptr::copy::<u64>.safety_check.1
+	 - Status: SUCCESS
+	 - Description: "`src` must be properly aligned"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:665:9 in function std::ptr::copy::<u64>
+
+Check 19: std::ptr::copy::<u64>.safety_check.2
+	 - Status: SUCCESS
+	 - Description: "`dst` must be properly aligned"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:665:9 in function std::ptr::copy::<u64>
+
+Check 20: std::ptr::copy::<u64>.arithmetic_overflow.1
+	 - Status: SUCCESS
+	 - Description: "copy: attempt to compute number in bytes which would overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:665:9 in function std::ptr::copy::<u64>
+
+Check 21: std::ptr::copy_nonoverlapping::<u64>.safety_check.1
+	 - Status: SUCCESS
+	 - Description: "`src` must be properly aligned"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 22: std::ptr::copy_nonoverlapping::<u64>.safety_check.2
+	 - Status: SUCCESS
+	 - Description: "`dst` must be properly aligned"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 23: std::ptr::copy_nonoverlapping::<u64>.arithmetic_overflow.1
+	 - Status: SUCCESS
+	 - Description: "copy_nonoverlapping: attempt to compute number in bytes which would overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 24: std::panic::Location::<'_>::caller.unsupported_construct.1
+	 - Status: SUCCESS
+	 - Description: "caller_location is not currently supported by Kani. Please post your example at https://github.com/model-checking/kani/issues/374"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/location.rs:185:9 in function std::panic::Location::<'_>::caller
+
+Check 25: kani::rustc_intrinsics::offset::<u64, *mut u64, usize>.safety_check.1
+	 - Status: SUCCESS
+	 - Description: "Offset in bytes overflows isize"
+	 - Location: library/kani/src/lib.rs:60:1 in function kani::rustc_intrinsics::offset::<u64, *mut u64, usize>
+
+Check 26: kani::rustc_intrinsics::offset::<u64, *mut u64, usize>.safety_check.2
+	 - Status: SUCCESS
+	 - Description: "Offset result address must equal original pointer address plus offset"
+	 - Location: library/kani/src/lib.rs:60:1 in function kani::rustc_intrinsics::offset::<u64, *mut u64, usize>
+
+Check 27: kani::rustc_intrinsics::offset::<u64, *mut u64, usize>.safety_check.3
+	 - Status: SUCCESS
+	 - Description: "Offset result and original pointer must point to the same allocation"
+	 - Location: library/kani/src/lib.rs:60:1 in function kani::rustc_intrinsics::offset::<u64, *mut u64, usize>
+
+Check 28: kani::mem::cbmc::same_allocation.unsupported_construct.1
+	 - Status: SUCCESS
+	 - Description: "Kani does not support reasoning about pointer to unallocated memory"
+	 - Location: library/kani/src/lib.rs:60:1 in function kani::mem::cbmc::same_allocation
+
+Check 29: core::num::<impl usize>::abs_diff.assertion.1
+	 - Status: UNREACHABLE
+	 - Description: "attempt to subtract with overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs:3206:21 in function core::num::<impl usize>::abs_diff
+
+Check 30: core::num::<impl usize>::abs_diff.assertion.2
+	 - Status: UNREACHABLE
+	 - Description: "attempt to subtract with overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs:3208:21 in function core::num::<impl usize>::abs_diff
+
+Check 31: core::slice::<impl [u64]>::swap.assertion.1
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/slice/mod.rs:912:18 in function core::slice::<impl [u64]>::swap
+
+Check 32: core::slice::<impl [u64]>::swap.assertion.2
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/slice/mod.rs:913:18 in function core::slice::<impl [u64]>::swap
+
+Check 33: <usize as kani::rustc_intrinsics::ToISize>::to_isize.unreachable.1
+	 - Status: SUCCESS
+	 - Description: "unreachable code"
+	 - Location: library/kani_core/src/models.rs:203:17 in function <usize as kani::rustc_intrinsics::ToISize>::to_isize
+
+Check 34: <usize as kani::rustc_intrinsics::ToISize>::to_isize.safety_check.1
+	 - Status: SUCCESS
+	 - Description: "Offset value overflows isize"
+	 - Location: library/kani/src/lib.rs:60:1 in function <usize as kani::rustc_intrinsics::ToISize>::to_isize
+
+Check 35: <usize as kani::rustc_intrinsics::ToISize>::to_isize.assertion.1
+	 - Status: SUCCESS
+	 - Description: "internal error: entered unreachable code"
+	 - Location: library/kani/src/lib.rs:60:1 in function <usize as kani::rustc_intrinsics::ToISize>::to_isize
+
+Check 36: core::ub_checks::maybe_is_nonoverlapping::runtime.unreachable.1
+	 - Status: SUCCESS
+	 - Description: "unreachable code"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/intrinsics/mod.rs:2718:9 in function core::ub_checks::maybe_is_nonoverlapping::runtime
+
+Check 37: core::panicking::panic_nounwind_fmt::runtime.unsupported_construct.1
+	 - Status: SUCCESS
+	 - Description: "call to foreign "Rust" function `_RNvCs6YPEVBgX88i_7___rustc17rust_begin_unwind` is not currently supported by Kani. Please post your example at https://github.com/model-checking/kani/issues/new/choose"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panicking.rs:110:17 in function core::panicking::panic_nounwind_fmt::runtime
+
+Check 38: std::fmt::Arguments::<'_>::from_str.assertion.1
+	 - Status: UNREACHABLE
+	 - Description: "attempt to shift left with overflow"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/fmt/mod.rs:820:38 in function std::fmt::Arguments::<'_>::from_str
+
+Check 39: memcpy.pointer.1
+	 - Status: SUCCESS
+	 - Description: "same object violation in (const unsigned char *)(void *)src >= (const unsigned char *)(void *)dst + (signed long int)(count * sizeof(unsigned long int) /*8*/ )"
+	 - Location: <builtin-library-memcpy>:33 in function memcpy
+
+Check 40: memcpy.pointer.2
+	 - Status: SUCCESS
+	 - Description: "same object violation in (const unsigned char *)(void *)dst >= (const unsigned char *)(void *)src + (signed long int)(count * sizeof(unsigned long int) /*8*/ )"
+	 - Location: <builtin-library-memcpy>:34 in function memcpy
+
+Check 41: std::ptr::copy_nonoverlapping::<u64>.precondition_instance.1
+	 - Status: SUCCESS
+	 - Description: "memcpy src/dst overlap"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 42: std::ptr::copy_nonoverlapping::<u64>.precondition_instance.2
+	 - Status: SUCCESS
+	 - Description: "memcpy source region readable"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 43: std::ptr::copy_nonoverlapping::<u64>.precondition_instance.3
+	 - Status: SUCCESS
+	 - Description: "memcpy destination region writeable"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:574:14 in function std::ptr::copy_nonoverlapping::<u64>
+
+Check 44: std::ptr::copy::<u64>.precondition_instance.1
+	 - Status: SUCCESS
+	 - Description: "memmove source region readable"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:665:9 in function std::ptr::copy::<u64>
+
+Check 45: std::ptr::copy::<u64>.precondition_instance.2
+	 - Status: SUCCESS
+	 - Description: "memmove destination region writeable"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ptr/mod.rs:665:9 in function std::ptr::copy::<u64>
+
+Check 46: oom_with_real_bug.array_bounds.1
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:15:16 in function oom_with_real_bug
+
+Check 47: oom_with_real_bug.array_bounds.2
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:15:23 in function oom_with_real_bug
+
+Check 48: oom_with_real_bug.array_bounds.3
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:21:31 in function oom_with_real_bug
+
+Check 49: oom_with_real_bug.array_bounds.4
+	 - Status: SUCCESS
+	 - Description: "index out of bounds: the length is less than or equal to the given index"
+	 - Location: oom_k8.rs:21:39 in function oom_with_real_bug
+
+
+SUMMARY:
+ ** 1 of 49 failed (4 unreachable)
+Failed Checks: "real bug"
+ File: "oom_k8.rs", line 23, in oom_with_real_bug
+
+VERIFICATION:- FAILED
+Verification Time: 13.689279s
+
+Manual Harness Summary:
+Verification failed for - oom_with_real_bug
+Complete - 0 successfully verified harnesses, 1 failures, 1 total.
+Command exited with non-zero status 1
+	Command being timed: "kani oom_k8.rs --harness oom_with_real_bug --exact"
+	User time (seconds): 13.79
+	System time (seconds): 0.51
+	Percent of CPU this job got: 95%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:14.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 185096
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 42
+	Minor (reclaiming a frame) page faults: 44031
+	Voluntary context switches: 1170
+	Involuntary context switches: 10285
+	Swaps: 0
+	File system inputs: 7800
+	File system outputs: 2712
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+HEAVY rc=1 wall_s=15.074105807 cgroup_peak_bytes=164401152 memmax=6442450944 oom_events=oom_kill 0

@@ -73,3 +73,11 @@
 - Log restart from existing tiles (resume at size N) belongs to aegis-state; in-memory hash store grows ~64 B/entry.
 - Admin path: a checkpoint failure leaves the event in the log (published later) — log may record an attempted but
   unapplied action, never the reverse. Document in the audit-failure policy.
+
+## Upgrade (from P2-upgrade-001)
+- F11 SCM_RIGHTS transport: nix returns RawFd; taking ownership needs unsafe. Decision: keep F11; follow-up unit
+  P2-upgrade-002 moves fd passing to rustix's safe recvmsg (ScmRights yields OwnedFd). Until then listeners go via
+  stdio inheritance (safe, ≤2 listeners per handover; more ⇒ parent refuses upgrade and keeps serving).
+- Not done: FDSTORE, UP-3 (h2 GOAWAY, needs transport), ACME/CERT-1..4 (P2-ops-cert-001).
+- Child crash after READY and after the parent closed its copies loses the listeners (documented in handover.rs):
+  FDSTORE closes this.

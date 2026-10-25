@@ -134,4 +134,106 @@ mod proofs {
         }
         assert!(t as u128 * sum <= (now - t_first) as u128 + tau as u128 + t as u128 * MAX_COST as u128);
     }
+    /// Same I1 bound with the emission interval fixed at a config constant (33/s), tau symbolic.
+    /// Rate constants are per-call-site configuration, so this is the obligation the CI gate would carry.
+    #[kani::proof]
+    #[kani::unwind(7)]
+    fn gcra_window_bound_trace_fixed_t() {
+        const T: u64 = 30_303_030; // ns per unit, 33 units/s
+        let tau: u64 = kani::any();
+        kani::assume(tau <= MAX_TAU);
+        let t_first: u64 = kani::any();
+        kani::assume(t_first <= MAX_NOW);
+        let mut g = Gcra { tat: 0 };
+        let mut now = t_first;
+        let mut sum: u128 = 0;
+        for _ in 0..N {
+            let dt: u64 = kani::any();
+            let cost: u64 = kani::any();
+            kani::assume(dt <= 1_000_000_000_000 && cost >= 1 && cost <= MAX_COST);
+            now += dt;
+            if g.admit(now, cost, T, tau) { sum += cost as u128; }
+        }
+        assert!(T as u128 * sum <= (now - t_first) as u128 + tau as u128 + T as u128 * MAX_COST as u128);
+    }
+    /// GCRA I1 stated inductively (the form the CI gate should carry; the unrolled trace above blows up in
+    /// solver time). Ghost (t_first, sum, last_now). J: t_first + T*sum <= max(tat, t_first).
+    /// K: sum > 0 ==> tat <= last_now + tau + T*MAX_COST. J and K are preserved by one admit at any
+    /// now >= last_now, and J /\ K imply T*sum <= (now - t_first) + tau + T*MAX_COST for every N.
+    #[kani::proof]
+    fn gcra_window_inductive() {
+        let (t, tau): (u64, u64) = (kani::any(), kani::any());
+        kani::assume(t >= 1 && t <= MAX_T && tau <= MAX_TAU);
+        let (t_first, last_now, sum): (u64, u64, u64) = (kani::any(), kani::any(), kani::any());
+        let mut g = Gcra { tat: kani::any() };
+        kani::assume(t_first <= last_now && last_now <= MAX_NOW && sum <= 1 << 40);
+        kani::assume(g.tat <= MAX_NOW + MAX_TAU + MAX_T * MAX_COST);
+        let j = |tat: u64, sum: u64| -> bool {
+            t_first as u128 + t as u128 * sum as u128 <= core::cmp::max(tat, t_first) as u128
+        };
+        let k = |tat: u64, sum: u64, last: u64| -> bool {
+            sum == 0 || tat as u128 <= last as u128 + tau as u128 + t as u128 * MAX_COST as u128
+        };
+        kani::assume(j(g.tat, sum) && k(g.tat, sum, last_now));
+        // consequence: the window bound holds in any state satisfying J and K
+        assert!(t as u128 * sum as u128 <= (last_now - t_first) as u128 + tau as u128 + t as u128 * MAX_COST as u128);
+        // preservation by one step
+        let now: u64 = kani::any();
+        let cost: u64 = kani::any();
+        kani::assume(now >= last_now && now <= MAX_NOW && cost >= 1 && cost <= MAX_COST);
+        let sum2 = if g.admit(now, cost, t, tau) { sum + cost } else { sum };
+        assert!(j(g.tat, sum2));
+        assert!(k(g.tat, sum2, now));
+    }
+    /// Same inductive I1 with the emission interval fixed (config constant), tau symbolic.
+    #[kani::proof]
+    fn gcra_window_inductive_fixed_t() {
+        let t: u64 = 30_303_030; // 33 units/s, a config constant at each call site
+        let tau: u64 = kani::any();
+        kani::assume(tau <= MAX_TAU);
+        let (t_first, last_now, sum): (u64, u64, u64) = (kani::any(), kani::any(), kani::any());
+        let mut g = Gcra { tat: kani::any() };
+        kani::assume(t_first <= last_now && last_now <= MAX_NOW && sum <= 1 << 40);
+        kani::assume(g.tat <= MAX_NOW + MAX_TAU + MAX_T * MAX_COST);
+        let j = |tat: u64, sum: u64| -> bool {
+            t_first as u128 + t as u128 * sum as u128 <= core::cmp::max(tat, t_first) as u128
+        };
+        let k = |tat: u64, sum: u64, last: u64| -> bool {
+            sum == 0 || tat as u128 <= last as u128 + tau as u128 + t as u128 * MAX_COST as u128
+        };
+        kani::assume(j(g.tat, sum) && k(g.tat, sum, last_now));
+        // consequence: the window bound holds in any state satisfying J and K
+        assert!(t as u128 * sum as u128 <= (last_now - t_first) as u128 + tau as u128 + t as u128 * MAX_COST as u128);
+        // preservation by one step
+        let now: u64 = kani::any();
+        let cost: u64 = kani::any();
+        kani::assume(now >= last_now && now <= MAX_NOW && cost >= 1 && cost <= MAX_COST);
+        let sum2 = if g.admit(now, cost, t, tau) { sum + cost } else { sum };
+        assert!(j(g.tat, sum2));
+        assert!(k(g.tat, sum2, now));
+    }
+    /// I1 inductive, multiplication-free form: ghost `credit` = sum over admitted requests of T*cost_i
+    /// (I1 in emission-time units). The variants above need T*(sum+c) = T*sum + T*c (distributivity), which
+    /// bit-blasted SAT cannot prove in 15-25 min even on a 13k-variable instance; this one needs only adds.
+    #[kani::proof]
+    fn gcra_window_inductive_credit() {
+        let (t, tau): (u64, u64) = (kani::any(), kani::any());
+        kani::assume(t >= 1 && t <= MAX_T && tau <= MAX_TAU);
+        let (t_first, last_now, credit): (u64, u64, u64) = (kani::any(), kani::any(), kani::any());
+        let mut g = Gcra { tat: kani::any() };
+        kani::assume(t_first <= last_now && last_now <= MAX_NOW);
+        kani::assume(g.tat <= MAX_NOW + MAX_TAU + MAX_T * MAX_COST);
+        // J: t_first + credit <= max(tat, t_first);  K: credit > 0 ==> tat <= last_now + tau + T*MAX_COST
+        let tat0 = g.tat;
+        kani::assume(credit <= core::cmp::max(tat0, t_first) - t_first);
+        kani::assume(credit == 0 || tat0 <= last_now + tau + t * MAX_COST);
+        // consequence: the window bound (credit is T * sum(cost) of admitted requests)
+        assert!(credit <= (last_now - t_first) + tau + t * MAX_COST);
+        let now: u64 = kani::any();
+        let cost: u64 = kani::any();
+        kani::assume(now >= last_now && now <= MAX_NOW && cost >= 1 && cost <= MAX_COST);
+        let credit2 = if g.admit(now, cost, t, tau) { credit + t * cost } else { credit };
+        assert!(credit2 <= core::cmp::max(g.tat, t_first) - t_first);
+        assert!(credit2 == 0 || g.tat <= now + tau + t * MAX_COST);
+    }
 }

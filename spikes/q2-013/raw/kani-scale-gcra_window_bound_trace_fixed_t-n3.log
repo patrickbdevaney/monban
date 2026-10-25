@@ -1,0 +1,59 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: Found the following unsupported constructs:
+             - caller_location (1)
+             - foreign function (1)
+         
+         Verification will fail if one or more of these constructs is reachable.
+         See https://model-checking.github.io/kani/rust-feature-support.html for more details.
+
+warning: 2 warnings emitted
+
+Checking harness proofs::gcra_window_bound_trace_fixed_t...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/budget_n3__RNvNtCslm3HhlHzTB_9budget_n36proofs31gcra_window_bound_trace_fixed_t.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file budget_n3.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCslm3HhlHzTB_9budget_n36proofs31gcra_window_bound_trace_fixed_t.0 iteration 1 file budget_n3.rs line 150 column 9 function proofs::gcra_window_bound_trace_fixed_t thread 0
+aborting path on assume(false) at file budget_n3.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCslm3HhlHzTB_9budget_n36proofs31gcra_window_bound_trace_fixed_t.0 iteration 2 file budget_n3.rs line 150 column 9 function proofs::gcra_window_bound_trace_fixed_t thread 0
+aborting path on assume(false) at file budget_n3.rs line 0 column 0 function Gcra::admit thread 0
+Unwinding loop _RNvNtCslm3HhlHzTB_9budget_n36proofs31gcra_window_bound_trace_fixed_t.0 iteration 3 file budget_n3.rs line 150 column 9 function proofs::gcra_window_bound_trace_fixed_t thread 0
+Runtime Symex: 0.141663s
+size of program expression: 2032 steps
+slicing removed 1175 assignments
+Generated 171 VCC(s), 34 remaining after simplification
+Runtime Postprocess Equation: 0.00177762s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.0592275s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 1.92e-05s
+Solving with CaDiCaL 3.0.0
+14414 variables, 70058 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.399809s
+Runtime decision procedure: 0.460423s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+14415 variables, 70059 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.07845s
+Runtime decision procedure: 0.0794992s
+Running propositional reduction
+HEAVY rc=124 wall_s=900.048436718 cgroup_peak_bytes=61788160 memmax=6442450944 oom_events=oom_kill 0
