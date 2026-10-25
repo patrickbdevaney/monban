@@ -1,0 +1,188 @@
+{
+ "nodes": [
+  {
+   "id": "l5.mcp-lc-corpus-runnable",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "test-harness",
+   "title": "Runnable 43-case MCP conformance corpus and httpx runner (local targets only)",
+   "summary": "06-corpus/mcp_lc_corpus.py, corpus_ext.py, mock_upstream.py, targets*.json, corpus_expected.json. Implements the r2 33-case manifest (19 executed on at least one target; 14 not black-box testable: client-side OAuth cases, inspector-only, launcher-only, websocket NA, tasks, ssrf, openapi) plus 10 new cases for spec 2026-07-28 (header/body consistency, version negotiation, removed surface, no session id). Verdicts PASS/FAIL/WARN/NA/ERR; 'rejected' requires a 4xx or JSON-RPC error and an unchanged handler-call counter. Loopback-only guard.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Toy echo servers; counter unavailable for docker gateway.",
+   "underclaim_risk": "Found real defects in most builds that the conformance suite passes."
+  },
+  {
+   "id": "l5.mcp-lc-passrate-matrix",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "measurement",
+   "title": "Pass-rate matrix, implementation x case, executed 2026-10-25",
+   "summary": "Executed-case pass rate (legacy/modern): py mcp 2.3.0 loopback 0.73/0.77, bound 0.0.0.0 0.67/0.73; py 1.30.0 0.67; ts server 2.4.0 express transport 0.64 (legacy only); ts createMcpHandler bare 0.57/0.77; ts sdk 1.32.2 0.47; rmcp 3.7.0 default 0.73/0.82, with allowed origins 0.80/0.86; agentgateway 1.6.0 shorthand 0.62/0.86, docs-example cors wildcard 0.60/0.82, jwt+aud 0.78, audiences unset 0.72, dnsRebindingProtection true 0.80/0.83; docker-mcp 0.44.2 token default 0.90, allow-unauthenticated 0.80. Files: matrix.md, all_results.json, pass_rate_summary.json, per-target raw jsonl.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Mixes spec MUST, advisory-derived and AEGIS-hardening cases; not a product ranking.",
+   "underclaim_risk": "14 of 33 original cases unexecuted."
+  },
+  {
+   "id": "l5.listener-gate-delta-2026-07-28",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "spec-delta",
+   "title": "Listener-gate delta for spec 2026-07-28: add, modify, drop",
+   "summary": "ADD: header/body consistency (MCP-Protocol-Version, Mcp-Method, Mcp-Name -> 400 + -32020), unsupported version -> 400 + -32022, no Mcp-Session-Id, removed methods -> 404 + -32601, GET endpoint 405, simple-request cannot reach (custom headers force preflight; Origin MUST remains). MODIFY: session-principal-binding becomes state-handle binding (spec: possession of a handle is not authentication); session-route-pin becomes requestState/task handle sealing; session-table-bound becomes bounded handle stores, legacy window only; task cases move to the tasks extension. DROP from listener corpus: proxy-token-required, token-not-to-app-origin, path-allowlist, scheme-allowlist, verify-default-on, argv-injection. Deprecated (earliest removal 2027-07-28 or later): Roots, Sampling, Logging, DCR, includeContext, HTTP+SSE; nothing is in the Removed registry yet.",
+   "urls": [
+    "https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Derived from spec text plus four modern-capable servers.",
+   "underclaim_risk": "Statelessness moves classes rather than removing them."
+  },
+  {
+   "id": "l4.mcp-spec-latest-revision-2026-10-25",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "spec-fact",
+   "title": "No dated MCP revision newer than 2026-07-28 as of 2026-10-25",
+   "summary": "Spec repo (HEAD 2026-10-23) has dated dirs through 2026-07-28 plus draft; draft changelog is empty; deprecated registry has no Removed entries. Conformance npm latest 0.1.16, alpha 0.2.0-alpha.12 (2026-10-01) with requirement sets 2025-11-25 and 2026-07-28.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/modelcontextprotocol",
+    "https://www.npmjs.com/package/@modelcontextprotocol/conformance"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Absence at one instant.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "l4.defaults-vs-configurable-matrix",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "finding",
+   "title": "Default-config vs configurable failures",
+   "summary": "Default-off but configurable: rmcp 3.7.0 Origin allowlist empty (Origin check off; with_allowed_origins fixes); agentgateway 1.6.0 mcp.dnsRebindingProtection off by default (true fixes host, origin and h2 authority checks; issue 1855); agentgateway mcpAuthentication audiences unset disables audience validation (wrong-audience tokens accepted; set rejects); py mcp 2.3.0 protection only when bound to loopback; ts createMcpHandler has no host/origin guard by design; ts sdk 1.32.2 express checks Host only; agentgateway docs example with wildcard cors reflects arbitrary origin. Not configurable in tested builds: duplicate JSON method key last-wins reaches handler (py, ts); BOM accepted (ts, py 1.30, py2 modern); agentgateway session id not bound to principal; agentgateway forwards client Authorization to upstream (token passthrough); docker-mcp 0.44.2 accepts a 64 MiB body (RSS 42 MB to 696 MB). Passing by default: docker-mcp random bearer and Host/Origin checks. Session stores: py caps at 10000 then returns 503; rmcp unbounded (about 52 KB per session); ts stateless variants flat.",
+   "urls": [
+    "https://github.com/agentgateway/agentgateway/issues/1855"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "RSS is a noisy proxy; defaults are quickstart wiring.",
+   "underclaim_risk": "Libraries are not products; gateways with policies pass more."
+  },
+  {
+   "id": "l4.conformance-suite-gap-origin-only",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "finding",
+   "title": "Conformance 0.2.0-alpha.12 dns-rebinding scenario does not require Origin validation",
+   "summary": "rmcp 3.7.0 default scores 2/2 on dns-rebinding-protection while the corpus origin-only case fails. http-header-validation 14/14 on py2, ts createMcpHandler, rmcp, agentgateway; low scores on legacy-only servers. server-stateless mostly 'not testable' without diagnostic tools. Open issues 570 and 553 describe untested/under-graded SEP-2243 requirements.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/conformance/issues/570",
+    "https://github.com/modelcontextprotocol/conformance/issues/553"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Scenario semantics from output text.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "l4.releases-snapshot-2026-10-25",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "version-snapshot",
+   "title": "Release snapshot 2026-10-25",
+   "summary": "python-sdk 2.3.0 (2026-10-02); typescript server 2.4.0 and sdk 1.32.2 (2026-10-23); rmcp 3.7.0 (2026-10-22); conformance 0.1.16 / alpha 0.2.0-alpha.12; agentgateway 1.6.0 (2026-10-02, sha256 verified) and 1.7.0-alpha.1; docker/mcp-gateway 0.44.2 (2026-10-21).",
+   "urls": [
+    "https://github.com/modelcontextprotocol/typescript-sdk/releases",
+    "https://github.com/agentgateway/agentgateway/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "l4.ts-modern-vs-legacy-transport-gap",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "finding",
+   "title": "TS SDK 2.4.0: express transport is 2025-era only; modern handler ships no Origin/Host checks",
+   "summary": "Migrating from the express adapter to createMcpHandler drops the adapter's host and origin middleware unless re-composed; matches the ToolHive modern-path-skipped-Host pattern.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Single version.",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "l5.mcp-lc-corpus-runnable",
+   "dst": "l5.conformance-manifest",
+   "type": "extends"
+  },
+  {
+   "src": "l5.listener-gate-delta-2026-07-28",
+   "dst": "l5.origin-audience-session-rules",
+   "type": "extends"
+  },
+  {
+   "src": "l5.mcp-lc-passrate-matrix",
+   "dst": "fin.same-bug-n-sdks",
+   "type": "extends"
+  },
+  {
+   "src": "l4.defaults-vs-configurable-matrix",
+   "dst": "fin.stateless-not-sufficient",
+   "type": "extends"
+  },
+  {
+   "src": "l5.mcp-lc-corpus-runnable",
+   "dst": "l5.ci-gate",
+   "type": "extends"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Execute the 14 unexecuted cases: client-side issuer/resource mismatch harness, openapi traversal, ssrf with attacker-controlled target",
+   "layer": "L5",
+   "expected_info_gain": 0.5
+  },
+  {
+   "question": "Run MRTR requestState tamper cases against rmcp request-state feature and python sealing",
+   "layer": "L5",
+   "expected_info_gain": 0.5
+  }
+ ],
+ "protocol_implications": [
+  "Listener type must enforce Origin and Host for both eras regardless of SDK defaults",
+  "Add header/body consistency and removed-surface 404 cases",
+  "Do not rely on conformance dns scenario for Origin"
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-004/06-mcp-gateway-conformance-corpus-executed.json",
+ "self_improvement": [
+  "Never pkill by pattern inside bash; it kills the tool shell",
+  "Running rustc in a dir with rust-toolchain.toml triggers an unwrapped toolchain install",
+  "httpx.post per call builds a client each time and burns CPU",
+  "Shared upstream between gateway targets pollutes results; verify config upstream ports"
+ ]
+}

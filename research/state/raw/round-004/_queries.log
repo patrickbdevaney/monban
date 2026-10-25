@@ -311,3 +311,24 @@ mcp-gateway-conformance-corpus-executed	agentgateway issue 1855 dnsRebindingProt
 mcp-gateway-conformance-corpus-executed	conformance issue 553 http-header-validation grades -32020	offensive-web-sec|L4|repo-issue
 mcp-gateway-conformance-corpus-executed	rust-sdk SECURITY.md allowed_origins deprecated entry without port	offensive-web-sec|L4|repo-issue
 mcp-gateway-conformance-corpus-executed	docker mcp-gateway gateway run MCP_GATEWAY_AUTH_TOKEN dns rebinding	offensive-web-sec|L4|repo-issue
+lean-check-lowering-and-token-proofs	gh api cedar-spec cedar-lean lakefile + lake-manifest + lean-toolchain (dependency footprint for building Cedar TPE proofs)	PL-formal|repo|skeptic|last60d
+lean-check-lowering-and-token-proofs	git sparse clone cedar-spec@301bdd2 cedar-lean: grep sorry/native_decide/axiom/implemented_by/extern in Cedar Lean proofs	PL-formal|repo-code|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh api lean4 release v4.35.0 body grep native_decide/axiom/kernel/lake check/module	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 repo 'native_decide' axiom (2026)	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 'soundness' label bug kernel (attacker stance)	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh api lean4 pulls 14953 14990 15145 15241 15289 15288 15005 15156 (verify PR identifiers, merge dates)	PL-formal|repo-PR|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 "proof of False" + labels soundness/runtime-soundness; read #15908 #14576 #15100 (attacker stance on kernel)	PL-formal|repo+issue|attacker|last60d
+lean-check-lowering-and-token-proofs	gh api leanprover/comparator repo README (prelude-integrity check for third-party exports) + leanchecker issues 15100/15101	PL-formal|repo|skeptic|last60d
+lean-check-lowering-and-token-proofs	Ubuntu AppArmor restrict unprivileged user namespaces bubblewrap uid map Permission denied profile	ops-SRE|vendor-doc|negative|2024-26
+lean-check-lowering-and-token-proofs	leanprover zulip lake check sandbox bwrap	PL-formal|forum|skeptic|last60d
+lean-check-lowering-and-token-proofs	lean4lean verified Lean kernel in Lean Carneiro paper	PL-formal|paper|proponent|2024-26
+lean-check-lowering-and-token-proofs	Lean kernel soundness bug reporting guide non-standard prelude hackmd	PL-formal|vendor-doc|attacker|last60d
+lean-check-lowering-and-token-proofs	macaroon caveat encoding ambiguity HMAC chain vulnerability	cryptography|CVE/advisory|attacker|any
+lean-check-lowering-and-token-proofs	SQL NULL three-valued logic formal semantics Guagliardo Libkin	DB-theory|paper|skeptic|historical
+lean-check-lowering-and-token-proofs	MongoDB $ne matches documents field does not exist	web-dev practitioner|vendor-doc|skeptic|current
+lean-check-lowering-and-token-proofs	gh api ammkrn/nanoda_lib + leanprover/lean4export + digama0/lean4lean repos (version, license, last push)	PL-formal|repo|proponent|last60d
+lean-check-lowering-and-token-proofs	github actions runner-images ubuntu-24.04 apparmor_restrict_unprivileged_userns bwrap/chrome sandbox issue	ops-SRE|repo+issue|negative|2024-26
+lean-check-lowering-and-token-proofs	Mathlib policy native_decide forbidden reason	PL-formal|forum/docs|skeptic|2024-26
+lean-check-lowering-and-token-proofs	LLM generated Lean 4 proofs fail to compile first attempt rate unverified drafts	ML-for-proofs|paper|negative|2025-26
+lean-check-lowering-and-token-proofs	PostgreSQL nondeterministic collation equality deterministic false documentation	DB-practitioner|vendor-doc|skeptic|current
+lean-check-lowering-and-token-proofs	gh search issues lean4 miscompilation compiler wrong result 2026 (native_decide trust base, attacker)	PL-compilers|repo+issue|attacker|last60d
