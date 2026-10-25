@@ -12,6 +12,10 @@ layer = 3
 
 [dependencies]
 aegis-types = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+# Direct dependency only to hold the security floor (RUSTSEC-2026-0382) in this crate's resolve; rustls uses it.
+rustls-webpki = { workspace = true }
 
 [lints]
 workspace = true

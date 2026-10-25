@@ -7,7 +7,7 @@ fd23c657e48ab0b89abb84df03a68923431514551ffbbdc7a19e67c4f4611540  F5   frozen   
 e354026e9f401bc6fc8ce5a97dc248a4960737e99eab6d5fdb7e1f24eeeb9e46  F6   frozen               crates/aegis-authz/src/combine.rs
 553aef65c97e625565ba3420047cd0349622621abfa6ad62a8089eeb7511ae05  F7   frozen               sdk/aegis-sdk/src/surface.rs
 b94664807c816b150d4ef22079a49ea2bcade29fd7599729fb76dc5f173b332f  F7b  frozen               sdk/aegis-sdk/src/streaming.rs
-d3a8de13c46eaf5315a5ffcdb8b586bb3573e68570382af7f604885c4b4d6aad  F8   frozen               interfaces/F8-config.schema.json
+354da61ecc7f5b174a1885b1b03a6cf43387a26fdf75f90aaa01056ca83f9f2a  F8   frozen               interfaces/F8-config.schema.json
 672c1d28fa535c7f03c6a0ca7dfeacb045ba2296ef5f6e65c73072cb69e31708  F9   frozen               interfaces/F9-audit-event.schema.json
 dac0f21de4ecb9a871d0490f7ba9376f48f5f70281b5133988ebb02c90e9d7dc  F10  frozen               interfaces/F10-module-wire.cddl
 3f7376c7d893cf851de0d78ad97b480a90da144ccbcf424d446da64a37589f39  F11  frozen               interfaces/F11-upgrade-handover.cddl

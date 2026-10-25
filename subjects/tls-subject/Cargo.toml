@@ -1,0 +1,19 @@
+[package]
+name = "tls-subject"
+description = "Oracle subject for oracles/hrr-verdicts (F12): builds every listener config through aegis-tls's public API."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-tls = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+
+[lints]
+workspace = true
