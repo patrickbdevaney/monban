@@ -29,7 +29,7 @@ git read-tree HEAD
 git ls-files -z --others --modified --exclude-standard -- research \
   | while IFS= read -r -d '' p; do
       case "$p" in */.git/*|*/cargohome/*|*/target/*|*-work/*|*/node_modules/*) continue;; esac
-      if [ -f "$p" ]; then [ "$(du -k "$p" | cut -f1)" -le "$MAX_KB" ] && printf '%s\0' "$p"
+      if [ -f "$p" ]; then if [ "$(du -k "$p" | cut -f1)" -le "$MAX_KB" ]; then printf '%s\0' "$p"; fi
       else printf '%s\0' "$p"; fi                  # deleted tracked file: let add record removal
     done | xargs -0 -r git add -A --
 # journals are gitignored as raw transcripts? force-add them explicitly
