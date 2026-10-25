@@ -36,3 +36,25 @@ bitflags:2.13.2  macro-only flags type (nix)
 # Added 2026-10-25 with P2-upgrade-002 (safe SCM_RIGHTS).
 rustix:1.1.5  safe syscall API (OwnedFd SCM_RIGHTS); replaces unsafe RawFd handling
 linux-raw-sys:0.12.1  generated Linux ABI bindings (rustix)
+# Added 2026-10-25 with P2-transport-001 (tokio/hyper/h2 stack).
+bytes:1.12.1  byte buffers
+equivalent:1.0.3  trait
+futures-sink:0.3.34  futures traits
+h2:0.4.20  HTTP/2 (core, wrapped by aegis-transport)
+hashbrown:0.14.2  hash map
+http:1.5.0  HTTP types
+http-body:1.1.0  HTTP body trait
+httparse:1.10.1  HTTP/1 parser (hyper)
+hyper:1.12.0  HTTP/1.1 + server framework (core)
+indexmap:2.14.2  ordered map (h2)
+itoa:1.0.18  integer formatting
+mio:1.2.4  epoll reactor (tokio)
+pin-project-lite:0.2.17  pin projection macro
+slab:0.4.12  slab allocator
+smallvec:1.16.3  small vectors
+socket2:0.6.5  socket options
+tokio:1.53.3  async runtime (core)
+tokio-rustls:0.26.6  TLS stream adapter
+tokio-util:0.7.20  codec utils (h2)
+tracing:0.1.44  instrumentation macros (h2)
+windows-sys:0.61.2  windows only, not built

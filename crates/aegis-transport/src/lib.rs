@@ -1,9 +1,33 @@
-//! hyper/h2 wrapper enforcing TBI-1..9, strict H1, upstream framing regeneration, and the Exchange model.
+//! hyper/h2 wrapper enforcing TBI-1..9, strict H1, and the Exchange model (F3).
 //!
-//! Phase-0: the frozen Exchange + front-end hook interface (F3) only; no listener exists yet, so nothing can serve.
+//! A [`Server`] owns a front end ([`App`]: the F3 [`exchange::FrontEnd`] hooks plus routing and the reply), its
+//! vhosts and the [`WrapperLimits`] (F8 `limits`, golden defaults). [`Server::serve_tls`] /
+//! [`Server::serve_plain`] drive one accepted connection: HTTP/2 over h2 with the AEGIS wrapper, HTTP/1.1 over
+//! hyper behind the strict framing filter. Handlers see only the canonical [`exchange::Head`] and the
+//! size-checked message; Host / `:authority` / SNI are bound to one vhost through aegis-canon (CANON-6: 421 on an
+//! SNI or vhost mismatch over h2, userinfo rejected).
+//!
+//! Upstream framing regeneration (R-TLS-3) is not in this unit.
 #![forbid(unsafe_code)]
-#![no_std]
-
-extern crate alloc;
 
 pub mod exchange;
+
+mod counters;
+mod fields;
+pub mod h1;
+mod h1srv;
+mod h2srv;
+mod ledger;
+mod limits;
+mod pipeline;
+mod server;
+
+pub use crate::counters::Counters;
+pub use crate::fields::{FieldBlock, cookie_crumbs};
+pub use crate::ledger::Ledger;
+pub use crate::limits::{F8_BOUNDS, LimitsError, WrapperLimits};
+pub use crate::pipeline::{App, ConnInfo, Reply, ReplyBody, VhostTable};
+pub use crate::server::{H2_PREFACE, Server};
+pub use aegis_canon::Scheme;
+/// Re-exported so the assembly builds the acceptor from the same tokio-rustls the driver uses.
+pub use tokio_rustls::TlsAcceptor;

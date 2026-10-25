@@ -14,6 +14,20 @@ layer = 3
 aegis-types = { workspace = true, features = ["raw-owner"] }
 aegis-budget = { workspace = true }
 aegis-canon = { workspace = true }
+# Only the features the driver uses: no `macros` (no proc-macro crate), no `net` (the driver is generic over IO;
+# listeners belong to the assembly / subjects).
+tokio = { workspace = true, features = ["rt", "time", "sync", "io-util"] }
+# HTTP/1.1 server only; HTTP/2 is driven through h2 directly (hyper's h2 server exposes no per-stream capacity,
+# ledger or stall hooks: spikes/q2-009 hyper-baseline).
+hyper = { workspace = true, features = ["http1", "server"] }
+h2 = { workspace = true }
+http = { workspace = true }
+tokio-rustls = { workspace = true }
 
 [lints]
 workspace = true
+
+[features]
+# Oracle negative control only (oracles/transport-stall --self-test via subjects/transport-subject):
+# exposes `Server::new_without_wrapper`. Never enabled by aegis-bin.
+negative-control = []

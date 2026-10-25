@@ -1,0 +1,11 @@
+heavy.sh: waiting for the heavy-job lock (one at a time)...
+done hyper-baseline__rapidreset__c10
+done hyper-baseline__rapidreset__c1-burst1000
+done hyper-baseline__continuation__c10
+done h2-baseline__rapidreset__c10
+done h2-baseline__rapidreset__c1-burst1000
+done h2-baseline__continuation__c10
+done h2-wrapper__rapidreset__c10
+done h2-wrapper__rapidreset__c1-burst1000
+done h2-wrapper__continuation__c10
+done h2-wrapper__bigwin-noread__c100-wave2

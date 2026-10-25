@@ -7,7 +7,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 bin=$here/target/release/q2009
 impl=$1 shape=$2 conns=$3 streams=${4:-100} hold=${5:-25000} dur=${6:-32000} ledger=${7:-12}
 port=$((18000 + RANDOM % 2000))
-tag="${impl}__${shape}__c${conns}"
+tag="${impl}__${shape}__c${conns}${8:+-$8}"
 out=$here/raw
 mkdir -p "$out"
 ulimit -n 8192 || true

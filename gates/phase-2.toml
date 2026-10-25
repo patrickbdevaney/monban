@@ -128,7 +128,12 @@ selftest = "cargo xtask budget --self-test"
 name = "config-totality"
 cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
 
-# TODO (transport / proxy units): h2spec 100%, resource-ratio fuzz corpus, stall DST, Kani TBI on the prover box,
+[[gate]]
+name = "h2-conformance"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p transport-subject && oracles/h2-conformance/run --subject target/release/transport-subject"
+selftest = "oracles/h2-conformance/run --self-test"
+
+# TODO (transport / proxy units): resource-limit oracle (stall/reset/header budgets), Kani TBI on the prover box,
 # systemd-analyze security ≤2, perf-w1 (provisional on laptop), end-to-end reverse-proxy smoke.
 [[gate]]
 name = "reverse-proxy-e2e"

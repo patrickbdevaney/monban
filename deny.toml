@@ -1,6 +1,8 @@
 # cargo-deny 0.20.2 policy (SUPPLY_CHAIN §A G1). Bans mirror REPO_LAYOUT §5.
 [graph]
 all-features = true
+# Only the targets we ship; windows-only crates (windows-sys duplicates etc.) are never built.
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-musl"]
 
 [advisories]
 yanked = "deny"

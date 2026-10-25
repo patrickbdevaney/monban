@@ -1,0 +1,4 @@
+PID 4029477
+READY 19208 impl=h2-wrapper ledger_mib=12
+OBSERVE rapidreset rst_stream=0 goaway_codes=[11] first_goaway_ms=Some(0) eof=true
+attack done shape=rapidreset conns=1 streams=1000
