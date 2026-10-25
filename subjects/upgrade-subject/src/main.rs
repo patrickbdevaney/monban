@@ -179,7 +179,7 @@ impl ParentHooks for Server {
 }
 
 fn run() -> Result<(), String> {
-    // Block lifecycle signals before any thread exists so only sigwait sees them.
+    // Take over lifecycle signals first, so their default (terminate) action is replaced as early as possible.
     let signals = Signals::block().map_err(|e| format!("block signals: {e}"))?;
     let args: Vec<OsString> = std::env::args_os().skip(1).collect();
     let opts = parse_opts(&args)?;

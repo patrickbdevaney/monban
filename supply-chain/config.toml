@@ -22,10 +22,6 @@ url = "https://raw.githubusercontent.com/mozilla/supply-chain/main/audits.toml"
 [imports.zcash]
 url = "https://raw.githubusercontent.com/zcash/rust-ecosystem/main/supply-chain/audits.toml"
 
-[[exemptions.autocfg]]
-version = "1.5.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.aws-lc-rs]]
 version = "1.18.2"
 criteria = "safe-to-deploy"
@@ -118,16 +114,8 @@ criteria = "safe-to-deploy"
 version = "0.12.1"
 criteria = "safe-to-deploy"
 
-[[exemptions.memoffset]]
-version = "0.9.1"
-criteria = "safe-to-deploy"
-
 [[exemptions.mio]]
 version = "1.2.4"
-criteria = "safe-to-deploy"
-
-[[exemptions.nix]]
-version = "0.31.3"
 criteria = "safe-to-deploy"
 
 [[exemptions.once_cell]]
@@ -164,6 +152,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.sd-notify]]
 version = "0.5.0"
+criteria = "safe-to-deploy"
+
+[[exemptions.signal-hook-registry]]
+version = "1.4.8"
 criteria = "safe-to-deploy"
 
 [[exemptions.slab]]

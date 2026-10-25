@@ -40,13 +40,12 @@ use crate::notify::Notifier;
 use crate::stek::{self, StekRing};
 use crate::wire::{self, CONFIG_HASH_LEN, ListenerDesc, MAX_FRAME, Msg};
 
-use nix::sys::socket::{
-    AddressFamily, Backlog, SockFlag, SockType, UnixAddr, bind, connect, getsockopt, listen, socket, sockopt,
-};
-use nix::sys::stat::Mode;
+use rustix::fs::{CWD, Mode, mkfifoat};
+use rustix::net::sockopt::socket_peercred;
 use rustix::net::{
-    RecvAncillaryBuffer, RecvAncillaryMessage, RecvFlags, ReturnFlags, SendAncillaryBuffer, SendAncillaryMessage,
-    SendFlags, recvmsg, sendmsg,
+    AddressFamily, RecvAncillaryBuffer, RecvAncillaryMessage, RecvFlags, ReturnFlags, SendAncillaryBuffer,
+    SendAncillaryMessage, SendFlags, SocketAddrUnix, SocketFlags, SocketType, bind, connect, listen, recvmsg, sendmsg,
+    socket_with,
 };
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -55,7 +54,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, IoSlice, IoSliceMut};
 use std::mem::MaybeUninit;
 use std::net::TcpListener;
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd, OwnedFd};
+use std::os::fd::{BorrowedFd, OwnedFd};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
@@ -140,7 +139,7 @@ pub struct Handed {
 }
 
 fn own_uid() -> u32 {
-    nix::unistd::getuid().as_raw()
+    rustix::process::getuid().as_raw()
 }
 
 /// The per-upgrade directory; removed on drop.
@@ -175,7 +174,7 @@ fn check_private_dir(p: &Path) -> io::Result<()> {
 }
 
 fn seqpacket() -> io::Result<std::os::fd::OwnedFd> {
-    socket(AddressFamily::Unix, SockType::SeqPacket, SockFlag::SOCK_CLOEXEC, None).map_err(io::Error::from)
+    socket_with(AddressFamily::UNIX, SocketType::SEQPACKET, SocketFlags::CLOEXEC, None).map_err(io::Error::from)
 }
 
 fn send_msg(s: &UnixStream, m: &Msg) -> io::Result<()> {
@@ -298,14 +297,13 @@ pub fn upgrade(
     let fifo_path = dir.path.join(FIFO_NAME);
 
     let lfd = seqpacket().map_err(|e| pre("socket", &e))?;
-    let addr = UnixAddr::new(&sock_path).map_err(|e| pre("socket path", &e))?;
-    bind(lfd.as_raw_fd(), &addr).map_err(|e| pre("bind", &e))?;
-    let backlog = Backlog::new(4).map_err(|e| pre("backlog", &e))?;
-    listen(&lfd, backlog).map_err(|e| pre("listen", &e))?;
+    let addr = SocketAddrUnix::new(sock_path.as_path()).map_err(|e| pre("socket path", &e))?;
+    bind(&lfd, &addr).map_err(|e| pre("bind", &e))?;
+    listen(&lfd, 4).map_err(|e| pre("listen", &e))?;
     let hs = UnixListener::from(lfd);
     hs.set_nonblocking(true).map_err(|e| pre("nonblocking", &e))?;
 
-    nix::unistd::mkfifo(&fifo_path, Mode::S_IRUSR | Mode::S_IWUSR).map_err(|e| pre("mkfifo", &e))?;
+    mkfifoat(CWD, fifo_path.as_path(), Mode::RUSR | Mode::WUSR).map_err(|e| pre("mkfifo", &e))?;
     // O_RDWR on a FIFO never blocks and keeps the pipe buffer alive until the child has read it.
     let mut fifo = Some(OpenOptions::new().read(true).write(true).open(&fifo_path).map_err(|e| pre("open fifo", &e))?);
     if let Some(f) = fifo.as_mut() {
@@ -400,10 +398,10 @@ pub fn upgrade(
             (ParentState::AwaitPeer, _) => match hs.accept() {
                 Ok((s, _)) => {
                     let _ = fs::remove_file(&sock_path); // no further connects
-                    let ev = match (s.set_nonblocking(false), getsockopt(&s.as_fd(), sockopt::PeerCredentials)) {
+                    let ev = match (s.set_nonblocking(false), socket_peercred(&s)) {
                         (Ok(()), Ok(c)) => {
-                            let pid = u32::try_from(c.pid()).unwrap_or(0);
-                            ParentEvent::PeerConnected { pid, uid: c.uid(), exe_ok: exe_matches(pid, &cfg.exe) }
+                            let pid = u32::try_from(c.pid.as_raw_pid()).unwrap_or(0);
+                            ParentEvent::PeerConnected { pid, uid: c.uid.as_raw(), exe_ok: exe_matches(pid, &cfg.exe) }
                         }
                         _ => ParentEvent::ChildGone,
                     };
@@ -527,12 +525,14 @@ pub fn child_takeover(
         stek::read_frame(&mut f).map_err(|e| err("read stek", &e))?
     };
     let fd = seqpacket().map_err(|e| err("socket", &e))?;
-    let addr = UnixAddr::new(&dir.join(SOCK_NAME)).map_err(|e| err("socket path", &e))?;
-    connect(fd.as_raw_fd(), &addr).map_err(|e| err("connect", &e))?;
+    let addr = SocketAddrUnix::new(dir.join(SOCK_NAME).as_path()).map_err(|e| err("socket path", &e))?;
+    connect(&fd, &addr).map_err(|e| err("connect", &e))?;
     let stream = UnixStream::from(fd);
 
-    match getsockopt(&stream.as_fd(), sockopt::PeerCredentials) {
-        Ok(c) if c.uid() == own_uid() && u32::try_from(c.pid()).ok() == Some(std::os::unix::process::parent_id()) => {}
+    match socket_peercred(&stream) {
+        Ok(c)
+            if c.uid.as_raw() == own_uid()
+                && u32::try_from(c.pid.as_raw_pid()).ok() == Some(std::os::unix::process::parent_id()) => {}
         _ => return Err(abort_with(&stream, "handover peer is not the parent")),
     }
     match cloexec::non_cloexec_fds() {
@@ -629,9 +629,10 @@ impl Takeover {
 mod tests {
     use super::*;
     use crate::drain::{ConnTracker, accept_loop};
-    use nix::sys::socket::socketpair;
+    use rustix::net::socketpair;
     use std::io::{Read, Write};
     use std::net::TcpStream;
+    use std::os::fd::{AsFd, AsRawFd};
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -851,7 +852,7 @@ mod tests {
     }
 
     fn seqpair() -> Option<(UnixStream, UnixStream)> {
-        let (a, b) = socketpair(AddressFamily::Unix, SockType::SeqPacket, None, SockFlag::SOCK_CLOEXEC).ok()?;
+        let (a, b) = socketpair(AddressFamily::UNIX, SocketType::SEQPACKET, SocketFlags::CLOEXEC, None).ok()?;
         Some((UnixStream::from(a), UnixStream::from(b)))
     }
 

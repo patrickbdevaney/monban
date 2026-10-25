@@ -11,7 +11,7 @@
 //! * [`cloexec`]: CLOEXEC hygiene audit (UP-6).
 //! * [`drain`]: accept loop with a stop flag, two-phase drain with forced-close count (UP-3 analogue, UP-4).
 //! * [`notify`]: sd-notify READY / RELOADING / MAINPID, a no-op outside systemd.
-//! * [`signals`]: sigwait-based signal handling.
+//! * [`signals`]: lifecycle signals (tokio signal driver on a private runtime; no first-party unsafe).
 //! * [`stek`]: STEK ring and its pipe framing (UP-5).
 #![forbid(unsafe_code)]
 

@@ -13,14 +13,15 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-config = { workspace = true }
-# rustix: safe SCM_RIGHTS sendmsg/recvmsg for the F11 handover (received fds arrive as OwnedFd; no unsafe here).
-# "time": rustix 1.1.5 with only "net" fails to build on the linux_raw backend (its net sockopt code needs the
-# `timespec` module, which is gated on time/fs/event/...); "time" is the smallest feature that enables it.
-rustix = { workspace = true, features = ["time"] }
-# nix: only what the upgrade path needs. socket/net (net = socket + inet sockaddr accessors) = SEQPACKET handover socket, SO_PEERCRED, SO_TYPE, SO_ACCEPTCONN,
-# getsockname; poll = accept loop with a stop flag; signal = sigwait-based signal handling (no handlers, no unsafe);
-# fs = mkfifo for the STEK pipe; user = getuid for the 0700-dir / peer-uid checks.
-nix = { workspace = true, features = ["socket", "net", "poll", "signal", "fs", "user"] }
+# rustix: the only syscall layer here (P2-ops-rustix-001; nix removed). All APIs used are safe, so first-party code
+# stays forbid(unsafe_code). Features: "net" (workspace) = SEQPACKET handover socket, SCM_RIGHTS sendmsg/recvmsg,
+# SO_PEERCRED / SO_TYPE / SO_ACCEPTCONN, getsockname; "time" = needed by rustix's net sockopt code on linux_raw and
+# by poll timeouts; "event" = poll for the accept loop's stop flag; "fs" = mkfifoat for the STEK pipe; "process" =
+# getuid for the 0700-dir / peer-uid checks (and kill in a test).
+rustix = { workspace = true, features = ["time", "event", "fs", "process"] }
+# tokio (root pin): only for lifecycle signals ("signal" adds signal-hook-registry; "rt" = a private current-thread
+# runtime that drives the signal driver). rustix offers sigprocmask/sigwait only as unsafe, unstable runtime APIs.
+tokio = { workspace = true, features = ["rt", "signal"] }
 sd-notify = { workspace = true }
 # CERT-1..4 (always on): the swappable server cert store (rustls ResolvesServerCert, server side only), preflight
 # signature checks (aws-lc-rs) and the profile sigalg rules (aegis-tls).

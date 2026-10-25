@@ -1,4 +1,22 @@
-{"id":"P2-ops-rustix-001","crates":["aegis-ops"],
- "spec_refs":["REPO_LAYOUT §6 non-crypto unsafe ≤5000 (measured 5373 with nix+rustix both shipped)","UP-1..7"],
- "acceptance":{"cmd":"cargo xtask budget && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && ci/heavy.sh cargo test -p aegis-ops --features acme","must":"nix absent from the aegis-bin shipped set; BUDGET unsafe ≤5000; upgrade harness PASS; tests PASS"},
- "write_scope":["crates/aegis-ops/**","subjects/upgrade-subject/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
+{
+ "id": "P2-ops-rustix-001",
+ "crates": [
+  "aegis-ops"
+ ],
+ "spec_refs": [
+  "REPO_LAYOUT \u00a76 non-crypto unsafe \u22645000 (measured 5373 with nix+rustix both shipped)",
+  "UP-1..7"
+ ],
+ "acceptance": {
+  "cmd": "cargo xtask budget && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && ci/heavy.sh cargo test -p aegis-ops --features acme",
+  "must": "nix absent from the aegis-bin shipped set; BUDGET unsafe \u22645000; upgrade harness PASS; tests PASS"
+ },
+ "write_scope": [
+  "crates/aegis-ops/**",
+  "subjects/upgrade-subject/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": true,
+ "status": "pass: nix removed; non-crypto unsafe 4574 \u2264 5000; upgrade harness 4x100 PASS; signals via tokio signal (signal-hook-registry)"
+}

@@ -28,10 +28,7 @@ windows_x86_64_gnu:0.52.6  windows-only, not built on linux targets
 windows_x86_64_gnullvm:0.52.6  windows-only, not built on linux targets
 windows_x86_64_msvc:0.52.6  windows-only, not built on linux targets
 # Added 2026-10-25 with P2-upgrade-001 (fd passing / sd-notify).
-nix:0.31.3  syscall wrappers for fd validation and signals (aegis-ops only; unsafe lives in nix)
 sd-notify:0.5.0  systemd readiness protocol (tiny)
-memoffset:0.9.1  pulled by nix socket feature
-autocfg:1.5.1  build-time only (memoffset)
 bitflags:2.13.2  macro-only flags type (nix)
 # Added 2026-10-25 with P2-upgrade-002 (safe SCM_RIGHTS).
 rustix:1.1.5  safe syscall API (OwnedFd SCM_RIGHTS); replaces unsafe RawFd handling
@@ -58,3 +55,5 @@ tokio-rustls:0.26.6  TLS stream adapter
 tokio-util:0.7.20  codec utils (h2)
 tracing:0.1.44  instrumentation macros (h2)
 windows-sys:0.61.2  windows only, not built
+# Added 2026-10-25 with P2-ops-rustix-001 (nix removed; signals via tokio).
+signal-hook-registry:1.4.8  signal handler registry behind tokio's signal feature (35 unsafe lines)
