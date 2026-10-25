@@ -14,6 +14,8 @@ here, outside the implementer's write scope, and has been shown to FAIL on a neg
   caught, printing `<NAME> SELF-TEST: PASS (...)`. Several mutations are better than one.
 - Subject interface: until the Rust crate exists, the oracle runs against the reference model ported from
   research, and accepts `--subject` so the real implementation can be plugged in later without editing the oracle.
+- If the oracle judges a production binary, put its path (relative to the repo root) in `default-subject`, so
+  `ci/oracles.sh` passes `--subject` automatically.
 - `README.md` records: what is checked (spec clause ids from `spec/SPEC_INVARIANTS.md`), the pass criterion, the
   research provenance (source paths under `research/state/raw/` and their sha256), what was re-run in-repo and the
   result, and known limits.
