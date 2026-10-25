@@ -173,6 +173,56 @@ What this requires:
   - Another research round is justified only if an unresolved gap would change a load-bearing decision, and then at most
     one targeted round.
 
+## 0d. OPERATOR STEER: dedup by design, enforced mechanically (2026-10-24, mid-run; binding from round 2)
+
+> "make sur follow on deep research waves truly deduplicate in new directions for new material by design against the extant, else we are just wasting tokens"
+
+Every round after round 1 must produce **new material in new directions**. Re-finding what the map already holds is
+zero yield.
+
+The gate is a deterministic script, not an LLM judgment: `python3 -I /home/patrickd/aegis/research/tools/novelty_gate.py`.
+It uses canonical-URL membership plus token Jaccard/containment over every earlier round's raw output, the live
+current-round logs, and graph/seen/queries state. Mandatory use per stage:
+
+- **PLANNER.**
+  1. Run `novelty_gate.py coverage` first.
+  2. For every candidate target, run `novelty_gate.py target "<brief>"`.
+  3. Accept a target only if one of these holds:
+     - (a) its closest prior target and node score < 0.6, or
+     - (b) it is a DESCEND that changes the instrument relative to the covered node: survey → defect/CVE hunt →
+       measurement/benchmark/experiment → L5 artifact. Name the node ids it extends and the new instrument.
+  4. Each target names the thin/empty axis values from `coverage` that it fills.
+  5. Put the gate scores in each brief and in plan_notes.
+  6. Prefer the §0b/§0c areas round 1 did not cover.
+- **EXPLORER.**
+  - Before each batch of searches, run `novelty_gate.py query "<q1>" "<q2>" ...`.
+    - Never run a DUP.
+    - Rewrite a NEAR-DUP onto a different vocabulary, source type, stance or era before running it.
+  - Before fetching a URL, you may run `novelty_gate.py url <u>`.
+    - SEEN URLs may be re-read only to verify a specific claim.
+    - SEEN URLs do not count toward the 25-source floor.
+  - Before creating a node, run `novelty_gate.py topic "<title>"`.
+    - If COVERED, reuse the existing id. Add only strictly new specifics (L4/L5 numbers, newer dates, contrary
+      evidence, a new instrument) as an `extends` edge, never a restatement.
+  - Report counts in the raw JSON notes: queries run, DUP skipped, NEAR-DUP rewritten, new vs seen URLs, new vs reused
+    nodes.
+- **INTEGRATOR.**
+  - Run `novelty_gate.py metrics --round N` and copy its JSON into the round report.
+  - Set delta.novelty_ratio to its `mechanical_novelty`. That is the least-novel of the URL, query, node and axis-cell
+    novelty values.
+  - Merged/reused nodes earn zero novelty credit.
+- **SATURATION JUDGE.**
+  - Run `novelty_gate.py metrics --round N` for this round and the previous one.
+  - novelty_ratio MUST be the mechanical value. LLM judgment is allowed only for decision stability and for "could any
+    open area flip a load-bearing decision".
+  - Saturation per §0c then means mechanical_novelty < 0.2 in two consecutive rounds, plus stable decisions.
+- **META-OPTIMIZER.** Use the metrics plus each explorer's DUP/NEAR-DUP counts to rank which lenses still yield new
+  material. Retire directions whose last round had near-zero new URLs and nodes into `state/directions.md` as
+  exhausted, so the planner stops choosing them.
+
+If the script errors, fix nothing in it. Log the error in `state/self_improvement.md` and fall back to grep against
+`state/raw/` and `state/graph.jsonl`, stating that you did.
+
 ## 1. The questions (score each separately)
 
 - **W-THREAT.** What actually breaks middle-tier servers, and what changes when attackers are LLM agents?
