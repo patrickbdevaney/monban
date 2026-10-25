@@ -1,0 +1,395 @@
+//! Per-listener TLS profiles (ARCHITECTURE 3.2, spec section F P-PQ1/P-PQ2/P-PQ4, frozen F12 `tls/verdicts.toml`).
+//!
+//! Every list below is the exact ordered list of the matching `[profiles.*]` row of `tls/verdicts.toml`
+//! (`kx_groups`, `sigalgs`). The one place these lists exist in production code is here; `server_config` builds the
+//! `CryptoProvider` from them and then re-reads the built provider in [`assert_profile`] (startup assertion).
+
+use std::sync::Arc;
+use std::vec::Vec;
+
+use rustls::crypto::{CryptoProvider, SupportedKxGroup, aws_lc_rs as prov};
+use rustls::server::{ClientHello, NoServerSessionStorage, ResolvesServerCert};
+use rustls::sign::{CertifiedKey, Signer, SigningKey};
+use rustls::{ProtocolVersion, ServerConfig, SignatureAlgorithm, SignatureScheme, SupportedCipherSuite};
+
+use crate::kx;
+
+/// TLS Supported Groups codepoints used by the profiles (`[codepoints.groups]` of F12).
+pub mod group {
+    /// X25519MLKEM768.
+    pub const X25519MLKEM768: u16 = 0x11EC;
+    /// SecP256r1MLKEM768.
+    pub const SECP256R1MLKEM768: u16 = 0x11EB;
+    /// SecP384r1MLKEM1024 (AEGIS-owned, [`crate::kx`]).
+    pub const SECP384R1MLKEM1024: u16 = 0x11ED;
+    /// X25519.
+    pub const X25519: u16 = 0x001D;
+    /// secp256r1.
+    pub const SECP256R1: u16 = 0x0017;
+    /// secp384r1.
+    pub const SECP384R1: u16 = 0x0018;
+    /// ML-KEM-768 (pure).
+    pub const MLKEM768: u16 = 0x0201;
+    /// ML-KEM-1024 (pure).
+    pub const MLKEM1024: u16 = 0x0202;
+}
+
+/// A listener profile. Names follow F12 (`tls/verdicts.toml`) and F8 (`interfaces/F8-config.schema.json`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Profile {
+    /// F12 `P-PUBLIC-WEB`: public browser listener, hybrid first.
+    PublicWeb,
+    /// F12 `PQ-REQUIRED` (F8 `P-PQ-REQUIRED`): agent / API / internal listeners; PQ-only.
+    PqRequired,
+    /// F12 `P-UNIVERSAL`: `[0x11ED]`. Pending in F12.
+    Universal,
+    /// F12 `P-BSI-ALT`: `[0x11ED, 0x11EB]`. Pending in F12.
+    BsiAlt,
+    /// F12 `P-CNSA`: `[ML-KEM-1024]` + ML-DSA-87. Pending in F12.
+    Cnsa,
+    /// F12 `FIPS` (F8 `FIPS-FLOOR`): the FIPS group list on the floor lock (selection checked, no CMVP claim).
+    FipsFloor,
+    /// F8 `FIPS-CMVP`: the FIPS list on the cmvp lock with the module asserted (P-PQ5). Needs the profiles/cmvp
+    /// build; pending in this build.
+    FipsCmvp,
+    /// F12 `FIPS-PQ-REQUIRED`: FIPS pq-required listener on the floor lock. Not in the F8 enum (see report).
+    FipsPqRequired,
+}
+
+/// F12 `status` of a profile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProfileStatus {
+    /// Checked now.
+    Active,
+    /// Selection checked now; the FIPS module half (P-PQ5) waits for the cmvp build.
+    CmvpPending,
+    /// Listed for completeness; `server_config` refuses it with [`ProfileError::Pending`].
+    Pending,
+}
+
+/// Why a profile could not be built.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProfileError {
+    /// The profile is marked pending (F12) or needs a build this binary is not (cmvp). Never guessed.
+    Pending {
+        /// The profile.
+        profile: Profile,
+        /// The pending reason (from F12 where it has one).
+        reason: &'static str,
+    },
+    /// rustls refused the configuration.
+    Rustls(String),
+    /// A startup assertion on the built config failed (P-PQ2 / P-PQ4 / `kx_groups[0]`).
+    Assertion(String),
+}
+
+impl core::fmt::Display for ProfileError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Pending { profile, reason } => write!(f, "profile {} is pending: {reason}", profile.name()),
+            Self::Rustls(e) => write!(f, "rustls: {e}"),
+            Self::Assertion(e) => write!(f, "startup assertion failed: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for ProfileError {}
+
+use group::*;
+
+const PUBLIC_WEB_KX: &[u16] = &[X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1];
+const PQ_REQUIRED_KX: &[u16] = &[X25519MLKEM768];
+const UNIVERSAL_KX: &[u16] = &[SECP384R1MLKEM1024];
+const BSI_ALT_KX: &[u16] = &[SECP384R1MLKEM1024, SECP256R1MLKEM768];
+const CNSA_KX: &[u16] = &[MLKEM1024];
+const FIPS_KX: &[u16] = &[SECP256R1MLKEM768, SECP256R1, SECP384R1];
+const FIPS_PQ_REQUIRED_KX: &[u16] = &[SECP256R1MLKEM768];
+
+const PUBLIC_WEB_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256];
+const PQ_REQUIRED_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, SignatureScheme::ML_DSA_44];
+const GOV_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87, SignatureScheme::ECDSA_NISTP384_SHA384];
+const CNSA_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87];
+const FIPS_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, SignatureScheme::ECDSA_NISTP384_SHA384];
+
+const PENDING_11ED: &str =
+    "0x11ED is AEGIS-owned (Phase 6: KATs, OpenSSL 3.5+/BoringSSL interop, Kani share parsing). No F12 verdicts yet.";
+const PENDING_BSI: &str = "needs 0x11ED (Phase 6). No F12 verdicts yet.";
+const PENDING_CNSA: &str = "buildable on the floor lock (kx_group::MLKEM1024, ML-DSA-87) but no F12 verdicts are frozen for it yet; pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00).";
+const PENDING_CMVP: &str = "needs the cmvp lock (rustls =0.23.43, aws-lc-rs =1.15.3 [fips], aws-lc-fips-sys =0.13.11) and the P-PQ5 module-identity gate (Phase 6); this is the floor build.";
+
+impl Profile {
+    /// Every profile.
+    pub const ALL: [Profile; 8] = [
+        Profile::PublicWeb,
+        Profile::PqRequired,
+        Profile::Universal,
+        Profile::BsiAlt,
+        Profile::Cnsa,
+        Profile::FipsFloor,
+        Profile::FipsCmvp,
+        Profile::FipsPqRequired,
+    ];
+
+    /// The F12 profile name, if F12 has a row for it.
+    pub fn f12_name(self) -> Option<&'static str> {
+        match self {
+            Self::PublicWeb => Some("P-PUBLIC-WEB"),
+            Self::PqRequired => Some("PQ-REQUIRED"),
+            Self::Universal => Some("P-UNIVERSAL"),
+            Self::BsiAlt => Some("P-BSI-ALT"),
+            Self::Cnsa => Some("P-CNSA"),
+            Self::FipsFloor => Some("FIPS"),
+            Self::FipsCmvp => None,
+            Self::FipsPqRequired => Some("FIPS-PQ-REQUIRED"),
+        }
+    }
+
+    /// The F8 config name, if the F8 enum has one.
+    pub fn f8_name(self) -> Option<&'static str> {
+        match self {
+            Self::PublicWeb => Some("P-PUBLIC-WEB"),
+            Self::PqRequired => Some("P-PQ-REQUIRED"),
+            Self::Universal => Some("P-UNIVERSAL"),
+            Self::BsiAlt => Some("P-BSI-ALT"),
+            Self::Cnsa => Some("P-CNSA"),
+            Self::FipsFloor => Some("FIPS-FLOOR"),
+            Self::FipsCmvp => Some("FIPS-CMVP"),
+            Self::FipsPqRequired => None,
+        }
+    }
+
+    /// A display name (F12 name, else F8 name).
+    pub fn name(self) -> &'static str {
+        self.f12_name().or(self.f8_name()).unwrap_or("?")
+    }
+
+    /// Look a profile up by its F12 or F8 name.
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|p| p.f12_name() == Some(name) || p.f8_name() == Some(name))
+    }
+
+    /// F12 status.
+    pub fn status(self) -> ProfileStatus {
+        match self {
+            Self::PublicWeb | Self::PqRequired => ProfileStatus::Active,
+            Self::FipsFloor | Self::FipsPqRequired => ProfileStatus::CmvpPending,
+            Self::Universal | Self::BsiAlt | Self::Cnsa | Self::FipsCmvp => ProfileStatus::Pending,
+        }
+    }
+
+    /// Why the profile is pending, if it is.
+    pub fn pending_reason(self) -> Option<&'static str> {
+        match self {
+            Self::Universal => Some(PENDING_11ED),
+            Self::BsiAlt => Some(PENDING_BSI),
+            Self::Cnsa => Some(PENDING_CNSA),
+            Self::FipsCmvp => Some(PENDING_CMVP),
+            _ => None,
+        }
+    }
+
+    /// Exact ordered kx group list (F12 `kx_groups`). P-PQ2: the configured set equals this list.
+    pub fn kx_groups(self) -> &'static [u16] {
+        match self {
+            Self::PublicWeb => PUBLIC_WEB_KX,
+            Self::PqRequired => PQ_REQUIRED_KX,
+            Self::Universal => UNIVERSAL_KX,
+            Self::BsiAlt => BSI_ALT_KX,
+            Self::Cnsa => CNSA_KX,
+            Self::FipsFloor | Self::FipsCmvp => FIPS_KX,
+            Self::FipsPqRequired => FIPS_PQ_REQUIRED_KX,
+        }
+    }
+
+    /// CertificateVerify schemes the listener may produce (F12 `sigalgs`, P-PQ2).
+    pub fn sigalgs(self) -> &'static [SignatureScheme] {
+        match self {
+            Self::PublicWeb => PUBLIC_WEB_SIG,
+            Self::PqRequired => PQ_REQUIRED_SIG,
+            Self::Universal | Self::BsiAlt => GOV_SIG,
+            Self::Cnsa => CNSA_SIG,
+            Self::FipsFloor | Self::FipsCmvp | Self::FipsPqRequired => FIPS_SIG,
+        }
+    }
+
+    /// Government and FIPS profiles: AES-GCM only (ARCHITECTURE 3.2: no ChaCha20).
+    fn aes_gcm_only(self) -> bool {
+        !matches!(self, Self::PublicWeb | Self::PqRequired)
+    }
+}
+
+/// The rustls kx group implementing a codepoint (aws-lc-rs provider, plus our 0x11ED).
+pub fn kx_group(codepoint: u16) -> Option<&'static dyn SupportedKxGroup> {
+    use prov::kx_group as g;
+    Some(match codepoint {
+        X25519MLKEM768 => g::X25519MLKEM768,
+        SECP256R1MLKEM768 => g::SECP256R1MLKEM768,
+        SECP384R1MLKEM1024 => kx::SECP384R1MLKEM1024,
+        X25519 => g::X25519,
+        SECP256R1 => g::SECP256R1,
+        SECP384R1 => g::SECP384R1,
+        MLKEM768 => g::MLKEM768,
+        MLKEM1024 => g::MLKEM1024,
+        _ => return None,
+    })
+}
+
+fn provider_for(profile: Profile) -> Result<CryptoProvider, ProfileError> {
+    let kx_groups = profile
+        .kx_groups()
+        .iter()
+        .map(|c| kx_group(*c).ok_or_else(|| ProfileError::Assertion(format!("no implementation for group 0x{c:04x}"))))
+        .collect::<Result<Vec<_>, _>>()?;
+    let base = prov::default_provider();
+    let cipher_suites: Vec<SupportedCipherSuite> = if profile.aes_gcm_only() {
+        vec![prov::cipher_suite::TLS13_AES_256_GCM_SHA384, prov::cipher_suite::TLS13_AES_128_GCM_SHA256]
+    } else {
+        base.cipher_suites.iter().copied().filter(|s| s.version().version == ProtocolVersion::TLSv1_3).collect()
+    };
+    Ok(CryptoProvider { kx_groups, cipher_suites, ..base })
+}
+
+/// Build the `ServerConfig` for a profile. TLS 1.3 only, no 0-RTT (P-PQ4); configured groups = profile exactly
+/// (P-PQ2); CertificateVerify restricted to the profile's sigalgs (P-PQ2); resumption off until the scoped
+/// ticketer lands (P-PQ3, unit P2-tls-002). Startup assertions run on the built config before it is returned.
+pub fn server_config(
+    profile: Profile,
+    cert_resolver: Arc<dyn ResolvesServerCert>,
+) -> Result<ServerConfig, ProfileError> {
+    if profile.status() == ProfileStatus::Pending {
+        return Err(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
+    }
+    let provider = Arc::new(provider_for(profile)?);
+    let resolver = Arc::new(ProfileCertResolver { inner: cert_resolver, allowed: profile.sigalgs() });
+    let mut cfg = ServerConfig::builder_with_provider(provider)
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .map_err(|e| ProfileError::Rustls(e.to_string()))?
+        .with_no_client_auth()
+        .with_cert_resolver(resolver);
+    cfg.max_early_data_size = 0;
+    cfg.send_half_rtt_data = false;
+    cfg.send_tls13_tickets = 0;
+    cfg.session_storage = Arc::new(NoServerSessionStorage {});
+    assert_profile(&cfg, profile)?;
+    Ok(cfg)
+}
+
+/// Protocol versions the built config can negotiate, read from its provider: rustls negotiates a version only if a
+/// cipher suite for it is configured, so this is an upper bound taken from the config itself. (TLS 1.2 is also
+/// compiled out: the workspace rustls has no `tls12` feature.)
+pub fn negotiable_versions(cfg: &ServerConfig) -> Vec<ProtocolVersion> {
+    let mut v = Vec::new();
+    for s in &cfg.crypto_provider().cipher_suites {
+        let ver = s.version().version;
+        if !v.contains(&ver) {
+            v.push(ver);
+        }
+    }
+    v
+}
+
+/// Startup assertion: the built config matches the profile (P-PQ2 configured groups = profile, in order, so
+/// `kx_groups[0]` is checked; P-PQ4 TLS 1.3 only and no 0-RTT; no resumption tickets before P-PQ3).
+pub fn assert_profile(cfg: &ServerConfig, profile: Profile) -> Result<(), ProfileError> {
+    let configured: Vec<u16> = cfg.crypto_provider().kx_groups.iter().map(|g| u16::from(g.name())).collect();
+    if configured.first() != profile.kx_groups().first() {
+        return Err(ProfileError::Assertion(format!(
+            "{}: kx_groups[0] = {:04x?}, profile requires {:04x?}",
+            profile.name(),
+            configured.first(),
+            profile.kx_groups().first()
+        )));
+    }
+    if configured != profile.kx_groups() {
+        return Err(ProfileError::Assertion(format!(
+            "{}: configured kx_groups {configured:04x?} != profile {:04x?}",
+            profile.name(),
+            profile.kx_groups()
+        )));
+    }
+    if negotiable_versions(cfg) != [ProtocolVersion::TLSv1_3] {
+        return Err(ProfileError::Assertion(format!(
+            "{}: versions {:?} != [TLSv1_3]",
+            profile.name(),
+            negotiable_versions(cfg)
+        )));
+    }
+    if cfg.max_early_data_size != 0 {
+        return Err(ProfileError::Assertion(format!("{}: 0-RTT enabled", profile.name())));
+    }
+    if cfg.send_tls13_tickets != 0 {
+        return Err(ProfileError::Assertion(format!("{}: tickets enabled before P-PQ3", profile.name())));
+    }
+    Ok(())
+}
+
+/// FIPS status of a built config (ARCHITECTURE 3.2: reported to the audit log and `/healthz`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FipsStatus {
+    /// `ServerConfig::fips()`.
+    pub config_fips: bool,
+    /// `aws_lc_rs::try_fips_mode().is_ok()`: blind to the module version (decoy lock).
+    pub module_fips_mode: bool,
+    /// FIPS module identity linked into the binary (P-PQ5), e.g. `AWS-LC FIPS 3.1.0`. `None` on the floor build:
+    /// the identity check is the Phase-6 cmvp gate, and nothing here claims it.
+    pub module: Option<&'static str>,
+    /// Whether a CMVP claim may be made. Always false in this build.
+    pub cmvp_claim: bool,
+}
+
+/// Report the FIPS status of a built config.
+pub fn fips_status(cfg: &ServerConfig) -> FipsStatus {
+    FipsStatus {
+        config_fips: cfg.fips(),
+        module_fips_mode: aws_lc_rs::try_fips_mode().is_ok(),
+        module: None,
+        cmvp_claim: false,
+    }
+}
+
+/// Wraps the caller's resolver so the served key can only sign with the profile's sigalgs (P-PQ2). If the
+/// resolved key cannot sign with any scheme that is both offered and allowed, no certificate is served and the
+/// handshake fails (rustls sends access_denied, 49) instead of using an out-of-profile scheme.
+#[derive(Debug)]
+struct ProfileCertResolver {
+    inner: Arc<dyn ResolvesServerCert>,
+    allowed: &'static [SignatureScheme],
+}
+
+impl ResolvesServerCert for ProfileCertResolver {
+    fn resolve(&self, client_hello: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
+        let offered: Vec<SignatureScheme> =
+            client_hello.signature_schemes().iter().copied().filter(|s| self.allowed.contains(s)).collect();
+        let ck = self.inner.resolve(client_hello)?;
+        let key: Arc<dyn SigningKey> = Arc::new(RestrictedKey { inner: ck.key.clone(), allowed: self.allowed });
+        key.choose_scheme(&offered)?;
+        Some(Arc::new(CertifiedKey { cert: ck.cert.clone(), key, ocsp: ck.ocsp.clone() }))
+    }
+
+    fn only_raw_public_keys(&self) -> bool {
+        self.inner.only_raw_public_keys()
+    }
+}
+
+#[derive(Debug)]
+struct RestrictedKey {
+    inner: Arc<dyn SigningKey>,
+    allowed: &'static [SignatureScheme],
+}
+
+impl SigningKey for RestrictedKey {
+    fn choose_scheme(&self, offered: &[SignatureScheme]) -> Option<Box<dyn Signer>> {
+        let filtered: Vec<SignatureScheme> = offered.iter().copied().filter(|s| self.allowed.contains(s)).collect();
+        let signer = self.inner.choose_scheme(&filtered)?;
+        // Defence in depth: never return a signer whose scheme is outside the profile.
+        self.allowed.contains(&signer.scheme()).then_some(signer)
+    }
+
+    fn public_key(&self) -> Option<rustls::pki_types::SubjectPublicKeyInfoDer<'_>> {
+        self.inner.public_key()
+    }
+
+    fn algorithm(&self) -> SignatureAlgorithm {
+        self.inner.algorithm()
+    }
+}

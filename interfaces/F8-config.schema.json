@@ -105,6 +105,7 @@
             "P-BSI-ALT",
             "P-CNSA",
             "FIPS-FLOOR",
+            "FIPS-PQ-REQUIRED",
             "FIPS-CMVP"
           ]
         },
