@@ -1,0 +1,915 @@
+Architecting the Ironclad Middle Tier:
+Formal Specification and
+Implementation Blueprint for the Aegis
+Agentic Web Server
+1. Executive Architectural Synthesis: Resolving the
+Post-PHP Paradox
+The historical dominance of PHP in the early web was an emergent property of its execution
+lifecycle rather than its language design. By initializing and tearing down an isolated memory
+arena on every HTTP request, PHP aligned with the economics of multi-tenant shared hosting:
+a fatal panic, memory leak, or uncaught exception destroyed only the active request, leaving
+the parent daemon and adjacent tenants unharmed. Over the subsequent two decades, the
+software industry traded away this disposable, shared-nothing resilience in favor of
+long-running, stateful application runtimes—such as Node.js, Python async workers, Java
+servlets, and monolithic Go or Rust microservices—to eliminate process-spawning overhead
+and achieve high concurrency1.
+In an internet increasingly populated and driven by autonomous Large Language Model (LLM)
+agents, that architectural trade-off has become a critical liability. Long-running stateful
+application servers rely on ambient authority, holding global database connection pools,
+environment variable secrets, and persistent heap memory across thousands of concurrent
+requests3. When an autonomous agent interacts with such a backend via the Model Context
+Protocol (MCP) or REST APIs, a single indirect prompt injection, confused-deputy exploit, or
+algorithmic complexity payload can hijack the worker's ambient credentials to exfiltrate
+database tables or starve the host of compute resources4.
+Simultaneously, the rise of AI software engineering agents inverts the human ergonomics
+bottleneck that originally prevented strict, formally verified systems languages from winning
+the web in the 1990s. Human developers historically resisted strict borrow checking, explicit
+capability schemas, and formal pre-condition and post-condition annotations because manual
+proof construction slowed feature velocity7. Conversely, when autonomous coding agents
+author backend business logic, compiler strictness and Satisfiability Modulo Theories (SMT)
+verification act as deterministic guardrails7. Automated verification workflows such as KVerus
+demonstrate that LLM coding assistants paired with formal verifiers can iteratively synthesize,
+check, and repair formal proof obligations before a binary is ever allowed to compile7.
+The Aegis Architecture defined in this report establishes the "Ironclad Middle Tier"—a
+single-binary, drop-in application and gateway server that sits between upstream human
+browsers or autonomous MCP agents and downstream battle-tested databases such as
+PostgreSQL and SQLite6. Rather than reinventing the relational storage engine or the global
+CDN edge, Aegis replaces the vulnerable application server layer (Nginx with PHP-FPM,
+Node.js, or FastAPI) with a formally verified Rust host that revives PHP's shared-nothing crash
+isolation at sub-millisecond native speed1.
+
+
+ Architectural            Legacy                  Modern Stateful         The Aegis
+ Dimension                Shared-Nothing          Runtimes (Node.js       Reference Stack
+                          (mod_php /              / Python / Go)          (Verified Rust +
+                          PHP-FPM)                                        WASI + PGWire
+                                                                          Gate)
+
+
+ Memory & Crash           Process-level           Shared heap across      Hardware MPK &
+ Isolation                isolation; high         requests; one OOM       MMU guard pages
+                          fork/CGI overhead       or panic drops all      via wasmtime
+                          per request             in-flight sessions      PoolingInstanceAllo
+                                                                          cator12
+
+ Compute                  Coarse wall-clock       Cooperative event       Dual deterministic
+ Preemption               timeout                 loop; vulnerable to     instruction fuel
+                          (max_execution_tim      ReDoS and CPU           (consume_fuel) +
+                          e)                      starvation              async epoch
+                                                                          interruption5
+
+ Authorization            Ambient session         Ambient bearer          Zero ambient
+ Model                    cookies & global DB     JWTs & global           authority;
+                          credentials             process.env secrets     Datalog-evaluated
+                                                                          biscuit-auth + AIP
+                                                                          chained tokens4
+
+ Database Access          Dynamic string          ORM/query builders      Compile-time AST
+ Surface                  SQL; extreme SQLi       with ambient            extraction
+                          blast radius            connection pool         (pg_query.rs) +
+                                                  access                  Extended-Query-o
+                                                                          nly pgwire proxy11
+
+ Dual Human/Agent         HTML/JSON only;         Bolted-on               Single-endpoint
+ Ingress                  requires separate       HTTP+SSE                MCP Streamable
+                          sidecar for MCP         wrappers; degrades      HTTP (2026-07-28
+                                                  under agent load20      spec) + streaming
+                                                                          Web UI6
+
+ Cryptographic            Classical RSA/ECDH      Classical TLS;          Hybrid PQC
+                          via OpenSSL C           vulnerable to           (X25519MLKEM768
+ Posture                 bindings                Harvest-Now-Decr        + ML-DSA-65) via
+                                                 ypt-Later               rustls and
+                                                                         aws-lc-rs22
+
+ Correctness             Runtime unit testing    Type checking +         Compile-time Z3
+ Guarantee               only                    runtime integration     SMT proofs (Verus)
+                                                 tests                   + deterministic
+                                                                         chaos simulation
+                                                                         (madsim)9
+
+2. Core Subsystem Trade-Offs and Empirical
+Resolution
+Designing a production-grade server repository requires resolving deep architectural tensions
+within the contemporary systems ecosystem. A naive specification that simply combines
+disparate crates will fail at compile time due to incompatible asynchronous executors,
+C-binding cross-compilation limits, and wire-protocol mismatches1. The following analysis
+resolves the six foundational engineering trade-offs required to construct the Aegis stack.
+2.1 The Async I/O Boundary: Bridging Thread-Per-Core io_uring and
+the Tokio Ecosystem
+A central tension in high-performance Rust networking lies between completion-based
+io_uring runtimes and readiness-based epoll ecosystems1. Pure thread-per-core runtimes such
+as monoio and Datadog's glommio eliminate cross-thread lock contention and voluntary
+context switches by pinning each event loop to a physical CPU core and marking tasks as
+!Send1. Because io_uring is completion-oriented, buffer ownership must be transferred into
+kernel space (DmaBuffer or owned Vec) until the kernel posts a Completion Queue Entry
+(CQE), which eliminates syscall transitions when paired with SQPOLL1.
+However, an empirical audit of the Rust async ecosystem reveals critical operational constraints
+when building a full-stack gateway. Mission-critical protocol libraries—specifically quinn for
+QUIC transport and tokio-postgres for pipelined PostgreSQL wire communication—are deeply
+architected around Tokio's readiness-based mio wakers and Send + Sync work-stealing tasks1.
+Furthermore, while monoio excels in tail-latency proxy microbenchmarks, single-threaded
+tokio-uring achieves 370,000 requests per second compared to 270,000 requests per second
+for single-threaded monoio in direct comparisons, and scales across cores by spawning
+independent per-core executors30. A second constraint arises in embedded storage
+contention: the Copy-on-Write (CoW) ACID key-value store redb provides zero-copy MVCC
+reads and checksummed B-trees33, making it ideal for the local Session Write-Ahead Log
+(WAL). Yet redb performs blocking disk I/O during transactions and permits only a single open
+WriteTransaction at a time, meaning that invoking redb writes directly inside an asynchronous
+network task stalls the executor thread27.
+To resolve both constraints simultaneously, Aegis implements a Split-Plane Sharded Runtime
+leveraging the spargio architecture35. The fast-path Ingress and Wasm Sandbox Plane runs on
+thread-affine io_uring shards on Linux 6.0+ (with Linux 5.18+ required for core io_uring and
+msg_ring paths)35. Each shard owns one pinned worker thread, a dedicated io_uring
+Submission and Completion ring, and a thread-local Wasmtime store pool1. When a shard must
+interact with the Tokio-bound ecosystem (quinn UDP GSO/GRO streams or tokio-postgres
+connection pools) or commit a batch of session WAL entries to redb, it crosses an explicit,
+zero-lock spargio::boundary channel30. Cross-shard coordination wakes recipient rings via
+kernel IORING_OP_MSG_RING CQE injection rather than userspace mutexes, while a dedicated
+Group-Commit WAL thread drains redb write requests sequentially in atomic batches using
+io_uring asynchronous fsync operations27.
+2.2 Post-Quantum Transport and Zero-Copy Serialization
+To defend against Harvest-Now-Decrypt-Later (HNDL) attacks without sacrificing TLS
+handshake throughput, Aegis standardizes on rustls configured with the aws-lc-rs
+cryptographic provider22. Whereas the legacy ring provider lacks post-quantum key
+encapsulation37, aws-lc-rs natively provides FIPS 140-3 validated ML-KEM primitives and
+enables the hybrid X25519MLKEM768 and SecP256r1MLKEM768 key exchanges by default24.
+For post-quantum authentication and capability signing, Aegis integrates rustls-post-quantum
+and the aws-lc-rs unstable::signature module, enabling NIST FIPS 204 ML-DSA-44, ML-DSA-65,
+and ML-DSA-87 lattice signatures alongside classical Ed2551923.
+A critical build-system constraint is that aws-lc-rs wraps highly optimized C and assembly
+routines from AWS-LC and is therefore unavailable on WebAssembly guest targets28.
+Consequently, all TLS termination, X25519MLKEM768 decapsulation, and ML-DSA-65 or
+Ed25519 signature verifications are strictly executed in the native host binary (aegis-crypto)
+prior to sandbox instantiation22. Guest .wasm cartridges receive only pre-verified, strongly
+typed capability structures across the Wasm Interface Types (WIT) boundary, eliminating
+redundant cryptographic overhead inside the sandbox3.
+2.3 Wasmtime Nano-Sandboxing: Pooling Allocators, MPK, and Dual
+Fuel-Epoch Preemption
+To achieve the density of 10,000+ isolated tenant handlers on commodity hardware with
+PHP-style crash immunity, aegis-sandbox embeds wasmtime (v49+ series) and
+wasmtime-wasi-http supporting WASI p2 and p3 Component Model interfaces12. Standard
+on-demand mmap allocation and Cranelift JIT compilation introduce millisecond latency spikes
+that degrade tail latency under bursty agent traffic. Aegis eliminates cold starts by compiling
+cartridges ahead-of-time (AOT) into signed native .cwasm artifacts and loading them into a
+single process-wide Engine via Module::deserialize with runtime JIT compilation disabled in
+production3.
+For memory isolation, the Engine is configured with PoolingInstanceAllocator
+(PoolingAllocationConfig), which pre-allocates a fixed pool of virtual memory slots, component
+tables, and fiber execution stacks12. On x86_64 Linux hosts, Aegis enables the
+memory-protection-keys feature (PoolingAllocationConfig::memory_protection_keys), utilizing
+hardware Memory Protection Keys for Userspace (PKRU) registers12. Hardware MPK allows the
+pooling allocator to compact virtual memory guard regions by striping protection keys across
+adjacent slots rather than requiring multi-gigabyte virtual address reservations per instance,
+increasing concurrent sandbox density by an order of magnitude at the cost of a minor
+register-switch overhead on host-to-guest transitions13.
+To prevent compute denial-of-service from runaway agent loops, Aegis combines
+deterministic instruction counting with wall-clock rate control5. Relying solely on
+Config::consume_fuel traps a guest after a fixed number of instructions (where arithmetic and
+memory operations consume 1 unit of fuel while nop, drop, block, and loop consume 0 units)15,
+whereas Config::epoch_interruption provides coarse wall-clock deadlines3. Defending against
+adversarial agent swarms requires bounding the rate of computation (fuel consumed per
+second) alongside total execution fuel5. Aegis therefore enables both consume_fuel(true) and
+epoch_interruption(true) alongside Store::fuel_async_yield_interval3. When an epoch tick or
+yield interval fires, the Store::epoch_deadline_callback inspects the burned fuel via
+consumed_fuel = FUEL - store.get_fuel(), dynamically returning UpdateDeadline::YieldCustom
+with a proportional Tokio or io_uring timer delay if an unverified guest exceeds its allocated
+compute rate, or immediately trapping and resetting the pooled memory slot via
+decommit_queue if the absolute budget is exhausted5.
+2.4 Dual-Native Ingress: MCP Streamable HTTP (2026-07-28 Spec)
+and Human UI Projection
+A foundational requirement for the Aegis server is serving both human browser traffic and
+autonomous AI agent tool invocations from a single unified handler definition. In early MCP
+deployments (protocol version 2024-11-05), remote servers relied on the HTTP+SSE transport,
+which required clients to hold open a persistent GET Server-Sent Events stream while sending
+JSON-RPC requests to a separate POST endpoint6. Under sustained multi-agent concurrency,
+HTTP+SSE exhibited severe latency degradation—climbing into hundreds of milliseconds—and
+throughput collapse, leading to its deprecation in specification version 2025-03-26 and
+subsequent stateless refinement in revision 2026-07-286.
+Aegis implements the MCP Streamable HTTP specification (2025-03-26 and 2026-07-28
+revisions), which sustains approximately 10 ms call latencies at 300+ RPS and supports
+completely stateless horizontal scaling6. Every compiled WIT handler registered in Aegis is
+automatically projected onto a single unified HTTP endpoint that enforces zero-body header
+routing, dynamic stream upgrading, and stateless multi-round-trip continuations6. Per the
+2026-07-28 Streamable HTTP specification, MCP clients mirror JSON-RPC metadata directly
+into HTTP headers—specifically Mcp-Method, Mcp-Name, and Mcp-Param-{Name} extracted
+from primitive integer, string, or boolean tool schema properties annotated with
+x-mcp-header6. The aegis-ingress layer strictly validates the Origin header on all incoming
+connections (returning HTTP 403 Forbidden on invalid origins to prevent DNS rebinding
+attacks) and rejects any x-mcp-header containing carriage return (\r) or line feed (\n) control
+characters6. Because method names and target resource parameters are exposed in the HTTP
+headers, Aegis evaluates the caller's Datalog capability token at the ingress socket layer before
+reading the HTTP body or allocating a Wasmtime Store4.
+Each agent POST request operates independently on this single endpoint6. If a Wasm handler
+completes synchronously within a single fuel quantum, Aegis returns 200 OK with
+application/json6. If the handler emits progress events (notifications/progress), Aegis
+dynamically upgrades that specific request's response into a scoped SSE stream6. Closing the
+SSE response stream by the client is treated unambiguously by aegis-ingress as request
+cancellation, immediately trapping the active Wasmtime Store and discarding its uncommitted
+Copy-on-Write memory buffer6. Furthermore, when a server tool requires interactive user
+input or client-side LLM sampling (elicitation/create) via Multi-Round-Trip Requests (MRTR),
+Aegis does not pin a stateful Wasm instance in RAM waiting for a reply6. Instead, the handler
+journals its intermediate state into the redb Session WAL and returns an InputRequiredResult
+containing inputRequests6. The Wasm slot returns to the PoolingInstanceAllocator immediately;
+when the agent retries the POST with the matching inputResponses and session nonce, Aegis
+replays the WAL journal in microseconds and resumes execution seamlessly6.
+2.5 Decentralized Capability Security and Economic Metering: AIP
+over Biscuit and x402
+To eradicate Confused Deputy vulnerabilities and Indirect Prompt Injection privilege escalation,
+Aegis replaces bearer JWTs and static API keys with Identity-Bound Capability Tokens (IBCT)
+based on the Agent Identity Protocol (AIP) layered atop biscuit-auth (v6.0)4. While raw
+biscuit-auth provides an append-only block format signed via Ed25519 and evaluated via a
+terminating Datalog engine with scoped rule isolation and unified string interning4, raw Biscuit
+defines no identity resolution, no protocol bindings for MCP or HTTP, and no execution
+provenance model4.
+By implementing the AIP profile over biscuit-auth, Aegis unifies identity, attenuated
+authorization, and cryptographic provenance in a single evolvable token chain4. Single-hop
+agent calls can utilize Compact Mode (verified in 0.049 ms in Rust compared to 0.189 ms in
+Python), whereas multi-hop delegations utilize Chained Mode transmitted via the X-AIP-Token
+HTTP header4. In Chained Mode, Block 0 (the authority block) establishes a max_depth
+(defaulting to 3), allowed tool scopes such as [tool:search, tool:email], and a compute or
+monetary budget17. When an orchestrator agent delegates a subtask to a specialist sub-agent,
+it appends an attenuated block offline narrowing the scope to [tool:search] and reducing the
+budget (100 <= 500)16. The Biscuit authorizer evaluates all blocks together and rejects any fact
+that contradicts an earlier attenuation or exceeds max_depth17.
+For high-risk state mutations such as database writes or outbound payments, Aegis enforces
+step-up verification via Biscuit third-party blocks (allow if scope("orders:write"),
+operation("write"), amr("mfa") trusting authority, ed25519/...)45. An external attestor signs an
+amr("mfa") block cryptographically bound to the specific token without ever seeing the token
+itself, ensuring that nobody can move the attestation block onto a different token45. Upon
+finishing an invocation, the ephemeral worker signs a final Completion Block containing status:
+completed and result_hash: sha256:..., producing a single cryptographic audit artifact proving
+who authorized the action, through which agents delegation flowed, what constraints applied
+at each hop, and the exact output digest4. Additionally, when an unauthenticated external
+agent requests a protected MCP tool without an authority token, aegis-ingress responds with
+HTTP 402 Payment Required following the x402 protocol standard—maintained by Coinbase
+and the x402 Foundation, which has processed over 165 million agent transactions46. Once the
+agent signs an atomic USDC payment payload (X-Payment), the host verifies the settlement
+and mints an ephemeral Biscuit token parameterized with the exact purchased budget and
+fuel_grant facts17.
+As the empirical benchmarks confirm, evaluating a three-hop attenuated Biscuit token requires
+just 135 µs (0.135 ms), and even a six-hop chain completes in 324 µs—well below the
+1-millisecond threshold4. Chained tokens scale linearly at 340 to 380 bytes per delegation
+block4. Because aegis-ingress caches parsed public keys in thread-local storage and evaluates
+Datalog facts in memory prior to Wasm instantiation, capability verification adds only 0.22 ms
+of total overhead to live MCP HTTP calls4.
+2.6 The Iron Gate Database Proxy: Compile-Time SQL AST Verification
+and Extended PGWire
+The ultimate objective of an adversarial agent attack is unauthorized data exfiltration or
+corruption in the backend database. Traditional web stacks hand application workers a
+connection pool capable of executing arbitrary SQL strings. Aegis severs this attack vector by
+introducing aegis-db-gate, an internal database firewall built on pg_query.rs and pgwire
+(v0.41.1)11.
+The defense operates across both compile time and runtime. During compilation
+(aegis-compiler), when an AI coding agent or developer builds a handler cartridge, the Aegis
+toolchain scans all database macros using pg_query.rs, which links directly against
+PostgreSQL's official C server parser (libpg_query) via its protobuf interface19. Every SQL
+statement is parsed into its canonical PostgreSQL Abstract Syntax Tree (Node::SelectStmt,
+Node::InsertStmt), guaranteeing 100% compatibility with PostgreSQL syntax19. The compiler
+automatically rejects multi-statement queries (split_with_parser), dynamic table or column
+interpolation, DDL statements (DROP, ALTER), and bulk COPY operations18. Validated
+statements are canonicalized, hashed via BLAKE3 into a 64-bit StmtId, and written into a signed
+queries.lock manifest embedded inside the .cwasm cartridge. Furthermore, in the PostgreSQL
+wire protocol, the Extended Query sub-protocol requires the database engine to perform
+parameter type inference during the Parse phase before parameter values are bound56. While
+native PostgreSQL supports this natively, embedded engines like SQLite and DuckDB lack
+sufficient APIs to infer variable parameter types without executing the query56. Aegis
+overcomes this limitation by extracting the exact parameter types from the Rust macro
+call-site and target schema at compile time, storing the parameter OID array directly inside
+queries.lock so aegis-db-gate can satisfy Describe and Bind requests without querying SQLite
+for type inference11.
+At runtime (aegis-db-gate), Wasm guests possess zero network socket access. They interact
+with databases either via a typed WIT host import or via a virtualized local pgwire endpoint11.
+Within aegis-db-gate, the pgwire SimpleQueryHandler—which accepts raw text strings—is
+permanently disabled, and any Simple Query message immediately traps and terminates the
+sandbox11. Only the ExtendedQueryHandler (Parse, Bind, Execute, Describe, Sync) is active,
+backed by a read-only PortalStore populated exclusively from the cartridge's signed
+queries.lock manifest11. Before dispatching the bound portal over the internal tokio-postgres
+pool or local SQLite engine, aegis-db-gate extracts the verified principal_id and tenant_id from
+the caller's Biscuit token and prepends SET LOCAL app.principal_id = $1; SET LOCAL
+app.tenant_id = $2; inside the transaction envelope, guaranteeing mandatory Row-Level
+Security (RLS) enforcement on every query11.
+
+3. Repository Architecture and Workspace
+Specification
+To translate these architectural resolutions into a maintainable software artifact, the repository
+(aegis) is structured as a hermetic Rust Cargo workspace divided into a Formally Verified Core
+(Verus), a High-Throughput Runtime Data Plane, a Database and Storage Gate, and a
+Developer/Agent SDK Toolchain11.
+
+
+
+
+3.1 Cargo Workspace Organization and Subsystem Matrix
+The workspace root (aegis/Cargo.toml and rust-toolchain.toml) pins the compiler and
+verification toolchains to ensure deterministic builds across developer machines and CI
+enclaves7. Crucially, the architecture isolates code compiled via standard rustc from crates
+verified by the cargo-verus driver (rust_verify), ensuring that Z3 SMT verification executes
+rapidly on security-critical state machines without parsing external network or OS driver
+dependencies8. Canonical host-to-guest interface definitions reside in
+wit/aegis:runtime@0.1.0.wit at the root of the repository, while each functional subsystem is
+encapsulated in a dedicated crate under crates/ as detailed in the matrix below.
+
+
+ Workspace Path &         Primary                  Execution Runtime        Architectural Role
+ Crate                    Dependencies             & Thread Model           & Verification
+                                                                            Regime
+
+
+ crates/aegis-verifie     vstd, builtin,           Pure synchronous         State-machine
+d-core                builtin_macros25     state machines (No    transition logic,
+                                           async, no OS          capability lattice
+                                           clocks)26             evaluator, and fuel
+                                                                 ledger. Z3 SMT
+                                                                 Formal Proof
+                                                                 (cargo-verus):
+                                                                 100% panic-free
+                                                                 and overflow-free9.
+
+crates/aegis-crypto   rustls, aws-lc-rs,   Thread-local key      Post-quantum TLS
+                      rustls-post-quantu   caches on Ingress     (X25519MLKEM768
+                      m, biscuit-auth      shards1               + ML-DSA-65) and
+                      (6.0)22                                    AIP IBCT token
+                                                                 verifiers. Verified
+                                                                 against FIPS 140-3
+                                                                 AWS-LC primitives
+                                                                 and AIP vectors4.
+
+crates/aegis-ingres   spargio, quinn,      Pinned io_uring       Thread-per-core
+s                     hyper, x402-rs22     shards +              accept loop, HTTP/3
+                                           spargio::boundary     multiplexer, MCP
+                                           to Tokio1             Streamable HTTP
+                                                                 (2026-07-28)
+                                                                 router, Origin
+                                                                 check, and x402
+                                                                 gate. Verified via
+                                                                 madsim fuzzing6.
+
+crates/aegis-sandb    wasmtime (49.0+),    Pinned per-shard      AOT .cwasm loader,
+ox                    wasmtime-wasi,       PoolingInstanceAllo   hardware MPK
+                      wasmtime-wasi-htt    cator + PKRU MPK12    memory isolation,
+                      p41                                        and dual fuel/epoch
+                                                                 preemption
+                                                                 callbacks. Verified
+                                                                 via
+                                                                 cranelift_isle_veri
+                                                                 and torture tests5.
+
+crates/aegis-wal      redb, blake327       Dedicated             Speculative CoW
+                                           single-writer         session journal for
+                                           Group-Commit          idempotent step
+                                           thread (io_uring      nonces and MRTR
+                                                   fsync)27                suspended
+                                                                           coroutines. Verified
+                                                                           via power-loss
+                                                                           simulation in
+                                                                           madsim6.
+
+ crates/aegis-db-gat      pgwire (0.41+),          Tokio async pool        Iron Gate DB proxy
+ e                        tokio-postgres,          bridged via             enforcing
+                          rusqlite11               spargio::boundary32     ExtendedQueryHan
+                                                                           dler, immutable
+                                                                           PortalStore, and
+                                                                           SET LOCAL RLS
+                                                                           injection. Proven
+                                                                           cross-tenant RLS
+                                                                           isolation11.
+
+ crates/aegis-compil      pg_query                 Build-time CLI          Extracts and
+ er                       (pg_query.rs),           toolchain (aegis        validates SQL ASTs
+                          wit-bindgen,             build)                  via libpg_query,
+                          verus-syn19                                      pre-computes
+                                                                           parameter OIDs,
+                                                                           runs the KVerus
+                                                                           loop, and emits
+                                                                           signed .cwasm
+                                                                           cartridges7.
+
+ crates/aegis-sim         madsim26                 Single-threaded         Seeded chaos
+                                                   deterministic           testing harness
+                                                   virtual-time            injecting packet
+                                                   executor26              drops, SSE
+                                                                           disconnects, and
+                                                                           disk faults across
+                                                                           the entire server
+                                                                           lifecycle26.
+
+3.2 Core Interface Contracts: WIT ABI and Verus Specifications
+To guarantee zero ambient authority, guest cartridges compiled for Aegis cannot import
+standard WASI socket or filesystem descriptors (wasi:filesystem and wasi:sockets are
+intentionally left unlinked in the host Linker)3. Cartridges communicate with the host exclusively
+through the aegis:runtime WIT contract, which enforces Taint-Tracked Information Flow
+Control (IFC) labels and compiled StmtId database execution:
+Code snippet
+package aegis:runtime@0.1.0;​
+​
+interface types {​
+   /// Security lattice label for Taint-Tracked Information Flow Control (IFC)​
+   enum integrity-level {​
+      trusted-system,​
+      authenticated-human,​
+      untrusted-agent-input,​
+   }​
+​
+   variant db-param {​
+      null-val,​
+      int64-val(s64),​
+      float64-val(f64),​
+      text-val(string),​
+      bytes-val(list<u8>),​
+      bool-val(bool),​
+   }​
+​
+   record tainted-value {​
+      payload: list<u8>,​
+      integrity: integrity-level,​
+   }​
+​
+   record query-result {​
+      rows-capnp: list<u8>,​
+      affected-count: u64,​
+   }​
+​
+   variant gate-error {​
+      capability-denied(string),​
+      unregistered-statement(u64),​
+      taint-violation(string),​
+      fuel-exhausted,​
+      db-transient-error(string),​
+   }​
+}​
+​
+    interface iron-gate {​
+       use types.{db-param, query-result, gate-error, integrity-level};​
+    ​
+       /// Executes a compile-time registered SQL AST statement by its BLAKE3 StmtId.​
+       /// Raw SQL strings do not exist in the ABI.​
+       execute-prepared: func(​
+          stmt-id: u64,​
+          params: list<db-param>,​
+          caller-integrity: integrity-level​
+       ) -> result<query-result, gate-error>;​
+    ​
+       /// Journals a deterministic side-effect into the redb CoW Session WAL.​
+       journal-step: func(​
+          step-nonce: u64,​
+          payload: list<u8>​
+       ) -> result<list<u8>, gate-error>;​
+    }​
+    ​
+    world aegis-cartridge {​
+       import iron-gate;​
+       export wasi:http/incoming-handler@0.2.0;​
+    }​
+
+Inside crates/aegis-verified-core, the host authorization and fuel-accounting state machine is
+proven using Verus. Because Verus trusts Rust's borrow checker for linearity and erases all
+ghost code (spec and proof blocks) before machine code generation, these mathematical
+guarantees incur zero runtime performance overhead8:
+
+
+
+
+    Rust
+    use vstd::prelude::*;​
+    ​
+    verus! {​
+    ​
+    pub struct CapabilityGrant {​
+       pub principal_id: u64,​
+       pub tenant_id: u64,​
+       pub allowed_stmt_id: u64,​
+       pub is_mutating: bool,​
+       pub requires_mfa_step_up: bool,​
+     pub mfa_attested: bool,​
+     pub remaining_fuel: u64,​
+     pub delegation_depth: u8,​
+     pub max_depth: u8,​
+}​
+​
+#[derive(PartialEq, Eq)]​
+pub enum IntegrityLevel {​
+     TrustedSystem,​
+     AuthenticatedHuman,​
+     UntrustedAgentInput,​
+}​
+​
+pub open spec fn grant_is_well_formed(g: CapabilityGrant) -> bool {​
+     &&& g.delegation_depth <= g.max_depth​
+     &&& g.max_depth <= 6​
+     &&& (g.requires_mfa_step_up ==> g.mfa_attested)​
+}​
+​
+/// Formally verified gate check ensuring:​
+/// 1. No delegation chain exceeds max_depth.​
+/// 2. Mutating queries cannot be triggered by UntrustedAgentInput without sanitization.​
+/// 3. Fuel deduction never underflows and strictly bounds execution.​
+pub fn verify_and_deduct_dispatch(​
+   grant: &mut CapabilityGrant,​
+   requested_stmt_id: u64,​
+   stmt_cost_fuel: u64,​
+   input_integrity: IntegrityLevel,​
+) -> (res: Result<u64, ()>)​
+   requires​
+     grant_is_well_formed(*old(grant)),​
+     stmt_cost_fuel > 0,​
+   ensures​
+     match res {​
+        Ok(remaining) => {​
+            &&& grant_is_well_formed(*grant)​
+            &&& grant.allowed_stmt_id == requested_stmt_id​
+            &&& old(grant).remaining_fuel >= stmt_cost_fuel​
+            &&& grant.remaining_fuel == old(grant).remaining_fuel - stmt_cost_fuel​
+            &&& remaining == grant.remaining_fuel​
+            &&& (grant.is_mutating ==> input_integrity != IntegrityLevel::UntrustedAgentInput)​
+        },​
+        Err(_) => {​
+                         // State remains strictly unmutated on any rejection​
+                         *grant == *old(grant)​
+                    }​
+               }​
+     {​
+          if grant.allowed_stmt_id != requested_stmt_id {​
+               return Err(());​
+          }​
+          if grant.is_mutating && input_integrity == IntegrityLevel::UntrustedAgentInput {​
+               return Err(());​
+          }​
+          if grant.remaining_fuel < stmt_cost_fuel {​
+               return Err(());​
+          }​
+          grant.remaining_fuel = grant.remaining_fuel - stmt_cost_fuel;​
+          Ok(grant.remaining_fuel)​
+     }​
+     ​
+     } // verus!​
+
+
+4. Formal Verification and Deterministic Simulation
+Pipeline
+A backend server designed to withstand evolutionary AI cyber warfare cannot rely solely on
+manual code review. The Aegis repository enforces a two-stage automated verification
+pipeline on every commit and cartridge build.
+4.1 Stage 1: Verus SMT Verification and the KVerus Agent Loop
+All code in aegis-verified-core and critical state transitions in aegis-db-gate are checked by
+cargo-verus25. Verus translates annotated Rust functions into its high-level intermediate
+representation (VIR) and emits SMT-LIB queries organized into parallel verification buckets
+solved by Z3 (v4.12.5+) and experimentally cvc525. In Verus, calling unwrap() or indexing a slice
+carries an implicit precondition; if the SMT solver cannot mathematically prove is_Some(),
+is_Ok(), or bounds safety across all possible inputs, compilation halts immediately at the exact
+call site and emits a counterexample8.
+To make formal verification seamless for developers and AI coding agents building applications
+on Aegis, aegis-compiler embeds the KVerus automated proof synthesis workflow7. When an
+unverified function is authored, the build tool first extracts dependency-scoped code context
+from repository metadata by building a typed directed graph over relevant functions, spec
+functions, proof lemmas, structures, and traits7. Next, it retrieves reusable lemmas from both
+vstd and project libraries by indexing lemma signatures alongside LLM-generated semantic
+summaries7. Finally, the KVerus loop generates candidate proof annotations (requires, ensures,
+and loop invariant blocks), checks them with rust_verify, and feeds verifier diagnostics from
+sst_to_air.rs back into an error triager and fixer to iteratively repair failed proof attempts7.
+Crucially, the LLM output is never treated as a trusted artifact: the Verus SMT checker remains
+the uncompromising mathematical authority for proof validity before ghost code is erased and
+the executable binary is emitted7.
+4.2 Stage 2: Deterministic Simulation Testing (DST) via madsim
+While Verus proves functional correctness, panic-freedom, and memory safety within
+individual modules, SMT solvers do not verify distributed liveness or absence of deadlocks
+across asynchronous I/O boundaries by default8. To verify the interaction between io_uring
+socket drops, Wasmtime async yields, redb WAL crash recovery, and PostgreSQL connection
+pooling, aegis-sim implements FoundationDB-style Deterministic Simulation Testing using
+madsim26.
+To preserve total determinism under simulation, all core Aegis state machines are architected
+without direct access to system clocks or untracked OS-thread primitives, which would
+otherwise break deterministic replay26. State machines perceive time exclusively through
+explicit timestamps passed into tick calls by the simulation message bus, allowing the simulator
+to compress hours of timeouts and backoff intervals into microseconds26. Every random
+decision in the system—including event reordering, packet drops, simulated client SSE
+disconnects, x402 facilitator delays, and torn WAL writes—draws from a single pseudo-random
+number generator initialized with a 64-bit seed printed at the start of each CI run26. In
+continuous integration, aegis-sim executes thousands of simulated hours of chaotic
+multi-agent traffic overnight; if a concurrency bug, livelock, or calculation error surfaces,
+re-running the test with the same 64-bit seed reproduces the exact instruction interleaving
+deterministically26.
+
+5. Phased Implementation Plan and Engineering
+Roadmap
+To deliver a production-ready, single-binary server systematically, the engineering execution is
+structured into five sequential phases. Each phase produces a verifiable artifact gated by strict
+mathematical and empirical acceptance criteria.
+
+
+ Phase               Deliverable         Target Crates      Key Technical       Verification &
+                     Milestone                              Tasks               Acceptance
+                                                                                Gate
+
+
+ Phase 1:            Cryptographic       aegis-verified-    Implement           cargo verus
+ Verified Core       & SMT-Proven        core,              Verus-annotat       verify passes
+ & PQC               State Kernel        aegis-crypto       ed capability       with 0
+ Capability                                                 state machine,      unproven
+ Gate                                                       fuel ledger, and    obligations;
+                                                            taint lattice;      depth-5 Biscuit
+                                                 integrate rustls   verification
+                                                 (aws-lc-rs         completes in <
+                                                 X25519MLKEM        300 µs (< 0.3
+                                                 768 +              ms)4.
+                                                 ML-DSA-65)
+                                                 and
+                                                 biscuit-auth
+                                                 v6.0 with AIP
+                                                 Chained/Comp
+                                                 act
+                                                 verification4.
+
+Phase 2:        Shared-Nothin   aegis-sandbox,   Configure          < 15 µs warm
+Wasmtime        g Cartridge     aegis-wal        wasmtime           cartridge
+Nano-Sandbo     Engine                           v49+               instantiation;
+x & CoW WAL                                      PoolingInstanc     10,000
+                                                 eAllocator with    concurrent
+                                                 Linux x86_64       pooled
+                                                 memory-prote       instances in < 2
+                                                 ction-keys         GB RAM;
+                                                 (PKRU);            deterministic
+                                                 implement          WAL replay on
+                                                 dual               mid-step trap5.
+                                                 consume_fuel
+                                                 +
+                                                 epoch_interrup
+                                                 tion
+                                                 rate-limiting
+                                                 callback; build
+                                                 redb
+                                                 group-commit
+                                                 Session WAL5.
+
+Phase 3: Iron   SQLi-Immune     aegis-db-gate,   Build aegis-cli    100% rejection
+Gate DB Proxy   Database        aegis-compiler   using              of
+& AST           Firewall                         pg_query.rs        SimpleQueryH
+Compiler                                         (libpg_query)      andler raw SQL
+                                                 to extract SQL     strings and
+                                                 ASTs,              unregistered
+                                                 pre-compute        StmtId portals;
+                                                 parameter          proven
+                                                 OIDs for           cross-tenant
+                                              SQLite/PG, and     RLS isolation11.
+                                              emit
+                                              queries.lock;
+                                              implement
+                                              pgwire
+                                              ExtendedQuer
+                                              yHandler +
+                                              PortalStore
+                                              and
+                                              tokio-postgres
+                                              RLS wrapper11.
+
+Phase 4:        Dual          aegis-ingress   Build spargio      Sustain > 300k
+Sharded         Human/Agent                   thread-per-cor     RPS on 8-core
+Ingress & MCP   Protocol                      e io_uring         bare
+Streamable      Server                        accept shards      metal/VPS; <
+HTTP                                          bridged to         0.25 ms auth +
+                                              quinn HTTP/3;      header routing
+                                              implement          overhead;
+                                              MCP                100%
+                                              Streamable         compliance
+                                              HTTP               with MCP
+                                              (2026-07-28        2026-07-28
+                                              spec) with         test suite4.
+                                              Origin check,
+                                              x-mcp-header
+                                              zero-body
+                                              routing, MRTR
+                                              elicitation, and
+                                              x402 payment
+                                              gate6.
+
+Phase 5:        Hermetic      aegis-sim,      Integrate          1,000,000
+Chaos           Release &     aegis-sdk       madsim             seeded
+Simulation &    KVerus                        deterministic      madsim chaos
+Agent SDK       Toolchain                     chaos harness      ticks with 0
+                                              simulating         state
+                                              socket drops       corruptions, 0
+                                              and WAL            leaked file
+                                              recoveries;        descriptors,
+                                              package            and 0
+                                              KVerus LLM         deadlocks26.
+                                                             proof-repair
+                                                             loop into aegis
+                                                             build so AI
+                                                             coding agents
+                                                             compile
+                                                             verified
+                                                             .cwasm
+                                                             cartridges
+                                                             automatically7.
+
+5.1 Detailed Execution Directives for Critical Path Engineering
+Step 1: Bootstrapping the Verus Toolchain and Core Invariants (Weeks 1–3)
+Execution begins by pinning the Rust toolchain and Z3 v4.12.5 in a reproducible build
+environment58. Engineers construct crates/aegis-verified-core with #![no_std] compatibility so
+it remains strictly isolated from OS syscalls. Using Verus linear ghost types, the team formalizes
+the CapabilityGrant and CoWTransactionArena structures62. Every state transition function
+carries an explicit ensures clause proving that on any error branch, *state ==
+*old(state)—mathematically guaranteeing the PHP shared-nothing invariant that failed or
+aborted requests never mutate host state8.
+Step 2: Engineering the Wasmtime Pooling Sandbox and Fuel/Epoch Loop (Weeks
+4–6)
+In crates/aegis-sandbox, engineers initialize a single process-wide wasmtime::Engine
+configured with PoolingInstanceAllocator3. On x86_64 Linux targets,
+PoolingAllocationConfig::memory_protection_keys is enabled so hardware PKRU registers
+isolate adjacent linear memories without exhausting virtual address space12. Both
+config.consume_fuel(true) and config.epoch_interruption(true) are activated on the engine3. A
+background hardware timer increments the engine epoch every millisecond, while each
+request Store is configured with store.fuel_async_yield_interval(Some(50_000)) and an
+epoch_deadline_callback that compares burned fuel (FUEL - store.get_fuel()) against the
+caller's Biscuit fuel_grant rate, yielding via UpdateDeadline::YieldCustom or trapping cleanly
+upon budget exhaustion5.
+Step 3: Implementing the Compile-Time AST Extractor and PGWire Extended
+Proxy (Weeks 7–10)
+In crates/aegis-compiler, the build CLI integrates pg_query.rs (libpg_query) to parse all
+procedural SQL macros via pg_query::parse at compile time19. The AST traversal verifies that
+each query consists of a single SelectStmt, InsertStmt, UpdateStmt, or DeleteStmt, rejecting
+multi-statement strings and DDL mutations53. The compiler hashes the canonical AST with
+BLAKE3 to generate the 64-bit StmtId and records the explicit PostgreSQL parameter Type
+OIDs into queries.lock, overcoming SQLite's inability to perform parameter type inference
+during Extended Query Parse messages56. In crates/aegis-db-gate, engineers implement
+pgwire's ExtendedQueryHandler backed by an immutable PortalStore populated from
+queries.lock, while wiring SimpleQueryHandler::do_query to return an immediate fatal protocol
+rejection11.
+Step 4: Wiring the Spargio io_uring Ingress and MCP Streamable HTTP Normalizer
+(Weeks 11–14)
+In crates/aegis-ingress, the server initializes one spargio io_uring shard per physical CPU core,
+utilizing msg_ring CQE injection for cross-shard wakeups1. The TLS acceptor is constructed
+using rustls with the default aws-lc-rs provider and X25519MLKEM768 prioritized in the key
+exchange group list22. When handling traffic on the unified MCP Streamable HTTP (2026-07-28)
+endpoint, the ingress pipeline first validates the Origin header to block DNS rebinding, then
+extracts Mcp-Method, Mcp-Name, and Mcp-Param-* headers while rejecting any header
+containing \r or \n characters6. Next, the gate extracts the X-AIP-Token header—or returns an
+HTTP 402 Payment Required challenge carrying an x402 USDC invoice if unauthenticated—and
+evaluates the Biscuit Datalog policy against the Mcp-* header facts before allocating a
+Wasmtime Store or reading the HTTP body4. Validated requests are dispatched into the
+shard-local Wasmtime pool, dynamically upgrading to a request-scoped SSE stream if progress
+notifications are emitted and wiring the transport disconnect signal directly to cancel the active
+Wasmtime store6.
+
+6. Conclusions and Architectural Synthesis
+The Aegis server architecture demonstrates that the historical compromise between developer
+velocity, runtime performance, and formal security is obsolete in the agentic era. By scoping
+the software product strictly to the Application and Gateway Server Layer—sitting between
+upstream human or agent protocols and downstream PostgreSQL or SQLite databases—the
+architecture avoids the intractability of reinventing relational storage or global network transit
+while sealing the exact middle-tier attack surface where modern web applications fail6.
+Three structural conclusions govern the implementation and long-term durability of this
+repository. First, disposable execution is mandatory for agentic infrastructure. Just as
+mod_php survived buggy human code on shared hosts by discarding request memory after
+every HTTP call, an agent-facing backend must treat every tool call and HTTP request as
+potentially adversarial. Combining wasmtime's PoolingInstanceAllocator and hardware Memory
+Protection Keys (PKRU) with a redb Copy-on-Write Session WAL achieves PHP's crash immunity
+and hot-swap deployment fluidity (< 15 µs instantiation) at native Rust throughput12.
+Second, zero-body header routing and compile-time AST gates eradicate confused-deputy
+exploits. By pairing the MCP Streamable HTTP (2026-07-28) header-mirroring specification
+(Mcp-Method, Mcp-Name, Mcp-Param-*) with biscuit-auth and AIP Datalog capability tokens
+(< 325 µs verification across 6 delegation hops) alongside pg_query.rs compile-time SQL AST
+registration, Aegis makes unauthorized tool execution and SQL injection structurally
+impossible—even if an autonomous agent's context window is completely hijacked by indirect
+prompt injection4.
+Finally, formal verification is force-multiplied by AI coding agents. Applying Verus (Z3 SMT
+verification) to the core authorization and state-transition kernel (aegis-verified-core) and
+madsim deterministic simulation testing to the asynchronous runtime boundary eliminates
+entire classes of memory, concurrency, and state-machine bugs at compile time9. Integrating
+the KVerus automated proof-refinement loop into the SDK toolchain ensures that AI coding
+agents building applications on Aegis are mathematically constrained to produce provably
+sound, panic-free backend cartridges7.
+
+Works cited
+
+  1.​ Rust Async Runtimes: Tokio, Glommio, and monoio - NX Rates Blog,
+     https://nxrates.com/blog/rust-async-runtimes
+  2.​ Iggy.rs - building message streaming in Rust,
+     https://iggy.apache.org/blogs/2023/12/29/building-message-streaming-in-rust/
+  3.​ Embedding Wasmtime: Driving WebAssembly from Rust,
+     https://blog.redlinesoft.net/posts/embedding-wasmtime-wasm-from-rust/
+  4.​ AIP: Agent Identity Protocol for Verifiable Delegation Across MCP,
+       https://www.researchgate.net/publication/403194121_AIP_Agent_Identity_Protoco
+       l_for_Verifiable_Delegation_Across_MCP_and_A2A
+  5.​ How to limit guest code execution rate? · Issue #13467 - GitHub,
+       https://github.com/bytecodealliance/wasmtime/issues/13467
+  6.​ Streamable HTTP - What is the Model Context Protocol (MCP)?,
+       https://modelcontextprotocol.io/specification/draft/basic/transports/streamable-h
+       ttp
+  7.​ KVerus: Scalable and Resilient Formal Verification Proof Generation,
+       https://arxiv.org/html/2605.03822v2
+  8.​ Formal Specification and Type-Driven Safety for AI Agent Runtimes,
+       https://zylos.ai/research/2026-03-13-formal-specification-type-driven-safety-ai-
+       agent-runtimes/
+  9.​ Don't Unwrap in Production: A Formal Verification Guide,
+       https://nextdoorhacker.com/2025/12/24/dont-unwrap-in-production-a-formal-ver
+       ification-guide/
+  10.​AUTOMATED PROOF GENERATION FOR RUST CODE,
+       https://openreview.net/pdf?id=2NqssmiXLu
+  11.​ pgwire - crates.io: Rust Package Registry, https://crates.io/crates/pgwire
+  12.​config.rs - source - Wasmtime,
+       https://docs.wasmtime.dev/api/src/wasmtime/config.rs.html
+  13.​Rust - wasmtime, https://docs.wasmtime.dev/api/wasmtime/
+  14.​Config in wasmtime - Rust,
+       https://docs.wasmtime.dev/api/wasmtime/struct.Config.html
+  15.​Store in wasmtime - Rust - Parity,
+       https://paritytech.github.io/try-runtime-cli/wasmtime/struct.Store.html
+  16.​Biscuit 2.0 release, https://www.biscuitsec.org/blog/biscuit-2-0/
+  17.​Agent Identity Protocol for Verifiable Delegation Across MCP and A2A,
+       https://arxiv.org/html/2603.24775v1
+  18.​pgwire - Rust - Docs.rs, https://docs.rs/pgwire
+  19.​Benchmark Results: Rust SQL Parser Comparison · Issue #75,
+       https://github.com/pganalyze/pg_query.rs/issues/75
+20.​MCP Transport Comparison: stdio vs SSE vs Streamable HTTP,
+    https://gingerlabs.ai/blog/mcp-transport-comparison
+21.​MCP Streamable HTTP: 2026-07-28 Wire Protocol | TrueFoundry,
+    https://www.truefoundry.com/blog/mcp-streamable-http-wire-protocol
+22.​rustls - Rust - Docs.rs, https://docs.rs/rustls
+23.​PQC support - SSL/TLS - Cloudflare Docs,
+    https://developers.cloudflare.com/ssl/post-quantum-cryptography/pqc-support/
+24.​First cryptographic library to include ML-KEM in FIPS 140-3 validation,
+    https://aws.amazon.com/blogs/security/aws-lc-fips-3-0-first-cryptographic-librar
+    y-to-include-ml-kem-in-fips-140-3-validation/
+25.​verus/source/CODE.md at main - GitHub,
+    https://github.com/verus-lang/verus/blob/main/source/CODE.md
+26.​Deterministic Simulation Testing in Rust: A Theater Of State Machines,
+    https://www.polarsignals.com/blog/posts/2025/07/08/dst-rust
+27.​Async Rust Challenges in Iroh,
+    https://www.iroh.computer/blog/async-rust-challenges-in-iroh
+28.​Cryptographic Right Answers: Post-Quantum Edition - daily.dev,
+    https://daily.dev/posts/cryptographic-right-answers-post-quantum-edition-pth3j
+    wvuj
+29.​Announcing mfio - Completion I/O for Everyone,
+    https://blaz.is/blog/post/mfio-release/
+30.​Completion-based I/O · Issue #915 · quinn-rs/quinn - GitHub,
+    https://github.com/quinn-rs/quinn/issues/915
+31.​Io_uring, kTLS and Rust for zero syscall HTTPS server | Hacker News,
+    https://news.ycombinator.com/item?id=44980865
+32.​Rust PGWire Guide - QuestDB,
+    https://questdb.com/docs/connect/compatibility/pgwire/rust/
+33.​redb (safe, ACID, embedded, key-value store) 1.0 release! - Reddit,
+    https://www.reddit.com/r/rust/comments/14b3gdo/redb_safe_acid_embedded_ke
+    yvalue_store_10_release/
+34.​shodh-redb - Multi-modal embedded database in pure Rust - GitHub,
+    https://github.com/varun29ankuS/shodh-redb
+35.​soumyarupsarkar/spargio: A work-stealing io_uring Rust ... - GitHub,
+    https://github.com/soumyarupsarkar/spargio
+36.​Redb + Tantivy: The Atomic Dual-Engine at CameoDB's Core,
+    https://cameodb.com/blog/redb-tantivy-the-atomic-dual-engine-at-cameodb-s.
+    html
+37.​Option to build rustls with the aws-lc-rs provider ... - GitHub,
+    https://github.com/dani-garcia/vaultwarden/discussions/7675
+38.​Post-quantum cryptography (PQC) support | Rust,
+    https://docs.cloud.google.com/rust/docs/post-quantum-cryptography
+39.​rustls::manual::_04_features - Rust,
+    https://rustls.dev/docs/rustls/manual/_04_features/index.html
+40.​vm.rs - source - Wasmtime,
+    https://docs.wasmtime.dev/api/src/wasmtime/runtime/vm.rs.html
+41.​WasmtimeStore in wasmtime_c_api - Rust - Docs.rs,
+    https://docs.rs/wasmtime-c-api-impl/latest/wasmtime_c_api/type.WasmtimeStore
+    .html
+42.​Store in wasmtime - Rust,
+    https://docs.wasmtime.dev/api/wasmtime/struct.Store.html
+43.​MCP stdio vs Streamable HTTP, Transports in the 2026 Spec,
+    https://restfulapi.net/mcp-transports-stdio-vs-streamable-http/
+44.​unverified.rs - source - Docs.rs,
+    https://docs.rs/biscuit-auth/latest/src/biscuit_auth/token/unverified.rs.html
+45.​Step-up MFA, attenuation, and what's honestly not done,
+    https://dev.to/darkedges/step-up-mfa-attenuation-and-whats-honestly-not-done
+    -27h5
+46.​FAQ - x402 - GitBook, https://x402.gitbook.io/x402/faq
+47.​agentic-commerce/protocols/x402.md at master ... - GitHub,
+    https://github.com/Cryptorefills/agentic-commerce/blob/master/protocols/x402.
+    md
+48.​x402: The HTTP Payment Protocol That Lets AI Agents Spend,
+    https://www.spark.money/research/x402-protocol-ai-agent-payments
+49.​xpaysh/xpay-x402: XPay facilitator for the x402 payment ... - GitHub,
+    https://github.com/xpaysh/xpay-x402
+50.​x402 | Claude Skills & Agent Skills Library - Awesome MCP Servers,
+    https://mcpservers.org/agent-skills/coinbase/x402
+51.​Computational Jurisprudence: Verifiable Law for Machine Societies,
+    https://www.mdpi.com/1999-5903/18/8/437
+52.​Assay — Biscuit capability tokens, https://assay.rs/auth-biscuit
+53.​pg_parse - crates.io: Rust Package Registry, https://crates.io/crates/pg_parse
+54.​Introduction to pgwire - KDB-X Documentation,
+    https://code.kx.com/kdb-x/integrations/pgwire/introduction.html
+55.​Linting postgres migration scripts | Robin's blog,
+    https://kaveland.no/posts/2024-05-16-linting-postgres-migration-scripts/
+56.​How We Built Postgres Compatibility in Rust: pgwire and DataFusion,
+    https://greptime.com/blogs/2026-04-01-greptimedb-postgresql-compatibility
+57.​pgwire - crates.io: Rust Package Registry, https://crates.io/crates/pgwire/0.18.0
+58.​Installation and Setup | verus-lang/verus - DeepWiki,
+    https://deepwiki.com/verus-lang/verus/8.1-installation-and-setup
+59.​Verus overview - Verus Tutorial and Reference - GitHub Pages,
+    https://verus-lang.github.io/verus/guide/
+60.​tegdb - crates.io: Rust Package Registry, https://crates.io/crates/tegdb
+61.​Applying Deterministic Simulation: The RisingWave Story (Part 2 of 2),
+    https://risingwave.com/blog/applying-deterministic-simulation-the-risingwave-st
+    ory-part-2-of-2/
+62.​Verus: Verifying Rust Programs using Linear Ghost Types,
+    https://www.andrew.cmu.edu/user/bparno/papers/verus-ghost.pdf
+63.​Testing - NautilusTrader,
+    https://nautilustrader.io/docs/latest/developer_guide/testing/
+64.​Configuring HTTP-level settings within the AWS SDK for Rust,
+   https://docs.aws.amazon.com/sdk-for-rust/latest/dg/http.html
+
