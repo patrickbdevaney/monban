@@ -1,5 +1,11 @@
 # Phase 1 verdicts and how they were applied (spec author log)
 
+**Phase 1 closed 2026-10-25.** Go criterion (IMPLEMENTATION_PLAN Phase 1): every spike writes a verdict file and
+flips are applied to F1–F13 before Phase 2. 21 verdicts applied below (10 flips, 11 keeps); 3 deferred with reason:
+release drill (needs the Phase-6 release pipeline), "agent success on the first 20 proof obligations" (needs real
+units; measure during Phase 2–3), swarm-sim v2 / q3-005 (needs held-out real traffic traces; swarm-sim stays advisory).
+Stand-in caveat: q3-001, q3-002, q4-006 used kamrui (Intel N95) instead of a real $5 KVM VPS (grade ≤B).
+
 | spike | verdict | applied |
 |---|---|---|
 | q2-007 double fault + EIO | keep SQLite WAL FULL default | aegis-state startup assertions recorded (journal-mode re-check after first write, atomic create, bootstrap dir fsync, fsync error fatal); to land as Phase 4 unit acceptance criteria |
