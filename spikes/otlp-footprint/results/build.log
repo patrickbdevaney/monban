@@ -1,2 +1,5 @@
 heavy.sh: waiting for the heavy-job lock (one at a time)...
 == build base
+== build metrics
+== build metrics+logs
+== build metrics+logs+otlp

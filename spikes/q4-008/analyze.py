@@ -43,6 +43,7 @@ QUERY_CLAUSES = ["q.too_long", "q.empty_pair", "q.no_eq", "q.multi_eq", "q.empty
 HOST_CLAUSES = ["h.userinfo", "h.ip_literal", "h.bad_port", "h.non_ascii", "h.too_long", "h.trailing_dot",
                 "h.ipv4_noncanonical", "h.underscore", "h.label_not_ldh_other", "h.reserved_rldh", "h.bad_alabel"]
 OK308 = "p.trailing_slash_308"
+FAMILIES = ["F.p", "F.q", "F.h"]                        # line rejected by any path / query / host clause
 INFO = ["h.uppercase_repaired", "h.port_nondefault", "h.alabel_ok", "h.ipv4_ok", "p.enc_unreserved_repaired",
         "p.lowercase_hex_repaired"]
 
@@ -81,7 +82,10 @@ def detect_path(t, hits, forb):
             if ch in UNRES:
                 hits.add("p.enc_unreserved_repaired")
                 out.append(ch)
-            elif ch == "/":
+                i += 3
+                continue
+            out.append("%" + h.upper())                   # placeholder keeps segments intact for dot/empty checks
+            if ch == "/":
                 hits.add("p.enc_slash")
             elif ch == "\\":
                 hits.add("p.enc_backslash")
@@ -95,10 +99,8 @@ def detect_path(t, hits, forb):
                 hits.add("p.enc_ctrl")
             elif ord(ch) >= 0x80:
                 hits.add("p.enc_nonascii")
-            else:
-                if h != h.upper():
-                    hits.add("p.lowercase_hex_repaired")
-                out.append("%" + h.upper())
+            elif h != h.upper():
+                hits.add("p.lowercase_hex_repaired")
             i += 3
             continue
         if c not in PCHAR_LIT:
@@ -141,7 +143,10 @@ def _qcomp(comp, hits, forb):
                 continue
             if ch in UNRES:
                 o.append(ch)
-            elif ch in "&=":
+                i += 3
+                continue
+            o.append("%" + h.upper())                     # placeholder keeps names distinct for dup detection
+            if ch in "&=":
                 hits.add("q.enc_amp_eq")
             elif ch == ";":
                 hits.add("q.enc_semicolon")
@@ -153,8 +158,6 @@ def _qcomp(comp, hits, forb):
                 hits.add("q.enc_nul_ctrl")
             elif ord(ch) >= 0x80:
                 hits.add("q.enc_nonascii")
-            else:
-                o.append("%" + h.upper())
             i += 3
             continue
         if c not in QLIT:
@@ -371,6 +374,11 @@ class Stats:
                 self.examples[c].append(target)
         if len(rej_clauses) == 1:
             self.sole[next(iter(rej_clauses))] += 1
+        fam = {c.split(".")[0] for c in rej_clauses}
+        for f in fam:
+            self.any["F." + f] += 1
+        if len(fam) == 1:
+            self.sole["F." + next(iter(fam))] += 1
         for r in ref_reasons:
             self.first[r] += 1
 
@@ -378,7 +386,7 @@ class Stats:
         n = self.lines or 1
         u = len(self.uniq_targets) or 1
         clauses = {}
-        for c in PATH_CLAUSES + [OK308] + QUERY_CLAUSES + HOST_CLAUSES + INFO:
+        for c in PATH_CLAUSES + [OK308] + QUERY_CLAUSES + HOST_CLAUSES + INFO + FAMILIES:
             clauses[c] = {"lines": self.any[c], "pct_lines": round(100.0 * self.any[c] / n, 4),
                           "sole_cause_lines": self.sole[c], "pct_sole": round(100.0 * self.sole[c] / n, 4),
                           "unique_targets": self.uniq_any[c], "pct_unique": round(100.0 * self.uniq_any[c] / u, 4),
