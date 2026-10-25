@@ -18,12 +18,21 @@ build() {  # $1 = slot name, $2 = epoch
     flags="--remap-path-prefix=$src=/src --remap-path-prefix=$home/registry/src=/cargo/registry --remap-path-prefix=$HOME/.cargo/registry/src=/cargo/registry --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup"
   fi
   # The workspace .cargo/config.toml remaps /home; override it so only these flags apply.
-  (cd "$src" && SOURCE_DATE_EPOCH="$2" CARGO_HOME="$home" CARGO_TARGET_DIR="$tgt" RUSTFLAGS="$flags -Cforce-frame-pointers=yes ${AEGIS_REPRO_EXTRA:-}" \
+  (cd "$src" && CARGO_PROFILE_RELEASE_DEBUG="${DEBUG_LEVEL:-0}" CARGO_PROFILE_RELEASE_STRIP="${STRIP:-symbols}" SOURCE_DATE_EPOCH="$2" CARGO_HOME="$home" CARGO_TARGET_DIR="$tgt" RUSTFLAGS="$flags -Cforce-frame-pointers=yes ${AEGIS_REPRO_EXTRA:-}" \
      "$ROOT/ci/heavy.sh" cargo build --release --locked --offline -q -p aegis-bin)
   sha256sum "$tgt/release/aegis" | cut -d' ' -f1
 }
-a=$(build a 1700000000); b=$(build b 1800000000)
-echo "a=$a"; echo "b=$b"
+# Debug info embeds absolute source/registry paths (DW_AT_comp_dir etc.), so building with debuginfo=2 and no strip
+# is what makes the remap observable. PASS needs equality at both debug=0 (shipping) and debug=2; the self-test
+# drops the remaps at debug=2 and needs a difference.
+if [ $selftest = 0 ]; then
+  a=$(build a 1700000000); b=$(build b 1800000000)
+  [ "$a" = "$b" ] || { echo "a=$a b=$b"; echo "REPRO: FAIL (debug=0 binaries differ)"; exit 1; }
+  echo "debug=0: $a"
+fi
+export DEBUG_LEVEL=2 STRIP=none
+a=$(build a2 1700000000); b=$(build b2 1800000000)
+echo "debug=2: a=$a"; echo "debug=2: b=$b"
 if [ $selftest = 0 ]; then
   [ "$a" = "$b" ] && echo "REPRO: PASS" || { echo "REPRO: FAIL (binaries differ)"; exit 1; }
 else
