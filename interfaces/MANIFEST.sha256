@@ -1,4 +1,4 @@
-1fd940943a4c1e67921cca70b5a556231598b6f0222e9c5821baffd0e02c82c1  F1   frozen               spec/SPEC_INVARIANTS.md
+531a7052701d1d2c768fe3f323345c85c881365bf4b572a9e0ef57dc696a4867  F1   frozen               spec/SPEC_INVARIANTS.md
 3b3cf61ad63bac6e8d37a8cf554a3aff527c842016057018334ef78ea812c063  F1   frozen               spec/STATEMENTS.sha256
 41fd3610443380a00455b522fa5a11a5499244a05a4585c6dcd7d043ddcef729  F2   frozen               crates/aegis-types/src/lib.rs
 14e1351481b8653852a80bb703e2821bd438511ba029210922e956b149741e7c  F3   frozen               crates/aegis-transport/src/exchange.rs

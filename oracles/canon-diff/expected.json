@@ -1,6 +1,6 @@
 {
 "_comment": "Frozen expected outputs of the reviewed canon_ref.py over the G2 corpus. Regenerate only with `./run --regen-golden` after a reviewed change to canon_ref.py, and say why in the commit.",
-"canon_ref_sha256": "4da06b6ff9a80e8b018e6d164380bedf30acc7984324f871e958bca5593bd2a8",
+"canon_ref_sha256": "a474c393f29b4819cc209eaeab61f847f9232c39a515381f708eabb80eb54634",
 "cases": {
 "canon6:request:10000": {
 "input_sha256": "b66f97b0def16488",
@@ -65895,9 +65895,9 @@
 "kind": "path"
 },
 "extra:path:3860": {
+"accept": "/a/b/",
 "input_sha256": "3d1597886917265f",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /a/b"
+"kind": "path"
 },
 "extra:path:3861": {
 "input_sha256": "4febe89bf8c9f080",
@@ -65910,9 +65910,9 @@
 "kind": "path"
 },
 "extra:path:3863": {
+"accept": "/%E2%80%8B",
 "input_sha256": "dd947cf7b3424b6a",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %E2"
+"kind": "path"
 },
 "extra:path:3864": {
 "accept": "/a:b@c",
@@ -65965,29 +65965,29 @@
 "kind": "query"
 },
 "extra:query:3913": {
+"accept": "a=1;b=2",
 "input_sha256": "5c2094b18bef650f",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "extra:query:3914": {
+"accept": "a=1&a=2",
 "input_sha256": "28f6b7221fc92f83",
-"kind": "query",
-"reject": "400 query: duplicate name"
+"kind": "query"
 },
 "extra:query:3915": {
+"accept": "a=1&a=2",
 "input_sha256": "0e89d38a9daf968c",
-"kind": "query",
-"reject": "400 query: duplicate name"
+"kind": "query"
 },
 "extra:query:3916": {
+"accept": "a+b=1",
 "input_sha256": "4fd4e65e1e808154",
-"kind": "query",
-"reject": "400 query: forbidden character U+002B"
+"kind": "query"
 },
 "extra:query:3917": {
+"accept": "a=1+2",
 "input_sha256": "670ad0db3ae53c9c",
-"kind": "query",
-"reject": "400 query: forbidden character U+002B"
+"kind": "query"
 },
 "extra:query:3918": {
 "accept": "a=A%2F",
@@ -65997,17 +65997,17 @@
 "extra:query:3919": {
 "input_sha256": "97e94dbb9be69c1f",
 "kind": "query",
-"reject": "400 query: ambiguous percent-escape %2B"
+"reject": "400 query: rejected percent-escape %2B"
 },
 "extra:query:3920": {
+"accept": "a=%26b=2",
 "input_sha256": "45634b51285e99ba",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "extra:query:3921": {
+"accept": "a=%3D",
 "input_sha256": "c7481ef276f53533",
-"kind": "query",
-"reject": "400 query: ambiguous percent-escape %3D"
+"kind": "query"
 },
 "extra:query:3922": {
 "accept": "a=",
@@ -66032,7 +66032,7 @@
 "extra:query:3926": {
 "input_sha256": "5b5ceb702fafa92d",
 "kind": "query",
-"reject": "400 query: ambiguous percent-escape %00"
+"reject": "400 query: rejected percent-escape %00"
 },
 "extra:query:3927": {
 "input_sha256": "e4a857711e958508",
@@ -66045,9 +66045,9 @@
 "reject": "400 query: forbidden character U+00E9"
 },
 "extra:query:3929": {
+"accept": "a=%C3%A9",
 "input_sha256": "3ecc01cdc0e62789",
-"kind": "query",
-"reject": "400 query: ambiguous percent-escape %C3"
+"kind": "query"
 },
 "extra:query:3930": {
 "accept": "a=b/c?d",
@@ -79444,6 +79444,646 @@
 "kind": "host",
 "reject": "400 host: malformed A-label"
 },
+"q4008:path:16985": {
+"accept": "/ru/%D1%83%D0%BC",
+"input_sha256": "b9473d11581c07d5",
+"kind": "path"
+},
+"q4008:path:16986": {
+"accept": "/ar/%D8%A7",
+"input_sha256": "52d140d870d735ff",
+"kind": "path"
+},
+"q4008:path:16987": {
+"accept": "/caf%C3%A9/",
+"input_sha256": "9c2aa1a92f263393",
+"kind": "path"
+},
+"q4008:path:16988": {
+"input_sha256": "3b6f90b852b31283",
+"kind": "path",
+"reject": "400 path: encoded octets are not NFC"
+},
+"q4008:path:16989": {
+"accept": "/%C3%A9",
+"input_sha256": "d72cc7f34518aa63",
+"kind": "path"
+},
+"q4008:path:16990": {
+"input_sha256": "beb06bbc7df32d0c",
+"kind": "path",
+"reject": "400 path: encoded octets are not valid UTF-8"
+},
+"q4008:path:16991": {
+"input_sha256": "b8084a8715c73d8b",
+"kind": "path",
+"reject": "400 path: encoded octets are not valid UTF-8"
+},
+"q4008:path:16992": {
+"input_sha256": "c1bc32babaea0178",
+"kind": "path",
+"reject": "400 path: encoded octets are not valid UTF-8"
+},
+"q4008:path:16993": {
+"input_sha256": "86c499b87d0e1a21",
+"kind": "path",
+"reject": "400 path: encoded octets are not valid UTF-8"
+},
+"q4008:path:16994": {
+"input_sha256": "d4608dd09aa38714",
+"kind": "path",
+"reject": "400 path: encoded octets are not valid UTF-8"
+},
+"q4008:path:16995": {
+"accept": "/%E2%80%8B",
+"input_sha256": "334fc3f0b0092963",
+"kind": "path"
+},
+"q4008:path:16996": {
+"accept": "/a/",
+"input_sha256": "69b65e9d8481a809",
+"kind": "path"
+},
+"q4008:path:16997": {
+"input_sha256": "de3fa836d0256129",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /a/b/"
+},
+"q4008:path:16998": {
+"input_sha256": "7b2b386d0c622fa3",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /robots.txt"
+},
+"q4008:path:16999": {
+"input_sha256": "1841121ff30e6184",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /privacy-policy/"
+},
+"q4008:path:17000": {
+"input_sha256": "6d4d27c4aceed10b",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /a/b"
+},
+"q4008:path:17001": {
+"input_sha256": "a8fa6524c97d11da",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /a/b/"
+},
+"q4008:path:17002": {
+"input_sha256": "7138574559a6892f",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /honeypot/%22x"
+},
+"q4008:path:17003": {
+"input_sha256": "2706ef445535094b",
+"kind": "path",
+"reject": "400 path: dot segment"
+},
+"q4008:path:17004": {
+"input_sha256": "229dedbee78293a4",
+"kind": "path",
+"reject": "400 path: dot segment"
+},
+"q4008:path:17005": {
+"input_sha256": "e81b6edbe224ef7f",
+"kind": "path",
+"reject": "400 path: ambiguous percent-escape %2F"
+},
+"q4008:path:17006": {
+"input_sha256": "31a4c9d4dcbf3ce9",
+"kind": "path",
+"reject": "308 path: empty segment, redirect to /a/%E2%82%AC/b"
+},
+"q4008:path:17007": {
+"input_sha256": "109bd0d000d46886",
+"kind": "path",
+"reject": "400 path: forbidden character U+00E9"
+},
+"q4008:query:17008": {
+"accept": "s=Logbuch+der+gegenwart",
+"input_sha256": "065503f476158025",
+"kind": "query"
+},
+"q4008:query:17009": {
+"accept": "redirect_url=http%3A%2F%2Fx.example%3Frefer%3D1",
+"input_sha256": "a25ae365ebcc80e0",
+"kind": "query"
+},
+"q4008:query:17010": {
+"accept": "YWN0aW9u==",
+"input_sha256": "ea6c13dcc0488b17",
+"kind": "query"
+},
+"q4008:query:17011": {
+"accept": "1709465443916",
+"input_sha256": "07c5121535b33abb",
+"kind": "query"
+},
+"q4008:query:17012": {
+"accept": "availabilities%5B%5D=1&availabilities%5B%5D=2",
+"input_sha256": "28fd1b98d9e56fd4",
+"kind": "query"
+},
+"q4008:query:17013": {
+"accept": "board=15.0;wap2",
+"input_sha256": "41dcc49bcd11b327",
+"kind": "query"
+},
+"q4008:query:17014": {
+"accept": "C=M;O=A",
+"input_sha256": "e41be9d28e0da2ff",
+"kind": "query"
+},
+"q4008:query:17015": {
+"accept": "b=2&a=1",
+"input_sha256": "61475de3d3058026",
+"kind": "query"
+},
+"q4008:query:17016": {
+"accept": "a=1&a=1",
+"input_sha256": "208849900792fabc",
+"kind": "query"
+},
+"q4008:query:17017": {
+"accept": "a=%25252C",
+"input_sha256": "f1c3fece2d3ac783",
+"kind": "query"
+},
+"q4008:query:17018": {
+"accept": "q=%E2%82%AC",
+"input_sha256": "f18cf09c7b8c96e1",
+"kind": "query"
+},
+"q4008:query:17019": {
+"input_sha256": "1ab098e4d453a705",
+"kind": "query",
+"reject": "400 query: rejected percent-escape %2B"
+},
+"q4008:query:17020": {
+"input_sha256": "3bb6205f88bbeac9",
+"kind": "query",
+"reject": "400 query: forbidden character U+0023"
+},
+"q4008:query:17021": {
+"input_sha256": "d88c12f2d136e3ee",
+"kind": "query",
+"reject": "400 query: rejected percent-escape %7F"
+},
+"q4008:query:17022": {
+"input_sha256": "e10b516f0a742735",
+"kind": "query",
+"reject": "400 query: rejected percent-escape %1F"
+},
+"q4008:query:17023": {
+"input_sha256": "601232c7ad0156b1",
+"kind": "query",
+"reject": "400 query: forbidden character U+0020"
+},
+"q4008:query:17024": {
+"input_sha256": "08d5adc78cfa6e6a",
+"kind": "query",
+"reject": "400 query: empty pair"
+},
+"q4008:query:17025": {
+"accept": "a=~",
+"input_sha256": "d4ce15e7df39cdf0",
+"kind": "query"
+},
+"q4008:query:17026": {
+"input_sha256": "575c1c6ab4d4eeb8",
+"kind": "query",
+"reject": "400 query: forbidden character U+003C"
+},
+"q4008:query:17027": {
+"input_sha256": "510d6e29cd680555",
+"kind": "query",
+"reject": "400 query: forbidden character U+007C"
+},
+"q4008:query:17028": {
+"accept": "?a=1",
+"input_sha256": "47f3cf2b7f735ebc",
+"kind": "query"
+},
+"q4008:query:17029": {
+"accept": "a=%C3",
+"input_sha256": "aa5dc34b4dbdb166",
+"kind": "query"
+},
+"q4008:query_typed:17030": {
+"input_sha256": "c100f95c1913f9c7",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17031": {
+"input_sha256": "d31a2873720be8db",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17032": {
+"input_sha256": "fd3b9fa4bced1f28",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17033": {
+"input_sha256": "dc7ba6f989b5d738",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17034": {
+"accept": "bar=baz",
+"input_sha256": "ae4fedc7405a5227",
+"kind": "query_typed"
+},
+"q4008:query_typed:17035": {
+"input_sha256": "4c4f28a0fc9a4f29",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17036": {
+"input_sha256": "b49177e05868b7af",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17037": {
+"input_sha256": "580d3715d462660e",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17038": {
+"input_sha256": "df3adb835418f244",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %F0"
+},
+"q4008:query_typed:17039": {
+"input_sha256": "4d967a30111bf29f",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17040": {
+"input_sha256": "c4c420a0ded92500",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17041": {
+"input_sha256": "8f323c2d92227bb6",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17042": {
+"input_sha256": "53bdfcd63dd0134c",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17043": {
+"input_sha256": "a05447c5b6502c59",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17044": {
+"accept": "foo=%7B%22abc%22",
+"input_sha256": "5910d5b9563a221f",
+"kind": "query_typed"
+},
+"q4008:query_typed:17045": {
+"accept": "a=b&c=d",
+"input_sha256": "5c117c53e2a62e88",
+"kind": "query_typed"
+},
+"q4008:query_typed:17046": {
+"accept": "?a=b&c=d",
+"input_sha256": "7213ecf0380b3e3b",
+"kind": "query_typed"
+},
+"q4008:query_typed:17047": {
+"input_sha256": "74a10314c221f3fd",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17048": {
+"input_sha256": "ba2df4903a2c14e8",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17049": {
+"input_sha256": "3b1f689926de779b",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17050": {
+"input_sha256": "3d0c8101eafb39c7",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17051": {
+"accept": "q=v",
+"input_sha256": "11b5fa8b644a0f8f",
+"kind": "query_typed"
+},
+"q4008:query_typed:17052": {
+"accept": "baz=bam&qux=baz",
+"input_sha256": "d4c5948a0f6d475e",
+"kind": "query_typed"
+},
+"q4008:query_typed:17053": {
+"input_sha256": "70c0a7ee6241aae3",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17054": {
+"accept": "type=TXT",
+"input_sha256": "dd7c36d597324dcd",
+"kind": "query_typed"
+},
+"q4008:query_typed:17055": {
+"input_sha256": "0372edd33079dbdb",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17056": {
+"input_sha256": "91d3e37fd7ab08d3",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17057": {
+"input_sha256": "dc56f44278a214af",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17058": {
+"input_sha256": "36bcf577a1da84ae",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17059": {
+"input_sha256": "78b4bf036e0bfa9e",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17060": {
+"input_sha256": "9bf099e7d42502aa",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17061": {
+"input_sha256": "ac8d8342bbb2362d",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17062": {
+"input_sha256": "b80fbd29450561b9",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %7F"
+},
+"q4008:query_typed:17063": {
+"input_sha256": "dced4a137097c431",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17064": {
+"input_sha256": "09d6cedb39a7a66c",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17065": {
+"input_sha256": "f28f5ae1033fd848",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17066": {
+"input_sha256": "a3b2fc2a42100677",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17067": {
+"input_sha256": "6ad21f9d2ea182f9",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17068": {
+"accept": "",
+"input_sha256": "12ae32cb1ec02d01",
+"kind": "query_typed"
+},
+"q4008:query_typed:17069": {
+"accept": "a=1",
+"input_sha256": "4f6fe53dcbdf6e9b",
+"kind": "query_typed"
+},
+"q4008:query_typed:17070": {
+"accept": "a=1&b=2",
+"input_sha256": "c45d5304f25e5573",
+"kind": "query_typed"
+},
+"q4008:query_typed:17071": {
+"input_sha256": "5c2094b18bef650f",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17072": {
+"input_sha256": "28f6b7221fc92f83",
+"kind": "query_typed",
+"reject": "400 query: duplicate name"
+},
+"q4008:query_typed:17073": {
+"input_sha256": "0e89d38a9daf968c",
+"kind": "query_typed",
+"reject": "400 query: duplicate name"
+},
+"q4008:query_typed:17074": {
+"input_sha256": "4fd4e65e1e808154",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+002B"
+},
+"q4008:query_typed:17075": {
+"input_sha256": "670ad0db3ae53c9c",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+002B"
+},
+"q4008:query_typed:17076": {
+"accept": "a=A%2F",
+"input_sha256": "aca3c548ed6930ab",
+"kind": "query_typed"
+},
+"q4008:query_typed:17077": {
+"input_sha256": "97e94dbb9be69c1f",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %2B"
+},
+"q4008:query_typed:17078": {
+"input_sha256": "45634b51285e99ba",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17079": {
+"input_sha256": "c7481ef276f53533",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %3D"
+},
+"q4008:query_typed:17080": {
+"accept": "a=",
+"input_sha256": "1d3410d18b259e86",
+"kind": "query_typed"
+},
+"q4008:query_typed:17081": {
+"input_sha256": "fc7177c0977d6daf",
+"kind": "query_typed",
+"reject": "400 query: empty name"
+},
+"q4008:query_typed:17082": {
+"input_sha256": "6aec1e6c309859b9",
+"kind": "query_typed",
+"reject": "400 query: empty pair"
+},
+"q4008:query_typed:17083": {
+"input_sha256": "9aec36cb8e4c04d7",
+"kind": "query_typed",
+"reject": "400 query: empty pair"
+},
+"q4008:query_typed:17084": {
+"input_sha256": "5b5ceb702fafa92d",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %00"
+},
+"q4008:query_typed:17085": {
+"input_sha256": "e4a857711e958508",
+"kind": "query_typed",
+"reject": "400 query: bad percent-escape"
+},
+"q4008:query_typed:17086": {
+"input_sha256": "5b77accd1feb47e2",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+00E9"
+},
+"q4008:query_typed:17087": {
+"input_sha256": "3ecc01cdc0e62789",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %C3"
+},
+"q4008:query_typed:17088": {
+"accept": "a=b/c?d",
+"input_sha256": "37c486992df3faf7",
+"kind": "query_typed"
+},
+"q4008:query_typed:17089": {
+"accept": "redirect=https://evil.example/",
+"input_sha256": "8a5c73eb628b138e",
+"kind": "query_typed"
+},
+"q4008:query_typed:17090": {
+"accept": "a=1&A=2",
+"input_sha256": "9195ff7ac950dde9",
+"kind": "query_typed"
+},
+"q4008:query_typed:17091": {
+"input_sha256": "065503f476158025",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+002B"
+},
+"q4008:query_typed:17092": {
+"input_sha256": "a25ae365ebcc80e0",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %3D"
+},
+"q4008:query_typed:17093": {
+"input_sha256": "ea6c13dcc0488b17",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17094": {
+"input_sha256": "07c5121535b33abb",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17095": {
+"input_sha256": "28fd1b98d9e56fd4",
+"kind": "query_typed",
+"reject": "400 query: duplicate name"
+},
+"q4008:query_typed:17096": {
+"input_sha256": "41dcc49bcd11b327",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+003B"
+},
+"q4008:query_typed:17097": {
+"input_sha256": "e41be9d28e0da2ff",
+"kind": "query_typed",
+"reject": "400 query: pair must be exactly name=value"
+},
+"q4008:query_typed:17098": {
+"accept": "b=2&a=1",
+"input_sha256": "61475de3d3058026",
+"kind": "query_typed"
+},
+"q4008:query_typed:17099": {
+"input_sha256": "208849900792fabc",
+"kind": "query_typed",
+"reject": "400 query: duplicate name"
+},
+"q4008:query_typed:17100": {
+"input_sha256": "f1c3fece2d3ac783",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %25"
+},
+"q4008:query_typed:17101": {
+"input_sha256": "f18cf09c7b8c96e1",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %E2"
+},
+"q4008:query_typed:17102": {
+"input_sha256": "1ab098e4d453a705",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %2B"
+},
+"q4008:query_typed:17103": {
+"input_sha256": "3bb6205f88bbeac9",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+0023"
+},
+"q4008:query_typed:17104": {
+"input_sha256": "d88c12f2d136e3ee",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %7F"
+},
+"q4008:query_typed:17105": {
+"input_sha256": "e10b516f0a742735",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %1F"
+},
+"q4008:query_typed:17106": {
+"input_sha256": "601232c7ad0156b1",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+0020"
+},
+"q4008:query_typed:17107": {
+"input_sha256": "08d5adc78cfa6e6a",
+"kind": "query_typed",
+"reject": "400 query: empty pair"
+},
+"q4008:query_typed:17108": {
+"accept": "a=~",
+"input_sha256": "d4ce15e7df39cdf0",
+"kind": "query_typed"
+},
+"q4008:query_typed:17109": {
+"input_sha256": "575c1c6ab4d4eeb8",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+003C"
+},
+"q4008:query_typed:17110": {
+"input_sha256": "510d6e29cd680555",
+"kind": "query_typed",
+"reject": "400 query: forbidden character U+007C"
+},
+"q4008:query_typed:17111": {
+"accept": "?a=1",
+"input_sha256": "47f3cf2b7f735ebc",
+"kind": "query_typed"
+},
+"q4008:query_typed:17112": {
+"input_sha256": "aa5dc34b4dbdb166",
+"kind": "query_typed",
+"reject": "400 query: ambiguous percent-escape %C3"
+},
 "research:cookie:110": {
 "accept": "sid=a",
 "input_sha256": "a41633cc4e29fbd3",
@@ -80144,9 +80784,9 @@
 "kind": "path"
 },
 "research:path:1": {
+"accept": "/admin/",
 "input_sha256": "75feeba76012e78c",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /admin"
+"kind": "path"
 },
 "research:path:10": {
 "input_sha256": "ad1543ff9de1120b",
@@ -80259,9 +80899,9 @@
 "kind": "path"
 },
 "research:path:30": {
+"accept": "/%EF%BC%A1dmin",
 "input_sha256": "199f3e3e43f8460a",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %EF"
+"kind": "path"
 },
 "research:path:31": {
 "input_sha256": "281e139e017e2f38",
@@ -80281,12 +80921,12 @@
 "research:path:34": {
 "input_sha256": "a805ae7dc4a58c09",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /admin/x"
 },
 "research:path:35": {
 "input_sha256": "8fbbac96fbe3d84a",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /admin"
 },
 "research:path:36": {
 "input_sha256": "d000eb8a4258e6db",
@@ -80361,7 +81001,7 @@
 "research:path:5": {
 "input_sha256": "7134d351e09f2f66",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /admin"
 },
 "research:path:6": {
 "input_sha256": "c6345afdef1a21d2",
@@ -83211,12 +83851,12 @@
 "wpt-raw:path:1006": {
 "input_sha256": "039c1074a8138aa3",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /"
 },
 "wpt-raw:path:1008": {
 "input_sha256": "05db4d7bb3a3c8e8",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /x/"
 },
 "wpt-raw:path:1026": {
 "input_sha256": "f2a540ad3ac26c06",
@@ -83261,7 +83901,7 @@
 "wpt-raw:path:1166": {
 "input_sha256": "6fcd58fbd3f0a21c",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /example.org/path"
 },
 "wpt-raw:path:1167": {
 "input_sha256": "4cb8488f12bff29e",
@@ -83316,7 +83956,7 @@
 "wpt-raw:path:313": {
 "input_sha256": "af1482c6d77adb9a",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /foo/bar"
 },
 "wpt-raw:path:349": {
 "input_sha256": "6a1f500f6e8ce1b4",
@@ -83336,7 +83976,7 @@
 "wpt-raw:path:360": {
 "input_sha256": "ce12f5ca581b5f4c",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /server/file"
 },
 "wpt-raw:path:361": {
 "input_sha256": "320ab7b189253a25",
@@ -83346,17 +83986,17 @@
 "wpt-raw:path:364": {
 "input_sha256": "de4945bf3ba27179",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /"
 },
 "wpt-raw:path:365": {
 "input_sha256": "07804d5f32c16484",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /"
 },
 "wpt-raw:path:367": {
 "input_sha256": "65a34ee11d4d4899",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /test"
 },
 "wpt-raw:path:374": {
 "input_sha256": "91b46403083f3e13",
@@ -83486,7 +84126,7 @@
 "wpt-raw:path:501": {
 "input_sha256": "e01fb11d02e8b5e9",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /www.example2.com"
 },
 "wpt-raw:path:535": {
 "input_sha256": "1433231c9728de0b",
@@ -83501,7 +84141,7 @@
 "wpt-raw:path:929": {
 "input_sha256": "ef22c84a4471871d",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /d:"
 },
 "wpt-raw:path:931": {
 "input_sha256": "39e956d429795fb1",
@@ -83511,12 +84151,12 @@
 "wpt-raw:path:938": {
 "input_sha256": "a08e5c9902672544",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /mouse"
 },
 "wpt-raw:path:941": {
 "input_sha256": "0e7926bfbdd12a37",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /localhost/pig"
 },
 "wpt-raw:path:943": {
 "input_sha256": "2f90c957f34f50f1",
@@ -83531,22 +84171,22 @@
 "wpt-raw:path:955": {
 "input_sha256": "a781f081ea99fe41",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /C:/"
 },
 "wpt-raw:path:956": {
 "input_sha256": "22b91b05431e1e26",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /C:/"
 },
 "wpt-raw:path:971": {
 "input_sha256": "cfb74b50ad6a3a11",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /one/two"
 },
 "wpt-raw:path:972": {
 "input_sha256": "961fab99d8bfab1f",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /one/two"
 },
 "wpt:host:1009": {
 "accept": "foobar.com",
@@ -84371,7 +85011,7 @@
 "wpt:path:1007": {
 "input_sha256": "cdf48ca489ab5f64",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /x/"
 },
 "wpt:path:1010": {
 "input_sha256": "c6669e35d69baba2",
@@ -84411,7 +85051,7 @@
 "wpt:path:1025": {
 "input_sha256": "b1bcd03ca23b48b8",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /path"
 },
 "wpt:path:1050": {
 "accept": "/test-a-colon-slash.html",
@@ -84469,9 +85109,9 @@
 "reject": "400 path: bad percent-escape"
 },
 "wpt:path:1076": {
+"accept": "/dir/",
 "input_sha256": "17707ba613a03c71",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /dir"
+"kind": "path"
 },
 "wpt:path:1079": {
 "accept": "/rooted",
@@ -84484,9 +85124,9 @@
 "reject": "400 path: ambiguous percent-escape %00"
 },
 "wpt:path:1147": {
+"accept": "/%EF%BF%BFy",
 "input_sha256": "5a3310d76e7dceaa",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %EF"
+"kind": "path"
 },
 "wpt:path:1150": {
 "accept": "/%22quoted%22",
@@ -84574,9 +85214,9 @@
 "kind": "path"
 },
 "wpt:path:260": {
+"accept": "/foo/:foo.com/",
 "input_sha256": "b1fd20763d0a8da5",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /foo/:foo.com"
+"kind": "path"
 },
 "wpt:path:261": {
 "accept": "/foo/:",
@@ -84589,9 +85229,9 @@
 "kind": "path"
 },
 "wpt:path:263": {
+"accept": "/foo/:/",
 "input_sha256": "cd32f4639c3164bf",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /foo/:"
+"kind": "path"
 },
 "wpt:path:264": {
 "accept": "/foo/:23",
@@ -84631,32 +85271,32 @@
 "wpt:path:293": {
 "input_sha256": "323ac4e8750f9a79",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /@"
 },
 "wpt:path:297": {
+"accept": "/b:c/d@foo.com/",
 "input_sha256": "0f6b67952817e182",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /b:c/d@foo.com"
+"kind": "path"
 },
 "wpt:path:306": {
+"accept": "/bar.com/",
 "input_sha256": "c437e9ec5f4f1f81",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /bar.com"
+"kind": "path"
 },
 "wpt:path:307": {
 "input_sha256": "b350a652b71daabe",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /"
 },
 "wpt:path:308": {
 "input_sha256": "3bac54d8f4bf6fdd",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /bar.com/"
 },
 "wpt:path:309": {
 "input_sha256": "6c190b548c6e693c",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /:/"
 },
 "wpt:path:310": {
 "accept": "/foo",
@@ -84689,14 +85329,14 @@
 "reject": "400 path: forbidden character U+005B"
 },
 "wpt:path:342": {
+"accept": "/example.com/",
 "input_sha256": "713bed18aef1172e",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /example.com"
+"kind": "path"
 },
 "wpt:path:346": {
+"accept": "/foo/example.com/",
 "input_sha256": "126c425970baf4dc",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /foo/example.com"
+"kind": "path"
 },
 "wpt:path:347": {
 "accept": "/a/b/c",
@@ -84731,7 +85371,7 @@
 "wpt:path:354": {
 "input_sha256": "09f0ad523d9078e1",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /c:/foo/bar.html"
 },
 "wpt:path:355": {
 "accept": "/C:/foo/bar",
@@ -84779,9 +85419,9 @@
 "kind": "path"
 },
 "wpt:path:372": {
+"accept": "/C:/m/",
 "input_sha256": "a2e49cdc468d19fc",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /C:/m"
+"kind": "path"
 },
 "wpt:path:373": {
 "input_sha256": "342497b99c6388e4",
@@ -84794,9 +85434,9 @@
 "kind": "path"
 },
 "wpt:path:377": {
+"accept": "/foo/",
 "input_sha256": "1906e3c73994237d",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /foo"
+"kind": "path"
 },
 "wpt:path:382": {
 "accept": "/foo/..bar",
@@ -84829,9 +85469,9 @@
 "kind": "path"
 },
 "wpt:path:396": {
+"accept": "/foo/bar/",
 "input_sha256": "2121aebbc33230ea",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /foo/bar"
+"kind": "path"
 },
 "wpt:path:398": {
 "accept": "/%20foo",
@@ -84866,7 +85506,7 @@
 "wpt:path:405": {
 "input_sha256": "c296b29d85b1c673",
 "kind": "path",
-"reject": "400 path: ambiguous percent-escape %C2"
+"reject": "400 path: encoded octets are not valid UTF-8"
 },
 "wpt:path:407": {
 "input_sha256": "2cd5b0d7333ab6b8",
@@ -84891,7 +85531,7 @@
 "wpt:path:412": {
 "input_sha256": "899434503a1379d8",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /foo/bar"
 },
 "wpt:path:413": {
 "input_sha256": "08151aac04127dc9",
@@ -84904,24 +85544,24 @@
 "kind": "path"
 },
 "wpt:path:415": {
+"accept": "/%E4%BD%A0%E5%A5%BD%E4%BD%A0%E5%A5%BD",
 "input_sha256": "2d8c430dfd893bbd",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %E4"
+"kind": "path"
 },
 "wpt:path:417": {
+"accept": "/%E2%80%A5/foo",
 "input_sha256": "ef605fcbb158f384",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %E2"
+"kind": "path"
 },
 "wpt:path:419": {
+"accept": "/%EF%BB%BF/foo",
 "input_sha256": "f1e4f48bad90b471",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %EF"
+"kind": "path"
 },
 "wpt:path:421": {
+"accept": "/%E2%80%AE/foo/%E2%80%AD/bar",
 "input_sha256": "08e08a8ef0324d78",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %E2"
+"kind": "path"
 },
 "wpt:path:431": {
 "accept": "/foo.html",
@@ -84934,9 +85574,9 @@
 "kind": "path"
 },
 "wpt:path:466": {
+"accept": "/aaa/",
 "input_sha256": "a8e89b8758e3082b",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /aaa"
+"kind": "path"
 },
 "wpt:path:496": {
 "accept": "/test.txt",
@@ -84949,9 +85589,9 @@
 "kind": "path"
 },
 "wpt:path:498": {
+"accept": "/%E4%B8%AD/test.txt",
 "input_sha256": "c2046a4999f8ff7a",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %E4"
+"kind": "path"
 },
 "wpt:path:502": {
 "accept": "/...",
@@ -84959,9 +85599,9 @@
 "kind": "path"
 },
 "wpt:path:532": {
+"accept": "/%EF%BF%BD",
 "input_sha256": "a7b6984ae0368e12",
-"kind": "path",
-"reject": "400 path: ambiguous percent-escape %EF"
+"kind": "path"
 },
 "wpt:path:635": {
 "accept": "/%60%7B%7D",
@@ -85019,14 +85659,14 @@
 "kind": "path"
 },
 "wpt:path:922": {
+"accept": "/C%3A/",
 "input_sha256": "e0f29fc50a5ff4da",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /C%3A"
+"kind": "path"
 },
 "wpt:path:923": {
+"accept": "/C%7C/",
 "input_sha256": "8287512e11f40e0c",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /C%7C"
+"kind": "path"
 },
 "wpt:path:926": {
 "accept": "/C:/Users/Domenic/Dropbox/GitHub/tmpvar/jsdom/test/level2/html/files/pix/submit.gif",
@@ -85034,9 +85674,9 @@
 "kind": "path"
 },
 "wpt:path:927": {
+"accept": "/C:/",
 "input_sha256": "aeca9c876e1f2bdf",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /C:"
+"kind": "path"
 },
 "wpt:path:928": {
 "accept": "/d:",
@@ -85044,24 +85684,24 @@
 "kind": "path"
 },
 "wpt:path:930": {
+"accept": "/d:/",
 "input_sha256": "44b981d306431c18",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /d:"
+"kind": "path"
 },
 "wpt:path:935": {
 "input_sha256": "c40d9086472bda55",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /localhost/cat"
 },
 "wpt:path:936": {
 "input_sha256": "6032139182a9a603",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /localhost/cat"
 },
 "wpt:path:937": {
 "input_sha256": "3003fef81f814c0a",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /mouse"
 },
 "wpt:path:939": {
 "accept": "/pig",
@@ -85071,7 +85711,7 @@
 "wpt:path:940": {
 "input_sha256": "6302d13359432e02",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /pig"
 },
 "wpt:path:945": {
 "accept": "/rooibos",
@@ -85099,9 +85739,9 @@
 "kind": "path"
 },
 "wpt:path:952": {
+"accept": "/y/z/",
 "input_sha256": "0b089d0b5ff68832",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /y/z"
+"kind": "path"
 },
 "wpt:path:958": {
 "accept": "/Y:",
@@ -85109,9 +85749,9 @@
 "kind": "path"
 },
 "wpt:path:959": {
+"accept": "/Y:/",
 "input_sha256": "ea72bb8b563f5571",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /Y:"
+"kind": "path"
 },
 "wpt:path:960": {
 "accept": "/Y",
@@ -85124,9 +85764,9 @@
 "kind": "path"
 },
 "wpt:path:962": {
+"accept": "/y:/",
 "input_sha256": "c594df4a7f1ee9c9",
-"kind": "path",
-"reject": "308 path: trailing slash, redirect to /y:"
+"kind": "path"
 },
 "wpt:path:963": {
 "accept": "/y",
@@ -85136,17 +85776,17 @@
 "wpt:path:964": {
 "input_sha256": "bc101d5aa6e7dbea",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /foo"
 },
 "wpt:path:965": {
 "input_sha256": "2784f2fb2cbe585d",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /foo"
 },
 "wpt:path:966": {
 "input_sha256": "d4ad83f0eebf6d9b",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /foo"
 },
 "wpt:path:967": {
 "accept": "/one/two",
@@ -85156,7 +85796,7 @@
 "wpt:path:968": {
 "input_sha256": "c7ca6e619c6a79c6",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /one/two"
 },
 "wpt:path:970": {
 "accept": "/two",
@@ -85166,7 +85806,7 @@
 "wpt:path:973": {
 "input_sha256": "7edb6200fc0dc7d1",
 "kind": "path",
-"reject": "400 path: empty segment"
+"reject": "308 path: empty segment, redirect to /p"
 },
 "wpt:query:1015": {
 "accept": "baz=bam&qux=baz",
@@ -85174,9 +85814,9 @@
 "kind": "query"
 },
 "wpt:query:1020": {
+"accept": "passwd",
 "input_sha256": "70c0a7ee6241aae3",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1023": {
 "accept": "type=TXT",
@@ -85184,89 +85824,89 @@
 "kind": "query"
 },
 "wpt:query:1043": {
+"accept": "%22",
 "input_sha256": "0372edd33079dbdb",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1044": {
+"accept": "%3C",
 "input_sha256": "91d3e37fd7ab08d3",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1045": {
+"accept": "%3E",
 "input_sha256": "dc56f44278a214af",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1046": {
+"accept": "%E2%8C%A3",
 "input_sha256": "36bcf577a1da84ae",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1047": {
+"accept": "%23%23",
 "input_sha256": "78b4bf036e0bfa9e",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1048": {
 "input_sha256": "9bf099e7d42502aa",
 "kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"reject": "400 query: bad percent-escape"
 },
 "wpt:query:1049": {
+"accept": "a",
 "input_sha256": "ac8d8342bbb2362d",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1062": {
 "input_sha256": "b80fbd29450561b9",
 "kind": "query",
-"reject": "400 query: ambiguous percent-escape %7F"
+"reject": "400 query: rejected percent-escape %7F"
 },
 "wpt:query:1077": {
 "input_sha256": "dced4a137097c431",
 "kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"reject": "400 query: bad percent-escape"
 },
 "wpt:query:1078": {
 "input_sha256": "09d6cedb39a7a66c",
 "kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"reject": "400 query: bad percent-escape"
 },
 "wpt:query:1144": {
 "input_sha256": "f28f5ae1033fd848",
 "kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"reject": "400 query: rejected percent-escape %00"
 },
 "wpt:query:1149": {
+"accept": "%EF%BF%BFy",
 "input_sha256": "a3b2fc2a42100677",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:1163": {
+"accept": "search",
 "input_sha256": "6ad21f9d2ea182f9",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:219": {
+"accept": "b",
 "input_sha256": "c100f95c1913f9c7",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:234": {
+"accept": "%20d%20",
 "input_sha256": "d31a2873720be8db",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:315": {
+"accept": "?e",
 "input_sha256": "fd3b9fa4bced1f28",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:317": {
+"accept": "efgh?ijkl",
 "input_sha256": "dc7ba6f989b5d738",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:425": {
 "accept": "bar=baz",
@@ -85274,49 +85914,49 @@
 "kind": "query"
 },
 "wpt:query:467": {
+"accept": "query",
 "input_sha256": "4c4f28a0fc9a4f29",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:519": {
+"accept": "hi",
 "input_sha256": "b49177e05868b7af",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:534": {
+"accept": "%EF%BF%BD",
 "input_sha256": "580d3715d462660e",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:625": {
+"accept": "q=%F0%9F%94%A5",
 "input_sha256": "df3adb835418f244",
-"kind": "query",
-"reject": "400 query: ambiguous percent-escape %F0"
+"kind": "query"
 },
 "wpt:query:626": {
+"accept": "test",
 "input_sha256": "4d967a30111bf29f",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:637": {
 "input_sha256": "c4c420a0ded92500",
 "kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"reject": "400 query: forbidden character U+0060"
 },
 "wpt:query:641": {
+"accept": "%27",
 "input_sha256": "8f323c2d92227bb6",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:642": {
+"accept": "'",
 "input_sha256": "53bdfcd63dd0134c",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:650": {
+"accept": "i",
 "input_sha256": "a05447c5b6502c59",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:849": {
 "accept": "foo=%7B%22abc%22",
@@ -85334,24 +85974,24 @@
 "kind": "query"
 },
 "wpt:query:860": {
+"accept": "qux",
 "input_sha256": "74a10314c221f3fd",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:932": {
+"accept": "x",
 "input_sha256": "ba2df4903a2c14e8",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:933": {
+"accept": "fox",
 "input_sha256": "3b1f689926de779b",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:946": {
+"accept": "chai",
 "input_sha256": "3d0c8101eafb39c7",
-"kind": "query",
-"reject": "400 query: pair must be exactly name=value"
+"kind": "query"
 },
 "wpt:query:957": {
 "accept": "q=v",
@@ -85359,6 +85999,6 @@
 "kind": "query"
 }
 },
-"corpus_sha256": "192bdf0223332b1d13981f16788484320d373305021f4932db8a0dfef207f5ea",
-"n": 16985
+"corpus_sha256": "6882d4a5c37b2a598c60a68f96ec46f880a2c99c5ce3d45ebacae42ac924a76a",
+"n": 17113
 }

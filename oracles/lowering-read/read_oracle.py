@@ -2,18 +2,22 @@
 """AEGIS read-lowering differential oracle (SPEC_INVARIANTS E: lowering soundness; Lowering.lean lowerQ/sql3).
 
 For every (DB state, tenant handle t, Pred p) the subject renders lowerQ(t, p) as a SQL boolean expression; the
-oracle runs it on the engine and compares the returned row ids with three reference sets computed over the rows
-AS STORED (read back after insert, so affinity conversions are attributed to the state, not the query):
-    permit = { r | refQ t r p }                              Lean `refQ`  (policy, two-valued eval)
-    model  = { r | keeps EXACT r (lowerQ t p) }              Lean `sql3` over an exact backend (what a correct
-                                                             renderer on a Backend.Exact engine must return)
+oracle runs it on the engine and compares the returned row ids with reference sets computed over the rows AS STORED
+(read back after insert, so affinity conversions are attributed to the state, not the query). Policy semantics are
+three-valued (SPEC_INVARIANTS E as amended by spike q4-004; spec/AegisIR/ThreeValued.lean):
+    permit = { r | refQ3 t r p }                             Lean `refQ3` (policy: eval3, absent field => atom
+                                                             UNKNOWN, Kleene connectives, permitted iff some true)
+    model  = { r | keeps EXACT r (lowerQ t p) }              Lean `sql3` over an exact backend; = permit by
+                                                             `lowerQ_exact3` (checked row by row on the port)
+    permit2= { r | refQ t r p }                              the old two-valued reference (absent => atom false)
     got    = rows returned by the engine
-    LEAK  = got - permit      (unsound: row the policy rejects)                         must be 0
-    WIDEN = got - model       (row the Lean lowering drops, e.g. NOT over NULL)         must be 0  (LEAK <= WIDEN)
-    MISS  = model - got       (Backend.Exact violated / incomplete renderer)            must be 0
-    GAP   = permit - model    (rows the policy permits but SQL 3VL drops: Lean `not_absent_permits`); reported,
-                              fails only with --miss-vs-policy (spec decision "three-valued reference" is open)
-Also checked on every evaluated row: the Python port satisfies lower_sound_full (sql3 = some b -> eval = b).
+    LEAK  = got - permit      (unsound: row the 3VL policy rejects)                     must be 0
+    WIDEN = got - model       (row the Lean lowering drops)                             must be 0
+    MISS  = (permit | model) - got  (Backend.Exact violated / incomplete renderer)      must be 0
+    GAP   = permit2 - permit  (rows 2VL permits and 3VL denies: NOT over an absent field, `not_absent_gap`);
+                              information only (fails only with --miss-vs-2vl, which reproduces the old D1 wording)
+Also checked on every evaluated row (guards the Python port itself): lower_exact3 (sql3 EXACT (lower p) = eval3 p),
+lower_sound_full (sql3 = some b -> eval = b) and eval3_sound (eval3 = some b -> eval = b).
 """
 import argparse, json, os, random, sqlite3, sys, time, unicodedata
 
@@ -276,30 +280,61 @@ def index_by_tenant(stored):
         if L.is_val(t): idx.setdefault(tkey(t), []).append(r)
     return idx
 
-def model_sets(rows_for_t, t, p, st):
-    """permit / model / gap over the candidate rows (all rows whose tenant equals t; others are dropped by both)."""
-    lp = L.lower(p)
-    permit, model = set(), set()
+# ---- Lean ThreeValued.eval3 / refQ3 (spec/AegisIR/ThreeValued.lean), line-for-line. Kept here, not in lowir.py,
+# because lowir.py must stay byte-identical with oracles/lowering-write/lowir.py.
+def eval3(row, p):
+    """Lean `eval3`: Option Bool (None = UNKNOWN); an absent/NULL field makes every atom UNKNOWN; Kleene and/or/not."""
+    k = p[0]
+    if k == "tt": return True
+    if k == "ff": return False
+    if k in ("eq", "in", "range", "pfx"):
+        x = row.get(p[1])
+        if x is None: return None
+        if k == "eq": return L.veq(x, p[2])
+        if k == "in": return any(L.veq(x, v) for v in p[2])          # vs.contains x; [] => FALSE when present
+        if k == "range": return L.ref_range(p[2], p[3], x)
+        return L.ref_prefix(p[2], x)
+    if k == "and": return L.k3and(eval3(row, p[1]), eval3(row, p[2]))
+    if k == "or": return L.k3or(eval3(row, p[1]), eval3(row, p[2]))
+    if k == "not": return L.k3not(eval3(row, p[1]))
+    if k in ("andN", "orN"): return eval3(row, L.desugar_n(p))
+    raise ValueError(k)
+
+def refQ3(tf, t, row, p):
+    return eval3(row, ["and", ["eq", tf, t], p]) is True
+
+def model_sets(rows_for_t, t, p, st, tf="tenant"):
+    """permit (refQ3) / model (sql3 EXACT) / permit2 (2VL refQ) over the candidate rows (all rows whose tenant
+    equals t; the tenant conjunct drops every other row in all three)."""
+    lp, lq = L.lower(p), L.lowerQ(tf, t, p)
+    permit, model, permit2 = set(), set(), set()
     for r in rows_for_t:
         e = L.ev(r, p)
+        e3 = eval3(r, p)
         m = L.sql3(L.EXACT, r, lp)
         st["rows_evaluated"] += 1
-        if m is not None and m != e:
-            st["theorem_violations"] += 1                # lower_sound_full violated by the port itself
-        if e: permit.add(r["id"])
-        if m is True: model.add(r["id"])
-    return permit, model
+        if m != e3:
+            st["theorem_violations"] += 1                # lower_exact3 violated by the port itself
+        if (m is not None and m != e) or (e3 is not None and e3 != e):
+            st["theorem_violations"] += 1                # lower_sound_full / eval3_sound violated by the port
+        p3, k = refQ3(tf, t, r, p), L.keeps(L.EXACT, r, lq)
+        if p3 != k:
+            st["theorem_violations"] += 1                # lowerQ_exact3 violated by the port
+        if p3: permit.add(r["id"])
+        if k: model.add(r["id"])
+        if L.refQ(tf, t, r, p): permit2.add(r["id"])
+    return permit, model, permit2
 
 def note(st, kind, ex):
     if len(st["examples"]) < 3: st["examples"].append(dict(kind=kind, **ex))
 
-def check_case(subject, db, cols, t, p, st, miss_vs_policy=False):
+def check_case(subject, db, cols, t, p, st, miss_vs_2vl=False):
     st["cases"] += 1
     req = {"op": "read", "dialect": db.dialect, "table": "t", "alias": None, "param_offset": 0,
            "tenant_field": "tenant", "columns": cols, "tenant": t, "pred": p}
     rep = subject.call(req)
     cand = db.idx.get(tkey(t), []) if L.is_val(t) else []
-    permit, model = model_sets(cand, t, p, st)
+    permit, model, permit2 = model_sets(cand, t, p, st)
     if "refuse" in rep:
         st["refused"] += 1
         got = set()
@@ -310,8 +345,8 @@ def check_case(subject, db, cols, t, p, st, miss_vs_policy=False):
             st["errors"] += 1
             note(st, "error", {"tenant": t, "pred": p, "sql": rep.get("sql"), "error": str(e)[:200]})
             got = set()
-    leak = got - permit; widen = got - model; miss = model - got; gap = permit - model
-    if miss_vs_policy: miss = miss | (gap - got)
+    leak = got - permit; widen = got - model; miss = (permit | model) - got; gap = permit2 - permit
+    if miss_vs_2vl: miss = miss | (gap - got)
     if leak:
         st["leak"] += 1; st["leak_rows"] += len(leak)
         note(st, "LEAK", {"tenant": t, "pred": p, "sql": rep.get("sql"), "params": rep.get("params"),
@@ -329,8 +364,8 @@ def check_selfjoin(subject, db, cols, t, pa, pb, shape, st):
     rb = subject.call({"op": "read", "dialect": db.dialect, "table": "t", "alias": "b", "param_offset": off,
                        "tenant_field": "tenant", "columns": cols, "tenant": t, "pred": pb})
     cand = db.idx.get(tkey(t), []) if L.is_val(t) else []
-    pma, mma = model_sets(cand, t, pa, st)
-    pmb, mmb = model_sets(cand, t, pb, st)
+    pma, mma, _ = model_sets(cand, t, pa, st)
+    pmb, mmb, _ = model_sets(cand, t, pb, st)
     ids = sorted(db.stored)
     if shape == "join":
         model = {(a, b) for a in mma for b in mmb if a % 7 == b % 7}
@@ -404,7 +439,7 @@ def run_sqlite(subject, cfg, log):
         db = SqliteDB(ddl, [{"id": 1, "tenant": tn, "x": x, "y": y}])
         cols = {"id": "integer", "tenant": "", "x": "", "y": ""}
         db.idx = index_by_tenant(db.stored)
-        check_case(subject, db, cols, t, p, st, cfg.miss_vs_policy)
+        check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
     # F2 research replay on the 4 research seeds, research schemas, 400 rows x 3000 cases
     skipped = 0
     if cfg.research:
@@ -415,7 +450,7 @@ def run_sqlite(subject, cfg, log):
                 ddl, cols = SQLITE_SCHEMAS[sname]
                 db = SqliteDB(ddl, rows); db.idx = index_by_tenant(db.stored)
                 st = fs(f"research-replay | {sname}")
-                for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_policy)
+                for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
         log(f"  research replay: {skipped} cases skipped (float literal, not a Lean Value)")
     # F3 Lean-faithful generated corpus (NOT, tt/ff, n-ary, mixed-class ranges, NUL, int64 edges) x 5 schemas
     for seed in cfg.seeds:
@@ -423,7 +458,7 @@ def run_sqlite(subject, cfg, log):
         for sname, (ddl, cols) in SQLITE_SCHEMAS.items():
             db = SqliteDB(ddl, rows); db.idx = index_by_tenant(db.stored)
             st = fs(f"lean-generated | {sname}")
-            for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_policy)
+            for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
     # F4 self-join family (60-row table)
     for seed in cfg.seeds:
         rng = random.Random(seed + 4242)
@@ -445,13 +480,13 @@ def run_pg(subject, cfg, log):
     for (name, sk, (tn, x, y), t, p) in PG_CEX:
         db = PgDB(pg, PG_CEX_SCHEMAS[sk], [{"id": 1, "tenant": tn, "x": x, "y": y}], lambda r: r)
         db.idx = index_by_tenant(db.stored)
-        check_case(subject, db, {"id": "int", "tenant": "text", "x": "text", "y": "text"}, t, p, st, cfg.miss_vs_policy)
+        check_case(subject, db, {"id": "int", "tenant": "text", "x": "text", "y": "text"}, t, p, st, cfg.miss_vs_2vl)
     for seed in cfg.seeds:
         rows, cases = lean_corpus(seed, cfg.rows, cfg.pg_cases, nul=False)
         for sname, ddl in PG_SCHEMAS.items():
             db = PgDB(pg, ddl, rows, pg_coerce); db.idx = index_by_tenant(db.stored)
             st = fam.setdefault(f"pg lean-generated | {sname}", Stats())
-            for t, p in cases: check_case(subject, db, PG_COLS, t, p, st, cfg.miss_vs_policy)
+            for t, p in cases: check_case(subject, db, PG_COLS, t, p, st, cfg.miss_vs_2vl)
         rng = random.Random(seed + 4242)
         rows2, _ = lean_corpus(seed + 1, 60, 0, nul=False)
         nn = lambda v: not (type(v) is str and "\x00" in v)
@@ -498,7 +533,7 @@ class Cfg:
         self.engines = set(a.engine)
         self.dsn, self.url = a.dsn, a.url
         self.pg_cases = a.pg_cases
-        self.miss_vs_policy = a.miss_vs_policy
+        self.miss_vs_2vl = a.miss_vs_2vl
 
 def print_report(fams, tot, skipped, wall, log=print, quiet=False):
     if not quiet:
@@ -509,13 +544,45 @@ def print_report(fams, tot, skipped, wall, log=print, quiet=False):
                 if s["leak"] or s["widen"] or s["miss"] or s["errors"]:
                     log("    e.g. " + json.dumps(ex, ensure_ascii=True, default=str)[:400])
     log(f"total: cases={tot['cases']} rows_evaluated={tot['rows_evaluated']} leak={tot['leak']} widen={tot['widen']} "
-        f"miss={tot['miss']} gap(not_absent_permits)={tot['gap']} errors={tot['errors']} refused={tot['refused']} "
+        f"miss={tot['miss']} gap_vs_2vl(not_absent_gap, info)={tot['gap']} errors={tot['errors']} refused={tot['refused']} "
         f"theorem_violations={tot['theorem_violations']} research_skipped_float={skipped} wall={wall:.1f}s")
 
 # =========================================================================================== self-test
+# q4-004 mutants: renderers that are only wrong under the three-valued policy (both pass the old 2VL `refQ` leak
+# check, because 2VL permits NOT over an absent field). Defined here as Renderer subclasses so that lowir.py stays
+# byte-identical with oracles/lowering-write/lowir.py.
+class InNilConstFalse(L.Renderer):
+    """`In f []` rendered as constant FALSE (research `(1=0)`, Lowering.lean's old comment): under NOT on a NULL
+    column it yields TRUE where eval3 is UNKNOWN (`inList_nil_not_const_false`)."""
+    def render(self, p, ctx):
+        if p[0] == "in" and not p[2]:
+            return self.ff(ctx)
+        return super().render(p, ctx)
+
+class TwoValuedNotAbsent(L.Renderer):
+    """2VL NOT: UNKNOWN is collapsed to FALSE before negation (absent field => NOT p is TRUE), i.e. the old
+    two-valued `eval` rendered literally; `not_absent_gap` says refQ3 denies these rows."""
+    def render(self, p, ctx):
+        if p[0] == "not":
+            f = "0" if ctx.dialect == "sqlite" else "false"
+            return f"(NOT COALESCE({self.render(p[1], ctx)}, {f}))"
+        return super().render(p, ctx)
+
+LOCAL_MUTANTS = {"in-nil-const-false": InNilConstFalse, "two-valued-not-absent": TwoValuedNotAbsent}
+
+def mutant_subject(mut):
+    if mut in LOCAL_MUTANTS:
+        s = L.LocalSubject()
+        s.r = LOCAL_MUTANTS[mut]()
+        s.name = f"reference[{mut}]"
+        return s
+    return L.LocalSubject([mut])
+
 SELFTEST_MUTANTS = [   # (mutant, counter that must become non-zero)
     ("drop-tenant", "leak"),
-    ("two-valued-not", "widen"),
+    ("two-valued-not", "leak"),
+    ("in-nil-const-false", "leak"),
+    ("two-valued-not-absent", "leak"),
     ("or-precedence", "leak"),
     ("like-prefix", "leak"),
     ("empty-or-true", "leak"),
@@ -537,11 +604,11 @@ def self_test(a):
     cfg = Cfg(small)
     caught, lines = 0, []
     for mut, counter in SELFTEST_MUTANTS:
-        fams, tot, _, wall = evaluate(L.LocalSubject([mut]), cfg, log=lambda *x: None)
+        fams, tot, _, wall = evaluate(mutant_subject(mut), cfg, log=lambda *x: None)
         bad = verdict(tot, cfg, 1)
         ok = bool(bad) and tot.get(counter, 0) > 0
         caught += ok
-        lines.append(f"  mutant {mut:20s} expect {counter:6s}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
+        lines.append(f"  mutant {mut:21s} expect {counter:6s}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
                      f"errors={tot['errors']} -> {'CAUGHT' if ok else 'NOT CAUGHT'} ({wall:.1f}s)")
         print(lines[-1], flush=True)
     # naive-bound must reproduce every research LEAK verdict of the 78-case corpus (SQLite part), case by case
@@ -557,7 +624,14 @@ def self_test(a):
     # Lean counter-theorem refines_necessary: a coarser equality (NOCASE) on the tenant column must leak (model check)
     coarse = L.Backend(lambda x, v: L.veq(x.lower() if type(x) is str else x, v.lower() if type(v) is str else v), L.ref_range, L.ref_prefix)
     row = {"tenant": "ACME"}
-    rn_ok = L.keeps(coarse, row, L.lowerQ("tenant", "acme", ["tt"])) and not L.refQ("tenant", "acme", row, ["tt"])
+    rn_ok = L.keeps(coarse, row, L.lowerQ("tenant", "acme", ["tt"])) and not refQ3("tenant", "acme", row, ["tt"])
+    # the gate is refQ3, not the 2VL refQ: the two q4-004 witnesses must separate them (not_absent_gap,
+    # inList_nil_not_const_false) -- a NULL x with NOT (x = v) / NOT (x in []) is 2VL-permitted and 3VL-denied
+    nul = {"tenant": "acme", "x": None}
+    gap_ok = all(L.refQ("tenant", "acme", nul, q) and not refQ3("tenant", "acme", nul, q)
+                 for q in (["not", ["eq", "x", "a"]], ["not", ["in", "x", []]]))
+    print(f"  refQ3 vs refQ witnesses (not_absent_gap, NOT In [] on NULL: 2VL permits, 3VL denies): {gap_ok}")
+    rn_ok = rn_ok and gap_ok
     print(f"  refines_necessary witness (NOCASE backend keeps a row refQ rejects): {rn_ok}")
     # positive control through the out-of-process protocol (reference renderer served by lowir.py)
     cmd = f"{sys.executable} -I {os.path.join(HERE, 'lowir.py')} serve"
@@ -609,7 +683,8 @@ def main():
     ap.add_argument("--selfjoin", type=int, default=250, help="self-join cases per seed")
     ap.add_argument("--pg-cases", type=int, default=1500)
     ap.add_argument("--no-research", action="store_true", help="skip the research-replay family")
-    ap.add_argument("--miss-vs-policy", action="store_true", help="count GAP (policy-permitted, 3VL-dropped) as MISS")
+    ap.add_argument("--miss-vs-2vl", action="store_true",
+                    help="information: count GAP (permitted by the old two-valued refQ, denied by refQ3) as MISS")
     ap.add_argument("--json", help="write the full report here")
     a = ap.parse_args()
     if not a.engine: a.engine = ["sqlite"]
@@ -637,7 +712,7 @@ def main():
     upg = cfg.pg_cases * len(cfg.seeds) if "pg" in cfg.engines else 0
     summary = (f"cases={tot['cases']} generated_unique_sqlite={uniq} (x{len(SQLITE_SCHEMAS)} schemas={gen}) "
                f"generated_unique_pg={upg} (x{len(PG_SCHEMAS)} schemas) leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
-               f"gap={tot['gap']} errors={tot['errors']}")
+               f"gap_vs_2vl(info)={tot['gap']} errors={tot['errors']}")
     if bad:
         print(f"{NAME}: FAIL ({', '.join(f'{k}={v}' for k, v in bad.items())}; {summary})")
         sys.exit(1)

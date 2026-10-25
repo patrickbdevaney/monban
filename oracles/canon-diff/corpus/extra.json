@@ -1,5 +1,5 @@
 {
- "_comment": "Hand-written by the porter (not research). Fills gaps of research_corpus.json: query kind, CANON-6 request binding grid, Unicode-lowercasing traps, %25 double-decode, NBSP cookies. The request grid is the cartesian product proto x authority x host-list x sni x origin, built by canon_diff.py with `vhosts` embedded in every input.",
+ "_comment": "Hand-written by the porter (not research). Fills gaps of research_corpus.json: query kind, CANON-6 request binding grid, Unicode-lowercasing traps, %25 double-decode, NBSP cookies; paths_q4008/queries_q4008 probe the q4-008 per-clause outcomes (examples modelled on spikes/q4-008/README.md, no log content copied). The request grid is the cartesian product proto x authority x host-list x sni x origin, built by canon_diff.py with `vhosts` embedded in every input.",
  "vhosts": {
   "example.com": ["https://example.com"],
   "api.example.com": ["https://example.com", "https://api.example.com"],
@@ -20,10 +20,12 @@
   {"proto": "h1", "scheme": "http", "sni": null, "authority": null, "host": ["example.com:443"], "origin": null}
  ],
  "paths": ["/", "/%2561dmin", "/%25", "/admin%252F", "/a%5Cb", "/a%5cb", "/admin\u00a0", "/\uff0fadmin", "/admin%7e", "/admin%7E", "/~admin", "/a/b/c", "/a/b/", "/A%2f", "/%41%42", "/%e2%80%8b", "/a:b@c", "/a,b", "/admin%3f", "/admin%23", "/\u212aelvin", "/admin%0a", "/admin%7f"],
+ "paths_q4008": ["/ru/%D1%83%D0%BC", "/ar/%d8%a7", "/caf%C3%A9/", "/e%CC%81", "/%C3%A9", "/%C0%AE", "/%C0%AF", "/%ED%A0%80", "/%FF", "/%C3", "/%E2%80%8B", "/a/", "/admin/", "/a/b//", "//", "//robots.txt", "/privacy-policy//", "/a//b", "/a///b/", "/honeypot//%22x", "/a//%2e/b", "//a/../b", "/a//%2F", "/a/%E2%82%AC//b", "/\u00e9//"],
  "hosts": ["\u212aelvin.example", "EXAMPLE\u212a.com", "\u0130stanbul.com", "xn--mnchen-3ya.de", "XN--MNCHEN-3YA.DE", "xn--a.example", "xn--ls8h.la", "ab--cd.com", "a.b.c.d.e", "1.2.3.4", "1.2.3.04", "1.2.3.256", "01.2.3.4", "1.2.3", "0x7f000001", "example.0x", "-example.com", "example-.com", "a..b", ".example.com", "localhost", "LOCALHOST"],
  "origins": ["https://\u212aelvin.example", "https://user@example.com", "https://example.com:8443", "https://example.com:65536", "wss://example.com", "https://example.com#", "https:/example.com", "https:///example.com", " https://example.com", "https://example.com "],
  "cookies": ["a=1; b=2", "a=1;b=2", "a=1;  b=2", "a=1; ", "a=1;; b=2", "\u00a0sid=x", "sid=x;\u00a0sid=y", "sid=\u00a0x", "SID=a; sid=b", "__Secure-x=1", "sid=a\\b", "sid=a b"],
  "queries": ["", "a=1", "a=1&b=2", "a=1;b=2", "a=1&a=2", "a=1&%61=2", "a+b=1", "a=1+2", "a=%41%2f", "a=%2B", "a=%26b=2", "a=%3D", "a", "a=", "=1", "a=1&&b=2", "a=1&", "a=%00", "a=%zz", "a=\u00e9", "a=%C3%A9", "a=b/c?d", "redirect=https://evil.example/", "a=1&A=2"],
+ "queries_q4008": ["s=Logbuch+der+gegenwart", "redirect_url=http%3A%2F%2Fx.example%3Frefer%3D1", "YWN0aW9u==", "1709465443916", "availabilities%5B%5D=1&availabilities%5B%5D=2", "board=15.0;wap2", "C=M;O=A", "b=2&a=1", "a=1&a=1", "a=%25252C", "q=%e2%82%ac", "a=%2b", "a=1#f", "a=%7F", "a=%1F", "a b=1", "&a=1", "a=%7e", "a=<x>", "a=|", "?a=1", "a=%c3"],
  "json_docs": ["{\"Role\":\"admin\",\"role\":\"user\"}", "{\"a\":{\"b\":{\"c\":1}}}", "[]", "{}", "\"s\"", "1", "-0.0", "1E2", "1e300", "[1.5,2.25]", "{\"x\":\"\\u00e9\"}"],
  "headers": [["Host: example.com", "Accept: a", "Accept: b"], ["Host: example.com", "Content-Length: 05"], ["Host: example.com", "Content-Length: 5", "Transfer-Encoding: chunked"], ["Host: example.com", "Transfer-Encoding: Chunked"], ["Host: example.com", "X: a", " continued"], ["Host: example.com", "X: caf\u00e9"], ["Host:", "X: y"], ["Host: example.com", "X-Role: admin", "x-role: user"]],
  "tenants": ["\u212a", "k", "acme-corp", "-acme", "acme-", "a"],
