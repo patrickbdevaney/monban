@@ -7,8 +7,10 @@
 //!   cargo xtask repo-advisories [--self-test]
 //!   cargo xtask fips-lock --profile cmvp [--self-test]
 //!   cargo xtask metrics-check [--self-test]
+//!   cargo xtask budget [--self-test]
 #![forbid(unsafe_code)]
 
+mod budget;
 mod json;
 mod lock;
 mod metrics;
@@ -36,11 +38,12 @@ fn main() -> ExitCode {
             lock_age(days, self_test)
         }
         Some("repo-advisories") => repo_advisories(self_test),
+        Some("budget") => budget::budget(self_test),
         Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
         _ => {
             eprintln!(
-                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check> [--self-test]"
+                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget> [--self-test]"
             );
             return ExitCode::from(2);
         }
