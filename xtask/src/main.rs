@@ -295,7 +295,16 @@ fn lock_targets(self_test: bool) -> Result<(), String> {
 fn curl_json(url: &str, post: Option<&str>) -> Result<Json, String> {
     let mut c = Command::new("curl");
     c.args(["-sfL", "--retry", "3", "--max-time", "30", "-A", "aegis-xtask (supply-chain gate)"]);
-    if let Ok(tok) = std::env::var("GITHUB_TOKEN")
+    let tok = std::env::var("GITHUB_TOKEN").ok().or_else(|| {
+        Command::new("gh")
+            .args(["auth", "token"])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|t| t.trim().to_string())
+    });
+    if let Some(tok) = tok
         && url.starts_with("https://api.github.com")
     {
         c.args(["-H", &format!("Authorization: Bearer {tok}")]);
@@ -407,7 +416,7 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
     for (n, ver) in &pkgs {
         let url =
             format!("https://api.github.com/advisories?ecosystem=rust&affects={n}@{ver}&per_page=100&type=unreviewed");
-        match curl_json(&url, None) {
+        match ghsa_cached(n, ver, &url) {
             Ok(j) => {
                 let ids: Vec<&str> = j.arr().iter().filter_map(|a| a.get("ghsa_id").and_then(Json::str)).collect();
                 if !ids.is_empty() {
@@ -419,6 +428,42 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
     }
     println!("repo-advisories: {} packages queried (OSV + GitHub unreviewed)", pkgs.len());
     verdict("REPO-ADVISORIES", &v, self_test)
+}
+
+/// GitHub advisory responses cached per crate@version for 24 h under target/xtask-cache (unauthenticated GitHub allows
+/// 60 requests/hour). A stale or missing entry is re-fetched; a fetch failure is never served from an expired cache.
+fn ghsa_cached(name: &str, ver: &str, url: &str) -> Result<Json, String> {
+    let dir = root().join("target").join("xtask-cache").join("ghsa");
+    let file = dir.join(format!("{name}@{ver}.json"));
+    let fresh = std::fs::metadata(&file)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.elapsed().ok())
+        .is_some_and(|age| age.as_secs() < 86_400);
+    if fresh
+        && let Ok(text) = std::fs::read_to_string(&file)
+        && let Ok(j) = json::parse(&text)
+    {
+        return Ok(j);
+    }
+    let j = curl_json(url, None)?;
+    if std::fs::create_dir_all(&dir).is_ok() {
+        let _ = std::fs::write(&file, render_json(&j));
+    }
+    Ok(j)
+}
+
+fn render_json(j: &Json) -> String {
+    match j {
+        Json::Null => "null".into(),
+        Json::Bool(b) => b.to_string(),
+        Json::Num(n) => format!("{n}"),
+        Json::Str(s) => format!("{s:?}"),
+        Json::Arr(v) => format!("[{}]", v.iter().map(render_json).collect::<Vec<_>>().join(",")),
+        Json::Obj(m) => {
+            format!("{{{}}}", m.iter().map(|(k, v)| format!("{k:?}:{}", render_json(v))).collect::<Vec<_>>().join(","))
+        }
+    }
 }
 
 // ---------------------------------------------------------------- FIPS lock (Phase 6 gate; usable from Phase 0)

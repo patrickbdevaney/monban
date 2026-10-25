@@ -11,7 +11,8 @@ if [ "${free_gb:-0}" -lt "$MIN_FREE_GB" ]; then
   echo "heavy.sh: refusing, only ${free_gb}G free (< ${MIN_FREE_GB}G)" >&2; exit 75
 fi
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4} CARGO_INCREMENTAL=0 AEGIS_HEAVY_HELD=1
-exec 9>/tmp/aegis-heavy.lock
-if ! flock -n 9; then echo "heavy.sh: waiting for the heavy-job lock (one at a time)..." >&2; flock 9; fi
-exec systemd-run --user --scope -q -p MemoryMax="${HEAVY_MEM:-6G}" -p MemorySwapMax=1G \
+LOCK=/tmp/aegis-heavy.lock
+flock -n -o "$LOCK" true 2>/dev/null || echo "heavy.sh: waiting for the heavy-job lock (one at a time)..." >&2
+# flock -o: the lock fd is closed before exec, so it never leaks into the command's children (fd-hygiene checks).
+exec flock -o "$LOCK" systemd-run --user --scope -q -p MemoryMax="${HEAVY_MEM:-6G}" -p MemorySwapMax=1G \
   nice -n 15 timeout "${HEAVY_TIMEOUT:-1800}" "$@"

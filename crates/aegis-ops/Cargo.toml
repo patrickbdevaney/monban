@@ -13,6 +13,11 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-config = { workspace = true }
+# nix: only what the upgrade path needs. socket/net (net = socket + inet sockaddr accessors) = SEQPACKET handover socket, SO_PEERCRED, SO_TYPE, SO_ACCEPTCONN,
+# getsockname; poll = accept loop with a stop flag; signal = sigwait-based signal handling (no handlers, no unsafe);
+# fs = mkfifo for the STEK pipe; user = getuid for the 0700-dir / peer-uid checks.
+nix = { workspace = true, features = ["socket", "net", "poll", "signal", "fs", "user"] }
+sd-notify = { workspace = true }
 
 [lints]
 workspace = true

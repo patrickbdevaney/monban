@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# AEGIS oracle: upgrade harness (UP-1..7 under load). Contract: oracles/README.md.
+# Last line: UPGRADE-HARNESS: PASS|FAIL (...)  /  UPGRADE-HARNESS SELF-TEST: PASS|FAIL (...).
+#   ./run --subject target/release/upgrade-subject [--reloads 100] [--interval 0.2] [--rate 2000] [--drain-ms 2000]
+#   ./run --self-test        naive REUSEPORT / close-rebind / deaf upgraders must be caught
+# The load test holds the machine-wide heavy-job lock: run re-executes itself under ci/heavy.sh unless already there.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ "${AEGIS_HEAVY_HELD:-0}" != 1 ]; then
+  exec "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/harness.py" "$@"

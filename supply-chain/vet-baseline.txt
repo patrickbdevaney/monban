@@ -27,3 +27,9 @@ windows_i686_msvc:0.52.6  windows-only, not built on linux targets
 windows_x86_64_gnu:0.52.6  windows-only, not built on linux targets
 windows_x86_64_gnullvm:0.52.6  windows-only, not built on linux targets
 windows_x86_64_msvc:0.52.6  windows-only, not built on linux targets
+# Added 2026-10-25 with P2-upgrade-001 (fd passing / sd-notify).
+nix:0.31.3  syscall wrappers for fd validation and signals (aegis-ops only; unsafe lives in nix)
+sd-notify:0.5.0  systemd readiness protocol (tiny)
+memoffset:0.9.1  pulled by nix socket feature
+autocfg:1.5.1  build-time only (memoffset)
+bitflags:2.13.2  macro-only flags type (nix)
