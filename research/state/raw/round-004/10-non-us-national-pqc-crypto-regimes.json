@@ -1,0 +1,622 @@
+{
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-004/10-non-us-national-pqc-crypto-regimes.json",
+ "nodes": [
+  {
+   "id": "r4e10.bsi-tr02102-2026",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "BSI TR-02102-1 (2026-01-23) + -2 TLS (2026-01-27): ML-KEM-768/1024, FrodoKEM, McEliece; hybrid-only; no X25519/Ed25519/ChaCha20 in TLS list",
+   "summary": "Germany recommends PQ KEMs only hybridised ('currently only recommends hybrid use'); classical-only key agreement until end-2031, PQ by end-2030, classical signatures until end-2035. TLS 1.3 list has NIST/brainpool curves, AES-GCM/CCM only; BSI 'intends to recommend' SecP256r1MLKEM768 and SecP384r1MLKEM1024 (not X25519MLKEM768) after the RFC.",
+   "urls": [
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-1.pdf?__blob=publicationFile&v=15",
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-2.pdf?__blob=publicationFile&v=11",
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-3.pdf?__blob=publicationFile&v=10",
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-4.pdf?__blob=publicationFile&v=11"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "TR-02102-1 Tab 2.5/2.6/2.7: FrodoKEM-976/1344; mceliece460896/6688128/8192128(+f); ML-KEM-768/1024 (512 absent). Sig Tab 5.6/5.7: SLH-DSA-{SHA2,SHAKE}-192s/f,256s/f; ML-DSA-65/87 hedged (44 absent); LMS/HSS, XMSS/XMSS^MT; PQ sig only in concatenated hybrid with classical except hash-based (may be alone). Hybridisation KDFs: CatKDF (KMAC/HKDF), KeyCombine. QKD not recommended. TR-02102-2 Tab 10 groups: secp256/384/521r1, brainpoolP256/384/512r1tls13, ffdhe3072/4096 (to 2031); sig algs rsa_pss*, ecdsa_secp*r1 '2032+'; TLS1.3 suites AES_128/256_GCM, AES_128_CCM only (0 hits chacha/25519/Ed25519); 0-RTT not recommended; TLS1.2 until end-2031; RSA PKCS#1v1.5 sigs dropped in 2026-01. TR-02102-3 (IPsec) intends ml-kem-768/1024 hybrid; -4 (SSH) intends mlkem768nistp256-sha256 and mlkem1024nistp384-sha384. Language: EN official translation read; DE original exists (not read). Prediction: TR-02102-2 2027-01 edition adopts 0x11EB/0x11ED (RFC 10024 published Aug 2026), p~0.8.",
+   "overclaim_risk": "TR is a recommendation, not law; binding via procurement/CC/KRITIS practice. Read EN translation not DE original.",
+   "underclaim_risk": "BSI list not mentioning X25519 means 'not recommended', not 'forbidden'."
+  },
+  {
+   "id": "r4e10.anssi-pg083-pure-nonconformant",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "ANSSI-PG-083 v3.00 (2026-03-20): pure ML-KEM and pure ML-DSA, ANY parameter set, are NON-CONFORMANT; hybrid required for PQ claims",
+   "summary": "France's first quantum-aware algorithm-selection guide states that ML-KEM used without hybridisation, whatever the parameter set, does not meet the asymmetric-security rule; same for ML-DSA. SLH-DSA (and hash-based) conformant alone and usable after 2030. Directly contradicts a pure ML-KEM-1024 (CNSA 2.0) TLS profile for the French market.",
+   "urls": [
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-mecanismes-crypto-3.00.pdf",
+    "https://messervices.cyber.gouv.fr/documents-guides/Avis%20de%20l%27ANSSI%20sur%20la%20migration%20vers%20la%20cryptographie.pdf",
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-recommandations_de_securite_relatives_a_tls-v1.2.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "FR originals read via pdftotext. PG-083 3.00 p34: 'Utilisé sans hybridation et quel que soit le jeu de paramètres utilisé, le mécanisme d'encapsulation de clés ML-KEM ne respecte pas la règle RègleSécuAsym'; p36 same for ML-DSA. ML-KEM-512 conformant if hybridised with classical (ML-KEM-768 'préférable'); Frodo-KEM-640 hybridised ok (976 préférable). Signature hybrid example: sign msg with ML-DSA then classical-sign (msg,sig) (nested, differs from BSI concatenation). SLH-DSA conformant standalone; hybrid optional for hash-based. Classical ECC conformant: FRP256v1, P-256/384/521, B-283/409/571, brainpoolP256/384/512r1; Curve25519/Ed25519 not enumerated in PG-083 (ANSSI TLS guide v1.2 of 2020-03-26 calls x25519/x448 and ChaCha20-Poly1305 'acceptable'; it has no PQ content = stale). RecoSécuLongTerme: use beyond 2030-01-01 or retroactive attack risk => aim for PQ. Avis 2023-12-21: hybrid mandatory for phase-2 PQ security visas, optional in phase 3; ML-KEM main KEM, FrodoKEM encouraged. Secondary (postquantum.com updated 2026-10-11, Clubic): PQC obligation for qualification entry from 2027, 'unreasonable to buy non-PQC after 2030', first 2 PQ visas Oct 2025 (Thales card, Samsung chip, CEA-Leti) - no implementing text seen (grade C for the 2027 date).",
+   "overclaim_risk": "2027 qualification date is from press/secondary; 'mandatory hybrid' for qualification not confirmed by an implementing text.",
+   "underclaim_risk": "PG-083 is a guide for qualified/certified products (RGS/CSPN/qualification), not a ban on pure ML-KEM in all French systems."
+  },
+  {
+   "id": "r4e10.asd-ism-2026-09",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "ASD ISM Sept 2026: ML-KEM-1024/ML-DSA-87 preferred, 768/65 sunset 2030, ECDH/ECDSA/RSA not approved beyond 2030, hybrid 'not recommended but not prohibited', no SLH-DSA/LMS/XMSS, TLS AES-GCM",
+   "summary": "Australia is the strictest on algorithms and dates: all traditional asymmetric (DH, ECDH, ECDSA, RSA) 'will not be approved beyond 2030'; ML-KEM-768 and ML-DSA-65 'not approved beyond 2030'; new products must support ML-DSA-87+ML-KEM-1024+SHA-384/512+AES-256 by 2030 (ISM-1917). Hybrid permitted if PQ or traditional component is an AACA (ISM-1996).",
+   "urls": [
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases/download/v2026.09.4/v2026.09.03-pdf.pdf",
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Source: ASD ISM release v2026.09.4 (2026-09-03, 'Last updated September 2026'); cyber.gov.au HTML timed out from this host so the OSCAL-repo PDF was used. Approved AACA list: DH, ECDH, ECDSA, ML-DSA, ML-KEM, RSA; SHA-2 (SHA-3 only inside ML-DSA/ML-KEM); AES. No SLH-DSA, LMS or XMSS in the list. ISM-1995 (Dec-24): ML-KEM-768 or -1024, preferably 1024. ML-DSA-65/87 approved, 87 preferred, hedged preferred, pre-hash allowed with SHA-384/512; ML-DSA-44 not approved. ISM-1917 rev3 (Sep-25): support ML-DSA-87, ML-KEM-1024, SHA-384, SHA-512, AES-256 by no later than 2030. ISM-2073 (Sep-25): PQC transition plan. ISM-1996 (Dec-24): hybrid allowed when PQ or traditional or both is an AACA. TLS: ISM-1139 TLS 1.3 only, ISM-1369 AES-GCM (ChaCha20-Poly1305 not listed), ISM-1372 (rev4 Sep-26) ephemeral DH/ECDH, ISM-1453 PFS. Consequence: X25519MLKEM768 is not ISM-compliant past 2030 (768 + X25519); SecP384r1MLKEM1024 stays compliant via ISM-1996; pure MLKEM1024 also compliant.",
+   "overclaim_risk": "Secondary summary (postquantum.com) claiming ASD milestones end-2026/end-2028 not found in ISM text; do not repeat.",
+   "underclaim_risk": "ASD guidance binds Commonwealth entities; private sector uses it as de facto baseline."
+  },
+  {
+   "id": "r4e10.eccg-acm-v3-draft",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "ECCG Agreed Cryptographic Mechanisms v3 DRAFT (Apr/May 2026, public review to end-Jul 2026) lists SecP256r1MLKEM768, X25519MLKEM768, SecP384r1MLKEM1024 as Recommended; v2 (adopted mid-2025) had no TLS hybrid groups",
+   "summary": "The EU certification (EUCC/Common Criteria) crypto baseline: ML-KEM and FrodoKEM 'R' but 'shouldn't be used standalone, combine with classical'; ML-KEM-1024 or 768; ML-DSA-87 or 65, SLH-DSA, XMSS/LMS R. v3 draft adds TLS 1.3 group table with all three RFC 10024 hybrids R, X25519/X448 A, AES-256-GCM R.",
+   "urls": [
+    "https://certification.enisa.europa.eu/publications/eucc-guidelines-cryptography_en",
+    "https://certification.enisa.europa.eu/document/download/9993abb8-5f27-47d0-bdb2-f6f284cd5141_en?filename=20260507-acm-draft.pdf",
+    "https://certification.enisa.europa.eu/document/download/a845662b-aee0-484e-9191-890c4cfa7aaa_en?filename=ECCG%20Agreed%20Cryptographic%20Mechanisms%20version%202.pdf",
+    "https://certification.enisa.europa.eu/news/participate-public-review-new-draft-agreed-cryptographic-mechanisms-2026-06-02_en"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "v3 draft pp: Note 63 (hybridization of (M)LWE KEMs), Note 64 ML-KEM-1024 or -768, Note 65 FrodoKEM-1344/976, Note 53 sig hybridization (concatenation, all must verify), Note 55 optional hybrid for hash-based, Note 58 ML-DSA-87 or -65. TLS1.3 suites: TLS_AES_256_GCM_SHA384 R, AES_128_GCM A, AES_128_CCM A; ChaCha20 not in table. Annex C adds an update process (criteria incl. standardised, 2 years stability, >=125-bit; HQC expected later). ENISA 'Hybridization of traditional mechanisms with PQC - Standardisation Status' 30 Apr 2026 is explicitly NOT a recommendation; maps composite ML-DSA (LAMPS, at RFC Editor) and composite ML-KEM. pqc-forum critique (Bernstein, Westerbaan, Mattsson): AES-128 and RSA/ECC both level A. CEPS Task Force (2025-09-29) comments call mandating hybrid a performance/interop risk and note hybrid signatures immature.",
+   "overclaim_risk": "Draft: final v3 adoption status unknown at 2026-10-25 (review closed end-Jul); ACM governs certification, not deployment.",
+   "underclaim_risk": "Even as a draft it shows EU cert body converging on exactly the IETF hybrid trio."
+  },
+  {
+   "id": "r4e10.cccs-itsp40111-v5",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "CCCS ITSP.40.111 v5 (effective 2026-05-29) + ITSM.40.001 (2025-06-23): ML-KEM-512/768/1024, ML-DSA-44/65/87, SLH-DSA all, LMS/XMSS; classical phase-out end-2035; ECDH only NIST P-curves",
+   "summary": "Canada is the most permissive: all FIPS 203/204/205 parameter sets, no hybrid mandate, classical 'without a PQ scheme' phased out by end-2035; government roadmap: plan Apr 2026, high-priority systems end-2031, all end-2035. ECDH curves P-224(to 2030)/256/384/521 only (no X25519); EdDSA Edwards25519/448 allowed for signatures.",
+   "urls": [
+    "https://www.cyber.gc.ca/en/guidance/cryptographic-algorithms-unclassified-protected-and-protected-b-information-itsp40111",
+    "https://www.cyber.gc.ca/en/guidance/roadmap-migration-post-quantum-cryptography-government-canada-itsm40001"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "ITSP.40.111 v5 revision history: 2016-08-02, v2 2022-08-17, v3 2024-03-19, v4 2025-03-05, v5 effective 2026-05-29. RSA/DH modulus >=3072 by end-2030; DSA, binary curves, P-224 out by 2030. Stateful hash-based sigs only if signer can manage state (SP 800-208). ITSM.40.001 (2025-06-23) defers algorithms to ITSP.40.111; ITSP.40.062 (TLS config) 'not yet updated' as of that page; CMVP-validated modules recommended.",
+   "overclaim_risk": "Did not read ITSP.40.062 itself; TLS group acceptance for Canada inferred from ITSP.40.111 curve list.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.ncsc-uk-guidance",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "UK NCSC: ML-KEM-768 + ML-DSA-65 'for most use cases'; hybrid only interim; SLH-DSA/LMS/XMSS for firmware; 2028/2031/2035 (guidance, no mandate)",
+   "summary": "NCSC whitepaper v2.0 (2024-08-14) and PQC migration timelines (2025-03-20): discovery/plan by 2028, high-priority by 2031, complete 2035; hybrid acceptable only as stepping stone with path to PQC-only; hybrid authentication has no consensus, prefers single migration to PQ PKI. An industry task force claims UK 'now only recommends standalone' - not supported by the primary text.",
+   "urls": [
+    "https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography",
+    "https://www.ncsc.gov.uk/guidance/pqc-migration-timelines"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Pages fetched via summarizer (not raw); schema dateModified 2026-04-10 / 2026-08-03 differs from visible dates => possible unseen edit. All parameter sets acceptable up to OFFICIAL.",
+   "overclaim_risk": "Possible silent 2026 edits; recheck raw page.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.eu-nis-roadmap-2025",
+   "layer": "L3",
+   "domain": "W-PQC/W-OPS",
+   "type": "policy",
+   "title": "EU NIS Cooperation Group PQC roadmap Part 1 v1.1 (2025-06-11): national plans by 2026-12-31, high-risk by 2030, rest by 2035; hybrid 'whenever feasible'; no algorithm list; no 2026 follow-up found",
+   "summary": "'Quantum-vulnerable public-key mechanisms shall not be used stand-alone after end of 2030' (high risk) / 2035 (medium); recommends standardised, tested hybrid; defers algorithms to ECCG ACM; CRA applies 2027-12-11. Binding layer is NIS2 transposition + CRA + EUCC, not the roadmap.",
+   "urls": [
+    "https://securitydelta.nl/media/com_hsd/report/750/document/Roadmap-on-postquantum-cryptography-PzBJxNUYyeuEdVUacWL696DofZQ-117507.pdf",
+    "https://digital-strategy.ec.europa.eu/en/library/coordinated-implementation-roadmap-transition-post-quantum-cryptography",
+    "https://cdn.ceps.eu/2025/10/Task-FORCE-Comments-on-the-NIS-CG-Roadmap-on-PQC-Transition_FINAL.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "ec.europa.eu returned 403; read a mirrored PDF identical in title/version. A single secondary source claims a Jan 2026 Commission proposal to write PQC into NIS2 (unverified).",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.china-ngcc-round1",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "policy",
+   "title": "China ICCS/NICCS NGCC: Round 1 published 2026-09-20 (34 sigs, 41 KEMs, 9 key-exchange, 35 hashes); heavy early breakage; no mandated NIST-algorithm use and no national standard before ~2029",
+   "summary": "China runs its own global PQC competition (launched 2025-02-05; PK call 2025-10-09; deadline 2026-06-30) and is not adopting ML-KEM/ML-DSA officially. Independent ngcc.dev (Saarinen) logged 104 findings against 65 of 119 candidates within three days, several design-level breaks (Tins, Facto-DSA-128, MoFang, Neulaser, FlexTree).",
+   "urls": [
+    "https://www.niccs.org.cn/niccs/Notice/pc/content/content_1937428197396713472.html",
+    "https://www.niccs.org.cn/niccs/Notice/pc/content/content_1975896137741635584.html",
+    "https://www.niccs.org.cn/niccs/Round1Additional/pc/list.html",
+    "https://ngcc.dev",
+    "https://postquantum.com/security-pqc/china-ngcc-candidate-flaws/",
+    "https://eprint.iacr.org/2026/2266"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.5,
+   "load_bearing": true,
+   "specifics": "Counts verified: niccs list channel articleCount 34/41/9 = 84 PK. Next-round schedule not published. Wang Xiaoyun estimate (Mar 2026): national PQC standards within three years. Chinese-language search for a CAC/OSCCA migration mandate found only vendor material; no OSCCA PQC deadline located. For the golden: China market would need SM2/SM3/SM4 (TLCP/GB/T 38636 family, not re-verified this round) plus a future NGCC KEM/sig; cannot be satisfied by ML-KEM/ML-DSA alone. Treat as an out-of-scope, feature-flagged profile.",
+   "overclaim_risk": "Breakage counts from a single AI-assisted sweep + secondary article.",
+   "underclaim_risk": "Absence of mandate may be a search-coverage artefact (Chinese gov sources thinly indexed)."
+  },
+  {
+   "id": "r4e10.iana-sm2-mlkem768",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "IANA TLS group 4590 (0x11EE) curveSM2MLKEM768 registered via draft-yang-tls-hybrid-sm2-mlkem-03, Recommended=N, DTLS-OK=N",
+   "summary": "The only China-aligned TLS hybrid in the registry combines SM2 ECDH with NIST ML-KEM-768; registry confirms vendor claims of an official code point but it is a draft, not recommended, and not a Chinese national standard.",
+   "urls": [
+    "https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Registry rows (fetched 2026-10-25): 4587 SecP256r1MLKEM768 N RFC 10024; 4588 X25519MLKEM768 Y; 4589 SecP384r1MLKEM1024 N; 4590 curveSM2MLKEM768 N draft; 512-514 pure MLKEM N [RFC-ietf-tls-mlkem-10]; 4585/4586 ML-KEM-512 hybrids (drafts).",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.eo14412-us-baseline",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "policy",
+   "title": "US EO 14412 (2026-06-22): HVA/high-impact systems PQC key establishment by 2030-12-31, signatures by 2031-12-31; FAR rule for contractors to comply with PQC FIPS by 2030-12-31; State Dept to push foreign governments toward NIST algorithms",
+   "summary": "New US federal law-adjacent baseline (not in map). Defines PQC as resistant to both classical and quantum attack (does not require pure). Sec 5(b) diplomacy toward NIST-standardised PQC sets up friction with BSI/ANSSI hybrid-only, KpqC and NGCC.",
+   "urls": [
+    "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Federal Register Vol 91 No 121, 25 Jun 2026, p38483-38486, FR Doc 2026-12909. Sec 4(b) excludes National Security Systems (NSA/CNSS track). 6(b) CMVP acceleration in 180 days; 6(c) FAR proposed rule in 180 days (due ~2026-12-19); 5(d) CBOM guidance in 270 days. OMB M-26-15 only via secondary sources.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.japan-cryptrec-pqc-list",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "policy",
+   "title": "Japan 2026: CRYPTREC list revised to add a PQC list containing ML-KEM (steering meeting 2026-03-30); gov target ~2035 with roadmap in FY2026; Cybersecurity Strategy 2025-12-23",
+   "summary": "Extends r2e11.kpqc-korea-japan: Japan adopts NIST algorithms (ML-KEM approved into CRYPTREC; ML-DSA/SLH-DSA under evaluation), allows PQC+classical 'in combination' depending on environment, no parameter-set restriction found, roadmap due FY2026.",
+   "urls": [
+    "https://www.cas.go.jp/jp/seisaku/pqc/index.html",
+    "https://www.cas.go.jp/jp/seisaku/pqc/pdf/report_202511.pdf",
+    "https://www.cas.go.jp/jp/seisaku/pqc/kanjikai/dai5/gijiyoushi.pdf",
+    "https://www.cas.go.jp/jp/seisaku/pqc/kanjikai/dai5/sankou1.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Language ja read. Interim report 2025-11-20 (関係府省庁連絡会議, 2nd mtg 2025-11-19); cabinet Cybersecurity Strategy 2025-12-23: migrate 'in principle by 2035', roadmap in FY2026. CRYPTREC guideline PQC FY2024 edition (Mar 2025). NICT survey: server-side PQC lags client-side.",
+   "overclaim_risk": "Param sets/hybrid rules for the PQC list not read (list itself not fetched).",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.korea-quantum-act-18-2",
+   "layer": "L3",
+   "domain": "W-PQC/W-OPS",
+   "type": "policy",
+   "title": "Korea 2026: Quantum Technology Industry Act Art. 18-2 obliges >600 public bodies to plan/implement PQC (cabinet 2026-05-12, effective ~Nov 2026); 3 KCMVP PQC modules validated",
+   "summary": "Extends r2e11.kpqc-korea-japan with dated specifics from Korean-language press (secondary). KCMVP-validated PQC modules: Hancom/SoftForum 2025-01, XGate 2026-04, ITCS PNS 2026-07; algorithms not stated; 2035 target from 2023 master plan.",
+   "urls": [
+    "https://www.dataeconomy.co.kr/news/articleView.html?idxno=42583",
+    "https://www.fnnews.com/news/202307121011439692"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "One article says KCMVP PQC validation 'from 2029' - conflicting, unresolved.",
+   "overclaim_risk": "Press-only; no NIS/MSIT primary fetched.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.rustls-secp384r1mlkem1024-gap",
+   "layer": "L5",
+   "domain": "W-PQC/W-OPS",
+   "type": "defect",
+   "title": "rustls 0.23.46 aws_lc_rs::kx_group has SECP256R1MLKEM768 and X25519MLKEM768 but NOT SECP384R1MLKEM1024 - the one hybrid group that satisfies every non-China jurisdiction",
+   "summary": "docs.rs enumerates 7 statics: MLKEM768, MLKEM1024, SECP256R1, SECP256R1MLKEM768, SECP384R1, X25519, X25519MLKEM768. The EU ACM v3 (R), BSI (intended), CNSA-hybrid and ASD-post-2030-hybrid path all need 0x11ED. Resolves the 'verify' note on crate-rustls-pq.",
+   "urls": [
+    "https://docs.rs/rustls/0.23.46/rustls/crypto/aws_lc_rs/kx_group/index.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5 artifact: implementation-phase spike (heavy.sh): implement custom rustls::crypto::kx::SupportedKxGroup for 0x11ED using aws-lc-rs ML-KEM-1024 (FIPS path) + P-384 ECDH, order per SP 800-56C (P-384 first? ML-KEM first in RFC 10024 for X25519 only - read RFC 10024 s3 before coding), or upstream PR; acceptance: handshake interop vs OpenSSL 3.5+ s_client -groups SecP384r1MLKEM1024 and BoringSSL; CI gate asserts group list in config golden. Fallback: ship 0x11EB (BSI/FIPS) + pure MLKEM1024 only.",
+   "overclaim_risk": "Docs.rs for 0.23.46 only; main branch or other providers (rustls-post-quantum, rustls-openssl) not checked.",
+   "underclaim_risk": "Might exist as unreleased PR."
+  },
+  {
+   "id": "r4e10.curve25519-chacha-nonacceptance",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "conflict",
+   "title": "Curve25519/Ed25519 and ChaCha20-Poly1305 are NOT accepted by BSI (TLS), CCCS (ECDH), ASD (AES-GCM only); ANSSI 2020 TLS guide accepts them but PG-083 omits them",
+   "summary": "Default rustls/Chrome-style config (X25519, X25519MLKEM768, ChaCha20-Poly1305, Ed25519) fails national baselines even before PQC: BSI TR-02102-2 lists only NIST/brainpool curves and AES-GCM/CCM; CCCS ECDH curves P-224..P-521; ASD ISM-1369 AES-GCM; ECCG ACM lists X25519 as 'A' (agreed) and ChaCha absent from TLS table. Compliance profile must disable them.",
+   "urls": [
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-2.pdf?__blob=publicationFile&v=11",
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases/download/v2026.09.4/v2026.09.03-pdf.pdf",
+    "https://www.cyber.gc.ca/en/guidance/cryptographic-algorithms-unclassified-protected-and-protected-b-information-itsp40111"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "L5: typed config profiles gov-eu / gov-au / gov-us-cnsa each with explicit cipher-suite, group, sigalg allowlists; CI test enumerating ClientHello acceptance per profile.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.pure-mlkem-tls-iesg-approved",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "standard",
+   "title": "Pure ML-KEM TLS draft: IESG approved 2026-09-03 as Informational (Recommended=N), in RFC Editor queue 2026-09-08 after rough-consensus call 2026-07-19",
+   "summary": "Updates v.pure-mlkem-tls-draft-contested: the 'blocked' state is stale; contested (Lange, Bernstein, Kobeissi objections; IPR disclosure) but advancing. EC DG CNECT asked for consensus numbers. Pure code points 0x0200-0x0202 exist in IANA, Rec=N.",
+   "urls": [
+    "https://postquantum.com/security-pqc/pure-mlkem-tls-last-call/",
+    "https://www.metzdowd.com/pipermail/cryptography/2026-July/039631.html",
+    "https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Secondary (postquantum.com, updated 2026-10-10); IESG approval not verified at datatracker.",
+   "overclaim_risk": "Single secondary source for dates.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.matrix-jurisdiction-requirements",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "matrix",
+   "title": "Jurisdiction x requirement matrix (US, DE, FR, EU, UK, AU, CA, JP, KR, CN) with dated primary URLs",
+   "summary": "PURE vs HYBRID: US NSA CNSA pure OK/target; AU hybrid discouraged-not-banned; CA/JP/UK permit either (UK hybrid interim); DE recommends only hybrid; FR/EU treat pure ML-KEM/ML-DSA as non-conformant. ML-KEM-1024 is accepted by every jurisdiction; ML-KEM-768 sunsets 2030 in AU; ML-KEM-512 only CA (and FR if hybrid). ML-DSA-87 accepted by all; ML-DSA-44 only CA; SLH-DSA absent in CNSA and ASD; LMS/XMSS absent in ASD.",
+   "urls": [
+    "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Publications/TechGuidelines/TG02102/BSI-TR-02102-1.pdf?__blob=publicationFile&v=15",
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-mecanismes-crypto-3.00.pdf",
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases/download/v2026.09.4/v2026.09.03-pdf.pdf",
+    "https://www.cyber.gc.ca/en/guidance/cryptographic-algorithms-unclassified-protected-and-protected-b-information-itsp40111",
+    "https://www.ncsc.gov.uk/whitepaper/next-steps-preparing-for-post-quantum-cryptography",
+    "https://certification.enisa.europa.eu/publications/eucc-guidelines-cryptography_en",
+    "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "| Jur (doc, date) | KEM params | Hybrid | Sig params | Dates | Cert scheme | TLS groups |\n| US (CNSA 2.0; EO 14412 2026-06-22; draft-becker-cnsa2-tls-profile-05) | ML-KEM-1024 | not required; pure target | ML-DSA-87, LMS/XMSS fw; no SLH-DSA | CNSA 2027 acq gate, web/cloud exclusive 2033; EO HVA KE 2030-12-31, sig 2031-12-31 | FIPS 140-3 CMVP | pure MLKEM1024 (0x0202); SecP384r1MLKEM1024 tolerated |\n| DE (BSI TR-02102 2026-01) | ML-KEM-768/1024, Frodo-976/1344, McEliece | recommended only hybrid | ML-DSA-65/87, SLH-DSA-192/256, LMS/XMSS; PQ sig hybrid w/ classical except hash-based | PQ KE by 2030; classical-only KE to 2031; classical sig to 2035 | BSI TR/CC, EUCC | intends 0x11EB, 0x11ED (not 0x11EC); no X25519 |\n| FR (ANSSI-PG-083 3.00 2026-03-20) | any hybridised; ML-KEM-768 pref, Frodo-976 | pure ML-KEM/ML-DSA NON-CONFORMANT | ML-DSA hybrid nested; SLH-DSA alone OK; XMSS/LMS | PQ if use beyond 2030-01-01; qualification PQC 2027 (secondary); buy-no-non-PQ after 2030 (secondary) | qualification, CSPN, CC, PQ visas | no PQ TLS guide yet (TLS guide v1.2 2020) |\n| EU (ECCG ACM v3 draft 2026; NIS roadmap 2025-06) | ML-KEM-768/1024, Frodo | 'shouldn't be standalone' | ML-DSA-65/87, SLH-DSA, LMS/XMSS | 2026-12-31 plans, 2030 high-risk, 2035 | EUCC, CRA 2027-12-11 | 0x11EB, 0x11EC, 0x11ED all R |\n| UK (NCSC wp v2.0 2024-08-14) | ML-KEM-768 (all sets acceptable) | interim only | ML-DSA-65; SLH-DSA/LMS/XMSS firmware | 2028/2031/2035 | NCSC assured (CPA/CAPS) not checked | none specified |\n| AU (ASD ISM 2026-09) | ML-KEM-1024 pref, 768 until 2030 | not recommended, allowed (ISM-1996) | ML-DSA-87 pref, 65 until 2030; no SLH/LMS | classical not approved beyond 2030; PQ support by 2030 (ISM-1917) | ASD ISM/ IRAP, CMVP | TLS1.3, AES-GCM only |\n| CA (ITSP.40.111 v5 2026-05-29; ITSM.40.001) | ML-KEM-512/768/1024 | no mandate | ML-DSA-44/65/87, SLH-DSA all, LMS/XMSS | 2031 high-prio, 2035 all; 3072-bit by 2030 | CMVP | P-curves only for ECDH |\n| JP (NCO 2025-11/2026-03) | ML-KEM (CRYPTREC PQC list) | combination allowed | ML-DSA/SLH-DSA under evaluation | ~2035; roadmap FY2026 | CRYPTREC/ISMAP | n/a |\n| KR | KpqC (NTRU+, SMAUG-T; HAETAE, AIMer) + NIST? | n/a | | 2035; Act Art 18-2 ~Nov 2026 | KCMVP | n/a |\n| CN (ICCS NGCC) | none yet (SM2/SM9 + future NGCC) | n/a | | no date; standards ~2029+ | OSCCA commercial crypto | 0x11EE draft |",
+   "overclaim_risk": "Matrix compiled from primaries read this round; UK/JP/KR rows partly summarizer-based.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.golden-tls-kex-profiles",
+   "layer": "L5",
+   "domain": "W-PQC/W-OPS",
+   "type": "decision",
+   "title": "Golden TLS key-exchange profiles: ONE universal hybrid group (SecP384r1MLKEM1024, 0x11ED) satisfies US-civil/EU/UK/AU/CA/JP; add pure MLKEM1024 only as opt-in CNSA profile; keep X25519MLKEM768 only on a 'public-web' listener",
+   "summary": "R-PQC-3 (pure-CNSA golden) FLIPS to a per-jurisdiction profile set. Pure ML-KEM-1024 is NON-conformant in FR and unrecommended in DE/EU, while hybrid SecP384r1MLKEM1024 is accepted by every jurisdiction except the CNSA 'pure' profile and China. X25519MLKEM768 fails AU after 2030, DE/FR list gaps, so it is a browser-interop group, not a compliance group.",
+   "urls": [
+    "https://certification.enisa.europa.eu/publications/eucc-guidelines-cryptography_en",
+    "https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "Profiles (typed enum, all TLS 1.3 only, AES-GCM only, no 0-RTT, ECDSA/ML-DSA sigs, no ChaCha/X25519/Ed25519 in gov profiles):\nP-UNIVERSAL (default compliance): kx=[0x11ED SecP384r1MLKEM1024] ; satisfies DE(intended), FR(hybrid, P-384 conformant), EU ACM v3 R, UK, AU (ISM-1996, after 2030), CA, JP, US-FIPS (SP 800-227: both parts approved).\nP-BSI-ALT: [0x11ED, 0x11EB SecP256r1MLKEM768] (BSI intends both; RHEL FIPS mode only accepts the two NIST-curve groups).\nP-CNSA: kx=[0x0202 MLKEM1024 pure] ONLY (draft-becker-cnsa2-tls-profile-05), sig ML-DSA-87; breaks FR/DE/EU conformance by design.\nP-PUBLIC-WEB: [0x11EC X25519MLKEM768, 0x11ED, 0x11EB, x25519, secp256r1] because Chrome/Firefox offer only 0x11EC; not claimable as AU/DE/FR compliant.\nP-CN (feature flag, unverified): [0x11EE curveSM2MLKEM768] + SM2 sigs; draft-only, Rec=N.\nMinimal set to cover US+EU+UK+AU+CA: {0x11ED} (+0x0202 for NSS-pure). Reversal conditions: (1) NSA states hybrid non-compliant for civil FIPS; (2) BSI 2027-01 omits 0x11ED; (3) ANSSI qualification text accepts pure ML-KEM-1024; (4) ASD drops ISM-1996.",
+   "overclaim_risk": "Group acceptance for FR/UK/CA inferred from algorithm lists, not from an explicit TLS-group statement (only BSI and ECCG name groups).",
+   "underclaim_risk": "Cost: 0x11ED adds ~1.5 KB vs 0x11EC ClientHello; not measured here."
+  },
+  {
+   "id": "r4e10.golden-signature-profiles",
+   "layer": "L5",
+   "domain": "W-PQC/W-OPS",
+   "type": "decision",
+   "title": "Golden signature profiles: ML-DSA-87 is the universal level (all jurisdictions); EU/FR need composite ML-DSA-87+ECDSA-P384; SLH-DSA/LMS/XMSS for release/firmware with AU exception",
+   "summary": "ML-DSA-44 is only accepted by CCCS; ML-DSA-65 sunsets 2030 in AU and is not CNSA. Pure ML-DSA is non-conformant in FR and BSI wants hybrid; SLH-DSA is accepted stand-alone by BSI/FR/EU/CA/UK but excluded by CNSA and absent from ASD ISM; LMS/XMSS accepted by BSI/FR/EU/UK/CA/CNSA, absent in ASD ISM.",
+   "urls": [
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-mecanismes-crypto-3.00.pdf",
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases/download/v2026.09.4/v2026.09.03-pdf.pdf",
+    "https://certification.enisa.europa.eu/publications/eucc-guidelines-cryptography_en"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.72,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Profiles: S-UNIV pure ML-DSA-87 (US/AU/CA/UK); S-EU composite ML-DSA-87 + ECDSA P-384 (BSI concatenation / ANSSI nested; check LAMPS composite draft status at RFC Editor per ENISA Apr-2026 slides; no TLS stack ships it: CEPS says OpenSSL 3.5 only supports standalone ML-DSA in TLS); S-REL release signing: SLH-DSA-SHAKE-256s or LMS/XMSS for firmware (CNSA excludes SLH-DSA; AU excludes both -> AU gets ML-DSA-87). WebPKI public-cert PQ auth remains a separate open question (r3pq.pq-auth-posture-decision).",
+   "overclaim_risk": "Composite ML-DSA TLS draft is individual-status; EU composite requirement may arrive via PKI not TLS.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.conflicts-list",
+   "layer": "L4",
+   "domain": "W-PQC/W-OPS",
+   "type": "conflict",
+   "title": "Conflicts list: ten concrete cross-jurisdiction rule collisions",
+   "summary": "C1 pure vs hybrid: CNSA pure ML-KEM-1024 vs ANSSI-PG-083 (pure non-conformant), BSI (hybrid only), ECCG Note 63. C2 AU: hybrid 'not recommended' vs EU 'shall be combined'. C3 AU ML-KEM-768 and ML-DSA-65 sunset 2030 vs UK recommended 768/65 and DE accepting 768/65. C4 X25519MLKEM768: IANA Recommended Y and browser default vs absent from BSI intended list, AU post-2030 non-compliant. C5 SLH-DSA: BSI/FR/EU/UK/CA accept, CNSA/ASD exclude. C6 LMS/XMSS: ASD lacks vs all others accept. C7 ML-DSA-44: only CA accepts. C8 curves: BSI/CCCS/ASD NIST/brainpool vs ECCG A for X25519; ChaCha20 excluded by ASD/BSI. C9 classical sunset: AU 2030 (hard), DE 2031/2035, FR 2030 recommendation, CA 2035, EU 2030 high-risk/2035, US EO 2030/2031. C10 China: national algorithms (NGCC, SM2-based hybrid) vs EO Sec 5(b) pressure toward NIST algorithms.",
+   "urls": [
+    "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf",
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-mecanismes-crypto-3.00.pdf",
+    "https://github.com/AustralianCyberSecurityCentre/ism-oscal/releases/download/v2026.09.4/v2026.09.03-pdf.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4e10.secondary-source-calibration",
+   "layer": "L3",
+   "domain": "W-PQC/W-OPS",
+   "type": "calibration",
+   "title": "Secondary PQC-policy summaries contain errors vs primaries (postquantum.com comparison, CEPS TF statement on UK, press on ANSSI 'mandatory hybrid', ASD milestones)",
+   "summary": "Checked against primaries: postquantum.com ASD end-2026/end-2028 milestones not in ISM text; CEPS says UK 'only recommends standalone' but NCSC primary says hybrid interim; press 'ANSSI mandatory hybrid for 2027' lacks implementing text although PG-083 does make pure ML-KEM non-conformant. Use primaries; tag press as C.",
+   "urls": [
+    "https://postquantum.com/cnsa-2-0/global-pqc-requirements/",
+    "https://cdn.ceps.eu/2025/10/Task-FORCE-Comments-on-the-NIS-CG-Roadmap-on-PQC-Transition_FINAL.pdf",
+    "https://postquantum.com/security-pqc/anssi-pqc-certification-2027/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "r4e10.matrix-jurisdiction-requirements",
+   "dst": "std-cnsa2-dates",
+   "type": "extends",
+   "note": "adds non-US columns"
+  },
+  {
+   "src": "r4e10.golden-tls-kex-profiles",
+   "dst": "r3pq.cnsa2-tls-profile",
+   "type": "contradicts",
+   "note": "pure CNSA profile cannot be the universal golden (R-PQC-3 flips to profile set)"
+  },
+  {
+   "src": "r4e10.golden-tls-kex-profiles",
+   "dst": "rec60-rfc-10024-hybrid-tls",
+   "type": "extends",
+   "note": "adds SecP384r1MLKEM1024 as universal compliance group"
+  },
+  {
+   "src": "r4e10.golden-tls-kex-profiles",
+   "dst": "v.rhel-fips-hybrid-groups",
+   "type": "supports",
+   "note": "NIST-curve hybrids only in FIPS mode"
+  },
+  {
+   "src": "r4e10.golden-tls-kex-profiles",
+   "dst": "std-sp800-227",
+   "type": "supports",
+   "note": "both components approved for 0x11EB/0x11ED"
+  },
+  {
+   "src": "r4e10.rustls-secp384r1mlkem1024-gap",
+   "dst": "crate-rustls-pq",
+   "type": "extends",
+   "note": "resolves verify note: group absent in 0.23.46"
+  },
+  {
+   "src": "r4e10.pure-mlkem-tls-iesg-approved",
+   "dst": "v.pure-mlkem-tls-draft-contested",
+   "type": "extends",
+   "note": "status advanced: IESG approved 2026-09-03"
+  },
+  {
+   "src": "r4e10.japan-cryptrec-pqc-list",
+   "dst": "r2e11.kpqc-korea-japan",
+   "type": "extends",
+   "note": "newer dated specifics"
+  },
+  {
+   "src": "r4e10.korea-quantum-act-18-2",
+   "dst": "r2e11.kpqc-korea-japan",
+   "type": "extends",
+   "note": "Act Art 18-2, KCMVP PQC modules"
+  },
+  {
+   "src": "r4e10.eo14412-us-baseline",
+   "dst": "std-nist-ir-8547",
+   "type": "related",
+   "note": "US dates now in executive order"
+  },
+  {
+   "src": "r4e10.eo14412-us-baseline",
+   "dst": "std-cnsa2-dates",
+   "type": "related",
+   "note": "EO excludes NSS"
+  },
+  {
+   "src": "r4e10.anssi-pg083-pure-nonconformant",
+   "dst": "r3pq.cnsa2-tls-profile",
+   "type": "contradicts",
+   "note": "pure ML-KEM non-conformant in FR"
+  },
+  {
+   "src": "r4e10.bsi-tr02102-2026",
+   "dst": "rec60-rfc-10024-hybrid-tls",
+   "type": "related",
+   "note": "BSI intends 0x11EB/0x11ED not 0x11EC"
+  },
+  {
+   "src": "r4e10.asd-ism-2026-09",
+   "dst": "std-nist-ir-8547",
+   "type": "contradicts",
+   "note": "AU classical cutoff 2030 vs NIST 2035"
+  },
+  {
+   "src": "r4e10.golden-signature-profiles",
+   "dst": "pq-release-signing",
+   "type": "extends",
+   "note": "jurisdiction filter on SLH-DSA/LMS"
+  },
+  {
+   "src": "r4e10.golden-signature-profiles",
+   "dst": "r3pq.pq-auth-posture-decision",
+   "type": "related",
+   "note": "composite requirement in EU"
+  },
+  {
+   "src": "r4e10.china-ngcc-round1",
+   "dst": "r2e11.kpqc-korea-japan",
+   "type": "related",
+   "note": "third national-algorithm programme"
+  },
+  {
+   "src": "r4e10.iana-sm2-mlkem768",
+   "dst": "r4e10.china-ngcc-round1",
+   "type": "related",
+   "note": "SM2+ML-KEM hybrid vs national NGCC"
+  },
+  {
+   "src": "r4e10.eccg-acm-v3-draft",
+   "dst": "r4e10.bsi-tr02102-2026",
+   "type": "supports",
+   "note": "same hybrid trio"
+  },
+  {
+   "src": "r4e10.curve25519-chacha-nonacceptance",
+   "dst": "crate-rustls-pq",
+   "type": "contradicts",
+   "note": "rustls defaults include X25519/ChaCha"
+  },
+  {
+   "src": "r4e10.conflicts-list",
+   "dst": "r4e10.matrix-jurisdiction-requirements",
+   "type": "supports",
+   "note": "derived"
+  },
+  {
+   "src": "r4e10.secondary-source-calibration",
+   "dst": "r4e10.ncsc-uk-guidance",
+   "type": "related",
+   "note": "CEPS UK claim not supported"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does RFC 10024 s3/s5 define the concatenation order and FIPS/CMVP treatment for SecP384r1MLKEM1024, and does aws-lc (FIPS) expose it so a custom rustls KxGroup is feasible? Spike with heavy.sh.",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "Closes rustls gap that blocks the universal group."
+  },
+  {
+   "question": "Read ANSSI qualification/CSPN PQC criteria text (cyber.gouv.fr PQC page + FAQ) for the 2027 start: is hybrid mandatory, which products, which schemes?",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.4,
+   "reason": "Only press confirms the 2027 date."
+  },
+  {
+   "question": "Read ECCG ACM v3 change log xlsx and final adoption status; EU composite-signature requirement scope.",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.3,
+   "reason": "v3 is a draft; changelog not read."
+  },
+  {
+   "question": "Chinese primary: OSCCA/GM/T and GB/T standards (TLCP GB/T 38636, SM2-hybrid), CAC/MIIT PQC migration notices 2026 in Chinese.",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.35,
+   "reason": "China row is thin; coverage artefact risk."
+  },
+  {
+   "question": "Verify NSA CNSA 2.0 FAQ primary wording on hybrid and any 2026 CNSA update (mirror outside media.defense.gov).",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.3,
+   "reason": "403; secondary only."
+  },
+  {
+   "question": "Measure ClientHello/ServerHello byte and handshake CPU cost of 0x11ED vs 0x11EC vs 0x0202 in rustls/aws-lc-rs (implementation spike).",
+   "layer": "L5",
+   "domain": "W-PERF",
+   "expected_info_gain": 0.3,
+   "reason": "Cost of universal group unmeasured."
+  },
+  {
+   "question": "Check BSI TR-02102 DE original and BSI Q1 2027 release plan; BSI position on composite ML-DSA certificates.",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.2,
+   "reason": "Prediction 0x11EB/0x11ED adoption."
+  }
+ ],
+ "protocol_implications": [
+  "R-PQC-3 flips: golden ships a typed profile set (P-UNIVERSAL default 0x11ED; P-CNSA pure MLKEM1024 opt-in; P-PUBLIC-WEB for browsers), not a pure-CNSA default.",
+  "R-PQC-1/2: ML-KEM-1024 and ML-DSA-87 are the only parameters accepted by all jurisdictions; ML-KEM-768/ML-DSA-65 only as public-web interop.",
+  "Gov profiles must disable X25519, Ed25519, ChaCha20-Poly1305, 0-RTT, TLS 1.2 (AU, BSI) -- rustls defaults violate them.",
+  "Add a CI gate: per-profile ClientHello acceptance matrix test + group-list golden file.",
+  "China requires a separate SM2/SM3/SM4 + future NGCC stack; out of scope for golden, keep KEM/sig traits pluggable (also KpqC).",
+  "Spike: rustls lacks SECP384R1MLKEM1024; implement custom KxGroup or upstream PR before claiming EU/AU compliance."
+ ],
+ "self_improvement": [
+  "cyber.gov.au, ec.europa.eu, media.defense.gov block/timeout from this host: use GitHub OSCAL repo, ENISA, securitydelta mirrors; record mirror strategy in lenses.md.",
+  "WebFetch summarizer cannot read PDFs: curl -A Mozilla + cookie jar + %PDF header check + pdftotext worked for BSI, ANSSI, ENISA, ASD; add helper to tools/.",
+  "Add a 'primary vs secondary' tag to graph nodes so press claims (ANSSI 2027) do not inherit grade A.",
+  "novelty_gate topic scores all fresh for national-policy nodes: policy-jurisdiction axis was empty before this round."
+ ],
+ "notes": {
+  "sources_new": 38,
+  "primary_sources": 27,
+  "languages": [
+   "en",
+   "de(en translation)",
+   "fr",
+   "ja",
+   "ko(press)",
+   "zh/en(niccs)"
+  ],
+  "queries_run": 24,
+  "skeptic_queries": 8,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "nodes_new": 20,
+  "nodes_reused_via_edges": 9,
+  "date": "2026-10-25"
+ }
+}

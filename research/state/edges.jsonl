@@ -361,3 +361,756 @@
 {"src": "v.rhel-fips-hybrid-groups", "dst": "std-sp800-227", "type": "contradicts", "note": "X25519 hybrid not deployable in FIPS mode on RHEL", "evidence_url": "", "origin": "integrator/verifier", "round": 1}
 {"src": "kvm-januscape-cve-2026-53359", "dst": "iso-glue-not-boundary-pattern", "type": "contradicts", "note": "core hardware-virt bug", "evidence_url": "", "origin": "integrator/verifier", "round": 1}
 {"src": "result-time-to-exploit-trend", "dst": "l5-structural-controls-implied", "type": "contradicts", "note": "day-zero share falling 28.9->23.4% weakens absolute no-patch-window framing (keep hours-scale pipeline)", "evidence_url": "", "origin": "integrator/verifier", "round": 1}
+{"src": "dpf-family-matrix", "dst": "sdg-l5-db-gate-invariants", "type": "extends", "note": "non-Postgres families; PG remains reference row", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-agent-db-tool-bypass-cluster", "dst": "sdg-sql-allowlist-bypass", "type": "extends", "note": "MySQL/MSSQL/SQLite/Neo4j MCP-tool bypasses 2026", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-allowlist-generation", "dst": "sdg-compile-time-extraction", "type": "extends", "note": "generalizes pg_query fingerprint lock to every family normalizer", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-allowlist-generation", "dst": "sdg-l5-db-gate-invariants", "type": "extends", "note": "INV-ALLOW generalized to all adapters", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-adapter-isolation", "dst": "isolation-decision-table-by-provenance", "type": "extends", "note": "per-driver unsafe/C-dependency thresholds", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-adapter-isolation", "dst": "landlock-seccomp-self-sandbox", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-rustls-pq-driver-inheritance", "dst": "crate-rustls-pq", "type": "extends", "note": "0.23.46 default prefer-post-quantum; DB driver inheritance", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-rustls-pq-driver-inheritance", "dst": "std-rfc10024-ecdhe-mlkem", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-nats", "dst": "sdg-jepsen-nats", "type": "related", "note": "authz row vs durability row", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-envoy-db-filters-untrusted", "dst": "dpf-uniform-abstraction-comparison", "type": "supports", "note": "generate-don't-parse favors (a)", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-empty-means-all-pattern", "dst": "dpf-l5-allowlist-generation", "type": "mitigates", "note": "INV-NONEMPTY check", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-agent-db-tool-bypass-cluster", "dst": "dpf-uniform-abstraction-comparison", "type": "supports", "note": "ad hoc per-adapter validators fail -> against (c)", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-uniform-abstraction-comparison", "dst": "dpf-l5-op-capability-ir", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-op-capability-ir", "dst": "dpf-l5-allowlist-generation", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-op-capability-ir", "dst": "pqc-capability-token-design", "type": "related", "note": "CapId could be carried in the attenuable token caveats", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-family-matrix", "dst": "dpf-l5-adapter-isolation", "type": "implies", "note": "native-enforced families survive third-party adapters", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-l5-adapter-isolation", "dst": "dpf-rustls-pq-driver-inheritance", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-mysql-mariadb", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-libsql-turso", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-distributed-sql", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-sqlserver", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-mongodb", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-redis-valkey", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-foundationdb", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-dynamodb", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-cassandra-scylla", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-graph-neo4j", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-vector", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-search", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-timeseries", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-s3", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-kafka", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-nats", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-upstream-http-grpc", "dst": "dpf-family-matrix", "type": "part_of", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-mongodb", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-redis-valkey", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-cassandra-scylla", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-graph-neo4j", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-kafka", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-nats", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-s3", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-dynamodb", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-sqlserver", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-vector", "dst": "dpf-l5-allowlist-generation", "type": "fills_gap", "note": "family denylist entries", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "dpf-surrealdb-inline-perms-negative", "dst": "dpf-family-matrix", "type": "supports", "note": "native-not-sufficient", "evidence_url": "", "origin": "explorer-01", "round": 2}
+{"src": "w02.size-deps-table", "dst": "gap.pingora", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.size-deps-table", "dst": "gap.nginx", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.size-deps-table", "dst": "gap.caddy", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.size-deps-table", "dst": "gap.envoy", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.size-deps-table", "dst": "gap.haproxy", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.pingora-tokio-panic", "dst": "gap.pingora", "type": "negative-evidence", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.handshake-pq-cost", "dst": "gap.pq-status", "type": "quantifies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.feature-cost-unused", "dst": "gap.wasmtime-adv", "type": "cost-of", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.feature-cost-unused", "dst": "w02.L5-feature-gate-rule", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.size-deps-table", "dst": "w02.L5-lean-budget", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.idle-rss-table", "dst": "w02.L5-lean-budget", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.handshake-pq-cost", "dst": "w02.L5-lean-budget", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.throughput-h1-h2", "dst": "w02.L5-bench-plan", "type": "motivates-noise-control", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.ingress-design-verdict", "dst": "w02.feature-cost-unused", "type": "supported-by", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "w02.incumbent-config-skeptic", "dst": "w02.L5-lean-budget", "type": "implies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 2}
+{"src": "vfg-toolchain-pin-footprint-table", "dst": "tool-landscape-rust-verifiers", "type": "extends", "note": "instrument survey -> measured footprint", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-toolchain-pin-footprint-table", "dst": "estimate-proof-cost-per-component", "type": "extends", "note": "adds disk/RAM/CI cost per tool", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-obligation-to-tool-map", "dst": "estimate-proof-cost-per-component", "type": "refines", "note": "per-obligation minimal tool", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-lean-core-minimal-measured", "dst": "vfg-toolchain-pin-footprint-table", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-mathlib-avoided-cost-and-aeneas-dependency", "dst": "proof-cedar-lean", "type": "extends", "note": "cedar-lean needs only batteries", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-mathlib-avoided-cost-and-aeneas-dependency", "dst": "proof-aeneas-symcrypt", "type": "conflicts_with", "note": "Aeneas Lean backend requires Mathlib", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-lean-multikernel-paranoid-check", "dst": "vfg-lean-kernel-soundness-bugs-2026", "type": "mitigates", "note": "kernel diversity", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-lean-kernel-soundness-bugs-2026", "dst": "fail-verifier-soundness-bugs", "type": "extends", "note": "adds Lean kernel bugs to Verus/Z3/Dafny record", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "fail-verifier-soundness-bugs", "type": "extends", "note": "gate-level false PASS", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "proof-kani-verify-rust-std", "type": "extends", "note": "CI wall-time and memory numbers", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "l4-negative-kani-memory-explosion", "type": "supports", "note": "sibling r2 node", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-native-axiom-tcb", "dst": "vfg-proof-ci-gate-spec", "type": "depends_on", "note": "axiom allowlist", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-proof-ci-gate-spec", "dst": "vfg-lean-multikernel-paranoid-check", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-proof-ci-gate-spec", "dst": "vfg-kani-footprint-and-gate-failures", "type": "mitigates", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-verus-footprint", "dst": "cal-verus-z3", "type": "extends", "note": "rustc pin 1.99.1; size", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-fstar-everparse-footprint", "dst": "everparse-for-front", "type": "extends", "note": "measured footprint", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-obligation-to-tool-map", "dst": "everparse-for-front", "type": "depends_on", "note": "binary framings", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-obligation-to-tool-map", "dst": "proof-vest-verdict", "type": "alternative_to", "note": "Verus-based binary parsers", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-obligation-to-tool-map", "dst": "gap-verified-http1-parser", "type": "fills_gap", "note": "Lean spec + DRT route", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-lean-std-http-unknown", "dst": "gap-verified-http1-parser", "type": "fills_gap", "note": "executable Lean oracle", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-lean-std-http-unknown", "dst": "threat-request-smuggling-desync", "type": "mitigates", "note": "second-oracle DRT", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-extension-boundary-cves", "dst": "vfg-invariant-survival-table", "type": "supports", "note": "host-side response decoder in TCB", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-proxywasm-abi-not-capability-safe", "dst": "vfg-invariant-survival-table", "type": "supports", "note": "what not to copy", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-wasi-default-grants", "dst": "vfg-invariant-survival-table", "type": "supports", "note": "linker allowlist", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "fuel-not-a-security-bound", "type": "depends_on", "note": "epoch not fuel", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "wasi-resource-isolation-attack-usenix25", "type": "depends_on", "note": "I/O quotas", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "spectre-posture-matrix", "type": "depends_on", "note": "I4 side channels", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "wasmtime-ghsa-record-2021-2026", "type": "trusts", "note": "runtime in TCB", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "rec60-wasmtime-cranelift-crit-2026-10", "type": "trusts", "note": "runtime escape residual", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "isolation-decision-table-by-provenance", "type": "extends", "note": "adds per-invariant survival", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "sdg-l5-idempotency-store", "type": "depends_on", "note": "I3 for external effects", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-conformance-suite-outline", "dst": "as.conformance-suites", "type": "extends", "note": "module-contract suite", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-conformance-suite-outline", "dst": "vfg-invariant-survival-table", "type": "depends_on", "note": "C2 oracle = I1-I7", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-policy-tristate-failclosed-invariant", "dst": "proof-cedar-lean", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-policy-tristate-failclosed-invariant", "dst": "vfg-extension-boundary-cves", "type": "mitigates", "note": "CVE-2026-73552/CVE-2024-23324", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-obligation-to-tool-map", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-tla-apalache-smt-measured", "dst": "vfg-obligation-to-tool-map", "type": "supports", "note": "liveness/interleavings", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-ci-walltime-toy-and-reference", "dst": "vfg-toolchain-pin-footprint-table", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "vfg-cryptoprover-cloud-llm-optional", "dst": "rec60-rust-prover-llm-proofs", "type": "extends", "note": "cloud-only synthesis", "evidence_url": "", "origin": "explorer-03", "round": 2}
+{"src": "abuse-anubis-bypass-evidence", "dst": "abuse-anubis", "type": "conflicts_with", "note": "headless/native solvers defeat PoW layer", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-pow-economics-calc", "dst": "abuse-anubis-bypass-evidence", "type": "depends_on", "note": "uses Ormandy hash-rate", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-anubis-human-cost", "dst": "abuse-anubis", "type": "conflicts_with", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-alt-gates-goaway-iocaine", "dst": "abuse-anubis", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-privacy-pass-rfcs", "dst": "abuse-anubis", "type": "alternative_to", "note": "IETF-endorsed alternative to PoW", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-arc-act", "dst": "abuse-privacy-pass-rfcs", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-pat-deployment", "dst": "abuse-privacy-pass-rfcs", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-per-ip-limits-fail-swarm", "dst": "abuse-rate-limit-algos-crates", "type": "conflicts_with", "note": "per-key limiter insufficient alone", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-per-ip-limits-fail-swarm", "dst": "abuse-incident-ledger-2025-26", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-adaptive-concurrency", "dst": "abuse-per-ip-limits-fail-swarm", "type": "mitigates", "note": "aggregate control", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-codel-lifo", "dst": "abuse-adaptive-concurrency", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-cost-weighted-budgets", "dst": "abuse-per-ip-limits-fail-swarm", "type": "mitigates", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-residential-proxy-scale", "dst": "abuse-per-ip-limits-fail-swarm", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-wba-interplay", "dst": "j-webbotauth", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-wba-interplay", "dst": "j-bot-verification-programs", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-pillar-admission-economics", "dst": "threat-h2-h3-resource-exhaustion", "type": "mitigates", "note": "application-layer analogue", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-robots-compliance-study", "dst": "abuse-wba-interplay", "type": "fills_gap", "note": "voluntary signals unreliable", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-admission-pipeline-1vcpu", "dst": "abuse-rate-limit-algos-crates", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-admission-pipeline-1vcpu", "dst": "abuse-adaptive-concurrency", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-admission-pipeline-1vcpu", "dst": "abuse-codel-lifo", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-admission-pipeline-1vcpu", "dst": "abuse-cost-weighted-budgets", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-budget-invariants", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "proves", "note": "properties of the pipeline; model-level", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-swarm-sim-spec", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "mitigates", "note": "acceptance test", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "abuse-L5-swarm-sim-spec", "dst": "abuse-incident-ledger-2025-26", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 2}
+{"src": "ops.cra-obligation-split", "dst": "rec60-cra-reporting-live", "type": "refines", "note": "article-level steward vs manufacturer split", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.cra-annex3-waf-risk", "dst": "ops.cra-obligation-split", "type": "qualifies", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.fips-module-boundary-pin", "dst": "ops.rustls-fipsstatus-gate", "type": "enables", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.compliance-map-800-53", "dst": "ops.fips-module-boundary-pin", "type": "depends_on", "note": "SC-13", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.compliance-map-800-53", "dst": "ops.audit-log-spec", "type": "depends_on", "note": "AU-*, SA-15(13)", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.compliance-map-800-53", "dst": "ops.systemd-baseline-score", "type": "depends_on", "note": "CM-7", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.compliance-map-800-53", "dst": "ops.fedramp-20x-ksi-mapping", "type": "derived_from", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.ssdf-12-ci-gates", "dst": "ops.compliance-map-800-53", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.acme-crate-maturity", "dst": "ops.fips-module-boundary-pin", "type": "depends_on", "note": "fips feature", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.niap-no-pp", "dst": "ops.fips-module-boundary-pin", "type": "implies", "note": "gov path is FIPS+800-53 not CC", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.config-lang-and-creds", "dst": "ops.systemd-baseline-score", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "ops.systemd-baseline-score", "dst": "gap.wasmtime-adv", "type": "constrains", "note": "MDWX incompatible with JIT worker", "evidence_url": "", "origin": "explorer-05", "round": 2}
+{"src": "l4-transport-harness-census-2026-10", "dst": "crate-s2n-quic", "type": "extends", "note": "per-file Kani counts; no budget proofs", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-transport-harness-census-2026-10", "dst": "crate-hyper-h2", "type": "extends", "note": "no proofs; crash-only fuzz", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-transport-harness-census-2026-10", "dst": "crate-quinn", "type": "extends", "note": "4 fuzz targets, no proofs", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-transport-harness-census-2026-10", "dst": "crate-h3", "type": "extends", "note": "1 proptest, 1 fuzz", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-negative-kani-memory-explosion", "dst": "proof-kani-verify-rust-std", "type": "extends", "note": "limits of Kani at scale", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-firecracker-kani-token-bucket", "dst": "l5-kani-harness-spec-tbi", "type": "supports", "note": "pattern for H1", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-no-verified-hpack-qpack-decoder", "dst": "proof-vest-verdict", "type": "extends", "note": "Vest has no stateful/compression formats", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-no-verified-hpack-qpack-decoder", "dst": "everparse-for-front", "type": "extends", "note": "3D = non-malleability only, stateless", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-h2-budget-mechanics-0.4.20", "dst": "crate-hyper-h2", "type": "extends", "note": "exact constants, gaps: no field-count cap, no stall timer", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-h2-budget-mechanics-0.4.20", "dst": "rec60-h2-hyper-releases", "type": "extends", "note": "fix history #909/#915/#935/#858", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-field-memory-vs-rfc-accounting", "dst": "v.http2-bomb-cve-2026-49975", "type": "extends", "note": "root cause = per-field memory vs 32 B accounting", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-field-memory-vs-rfc-accounting", "dst": "rec60-header-accordions-qpack", "type": "extends", "note": "same mechanism in QPACK", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-cve-corpus-h2-h3-2023-2026", "dst": "v.http2-bomb-cve-2026-49975", "type": "conflicts_with", "note": "CVE-2026-49975 is Apache mod_h2 only; Envoy = CVE-2026-47774", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-cve-corpus-h2-h3-2023-2026", "dst": "threat-h2-h3-resource-exhaustion", "type": "extends", "note": "full identifier list", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-handler-bounded-designs", "dst": "threat-h2-h3-resource-exhaustion", "type": "mitigates", "note": "handler-level bound", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-handler-bounded-designs", "dst": "l5-structural-controls-implied", "type": "supports", "note": "'bound concurrent handlers, not open streams'", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-quic-stack-window-defaults", "dst": "crate-quinn", "type": "extends", "note": "receive_window VarInt::MAX", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-quic-stack-window-defaults", "dst": "crate-s2n-quic", "type": "extends", "note": "3.75 MB conn window", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-quic-stack-window-defaults", "dst": "crate-quiche", "type": "extends", "note": "24 MiB conn window, QPACK 0", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-quic-stack-window-defaults", "dst": "crate-h3", "type": "extends", "note": "max_field_section_size VarInt::MAX", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l4-temporal-stall-liveness", "dst": "v.http2-bomb-cve-2026-49975", "type": "extends", "note": "stall clause", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-transport-budget-invariant-tbi", "dst": "l5-structural-controls-implied", "type": "extends", "note": "refines I1/I5 into TBI-1..9", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-transport-budget-invariant-tbi", "dst": "threat-h2-h3-resource-exhaustion", "type": "mitigates", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-transport-budget-invariant-tbi", "dst": "threat-decompression-parser-complexity", "type": "mitigates", "note": "TBI-2", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-tbi-tool-assignment", "dst": "l5-transport-budget-invariant-tbi", "type": "proves", "note": "per-clause tool, tcb = Kani/CBMC, Verus/Z3, Lean kernel", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-tbi-tool-assignment", "dst": "fail-verifier-soundness-bugs", "type": "trusts", "note": "Verus soundness", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-kani-harness-spec-tbi", "dst": "l5-tbi-tool-assignment", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-fuzz-oracle-tbi", "dst": "as.fuzz-gate", "type": "extends", "note": "adds resource oracle", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-fuzz-oracle-tbi", "dst": "as.dst-harness-spec", "type": "depends_on", "note": "paused-time DST for O5", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-fuzz-oracle-tbi", "dst": "l4-cve-corpus-h2-h3-2023-2026", "type": "depends_on", "note": "corpus", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-config-pin-table-transport", "dst": "crate-hyper-h2", "type": "extends", "note": "tighter pins + wrapper", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-config-pin-table-transport", "dst": "crate-quinn", "type": "extends", "note": "receive_window pin", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-ci-gate-tbi", "dst": "l5-kani-harness-spec-tbi", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "l5-ci-gate-tbi", "dst": "l5-fuzz-oracle-tbi", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 2}
+{"src": "wasmtime-advisory-share-by-config", "dst": "wasmtime-ghsa-record-2021-2026", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "wasmtime-minimal-config-pin", "dst": "wasmtime-memory64-spectre-config", "type": "extends", "note": "adds residual share and pooling sizing rules", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "skeptic-small-reservation-pooling-recipe", "dst": "wasmtime-memory64-spectre-config", "type": "contradicts-in-part", "note": "small reservation recipe re-opens GHSA-6wgr/394w", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "canonical-abi-cost-measured", "dst": "wasmtime-pooling-local-bench", "type": "extends", "note": "adds component+WASI+serde numbers excluded earlier", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "zygote-sandbox-recipe-measured", "dst": "isolation-decision-table-by-provenance", "type": "informs", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "seccomp-per-syscall-overhead-measured", "dst": "zygote-sandbox-recipe-measured", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "isolation-decision-inputs-table", "dst": "isolation-decision-table-by-provenance", "type": "extends", "note": "numbers only", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "isolation-decision-inputs-table", "dst": "hyperlight-microvm", "type": "cites", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "isolation-decision-inputs-table", "dst": "gvisor-record-and-overhead", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "cranelift-default-config-escape-2026-10", "dst": "wasmtime-ghsa-record-2021-2026", "type": "instance-of", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "cranelift-default-config-escape-2026-10", "dst": "iso-glue-not-boundary-pattern", "type": "counterexample", "note": "escape in compiler core, not glue", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "wasmtime-advisory-share-by-config", "dst": "iso-glue-not-boundary-pattern", "type": "supports", "note": "M0 shrinks glue; core remains", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "canonical-abi-cost-measured", "dst": "fuel-not-a-security-bound", "type": "related", "note": "epoch used", "evidence_url": "", "origin": "explorer-07", "round": 2}
+{"src": "cc.harness-method", "dst": "sdg-embedded-store-selection", "type": "extends", "note": "measured evidence that flips/forces config choices", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.harness-method", "dst": "sdg-l5-crash-harness", "type": "extends", "note": "implements and extends", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.harness-method", "dst": "as.dst-harness-spec", "type": "extends", "note": "storage-fault layer for DST", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.harness-method", "dst": "sdg-failed-request-no-mutation", "type": "extends", "note": "crash atomicity oracle (counter A==B)", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-redb", "dst": "sdg-redb", "type": "extends", "note": "adds measured result and CHANGELOG recovery bugs", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-fjall", "dst": "sdg-fjall", "type": "extends", "note": "SyncAll measured clean; Buffer unsafe; creation brick", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-heed-lmdb", "dst": "sdg-lmdb-heed", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-sqlite", "dst": "sdg-embedded-store-selection", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-canopydb", "dst": "sdg-embedded-store-selection", "type": "supports", "note": "default-unsafe candidate", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.ranking-negative", "dst": "sdg-embedded-store-selection", "type": "supports", "note": "R-STATE-4 can stay on SQLite WAL+FULL or redb 2PC; no flip to a different store", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.neg-ldpreload-rustix", "dst": "cc.harness-method", "type": "qualifies", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.neg-model-pessimism", "dst": "cc.harness-method", "type": "qualifies", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.l5-crash-harness-spec", "dst": "cc.harness-method", "type": "implemented-by", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.l5-store-acceptance-gate", "dst": "cc.l5-crash-harness-spec", "type": "depends-on", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.l5-config-pin", "dst": "cc.l5-store-acceptance-gate", "type": "instantiates", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.fsync-guarantees", "dst": "sdg-fsyncgate", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.harness-method", "dst": "sdg-alice-osdi14", "type": "reimplements", "note": "ALICE-style logical replay", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.lazyfs-tool", "dst": "cc.harness-method", "type": "alternative-to", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.kernel-atomic-writes", "dst": "cc.result-sqlite", "type": "explains", "note": "no store uses untorn writes; checksums instead", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-redb", "dst": "cc.l5-config-pin", "type": "feeds", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-fjall", "dst": "cc.l5-config-pin", "type": "feeds", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-sqlite", "dst": "cc.l5-config-pin", "type": "feeds", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-heed-lmdb", "dst": "cc.l5-config-pin", "type": "feeds", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "cc.result-canopydb", "dst": "cc.l5-config-pin", "type": "feeds", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "gap.mcp-gateway-misc", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "gap.agentgateway", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "gap.docker-mcp-gateway", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "j-mcp-2026-07-28", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "rec60-mcp-2026-07-28", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "j-rmcp-sdk", "type": "corrects", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "fin.rmcp-3.7.0", "dst": "j-rmcp-sdk", "type": "corrects", "note": "license Apache-2.0 per crates.io", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "l5.invariant-list", "dst": "adv.corpus-r2-09", "type": "derived-from", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "l5.conformance-manifest", "dst": "adv.corpus-r2-09", "type": "derived-from", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "l5.origin-audience-session-rules", "dst": "adv.corpus-r2-09", "type": "derived-from", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "l5.ci-gate", "dst": "adv.corpus-r2-09", "type": "derived-from", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "fin.spec-absent-origin", "dst": "cal-mcp-2026-07-28", "type": "refines", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "fin.stateless-not-sufficient", "dst": "rec60-mcp-2026-07-28", "type": "contradicts-partially", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 2}
+{"src": "crs-ce-tls-ticket-cross-vhost", "dst": "crs-verdict-matrix", "type": "supports", "note": "authenticated-but-unscoped counterexample", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-stek-lifecycle", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C1", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-0rtt-replay", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C4", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-quic-token-unauth", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C7 authority ceiling", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-coalescing-authority", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C2 per-request sigma", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-cache-poison-deception", "dst": "crs-l5-keying-table", "type": "motivates", "note": "response cache key + ingress strip", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-hpack-shared-context", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C8", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-pool-reuse-incomplete-key", "dst": "crs-l5-keying-table", "type": "motivates", "note": "derive-based pool key", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-pool-reuse-incomplete-key", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C6 failure non-population", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-idempotency-key-scope", "dst": "sdg-idempotency-draft", "type": "refines", "note": "principal in composite key must be MUST", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-idempotency-key-scope", "dst": "sdg-l5-idempotency-store", "type": "constrains", "note": "key=(principal,route,client key)", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-jwks-unverified-kid", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C6,C7", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-ratelimit-xff", "dst": "crs-l5-keying-table", "type": "motivates", "note": "limiter key", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-dns-rebinding-toctou", "dst": "j-mcp-sdk-advisories", "type": "related", "note": "MCP SSRF cluster", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-session-fixation-epoch", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C5", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-hashdos", "dst": "crs-l5-invariant-text", "type": "motivates", "note": "C7 keyed hashing", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-rustls-ticketer-policy", "dst": "crs-ce-tls-ticket-cross-vhost", "type": "enables", "note": "unenforced sharing policy", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-tls-ticket-cross-vhost", "dst": "gap.nginx", "type": "evidence_against", "note": "CVE-2025-23419", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-tls-ticket-cross-vhost", "dst": "gap.caddy", "type": "evidence_against", "note": "single global STEK (Hebrok 2025)", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-hpack-shared-context", "dst": "rec60-header-accordions-qpack", "type": "related", "note": "same QPACK state, privacy vs DoS face", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-ce-pool-reuse-incomplete-key", "dst": "crate-hyper-h2", "type": "constrains", "note": "hyper-util PoolKey=(Scheme,Authority)", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-invariant-text", "dst": "sdg-failed-request-no-mutation", "type": "generalizes", "note": "C6 extends to caches/pools", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-test-oracles", "dst": "as.dst-harness-spec", "type": "implemented_by", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-test-oracles", "dst": "as.oracle-mutation", "type": "gated_by", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-test-oracles", "dst": "as.fuzz-gate", "type": "uses", "note": "cache-key completeness fuzzer", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-invariant-text", "dst": "l5-structural-controls-implied", "type": "refines", "note": "adds CRS invariant", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-verdict-matrix", "dst": "crs-l5-invariant-text", "type": "yields", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-invariant-text", "dst": "crs-l5-keying-table", "type": "instantiated_by", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-l5-invariant-text", "dst": "crs-l5-test-oracles", "type": "verified_by", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "crs-gap-0rtt-acceptance", "dst": "crs-ce-0rtt-replay", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 2}
+{"src": "r2e11.cdn-tsunami", "dst": "rec60-header-accordions-qpack", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.cdn-tsunami", "dst": "threat-h2-h3-resource-exhaustion", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.h2-stalled-flowcontrol", "dst": "v.http2-bomb-cve-2026-49975", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.h2-stalled-flowcontrol", "dst": "threat-h2-h3-resource-exhaustion", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.x402-attacks", "dst": "j-x402-spec", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.x402-attacks", "dst": "cal-x402-volume", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.runwasi-cve-2026-47218", "dst": "wasmtime-ghsa-record-2021-2026", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.mercuriuzz-quic-logic", "dst": "crate-quiche", "type": "affects", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.apisix-2026-advisories", "dst": "threat-ledger-middle-tier-2023-2026", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.litellm-failopen", "dst": "threat-ledger-middle-tier-2023-2026", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.token-time-bomb-jwt", "dst": "pqc-capability-token-design", "type": "motivates", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "r2e11.haproxy-cve-2026-33555", "dst": "rec60-pingora-envoy-haproxy-nginx-h2h3", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 2}
+{"src": "adv-rustls-pq-downgrade-2026-0349", "dst": "std-rfc10024-ecdhe-mlkem", "type": "contradicts", "note": "'solved' needs rustls>=0.23.46 + HRR policy", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "adv-rustls-pq-downgrade-2026-0349", "dst": "crate-rustls-pq", "type": "refines", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "adv-rustls-pq-downgrade-2026-0349", "dst": "adv-rustls-2026-wave", "type": "member_of", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "adv-rustls-pq-downgrade-2026-0349", "dst": "threat-tls-validation-logic", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "result-memory-safety-would-not-prevent-fraction", "dst": "threat-memory-corruption-c-servers", "type": "refines", "note": "2026 surge", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "threat-ledger-middle-tier-2023-2026", "dst": "threat-path-canonicalization-authz-bypass", "type": "reranks", "note": "top by KEV", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "threat-ledger-middle-tier-2023-2026", "dst": "threat-h2-h3-resource-exhaustion", "type": "reranks", "note": "top by Rust volume", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "as.dst-entropy-leak", "dst": "as.dst-harness-spec", "type": "requires", "note": "deterministic CryptoProvider", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "as.mutants-gate", "dst": "as.oracle-mutation", "type": "refines", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "as.fuzz-gate", "dst": "ossfuzz-coverage-transport", "type": "corroborates", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "cedar-lean-proofs-2026-10", "dst": "cedar-drt-harness", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "fail-verifier-soundness-bugs", "dst": "cedar-lean-proofs-2026-10", "type": "weakens", "note": "cvc5 in SymCC TCB", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "l5-authz-stack-recommendation", "dst": "cedar-lean-proofs-2026-10", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "sdg-txn-pooling-session-leak", "dst": "sdg-pgdog-supavisor-pgcat", "type": "corrects", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "sdg-pgbouncer", "dst": "sdg-txn-pooling-session-leak", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "sdg-rls-plan-cache-family", "dst": "sdg-txn-pooling-session-leak", "type": "compounds", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "sdg-embedded-store-selection", "dst": "sdg-redb", "type": "corrects", "note": "check_integrity repair buggy", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "sdg-embedded-store-selection", "dst": "sdg-sqlite-wal", "type": "refines", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "io-uring-security-record", "dst": "io-uring-perf-reality", "type": "context", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "j-mcp-2026-07-28", "dst": "j-mcp-stateless-no-sessions", "type": "qualifies", "note": "", "evidence_url": "", "origin": "explorer-12", "round": 2}
+{"src": "cranelift-default-config-escape-2026-10", "dst": "rec60-wasmtime-cranelift-crit-2026-10", "type": "same-as", "note": "same advisory GHSA-897f (r1 node is the Oct batch); r2 adds M0-config residual and citation fixes", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "adv-rustls-pq-downgrade-2026-0349", "dst": "rec60-rustls-0.23.46-downgrade", "type": "same-as", "note": "same advisory RUSTSEC-2026-0349 / GHSA-w44r", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "fin.rmcp-3.7.0", "dst": "j-rmcp-sdk", "type": "same-as", "note": "same release rmcp 3.7.0; r2 corrects licence (Apache-2.0 per crates.io) and README claim", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "vfg-cryptoprover-cloud-llm-optional", "dst": "rec60-cryptoprover-symcrypt", "type": "same-as", "note": "same paper arXiv 2608.00965", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.awslc-rs-fips-crate-map", "dst": "crate-aws-lc-rs", "type": "same-as", "note": "same crate/module map; verifier adds README pin warning and CMVP #5429", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.calif-h2bomb-ratios", "dst": "v.http2-bomb-cve-2026-49975", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "l4-cve-corpus-h2-h3-2023-2026", "dst": "threat-h2-h3-resource-exhaustion", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.docker-mcp-gateway-advisories-r2", "dst": "gap.docker-mcp-gateway", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.rmcp-more-advisories", "dst": "j-mcp-sdk-advisories", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "adv.corpus-r2-09", "dst": "j-mcp-sdk-advisories", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.crdb-rls-on-conflict-gap", "dst": "dpf-distributed-sql", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.mongobleed-itw", "dst": "dpf-mongodb", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.cra-implementing-reg-2025-2392", "dst": "ops.cra-annex3-waf-risk", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.cra-monetization-trigger", "dst": "ops.cra-obligation-split", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "ops.fips-module-boundary-pin", "dst": "fips-cmvp-mlkem-modules", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.fedramp-class-tiers", "dst": "ops.fedramp-20x-ksi-mapping", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.curl-0rtt-early-data-2026-9545", "dst": "crs-ce-0rtt-replay", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.curl-2026-auth-state-cluster", "dst": "crs-ce-pool-reuse-incomplete-key", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.curl-2026-auth-state-cluster", "dst": "crs-ce-session-fixation-epoch", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.hebrok25-server-auth-bypass", "dst": "crs-ce-tls-ticket-cross-vhost", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.agentgateway-referencegrant", "dst": "gap.agentgateway", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.result-redb", "dst": "sdg-redb", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.result-fjall", "dst": "sdg-fjall", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.result-sqlite", "dst": "sdg-sqlite-wal", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.result-heed-lmdb", "dst": "sdg-lmdb-heed", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.ranking-negative", "dst": "sdg-embedded-store-selection", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.l5-crash-harness-spec", "dst": "sdg-l5-crash-harness", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "cc.fsync-guarantees", "dst": "sdg-fsyncgate", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "proof-kani-verify-rust-std", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "wasmtime-advisory-share-by-config", "dst": "wasmtime-ghsa-record-2021-2026", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "wasmtime-minimal-config-pin", "dst": "wasmtime-memory64-spectre-config", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "canonical-abi-cost-measured", "dst": "wasmtime-pooling-local-bench", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "zygote-sandbox-recipe-measured", "dst": "landlock-seccomp-self-sandbox", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "w02.handshake-pq-cost", "dst": "crate-rustls-pq", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "w02.pingora-tokio-panic", "dst": "gap.pingora", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "abuse-wba-interplay", "dst": "j-webbotauth", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "r2e11.cdn-tsunami", "dst": "rec60-header-accordions-qpack", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "l4-quic-stack-window-defaults", "dst": "crate-quinn", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "l4-h2-budget-mechanics-0.4.20", "dst": "crate-hyper-h2", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "dpf-agent-db-tool-bypass-cluster", "dst": "sdg-sql-allowlist-bypass", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "vfg-policy-tristate-failclosed-invariant", "dst": "inv-decision-determinism-failclosed", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "vfg-policy-tristate-failclosed-invariant", "dst": "cedar-skip-on-error-semantics", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 2}
+{"src": "v2.calif-h2bomb-ratios", "dst": "v.http2-bomb-cve-2026-49975", "type": "contradicts", "note": "CVE-2026-49975 is Apache mod_h2 only; Envoy fix is GHSA-22m2 (no CVE in primary post)", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "ops.fips-module-boundary-pin", "dst": "crate-aws-lc-rs", "type": "contradicts", "note": "byte-identical-to-cert pin: explorer 05 says aws-lc-rs 1.15.3/fips-sys 0.13.11; r1 node says 1.17.x (1.17.4 uses 0.13.17 on v3.6.0 source); unresolved", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "fin.spec-absent-origin", "dst": "j-mcp-2026-07-28", "type": "contradicts", "note": "spec gap: absent Origin unspecified (not permitted) while MUST-validate is stated", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "fin.stateless-not-sufficient", "dst": "j-mcp-stateless-no-sessions", "type": "contradicts", "note": "statelessness removes session class but not Origin/parser/audience/SSRF; requestState adds a new class", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "cc.result-fjall", "dst": "sdg-fjall", "type": "contradicts", "note": "Buffer mode loses acks on SIGKILL in replay; #329 says process crashes unaffected - recheck replay semantics", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "r2e11.cloudflare-2025-11-18", "dst": "rust-type-system-not-adversarial-boundary", "type": "contradicts", "note": "not a contradiction of the claim: a Rust proxy failed by unwrap() on oversized generated config (availability, not memory safety)", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "skeptic-small-reservation-pooling-recipe", "dst": "wasmtime-memory64-spectre-config", "type": "contradicts", "note": "density tuning (guard 0, reservation==max<4GiB) re-opens GHSA-6wgr/394w", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "w02.L5-lean-budget", "dst": "crate-aws-lc-rs", "type": "contradicts", "note": "aws-lc-sys bundles 1.5M C/asm LOC: lean budget must carry the crypto provider as a separate TCB line", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "fail-verifier-soundness-bugs", "dst": "cedar-lean-proofs-2026-10", "type": "contradicts", "note": "cvc5 #12926/#12927 unsoundness sits in the SymCC analysis path", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "crs-ce-hpack-shared-context", "dst": "l5-structural-controls-implied", "type": "contradicts", "note": "authenticated-but-shared compression context breaks the r1 bridge invariant as stated", "evidence_url": "", "origin": "integrator/verifier", "round": 2}
+{"src": "dpf-empty-means-all-pattern", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "supports", "note": "BRIDGE fail-closed construction: empty policy = allow-all (data plane) <-> Error/timeout = Deny (authz)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.litellm-failopen", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "supports", "note": "BRIDGE fail-closed construction: KEV-listed auth error -> default principal", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "abuse-L5-budget-invariants", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "related", "note": "BRIDGE fail-closed construction: I7 no fail-open admission stage", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "l5.invariant-list", "dst": "dpf-empty-means-all-pattern", "type": "related", "note": "BRIDGE fail-closed construction (agent gateway invariant 6)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.cloudflare-2025-11-18", "dst": "dpf-l5-allowlist-generation", "type": "supports", "note": "BRIDGE generated config is untrusted input: validate limits at build, fail soft to last-known-good", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "crs-ce-hpack-shared-context", "dst": "r2e11.h3-proxy-qpack-sidechannel", "type": "supported_by", "note": "BRIDGE principal partitioning: RFC 7541 hazard demonstrated for QPACK on pooled backend H3", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "dpf-redis-valkey", "dst": "crs-ce-pool-reuse-incomplete-key", "type": "supports", "note": "BRIDGE never share a backend connection across tenants (Valkey response-stream injection) = CRS C8", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "crs-l5-keying-table", "dst": "dpf-l5-op-capability-ir", "type": "related", "note": "BRIDGE scope tuple sigma == tenant-handle resource: one scope type for caches, pools and data ops", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "crs-ce-dns-rebinding-toctou", "dst": "l5.invariant-list", "type": "supports", "note": "BRIDGE egress-resolved invariant (rank 1 in agent gateway) = CRS DNS time-of-use binding", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.h2-stalled-flowcontrol", "dst": "l4-temporal-stall-liveness", "type": "supports", "note": "BRIDGE TBI-8 stall deadline: CERT VU#885548 is the advisory instance; hyper/h2 status unknown", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.cdn-tsunami", "dst": "l4-field-memory-vs-rfc-accounting", "type": "supports", "note": "translation tier amplification = decoded-vs-accounted gap", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.haproxy-cve-2026-33555", "dst": "w02.ingress-design-verdict", "type": "supports", "note": "primary-ish evidence for the H3->H1 seam (replaces weak secondary sources)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.opossum", "dst": "w02.ingress-design-verdict", "type": "constrains", "note": "one TLS mode per port; no Upgrade: TLS in the normalization core", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "l5-kani-harness-spec-tbi", "type": "constrains", "note": "TBI Kani gate must pin Kani >= #4910 and treat CBMC abnormal exit/OOM as FAIL", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "vfg-kani-footprint-and-gate-failures", "dst": "l5-ci-gate-tbi", "type": "constrains", "note": "same", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "vfg-toolchain-pin-footprint-table", "dst": "l5-tbi-tool-assignment", "type": "constrains", "note": "Verus 3.2 GB / Kani 2 GB are CI-only; laptop set is Lean core + TLC (~1.1 GB)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "vfg-native-axiom-tcb", "dst": "cedar-lean-proofs-2026-10", "type": "constrains", "note": "Cedar uses 10 native_decide: Lean compiler enters TCB; golden gate bans it", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "ops.systemd-baseline-score", "dst": "wasmtime-minimal-config-pin", "type": "constrains", "note": "MemoryDenyWriteExecute incompatible with Cranelift JIT: Wasm worker needs its own unit, or precompiled .cwasm no-compiler runtime", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "w02.feature-cost-unused", "dst": "dpf-l5-adapter-isolation", "type": "supports", "note": "BRIDGE modularity: cargo features add zero when off; compiler-bearing/C-binding modules go out of process", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "zygote-sandbox-recipe-measured", "dst": "dpf-l5-adapter-isolation", "type": "quantifies", "note": "process-sandbox cost 124us-1.5ms fork; install Landlock+seccomp once per worker", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "canonical-abi-cost-measured", "dst": "vfg-invariant-survival-table", "type": "quantifies", "note": "component boundary ABI floor ~85 ns; wasm codegen ~2x is the cost driver", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "vfg-invariant-survival-table", "dst": "dpf-l5-adapter-isolation", "type": "related", "note": "BRIDGE golden contract: only native per-tenant credentials survive a malicious adapter (I4 logical)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "r2e11.runwasi-cve-2026-47218", "dst": "w02.L5-feature-gate-rule", "type": "constrains", "note": "precompiled .cwasm path must MAC artifacts locally; never deserialize untrusted bytes", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "cc.neg-ldpreload-rustix", "dst": "as.dst-entropy-leak", "type": "related", "note": "BRIDGE interposition is unsound for Rust: rustix raw syscalls (crash harness) and aws-lc jitter/RDRAND (DST) both escape libc shims", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "as.dst-entropy-leak", "dst": "cc.harness-method", "type": "related", "note": "same lesson: use interposer-independent instruments (FUSE/dm-log-writes; deterministic CryptoProvider)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "w02.handshake-pq-cost", "dst": "adv-rustls-pq-downgrade-2026-0349", "type": "related", "note": "PQ cost +17.5% CPU (rustls) is cheap enough that HRR-to-hybrid policy has no perf excuse", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "abuse-L5-admission-pipeline-1vcpu", "dst": "l5-transport-budget-invariant-tbi", "type": "related", "note": "BRIDGE budgets at two layers: per-connection TBI (transport) under per-identity cost budgets (admission)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "abuse-L5-budget-invariants", "dst": "l5-transport-budget-invariant-tbi", "type": "related", "note": "same invariant family; one ledger type", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "ops.audit-log-spec", "dst": "vfg-invariant-survival-table", "type": "supports", "note": "I6 audit completeness for host-mediated effects needs the tlog append-only spec", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "fin.toolhive-policy-bypass", "dst": "r2e11.apisix-2026-advisories", "type": "related", "note": "BRIDGE parser-differential policy bypass: JSON dup/case/BOM (ToolHive) and path normalization (APISIX 94269)", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "dpf-l5-allowlist-generation", "dst": "sdg-l5-db-gate-invariants", "type": "generalizes", "note": "PG fingerprint allowlist becomes one family normalizer in the per-adapter lock", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "dpf-rustls-pq-driver-inheritance", "dst": "w02.handshake-pq-cost", "type": "related", "note": "driver-side PQ inherited from rustls defaults; server-side PQ unknown", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "v2.awslc-rs-fips-crate-map", "dst": "ops.rustls-fipsstatus-gate", "type": "constrains", "note": "FipsStatus::Certified must name the cert matching the pinned crate", "evidence_url": "", "origin": "integrator-bridge", "round": 2}
+{"src": "irl-l5-lean-lowering-theorems", "dst": "dpf-l5-op-capability-ir", "type": "proves", "note": "proves(result-set soundness of Pred lowering, Lean 4 core, tcb=Refines facts+engine) for the IR's Pred fragment", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-lean-lowering-theorems", "dst": "vfg-lean-core-minimal-measured", "type": "depends_on", "note": "toolchain footprint projection", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-lean-lowering-theorems", "dst": "cedar-lean-proofs-2026-10", "type": "extends", "note": "same model-proof+DRT pattern; composes with Cedar TPE residual soundness", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-lean-lowering-theorems", "dst": "irl-l5-backend-refinement-contract", "type": "trusts", "note": "Backend.Refines instances are axioms per adapter", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-differential-oracle-harness", "dst": "irl-l5-backend-refinement-contract", "type": "depends_on", "note": "oracle discharges the refinement facts per engine pin", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-differential-oracle-harness", "dst": "dpf-l5-allowlist-generation", "type": "extends", "note": "adds executed soundness check (LEAK=0) to the lock-generation CI gate", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "dpf-l5-allowlist-generation", "type": "extends", "note": "family denylists gain collation/affinity/glob/array-membership entries with executed cex", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "dpf-mongodb", "type": "extends", "note": "array membership, $type-on-arrays, numeric equivalence, collation inheritance", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "dpf-redis-valkey", "type": "extends", "note": "glob + delimiter confusion; ACL patterns share matcher", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "dpf-mysql-mariadb", "type": "extends", "note": "PAD SPACE incl utf8mb4_bin; _ai_ci defaults", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "dpf-sqlserver", "type": "extends", "note": "LIKE no default escape, [ ] wildcards, CI default, trailing blanks", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-backend-refinement-contract", "dst": "dpf-l5-op-capability-ir", "type": "extends", "note": "adapter acceptance requires refinement claims + schema gate + oracle report", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-backend-refinement-contract", "dst": "irl-ndc-equal-syntactic-equality", "type": "extends", "note": "NDC equal=syntactic equality is the prose precedent", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-q1012-role-plan-cache-gate", "dst": "sdg-rls-plan-cache-family", "type": "extends", "note": "executed reproducer; DISCARD PLANS unnecessary for SET LOCAL ROLE on patched minors", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-q1012-role-plan-cache-gate", "dst": "sdg-l5-db-gate-invariants", "type": "extends", "note": "INV-ROLE confirmed executable; adds S4b GUC positive control", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-l5-q1012-role-plan-cache-gate", "dst": "sdg-txn-pooling-session-leak", "type": "extends", "note": "session-level set_config leak measured in all plan_cache_modes", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-cve-2026-14666-fix-anatomy", "dst": "sdg-rls-plan-cache-family", "type": "cve", "note": "cve(CVE-2026-14666) fix commit 1974acf23", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-sqlite-affinity-collation-cex", "dst": "irl-l5-unsound-lowering-denylist", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-pg-collation-cex", "dst": "irl-l5-unsound-lowering-denylist", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-redis-glob-key-prefix-cex", "dst": "irl-l5-unsound-lowering-denylist", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-mongo-filter-semantics-cex", "dst": "irl-l5-unsound-lowering-denylist", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-empty-or-widening-family", "dst": "dpf-empty-means-all-pattern", "type": "extends", "note": "expression-level instance, executed in SQLAlchemy 2.1.6 / go-sqlbuilder / ucast-prisma", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-opa-compile-sql-lowering-defects", "dst": "irl-empty-or-widening-family", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-opa-compile-sql-lowering-defects", "dst": "dpf-uniform-abstraction-comparison", "type": "contradicts", "note": "policy->SQL compilers as an alternative to a typed IR are currently unsound for some dialects", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-cedar-tpe-no-native-lowering", "dst": "cedar-lean-proofs-2026-10", "type": "extends", "note": "TPE theorems exist; native lowering absent", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-cedar-tpe-no-native-lowering", "dst": "irl-l5-lean-lowering-theorems", "type": "fills_gap", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-engine-logic-bugs-tcb", "dst": "irl-l5-backend-refinement-contract", "type": "conflicts_with", "note": "refinement can fail through engine bugs; pin + re-oracle", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-engine-logic-bugs-tcb", "dst": "sdg-sje-rls-2026", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-post-filter-side-channel-2026", "dst": "irl-l5-lean-lowering-theorems", "type": "conflicts_with", "note": "outside the theorem: timing/cost channels", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-sql-mechanized-semantics-landscape", "dst": "sdg-sql-equivalence-verif", "type": "extends", "note": "adds 2026 Lean experiments; confirms no collation modelling", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "irl-ndc-equal-syntactic-equality", "dst": "dpf-uniform-abstraction-comparison", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-01", "round": 3}
+{"src": "w02.ipc-hop-cost-1core", "dst": "dpf-l5-adapter-isolation", "type": "measures", "note": "supplies hop cost for 15-unsafe-site rule", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.ipc-hop-cost-1core", "dst": "canonical-abi-cost-measured", "type": "compares-with", "note": "in-process wasm component call 97 ns noop vs 4.8 us UDS hop", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.ipc-hop-cost-1core", "dst": "crash-isolation-semantics", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.redis-presign-shaped-ops", "dst": "dpf-l5-adapter-isolation", "type": "measures", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.helper-process-rss-spawn", "dst": "wasmtime-pooling-local-bench", "type": "compares-with", "note": "fork/exec 250-615 us vs pooled instance 20 us", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.norm-copy-cost-measured", "dst": "w02.ingress-design-verdict", "type": "supports", "note": "direct evidence; effect modest", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.ingress-design-verdict-measured-update", "dst": "w02.ingress-design-verdict", "type": "refines", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.L5-feature-gate-rule-amendment", "dst": "w02.L5-feature-gate-rule", "type": "amends", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.L5-adapter-oop-threshold-table", "dst": "dpf-l5-adapter-isolation", "type": "amends", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.serde-bytes-pitfall", "dst": "w02.bincode-unmaintained-use-postcard", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.spin-ring-negative-result", "dst": "w02.ipc-hop-cost-1core", "type": "qualifies", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.prior-art-ipc-overheads", "dst": "w02.ipc-hop-cost-1core", "type": "context-for", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.shm-crate-landscape", "dst": "w02.L5-feature-gate-rule-amendment", "type": "informs", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.reversal-precedents", "dst": "w02.L5-adapter-oop-threshold-table", "type": "informs", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.L5-bench-harness-spec", "dst": "w02.ipc-hop-cost-1core", "type": "produces", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.L5-bench-harness-spec", "dst": "w02.norm-copy-cost-measured", "type": "produces", "note": "", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "w02.ipc-hop-cost-1core", "dst": "iso-glue-not-boundary-pattern", "type": "related", "note": "boundary cost vs glue bugs", "evidence_url": "", "origin": "explorer-02", "round": 3}
+{"src": "r3pq.hrr-acceptance-test", "dst": "adv-rustls-pq-downgrade-2026-0349", "type": "extends", "note": "executable server-side verdict for the advisory's mitigation", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.hrr-acceptance-test", "dst": "crate-rustls-pq", "type": "refines", "note": "'rustls servers not exploitable' holds only when client lists hybrid first", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.hrr-acceptance-test", "dst": "std-rfc10024-ecdhe-mlkem", "type": "depends_on", "note": "codepoint 0x11EC", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.rustls-kx-client-order", "dst": "r3pq.hrr-acceptance-test", "type": "explains", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.prefer-pq-feature-pitfall", "dst": "crate-rustls-pq", "type": "extends", "note": "feature-gated default order", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.prefer-pq-feature-pitfall", "dst": "dpf-rustls-pq-driver-inheritance", "type": "conflicts_with", "note": "DB drivers inherit PQ only if prefer-post-quantum enabled", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.mldsa-handshake-measured", "dst": "pq-size-mtu-reality", "type": "extends", "note": "own byte/segment/CPU measurement replaces estimate", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.mldsa-handshake-measured", "dst": "w02.handshake-pq-cost", "type": "extends", "note": "adds authentication-side cost to KEM-side cost", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.mldsa-handshake-measured", "dst": "fips204-mldsa-sizes", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.quic-amp-budget-mldsa", "dst": "r3pq.mldsa-handshake-measured", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.header-limit-table", "dst": "pqc-capability-token-design", "type": "extends", "note": "closes q1-043", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.hpack-large-token-literal", "dst": "pqc-capability-token-design", "type": "supports", "note": "two-tier/by-reference design", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.cab-sc106-withdrawn", "dst": "std-cab-pq-ballots", "type": "extends", "note": "newer status: SC-106 closed 2026-10-21", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.chrome-cqrp-testing", "dst": "std-mtc-plants", "type": "extends", "note": "Chrome 152 test store, policy v0.3.0", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.chrome-cqrp-testing", "dst": "rec60-mtc-plants-chrome-apple-le", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.mtc-server-obligations", "dst": "std-mtc-plants", "type": "extends", "note": "server-side obligations + implementation status", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.mtc-server-obligations", "dst": "ops.acme-crate-maturity", "type": "depends_on", "note": "ACME client needs ARI/profiles/optional alternates", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.composite-mldsa-status-sizes", "dst": "pqc-capability-token-design", "type": "extends", "note": "closes q1-073; confirms 3,828 B per block", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.composite-mldsa-status-sizes", "dst": "std-pq-x509-rfcs", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.cloudflare-origin-mldsa", "dst": "std-pq-x509-rfcs", "type": "depends_on", "note": "RFC 9881 ML-DSA X.509", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.go127-mldsa-middlebox", "dst": "pq-size-mtu-reality", "type": "extends", "note": "sigalg codepoint ossification, not only size", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.cnsa2-tls-profile", "dst": "std-cnsa2-dates", "type": "extends", "note": "TLS profile + measured cost", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.pq-auth-posture-decision", "dst": "r3pq.cab-sc106-withdrawn", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.pq-auth-posture-decision", "dst": "r3pq.chrome-cqrp-testing", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.pq-auth-posture-decision", "dst": "r3pq.mldsa-handshake-measured", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.pq-auth-posture-decision", "dst": "std-authkem-kemtls", "type": "alternative_to", "note": "AuthKEM rejected for TLS", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.pq-auth-posture-decision", "dst": "r3pq.cloudflare-origin-mldsa", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "r3pq.apple-mtc-policy-absent", "dst": "rec60-mtc-plants-chrome-apple-le", "type": "refines", "note": "draft policy not yet in repo", "evidence_url": "", "origin": "explorer-03", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.vet-import-sets", "type": "extends", "note": "golden pins, 233 crates, six imports, zero exemptions", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.deny-audit-gate", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.unsafe-budget", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.auditable-sbom", "type": "extends", "note": "190 deps embedded, audit bin 0 vulns", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "w02.L5-lean-budget", "type": "extends", "note": "233-crate lock vs 94; golden test binary 3.77 MB panic=abort lto", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-hyper-h2", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-rustls-pq", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "cedar-policy-crate-4.14", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-aws-lc-rs", "type": "conflicts_with", "note": "resolves 1.18.2 (FIPS v4 line) while FIPS path needs <1.18.0", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.vet-zero-exemption-baseline", "dst": "sc.vet-import-sets", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.vet-zero-exemption-baseline", "dst": "sc.vet-ci-gate", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.geiger-014-golden-unsafe", "dst": "sc.unsafe-budget", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.deny-golden-duplicates", "dst": "sc.deny-audit-gate", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.repro-ablation-golden", "dst": "sc.repro-build-experiment", "type": "extends", "note": "new instrument: CARGO_HOME/SDE/ablation/toolchain/1.99.1 pair", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.repro-ablation-golden", "dst": "sc.rustc-bootstrap-trust", "type": "depends_on", "note": "toolchain digest is build identity; DDC not run", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.tarball-git-parity-golden", "dst": "sc.xz-lessons", "type": "extends", "note": "executes the proposed gate", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.tarball-git-parity-golden", "dst": "sc.xz-lessons", "type": "mitigates", "note": "xz tarball-only m4", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.trustpub-sha-gate", "dst": "sc.slsa-attest", "type": "extends", "note": "consumer-side registry check", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.trustpub-sha-gate", "dst": "sc.arrayref-incident", "type": "mitigates", "note": "TP regression alarm", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "v.cargo-min-publish-age-rfc3923", "type": "extends", "note": "executed + date correction", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc.cooldown-policy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc3.rustls-advisory-batch-2026-10", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc.cooldown-policy", "type": "conflicts_with", "note": "blanket cooldown lands known advisories", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.cooldown-blocked-counts-golden", "dst": "sc.cooldown-policy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.slopsquat-rust-study-2606", "dst": "sc.slopsquat-rates", "type": "extends", "note": "refutes no-Rust-data gap", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.slopsquat-rust-study-2606", "dst": "sc.crates-malicious-record", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.incident-gate-matrix", "dst": "sc.slsa-attest", "type": "conflicts_with", "note": "L3 verify stops 2/12", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.incident-gate-matrix", "dst": "sc.cooldown-policy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.incident-gate-matrix", "dst": "rec60-supply-chain-incidents", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.incident-gate-matrix", "dst": "sc3.incident-class-fractions", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.incident-class-fractions", "dst": "sc.gha-hardening", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.slsa-scope-limit", "dst": "sc.slsa-attest", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.slsa-scope-limit", "dst": "sc.sigstore-tuf-threshold", "type": "extends", "note": "TUF 0/12 on intake", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-ci-gate-list", "dst": "ops.ssdf-12-ci-gates", "type": "fills_gap", "note": "PS.2.1 PS.3.2 PW.6 RV.1-3", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-ci-gate-list", "dst": "ops.cra-obligation-split", "type": "fills_gap", "note": "SBOM+provenance steward file set", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-cooldown-security-bypass", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-repro-double-build", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-new-crate-intake", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-workflow-lint", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-release-attest-rebuild", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-cooldown-security-bypass", "dst": "sc3.cooldown-executed-cargo-198", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-repro-double-build", "dst": "sc3.repro-ablation-golden", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-new-crate-intake", "dst": "sc3.slopsquat-rust-study-2606", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-workflow-lint", "dst": "sc3.incident-class-fractions", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.l5-release-attest-rebuild", "dst": "sc3.slsa-scope-limit", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.xz-window-cooldown-limit", "dst": "sc.xz-lessons", "type": "extends", "note": "primary dates", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.arrayref-trust-model-gap", "dst": "sc.arrayref-incident", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.numbers-checked-supply", "dst": "v.cargo-min-publish-age-rfc3923", "type": "extends", "note": "date correction", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "sc3.numbers-checked-supply", "dst": "sc.slopsquat-rates", "type": "extends", "note": "refutation", "evidence_url": "", "origin": "explorer-04", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "l5-authz-stack-recommendation", "type": "extends", "note": "descends the token half with code-level LOC/GHSA/microbench; keeps the Cedar PDP", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "pqc-capability-token-design", "type": "extends", "note": "adds Tier 0 opaque handle default; measured costs", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "gap-verified-attenuable-pq-token", "type": "fills_gap", "note": "Lean model + verified CBOR parser + RFC 9964 alg", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "r3e05.token-verify-microbench", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "r3e05.code-level-token-verifier-table", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "r3e05.attack-matrix-token-candidates", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "r3e05.everparse-cborrs-2026-10", "type": "depends_on", "note": "parser for Tier L", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "cedar-policy-crate-4.14", "type": "depends_on", "note": "PDP stays", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "biscuit-auth-6.0", "type": "alternative_to", "note": "rejected; reversal R3", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "ucan-1.0-spec", "type": "alternative_to", "note": "rejected", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "zcap-ccg-status", "type": "alternative_to", "note": "rejected", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-decision", "dst": "macaroons-ndss2014", "type": "depends_on", "note": "Tier L construction", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-wire-format-lean", "dst": "inv-attenuation-monotonicity", "type": "extends", "note": "concrete CDDL + T1-T6", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-wire-format-lean", "dst": "r3e05.l5-token-decision", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-verifier-fuzz-harness", "dst": "r3e05.l5-token-wire-format-lean", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-verifier-fuzz-harness", "dst": "r2e11.token-time-bomb-jwt", "type": "extends", "note": "F5 type-confusion target", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.l5-token-verifier-fuzz-harness", "dst": "cedar-drt-harness", "type": "extends", "note": "F4 DRT pattern", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.tenuo-cel-attenuation-bypass", "dst": "inv-attenuation-monotonicity", "type": "contradicts", "note": "counterexample for leaf-only + subsumption designs", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.tenuo-cel-attenuation-bypass", "dst": "r3e05.draft-niyikiza-aat-01", "type": "cve(unassigned)", "note": "reference impl of the draft", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.biscuit-wallclock-limit-observed", "dst": "biscuit-auth-6.0", "type": "extends", "note": "reproduces the r1 wall-clock concern", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.draft-niyikiza-aat-01", "dst": "v.ietf-agent-attenuation-drafts", "type": "extends", "note": "existence confirmed; graded A", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.draft-asor-wimse-dt-02", "dst": "v.ietf-agent-attenuation-drafts", "type": "extends", "note": "now at -02, 2026-10-15", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.draft-asor-wimse-dt-02", "dst": "r3e05.rfc9964-mldsa-jose-cose", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.rfc8693-act-informational", "dst": "r3e05.draft-asor-wimse-dt-02", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.cedar-no-delegation-rfc", "dst": "l5-authz-stack-recommendation", "type": "supports", "note": "reversal 'Cedar token RFC' not triggered", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.everparse-cborrs-2026-10", "dst": "everparse-for-front", "type": "extends", "note": "Rust CBOR/COSE artifacts at tag", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.code-level-token-verifier-table", "dst": "authz-formal-pdp-comparison", "type": "extends", "note": "code-level instrument", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.spike-cedar-lean-vs-rust", "dst": "cedar-lean-proofs-2026-10", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.spike-cedar-lean-vs-rust", "dst": "vfg-lean-core-minimal-measured", "type": "depends_on", "note": "3.4 GB toolchain figure", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.token-verify-microbench", "dst": "r3e05.rfc9964-mldsa-jose-cose", "type": "supports", "note": "ML-DSA verify cost", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.alt-space-token-formats", "dst": "r3e05.l5-token-decision", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.txn-tokens-11", "dst": "r3e05.l5-token-decision", "type": "alternative_to", "note": "intra-domain propagation; could carry Tier 0 handle reference", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "r3e05.sweeney-wimse-cred-deleg-00", "dst": "r3e05.l5-token-decision", "type": "supports", "note": "online DS = Tier 0 pattern", "evidence_url": "", "origin": "explorer-05", "round": 3}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i02-tokio-postgres-1374-leak", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i03-diesel-async-304-stale-result", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i04-redis-py-cve-2023-28858", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i05-go-cve-2025-47907", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i08-oneshot-uaf-on-cancel", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i09-omicron-3140-disconnect-mutex", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i10-futurelock", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i12-pg-pool-connect-timeout-leak", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.observed-vs-actual-outcome", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i06-pg-cancelrequest-untargeted", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "ac.root-cause-drop-at-await", "type": "amplifies", "note": "remote timing control", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "l4-cve-corpus-h2-h3-2023-2026", "type": "extends", "note": "RST_STREAM as a cancellation-timing primitive, not only a DoS", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "l4-handler-bounded-designs", "type": "extends", "note": "MadeYouReset = cancellation not propagated; the dual case", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.counter-hypothesis-one-txn-outbox", "dst": "sdg-failed-request-no-mutation", "type": "refutes_sufficiency_of", "note": "one-txn rule necessary, not sufficient", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.counter-hypothesis-one-txn-outbox", "dst": "sdg-exactly-once-boundary", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "sdg-failed-request-no-mutation", "type": "extends", "note": "adds NC1-NC8; turns the ambiguous-commit carve-out into a latch", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "crs-l5-invariant-text", "type": "extends", "note": "NC3 refines C8 and C6", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "extends", "note": "NC5: cancel/timeout => Error => Deny", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "abuse-L5-budget-invariants", "type": "extends", "note": "NC4 refines I5 (debit before work), I7", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "sdg-l5-idempotency-store", "type": "depends_on", "note": "NC2 outcome record; in_flight lease TTL", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "vfg-invariant-survival-table", "type": "extends", "note": "survival classification of NC1-NC8", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "dpf-l5-allowlist-generation", "type": "precondition_for", "note": "NC3 is a precondition for INV-NONEMPTY tenant binding across pooled txns", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "as.dst-harness-spec", "type": "extends", "note": "adds cancellation as a fault class + enumeration method", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "crs-l5-test-oracles", "type": "extends", "note": "C6/C8 oracles under cancellation", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "as.oracle-mutation", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "ac.l5-inv-nomut-c", "type": "tests", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "dx.l5-decision-sdk-shape", "type": "extends", "note": "Tx commit via must-complete task; cancellation discipline for the SDK", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "ac.l5-inv-nomut-c", "type": "enforces", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "ac.rust-cancel-tooling-landscape", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "wasmtime-ghsa-record-2021-2026", "type": "extends", "note": "two advisories classified as cancel-on-drop", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "wasmtime-minimal-config-pin", "type": "informs", "note": "pin >=49.0.3; component-model-async off", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "sdg-compile-time-extraction", "type": "informs", "note": "sqlx 0.9.0 release carries the bug; pin git rev", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "sdg-txn-pooling-session-leak", "type": "extends", "note": "client-side pool analogue of the txn-pooling leak class", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "abuse-rate-limit-algos-crates", "type": "informs", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "crs-ce-ratelimit-xff", "type": "related", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.principle-cancel-equals-crash", "dst": "hist-php-sharednothing-mechanism", "type": "related", "note": "process recycling = crash-only at request granularity", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.principle-cancel-equals-crash", "dst": "ac.l5-spike-reconnect-cost", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.cancel-models-compared", "dst": "ac.rust-cancel-tooling-landscape", "type": "informs", "note": "", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.observed-vs-actual-outcome", "dst": "sdg-failed-request-no-mutation", "type": "extends", "note": "timer-driven ambiguous commit", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "ac.i10-futurelock", "dst": "as.dst-harness-spec", "type": "informs", "note": "liveness oracle O6", "evidence_url": "", "origin": "explorer-06", "round": 3}
+{"src": "r3e07-sim-harness", "dst": "abuse-L5-swarm-sim-spec", "type": "extends", "note": "executes the r2 spec; r2 defaults fail", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-sim-harness", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "extends", "note": "executes the r2 spec; r2 defaults fail", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-tuned-default-table", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "extends", "note": "replaces E-grade params with simulated defaults", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-tuned-default-table", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "contradicts", "note": "r2 defaults fail C1-C4", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-swarm-acceptance-criteria", "dst": "abuse-L5-swarm-sim-spec", "type": "extends", "note": "pass/fail numbers for r2 criteria 1-9", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-budget-invariants-additions", "dst": "abuse-L5-budget-invariants", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-pow-asymmetry-measured", "dst": "abuse-pow-economics-calc", "type": "contradicts", "note": "2.3 MH/s e2-micro figure replaced by 62-89 MH/s native, 150 kH/s browser", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-pow-asymmetry-measured", "dst": "abuse-anubis-bypass-evidence", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-pow-ladder-negative", "dst": "abuse-anubis", "type": "depends_on", "note": "v1.28 WASM modes", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-swarm-shape-datadome-2026", "dst": "abuse-residential-proxy-scale", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-per-ip-collapse", "dst": "abuse-per-ip-limits-fail-swarm", "type": "extends", "note": "executed numbers", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-netflix-defaults-vs-1vcpu", "dst": "abuse-adaptive-concurrency", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-limiter-dormant", "dst": "abuse-adaptive-concurrency", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-r2-defaults-collapse", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "contradicts", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-tls-handshake-floor", "dst": "abuse-codel-lifo", "type": "conflicts_with", "note": "queueing cannot fix pre-queue CPU", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-cost-per-1m-by-attack-class", "dst": "r3e07-price-sheet-2026-10", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-cost-model-sheet", "dst": "r3e07-cost-per-1m-by-attack-class", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-cost-model-sheet", "dst": "r3e07-defender-stage-cost-table", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-aged-cookie-farming", "dst": "abuse-L5-budget-invariants", "type": "conflicts_with", "note": "I3 isolation", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-gcra-eviction-churn", "dst": "abuse-rate-limit-algos-crates", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-verified-agent-s1-collision", "dst": "abuse-L5-admission-pipeline-1vcpu", "type": "contradicts", "note": "S1 5 req/s burst 20", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-swarm-acceptance-criteria", "dst": "r3e07-sim-harness", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "r3e07-L5-tuned-default-table", "dst": "r3e07-sim-harness", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-07", "round": 3}
+{"src": "dx.exp-handler-sdk-mutants", "dst": "hist-urweb-guarantees-and-nonguarantees", "type": "extends", "note": "same goal as Ur/Web static guarantees, measured with a Rust library not a language", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.exp-handler-sdk-mutants", "dst": "hist-llm-typed-languages", "type": "extends", "note": "first direct compile-time rejection count; literature is indirect", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.exp-handler-sdk-mutants", "dst": "dx.omission-problem", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.exp-error-signal", "dst": "dx.exp-handler-sdk-mutants", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.fpeval-probe-corrections", "dst": "v.fpeval-probe-2026", "type": "extends", "note": "exact numbers, repair, contamination; corrects Rust-hardest magnitude", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.claw-swe-rust-agentic", "dst": "dx.fpeval-probe-corrections", "type": "conflicts_with", "note": "one-shot says typed/FP and Rust lag; agentic loop says Rust top", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.swebench-multilingual-rust", "dst": "dx.claw-swe-rust-agentic", "type": "supports", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.compiler-feedback-ablations", "dst": "hist-llm-typed-languages", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.compiler-feedback-ablations", "dst": "dx.l5-decision-sdk-shape", "type": "supports", "note": "escape-hatch gaming => boundary enforcement", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.sdk-design-space-matrix", "dst": "gap.baas", "type": "extends", "note": "Encore/Convex covered at feature level only", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.sdk-design-space-matrix", "dst": "gap.spin", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.omission-problem", "dst": "dpf-l5-op-capability-ir", "type": "supports", "note": "same principle: capability params not ambient", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.deploy-prior-art", "dst": "gap.spin", "type": "extends", "note": "OCI+cosign distribution; Shuttle shutdown", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.cf-binding-capability", "dst": "v8-isolates-security-posture", "type": "depends_on", "note": "API capability plus isolation", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.l5-decision-sdk-shape", "dst": "dx.exp-handler-sdk-mutants", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.l5-decision-sdk-shape", "dst": "j-projection-implication", "type": "alternative_to", "note": "single handler definition could project to schemas; B ctx types must be projected separately", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "dx.local-loop-measure", "dst": "dx.l5-decision-sdk-shape", "type": "depends_on", "note": "cost of compile-fail gate", "evidence_url": "", "origin": "explorer-08", "round": 3}
+{"src": "r3e09.ws-upgrade-smuggling", "dst": "threat-request-smuggling-desync", "type": "extends", "note": "Upgrade-mode desync instances 2024-26", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.ws-upgrade-smuggling", "dst": "gap.pingora", "type": "cve", "note": "CVE-2026-2833/2835/105297/105299", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.ws-deflate-and-frame-dos", "dst": "threat-decompression-parser-complexity", "type": "extends", "note": "post-inflate ordering bug x4", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.grpc-defect-classes", "dst": "threat-h2-h3-resource-exhaustion", "type": "extends", "note": "grpc-go 84304, h2 RUSTSEC-2026-0258", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.grpc-defect-classes", "dst": "crate-hyper-h2", "type": "depends_on", "note": "tonic rides hyper/h2", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.tonic-connect-crate-scorecard", "dst": "crate-hyper-h2", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.webtransport-defect-classes", "dst": "crate-quinn", "type": "depends_on", "note": "wtransport on quinn; 13 GHSA", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.webtransport-defect-classes", "dst": "rec60-quinn-advisory-wave", "type": "extends", "note": "datagram-cap bypass GHSA-2hv7", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.webtransport-defect-classes", "dst": "crate-quiche", "type": "related", "note": "9 GHSA", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.core-vs-per-frontend-matrix", "dst": "w02.ingress-design-verdict", "type": "extends", "note": "failure-class evidence for R-ING-1", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.ring1-verdict-amendment", "dst": "w02.ingress-design-verdict", "type": "refines", "note": "Exchange model; L4 split; defer WebTransport/UDP", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.ring1-verdict-amendment", "dst": "w02.L5-feature-gate-rule", "type": "depends_on", "note": "each front end a cargo feature", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.l4-proxy-protocol-udp", "dst": "r3e09.ring1-verdict-amendment", "type": "conflicts_with", "note": "L4 proxy cannot share L7 normalization", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.async-graphql-defaults-audit", "dst": "r3e09.graphql-defect-classes", "type": "extends", "note": "library defaults", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.rust-ws-crate-scorecard", "dst": "r3e09.ws-cswsh-origin", "type": "related", "note": "no Origin check in crates", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.webhook-defect-classes", "dst": "r3e09.ring1-verdict-amendment", "type": "conflicts_with", "note": "raw-body requirement vs normalization", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.L5-per-frontend-budget-table", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.L5-ingress-conformance-harness", "dst": "r3e09.L5-per-frontend-budget-table", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.ossfuzz-negative", "dst": "r3e09.L5-ingress-conformance-harness", "type": "fills_gap", "note": "own harness needed", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.sse-defect-classes", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "related", "note": "pure budget class", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "r3e09.L5-per-frontend-budget-table", "dst": "w02.L5-lean-budget", "type": "related", "note": "size budget unchanged by features off", "evidence_url": "", "origin": "explorer-09", "round": 3}
+{"src": "zd.l3-haproxy-seamless", "dst": "gap.haproxy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-envoy-hot-restart", "dst": "gap.envoy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-nginx-binary-upgrade", "dst": "gap.nginx", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-pingora-graceful", "dst": "gap.pingora", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-caddy-reload", "dst": "gap.caddy", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-stek-continuity", "dst": "crs-ce-stek-lifecycle", "type": "extends", "note": "adds lifetimes/measurements", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-stek-continuity", "dst": "crs-rustls-ticketer-policy", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-scaleout-state-matrix", "dst": "abuse-rate-limit-algos-crates", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-scaleout-state-matrix", "dst": "sdg-idempotency-draft", "type": "extends", "note": "multi-node gap in draft", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-scaleout-state-matrix", "dst": "ops.audit-log-spec", "type": "extends", "note": "single sequencer", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-reload-attack-surface", "dst": "vfg-extension-boundary-cves", "type": "alternative_to", "note": "related boundary class", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-config-push-outage", "dst": "w02.pingora-tokio-panic", "type": "depends_on", "note": "panic-on-ingest analogue", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l2-same-socket-vs-reuseport", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-haproxy-seamless", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-nginx-binary-upgrade", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-envoy-hot-restart", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-pingora-graceful", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-proxygen-socket-takeover", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-systemd-fdstore", "dst": "zd.l1-listener-handoff", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-orphan-socket-blackhole", "dst": "zd.l2-same-socket-vs-reuseport", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-reuseport-kernel-migration", "dst": "zd.l2-same-socket-vs-reuseport", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-h2-goaway-two-phase", "dst": "zd.l5-upgrade-protocol", "type": "mitigates", "note": "UP-3", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-stek-continuity", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "UP-5", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-orphan-socket-blackhole", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "UP-2", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-reload-attack-surface", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "UP-6/UP-7", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-config-push-outage", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "UP-7", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-lingering-drain", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "UP-4", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-rust-fd-crates", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l3-systemd-fdstore", "dst": "zd.l5-upgrade-protocol", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-quic-across-processes", "dst": "zd.l5-upgrade-protocol", "type": "conflicts_with", "note": "QUIC out of scope v1", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l5-upgrade-protocol", "dst": "zd.l5-upgrade-harness-gate", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-shellflip-source", "dst": "zd.l4-rust-fd-crates", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-ratelimit-measured-cost", "dst": "zd.l3-scaleout-state-matrix", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "zd.l4-fb-release-numbers", "dst": "zd.l3-proxygen-socket-takeover", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-10", "round": 3}
+{"src": "r3e11.wasi-http-host-side-framing-batch", "dst": "gap.wasmtime-adv", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.wasi-http-host-side-framing-batch", "dst": "vfg-wasi-default-grants", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.wasi-http-host-side-framing-batch", "dst": "wasmtime-advisory-share-by-config", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.wasi-http-host-side-framing-batch", "dst": "rec60-wasmtime-cranelift-crit-2026-10", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.quinn-proto-0.11.18-19", "dst": "rec60-quinn-advisory-wave", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.quinn-proto-0.11.18-19", "dst": "crate-quinn", "type": "cve", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.tokio-1.54-regression-and-asyncfd", "dst": "rec60-tokio-axum-rmcp-versions", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.tokio-1.54-regression-and-asyncfd", "dst": "w02.pingora-tokio-panic", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.cross-stack-bug-classes-sep-oct-2026", "dst": "rec60-go-1.27.2-batch", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.cross-stack-bug-classes-sep-oct-2026", "dst": "threat-h2-h3-resource-exhaustion", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.cross-stack-bug-classes-sep-oct-2026", "dst": "gap.traefik", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.cross-stack-bug-classes-sep-oct-2026", "dst": "l4-cve-corpus-h2-h3-2023-2026", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ai-found-bug-flood-vendor-posture", "dst": "rec60-supply-chain-incidents", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ietf-window-pq-tls-http-drafts", "dst": "v.pure-mlkem-tls-draft-contested", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ietf-window-pq-tls-http-drafts", "dst": "std-mtc-plants", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ietf-window-pq-tls-http-drafts", "dst": "r2e11.token-time-bomb-jwt", "type": "mitigates", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ietf-window-agent-individual-drafts", "dst": "j-webbotauth", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.ietf-window-agent-individual-drafts", "dst": "j-rmcp-sdk", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.rfcs-published-in-window", "dst": "fips205-slhdsa-sizes", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.rfcs-published-in-window", "dst": "sc.sigstore-tuf-threshold", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.leanserver-lean4-https", "dst": "vfg-lean-std-http-unknown", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.leanserver-lean4-https", "dst": "proof-cedar-lean", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.velvet-veil-lean-verifiers", "dst": "proof-cedar-lean", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.velvet-veil-lean-verifiers", "dst": "vfg-lean-core-minimal-measured", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.velvet-veil-lean-verifiers", "dst": "sdg-idempotency-draft", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.velvet-veil-lean-verifiers", "dst": "rec60-spec-fidelity-verus", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.emvco-agentic-payments-framework", "dst": "j-ap2", "type": "depends_on", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.emvco-agentic-payments-framework", "dst": "abuse-arc-act", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.capmas-and-agent-authz-review", "dst": "macaroons-ndss2014", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.capmas-and-agent-authz-review", "dst": "biscuit-auth-6.0", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.capmas-and-agent-authz-review", "dst": "ucan-1.0-spec", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.patents-fto-flags", "dst": "crate-rustls-pq", "type": "conflicts_with", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.patents-fto-flags", "dst": "crate-aws-lc-rs", "type": "conflicts_with", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.xguardian-server-side-anticheat", "dst": "abuse-wba-interplay", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.xguardian-server-side-anticheat", "dst": "abuse-anubis-bypass-evidence", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.deterministic-core-exchange-analogy", "dst": "as.tigerbeetle-vopr", "type": "alternative_to", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.adjacent-standards-negative-results", "dst": "sc.sigstore-tuf-threshold", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.osv-snapshot-2026-10-25", "dst": "wasmtime-ghsa-record-2021-2026", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "r3e11.osv-snapshot-2026-10-25", "dst": "sc.rustsec-volume", "type": "extends", "note": "", "evidence_url": "", "origin": "explorer-11", "round": 3}
+{"src": "ops.fips-module-boundary-pin", "dst": "ops.rustls-fipsstatus-gate", "type": "refines", "note": "gate must check Cargo.lock aws-lc-fips-sys =0.13.11", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "wasmtime-advisory-share-by-config", "dst": "isolation-decision-inputs-table", "type": "refines", "note": "share -> per-year escape rate", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "crs-l5-invariant-text", "dst": "adv-rustls-pq-downgrade-2026-0349", "type": "supported_by", "note": "C7 client-side instance", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "crs-l5-invariant-text", "dst": "sdg-rls-plan-cache-family", "type": "supported_by", "note": "C5 third instance CVE-2026-14666", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "threat-ledger-middle-tier-2023-2026", "dst": "adv-rustls-pq-downgrade-2026-0349", "type": "supported_by", "note": "2026 TLS-logic rise", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "w02.handshake-pq-cost", "dst": "ops.fips-module-boundary-pin", "type": "related", "note": "hybrid X25519MLKEM768: only ML-KEM half FIPS-approved", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "cedar-lean-proofs-2026-10", "dst": "l5-authz-stack-recommendation", "type": "refines", "note": "TCB ledger rows for Cedar", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "gap.unserved-combination", "dst": "l5-authz-stack-recommendation", "type": "related", "note": "nucleus Lean/Kani IFC lattice = prior art", "evidence_url": "", "origin": "explorer-12", "round": 3}
+{"src": "zd.l4-config-push-outage", "dst": "r2e11.cloudflare-2025-11-18", "type": "same-as", "note": "same incident (Cloudflare 2025-11-18); r3 adds lessons validate-then-swap/canary/kill switch; verifier: root cause was a ClickHouse permission change doubling query output, not an operator push", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "sc3.arrayref-trust-model-gap", "dst": "sc.arrayref-incident", "type": "same-as", "note": "same incident RUSTSEC-2026-0260; r3 adds 86-107 min live window, proc-macro1 build.rs delivery and the cargo-vet publisher-trust gap", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "sc3.rustls-advisory-batch-2026-10", "dst": "rec60-rustls-0.23.46-downgrade", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3pq.hrr-acceptance-test", "dst": "rec60-rustls-0.23.46-downgrade", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3e11.quinn-proto-0.11.18-19", "dst": "crate-quinn", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3e09.grpc-defect-classes", "dst": "dpf-upstream-http-grpc", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3e11.wasi-http-host-side-framing-batch", "dst": "wasmtime-minimal-config-pin", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "wasmtime-advisory-share-by-config", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3e07-tls-handshake-floor", "dst": "w02.handshake-pq-cost", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "r3e11.tokio-1.54-regression-and-asyncfd", "dst": "w02.pingora-tokio-panic", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.aws-lc-rs-fips-sys-range", "dst": "crate-aws-lc-rs", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.cve-2026-14666-session-persistence", "dst": "irl-l5-q1012-role-plan-cache-gate", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.cve-2026-14666-session-persistence", "dst": "sdg-rls-plan-cache-family", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.go81199-sigalgs-cert-trigger", "dst": "r3pq.go127-mldsa-middlebox", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.typed-authz-ctx-prior-art", "dst": "dx.sdk-design-space-matrix", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.claw-swe-shared-task-pool", "dst": "dx.claw-swe-rust-agentic", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.nginx-quic-bpf-live-upgrade-limits", "dst": "zd.l4-quic-across-processes", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.iceoryx2-fosdem-2026", "dst": "w02.shm-crate-landscape", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "w02.norm-copy-cost-measured", "dst": "w02.ingress-design-verdict", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "irl-l5-q1012-role-plan-cache-gate", "dst": "sdg-rls-plan-cache-family", "type": "refines", "note": "integrator cross-explorer/cross-round link", "evidence_url": "", "origin": "integrator", "round": 3}
+{"src": "v3.aws-lc-rs-fips-sys-range", "dst": "ops.fips-module-boundary-pin", "type": "contradicts", "note": "explorer-12 lever \"any aws-lc-rs >=1.15,<1.18\" is wrong: 1.17.3 needs fips-sys ^0.13.16, 1.17.4 ^0.13.17; safe range 1.15.2-1.17.2", "evidence_url": "", "origin": "integrator/verifier", "round": 3}
+{"src": "v3.claw-swe-shared-task-pool", "dst": "dx.swebench-multilingual-rust", "type": "contradicts", "note": "same Rust task pool; not independent corroboration", "evidence_url": "", "origin": "integrator/verifier", "round": 3}
+{"src": "r3e11.tokio-1.54-regression-and-asyncfd", "dst": "sc3.rustls-advisory-batch-2026-10", "type": "contradicts", "note": "overlap, not contradiction: both report RUSTSEC-2026-0384/0386; r3e11 adds 1.54.0 yanked and no 1.52.x backport", "evidence_url": "", "origin": "integrator/verifier", "round": 3}
+{"src": "r3pq.hrr-acceptance-test", "dst": "dpf-rustls-pq-driver-inheritance", "type": "contradicts", "note": "default 0.23.46 server follows client group order: an X25519-first client gets classical; PQ only by HRR under pq-required kx_groups", "evidence_url": "", "origin": "integrator/verifier", "round": 3}
+{"src": "ac.counter-hypothesis-one-txn-outbox", "dst": "sdg-failed-request-no-mutation", "type": "contradicts", "note": "one-txn+outbox closes ~5 of 15 cancellation instances; INV-NOMUT needs NC1-NC8", "evidence_url": "", "origin": "integrator/verifier", "round": 3}
+{"src": "ac.l5-inv-nomut-c", "dst": "irl-l5-backend-refinement-contract", "type": "precondition_for", "note": "BRIDGE pooled-connection hygiene: NC3 checkin predicate (ReadyForQuery I, no outstanding replies) is a precondition of the tenant role/GUC binding the lowering theorem trusts", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "irl-l5-q1012-role-plan-cache-gate", "type": "related", "note": "BRIDGE: q1012 shows SET LOCAL ROLE + plan cache correct on clean connections; sqlx#4393 shows a cancelled BEGIN leaves a pooled conn inside the previous principal's txn: both gates are needed", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3e05.tenuo-cel-attenuation-bypass", "dst": "irl-empty-or-widening-family", "type": "related", "note": "BRIDGE checker-vs-evaluator class: leaf-only evaluation + syntactic subsumption checker (Tenuo) and dropped empty sub-expressions (SQLAlchemy or_()) both widen authority silently; fix = evaluate the full conjunction in one canonical evaluator, Or([])=FALSE", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "irl-l5-unsound-lowering-denylist", "dst": "r3e09.grpc-defect-classes", "type": "related", "note": "BRIDGE canonical identity: grpc-go :path authz bypass and SQL collation/LIKE tenant collisions are one class (policy compares a non-canonical form); one canonicalization owner per identity, binary collation everywhere", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3pq.prefer-pq-feature-pitfall", "dst": "sc3.l5-ci-gate-list", "type": "constrains", "note": "BRIDGE supply chain x PQC: lockfile/feature audit must assert prefer-post-quantum on every rustls in Cargo.lock (default-features=false is silently classical)", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "r3pq.hrr-acceptance-test", "type": "related", "note": "BRIDGE: a 14-day cooldown resolved rustls 0.23.45 (RUSTSEC-2026-0349 PQ downgrade); the HRR acceptance test is the behavioural backstop when cooldown and security floors disagree", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "w02.ipc-hop-cost-1core", "dst": "r3e07-defender-stage-cost-table", "type": "quantifies", "note": "BRIDGE perf budget: 4.8 us UDS hop vs ~424-848 us full TLS handshake: adapter IPC is <1% of a new-connection request but ~100x a cached key lookup", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "r3e07-tls-handshake-floor", "type": "related", "note": "BRIDGE abuse x atomicity: an RST-timed cancel costs the attacker one frame but forces a discard-on-cancel reconnect (NC3, TLS+SCRAM); must be charged (NC4) or it is a reconnect amplifier against the ~1.1k full-handshake/s floor", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "zd.l4-config-push-outage", "dst": "r3e09.L5-per-frontend-budget-table", "type": "related", "note": "BRIDGE fail-closed config: validate-then-swap with last-known-good (reload) + CI fails any effective unbounded limit (ingress); defaults are the bug (tonic streams None, async-graphql limits None, Pingora 105297)", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "zd.l5-upgrade-protocol", "dst": "ac.l5-inv-nomut-c", "type": "related", "note": "BRIDGE drain = cancellation: UP-4 drain deadline cancels in-flight requests; NC2 commit-point latch decides which complete; one T_drain bound for both", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3e09.webhook-defect-classes", "dst": "dx.l5-decision-sdk-shape", "type": "constrains", "note": "raw-body signatures need Exchange-level raw bytes: the typed Ctx must expose a verified-before-parse capability instead of only a normalized body", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3e11.cross-stack-bug-classes-sep-oct-2026", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "supports", "note": "BRIDGE: trailers, H3->H1 bridging, validator/handler divergence and unbounded sizes recur across 7 stacks in 6 weeks; all are core-once classes (I-ONE-PARSE = one canonical parse handed to policy and handler)", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3e05.everparse-cborrs-2026-10", "dst": "irl-l5-lean-lowering-theorems", "type": "related", "note": "BRIDGE proof pattern: token (verified CBOR parser + core-Lean T1-T6) and data plane (Lowering.lean) share \"verified parser + core-Lean semantics theorem + DRT to Rust\" on one toolchain (Lean core, no Mathlib)", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "sc3.repro-ablation-golden", "dst": "zd.l5-upgrade-protocol", "type": "related", "note": "BRIDGE release identity: binary hash depends on toolchain and auditable mode; the upgrade protocol signature-checks B against the attested digest before spawn", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "ops.fips-module-boundary-pin", "dst": "sc3.golden-lock-gate-run", "type": "conflicts_with", "note": "BRIDGE FIPS x golden lock: the executed golden lock resolved aws-lc-rs 1.18.2 / aws-lc-sys 0.46 (unvalidated v4 line); the FIPS golden needs aws-lc-rs 1.15.2-1.17.2 + aws-lc-fips-sys =0.13.11 and must still satisfy rustls 0.23.46", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "r3e07-L5-budget-invariants-additions", "dst": "ac.l5-inv-nomut-c", "type": "related", "note": "BRIDGE one ledger: NC4 (pre-debit, never refund, charge cancellations) and I8 aggregate expensive-tier budget are the same admission ledger", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "dx.exp-error-signal", "dst": "sc3.l5-new-crate-intake", "type": "related", "note": "BRIDGE agents weaken boundaries when tools suggest it (rustc \"make the field public\"; cargo add of hallucinated crates): deny agent edits to sdk/** and route cargo add through the intake gate", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "irl-l5-differential-oracle-harness", "dst": "ac.l5-cancel-sweep-harness", "type": "related", "note": "BRIDGE executed oracles beat reading: both harnesses found bugs in code written to be safe (hardened SQLite lowering; 3 unreleased driver fixes); run both against real PG in nightly CI", "evidence_url": "", "origin": "integrator-bridge", "round": 3}
+{"src": "w02.L5-adapter-oop-threshold-table", "dst": "ac.principle-cancel-equals-crash", "type": "related", "note": "BRIDGE out-of-process adapters make cancel-equals-crash cheap: killing a helper resets all driver state; costs 4.8 us/hop + 250-615 us respawn", "evidence_url": "", "origin": "integrator-bridge", "round": 3}

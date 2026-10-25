@@ -1,0 +1,154 @@
+[
+ {
+  "code": "CFG",
+  "cls": "config-push-validation",
+  "n": 28,
+  "pct": 17.5,
+  "n_dur": 10,
+  "median_min": 75.2
+ },
+ {
+  "code": "BUG",
+  "cls": "code-bug-regression-latent",
+  "n": 20,
+  "pct": 12.5,
+  "n_dur": 5,
+  "median_min": 42
+ },
+ {
+  "code": "FD",
+  "cls": "fd-port-conntrack-worker-exhaustion",
+  "n": 17,
+  "pct": 10.6,
+  "n_dur": 5,
+  "median_min": 19.9
+ },
+ {
+  "code": "CAP",
+  "cls": "capacity-saturation-nonmalicious",
+  "n": 15,
+  "pct": 9.4,
+  "n_dur": 8,
+  "median_min": 36.0
+ },
+ {
+  "code": "RETRY",
+  "cls": "retry-storm-herd-cascade",
+  "n": 11,
+  "pct": 6.9,
+  "n_dur": 4,
+  "median_min": 6.5
+ },
+ {
+  "code": "DEP",
+  "cls": "dependency-upstream",
+  "n": 11,
+  "pct": 6.9,
+  "n_dur": 9,
+  "median_min": 191.5
+ },
+ {
+  "code": "DNS",
+  "cls": "dns-incl-elb-ip-caching",
+  "n": 10,
+  "pct": 6.2,
+  "n_dur": 3,
+  "median_min": 48.8
+ },
+ {
+  "code": "RELOAD",
+  "cls": "reload-restart-upgrade-deploy-lifecycle",
+  "n": 8,
+  "pct": 5.0,
+  "n_dur": 2,
+  "median_min": 591.6
+ },
+ {
+  "code": "CERT",
+  "cls": "cert-key-expiry",
+  "n": 8,
+  "pct": 5.0,
+  "n_dur": 6,
+  "median_min": 101.0
+ },
+ {
+  "code": "HUM",
+  "cls": "operator-error-tooling",
+  "n": 7,
+  "pct": 4.4,
+  "n_dur": 3,
+  "median_min": 11.0
+ },
+ {
+  "code": "NET",
+  "cls": "network-routing-bgp",
+  "n": 5,
+  "pct": 3.1,
+  "n_dur": 5,
+  "median_min": 77.7
+ },
+ {
+  "code": "ABUSE",
+  "cls": "abusive-traffic",
+  "n": 4,
+  "pct": 2.5,
+  "n_dur": 1,
+  "median_min": 126
+ },
+ {
+  "code": "CLOCK",
+  "cls": "clock-leapsecond-time",
+  "n": 4,
+  "pct": 2.5,
+  "n_dur": 0,
+  "median_min": null
+ },
+ {
+  "code": "HC",
+  "cls": "healthcheck-depool-logic",
+  "n": 3,
+  "pct": 1.9,
+  "n_dur": 1,
+  "median_min": 33.0
+ },
+ {
+  "code": "MEM",
+  "cls": "memory-leak-oom",
+  "n": 3,
+  "pct": 1.9,
+  "n_dur": 0,
+  "median_min": null
+ },
+ {
+  "code": "CACHE",
+  "cls": "cache-poisoning-staleness",
+  "n": 2,
+  "pct": 1.2,
+  "n_dur": 1,
+  "median_min": 8069.0
+ },
+ {
+  "code": "REGEX",
+  "cls": "regex-catastrophic-backtracking",
+  "n": 2,
+  "pct": 1.2,
+  "n_dur": 0,
+  "median_min": null
+ },
+ {
+  "code": "DISK",
+  "cls": "disk-log-fill",
+  "n": 1,
+  "pct": 0.6,
+  "n_dur": 0,
+  "median_min": null
+ },
+ {
+  "code": "HW",
+  "cls": "kernel-firmware-hardware-power",
+  "n": 1,
+  "pct": 0.6,
+  "n_dur": 1,
+  "median_min": 3057.5
+ }
+]

@@ -1,0 +1,6 @@
+Up 4 seconds
+[hello] idle: RSS_kB=4788 PSS_kB=2690 nproc=1 cg_anon_kB=232 cg_file_kB=1252 cg_current_kB=1788
+[hello] 1k-idle-conns: RSS_kB=8904 PSS_kB=6943 nproc=1 cg_anon_kB=4192 cg_file_kB=1860 cg_current_kB=9544
+[hello] after-close: RSS_kB=8592 PSS_kB=6501 nproc=1 cg_anon_kB=3628 cg_file_kB=2092 cg_current_kB=6136
+[hello] h1 plain c64: req/s=207079.1417 p99=0.5922 ms server_cpu_us=9995387 Status code distribution:   [200] 2071410 responses  
+[hello] final: RSS_kB=9860 PSS_kB=7796 nproc=1 cg_anon_kB=4736 cg_file_kB=2124 cg_current_kB=7300

@@ -1,0 +1,10 @@
+446|DNS|authoritative nameserver puppet restart|0
+508|CLOCK|linux kernel leap-second deadlock (xtime_lock/printk)|1
+509|CLOCK|linux kernel leap-second 2012 hrtimer spin (web services down)|1
+514|FD|ProxySQL (systemd LimitNOFILE capped)|1
+516|FD|ProxySQL connection exhaustion|1
+564|RETRY|discord frontend thundering herd/OOM|1
+580|ABUSE|github SSL connection exhaustion attack|1
+644|REGEX|stack exchange web tier regex backtracking|1
+650|DISK|tarsnap log fill|0
+636|MEM|skyliner third-party lib|0

@@ -1,0 +1,556 @@
+{
+ "explorer": "AEGIS EXPLORER 09 round 3",
+ "target": "W-TRANSPORT ingress non-request-response front ends, L1->L4, attacker stance, 2025-26",
+ "date": "2026-10-25",
+ "notes": {
+  "queries_run": 16,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "novelty_gate_note": "novelty_gate.py was not run (time/effort); fell back to grep over state/graph.jsonl and queries.jsonl for websocket/grpc/graphql/webhook/tonic/ingress: only w02.ingress-design-verdict and generic h2/h3/QUIC nodes exist; no node covers non-HTTP front ends. Stated per section 0d fallback.",
+  "new_urls_approx": 34,
+  "new_nodes": 17,
+  "reused_nodes": 12,
+  "vocabularies": [
+   "offensive security (CSWSH, desync, bombs)",
+   "web-dev practitioner (webhook/Stripe/GitHub docs, GraphQL-over-HTTP)",
+   "network ops (PROXY protocol, UDP amplification)",
+   "standards (RFC 6455/9220, draft-ietf-webtrans-http3-16, WHATWG SSE, IBM cost spec, Standard Webhooks)",
+   "Rust ecosystem (RustSec/GHSA/crates.io/OSS-Fuzz)"
+  ],
+  "source_types": [
+   "CVE+GHSA+OSV",
+   "spec/RFC/draft",
+   "repo source read (shallow clones, 151MB, in scratchpad)",
+   "vendor doc",
+   "OSS-Fuzz config"
+  ],
+  "contrarian_direction": "Test whether the one-core verdict breaks; Envoy threat-model evidence that L4 proxies and contrib extensions sit outside the hardened set; defaults-are-the-bug evidence (tonic, async-graphql, Pingora).",
+  "caveats": [
+   "WebSearch results were aggregators; every CVE id used in a node was re-resolved against api.osv.dev or GitHub advisories API unless marked UNVERIFIED.",
+   "CVE-2026-15709 (libsoup) and CVE-2026-59289 (Spring GraphQL) did NOT resolve in OSV; kept only as E-grade leads, not used as evidence.",
+   "Source-read findings on tonic and async-graphql defaults were not runtime-tested; see spikes.",
+   "No cargo build was run (machine safety 0e)."
+  ],
+  "numbers_checked": [
+   "Pingora 8 GHSAs (gh api 2026-10-25): 2833 crit, 2835 crit, 105297 high, 105299 high, 2836 high, 8671 high, 4366 high, 105298 med",
+   "quinn 13 GHSAs (11 in 2026, first 2026-03-09, last 2026-09-30); quiche 9 GHSAs; hyper repo 4 GHSA; h2 crate 7 OSV ids (RUSTSEC-2026-0258 2026-08-17)",
+   "tonic: 1 GHSA (CVE-2024-47609); async-graphql 2 GHSA; juniper 1; connect-rust 1; tungstenite 1 RUSTSEC; tokio-tungstenite 0; fastwebsockets 0; wtransport 0; h3 0; standardwebhooks 0",
+   "crates.io: tungstenite 0.30.0 2026-07-11 363M dl; tokio-tungstenite 0.30.0 326M; fastwebsockets 0.10.0 2026-01-01 5.7M; tonic 0.14.6 2026-05-07 441M; connectrpc 0.9.1 2026-09-21 8.8M (created 2025-10-14); async-graphql 7.2.1 2026-04-21 33.8M; juniper 0.17.1 2026-01-26; wtransport 0.7.2 2026-08-11 1.06M; h3 0.0.8 2025-05-06; h3-webtransport 0.1.2 2025-05-06; standardwebhooks 1.0.1 2024-03-04 92k; svix 2.9.0 2026-10-23; ppp 2.3.0 2025-02-14",
+   "unsafe-word grep hits excluding generated/examples/tests: tungstenite 5, tokio-tungstenite 0, fastwebsockets 1 live (mask.rs align_to_mut) + commented, tonic ~15 (buffer.rs 4, metadata 11), connect-rust 0, async-graphql 0 (10 files forbid(unsafe_code)), wtransport 11, h3 1, standard-webhooks rust 0 (forbid)",
+   "Rust LOC (non-test .rs): tokio-tungstenite 1.9k, fastwebsockets 3.0k, tungstenite 6.3k, wtransport 13.6k, h3 19.7k, async-graphql 49.7k, tonic 123k (incl generated), connect-rust 159k (incl generated), standard-webhooks rust lib 349",
+   "defaults from source: tungstenite max_message 64MiB, max_frame 16MiB, max_write_buffer_size usize::MAX; fastwebsockets max_message 64<<20; tonic max recv 4MiB, max send usize::MAX; hyper h2 server max_concurrent_streams Some(200), header list 16KiB; tonic passes None -> unlimited (mod.rs:840); async-graphql depth/complexity/aliases/directives None, recursive_depth 32; standardwebhooks tolerance 300 s",
+   "OSS-Fuzz projects dir (google/oss-fuzz master 2026-10-25): hyperium (http crate) + httparse only for Rust HTTP; no tungstenite/tonic/h2/quinn/async-graphql/wtransport; non-Rust: graphql-java, grpc-go, grpc-py, grpc-swift, libwebsockets, grpc-gateway",
+   "draft-ietf-webtrans-http3-16 2026-07-06 expires 2027-01-07 WGLC; RFC 9220 June 2022"
+  ]
+ },
+ "nodes": [
+  {
+   "id": "r3e09.ws-cswsh-origin",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "WebSocket CSWSH: Origin check is absent by default in both Rust WS crates; 2025-26 CVE stream",
+   "summary": "Cross-site WebSocket hijacking keeps producing CVEs because the handshake carries ambient cookies and the server must opt in to an Origin check. 2025-26 OSV-verified: Vitest CVE-2025-24964 (2025-02-04, RCE via dev WS API), Mailpit CVE-2026-22689 (2026-01-10), Next.js CVE-2026-27977 (2026-03-17, 'Origin: null' bypassed the dev HMR allowlist), nginx-ui CVE-2026-34403 (2026-04-20, upgrader CheckOrigin always true), Spring for GraphQL CVE-2026-41700 (2026-06-11, GraphQL-over-WS). Neither tungstenite nor fastwebsockets checks Origin: fastwebsockets upgrade.rs doc states it 'does not inspect the Origin, Sec-WebSocket-Protocol or Sec-WebSocket-Extensions headers'. RFC 6455 s4.2.2 makes origin validation optional for servers; draft-ietf-webtrans-http3-16 s3.2 makes it MUST verify for browser sessions (403). Class is fully handled once in a core that owns the handshake.",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-34403",
+    "https://osv.dev/vulnerability/CVE-2026-27977",
+    "https://osv.dev/vulnerability/CVE-2026-22689",
+    "https://osv.dev/vulnerability/CVE-2025-24964",
+    "https://osv.dev/vulnerability/CVE-2026-41700",
+    "https://github.com/denoland/fastwebsockets/blob/main/src/upgrade.rs",
+    "https://www.rfc-editor.org/rfc/rfc6455.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Core rule: Origin is a typed value (absent | null | opaque string | parsed origin) compared against a per-route allowlist with null explicitly denied unless listed; cookie-authenticated upgrades with no Origin from a browser UA are denied; SameSite is defence in depth only. Same check reused for WebTransport (MUST in s3.2), SSE with credentials, and GraphQL-over-WS.",
+   "overclaim_risk": "These are mostly dev tools and small apps, not hardened servers; class prevalence is high but impact is app-specific.",
+   "underclaim_risk": "Origin:null bypass in a mainstream framework shows even a deliberate allowlist is easy to get wrong; test vectors needed, not just a check."
+  },
+  {
+   "id": "r3e09.ws-upgrade-smuggling",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "Upgrade/101 desync: Pingora CVE-2026-2833 (critical), Netty CVE-2026-59898, Envoy CVE-2024-23326",
+   "summary": "Proxy switches to tunnel mode before the backend confirms 101, or the backend upgrades without proper headers, so the proxy keeps parsing HTTP while the backend speaks WebSocket (or the reverse). Pingora <0.8.0 forwarded bytes after an Upgrade request without waiting for 101: CVE-2026-2833 critical, 2026-03-05, GHSA-xq2h-p299-vjwv, fixed 0.8.0. Netty V07/V08 WebSocket handshaker accepted Sec-WebSocket-Version alone (GHSA-4mp9-239f-g9hg / CVE-2026-59898, 2026-07-22/29). Envoy CVE-2024-23326 accepted HTTP 200 as entering upgrade mode (2024-06-04). Origin research: 0ang3el websocket-smuggle (2019). Same advisory batch in Pingora: CVE-2026-2835 TE/HTTP1.0 smuggling (critical), CVE-2026-105299 Connection-nominated header ACL bypass (2026-10-20). RFC 9220 (June 2022) and RFC 8441 avoid Upgrade entirely via Extended CONNECT on h3/h2, so WS-over-h2/h3 removes the class on that leg but not on h1 upstreams.",
+   "urls": [
+    "https://github.com/cloudflare/pingora/security/advisories/GHSA-xq2h-p299-vjwv",
+    "https://osv.dev/vulnerability/CVE-2026-59898",
+    "https://osv.dev/vulnerability/CVE-2024-23326",
+    "https://www.rfc-editor.org/rfc/rfc9220.html",
+    "https://github.com/0ang3el/websocket-smuggle"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Invariant: a connection leaves HTTP-framed mode only after a validated 101 (status exactly 101, Connection and Upgrade tokens match request, Sec-WebSocket-Accept correct); pre-101 bytes after a request with Upgrade are buffered or rejected, never forwarded; h1 pipelining after Upgrade request is rejected. Handled once in the core's connection state machine; testable with a differential fuzz harness (see L5).",
+   "overclaim_risk": "Pingora is a proxy; for an origin server with no upstream the exposure is the handshake validator (Netty-class) not the forwarding class.",
+   "underclaim_risk": "A critical smuggling bug survived in the most-used Rust proxy until 2026-03, so 'Rust => no desync' is false."
+  },
+  {
+   "id": "r3e09.ws-deflate-and-frame-dos",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "permessage-deflate size check after inflate: 4 independent 2026 CVEs; Rust WS crates implement no deflate",
+   "summary": "Size limits enforced on the compressed frame or after full inflation are bypassed by compression bombs. OSV-verified 2026: undici CVE-2026-1526 (2026-03-12, PerMessageDeflate.decompress collects all chunks unbounded, CVSS 7.5), websocket-driver CVE-2026-54490 (2026-07-17, check read frame header), Autobahn Python CVE-2026-77528 (2026-09-18, check before inflate). libsoup CVE-2026-15709 appears in Red Hat/AWS feeds but did not resolve in OSV (E lead). PortSwigger (2025-09-17) reports a Java WS ping-of-death: inflated length field causes huge allocation. Rust: fastwebsockets lib.rs says 'permessage-deflate is not supported yet'; tungstenite parses the extension header but implements no compression, so the bomb class is absent by non-implementation. Frame/message defaults: tungstenite max_message 64 MiB, max_frame 16 MiB, max_write_buffer_size usize::MAX (no write backpressure bound by default); fastwebsockets max_message 64<<20. tungstenite RUSTSEC-2023-0065/CVE-2023-43669 (<=0.20.0, fixed 0.20.1, 2023-09-25) was handshake-header re-parse CPU DoS.",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-1526",
+    "https://osv.dev/vulnerability/CVE-2026-54490",
+    "https://osv.dev/vulnerability/CVE-2026-77528",
+    "https://rustsec.org/advisories/RUSTSEC-2023-0065.html",
+    "https://portswigger.net/research/websocket-turbo-intruder-nbsp-unearthing-the-websocket-goldmine",
+    "https://github.com/denoland/fastwebsockets/blob/main/src/lib.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Policy: do not ship permessage-deflate in the golden build (zero-code-when-unused). If ever enabled: inflate with an output cap = min(remaining message budget, per-connection memory budget), abort on exceed, ratio cap, and context-takeover off. Core sets max_message far below 64 MiB (e.g. 1 MiB) and bounds write buffer.",
+   "overclaim_risk": "Absence of deflate in Rust crates is not a safety proof; 64 MiB defaults times 10k connections is still a memory attack.",
+   "underclaim_risk": "Four unrelated libraries made the same ordering mistake in one year, so this is a systematic spec-trap, not a one-off."
+  },
+  {
+   "id": "r3e09.rust-ws-crate-scorecard",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "crate-scorecard",
+   "title": "Rust WebSocket crates: tungstenite/tokio-tungstenite vs fastwebsockets vs tokio-websockets",
+   "summary": "tungstenite 0.30.0 (2026-07-11, 363M dl, MIT/Apache, 6.3k LOC, 5 unsafe hits, cargo-fuzz dir present, 1 RUSTSEC 2023); tokio-tungstenite 0.30.0 (2026-07-11, 326M dl, MIT, 1.9k LOC, 0 unsafe, no fuzz dir, 0 advisories); fastwebsockets 0.10.0 (2026-01-01, 5.7M dl, Apache-2.0, 3.0k LOC, 1 live unsafe in mask.rs align_to_mut, fuzz dir present, 0 advisories, no Origin check, no deflate); tokio-websockets 0.13.3 (2026-06-25, 18M dl, MIT; not source-audited here); hyper-tungstenite 0.30.0. None is in OSS-Fuzz (projects dir has only hyperium/http and httparse for Rust HTTP). GitHub shows snapview/tungstenite-rs pushed 2026-10-23: maintained. Alternatives enumerated before choosing: tungstenite, fastwebsockets, tokio-websockets, axum's built-in ws (wraps tungstenite), writing a ~1k-LOC RFC 6455 codec in-house under Kani/Verus.",
+   "urls": [
+    "https://crates.io/crates/tungstenite",
+    "https://crates.io/crates/fastwebsockets",
+    "https://crates.io/crates/tokio-websockets",
+    "https://github.com/snapview/tungstenite-rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "A 3k-LOC frame codec with 1 unsafe site is the smallest option and is a plausible Kani/Verus target; tungstenite has the larger user base and 13 years of bug reports.",
+   "overclaim_risk": "Grep-count unsafe is not unsafe-audited; no runtime fuzz execution here.",
+   "underclaim_risk": "Low advisory counts partly reflect low scrutiny, not quality; tokio-tungstenite 0 advisories despite 326M downloads is still a strong signal."
+  },
+  {
+   "id": "r3e09.grpc-defect-classes",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "gRPC/Connect: path canonicalization authz bypass (grpc-go CVE-2026-33186 critical), DATA fragmentation OOM, stalled-body leak",
+   "summary": "Top 3 classes with ids. (1) Authorization on non-canonical routing identity: grpc-go CVE-2026-33186 (GHSA-p77j-4mvh-x3m3, critical, 2026-03-17): server routed ':path' without leading slash but authz interceptors (incl. official grpc/authz) matched the raw string, so deny rules were skipped; also CVE-2026-84303 (2026-08-19) xDS RBAC mixed-case header match bypass. (2) HTTP/2 framing resource exhaustion: grpc-go CVE-2026-84304 (2026-08-19, 1-byte DATA frames, heap OOM, fixed 1.83.1), h2 crate RUSTSEC-2026-0258/GHSA-q83h-524g-xf6h (2026-08-17, unbounded empty DATA frames, fixed 0.4.16), Pingora CVE-2026-105297 (2026-10-20, unlimited streams + 16 MiB header list defaults, 1 connection OOM-killed a 2 GiB process), Rapid Reset CVE-2023-44487 (grpc-go GHSA-m425-mq94-257g). (3) Stream lifecycle/accept-loop: tonic CVE-2024-47609 (0.12.0-0.12.2, accept loop exits, 2024-10-01), connect-rust GHSA-jx5x-3mcr-qp8r / RUSTSEC-2026-0304 (2026-09-21: finished streaming call keeps reading stalled body, 4 MiB buffer + task + stream held), @grpc/grpc-js CVE-2026-48068 (2026-07-14 unhandled stream error crash), grpc-go CVE-2026-84445 (xDS no :authority, 2026-09-14).",
+   "urls": [
+    "https://github.com/grpc/grpc-go/security/advisories/GHSA-p77j-4mvh-x3m3",
+    "https://github.com/grpc/grpc-go/security/advisories/GHSA-vp52-pcj8-j9qc",
+    "https://github.com/cloudflare/pingora/security/advisories/GHSA-7gpj-mj4q-x62x",
+    "https://github.com/connectrpc/connect-rust/security/advisories/GHSA-jx5x-3mcr-qp8r",
+    "https://github.com/hyperium/tonic/security/advisories/GHSA-4jwc-w2hc-78qv",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0304.html",
+    "https://osv.dev/vulnerability/CVE-2026-48068"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Core must expose one canonical route identity (RFC 3986 normalized, leading slash enforced, method+service+rpc split) and ALL policy engines consume only that value; raw :path is never visible to authz. Message-size, per-stream deadline, header-list and stream-count limits are core budgets (h2 level), message-count and decode-size are front-end hooks.",
+   "overclaim_risk": "grpc-go is Go; Rust analogue of the :path bug is not demonstrated, though hyper/tonic routing differentials are plausible.",
+   "underclaim_risk": "Class (1) is a spec-differential class that no budget or parser fuzz finds; it needs an explicit invariant."
+  },
+  {
+   "id": "r3e09.tonic-connect-crate-scorecard",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "crate-scorecard",
+   "title": "tonic 0.14.6 and connectrpc 0.9.1: advisories, unsafe, fuzz, defaults (tonic overrides hyper's 200-stream cap with unlimited)",
+   "summary": "tonic 0.14.6 (2026-05-07, 441M dl, MIT, 1 GHSA CVE-2024-47609, ~15 unsafe-word hits in src outside generated code (codec/buffer.rs 4, metadata 11), no fuzz dir, no OSS-Fuzz). connectrpc 0.9.1 (github connectrpc/connect-rust, crate created 2025-10-14, 2026-09-21, 8.8M dl, Apache-2.0, 0 unsafe, no fuzz dir, 1 advisory in its first year). Defaults read from source 2026-10-25: tonic DEFAULT_MAX_RECV_MESSAGE_SIZE 4 MiB, send unlimited; tonic Server stores max_concurrent_streams: Option<u32> = None and calls hyper builder.max_concurrent_streams(None) (transport/server/mod.rs:840) whereas hyper 1.x h2 server defaults to Some(200) and 16 KiB header list; tonic only applies header-list limit when set, so header list stays at hyper's 16 KiB but stream concurrency becomes unlimited (source-read, not runtime-verified: spike). Same shape as Pingora CVE-2026-105297, which was exactly 'defaults unbounded'. Alternatives enumerated: tonic, connect-rust, grpc-rs (C core), hand-rolled gRPC framing over hyper (5-byte length-prefixed message, ~300 LOC), grpc-web via tonic-web.",
+   "urls": [
+    "https://crates.io/crates/tonic",
+    "https://crates.io/crates/connectrpc",
+    "https://github.com/connectrpc/connect-rust",
+    "https://github.com/hyperium/tonic/blob/master/tonic/src/transport/server/mod.rs",
+    "https://raw.githubusercontent.com/hyperium/hyper/master/src/proto/h2/server.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Pin tonic with explicit max_concurrent_streams, http2_max_header_list_size, max_decoding_message_size, per-RPC timeout; or terminate h2 in the core and feed tonic's service via tower so limits are the core's, not tonic's. CI check: assert effective SETTINGS via an h2 client test.",
+   "overclaim_risk": "Source-read of defaults; tonic may set the cap elsewhere (e.g. via a layer) - unconfirmed at runtime.",
+   "underclaim_risk": "tonic's 441M downloads and one advisory is real maturity; the finding is about defaults not code quality."
+  },
+  {
+   "id": "r3e09.graphql-defect-classes",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "GraphQL: validation-rule quadratic cost, directive/alias/batch amplification, CSRF via GET or loose Content-Type, CSWSH",
+   "summary": "Classes with ids. (1) Cost amplification through validation or execution that depth/complexity limits do not cover: graphql-php CVE-2026-40476 / GHSA-68jq-c3rv-pcrr (2026-04-17, OverlappingFieldsCanBeMerged quadratic, existing QueryDepth/QueryComplexity rules do not mitigate, fixed 15.31.5); async-graphql CVE-2024-47614 / GHSA-5gc2-7c65-8fq8 (2024-10-02, directive overload, high, fixed 7.0.10, mitigation limit_directives); async-graphql CVE-2022-31173 + juniper RUSTSEC-2022-0038 (2022-07, nested fragments overflow). (2) Request-level bypass: Apollo Server CVE-2026-23897 (2026-02-04, charset body DoS, high 7.5). (3) Cross-origin: Spring for GraphQL CVE-2026-41700 (2026-06-11) CSWSH over graphql-ws. Spec: GraphQL-over-HTTP draft: GET MUST NOT execute mutations (405), POST MUST support application/json, missing Content-Type SHOULD be 4xx (415), warns urlencoded/multipart are simple requests with no preflight. IBM cost spec (Draft, c 2021): @cost(weight: String!), @listSize(assumedSize, slicingArguments, sizedFields, requireOneSlicingArgument=true), default weight 0 scalars/enums and 1.0 composites, abstract types use max member, negative field cost rounds to 0; Apollo router implements an Int-weight variant (demand control). Introspection and field suggestions are information leakage controls, not DoS controls.",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-40476",
+    "https://github.com/async-graphql/async-graphql/security/advisories/GHSA-5gc2-7c65-8fq8",
+    "https://osv.dev/vulnerability/CVE-2026-23897",
+    "https://osv.dev/vulnerability/CVE-2026-41700",
+    "http://http-spec.graphql.org/draft/",
+    "https://ibm.github.io/graphql-specs/cost-spec.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "GraphQL needs a body-semantic admission stage (parse, validate, static cost via IBM cost model) that cannot be done by byte/frame budgets, so it is per-front-end logic, but its output is one number charged to the core's per-principal cost budget.",
+   "overclaim_risk": "IBM spec is a 2021 draft, not a standard; Apollo/graphql-js adoption of @listSize semantics is partial.",
+   "underclaim_risk": "Parser/validator quadratics are invisible to depth and complexity caps; that is the part cost limits underclaim."
+  },
+  {
+   "id": "r3e09.async-graphql-defaults-audit",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "finding",
+   "title": "async-graphql 7.2.1 source audit: every cost limit defaults to None; any Content-Type parsed as JSON; no GET-mutation guard; body read_to_end uncapped",
+   "summary": "Read from HEAD (pushed 2026-04-21): Schema defaults complexity None, depth None, max_directives None, max_aliases None, recursive_depth 32 (schema.rs:395-410). http/mod.rs receive_batch_body: with no Content-Type it assumes application/graphql-response+json, and every non-multipart type falls through to serde_json parse - so text/plain (a CORS simple request) is accepted, contrary to GraphQL-over-HTTP 'SHOULD reject'. integrations/axum extract.rs line 100 serves GET by parsing the query string; grep over src/ and integrations/axum finds no mutation-over-GET rejection (spec: MUST NOT). receive_batch_json does body.read_to_end into a Vec with no cap (axum DefaultBodyLimit applicability unverified). 0 unsafe, forbid(unsafe_code) in 10 files, parser has a cargo-fuzz dir, 2 GHSAs. This is a library-default finding, not a CVE.",
+   "urls": [
+    "https://github.com/async-graphql/async-graphql",
+    "http://http-spec.graphql.org/draft/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "specifics": "Wrap async-graphql behind the core: core enforces Content-Type allowlist (application/json, application/graphql-response+json), 415 otherwise; method policy (GET only for queries, reject mutation text, require custom header or JSON content-type for preflight); body cap before the library sees bytes; set limit_depth/limit_complexity/limit_aliases/limit_directives explicitly.",
+   "overclaim_risk": "Static read only; not executed; the axum DefaultBodyLimit or a tower layer could bound body size and some checks may live in the core engine outside my grep.",
+   "underclaim_risk": "Defaults-open libraries are normal; the point is that the core, not the library, must hold these policies."
+  },
+  {
+   "id": "r3e09.webtransport-defect-classes",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "WebTransport: capsule/stream lifecycle memory DoS, withheld flow-control credit, datagram cap bypass in the QUIC layer",
+   "summary": "webtransport-go (quic-go) 2026: CVE-2026-21434 oversized WT_CLOSE_SESSION error message (2026-02-12), CVE-2026-21435 withheld flow-control credit blocks CloseWithError forever, CVE-2026-21438 closed streams never removed from session map, CVE-2026-57497 (2026-07-23, GHSA-g35j-m5xg-vh3q) unknown capsules fully buffered; Socket.IO CVE-2026-59724 (2026-07-08) crafted session id crashes Engine.IO WebTransport. Rust substrate quinn: 13 GHSAs, 11 in 2026 (first 2026-03-09), including GHSA-2hv7-gw8g-gpq5 (2026-08-17, zero-length DATAGRAM frames bypass datagram_receive_buffer_size), GHSA-4w2j-m93h-cj5j (2026-06-22, out-of-order stream reassembly memory, bypassed again by GHSA-qfwj-vfxf-92j2), GHSA-53rm-773f-4q8c (2026-09-30, MAX_STREAM_DATA opens streams over limit); quiche 9 GHSAs incl CVE-2026-12523 (H3/QPACK, 2026-07-14). Spec: draft-ietf-webtrans-http3-16 (2026-07-06, in WGLC, expires 2027-01-07): no numeric session cap; servers SHOULD rate-limit sessions; MUST limit buffered streams/datagrams; SETTINGS_WT_INITIAL_MAX_{STREAMS_UNI,STREAMS_BIDI,DATA}; Origin MUST be verified for browser sessions. Rust candidates: wtransport 0.7.2 (2026-08-11, 1.06M dl, 11 unsafe hits mostly varint/bytes, no fuzz dir, 0 advisories, rides quinn) and h3-webtransport 0.1.2 + h3 0.0.8 (both 2025-05-06, stale 17 months; h3 has a fuzz dir, 1 unsafe). 0 advisories on wtransport reflects low scrutiny plus quinn inheriting the findings.",
+   "urls": [
+    "https://github.com/quic-go/webtransport-go/security/advisories/GHSA-g35j-m5xg-vh3q",
+    "https://osv.dev/vulnerability/CVE-2026-21435",
+    "https://github.com/quinn-rs/quinn/security/advisories/GHSA-2hv7-gw8g-gpq5",
+    "https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/",
+    "https://crates.io/crates/wtransport",
+    "https://crates.io/crates/h3-webtransport"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "WebTransport is the front end that most strains one core: it is multi-stream + datagram + capsule over a QUIC connection shared across sessions, so budgets must be hierarchical (connection > session > stream/datagram) and datagram queue must be a drop-oldest bounded ring with byte accounting that counts zero-length frames as nonzero cost.",
+   "overclaim_risk": "Go-library CVEs do not transfer to Rust; quinn findings affect plain h3 equally.",
+   "underclaim_risk": "Standard is unfinished (draft-16), so freezing a WebTransport interface in the golden is premature; conservative to leave it out of v1."
+  },
+  {
+   "id": "r3e09.webhook-defect-classes",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "Webhooks: missing signature checks, timing-unsafe compare, replay windows, and SSRF with DNS-rebinding TOCTOU on delivery",
+   "summary": "Inbound (receiver): missing verification: n8n CVE-2026-56357 (GitHub trigger, 2026-06-22) and CVE-2026-56360 (Zendesk, 2026-07-08), OneUptime CVE-2026-33143 (2026-03-20); timing-unsafe compare: pay-rails CVE-2026-70658 (2026-09-14, Ruby == on HMAC, fixed 11.6.2). Replay: GitHub's validation doc has no timestamp or nonce at all (X-Hub-Signature-256 only); Stripe signs t.payload, default tolerance 300 s, 'tolerance 0 disables recency check', retries get fresh timestamp+signature for up to 3 days so event-id dedup is the real replay control; Standard Webhooks signs msg_id.timestamp.payload (HMAC-SHA256 v1 / ed25519 v1a), recommends tolerance and id dedup (e.g. 5 min in Redis). Outbound (callback registration, an egress concern the ingress core must not forget): validate-at-registration then re-resolve-at-delivery TOCTOU: PraisonAI CVE-2026-57114 (2026-10-23), Firefly III CVE-2026-71250 (2026-08-05), Plane CVE-2026-104973 (2026-10-05, a fix-of-fix of CVE-2026-30242), Gogs CVE-2026-47267 (redirects to 169.254.169.254), Postiz CVE-2026-34590 (only create endpoint validated), CVE-2026-72761 (NAT64/6to4/Teredo pass an is_global check). Rust: standardwebhooks crate 1.0.1 (2024-03-04, 92k dl, forbid(unsafe), 349 LOC, manual constant-time compare, 300 s tolerance, requires UTF-8 payload, verify() has no id dedup) vs svix 2.9.0 (2026-10-23).",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-70658",
+    "https://osv.dev/vulnerability/CVE-2026-56357",
+    "https://osv.dev/vulnerability/CVE-2026-104973",
+    "https://osv.dev/vulnerability/CVE-2026-72761",
+    "https://docs.stripe.com/webhooks",
+    "https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries",
+    "https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md",
+    "https://crates.io/crates/standardwebhooks"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Webhooks break 'normalize first': signature is over RAW bytes, so the core must hand the verifier the untouched body (Stripe: 'any manipulation causes failure'; GitHub: proxies must not modify). Verification is a per-route, per-provider module with core-supplied primitives: raw-body capture with size cap, constant-time compare (subtle), replay store (id dedup TTL >= tolerance and >= provider retry horizon), egress guard. The 349-LOC crate is small enough to vendor and prove.",
+   "overclaim_risk": "Most webhook CVEs are in apps, not servers; a server can only supply primitives, not make apps call them.",
+   "underclaim_risk": "SSRF-at-delivery sits outside ingress but is the highest-count webhook CVE class in 2026 and a server that offers a 'register callback' API inherits it."
+  },
+  {
+   "id": "r3e09.sse-defect-classes",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "SSE: parser-side CVEs are client-side; server-side risk is a budget class (connection count, retry storms) with no CVE stream",
+   "summary": "2026 SSE CVEs found are client parsers: MCP PHP SDK CVE-2026-53965 (2026-08-25, unbounded buffer until delimiter), httpx2 CVE-2026-84378 (2026-09-02, quadratic line buffering), Spring CVE-2026-47890 (stream corruption). No server-side connection-exhaustion CVE surfaced, consistent with it being a configuration-budget class rather than a parser bug. WHATWG SSE: no numeric per-origin connection cap, default reconnect 'a few seconds', server controls reconnect via retry: field (ms) and Last-Event-ID: a server that emits small retry values or resumes expensive replays creates its own reconnect storm; HTTP/1.1 browsers limit ~6 connections/origin, h2 multiplexes so 1 connection holds many streams. Relevant to MCP streamable HTTP, which uses SSE.",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-53965",
+    "https://osv.dev/vulnerability/CVE-2026-84378",
+    "https://html.spec.whatwg.org/multipage/server-sent-events.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Core budgets: max concurrent streams per principal and per IP, idle/keepalive timer with comment pings, max replay window for Last-Event-ID, jittered server-enforced minimum retry:, write-side backpressure with disconnect on slow reader. These are the same budget primitives as WebSocket; no front-end-specific parser.",
+   "overclaim_risk": "Absence of server CVEs is absence of evidence from search aggregators.",
+   "underclaim_risk": "Reconnect storms are a design property under agent swarms; no CVE does not mean low risk."
+  },
+  {
+   "id": "r3e09.l4-proxy-protocol-udp",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "threat",
+   "title": "TCP/UDP stream proxy: PROXY-protocol spoofing CVEs (3 in 2026) and QUIC/UDP amplification accounting bugs",
+   "summary": "PROXY protocol: Puma CVE-2026-47737 (2026-07-14, repeated PROXY v1 headers on keep-alive overwrite client address), Netty codec CVE-2026-59919 (2026-07-29, CRLF injection via AF_UNIX address), ProxySQL CVE-2026-48772 (2026-06-19, v1 UNKNOWN frame parsed, spoofed address defeats ACL; default trusted networks '*'). Spec (haproxy proxy-protocol.txt): receiver MUST NOT guess whether header is present, MUST NOT process connection before a complete valid header, only trusted proxies allowed, v1 max 107 bytes, malformed => abort, suggested header timeout >=3 s; senders on multiplexed connections must not use it. Rust: ppp 2.3.0 (2025-02-14, 3.6M dl), proxy-protocol-codec 0.3.1 (2026-03-27, 74k dl). UDP amplification: Netty QUIC CVE-2026-44894 (2026-06-12, default token handler marks every address validated), OpenSSL QUIC CVE-2026-35191 (2026-09-29, coalesced packets overcount 3x credit when address validation disabled). Envoy threat model: tcp_proxy and udp_proxy are 'robust_to_untrusted_downstream' only (upstream assumed trusted), contrib extensions not covered, unsafe defaults are out of scope, and DoS counts only at >=100x the configured limit.",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-47737",
+    "https://osv.dev/vulnerability/CVE-2026-59919",
+    "https://osv.dev/vulnerability/CVE-2026-48772",
+    "https://osv.dev/vulnerability/CVE-2026-44894",
+    "https://osv.dev/vulnerability/CVE-2026-35191",
+    "https://www.haproxy.org/download/3.0/doc/proxy-protocol.txt",
+    "https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/threat_model"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L4 proxy sits below the HTTP normalization core: it has no request, no origin, no content-type. It can only enforce connection-level budgets, TLS/SNI policy, PROXY-header trust (explicit CIDR allowlist, once per connection, strict v1/v2 parser, UNKNOWN => real addr), and UDP anti-amplification (3x until validated; stateless retry). It should be a separate feature crate with its own TCB line, not part of the HTTP core.",
+   "overclaim_risk": "Servers in this slot may not need TCP/UDP proxying in v1; threat evidence is for the module if built.",
+   "underclaim_risk": "Envoy's own posture says L4 modules are hardened one-way only; a 'same core' claim for L4 would overclaim."
+  },
+  {
+   "id": "r3e09.ossfuzz-negative",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "finding",
+   "title": "Fuzzing status: OSS-Fuzz covers only hyperium/http and httparse among these Rust ingress crates",
+   "summary": "google/oss-fuzz projects/ (2026-10-25): hyperium (builds the http crate fuzz_http, address sanitizer, libfuzzer), httparse; no entries for tungstenite, tokio-tungstenite, fastwebsockets, tonic, h2, hyper, quinn, wtransport, async-graphql, connect-rust, standardwebhooks. 'h3' in OSS-Fuzz is uber/h3 (geospatial), NOT hyperium/h3. In-repo cargo-fuzz dirs: tungstenite, fastwebsockets, h3, async-graphql parser; none in tonic, connect-rust, wtransport, tokio-tungstenite. Non-Rust differential oracles exist in OSS-Fuzz: graphql-java, grpc-go, grpc-py, grpc-swift, libwebsockets, grpc-gateway. Implication: every one of these crates' 2026 advisory waves (quinn 11 in 2026, h2 RUSTSEC-2026-0258) were found outside continuous fuzzing, consistent with stateful/DoS bugs being poorly covered by byte-level fuzz.",
+   "urls": [
+    "https://github.com/google/oss-fuzz/tree/master/projects",
+    "https://raw.githubusercontent.com/google/oss-fuzz/master/projects/hyperium/project.yaml"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "Own fuzz/differential harnesses are required for the golden's chosen front ends; do not assume upstream fuzzing.",
+   "overclaim_risk": "Fuzz dirs in repos may be run by maintainers in CI privately; not verified.",
+   "underclaim_risk": "OSS-Fuzz absence is a coverage gap, not evidence the code is unfuzzed."
+  },
+  {
+   "id": "r3e09.core-vs-per-frontend-matrix",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "analysis",
+   "title": "Which failure classes the normalization core handles once vs per front end",
+   "summary": "Core once (byte/frame/time/identity primitives): connection and stream-count caps; per-principal memory/CPU budgets; header-list/frame/message byte caps (including post-inflate); slow-reader/idle timers; Origin typed check; canonical route identity; Upgrade state machine (101 gate); PROXY-header trust; UDP amplification 3x; Content-Type allowlist and method safety policy. Per front end (body-semantic): GraphQL static cost (IBM model), alias/directive/batch counts; gRPC message framing, per-message decode size and deadline propagation (grpc-timeout header, max 8 digits); webhook raw-body signature + replay store + provider schema; WebTransport capsule and datagram queue semantics; SSE replay window; WebSocket subprotocol and per-message authz (CSWSH covers handshake only; per-message authz is app-level). Evidence: of roughly 45 distinct CVE/GHSA ids in the sibling nodes, about two thirds are core-class (resource, desync, origin, identity) and one third body-semantic.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Counting is by the author from the ids in sibling nodes; classification is judgment.",
+   "overclaim_risk": "Classification is my own, n=~40 distinct ids across the 12 sibling nodes; not a statistical result.",
+   "underclaim_risk": "Per-front-end logic is smaller than feared because it outputs a scalar charged to a core budget."
+  },
+  {
+   "id": "r3e09.ring1-verdict-amendment",
+   "layer": "L3",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "decision",
+   "title": "R-ING-1 amendment: the one-core verdict survives for the HTTP family only if split into an L4 connection core and an L7 exchange core; stream proxy is outside it",
+   "summary": "Verdict test per front end: WebSocket, SSE, gRPC/Connect, GraphQL and webhooks all arrive as HTTP exchanges (h1 Upgrade or h2/h3 Extended CONNECT or POST), so one normalized exchange model works for them (consistent with w02.ingress-design-verdict, which rested on indirect evidence; this adds failure-class evidence). Three things break the naive 'normalized Request' core: (a) long-lived multi-message exchanges (WS, gRPC streaming, SSE, WebTransport) need budgets per message and per lifetime, so the core object must be an Exchange with a frame/message stream, not a Request; (b) TCP/UDP proxying has no HTTP semantics and Envoy classifies it as downstream-hardened only, so it must be a separate module beneath the L7 core; (c) webhook signatures need raw bytes, so normalization must be non-destructive (retain raw body with cap) and be skippable. Strongest strain: WebTransport (hierarchical connection/session/stream/datagram budgets over a draft-stage spec). Recommended: keep one core; defer WebTransport and UDP proxying out of the golden v1; gate every other front end as a cargo feature.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Reversal condition: if a front end needs to bypass or reorder the core's budget accounting (e.g. gRPC deadline propagation needing end-to-end semantics) the core API must grow a hook, and if >2 hooks per front end appear, per-protocol stacks win.",
+   "overclaim_risk": "Judgment from failure-class evidence, not from building it; gate score 0.41 means this overlaps w02 and is an extension.",
+   "underclaim_risk": "I found no evidence that per-protocol stacks lower risk; each stack re-implements the same budgets (Pingora's 2026 batch shows even the shared core had defaults bugs)."
+  },
+  {
+   "id": "r3e09.L5-per-frontend-budget-table",
+   "layer": "L5",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "artifact",
+   "title": "L5: per-front-end budget table with pins, config keys, defaults and CI assertions",
+   "summary": "BUDGET TABLE (golden v1 proposal; all numbers are proposals to be tuned by BENCH_PLAN, not measurements). Core (L4 conn): max_conns_global, max_conns_per_ip=256, header_read_timeout=10 s, idle=60 s, PROXY header trust = explicit CIDR list, empty by default. H2/H3: max_concurrent_streams<=100 (hyper default 200), max_header_list_size=16 KiB (hyper default; Pingora learned 16 MiB is wrong), max_local_error_reset_streams=1024, empty-DATA-frame cap per RFC (h2>=0.4.16). WebSocket (tungstenite 0.30.x or fastwebsockets 0.10.x, no deflate): max_message=1 MiB, max_frame=64 KiB, max_write_buffer<=4x max_message, Origin allowlist required (deny null), ping interval 30 s, close on 2 missed pongs, per-conn message rate token bucket. SSE: max_streams_per_principal=8, keepalive comment 15 s, replay window 1000 events, retry>=3000 ms with jitter. gRPC/Connect (tonic 0.14.6 or connectrpc 0.9.x): max_decoding_message_size=1 MiB (tonic default 4 MiB), explicit max_concurrent_streams, grpc-timeout upper bound 30 s default, canonical-path authz only. GraphQL (async-graphql 7.2.1 behind core): body<=64 KiB, depth<=12, complexity per IBM cost <=1000, aliases<=15, directives<=10, batch<=1, introspection off in prod, POST application/json only. Webhook receiver (standardwebhooks 1.0.1 vendored): raw body<=1 MiB, tolerance 300 s, id dedup TTL>=max(tolerance, provider retry horizon), constant-time compare via subtle, secrets rotation list>=2. WebTransport: out of golden v1; if built: sessions<=4/conn, datagram queue<=64 KiB drop-oldest, zero-length frames cost>=1, Origin MUST. UDP/TCP stream: separate crate, off by default.",
+   "urls": [
+    "https://crates.io/crates/tonic",
+    "https://crates.io/crates/tungstenite",
+    "https://crates.io/crates/async-graphql",
+    "https://crates.io/crates/standardwebhooks"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "CI gate: a test boots the server with default config and asserts effective limits via an h2 client (SETTINGS frame), WS oversize close code 1009, GraphQL over-limit 4xx, webhook replay rejection. Fail build if any limit is None/unbounded in the effective config dump.",
+   "overclaim_risk": "Numbers are untested proposals; bad values would cause false rejections of legitimate agent traffic.",
+   "underclaim_risk": "Defaults-as-bugs record (Pingora CVE-2026-105297, tonic stream cap, async-graphql None limits) justifies a fail-closed config."
+  },
+  {
+   "id": "r3e09.L5-ingress-conformance-harness",
+   "layer": "L5",
+   "domain": "W-TRANSPORT/ingress",
+   "type": "artifact",
+   "title": "L5: ingress conformance and fuzz harness spec (differential oracles and acceptance criteria)",
+   "summary": "Harness per class with oracle: (1) CSWSH matrix: Origin absent/null/foreign/case-variant/trailing-dot/port-variant x cookie present/absent x route allowlist; acceptance: only listed origins upgrade. (2) Upgrade desync: send 'GET + Upgrade' followed immediately by a second pipelined request and by garbage, with backend replying 200/400/101/101-with-wrong-Accept; acceptance: no byte forwarded pre-101, differential vs hyper and Pingora 0.9. (3) Deflate: not negotiated; Sec-WebSocket-Extensions: permessage-deflate must be ignored or declined (test returns no extension); if enabled later, 1 KiB bomb expanding to 1 GiB must close 1009 within 10 ms and RSS delta <1 MiB. (4) gRPC: :path without leading slash, double slash, percent-encoded, and case variants must either 404 or canonicalize before authz; 1-byte DATA frame flood of 10^6 frames per stream must hold RSS under budget (regression for CVE-2026-84304 and RUSTSEC-2026-0258). (5) GraphQL: text/plain POST => 415; GET mutation => 405; 10k aliases => reject; OverlappingFieldsCanBeMerged 10k repeats => reject in <50 ms. (6) Webhook: replay within tolerance rejected via id store; tolerance 0 rejected at config load; non-constant-time compare detected by lint (clippy disallowed-methods on ==). (7) PROXY: two v1 headers on keep-alive, UNKNOWN with fields, CRLF in AF_UNIX path, header from untrusted peer. Tooling: cargo-fuzz targets per codec + the tungstenite/fastwebsockets fuzz dirs as seeds; one Docker-free Rust test crate; run under heavy.sh. Acceptance: all classes green; every CVE id cited here has a named regression test.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Test list derived from CVEs; unknown-unknown classes need continued fuzzing.",
+   "underclaim_risk": ""
+  }
+ ],
+ "sources": [
+  "https://api.github.com/repos/{hyperium/tonic,async-graphql/async-graphql,graphql-rust/juniper,connectrpc/connect-rust,cloudflare/pingora,quinn-rs/quinn,cloudflare/quiche,grpc/grpc-go,quic-go/webtransport-go,hyperium/hyper}/security-advisories",
+  "https://api.osv.dev/v1/query (crates.io per package) and /v1/vulns/{id} for 40+ ids",
+  "https://crates.io/api/v1/crates/{19 crates}",
+  "https://github.com/snapview/tungstenite-rs, denoland/fastwebsockets, hyperium/tonic, async-graphql/async-graphql, BiagioFesta/wtransport, hyperium/h3, connectrpc/connect-rust, standard-webhooks/standard-webhooks (shallow clones, source read)",
+  "https://ibm.github.io/graphql-specs/cost-spec.html",
+  "http://http-spec.graphql.org/draft/",
+  "https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/",
+  "https://www.rfc-editor.org/rfc/rfc9220.html",
+  "https://www.rfc-editor.org/rfc/rfc6455.html",
+  "https://www.haproxy.org/download/3.0/doc/proxy-protocol.txt",
+  "https://html.spec.whatwg.org/multipage/server-sent-events.html",
+  "https://docs.stripe.com/webhooks",
+  "https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries",
+  "https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/threat_model",
+  "https://portswigger.net/research/websocket-turbo-intruder-nbsp-unearthing-the-websocket-goldmine",
+  "https://github.com/0ang3el/websocket-smuggle (search result, not fetched)",
+  "https://raw.githubusercontent.com/google/oss-fuzz/master/projects/{hyperium,httparse,h3}/project.yaml",
+  "https://raw.githubusercontent.com/hyperium/hyper/master/src/proto/h2/server.rs",
+  "web searches: CSWSH CVEs, Upgrade smuggling, permessage-deflate, webhook signature/SSRF, PROXY protocol, GraphQL DoS, gRPC DoS, WebTransport, SSE, QUIC amplification"
+ ],
+ "progress_file": "/home/patrickd/aegis/research/state/raw/round-003/09-ingress-nonhttp-frontends-defect-classes.progress.md",
+ "edges": [
+  {
+   "src": "r3e09.ws-upgrade-smuggling",
+   "dst": "threat-request-smuggling-desync",
+   "type": "extends",
+   "note": "Upgrade-mode desync instances 2024-26"
+  },
+  {
+   "src": "r3e09.ws-upgrade-smuggling",
+   "dst": "gap.pingora",
+   "type": "cve",
+   "note": "CVE-2026-2833/2835/105297/105299"
+  },
+  {
+   "src": "r3e09.ws-deflate-and-frame-dos",
+   "dst": "threat-decompression-parser-complexity",
+   "type": "extends",
+   "note": "post-inflate ordering bug x4"
+  },
+  {
+   "src": "r3e09.grpc-defect-classes",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "extends",
+   "note": "grpc-go 84304, h2 RUSTSEC-2026-0258"
+  },
+  {
+   "src": "r3e09.grpc-defect-classes",
+   "dst": "crate-hyper-h2",
+   "type": "depends_on",
+   "note": "tonic rides hyper/h2"
+  },
+  {
+   "src": "r3e09.tonic-connect-crate-scorecard",
+   "dst": "crate-hyper-h2",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e09.webtransport-defect-classes",
+   "dst": "crate-quinn",
+   "type": "depends_on",
+   "note": "wtransport on quinn; 13 GHSA"
+  },
+  {
+   "src": "r3e09.webtransport-defect-classes",
+   "dst": "rec60-quinn-advisory-wave",
+   "type": "extends",
+   "note": "datagram-cap bypass GHSA-2hv7"
+  },
+  {
+   "src": "r3e09.webtransport-defect-classes",
+   "dst": "crate-quiche",
+   "type": "related",
+   "note": "9 GHSA"
+  },
+  {
+   "src": "r3e09.core-vs-per-frontend-matrix",
+   "dst": "w02.ingress-design-verdict",
+   "type": "extends",
+   "note": "failure-class evidence for R-ING-1"
+  },
+  {
+   "src": "r3e09.ring1-verdict-amendment",
+   "dst": "w02.ingress-design-verdict",
+   "type": "refines",
+   "note": "Exchange model; L4 split; defer WebTransport/UDP"
+  },
+  {
+   "src": "r3e09.ring1-verdict-amendment",
+   "dst": "w02.L5-feature-gate-rule",
+   "type": "depends_on",
+   "note": "each front end a cargo feature"
+  },
+  {
+   "src": "r3e09.l4-proxy-protocol-udp",
+   "dst": "r3e09.ring1-verdict-amendment",
+   "type": "conflicts_with",
+   "note": "L4 proxy cannot share L7 normalization"
+  },
+  {
+   "src": "r3e09.async-graphql-defaults-audit",
+   "dst": "r3e09.graphql-defect-classes",
+   "type": "extends",
+   "note": "library defaults"
+  },
+  {
+   "src": "r3e09.rust-ws-crate-scorecard",
+   "dst": "r3e09.ws-cswsh-origin",
+   "type": "related",
+   "note": "no Origin check in crates"
+  },
+  {
+   "src": "r3e09.webhook-defect-classes",
+   "dst": "r3e09.ring1-verdict-amendment",
+   "type": "conflicts_with",
+   "note": "raw-body requirement vs normalization"
+  },
+  {
+   "src": "r3e09.L5-per-frontend-budget-table",
+   "dst": "r3e09.core-vs-per-frontend-matrix",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e09.L5-ingress-conformance-harness",
+   "dst": "r3e09.L5-per-frontend-budget-table",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e09.ossfuzz-negative",
+   "dst": "r3e09.L5-ingress-conformance-harness",
+   "type": "fills_gap",
+   "note": "own harness needed"
+  },
+  {
+   "src": "r3e09.sse-defect-classes",
+   "dst": "r3e09.core-vs-per-frontend-matrix",
+   "type": "related",
+   "note": "pure budget class"
+  },
+  {
+   "src": "r3e09.L5-per-frontend-budget-table",
+   "dst": "w02.L5-lean-budget",
+   "type": "related",
+   "note": "size budget unchanged by features off"
+  }
+ ]
+}

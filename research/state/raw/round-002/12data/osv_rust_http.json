@@ -1,0 +1,1170 @@
+[
+ {
+  "pkg": "hyper",
+  "id": "GHSA-5h46-h7hh-c6x9",
+  "published": "2021-07-12",
+  "summary": "Integer Overflow in Chunked Transfer-Encoding",
+  "aliases": [
+   "CVE-2021-32714",
+   "RUSTSEC-2021-0079"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-6hfq-h8hq-87mf",
+  "published": "2021-08-25",
+  "summary": "HTTP Request Smuggling in hyper",
+  "aliases": [
+   "CVE-2021-21299",
+   "RUSTSEC-2021-0020"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-9xjr-m6f3-v5wm",
+  "published": "2021-08-25",
+  "summary": "HTTPS MitM vulnerability due to lack of hostname verification",
+  "aliases": [
+   "CVE-2016-10932",
+   "RUSTSEC-2016-0002"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-f3pg-qwvg-p99c",
+  "published": "2021-07-12",
+  "summary": "Lenient Parsing of Content-Length Header When Prefixed with Plus Sign",
+  "aliases": [
+   "CVE-2021-32715",
+   "RUSTSEC-2021-0078"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-f67m-9j94-qv9j",
+  "published": "2022-06-16",
+  "summary": "Parser creates invalid uninitialized value",
+  "aliases": [
+   "RUSTSEC-2022-0022"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-h3qr-rq2j-74w4",
+  "published": "2021-08-25",
+  "summary": "HTTP Request Smuggling in hyper",
+  "aliases": [
+   "CVE-2020-35863",
+   "RUSTSEC-2020-0008"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "GHSA-q89x-f52w-6hj2",
+  "published": "2021-08-25",
+  "summary": "Headers containing newline characters can split messages in hyper",
+  "aliases": [
+   "CVE-2017-18587",
+   "RUSTSEC-2017-0002"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2016-0002",
+  "published": "2016-05-09",
+  "summary": "HTTPS MitM vulnerability due to lack of hostname verification",
+  "aliases": [
+   "CVE-2016-10932",
+   "GHSA-9xjr-m6f3-v5wm"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2017-0002",
+  "published": "2017-01-23",
+  "summary": "headers containing newline characters can split messages",
+  "aliases": [
+   "CVE-2017-18587",
+   "GHSA-q89x-f52w-6hj2"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2020-0008",
+  "published": "2020-03-19",
+  "summary": "Flaw in hyper allows request smuggling by sending a body in GET requests",
+  "aliases": [
+   "CVE-2020-35863",
+   "GHSA-h3qr-rq2j-74w4"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2021-0020",
+  "published": "2021-02-05",
+  "summary": "Multiple Transfer-Encoding headers misinterprets request payload",
+  "aliases": [
+   "CVE-2021-21299",
+   "GHSA-6hfq-h8hq-87mf"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2021-0078",
+  "published": "2021-07-07",
+  "summary": "Lenient `hyper` header parsing of `Content-Length` could allow request smuggling",
+  "aliases": [
+   "CVE-2021-32715",
+   "GHSA-f3pg-qwvg-p99c"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2021-0079",
+  "published": "2021-07-07",
+  "summary": "Integer overflow in `hyper`'s parsing of the `Transfer-Encoding` header leads to data loss",
+  "aliases": [
+   "CVE-2021-32714",
+   "GHSA-5h46-h7hh-c6x9"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hyper",
+  "id": "RUSTSEC-2022-0022",
+  "published": "2022-05-10",
+  "summary": "Parser creates invalid uninitialized value",
+  "aliases": [
+   "GHSA-f67m-9j94-qv9j"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "GHSA-8r5v-vm4m-4g25",
+  "published": "2024-01-19",
+  "summary": "Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)",
+  "aliases": [
+   "RUSTSEC-2024-0003"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "GHSA-f8vr-r385-rh5r",
+  "published": "2023-04-11",
+  "summary": "h2 vulnerable to denial of service",
+  "aliases": [
+   "CVE-2023-26964",
+   "RUSTSEC-2023-0034"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "GHSA-q6cp-qfwq-4gcv",
+  "published": "2024-04-05",
+  "summary": "h2 servers vulnerable to degradation of service with CONTINUATION Flood",
+  "aliases": [
+   "RUSTSEC-2024-0332"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "RUSTSEC-2023-0034",
+  "published": "2023-04-14",
+  "summary": "Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)",
+  "aliases": [
+   "CVE-2023-26964",
+   "GHSA-f8vr-r385-rh5r"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "RUSTSEC-2024-0003",
+  "published": "2024-01-17",
+  "summary": "Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)",
+  "aliases": [
+   "GHSA-8r5v-vm4m-4g25"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "RUSTSEC-2024-0332",
+  "published": "2024-04-03",
+  "summary": "Degradation of service in h2 servers with CONTINUATION Flood",
+  "aliases": [
+   "GHSA-q6cp-qfwq-4gcv"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "h2",
+  "id": "RUSTSEC-2026-0258",
+  "published": "2026-08-17",
+  "summary": "h2 unbounded empty DATA frames",
+  "aliases": [
+   "GHSA-q83h-524g-xf6h"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "GHSA-4w2j-m93h-cj5j",
+  "published": "2026-07-24",
+  "summary": "Quinn: Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly",
+  "aliases": [
+   "CVE-2026-25800",
+   "RUSTSEC-2026-0185"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "GHSA-6xvm-j4wr-6v98",
+  "published": "2026-03-11",
+  "summary": "Quinn affected by unauthenticated remote DoS via panic in QUIC transport parameter parsing",
+  "aliases": [
+   "CVE-2026-31812",
+   "RUSTSEC-2026-0037"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "GHSA-q8wc-j5m9-27w3",
+  "published": "2023-09-21",
+  "summary": "Denial of Service issue in quinn-proto",
+  "aliases": [
+   "CVE-2023-42805",
+   "RUSTSEC-2023-0063"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "GHSA-vr26-jcq5-fjj8",
+  "published": "2024-09-03",
+  "summary": "Denial of service in quinn-proto when using `Endpoint::retry()`",
+  "aliases": [
+   "CVE-2024-45311",
+   "RUSTSEC-2024-0373"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2023-0063",
+  "published": "2023-09-21",
+  "summary": "Denial of service in Quinn servers",
+  "aliases": [
+   "CVE-2023-42805",
+   "GHSA-q8wc-j5m9-27w3"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2024-0373",
+  "published": "2024-09-02",
+  "summary": "`Endpoint::retry()` calls can lead to panicking",
+  "aliases": [
+   "CVE-2024-45311",
+   "GHSA-vr26-jcq5-fjj8"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0037",
+  "published": "2026-03-09",
+  "summary": "Denial of service in Quinn endpoints",
+  "aliases": [
+   "CVE-2026-31812",
+   "GHSA-6xvm-j4wr-6v98"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0185",
+  "published": "2026-06-22",
+  "summary": " Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly",
+  "aliases": [
+   "CVE-2026-25800",
+   "GHSA-4w2j-m93h-cj5j"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0338",
+  "published": "2026-09-14",
+  "summary": "Remote peer can panic quinn-proto with zero-length STREAM frames during unordered reads",
+  "aliases": [
+   "GHSA-465w-v9q3-7j98"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0339",
+  "published": "2026-08-17",
+  "summary": "Unbounded growth of pending connection ID retirements in quinn-proto",
+  "aliases": [
+   "GHSA-hmxj-32vh-65vr"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0340",
+  "published": "2026-09-14",
+  "summary": "Peer minimum ACK delay can panic quinn-proto when ACK_FREQUENCY transmission is enabled",
+  "aliases": [
+   "GHSA-3g6h-r5qx-f6hq"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0341",
+  "published": "2026-08-17",
+  "summary": "Stream reassembly memory-exhaustion guard in quinn-proto can be bypassed",
+  "aliases": [
+   "GHSA-qfwj-vfxf-92j2"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0342",
+  "published": "2026-08-17",
+  "summary": "Zero-length DATAGRAM frames bypass the receive buffer limit in quinn-proto",
+  "aliases": [
+   "GHSA-2hv7-gw8g-gpq5"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quinn-proto",
+  "id": "RUSTSEC-2026-0343",
+  "published": "2026-09-14",
+  "summary": "Outgoing datagram buffer accounting can panic the sender in quinn-proto",
+  "aliases": [
+   "GHSA-ppcp-v39w-8jq2"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "GHSA-393w-9x6h-8gc7",
+  "published": "2025-09-17",
+  "summary": "Pingora update for MadeYouReset HTTP/2 vulnerability",
+  "aliases": [],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "GHSA-93c7-7xqw-w357",
+  "published": "2025-06-20",
+  "summary": "Pingora has a Request Smuggling Vulnerability",
+  "aliases": [
+   "CVE-2025-4366",
+   "RUSTSEC-2025-0037"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "GHSA-hj7x-879w-vrp7",
+  "published": "2026-03-05",
+  "summary": "Pingora has HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing",
+  "aliases": [
+   "CVE-2026-2835",
+   "RUSTSEC-2026-0034"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "GHSA-xq2h-p299-vjwv",
+  "published": "2026-03-05",
+  "summary": "Pingora vulnerable to HTTP Request Smuggling via Premature Upgrade",
+  "aliases": [
+   "CVE-2026-2833",
+   "RUSTSEC-2026-0033"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "RUSTSEC-2025-0037",
+  "published": "2025-05-22",
+  "summary": "Pingora Request Smuggling and Cache Poisoning",
+  "aliases": [
+   "CVE-2025-4366",
+   "GHSA-93c7-7xqw-w357"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "RUSTSEC-2025-0070",
+  "published": "2025-09-17",
+  "summary": "Pingora MadeYouReset HTTP/2 vulnerability",
+  "aliases": [
+   "CVE-2025-8671",
+   "GHSA-mrjm-qq9m-9mjq"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "RUSTSEC-2026-0033",
+  "published": "2026-03-04",
+  "summary": "HTTP Request Smuggling via Premature Upgrade",
+  "aliases": [
+   "CVE-2026-2833",
+   "GHSA-xq2h-p299-vjwv"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "pingora-core",
+  "id": "RUSTSEC-2026-0034",
+  "published": "2026-03-04",
+  "summary": "HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing",
+  "aliases": [
+   "CVE-2026-2835",
+   "GHSA-hj7x-879w-vrp7"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "GHSA-2mjx-qc3c-rqvc",
+  "published": "2026-10-05",
+  "summary": "Rustls: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries",
+  "aliases": [
+   "RUSTSEC-2026-0285"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "GHSA-6g7w-8wpp-frhj",
+  "published": "2024-04-19",
+  "summary": "Denial of Service Vulnerability in Rustls Library",
+  "aliases": [
+   "CVE-2024-32650",
+   "RUSTSEC-2024-0336"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "GHSA-qg5g-gv98-5ffh",
+  "published": "2024-11-25",
+  "summary": "rustls network-reachable panic in `Acceptor::accept`",
+  "aliases": [
+   "CVE-2024-11738",
+   "RUSTSEC-2024-0399"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2024-0336",
+  "published": "2024-04-19",
+  "summary": "`rustls::ConnectionCommon::complete_io` could fall into an infinite loop based on network input",
+  "aliases": [
+   "CVE-2024-32650",
+   "GHSA-6g7w-8wpp-frhj"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2024-0399",
+  "published": "2024-11-22",
+  "summary": "rustls network-reachable panic in `Acceptor::accept`",
+  "aliases": [
+   "CVE-2024-11738",
+   "GHSA-qg5g-gv98-5ffh"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2026-0285",
+  "published": "2026-09-14",
+  "summary": "TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries",
+  "aliases": [
+   "GHSA-2mjx-qc3c-rqvc"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2026-0346",
+  "published": "2026-10-14",
+  "summary": "`Debug` impls for client session values expose TLS secrets",
+  "aliases": [
+   "GHSA-c8m5-c952-6cm4"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2026-0347",
+  "published": "2026-10-14",
+  "summary": "Buffered application data sent to outer server after ECH rejection",
+  "aliases": [
+   "GHSA-vp88-798v-h67f"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2026-0348",
+  "published": "2026-10-14",
+  "summary": "Brotli certificate decompression can allocate up to 1 GiB before authentication",
+  "aliases": [
+   "GHSA-h2v8-394m-p7vv"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls",
+  "id": "RUSTSEC-2026-0349",
+  "published": "2026-10-14",
+  "summary": "Unauthenticated ServerHello can downgrade later connections to classical key exchange",
+  "aliases": [
+   "GHSA-w44r-93j7-qv28"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "GHSA-82j2-j2ch-gfr8",
+  "published": "2026-04-24",
+  "summary": "rustls-webpki: Denial of service via panic on malformed CRL BIT STRING",
+  "aliases": [
+   "CVE-2026-93599",
+   "RUSTSEC-2026-0104"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "GHSA-965h-392x-2mh5",
+  "published": "2026-04-16",
+  "summary": "webpki: Name constraints for URI names were incorrectly accepted",
+  "aliases": [
+   "CVE-2026-93600",
+   "RUSTSEC-2026-0098"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "GHSA-fh2r-99q2-6mmg",
+  "published": "2023-08-22",
+  "summary": "rustls-webpki: CPU denial of service in certificate path building",
+  "aliases": [
+   "RUSTSEC-2023-0053"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "GHSA-pwjx-qhcg-rvj4",
+  "published": "2026-03-20",
+  "summary": "webpki: CRLs not considered authoritative by Distribution Point due to faulty matching logic",
+  "aliases": [
+   "CVE-2026-93602",
+   "RUSTSEC-2026-0049"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "GHSA-xgp8-3hg3-c2mh",
+  "published": "2026-04-16",
+  "summary": "webpki: Name constraints were accepted for certificates asserting a wildcard name",
+  "aliases": [
+   "CVE-2026-93601",
+   "RUSTSEC-2026-0099"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2023-0053",
+  "published": "2023-08-22",
+  "summary": "rustls-webpki: CPU denial of service in certificate path building",
+  "aliases": [
+   "GHSA-fh2r-99q2-6mmg"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2026-0049",
+  "published": "2026-03-20",
+  "summary": "CRLs not considered authoritative by Distribution Point due to faulty matching logic",
+  "aliases": [
+   "CVE-2026-93602",
+   "GHSA-pwjx-qhcg-rvj4"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2026-0098",
+  "published": "2026-04-14",
+  "summary": "Name constraints for URI names were incorrectly accepted",
+  "aliases": [
+   "CVE-2026-93600",
+   "GHSA-965h-392x-2mh5"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2026-0099",
+  "published": "2026-04-14",
+  "summary": "Name constraints were accepted for certificates asserting a wildcard name",
+  "aliases": [
+   "CVE-2026-93601",
+   "GHSA-xgp8-3hg3-c2mh"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2026-0104",
+  "published": "2026-04-22",
+  "summary": "Reachable panic in certificate revocation list parsing",
+  "aliases": [
+   "CVE-2026-93599",
+   "GHSA-82j2-j2ch-gfr8"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "rustls-webpki",
+  "id": "RUSTSEC-2026-0382",
+  "published": "2026-10-20",
+  "summary": "Certificate verification may accept distrusted intermediates",
+  "aliases": [
+   "CVE-2026-111943",
+   "GO-2026-6809",
+   "RUSTSEC-2026-0381",
+   "RUSTSEC-2026-0383"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio-rustls",
+  "id": "GHSA-2jfv-g3fh-xq3v",
+  "published": "2021-08-25",
+  "summary": "Excessive memory usage in tokio-rustls",
+  "aliases": [
+   "CVE-2020-35875",
+   "RUSTSEC-2020-0019"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio-rustls",
+  "id": "RUSTSEC-2020-0019",
+  "published": "2020-05-19",
+  "summary": "tokio-rustls reads may cause excessive memory usage",
+  "aliases": [
+   "CVE-2020-35875",
+   "GHSA-2jfv-g3fh-xq3v"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quiche",
+  "id": "GHSA-78wx-jg4j-5j6g",
+  "published": "2024-03-13",
+  "summary": "quiche vulnerable to unlimited resource allocation by QUIC CRYPTO frames flooding",
+  "aliases": [
+   "CVE-2024-1765"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quiche",
+  "id": "GHSA-m3hh-f9gh-74c2",
+  "published": "2025-08-07",
+  "summary": "quiche connection ID retirement can trigger an infinite loop",
+  "aliases": [
+   "CVE-2025-7054"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quiche",
+  "id": "GHSA-mh64-ph39-mrc9",
+  "published": "2026-06-19",
+  "summary": "Cloudflare Quiche: Use-after-free in connection ID iterator FFI functions",
+  "aliases": [
+   "CVE-2026-11941"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quiche",
+  "id": "GHSA-w3vp-jw9m-f9pm",
+  "published": "2023-12-13",
+  "summary": "Unbounded queuing of path validation messages in cloudflare-quiche",
+  "aliases": [
+   "CVE-2023-6193"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "quiche",
+  "id": "GHSA-xhg9-xwch-vr7x",
+  "published": "2024-03-13",
+  "summary": "quiche vulnerable to unbounded storage of information related to connection ID retirement",
+  "aliases": [
+   "CVE-2024-1410"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "http",
+  "id": "GHSA-6rhx-hqxm-8p36",
+  "published": "2021-08-25",
+  "summary": "Double free in http",
+  "aliases": [
+   "CVE-2019-25009",
+   "RUSTSEC-2019-0034"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "http",
+  "id": "GHSA-x7vr-c387-8w57",
+  "published": "2021-08-25",
+  "summary": "Integer Overflow/Infinite Loop in the http crate",
+  "aliases": [
+   "CVE-2019-25008",
+   "CVE-2020-25574",
+   "GHSA-xvc9-xwgj-4cq9",
+   "RUSTSEC-2019-0033"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "http",
+  "id": "RUSTSEC-2019-0033",
+  "published": "2019-11-16",
+  "summary": "Integer Overflow in HeaderMap::reserve() can cause Denial of Service",
+  "aliases": [
+   "CVE-2019-25008",
+   "CVE-2020-25574",
+   "GHSA-x7vr-c387-8w57",
+   "GHSA-xvc9-xwgj-4cq9"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "http",
+  "id": "RUSTSEC-2019-0034",
+  "published": "2019-11-16",
+  "summary": "HeaderMap::Drain API is unsound",
+  "aliases": [
+   "CVE-2019-25009",
+   "GHSA-6rhx-hqxm-8p36"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "actix-http",
+  "id": "GHSA-8928-2fgm-6x9x",
+  "published": "2021-08-25",
+  "summary": "HTTP Request Smuggling in actix-http",
+  "aliases": [
+   "CVE-2021-38512",
+   "RUSTSEC-2021-0081"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "actix-http",
+  "id": "GHSA-v3j6-xf77-8r9c",
+  "published": "2021-08-25",
+  "summary": "Use-after-free in actix-http",
+  "aliases": [
+   "CVE-2020-35901",
+   "RUSTSEC-2020-0048"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "actix-http",
+  "id": "GHSA-xhj4-vrgc-hr34",
+  "published": "2026-04-22",
+  "summary": "actix-http has HTTP/1.1 CL.TE Request Smuggling ",
+  "aliases": [
+   "CVE-2026-73051"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "actix-http",
+  "id": "RUSTSEC-2020-0048",
+  "published": "2020-01-24",
+  "summary": "Use-after-free in BodyStream due to lack of pinning",
+  "aliases": [
+   "CVE-2020-35901",
+   "GHSA-v3j6-xf77-8r9c"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "actix-http",
+  "id": "RUSTSEC-2021-0081",
+  "published": "2021-06-16",
+  "summary": "Potential request smuggling capabilities due to lack of input validation",
+  "aliases": [
+   "CVE-2021-38512",
+   "GHSA-8928-2fgm-6x9x"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tower-http",
+  "id": "GHSA-qrqq-9c63-xfrg",
+  "published": "2022-08-11",
+  "summary": "tower-http's improper validation of Windows paths could lead to directory traversal attack",
+  "aliases": [
+   "RUSTSEC-2022-0043"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tower-http",
+  "id": "GHSA-wwh2-r387-g5rm",
+  "published": "2022-06-17",
+  "summary": "tower-http's improper validation of Windows paths could lead to directory traversal attack",
+  "aliases": [],
+  "info": null
+ },
+ {
+  "pkg": "tower-http",
+  "id": "RUSTSEC-2022-0043",
+  "published": "2022-01-21",
+  "summary": "Improper validation of Windows paths could lead to directory traversal attack",
+  "aliases": [
+   "GHSA-qrqq-9c63-xfrg"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "warp",
+  "id": "GHSA-8v4j-7jgf-5rg9",
+  "published": "2023-01-31",
+  "summary": "Warp vulnerable to Path Traversal via Improper validation of Windows paths",
+  "aliases": [
+   "RUSTSEC-2022-0082"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "warp",
+  "id": "RUSTSEC-2022-0082",
+  "published": "2022-01-14",
+  "summary": "Improper validation of Windows paths could lead to directory traversal attack",
+  "aliases": [
+   "GHSA-8v4j-7jgf-5rg9"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "GHSA-37wc-h8xc-5hc4",
+  "published": "2025-02-10",
+  "summary": "Hickory DNS's DNSSEC validation may accept broken authentication chains",
+  "aliases": [
+   "CVE-2025-25188"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "GHSA-3v94-mw7p-v465",
+  "published": "2026-05-07",
+  "summary": "hickory-proto: NSEC3 closest-encloser proof validation enters unbounded loop on cross-zone responses",
+  "aliases": [
+   "RUSTSEC-2026-0118",
+   "RUSTSEC-2026-0120"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "GHSA-q2qq-hmj6-3wpp",
+  "published": "2026-05-07",
+  "summary": "hickory-proto vulnerable to CPU exhaustion during message encoding due to O(n\u00b2) name compression",
+  "aliases": [
+   "RUSTSEC-2026-0119"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "GHSA-v7pc-74h8-xq2h",
+  "published": "2025-02-10",
+  "summary": "Hickory DNS failure to verify self-signed RRSIG for DNSKEYs",
+  "aliases": [
+   "RUSTSEC-2025-0006"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "RUSTSEC-2025-0006",
+  "published": "2025-02-07",
+  "summary": "Hickory DNS failure to verify self-signed RRSIG for DNSKEYs",
+  "aliases": [
+   "GHSA-v7pc-74h8-xq2h"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "RUSTSEC-2026-0118",
+  "published": "2026-05-01",
+  "summary": "NSEC3 closest-encloser proof validation enters unbounded loop on cross-zone responses",
+  "aliases": [
+   "GHSA-3v94-mw7p-v465",
+   "RUSTSEC-2026-0120"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "hickory-proto",
+  "id": "RUSTSEC-2026-0119",
+  "published": "2026-05-01",
+  "summary": "CPU exhaustion during message encoding due to O(n\u00b2) name compression",
+  "aliases": [
+   "GHSA-q2qq-hmj6-3wpp"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-2grh-hm3w-w7hv",
+  "published": "2021-08-25",
+  "summary": "Race condition in tokio",
+  "aliases": [
+   "CVE-2021-38191",
+   "RUSTSEC-2021-0072"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-4q83-7cq4-p6wg",
+  "published": "2023-02-04",
+  "summary": "`tokio::io::ReadHalf<T>::unsplit` is Unsound",
+  "aliases": [
+   "RUSTSEC-2023-0005"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-5wjr-9356-4wc8",
+  "published": "2026-10-23",
+  "summary": "Tokio: Race condition in `tokio::time::Interval`",
+  "aliases": [
+   "CVE-2026-115567",
+   "RUSTSEC-2026-0384"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-7rrj-xr53-82p7",
+  "published": "2023-01-06",
+  "summary": "Tokio reject_remote_clients configuration may get dropped when creating a Windows named pipe",
+  "aliases": [
+   "CVE-2023-22466",
+   "RUSTSEC-2023-0001"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-fg7r-2g4j-5cgr",
+  "published": "2022-01-06",
+  "summary": "Race Condition in tokio",
+  "aliases": [
+   "CVE-2021-45710",
+   "RUSTSEC-2021-0124"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "GHSA-rr8g-9fpq-6wmg",
+  "published": "2025-04-07",
+  "summary": "Tokio broadcast channel calls clone in parallel, but does not require `Sync`",
+  "aliases": [
+   "RUSTSEC-2025-0023"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2021-0072",
+  "published": "2021-07-07",
+  "summary": "Task dropped in wrong thread when aborting `LocalSet` task",
+  "aliases": [
+   "CVE-2021-38191",
+   "GHSA-2grh-hm3w-w7hv"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2021-0124",
+  "published": "2021-11-16",
+  "summary": "Data race when sending and receiving after closing a `oneshot` channel",
+  "aliases": [
+   "CVE-2021-45710",
+   "GHSA-fg7r-2g4j-5cgr"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2023-0001",
+  "published": "2023-01-04",
+  "summary": "reject_remote_clients Configuration corruption",
+  "aliases": [
+   "CVE-2023-22466",
+   "GHSA-7rrj-xr53-82p7"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2023-0005",
+  "published": "2023-01-11",
+  "summary": "`tokio::io::ReadHalf<T>::unsplit` is Unsound",
+  "aliases": [
+   "GHSA-4q83-7cq4-p6wg"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2025-0023",
+  "published": "2025-04-07",
+  "summary": "Broadcast channel calls clone in parallel, but does not require `Sync`",
+  "aliases": [
+   "GHSA-rr8g-9fpq-6wmg"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2026-0384",
+  "published": "2026-10-21",
+  "summary": "Race condition in `tokio::time::Interval` on Tokio v1.54.0",
+  "aliases": [
+   "CVE-2026-115567",
+   "GHSA-5wjr-9356-4wc8"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tokio",
+  "id": "RUSTSEC-2026-0386",
+  "published": "2026-10-13",
+  "summary": "`AsyncFd::new` and related constructors violate I/O safety",
+  "aliases": [],
+  "info": null
+ },
+ {
+  "pkg": "tungstenite",
+  "id": "GHSA-9mcr-873m-xcxp",
+  "published": "2023-09-21",
+  "summary": "Tungstenite allows remote attackers to cause a denial of service",
+  "aliases": [
+   "CVE-2023-43669",
+   "RUSTSEC-2023-0065"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "tungstenite",
+  "id": "RUSTSEC-2023-0065",
+  "published": "2023-09-25",
+  "summary": "Tungstenite allows remote attackers to cause a denial of service",
+  "aliases": [
+   "CVE-2023-43669",
+   "GHSA-9mcr-873m-xcxp"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "s2n-quic",
+  "id": "GHSA-475v-pq2g-fp9g",
+  "published": "2023-11-08",
+  "summary": "s2n-quic potential denial of service via crafted stream frames",
+  "aliases": [],
+  "info": null
+ },
+ {
+  "pkg": "s2n-quic",
+  "id": "GHSA-9q54-f358-3fqf",
+  "published": "2026-08-14",
+  "summary": "s2n-quic has excessive memory allocation",
+  "aliases": [
+   "CVE-2026-10740"
+  ],
+  "info": null
+ },
+ {
+  "pkg": "s2n-quic",
+  "id": "GHSA-hxq4-mx37-fqvg",
+  "published": "2023-06-30",
+  "summary": "s2n-quic potential denial of service vulnerability when receiving empty UDP packets",
+  "aliases": [],
+  "info": null
+ },
+ {
+  "pkg": "s2n-quic",
+  "id": "GHSA-rfhg-rjfp-9q8q",
+  "published": "2023-07-24",
+  "summary": "Potential denial of service after connection migration",
+  "aliases": [],
+  "info": null
+ }
+]

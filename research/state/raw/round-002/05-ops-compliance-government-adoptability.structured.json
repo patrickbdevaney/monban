@@ -1,0 +1,345 @@
+{
+ "explorer": "05",
+ "round": 2,
+ "target": "ops-compliance-government-adoptability",
+ "source": "integrator transcription of the explorer's structured return (raw file held only node_ids after crash recovery)",
+ "nodes": [
+  {
+   "id": "ops.cra-obligation-split",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "type": "standard",
+   "title": "CRA 2024/2847: free OSS project owes almost nothing legally; commercial distributor is the manufacturer",
+   "summary": "Art3(14) steward must be a legal person supporting FOSS intended for commercial activity; Art24 requires only a documented verifiable cybersecurity policy and cooperation with market surveillance (Art14 reporting only if involved in development and only for incidents on steward infra). Art64(10)(b): no administrative fines on stewards. Manufacturers (Art3(13), includes free of charge when in a commercial activity, Art3(22)) face 15M EUR / 2.5% fines, Art14 reporting live 2026-09-11, remaining obligations 2027-12-11 (Art71). Art13(5) makes downstream manufacturers demand SBOM/vuln policy/CVD from us. Commission draft guidance C(2026)5252 (2026-07-27): public repo sharing generally not placing on market.",
+   "specifics": "Dates: Art14 2026-09-11; Ch.IV notified bodies 2026-06-11; rest 2027-12-11. Annex I Part I(2)(a)-(m), Part II(1)-(8). L5 artifact: SECURITY.md + CVD policy + CycloneDX/SPDX SBOM per release + signed release provenance = steward-grade file set; a commercial distributor adds conformity assessment, 24h/72h/14d reporting.",
+   "urls": [
+    "https://www.cyberresilienceact.eu/",
+    "https://eur-lex.europa.eu/eli/reg/2024/2847/oj"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Read via secondary reproduction of OJ text (EUR-Lex blocked); 'owes nothing' false if a legal-person entity sells support (then manufacturer). Guidance is draft.",
+   "underclaim_risk": "Steward regime still requires documented policy; Art13(5) makes SBOM/CVD de facto mandatory for adoption."
+  },
+  {
+   "id": "ops.cra-annex3-waf-risk",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "type": "risk",
+   "title": "Annex III classification risk: web server not listed, but WAF/firewall function could land in class II",
+   "summary": "Class I lists OS, PKI, VPN, SIEM, NMS, IdM/PAM; class II lists firewalls/IDPS, hypervisors/container runtimes. Reverse proxy/web server not listed; a built-in WAF or microVM/container runtime feature could be argued into class II (third-party assessment unless the Art32(5) FOSS route with public tech docs permits module A).",
+   "specifics": "Mitigation: label admission control as rate-limiting/policy, not 'firewall'; publish technical documentation to preserve the Art32(5) route.",
+   "urls": [
+    "https://www.cyberresilienceact.eu/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Classification depends on implementing act; no ruling found.",
+   "underclaim_risk": "Isolation/microVM features move toward hypervisor/container-runtime wording."
+  },
+  {
+   "id": "ops.fips-module-boundary-pin",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "type": "result",
+   "title": "FIPS mode = exact validated aws-lc-fips-sys pin, approved mode, not 'fips feature on'",
+   "summary": "Validated AWS-LC FIPS 3.1 (CMVP #5298 dynamic, #5314 static, Level 1, #5314 sunset 2031-06-04) corresponds to aws-lc-fips-sys 0.13.11 / aws-lc-rs 1.15.3 per explorer. aws-lc-rs 1.18.0 (2026-08-07) switched to AWS-LC-FIPS 4.0, only in MIP (Comment Resolution-Lab 2026-10-22); AWS-LC 5 Pending Review. Later 0.13.17 moves to v3.6.0 source, not necessarily byte-identical to the certificate. FIPS 140-2 certs moved to Historical 2026-09-21. Static builds Linux only; OS entropy not validated.",
+   "specifics": "Cargo pin proposal: aws-lc-fips-sys = \"=0.13.11\"; aws-lc-rs = \"=1.15.3\" features=[\"fips\"]. Approved mode per Security Policy 11.1 on a listed operational environment. Latest crates: aws-lc-fips-sys 0.14.3, aws-lc-rs 1.18.2.",
+   "urls": [
+    "https://github.com/aws/aws-lc/blob/main/FIPS.md",
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list",
+    "https://github.com/aws/aws-lc-rs/releases"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Cannot claim 'FIPS validated' for 1.18.x/ML-DSA until a v4 cert issues.",
+   "underclaim_risk": "Pin path exists today, so SC-13 is satisfiable without own validation."
+  },
+  {
+   "id": "ops.rustls-fipsstatus-gate",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "type": "artifact",
+   "title": "Acceptance gate: assert FipsStatus::Certified at startup and in health endpoint",
+   "summary": "rustls main (rustls-aws-lc-rs 0.24.0-dev.2) exposes ServerConfig::fips() -> rustls_pki_types::FipsStatus {Unvalidated|Pending|Certified{certificate}} (pki-types 1.15.1); 0.23.x (0.23.46) has only fips()->bool. Gate: in the fips build, startup aborts unless Certified (or bool true on 0.23); certificate id logged into audit log and /healthz; CI builds with and without the feature and asserts.",
+   "specifics": "`aegis --fips-check` exits nonzero if provider not Certified; deny non-approved suites (no ChaCha20 in approved mode; ML-KEM hybrid only if module approved).",
+   "urls": [
+    "https://github.com/rustls/rustls/blob/main/rustls/src/manual/fips.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "0.24 is a dev release; API may shift.",
+   "underclaim_risk": "None significant."
+  },
+  {
+   "id": "ops.compliance-map-800-53",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "type": "artifact",
+   "title": "COMPLIANCE_MAP: control -> mechanism -> evidence (NIST 800-53 r5 5.2.0 / FedRAMP KSI)",
+   "summary": "Rows a server binary can natively satisfy: SC-13 FIPS-pinned aws-lc + FipsStatus gate; SC-8/8(1) TLS1.3-only listeners (KSI-SVC-SIN, KSI-CNA-MAT) with testssl/tlsfuzzer output; SC-23 session binding tests; SC-12 key rotation via systemd credentials + reloadable ResolvesServerCert (KSI-SVC-ASM); SI-7/SI-7(1)/SI-7(15) signed release + SLSA provenance + self-digest check (KSI-SVC-VRI); CM-7 default-deny config + systemd score <=1.4 (KSI-CMT-RMV); CM-2 config hash at boot; AU-2/3/12 event schema; AU-9(3)/AU-10/SI-7(7) Merkle tile log with signed checkpoints (KSI-MLA-LET); SA-15(13) logging syntax; SA-11/SR-2,3,5 cargo-vet/deny/audit + SBOM (KSI-SCR-MIT).",
+   "specifics": "FedRAMP consolidated rules v2026.10.13.01; KSI mappings from the rules JSON. Evidence default = machine-readable explanation+verification+validation.",
+   "urls": [
+    "https://github.com/usnistgov/oscal-content",
+    "https://github.com/FedRAMP/rules"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "A binary satisfies mechanisms only; implementation statements remain the deployer's. Mapping of our mechanisms to KSIs is author-judged.",
+   "underclaim_risk": "20x machine-readable evidence favours this artifact style."
+  },
+  {
+   "id": "ops.ssdf-12-ci-gates",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "type": "artifact",
+   "title": "SSDF 1.2 IPD practice -> CI gate mapping",
+   "summary": "SP 800-218 r1 IPD (2025-12-17; comments closed 2026-01-30; no final as of 2026-10-24) adds PO.6 and PS.4. Gates: PS.2.1 signed releases+hashes; PS.3.2 provenance; PW.6 hardened build flags/forbid unsafe; PW.8 fuzz+proptest+Kani; PW.9 secure-default config test; RV.1-3 cargo-audit/deny + CVD; PS.4.1 test all releases; PS.4.2 staged rollout; PS.4.3 anti-rollback (signed monotonic version); PS.4.4 fault-tolerant updater; PO.6.2 memory-safe languages and logging-format improvements.",
+   "specifics": "v1.1 (2022-02) still final; build to 1.2 IPD labelled draft. EO 14306 basis.",
+   "urls": [
+    "https://csrc.nist.gov/projects/ssdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Draft may change.",
+   "underclaim_risk": "PS.4.3 anti-rollback is new and implementable."
+  },
+  {
+   "id": "ops.audit-log-spec",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "type": "artifact",
+   "title": "Audit-log format and invariant spec: C2SP tlog-tiles in Rust, single writer, signed checkpoints",
+   "summary": "JSON-lines events (ts, seq, actor, action, object, outcome, req_id, config_hash, fips_status) hashed as RFC6962 leaves into a tlog-tiles tree (256x32B tiles; checkpoint = origin/size/root signed-note). Invariants: I1 append-only consistent checkpoints; I2 gapless seq = leaf index; I3 full tiles immutable; I4 checkpoint signed after tile fsync; I5 independent proof verification; I6 secrets never logged (typed redaction); I7 explicit log-failure policy (fail-closed for admin actions); optional witness cosignatures. Maps to AU-2/3/9(3)/10/12, SI-7(7), SA-15(13).",
+   "specifics": "Reference impls Go only: Tessera v1.0.4 (2026-07-16; avoid 1.0.3), Trillian v1.8.0 (2026-09-21). Rust: tlog_tiles 0.2.0 (cloudflare/azul, 4.2k dl), sigsum 0.3.0. Test: Tessera POSIX personality / Go checker as conformance oracle; Kani/proptest for I1-I3.",
+   "urls": [
+    "https://github.com/C2SP/C2SP/blob/main/tlog-tiles.md",
+    "https://github.com/C2SP/C2SP/blob/main/tlog-checkpoint.md",
+    "https://github.com/transparency-dev/tessera",
+    "https://crates.io/crates/tlog_tiles"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "No production-grade Rust tlog writer; tamper evidence needs an external witness/anchor.",
+   "underclaim_risk": "Spec is small and stable (C2SP updated 2026-10-07)."
+  },
+  {
+   "id": "ops.systemd-baseline-score",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "type": "measurement",
+   "title": "systemd hardening: minimal 9.4 UNSAFE, caddy dist unit 8.8 EXPOSED, aegis baseline 1.4 OK",
+   "summary": "systemd 255.4 Ubuntu, systemd-analyze security --offline=true: minimal unit 9.4; upstream Caddy unit 8.8; aegis-hardened.service 1.4 (72 checks pass). Runtime verified via transient unit with DynamicUser: HTTP 200 served, writes to /etc and /usr blocked, CapEff=0x400 only, RWX mmap denied under MemoryDenyWriteExecute (JIT incompatible, so a Wasmtime/Cranelift worker needs a separate unit with MDWX relaxed).",
+   "specifics": "DynamicUser=yes, ProtectSystem=strict, NoNewPrivileges, CapabilityBoundingSet=CAP_NET_BIND_SERVICE, RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX, SystemCallFilter=@system-service ~@privileged @resources, MemoryDenyWriteExecute=yes, ProtectProc=invisible, KeyringMode=private, WatchdogSec=30. CI gate: systemd-analyze security --threshold=2 --offline. PrivateUsers=yes gives 1.2 but breaks <1024 bind.",
+   "urls": [
+    "file:///home/patrickd/aegis/research/state/raw/round-002/artifacts/aegis-hardened.service"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Static exposure heuristic; runtime test used a python stand-in on one distro/systemd 255.",
+   "underclaim_risk": "8.8 -> 1.4 improvement is reproducible and cheap."
+  },
+  {
+   "id": "ops.acme-crate-maturity",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "type": "crate",
+   "title": "Single-binary ACME: instant-acme 0.8.5 preferred; rustls-acme 0.15.4 lacks FIPS and ARI",
+   "summary": "instant-acme 0.8.5 (2026-02-24, Apache-2.0, 3.52M dl): RFC 9773 ARI, profiles, IP identifiers, EAB, key rollover, revocation, Pebble tests, fips feature via aws-lc-rs; P-256 account keys only; main 0.9.0 unreleased MSRV 1.88. rustls-acme 0.15.4 (2026-08-11, 823k dl): TLS-ALPN-01/HTTP-01 but no fips feature, no ARI seen. acme2/acme-lib stale.",
+   "specifics": "Pin instant-acme =0.8.5 features fips; test against Pebble in CI; renew via ARI window; hot-swap cert through ResolvesServerCert.",
+   "urls": [
+    "https://crates.io/crates/instant-acme",
+    "https://github.com/instant-labs/instant-acme",
+    "https://crates.io/crates/rustls-acme"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Maturity judged by metadata only.",
+   "underclaim_risk": "Wiring effort is days."
+  },
+  {
+   "id": "ops.niap-no-pp",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "type": "gap",
+   "title": "No NIAP protection profile exists for web servers/reverse proxies/app gateways",
+   "summary": "commoncriteria org lists application (PP_APP v1.4), tls package v1.0, vpngw, authserver, webbrowser, servervirtualization, crypto-catalog; none for web server or app gateway. Government path is FIPS 140-3 module use + FedRAMP/800-53 inheritance, not CC; PP_APP + TLS package nearest if CC demanded.",
+   "specifics": "Checked 2026-10-24; NIAP PCL JS-only, not viewed.",
+   "urls": [
+    "https://github.com/commoncriteria"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Absence from GitHub org could miss a PP elsewhere.",
+   "underclaim_risk": "Low."
+  },
+  {
+   "id": "ops.fedramp-20x-ksi-mapping",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "type": "standard",
+   "title": "FedRAMP 2026 consolidated rules: KSI groups mapped to 800-53; machine-readable evidence",
+   "summary": "fedramp-consolidated-rules.json v2026.10.13.01 (launch 2026-06-24): KSI groups CED CMT CNA IAM INR MLA PIY RPL SCR SVC (10; explorer said 11, verifier corrected). Mappings: SVC-SIN->sc-13,8,8.1,23,28; SVC-VRI->si-7,7.1,7.15,au-9.3,sr-10/11; SVC-ASM->sc-12; MLA-LET->au-2,10,12,7,si-7.7; CMT-RMV->cm-2,cm-7. Phase 2 pilot 2025-11-18..2026-03.",
+   "specifics": "Server project provides evidence-generating mechanisms; authorization belongs to the CSP.",
+   "urls": [
+    "https://github.com/FedRAMP/rules",
+    "https://www.fedramp.gov/20x/phases/2"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Do not claim FedRAMP-ready.",
+   "underclaim_risk": "Evidence-as-code fits."
+  },
+  {
+   "id": "ops.config-lang-and-creds",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "type": "decision-input",
+   "title": "Config validation (typed language) and secrets via systemd credentials",
+   "summary": "CUE, Pkl (0.31.1; GOV.UK ADR 0022), or TOML+serde deny_unknown_fields with a Rust validator. For a single static binary, Rust-native typed parse (JSON Schema emitted for tooling) avoids a runtime dependency; CUE/Pkl as offline CI lint. Secrets via systemd LoadCredential(Encrypted) from $CREDENTIALS_DIRECTORY; rotate by new credential + reload with atomic ResolvesServerCert swap, logged (SC-12).",
+   "specifics": "`aegis check-config` pure, exits nonzero, run in ExecStartPre.",
+   "urls": [
+    "https://systemd.io/CREDENTIALS/",
+    "https://www.man7.org/linux/man-pages/man1/systemd-creds.1.html",
+    "https://docs.publishing.service.gov.uk/repos/govuk-infrastructure/architecture/decisions/0022-use-pkl-for-configuration.html"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "CUE/Pkl facts from secondary summaries.",
+   "underclaim_risk": "Language choice is low-stakes."
+  }
+ ],
+ "edges": [
+  {
+   "src": "ops.cra-obligation-split",
+   "dst": "rec60-cra-reporting-live",
+   "type": "refines",
+   "note": "article-level steward vs manufacturer split"
+  },
+  {
+   "src": "ops.cra-annex3-waf-risk",
+   "dst": "ops.cra-obligation-split",
+   "type": "qualifies"
+  },
+  {
+   "src": "ops.fips-module-boundary-pin",
+   "dst": "ops.rustls-fipsstatus-gate",
+   "type": "enables"
+  },
+  {
+   "src": "ops.compliance-map-800-53",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "depends_on",
+   "note": "SC-13"
+  },
+  {
+   "src": "ops.compliance-map-800-53",
+   "dst": "ops.audit-log-spec",
+   "type": "depends_on",
+   "note": "AU-*, SA-15(13)"
+  },
+  {
+   "src": "ops.compliance-map-800-53",
+   "dst": "ops.systemd-baseline-score",
+   "type": "depends_on",
+   "note": "CM-7"
+  },
+  {
+   "src": "ops.compliance-map-800-53",
+   "dst": "ops.fedramp-20x-ksi-mapping",
+   "type": "derived_from"
+  },
+  {
+   "src": "ops.ssdf-12-ci-gates",
+   "dst": "ops.compliance-map-800-53",
+   "type": "supports"
+  },
+  {
+   "src": "ops.acme-crate-maturity",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "depends_on",
+   "note": "fips feature"
+  },
+  {
+   "src": "ops.niap-no-pp",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "implies",
+   "note": "gov path is FIPS+800-53 not CC"
+  },
+  {
+   "src": "ops.config-lang-and-creds",
+   "dst": "ops.systemd-baseline-score",
+   "type": "supports"
+  },
+  {
+   "src": "ops.systemd-baseline-score",
+   "dst": "gap.wasmtime-adv",
+   "type": "constrains",
+   "note": "MDWX incompatible with JIT worker"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Is an AWS-LC-FIPS 4.0 certificate issued, and which aws-lc-fips-sys version maps to it, incl. ML-KEM/ML-DSA approved status?",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.6,
+   "reason": "PQC plus FIPS is the pinned-version conflict"
+  },
+  {
+   "question": "Can a Rust tlog-tiles writer pass the Tessera conformance/witness tests; what is the effort and prior art (tlog_tiles, sigsum)?",
+   "layer": "L5",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.6,
+   "reason": "Audit-log spec lacks Rust implementation evidence"
+  },
+  {
+   "question": "Does the CRA Annex III class II 'firewall' wording cover L7 reverse proxies with WAF/admission control; any ENISA or Commission implementing-act text?",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.5,
+   "reason": "Classification risk unresolved"
+  },
+  {
+   "question": "What do enterprise procurement checklists (SBOM, VEX, OpenSSF Scorecard, CISA secure-by-design pledge) require of an OSS server in practice?",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.4,
+   "reason": "CISA pages unreachable; practitioner evidence missing"
+  }
+ ],
+ "protocol_implications": [
+  "Primary legal texts (EUR-Lex) and CISA pages block bot fetchers; record secondary-source flag and try OJ PDF or Commission mirror.",
+  "Version-pin claims about FIPS must cite exact crate versions to certificate; 'feature on' is not validation.",
+  "Static scores (systemd-analyze) must be paired with a runtime test to count as grade A."
+ ],
+ "self_improvement": [
+  "Progress file preserved the crash-recovered state; always checkpoint every ~5 sources.",
+  "Add a fetch-fallback list for WAF-blocked government domains to the directive.",
+  "Source count ~20 distinct, below the 25 target, due to crash recovery; CISA pledge and ENISA guidance not read directly."
+ ]
+}

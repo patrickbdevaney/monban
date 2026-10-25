@@ -1,0 +1,8 @@
+[package]
+name="tri-c4"
+version="0.0.0"
+edition="2021"
+publish=false
+[dependencies]
+rustls = { version = "=0.23.44", default-features = false, features = ["aws-lc-rs","fips","std","tls12","prefer-post-quantum"] }
+aws-lc-fips-sys = "=0.13.11"

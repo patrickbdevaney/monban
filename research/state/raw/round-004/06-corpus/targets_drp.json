@@ -1,0 +1,22 @@
+[
+ {
+  "name": "agentgateway-1.6.0/mcp.dnsRebindingProtection=true(up=py2-open:18101)",
+  "url": "http://127.0.0.1:18015/mcp",
+  "eras": [
+   "legacy",
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18015,
+  "skip_flood": true,
+  "only_cases": [
+   "host-allowlist-required",
+   "reject-text-plain-post",
+   "no-wildcard-cors",
+   "host-allowlist-required;h2-authority",
+   "absent-origin-fail-closed",
+   "N09-simple-request-cannot-reach-modern",
+   "N01-header-mismatch-protocol-version"
+  ]
+ }
+]

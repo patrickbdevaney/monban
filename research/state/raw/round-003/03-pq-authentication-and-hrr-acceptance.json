@@ -1,0 +1,740 @@
+{
+ "explorer": "03-pq-authentication-and-hrr-acceptance",
+ "round": 3,
+ "target": "PQ authentication + HRR acceptance (W-PQC L3->L5)",
+ "nodes": [
+  {
+   "id": "r3pq.hrr-acceptance-test",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "artifact",
+   "title": "Executable HRR acceptance test: rustls 0.23.46 server vs RUSTSEC-2026-0349-shaped ClientHellos (6/6 as expected)",
+   "summary": "Hand-built TLS1.3 ClientHello probes against rustls =0.23.46 + aws-lc-rs =1.18.2 ServerConnection (2026-10-25). T1 default config, supported_groups [X25519MLKEM768, X25519], key_share only X25519 -> HelloRetryRequest selecting 0x11EC. T5 same with P-256 share -> HRR 0x11EC. T6 MLKEM share -> ServerHello 0x11EC. T2 default config, groups [X25519, X25519MLKEM768], X25519 share -> ServerHello X25519 (classical accepted: server follows CLIENT order). T3 'pq-required' config (CryptoProvider.kx_groups=[X25519MLKEM768]) same input -> HRR 0x11EC. T4 pq-required, client offers only X25519 -> alert 40 (NoKxGroupsInCommon). Full-handshake check: real rustls client with kx order [X25519, X25519MLKEM768] vs pq-required -> negotiated X25519MLKEM768, HandshakeKind FullWithHelloRetryRequest; vs default -> X25519, Full. Verdict for q2-002: YES, the rustls server sends HRR to X25519MLKEM768 when the client lists it FIRST but shares only X25519 (the exact RUSTSEC-2026-0349 shape), so the downgrade does not succeed against a default rustls server; it does NOT when the client lists X25519 first.",
+   "specifics": "Code: state/raw/round-003/03-work/hrr_acceptance_test.rs (test module, invariants PQ-KX-1/PQ-KX-2) and state/raw/round-003/03-work/pqauth/src/main.rs (probe(), raw_client_hello()). Output: state/raw/round-003/03-work/run1.txt lines HRRTEST. Knobs: 0.23.x = only CryptoProvider.kx_groups (no group-preference knob; ignore_client_order affects cipher suites only, hs.rs:555-660 group = first client-listed group the server supports, tls13.rs:227 HRR if no share). main 28ee6c68 (2026-10-23): ServerConfig.kx_selector: &dyn KeyExchangeSelector, default PreferClientOrder, alternative PreferServerOrder (commit 3fe60d7913 2026-10-12; 483f623e3b 2026-10-13), OfferedKxGroup.has_key_share. CI gate: five verdicts frozen; any change blocks a rustls bump.",
+   "urls": [
+    "https://github.com/rustls/rustls/blob/28ee6c688e1567d5bd77d2c6f34e704f62e8bdde/rustls/src/server/config.rs",
+    "https://github.com/rustls/rustls/commit/3fe60d7913",
+    "https://osv.dev/vulnerability/RUSTSEC-2026-0349",
+    "state/raw/round-003/03-work/hrr_acceptance_test.rs",
+    "state/raw/round-003/03-work/run1.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Probe ClientHello is minimal (no PSK, no ECH, no SNI-less cases); verdicts are for TLS-over-TCP rustls ServerConnection, QUIC path not probed (rustls#3229 QUIC+HRR fix present in 0.23.46 source). Hand-built X25519 share is a constant (server computes with it in T2 only).",
+   "underclaim_risk": "The test passing does not make the default profile downgrade-proof: T2 shows a client that lists X25519 first gets classical, which RFC 9846 allows; the only server-side remedy on 0.23.x is removing classical groups.",
+   "numbers_checked": [
+    {
+     "claim": "server HRRs to 0x11EC when listed first without share",
+     "source_value": "HRR 0x11EC (T1,T5)",
+     "match": "match"
+    },
+    {
+     "claim": "rustls servers not exploitable by key-share-prediction downgrade (crate-rustls-pq)",
+     "source_value": "true only if client lists hybrid first (T2 counterexample)",
+     "match": "partial"
+    }
+   ],
+   "fix_state_on_main": "main 28ee6c68 adds KeyExchangeSelector/PreferServerOrder (unreleased; 0.24.0-dev.2); default unchanged (PreferClientOrder)",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.rustls-kx-client-order",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "result",
+   "title": "rustls server group selection = client order in 0.23.46; server-preference only via 0.24-dev KeyExchangeSelector",
+   "summary": "Source-verified: rustls 0.23.46 ServerConfig picks the first group in the client's supported_groups that its provider supports, HRRs if the client sent no share for it; there is no server-preference knob for groups in 0.23.x. On main (0.24.0-dev.2, commit 28ee6c68 2026-10-23) a new KeyExchangeSelector trait (PreferClientOrder default, PreferServerOrder optional) lets a server prefer X25519MLKEM768 even when a client lists X25519 first, at the cost of one HRR round trip for such clients.",
+   "specifics": "0.23.46 src/server/hs.rs:555-660; src/server/tls13.rs:195-245; main rustls/src/server/config.rs:757-818 (PreferClientOrder/PreferServerOrder), :79 kx_selector field, :732 default &PreferClientOrder. PR #3370 (open 2026-10-19): client accepts ServerHello share for a component group it did not offer after HRR (client-side, hybrid component) - track.",
+   "urls": [
+    "https://github.com/rustls/rustls/pull/3370",
+    "https://github.com/rustls/rustls/blob/28ee6c688e1567d5bd77d2c6f34e704f62e8bdde/rustls/src/server/hs.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "PreferServerOrder is unreleased; API may change before 0.24.",
+   "underclaim_risk": "Server-order PQ preference is one config line once 0.24 ships; reversal condition for the golden profile.",
+   "fix_state_on_main": "feature landed on main (unreleased)",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.prefer-pq-feature-pitfall",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "failure",
+   "title": "Pitfall (measured): rustls default-features=false without 'prefer-post-quantum' puts X25519 FIRST -> classical handshakes",
+   "summary": "With rustls =0.23.46 and default-features=false, features [aws-lc-rs,std,tls12] (a common pattern in hyper-rustls/reqwest/tokio-rustls dependents), DEFAULT_KX_GROUPS becomes [X25519, SECP256R1, SECP384R1, X25519MLKEM768]; the client sends an X25519 share and lists X25519 first, and against a client-order server (rustls default) the handshake is classical. Observed in our first run: group=X25519, ClientHello 319 B instead of 1539 B. Enabling 'prefer-post-quantum' restores X25519MLKEM768 first.",
+   "specifics": "Source: rustls-0.23.46/src/crypto/aws_lc_rs/mod.rs:254-262 (cfg(feature=\"prefer-post-quantum\")). L5 CI gate: `cargo tree -e features -i rustls | grep prefer-post-quantum` must match for every rustls in the lock (server AND outbound clients: DB drivers, upstream proxies); plus a runtime assert that ClientConfig.crypto_provider().kx_groups[0].name()==X25519MLKEM768 (or MLKEM1024 in gov profile).",
+   "urls": [
+    "https://github.com/rustls/rustls/blob/v/0.23.46/rustls/src/crypto/aws_lc_rs/mod.rs",
+    "state/raw/round-003/03-work/run1.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Only affects configs built from default_provider(); explicit kx_groups lists are unaffected.",
+   "underclaim_risk": "Silent: no warning, handshake succeeds; HNDL exposure for outbound traffic of the golden if any dependency disables default features.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.mldsa-handshake-measured",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "measurement",
+   "title": "Measured ML-DSA-44/65/87 vs ECDSA/Ed25519 TLS 1.3 handshakes in rustls: bytes, TCP segments vs initcwnd 10, QUIC amplification, server/client CPU",
+   "summary": "Own measurement 2026-10-25, rustls 0.23.46/aws-lc-rs 1.18.2, in-memory, X25519MLKEM768, server sends leaf+intermediate (rcgen 0.14.10 chains), no SCTs, no cert compression. Server first flight SH..Finished: ECDSA-P256 2,138 B (2 segments @MSS 1448); Ed25519 2,002 (2); ML-DSA-44 11,680 (9 segments: fits initcwnd 10 = 14,480 B with 2.8 KB headroom); ML-DSA-65 15,627 (11: exceeds initcwnd -> +1 RTT on a cold TCP path); ML-DSA-87 20,883 (15: +1 RTT); CNSA 2.0 profile (pure ML-KEM-1024 + ML-DSA-87) 21,331 (15). ClientHello 1,539 B (1,849 B with ML-KEM-1024). QUIC (modeled from exact CRYPTO bytes; 1200-B datagrams, ~50 B/packet overhead): client CH needs 2 Initials -> 3x budget = 6 datagrams; ECDSA needs 2 (OK), ML-DSA-44 11, ML-DSA-65 14, ML-DSA-87 19 -> every ML-DSA chain is anti-amplification-limited (extra RTT unless address already validated). Server CPU/handshake (median of 10x100, two independent runs): ECDSA 103.6/103.8 us; Ed25519 ~90; ML-DSA-44 194.3/197.2 (+88%); ML-DSA-65 255.8/266.0 (+150%); ML-DSA-87 282.9/276.3 (+170%); CNSA2 268.7/282.5. Client verify+kx: ECDSA 243, ML-DSA-44 177 (faster than ECDSA), ML-DSA-65 240, ML-DSA-87 303 us.",
+   "specifics": "DER sizes leaf/intermediate/root: ECDSA 343/394/381; ML-DSA-44 3940/3989/3978; ML-DSA-65 5469/5518/5507; ML-DSA-87 7427/7476/7465; Ed25519 279/328/317. ML-DSA PKCS#8 = 54 B (seed form). Hardware: Intel i9-14900HX, 32 threads, host load average 36-77 (shared with sibling agents) -> CPU absolute values noisy, ratios stable across runs (within ~5%). Derived (E): a WebPKI-style ML-DSA-44 chain with 2 embedded ML-DSA-44 SCTs adds ~4.8 KB -> ~16.5 KB > initcwnd; leaf-only (intermediate elided via trust anchor IDs) ML-DSA-44 ~7.7 KB = 6 segments but still 7 QUIC datagrams vs 6 budget; MTC landmark-relative with ML-DSA-44 leaf key ~= 2.35 KB cert + 2.42 KB CV -> ~6.1 KB flight (5 segments, ~6 datagrams: at the QUIC budget edge).",
+   "urls": [
+    "state/raw/round-003/03-work/pqauth/src/main.rs",
+    "state/raw/round-003/03-work/run1.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "In-memory: segment and QUIC datagram counts are computed from exact bytes with fixed MSS/overhead constants, not captured on a wire; CPU numbers under heavy host contention; no RFC 8879 compression (ML-DSA keys/signatures are essentially incompressible, but ASN.1 boilerplate is).",
+   "underclaim_risk": "ML-DSA-44 private-PKI chains fit TCP initcwnd and verify FASTER than ECDSA on the client; for internal mTLS / origin pulls the cost is ~+90 us server CPU and ~+9.5 KB, which is affordable.",
+   "numbers_checked": [
+    {
+     "claim": "ML-DSA chain +~14.7 kB (pq-size-mtu-reality, Cloudflare WebPKI estimate incl 2 SCTs)",
+     "source_value": "+9,542 B measured for 2-cert chain without SCTs; +~14.3 KB with 2 SCTs derived",
+     "match": "match"
+    },
+    {
+     "claim": "ML-DSA chain cannot fit QUIC 3x budget",
+     "source_value": "11-19 datagrams vs 6",
+     "match": "match"
+    }
+   ],
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.quic-amp-budget-mldsa",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "type": "artifact",
+   "title": "Acceptance criterion: QUIC listener with PQ certificates must not exceed 2 RTT; use Retry/NEW_TOKEN-validated paths or keep ECDSA on QUIC",
+   "summary": "From measured CRYPTO bytes: any ML-DSA chain (>=10.5 KB handshake-space bytes) exceeds the 3x anti-amplification budget of a 2-Initial ClientHello (~7.2 KB), so a cold QUIC handshake needs >=1 extra RTT. Rule for the golden: public QUIC listener serves ECDSA/Ed25519 (or future MTC) only; ML-DSA certs allowed on QUIC only for clients with a validated address (NEW_TOKEN) or on TCP.",
+   "specifics": "Gate: harness counts server datagrams before first client Handshake ACK; assert <= 3 x client bytes and total handshake RTT <= 2 with ML-DSA-44 leaf+intermediate; record result per release.",
+   "urls": [
+    "state/raw/round-003/03-work/run1.txt",
+    "https://www.rfc-editor.org/rfc/rfc9000.html#section-8.1"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Packet overhead constant approximated; coalescing changes counts by ~1 datagram.",
+   "underclaim_risk": "Clients with larger Initials (Firefox 1350 B) raise the budget slightly; still insufficient for ML-DSA chains.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.header-limit-table",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "artifact",
+   "title": "Header-size ceilings for 5-16 KB PQ-signed capability tokens (source lines, 2026-10-23..25)",
+   "summary": "hyper 1.12.0 (golden pin) HTTP/2 server: DEFAULT_SETTINGS_MAX_HEADER_LIST_SIZE 16 KiB (src/proto/h2/server.rs:40; RFC 7541 accounting name+value+32 per field) -> a 16 KB token header fails, ~15.9 KB is the ceiling minus all other headers; HTTP/1.1: DEFAULT_MAX_BUFFER_SIZE 8192+4096*100 = 417,792 B (proto/h1/io.rs:23), max 100 headers (role.rs:31) -> fits. h2 0.4.20 codec default 16 MiB (codec/framed_read.rs:22) but hyper overrides to 16 KiB. nginx master 9a7439fd (2026-10-23): client_header_buffer_size 1k, large_client_header_buffers 4 8k (src/http/ngx_http_core_module.c:3628-3632) -> any single header line >8 KB rejected (HTTP/1: 400 'Request Header Or Cookie Too Large'; HTTP/2 uses same directive since http2_max_header_size deprecation). Envoy main a0fd7327 (2026-10-25): max_request_headers_kb default 60 KiB, max 8192 (http_connection_manager.proto field 29) -> 431; max_headers_count 100; nghttp2 per-field ~100 KB. Node v26.12.1: --max-http-header-size default 16 KiB (since v13.13.0) and undici defaults its maxHeaderSize to http.maxHeaderSize (lib/dispatcher/client.js:65-69). Cloudflare edge: request headers 128 KB total, URL 16 KB (connection-limits page updated 2026-10-22).",
+   "specifics": "Verdict per token size (single header, base64url): 5 KB: OK everywhere. 8-11 KB (3-hop ML-DSA-44 = 11.2 KB raw, ~15 KB b64): FAILS nginx default; OK Envoy, CF; borderline hyper h2 & Node (16 KiB total incl. all headers). 16 KB+: FAILS nginx, hyper h2 default, Node/undici default; OK Envoy (60 KiB) and Cloudflare (128 KB). Golden config: hyper http2 max_header_list_size = 65536 only on routes that accept Tier-X tokens; prefer body or by-reference handle; document nginx 'large_client_header_buffers 4 32k' for operators fronting us.",
+   "urls": [
+    "https://github.com/nginx/nginx/blob/9a7439fd7907/src/http/ngx_http_core_module.c",
+    "https://github.com/envoyproxy/envoy/blob/main/api/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto",
+    "https://nodejs.org/api/cli.html#--max-http-header-sizesize",
+    "https://github.com/nodejs/undici/blob/main/lib/dispatcher/client.js",
+    "https://developers.cloudflare.com/fundamentals/reference/connection-limits/",
+    "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Cloudflare per-header limit not documented (only total); Workers/other CF products may differ; nginx HTTP/3 module limits not checked.",
+   "underclaim_risk": "Header limits are a hard interop wall: a 16 KB token header silently fails behind default nginx or Node, independent of our server.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.hpack-large-token-literal",
+   "layer": "L4",
+   "domain": "W-PERF",
+   "type": "result",
+   "title": "Multi-KB tokens are never HPACK/QPACK-indexed by default: full retransmission on every request",
+   "summary": "RFC 9113 SETTINGS_HEADER_TABLE_SIZE initial 4,096 octets; RFC 7541 s4.4 adding an entry larger than the table empties the table; RFC 9204 QPACK max table capacity default 0. h2 0.4.20 encoder refuses to index any header with len*4 > max_size*3 (>3 KB at default) (src/hpack/table.rs:153). So a 5-16 KB PQ-signed capability token in a header costs its full size (Huffman barely compresses base64) on EVERY request on the connection, unlike a 300-B Ed25519 token.",
+   "specifics": "Implication: per-request overhead ML-DSA-65 single-block token ~5.3 KB raw/~7.1 KB b64 x requests; 100 req/connection = ~0.7 MB vs ~30 KB for Ed25519. Supports the two-tier token (MAC chain locally, PQ signature only at trust-domain crossing) and a by-reference session-bound handle after first presentation.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc7541#section-4.4",
+    "https://www.rfc-editor.org/rfc/rfc9113#section-6.5.2",
+    "https://www.rfc-editor.org/rfc/rfc9204#section-5",
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/hpack/table.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Peers may advertise larger tables; clients may still Huffman-compress.",
+   "underclaim_risk": "Bandwidth cost is per request, not per connection.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.cab-sc106-withdrawn",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "standard",
+   "title": "CA/B Forum SC-106 (ML-DSA in TLS server certs) closed without ballot 2026-10-21; moved to proposed NonBrowser WG",
+   "summary": "cabforum/servercert PR #679 'SC-106: Enable Post-Quantum Cryptography (PQ) Key Pairs in TLS Server Certificates' (opened 2026-08-26) was closed by its proposer on 2026-10-21 without a discussion period: Chrome, Mozilla and Cloudflare agreed to drop the 7.1.3.2.3 restriction (ML-DSA CA signing classical keys, a downgrade-protection use) but disagree on 7.1.3.1.3 (classical CA cross-signing ML-DSA: Chrome forbids for CT/no-benefit reasons, Mozilla wants it). Proposer will re-propose in a ClientAuth/NonBrowser WG once chartered. Earlier PRs #662 (closed 2026-08-11) and #624 'Add MLDSA-87' (closed 2026-06-29). So, as of 2026-10-25, the Baseline Requirements do not permit ML-DSA in publicly-trusted TLS certificates, and the browser path is MTC-only.",
+   "urls": [
+    "https://github.com/cabforum/servercert/pull/679",
+    "https://github.com/cabforum/servercert/pull/662",
+    "https://github.com/cabforum/servercert/pull/624"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "A NonBrowser WG profile could still appear in 2027 for SDK/IoT relying parties.",
+   "underclaim_risk": "Anyone planning public ML-DSA X.509 for browsers in 2026-27 is planning against a closed ballot.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.chrome-cqrp-testing",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "standard",
+   "title": "Chrome Quantum-resistant Root Program: test root store in Chrome 152 (Canary), ML-DSA-44-only cosigners, MTC -07 (and -05, not -06); policy draft v0.3.0",
+   "summary": "googlechrome.github.io/chromerootprogram cqrp/testing (updated 2026-10-16): flags verify-mtcs + test-root-store, Chrome 152+ (Canary), PKI Metadata Fastpush component; Chrome 152 expected to test standalone and landmark-relative MTCs; cosigner keys ML-DSA-44 only (OID 2.16.840.1.101.3.4.3.17, AlgorithmIdentifier bytes 300b0609608648016503040311); standalone certs need >=2 cosignatures (CA + mirroring); test validity 7-day or 47-day max. Draft policy v0.3.0 (2026-08-14; v0.1 05-14, v0.2 06-17): MTC-only, initial CA operators = CT log operators usable before 2026-02-01, ACME RFC 8555 mandatory with ARI (RFC 9773) and acme-profiles, quarterly ARI tests for >7-day certs, DCV reuse <=10 days, subscriber keys MAY be ML-DSA-44/65/87 (pure only, no HashML-DSA). FAQ: Phase 2 Q1 2027 public MTC bootstrapping; Phase 3 Q3 2027 CQRS launch with 'optional downgrade protections'; ML-DSA private PKI from Chrome 150 (chromestatus 5174590524489728).",
+   "urls": [
+    "https://googlechrome.github.io/chromerootprogram/cqrp/testing/",
+    "https://github.com/GoogleChrome/chromerootprogram/blob/main/content/cqrp/draft-policy.md",
+    "https://github.com/GoogleChrome/chromerootprogram/blob/main/content/cqrp/faq.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "overclaim_risk": "Policy is a draft; dates are targets.",
+   "underclaim_risk": "ACME+ARI mandatory and 7/47-day certs means the golden's ACME client is on the critical path of PQ auth, not the TLS library.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.mtc-server-obligations",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "approach",
+   "title": "What a server must implement to serve MTCs (draft-07) and where rustls/OpenSSL/Go stand (2026-10-25)",
+   "summary": "Per draft-ietf-plants-merkle-tree-certs-07 s8-9: the server (authenticating party) does NOT fetch landmarks; it holds several credentials (classical X.509 chain, standalone MTC, landmark-relative MTC) and selects per ClientHello using the TLS trust_anchors extension (draft-ietf-tls-trust-anchor-ids-06, 2026-09-30); it SHOULD NOT send a landmark-relative cert without an RP signal (trust_anchor_negotiation), prefers landmark-relative when usable, falls back to standalone or classical. ACME client must send Accept: application/pem-certificate-chain-with-properties, parse CertificatePropertyList (trust_anchor_id/groups/negotiation), and poll the 'acme-optional-alternate' link (HTTP 202 + Retry-After) for the landmark-relative cert without blocking deployment. Sizes: landmark-relative proof 736 B (23 hashes, hourly landmarks, 5.4M certs/h/CA); standalone proof 384 B + cosignatures; 1,024 B covers 2^32. Implementations: rustls issue #3079 open (2026-06-03, maintainer: 'definitely want'); rustls PR #3376 'Add TLS trust anchor IDs' open (2026-10-21, experimental codepoint 0xca34 as BoringSSL, TrustAnchorResolver) = step 1; rustls #3214 open: signature_algorithms_cert not exposed to ResolvesServerCert (blocks per-client ML-DSA vs classical chain choice). OpenSSL PR #33014 (open, 2026-09-27) MTC-07 + TAI-06 feature branch (AI review flagged MTC leaf path skipping auth-level check). Let's Encrypt boulder #9082 align -05->-07 (open), PR #9102 standalone MTC endpoint (open). Go: #82402 UPKI revocation proposal (2026-10-21).",
+   "specifics": "L5 interface sketch: trait CredentialSelector { fn select(&self, hello: &ClientHelloView{sni, sig_algs, sig_algs_cert, trust_anchors}) -> Arc<CertifiedKey> } with credentials tagged {kind: X509|MtcStandalone|MtcLandmark, trust_anchor_id, requires_negotiation}; ACME module must support ARI + profiles + optional alternates. Reversal: adopt rustls TrustAnchorResolver when #3376 merges.",
+   "urls": [
+    "https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.txt",
+    "https://datatracker.ietf.org/doc/draft-ietf-tls-trust-anchor-ids/",
+    "https://github.com/rustls/rustls/issues/3079",
+    "https://github.com/rustls/rustls/pull/3376",
+    "https://github.com/rustls/rustls/issues/3214",
+    "https://github.com/openssl/openssl/pull/33014",
+    "https://github.com/letsencrypt/boulder/issues/9082",
+    "https://github.com/letsencrypt/boulder/pull/9102"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Draft could still change (-05 -> -07 already broke Chrome compatibility with -06).",
+   "underclaim_risk": "Server-side MTC is mostly certificate selection + ACME plumbing, not new crypto; it is buildable in 2027 on rustls once TAI lands.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.composite-mldsa-status-sizes",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "standard",
+   "title": "Composite ML-DSA: LAMPS draft-19 in RFC Ed Queue; TLS draft WG-adopted 2026-10-20; exact sizes",
+   "summary": "draft-ietf-lamps-pq-composite-sigs-19 (2026-10-20, 234 pp, intended Proposed Standard) is in the RFC Editor queue (IANA RFC-Ed-Ack); composite KEM -23 likewise. draft-ietf-tls-composite-mldsa-00 (dated 2026-10-20, posted 10-23, Standards Track) adopted from draft-reddy-tls-composite-mldsa-12: 16 SignatureSchemes, codepoints TBD (e.g. mldsa44_ecdsa_secp256r1_sha256, mldsa44_ed25519_sha512, mldsa87_ecdsa_secp384r1_sha512). Max sizes (App. A, pk/sig bytes): MLDSA44-Ed25519 1344/2484; MLDSA44-ECDSA-P256 1377/2492*; MLDSA65-Ed25519 1984/3373; MLDSA65-ECDSA-P256 2017/3381*; MLDSA65-ECDSA-P384 2049/3413*; MLDSA87-ECDSA-P384 2689/4731*; MLDSA87-Ed448 2649/4741; MLDSA87-RSA4096-PSS 3118*/5139 (*=maximum). Signature = ML-DSA sig || traditional sig over M' = 'CompositeAlgorithmSignatures2025' || Label || len(ctx) || ctx || PH(M). rustls: no composite support; Go: pure ML-DSA chosen (golang #78888), x/crypto/ssh composite proposal #82315 (2026-10-18); OpenSSL PR #32886 (open).",
+   "specifics": "Token Tier-X per-block (next_pk + sig) with MLDSA44-Ed25519 = 1344+2484 = 3,828 B (matches pqc-capability-token-design). A composite TLS chain adds only ~65-72 B per certificate over pure ML-DSA-44 (measured pure ML-DSA-44 flight 11,680 B -> ~12.0 KB derived).",
+   "urls": [
+    "https://www.ietf.org/archive/id/draft-ietf-lamps-pq-composite-sigs-19.txt",
+    "https://datatracker.ietf.org/doc/draft-ietf-tls-composite-mldsa/",
+    "https://github.com/golang/go/issues/78888",
+    "https://github.com/openssl/openssl/pull/32886"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "TLS codepoints unassigned; no browser has committed to composite.",
+   "underclaim_risk": "Composite is the conservative hedge for long-lived signatures (tokens, releases) where size is ~+64 B over pure ML-DSA.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.cloudflare-origin-mldsa",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "system",
+   "title": "Deployable PQ authentication today: Cloudflare-to-origin ML-DSA-44 (Custom Origin Trust Store + Authenticated Origin Pulls)",
+   "summary": "Cloudflare docs (pqc-to-origin, updated 2026-08-03; overview updated 2026-07-03): origin may present an ML-DSA leaf (private CA uploaded to Custom Origin Trust Store, replacing public CAs), and Cloudflare can present an ML-DSA client cert via zone/per-hostname AOP; keys must be seed-only encoding; TLS 1.3 required; Cloudflare sends an X25519MLKEM768 share first and accepts HRR. Visitor-to-edge PQ auth 'still under development'. rustls 0.23.46 can serve and verify ML-DSA-44 (aws-lc-rs PqdsaKeyPair::from_pkcs8 accepts seed, expanded or both; to_pkcs8v1 emits 54-B seed form) -> the golden behind Cloudflare can have end-to-end PQ confidentiality AND PQ authentication on the origin hop now.",
+   "urls": [
+    "https://developers.cloudflare.com/ssl/post-quantum-cryptography/pqc-to-origin/",
+    "https://developers.cloudflare.com/ssl/post-quantum-cryptography/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Vendor doc; parameter sets other than ML-DSA-44 not stated; not tested against a live zone here.",
+   "underclaim_risk": "This is the one PQ-auth hop an operator controls end-to-end in 2026; skipping it because 'WebPKI is not ready' is an underclaim.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.go127-mldsa-middlebox",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "failure",
+   "title": "Contrarian: advertising ML-DSA in ClientHello breaks some TLS-inspecting middleboxes (Go 1.27, Palo Alto Prisma Access)",
+   "summary": "golang/go #81199 (open, 2026-08-28): after Go 1.27 added MLDSA44/65/87 (0x0904-0x0906) to signature_algorithms and signature_algorithms_cert, TLS 1.3 connections through Palo Alto Prisma Access (PAN-OS 10.2.10-h37, GlobalProtect 6.2.8-982) get connection reset; bisected to the sigalg additions only; requested GODEBUG opt-out. #80573 (closed 2026-07-26 as tldr.fail dup): Go 1.27 ClientHello ~1,467 B stalls behind some proxies. rustls 0.23.44+ also advertises ML-DSA schemes by default in signature_algorithms (aws-lc-rs provider) -> the golden's OUTBOUND clients may hit the same class of middlebox; no rustls report found (search 2026-10-25).",
+   "specifics": "L5: outbound client profiles expose a switch to drop ML-DSA from signature_algorithms (provider.signature_verification_algorithms filter) for enterprise-egress deployments; keep on by default; inbound server unaffected.",
+   "urls": [
+    "https://github.com/golang/go/issues/81199",
+    "https://github.com/golang/go/issues/80573",
+    "https://github.com/golang/go/issues/79626"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Single vendor/version report; rustls exposure inferred (E) not observed.",
+   "underclaim_risk": "Middlebox ossification hit PQ KEM (tldr.fail) and now PQ sigalgs; size and codepoint novelty both break things.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.cnsa2-tls-profile",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "standard",
+   "title": "CNSA 2.0 TLS profile (draft-becker-cnsa2-tls-profile-05, 2026-10-22): pure ML-KEM-1024 + ML-DSA-87 only; measured 21.3 KB server flight in rustls",
+   "summary": "Individual draft -05 (13 pp): client MUST offer ML-KEM-1024 {0x0202} first, server MUST select it and MUST NOT accept others for a CNSA-compliant connection; ML-DSA-87 {0x0906} is the only signature (cert and CertificateVerify); X.509 certs mandatory; no hybrid. rustls 0.23.46 does it today with kx_groups=[MLKEM1024] and ML-DSA-87 certs: measured ClientHello 1,849 B, server flight 21,331 B (15 TCP segments: +1 RTT vs initcwnd 10), QUIC 19 datagrams vs 6 budget, server CPU ~270-283 us/handshake.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-becker-cnsa2-tls-profile/",
+    "state/raw/round-003/03-work/run1.txt"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Individual draft, not NSA policy; FIPS validation of ML-DSA-87 in the specific aws-lc-fips build must be checked separately (calibration target owns FIPS pins).",
+   "underclaim_risk": "Government profile is implementable with the same crate pins as the public profile; only provider config and certificates differ.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.pq-auth-posture-decision",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "artifact",
+   "title": "PQ-authentication posture for the golden (decision with dated reversal conditions)",
+   "summary": "Alternatives enumerated: (A) ECDSA-P256 X.509 everywhere; (B) pure ML-DSA X.509 on public listener; (C) composite ML-DSA X.509; (D) MTC when available; (E) KEM-based auth (AuthKEM/KEMTLS); (F) dual chains selected per ClientHello. Decision: public TCP/QUIC listener = ECDSA-P256 (or Ed25519) WebPKI chain via ACME now (B is blocked: CA/B SC-106 closed 2026-10-21, Chrome CQRS MTC-only; also ML-DSA-65/87 chains exceed initcwnd and all ML-DSA chains exceed QUIC amplification budget). Key agreement = X25519MLKEM768 preferred, HRR-enforced (r3pq.hrr-acceptance-test). Private hops (origin pull from Cloudflare, internal mTLS, upstream/DB mTLS) = ML-DSA-44 X.509 from an operator CA now (rustls 0.23.46 serves/verifies by default; +~90 us server CPU, +9.5 KB, fits initcwnd). Gov profile = pure ML-KEM-1024 + ML-DSA-87 per CNSA2 TLS profile (accept the +1 RTT). (C) composite only for long-lived signatures (tokens/releases), not TLS, until rustls supports it. (E) rejected for TLS: AuthKEM -07 is individual and LAKE/EDHOC is where AuthKEM is moving. Cert layer built as CredentialSelector so (D)/(F) are config, not code.",
+   "specifics": "Reversal conditions (check monthly): R1 Chrome ships MTC verification enabled by default in Stable for CQRS (target Q3 2027) AND rustls merges trust_anchors (PR #3376) + MTC (#3079) -> add MTC landmark+standalone credentials to public listener. R2 rustls 0.24 released with KeyExchangeSelector -> switch public profile to PreferServerOrder (forces PQ KX for every hybrid-capable client at +1 RTT for X25519-first clients). R3 a CA/B ballot permitting ML-DSA TLS certs passes AND a browser root program accepts them -> reconsider (F) dual chains (needs rustls #3214 signature_algorithms_cert exposure). R4 Let's Encrypt MTC production (2027 target) -> golden ACME client must support ARI + acme-profiles + optional alternates. R5 a practical attack on ML-DSA or implementation break -> composite for private hops. R6 CRQC timeline estimates move inside 2030 -> enable ML-DSA leaf in MTC immediately when available. Pre-registered: P(Chrome Stable verifies public MTCs by default by 2027-12-31) = 0.55; P(CA/B permits ML-DSA in publicly-trusted TLS server certs by 2027-12-31) = 0.2.",
+   "urls": [
+    "https://github.com/cabforum/servercert/pull/679",
+    "https://googlechrome.github.io/chromerootprogram/cqrp/testing/",
+    "https://github.com/rustls/rustls/pull/3376",
+    "state/raw/round-003/03-work/run1.txt"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Assumes WebPKI timelines hold; ECDSA public auth is not PQ-secure (forgery needs a live CRQC, not HNDL, so the risk window is deferred not removed).",
+   "underclaim_risk": "Waiting for MTC on the public listener is right, but private hops and the gov profile can be PQ-authenticated today with no new code.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  },
+  {
+   "id": "r3pq.apple-mtc-policy-absent",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "result",
+   "title": "Apple root program repo: no MTC/PQ policy file as of 2026-10-25",
+   "summary": "gh:apple/apple-root-program tree has no MTC/PQ document; latest commits 2026-10-16 (EOSC questions), 2026-08-01 (policy v2.0). The 'draft MTC policy due end of October 2026' (secondary report in rec60-mtc-plants-chrome-apple-le) is not yet published there.",
+   "urls": [
+    "https://github.com/apple/apple-root-program"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "overclaim_risk": "Absence in repo != absence elsewhere (Apple may publish on its website).",
+   "underclaim_risk": "",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "pillar": "W-PQC"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r3pq.hrr-acceptance-test",
+   "dst": "adv-rustls-pq-downgrade-2026-0349",
+   "type": "extends",
+   "note": "executable server-side verdict for the advisory's mitigation"
+  },
+  {
+   "src": "r3pq.hrr-acceptance-test",
+   "dst": "crate-rustls-pq",
+   "type": "refines",
+   "note": "'rustls servers not exploitable' holds only when client lists hybrid first"
+  },
+  {
+   "src": "r3pq.hrr-acceptance-test",
+   "dst": "std-rfc10024-ecdhe-mlkem",
+   "type": "depends_on",
+   "note": "codepoint 0x11EC"
+  },
+  {
+   "src": "r3pq.rustls-kx-client-order",
+   "dst": "r3pq.hrr-acceptance-test",
+   "type": "explains",
+   "note": ""
+  },
+  {
+   "src": "r3pq.prefer-pq-feature-pitfall",
+   "dst": "crate-rustls-pq",
+   "type": "extends",
+   "note": "feature-gated default order"
+  },
+  {
+   "src": "r3pq.prefer-pq-feature-pitfall",
+   "dst": "dpf-rustls-pq-driver-inheritance",
+   "type": "conflicts_with",
+   "note": "DB drivers inherit PQ only if prefer-post-quantum enabled"
+  },
+  {
+   "src": "r3pq.mldsa-handshake-measured",
+   "dst": "pq-size-mtu-reality",
+   "type": "extends",
+   "note": "own byte/segment/CPU measurement replaces estimate"
+  },
+  {
+   "src": "r3pq.mldsa-handshake-measured",
+   "dst": "w02.handshake-pq-cost",
+   "type": "extends",
+   "note": "adds authentication-side cost to KEM-side cost"
+  },
+  {
+   "src": "r3pq.mldsa-handshake-measured",
+   "dst": "fips204-mldsa-sizes",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.quic-amp-budget-mldsa",
+   "dst": "r3pq.mldsa-handshake-measured",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.header-limit-table",
+   "dst": "pqc-capability-token-design",
+   "type": "extends",
+   "note": "closes q1-043"
+  },
+  {
+   "src": "r3pq.hpack-large-token-literal",
+   "dst": "pqc-capability-token-design",
+   "type": "supports",
+   "note": "two-tier/by-reference design"
+  },
+  {
+   "src": "r3pq.cab-sc106-withdrawn",
+   "dst": "std-cab-pq-ballots",
+   "type": "extends",
+   "note": "newer status: SC-106 closed 2026-10-21"
+  },
+  {
+   "src": "r3pq.chrome-cqrp-testing",
+   "dst": "std-mtc-plants",
+   "type": "extends",
+   "note": "Chrome 152 test store, policy v0.3.0"
+  },
+  {
+   "src": "r3pq.chrome-cqrp-testing",
+   "dst": "rec60-mtc-plants-chrome-apple-le",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "r3pq.mtc-server-obligations",
+   "dst": "std-mtc-plants",
+   "type": "extends",
+   "note": "server-side obligations + implementation status"
+  },
+  {
+   "src": "r3pq.mtc-server-obligations",
+   "dst": "ops.acme-crate-maturity",
+   "type": "depends_on",
+   "note": "ACME client needs ARI/profiles/optional alternates"
+  },
+  {
+   "src": "r3pq.composite-mldsa-status-sizes",
+   "dst": "pqc-capability-token-design",
+   "type": "extends",
+   "note": "closes q1-073; confirms 3,828 B per block"
+  },
+  {
+   "src": "r3pq.composite-mldsa-status-sizes",
+   "dst": "std-pq-x509-rfcs",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "r3pq.cloudflare-origin-mldsa",
+   "dst": "std-pq-x509-rfcs",
+   "type": "depends_on",
+   "note": "RFC 9881 ML-DSA X.509"
+  },
+  {
+   "src": "r3pq.go127-mldsa-middlebox",
+   "dst": "pq-size-mtu-reality",
+   "type": "extends",
+   "note": "sigalg codepoint ossification, not only size"
+  },
+  {
+   "src": "r3pq.cnsa2-tls-profile",
+   "dst": "std-cnsa2-dates",
+   "type": "extends",
+   "note": "TLS profile + measured cost"
+  },
+  {
+   "src": "r3pq.pq-auth-posture-decision",
+   "dst": "r3pq.cab-sc106-withdrawn",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.pq-auth-posture-decision",
+   "dst": "r3pq.chrome-cqrp-testing",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.pq-auth-posture-decision",
+   "dst": "r3pq.mldsa-handshake-measured",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.pq-auth-posture-decision",
+   "dst": "std-authkem-kemtls",
+   "type": "alternative_to",
+   "note": "AuthKEM rejected for TLS"
+  },
+  {
+   "src": "r3pq.pq-auth-posture-decision",
+   "dst": "r3pq.cloudflare-origin-mldsa",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3pq.apple-mtc-policy-absent",
+   "dst": "rec60-mtc-plants-chrome-apple-le",
+   "type": "refines",
+   "note": "draft policy not yet in repo"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Wire-capture (tcpdump on veth with MTU 1500, initcwnd 10, 50 ms netem RTT) of rustls ML-DSA-44/65 handshakes: confirm the modeled +1 RTT for ML-DSA-65 and measure RFC 8879 zlib/brotli compression savings on ML-DSA chains",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.45,
+   "reason": "Segment/RTT counts here are modeled from exact bytes; compression gain on ASN.1 boilerplate unmeasured"
+  },
+  {
+   "question": "quinn + rustls ML-DSA-44 server: measure actual datagrams before address validation and handshake RTTs with and without NEW_TOKEN/Retry",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.5,
+   "reason": "QUIC amplification verdict is modeled"
+  },
+  {
+   "question": "Does any rustls-based outbound client (reqwest/hyper-rustls 0.23.44+) fail through PAN-OS/Zscaler TLS inspection because of ML-DSA sigalgs, as Go 1.27 did (golang #81199)?",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.4,
+   "reason": "Inferred exposure, unobserved"
+  },
+  {
+   "question": "Track rustls PR #3376 (trust anchor IDs) and #3079 (MTC) merge; prototype CredentialSelector on TrustAnchorResolver against Chrome 152 Canary test root store",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "Reversal condition R1 for public PQ auth"
+  },
+  {
+   "question": "Which crates in the golden lock disable rustls default features without prefer-post-quantum (cargo tree -e features audit)?",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.55,
+   "reason": "Silent classical outbound handshakes (measured pitfall)"
+  }
+ ],
+ "predictions": [
+  {
+   "id": "r3pq-p1",
+   "claim": "Chrome Stable verifies publicly-trusted MTCs by default (CQRS launched) by 2027-12-31",
+   "resolve_by": "2027-12-31",
+   "how_to_check": "Chrome release notes / chromerootprogram cqrp pages",
+   "p": 0.55,
+   "source_node": "r3pq.pq-auth-posture-decision"
+  },
+  {
+   "id": "r3pq-p2",
+   "claim": "CA/B Forum adopts a ballot permitting ML-DSA in publicly-trusted TLS server certificates by 2027-12-31",
+   "resolve_by": "2027-12-31",
+   "how_to_check": "cabforum.org ballots",
+   "p": 0.2,
+   "source_node": "r3pq.cab-sc106-withdrawn"
+  },
+  {
+   "id": "r3pq-p3",
+   "claim": "rustls releases trust anchor IDs support (PR #3376 or successor) in a crates.io release by 2027-06-30",
+   "resolve_by": "2027-06-30",
+   "how_to_check": "rustls release notes",
+   "p": 0.65,
+   "source_node": "r3pq.mtc-server-obligations"
+  }
+ ],
+ "notes": {
+  "explorer": "03-pq-authentication-and-hrr-acceptance",
+  "round": 3,
+  "date": "2026-10-25",
+  "queries_logged": 21,
+  "novelty_gate": {
+   "queries_checked": 6,
+   "DUP_skipped": 0,
+   "NEAR_DUP_rewritten": 0,
+   "all NOVEL": true
+  },
+  "urls_new_vs_seen": "~40 new primary URLs (datatracker drafts x14 via API, rustls issues/PRs x12, rustls/hyper/h2/nginx/envoy/undici source, Chrome CQRP x3, cabforum PRs x3, golang issues x4, OpenSSL PRs x2, boulder x3, Cloudflare docs x3, Node docs, RFC 7541/9113/9204, CNSA2 profile); re-read seen: none counted",
+  "nodes_new": 16,
+  "nodes_reused_via_edges": [
+   "pq-size-mtu-reality",
+   "rec60-mtc-plants-chrome-apple-le",
+   "adv-rustls-pq-downgrade-2026-0349",
+   "std-rfc10024-ecdhe-mlkem",
+   "crate-rustls-pq",
+   "std-mtc-plants",
+   "std-cab-pq-ballots",
+   "pqc-capability-token-design",
+   "std-pq-x509-rfcs",
+   "std-cnsa2-dates",
+   "std-authkem-kemtls",
+   "fips204-mldsa-sizes",
+   "w02.handshake-pq-cost",
+   "dpf-rustls-pq-driver-inheritance",
+   "ops.acme-crate-maturity"
+  ],
+  "closes": {
+   "q2-002": "r3pq.hrr-acceptance-test (YES for hybrid-first clients; NO for X25519-first clients on 0.23.x default; pq-required profile or 0.24 PreferServerOrder fixes)",
+   "q1-073": "r3pq.composite-mldsa-status-sizes",
+   "q1-043": "r3pq.header-limit-table"
+  },
+  "measurement": {
+   "crate": "state/raw/round-003/03-work/pqauth (rustls =0.23.46, rcgen =0.14.10 aws_lc_rs_unstable, aws-lc-rs =1.18.2)",
+   "output": "state/raw/round-003/03-work/run1.txt",
+   "runs": "2 independent runs x 10 trials x 100 handshakes (outputs interleaved in run1.txt)",
+   "host": "i9-14900HX 32 threads, load avg 36-77",
+   "target_dir": "reused scratchpad hyperhello/target (rustls+aws-lc-rs prebuilt); deleted after recording (263 MB)",
+   "not_done": "wire capture/netem; OpenSSL>=3.5 unavailable locally (miniconda 3.0.15, system 3.0.13) so chains built with rcgen; never apt installed"
+  },
+  "rustls_fix_state_main": "main 28ee6c68 (2026-10-23): KeyExchangeSelector added (unreleased); PR #3376 TAI open; #3079 MTC open; #3214 sig_algs_cert open; #3370 client hybrid-component check open; ML-DSA default since 0.23.44 (#3249); FIPS fips()==false with webpki 0.103.14 fixed in 0.103.15 (#3256)",
+  "anti_anchoring": "Posture alternatives A-F enumerated from standards/deployment evidence before any prior text; prior treatments not opened."
+ },
+ "self_improvement": [
+  "heavy.sh lock did not serialize two jobs this explorer launched 3 s apart (both started 02:46:34/:37 and ran concurrently; one Bash-tool background job also appeared to vanish from ps while still queued). Investigate flock semantics under systemd-run --scope and process visibility; until fixed, explorers should check `fuser /tmp/aegis-heavy.lock` before assuming exclusivity, and write each run to a unique output file (two runs clobbered run1.txt).",
+  "Benchmark CPU numbers under shared-host load (load avg 36-77) are only ratio-stable; integrator should treat absolute us values from round-3 explorers as C unless replicated on an idle host.",
+  "Rust std: reading stdin with a 0-length buffer through Stdin's BufReader blocks; harness templates should never read stdin at exit."
+ ],
+ "protocol_implications": [
+  "Golden TLS: rustls =0.23.46 with features incl. prefer-post-quantum; CI asserts first kx group == X25519MLKEM768 on every ClientConfig/ServerConfig and runs the 5-verdict HRR acceptance test on every rustls bump.",
+  "Public listener authenticates with ECDSA-P256 WebPKI certs via ACME (ARI+profiles capable); no ML-DSA X.509 on public listener until reversal R1/R3.",
+  "Private hops (Cloudflare origin pull, internal/upstream mTLS) use ML-DSA-44 X.509 now; gov profile = MLKEM1024 + ML-DSA-87.",
+  "Certificate layer is a CredentialSelector over {X509, MTC standalone, MTC landmark} keyed by trust_anchors/sig_algs; adopt rustls TrustAnchorResolver when #3376 lands.",
+  "PQ-signed capability tokens never ride in headers by default: body or by-reference handle; if header, enforce explicit max and raise hyper h2 max_header_list_size only on token routes; document nginx large_client_header_buffers for operators.",
+  "QUIC listener: ECDSA/Ed25519 certs only until MTC; ML-DSA on QUIC only for address-validated clients."
+ ],
+ "sources": [
+  "https://datatracker.ietf.org/doc/draft-becker-cnsa2-tls-profile/",
+  "https://datatracker.ietf.org/doc/draft-ietf-tls-composite-mldsa/",
+  "https://datatracker.ietf.org/doc/draft-ietf-tls-trust-anchor-ids/",
+  "https://developers.cloudflare.com/fundamentals/reference/connection-limits/",
+  "https://developers.cloudflare.com/ssl/post-quantum-cryptography/",
+  "https://developers.cloudflare.com/ssl/post-quantum-cryptography/pqc-to-origin/",
+  "https://github.com/GoogleChrome/chromerootprogram/blob/main/content/cqrp/draft-policy.md",
+  "https://github.com/GoogleChrome/chromerootprogram/blob/main/content/cqrp/faq.md",
+  "https://github.com/apple/apple-root-program",
+  "https://github.com/cabforum/servercert/pull/624",
+  "https://github.com/cabforum/servercert/pull/662",
+  "https://github.com/cabforum/servercert/pull/679",
+  "https://github.com/envoyproxy/envoy/blob/main/api/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto",
+  "https://github.com/golang/go/issues/78888",
+  "https://github.com/golang/go/issues/79626",
+  "https://github.com/golang/go/issues/80573",
+  "https://github.com/golang/go/issues/81199",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/hpack/table.rs",
+  "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs",
+  "https://github.com/letsencrypt/boulder/issues/9082",
+  "https://github.com/letsencrypt/boulder/pull/9102",
+  "https://github.com/nginx/nginx/blob/9a7439fd7907/src/http/ngx_http_core_module.c",
+  "https://github.com/nodejs/undici/blob/main/lib/dispatcher/client.js",
+  "https://github.com/openssl/openssl/pull/32886",
+  "https://github.com/openssl/openssl/pull/33014",
+  "https://github.com/rustls/rustls/blob/28ee6c688e1567d5bd77d2c6f34e704f62e8bdde/rustls/src/server/config.rs",
+  "https://github.com/rustls/rustls/blob/28ee6c688e1567d5bd77d2c6f34e704f62e8bdde/rustls/src/server/hs.rs",
+  "https://github.com/rustls/rustls/blob/v/0.23.46/rustls/src/crypto/aws_lc_rs/mod.rs",
+  "https://github.com/rustls/rustls/commit/3fe60d7913",
+  "https://github.com/rustls/rustls/issues/3079",
+  "https://github.com/rustls/rustls/issues/3214",
+  "https://github.com/rustls/rustls/pull/3370",
+  "https://github.com/rustls/rustls/pull/3376",
+  "https://googlechrome.github.io/chromerootprogram/cqrp/testing/",
+  "https://nodejs.org/api/cli.html#--max-http-header-sizesize",
+  "https://osv.dev/vulnerability/RUSTSEC-2026-0349",
+  "https://www.ietf.org/archive/id/draft-ietf-lamps-pq-composite-sigs-19.txt",
+  "https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.txt",
+  "https://www.rfc-editor.org/rfc/rfc7541#section-4.4",
+  "https://www.rfc-editor.org/rfc/rfc9000.html#section-8.1",
+  "https://www.rfc-editor.org/rfc/rfc9113#section-6.5.2",
+  "https://www.rfc-editor.org/rfc/rfc9204#section-5",
+  "state/raw/round-003/03-work/hrr_acceptance_test.rs",
+  "state/raw/round-003/03-work/pqauth/src/main.rs",
+  "state/raw/round-003/03-work/run1.txt"
+ ]
+}

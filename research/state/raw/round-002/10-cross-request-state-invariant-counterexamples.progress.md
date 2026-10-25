@@ -31,3 +31,10 @@ CONTRARIAN: invariant also TOO STRONG: rate-limit counters, QUIC Retry/address t
 - OWASP Session Mgmt cheat sheet: regenerate session ID after any privilege change; never accept IDs never generated (session fixation = pre-auth state surviving auth boundary).
 - 0-RTT: no internet-scale replay-acceptance measurement exists (Holz et al. arXiv 1907.12762: 6.8% of TLS1.3 conns carry early_data; acceptance unobservable passively). GAP -> spike on own server.
 - Rust HashMap default SipHash-1-3 keyed; foldhash "minimally DoS-resistant", not for adversarial long-running.
+## Checkpoint 4 (sources 33-37, post-crash resume 2026-10-24 23:55)
+- CVE-2026-44572 Next.js 12.2.0-<15.5.16 / 16.0-<16.2.5 (pub 2026-05-13): client-sent x-nextjs-data (internal header) on middleware redirect -> Location replaced; behind non-varying CDN, ONE request poisons cached redirect for all. Unauthenticated internal-namespace header -> response shape -> shared cache. CONFIRMS invariant + keying rule "every request input that affects response must be in key or stripped at ingress".
+- CVE-2025-49005 Next.js 15.3.0-<15.3.3 (pub 2025-07-03): missing Vary -> RSC payload cached as HTML. Same class (response variant not in key).
+- contour #5240 (2023-04-03): wildcard cert + H2 coalescing -> 421; Safari stuck (retry only MAY). Shows 421 is a liveness cost of the SNI==:authority check; mitigation = ORIGIN frame / per-host certs.
+- 0-RTT replay: no CVE found for QUIC server anti-replay specifically (negative result; ePrint 2017/082 Fischlin-Günther replay analysis; arXiv 2401.06657 survey).
+- hyper-util 0.1.21 (2026-09-24) legacy Client: `type PoolKey = (Scheme, Authority)` (client.rs l.95) — omits SNI override, client cert identity, CA store, tenant. Same root cause as curl 2026 cluster if AEGIS uses per-tenant upstream mTLS.
+## DONE: final JSON written (20 nodes, 30 edges, 39 sources)

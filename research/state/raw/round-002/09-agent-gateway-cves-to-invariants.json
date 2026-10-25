@@ -1,0 +1,1018 @@
+{
+ "nodes": [
+  {
+   "id": "adv.corpus-r2-09",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "dataset",
+   "title": "MCP-ecosystem advisory corpus 2025-06..2026-10: 58 dated advisories analysed (66 pulled via gh api from 10 repos + 13 ToolHive/other)",
+   "summary": "Each row: GHSA, CVE where assigned, date, root cause, one-sentence invariant, structural-prevention verdict (T=type/capability boundary, S=statelessness, N=neither), conformance case id. Classes: A origin/DNS-rebind 15, B session/principal 7, C audience 2, D OAuth mix-up/SSRF 6, E redirect leak 4, F unbounded state 8, G parser differential/policy 8, H gateway-specific 8.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/typescript-sdk/security/advisories",
+    "https://github.com/modelcontextprotocol/python-sdk/security/advisories",
+    "https://github.com/modelcontextprotocol/rust-sdk/security/advisories",
+    "https://github.com/modelcontextprotocol/go-sdk/security/advisories",
+    "https://github.com/modelcontextprotocol/java-sdk/security/advisories",
+    "https://github.com/modelcontextprotocol/inspector/security/advisories",
+    "https://github.com/agentgateway/agentgateway/security/advisories",
+    "https://github.com/docker/mcp-gateway/security/advisories",
+    "https://github.com/stacklok/toolhive/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Counts are of advisories I read, not of all MCP vulns; 66 are gh-api primary, ToolHive entries partially from advisory titles",
+   "underclaim_risk": "Many advisories not in these repos (ruby/kotlin/php SDKs, litellm, context-forge, microsoft/mcp-gateway) only skimmed",
+   "specifics": "[[\"GHSA-w48q-cv73-mx4w\", \"CVE-2025-66414\", \"2025-12-02\", \"ts-sdk\", \"A\", \"localhost HTTP server had Host/Origin validation default-off\", \"Every request to a loopback-bound listener is rejected unless Host is in an allowlist\", \"T\", \"host-allowlist-required\"], [\"GHSA-9h52-p55h-vw2f\", \"CVE-2025-66416\", \"2025-12-02\", \"py-sdk\", \"A\", \"same default-off DNS-rebind protection\", \"as above\", \"T\", \"host-allowlist-required\"], [\"GHSA-xw59-hvm2-8pj6\", \"CVE-2026-34742\", \"2026-03-30\", \"go-sdk\", \"A\", \"same default-off in Go; fixed 1.4.0, then default reverted in PR #906\", \"as above\", \"T\", \"host-allowlist-required\"], [\"GHSA-89xv-2j6f-qhc8\", \"CVE-2026-33252\", \"2026-03-18\", \"go-sdk\", \"A\", \"cross-site POST text/plain skipped CORS preflight, no Origin/Content-Type check\", \"POST bodies are parsed only when Content-Type is application/json AND Origin is allowed\", \"T\", \"reject-text-plain-post\"], [\"GHSA-8jxr-pr72-r468\", \"CVE-2026-35568\", \"2026-04-07\", \"java-sdk\", \"A\", \"DNS rebinding, no Host check\", \"Host allowlist enforced\", \"T\", \"host-allowlist-required\"], [\"GHSA-hv2w-8mjj-jw22\", \"CVE-2026-34237\", \"2026-03-30\", \"java-sdk\", \"A\", \"hardcoded ACAO:*\", \"No response carries wildcard ACAO\", \"T\", \"no-wildcard-cors\"], [\"GHSA-hp8w-r5wh-cw9q\", \"\", \"2026-10-20\", \"java-sdk\", \"A\", \"default stateless Servlet transport accepted browser cross-origin tool calls (stateless removes session as accidental CSRF barrier)\", \"Stateless endpoints get the same Origin/Content-Type gate; absence of session is not authentication\", \"T\", \"reject-text-plain-post\"], [\"GHSA-vj7q-gjh5-988w\", \"CVE-2026-59950\", \"2026-07-07\", \"py-sdk\", \"A\", \"WebSocket transport had no Host/Origin validation (WS exempt from CORS)\", \"Upgrade handshake checks Origin\", \"T\", \"ws-origin-check\"], [\"GHSA-89vp-x53w-74fx\", \"CVE-2026-42559\", \"2026-04-29\", \"rmcp\", \"A\", \"DNS rebinding in Streamable HTTP; fix PR #764 (2026-04-01), Origin PR #823\", \"Host allowlist enforced; also HTTP/2 :authority (#827)\", \"T\", \"host-allowlist-required;h2-authority\"], [\"GHSA-46gc-mwh4-cc5r\", \"CVE-2025-64443\", \"2025-12-03\", \"docker/mcp-gateway\", \"A\", \"gateway sse/streaming mode DNS rebinding\", \"gateway listener enforces Host allowlist\", \"T\", \"host-allowlist-required\"], [\"GHSA-7f8r-222p-6f5g\", \"CVE-2025-49596\", \"2025-06-13\", \"inspector\", \"A\", \"proxy had no auth and listened/accepted any origin: browser to local RCE\", \"Local proxy requires per-launch token + Origin/Host check\", \"T\", \"proxy-token-required\"], [\"GHSA-vcc9-3xgm-p9v4\", \"\", \"2026-10-21\", \"inspector\", \"A\", \"incomplete fix of 49596: DNS-rebind disclosed API token and stored OAuth tokens\", \"Tokens never readable by a request whose Host is not the bound loopback name\", \"T\", \"host-allowlist-required\"], [\"GHSA-wmjf-2m46-2352\", \"\", \"2026-10-21\", \"inspector\", \"A\", \"Origin check fail-open when Origin header absent\", \"Missing Origin on a state-changing request is treated as untrusted when no other credential is present\", \"T\", \"absent-origin-fail-closed\"], [\"GHSA-6x67-4w4w-9f3w\", \"\", \"2026-10-21\", \"inspector\", \"A\", \"remote MCP App could steal proxy auth token then run local commands\", \"Proxy credential is never exposed to content from an MCP server origin\", \"T\", \"token-not-to-app-origin\"], [\"GHSA-jpw9-pfvf-9f58\", \"CVE-2026-52869\", \"2026-06-05\", \"py-sdk\", \"B\", \"session id alone authorised requests, no principal binding\", \"Session is bound to authenticated principal at creation; every use re-checks it\", \"S\", \"session-principal-binding\"], [\"GHSA-mvgg-jvj2-4frq\", \"\", \"2026-07-27\", \"agentgateway\", \"B\", \"stateful session id reused across routes, overwrote authorization policy\", \"Session pinned to (route, backend, policy version); mismatch gives 404\", \"S\", \"session-route-pin (agentgateway test stateful_session_cannot_cross_mcp_backends)\"], [\"GHSA-hvrp-rf83-w775\", \"CVE-2026-52870\", \"2026-06-05\", \"py-sdk\", \"B\", \"tasks listable/cancellable by any client\", \"Task id resolves only within creator principal scope\", \"T\", \"task-cross-principal-404\"], [\"GHSA-22jm-h49p-29qw\", \"CVE-2026-111767\", \"2026-10-02\", \"ts-sdk\", \"B\", \"tasks not tied to creating session\", \"same\", \"T\", \"task-cross-principal-404\"], [\"GHSA-345p-7cg4-v4c7\", \"CVE-2026-25536\", \"2026-02-04\", \"ts-sdk\", \"B\", \"shared server/transport instance delivered responses to wrong client (JSON-RPC id collision)\", \"Response routing key includes connection identity, never JSON-RPC id alone\", \"T\", \"id-collision-two-clients\"], [\"GHSA-jm63-cq47-j5jp\", \"CVE-2026-111770\", \"2026-10-15\", \"ts-sdk\", \"B\", \"recurrence of shared-instance cross-delivery\", \"same; per-request context object, no mutable shared state\", \"S\", \"id-collision-two-clients\"], [\"GHSA-rvq5-wwqv-78pq\", \"CVE-2026-111771\", \"2026-10-05\", \"ts-sdk\", \"C\", \"bearer verification accepted token for another resource server\", \"Token aud must equal this resource; verified server-side, not opt-in\", \"T\", \"token-wrong-audience-401\"], [\"GHSA-w4fh-qvv9-3v23\", \"\", \"2026-10-05\", \"py-sdk\", \"C\", \"audience check opt-in, default off\", \"same\", \"T\", \"token-wrong-audience-401\"], [\"GHSA-6qxp-vccf-f47h\", \"CVE-2026-104850\", \"2026-09-30\", \"ts-sdk\", \"D\", \"OAuth client sent credentials to AS chosen by MCP server (mix-up)\", \"Client sends credentials only to an AS whose issuer matches pinned/discovered issuer (RFC 9207)\", \"T\", \"oauth-issuer-pin\"], [\"GHSA-qx49-fqc8-xw99\", \"CVE-2026-115563\", \"2026-09-28\", \"py-sdk\", \"D\", \"same\", \"same\", \"T\", \"oauth-issuer-pin\"], [\"GHSA-33f5-2c5q-wgwj\", \"CVE-2026-63127\", \"2026-06-29\", \"rmcp\", \"D\", \"resource field of PRM not validated against requested URL\", \"PRM.resource must equal the server URL used\", \"T\", \"resource-mismatch\"], [\"GHSA-c9xm-49cp-xcr9\", \"\", \"2026-06-29\", \"rmcp\", \"D\", \"client fetched server-controlled resource_metadata URLs (SSRF)\", \"Metadata URLs pass an egress policy on resolved addresses\", \"T\", \"ssrf-resolved-address\"], [\"GHSA-5p52-q7pq-9fq2\", \"\", \"2026-10-22\", \"rmcp\", \"D\", \"SSRF filter checked host strings, not resolved IPs (incomplete fix; DNS TOCTOU)\", \"Egress check applies to the connected socket address\", \"T\", \"ssrf-resolved-address\"], [\"GHSA-6prh-2h8m-c8cw\", \"CVE-2026-111769\", \"2026-10-02\", \"ts-sdk\", \"E\", \"cross-origin redirect re-sent custom headers/body\", \"Credentials/headers are stripped on cross-origin redirect\", \"T\", \"redirect-strip-headers\"], [\"GHSA-5h93-6whr-6q8j\", \"\", \"2026-10-02\", \"py-sdk\", \"E\", \"same\", \"same\", \"T\", \"redirect-strip-headers\"], [\"GHSA-9g45-5xwm-f3wc\", \"CVE-2026-64684\", \"2026-07-02\", \"rmcp\", \"E\", \"same\", \"same\", \"T\", \"redirect-strip-headers\"], [\"GHSA-f6mc-jg3x-vq53\", \"\", \"2026-10-21\", \"inspector\", \"E\", \"regression: /fetch proxy leaked Authorization/Cookie across redirects\", \"same\", \"T\", \"redirect-strip-headers\"], [\"GHSA-wvj2-96wp-fq3f\", \"CVE-2026-27896\", \"2026-02-25\", \"go-sdk\", \"G\", \"encoding/json case-insensitive keys: policy layer sees 'method', SDK accepts 'Method'\", \"Gateway and backend parse with identical strictness; reject case-variant, duplicate keys\", \"T\", \"json-case-variant-reject\"], [\"GHSA-q382-vc8q-7jhj\", \"\", \"2026-03-18\", \"go-sdk\", \"G\", \"segmentio NUL-char key folding plus duplicate-key last-wins\", \"reject duplicate keys and NUL\", \"T\", \"json-dup-nul-reject\"], [\"GHSA-hxx3-f8cg-r974\", \"\", \"2026-09-21\", \"toolhive\", \"G\", \"duplicate/case-variant JSON members bypass tool policy\", \"same\", \"T\", \"json-dup-nul-reject\"], [\"GHSA-9v4w-3mqh-6vmm\", \"\", \"2026-09-08\", \"toolhive\", \"G\", \"UTF-8 BOM bypasses tool allowlist\", \"Normalise or reject BOM before policy\", \"T\", \"json-bom-reject\"], [\"GHSA-vpfq-5j3m-j36r\", \"\", \"2026-10-14\", \"toolhive\", \"G\", \"1e1000 number yields empty tool name; Cedar evaluates empty string\", \"Policy fails closed on unparseable method/tool name\", \"T\", \"policy-fail-closed\"], [\"GHSA-g7gq-2r4g-3qw8\", \"\", \"2026-10-07\", \"toolhive\", \"G\", \"non-JSON Content-Type skipped webhook/ratelimit middleware\", \"Middleware never skipped by content-type; unparseable means reject\", \"T\", \"policy-fail-closed\"], [\"GHSA-qg99-jrvf-j9fh\", \"\", \"2026-10-13\", \"docker/mcp-gateway\", \"G\", \"case-variant tool names bypass reserved-name collision\", \"Tool names compared by exact canonical form; namespaced\", \"T\", \"toolname-collision\"], [\"GHSA-m5m2-mrxf-7j7q\", \"CVE-2026-76097\", \"2026-07-09\", \"docker/mcp-gateway\", \"G\", \"tool-name shadowing across aggregated servers (tool poisoning/shadowing)\", \"Aggregated tool names are server-prefixed; collision is a config error\", \"T\", \"toolname-collision\"], [\"GHSA-g879-4j4f-6vj7\", \"CVE-2026-76092\", \"2026-07-09\", \"docker/mcp-gateway\", \"H\", \"container mode proxied tools with no authentication\", \"No listener starts without an authenticator (fail-closed construction)\", \"T\", \"unauth-listener-refused\"], [\"GHSA-mqq5-qh4g-2g8g\", \"CVE-2026-76099\", \"2026-07-09\", \"docker/mcp-gateway\", \"H\", \"config-driven bind mount via dynamic tools\", \"Mounts/paths from tool config are validated against allowlist\", \"T\", \"path-allowlist\"], [\"GHSA-6pq5-p7fc-7xhq\", \"CVE-2026-76095\", \"2026-07-09\", \"docker/mcp-gateway\", \"H\", \"file:// server reference reads host files\", \"Server refs restricted to https/registry scheme\", \"T\", \"scheme-allowlist\"], [\"GHSA-625j-rw87-4ghr\", \"CVE-2026-76093\", \"2026-07-09\", \"docker/mcp-gateway\", \"H\", \"SSRF via attacker remote server URL\", \"Egress policy on resolved address\", \"T\", \"ssrf-resolved-address\"], [\"GHSA-6m8f-w97w-99h7\", \"CVE-2026-76094\", \"2026-07-09\", \"docker/mcp-gateway\", \"H\", \"image signature verification off by default\", \"Unverified artifacts cannot be launched in default config\", \"T\", \"verify-default-on\"], [\"GHSA-r2xf-7jw5-pjg6\", \"CVE-2026-55887\", \"2026-06-16\", \"docker/mcp-gateway\", \"H\", \"argument injection via OCI label YAML\", \"Untrusted metadata never reaches argv\", \"T\", \"argv-injection\"], [\"GHSA-v2x6-wwfw-r2rq\", \"CVE-2026-29791\", \"2026-03-04\", \"agentgateway\", \"H\", \"missing path-param sanitization in MCP-to-OpenAPI\", \"Path params can not contain separators or dot segments\", \"T\", \"openapi-traversal\"], [\"GHSA-h7hp-2f8r-9g9c\", \"\", \"2026-10-02\", \"agentgateway\", \"H\", \"same class re-opened: incomplete fix 7 months later (PR #3598 rstest cases)\", \"same; regression corpus (dot_dot, backslash_parent) kept\", \"T\", \"openapi-traversal\"], [\"GHSA-9pj6-vhgr-3mwh\", \"CVE-2026-63128\", \"2026-06-29\", \"rmcp\", \"F\", \"unauthenticated permanent session-table leak\", \"State allocated pre-auth is bounded and TTL-reclaimed\", \"S\", \"session-table-bound\"], [\"GHSA-84m7-p3x7-pcfv\", \"CVE-2026-59951\", \"2026-09-30\", \"py-sdk\", \"F\", \"sessions never reclaimed by default\", \"same\", \"S\", \"session-table-bound\"], [\"GHSA-2hm9-qff2-hrpj\", \"\", \"2026-10-20\", \"java-sdk\", \"F\", \"initialize flood retains sessions\", \"same\", \"S\", \"session-table-bound\"], [\"GHSA-4432-vg92-fqh6\", \"\", \"2026-10-20\", \"rmcp\", \"F\", \"unauth unbounded tool_schemas cache growth (fix #1349 per-request)\", \"No unauthenticated request can grow server memory without bound\", \"S\", \"cache-bound\"], [\"GHSA-fmmv-w9g8-j3gc\", \"CVE-2026-109527\", \"2026-09-30\", \"py-sdk\", \"F\", \"no body size limit\", \"Body cap enforced before buffering (413)\", \"T\", \"body-cap-413\"], [\"GHSA-4x8c-5vv7-973f\", \"CVE-2026-108395\", \"2026-08-19\", \"java-sdk\", \"F\", \"unbounded body reads\", \"same\", \"T\", \"body-cap-413\"], [\"GHSA-f897-62hf-6gxq\", \"\", \"2026-10-15\", \"ts-sdk\", \"F\", \"no body or JSON-RPC batch length limit\", \"same plus batch cap\", \"T\", \"body-cap-413\"], [\"GHSA-46jr-4wx8-v453\", \"CVE-2026-111768\", \"2026-10-15\", \"ts-sdk\", \"F\", \"single in-limit request exhausts memory in validation (amplification)\", \"Validation memory bounded by input size factor\", \"T\", \"amplification-bound\"], [\"GHSA-hqg7-qjgg-q779\", \"\", \"2026-09\", \"toolhive\", \"B\", \"sessions not bound to principal\", \"as session-principal-binding\", \"S\", \"session-principal-binding\"], [\"GHSA-7h6f-8rq9-53cw\", \"\", \"2026-10-22\", \"toolhive\", \"A\", \"2026-07-28 path skipped Host check (new protocol revision = new unguarded route)\", \"Origin/Host gate sits in listener, not per-route\", \"T\", \"host-allowlist-required\"], [\"GHSA-2gjv-f568-6cxp\", \"\", \"2026-09\", \"toolhive\", \"D\", \"OAuth callback state not browser-bound: login CSRF/fixation\", \"state bound to initiating browser\", \"T\", \"oauth-state-bound\"]]"
+  },
+  {
+   "id": "fin.same-bug-n-sdks",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "Same default-off DNS-rebinding bug filed independently in TS, Python, Go, Java, rmcp, Docker gateway, Ruby within 2025-12..2026-04",
+   "summary": "Opt-in security = recurring advisory. Also TS shared-instance cross-delivery recurred (GHSA-345p then GHSA-jm63), agentgateway OpenAPI traversal fixed twice 7 months apart (v0.12.0 CVE-2026-29791 -> v1.6.0 GHSA-h7hp), rmcp SSRF filter fixed incompletely (c9xm -> 5p52). Fix-twice rate is evidence that a regression corpus is needed.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Recurrence count is small (3 pairs)",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.stateless-not-sufficient",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "Statelessness removes session-confusion class but not Origin, parser, audience, or SSRF classes; it creates new ones",
+   "summary": "Of 58 advisories, S-verdict only on class B and F-state items (~8); Java GHSA-hp8w showed default stateless transport lost the accidental session CSRF barrier; ToolHive GHSA-7h6f showed the 2026-07-28 path skipped Host check. MRTR requestState moves state to client: spec says attacker-controlled, MUST integrity-protect; sealing is default-on in Python (PR #3032) but opt-in feature `request-state` in rmcp and opt-in in TS.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/modelcontextprotocol"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Verdict S/T is my judgement, not primary",
+   "underclaim_risk": "Contrarian view: stateless makes B-class removable",
+   "specifics": ""
+  },
+  {
+   "id": "fin.spec-absent-origin",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "Spec 2026-07-28 streamable-http: 'If Origin header is present and invalid -> 403' leaves absent Origin accepted",
+   "summary": "Matches Inspector GHSA-wmjf-2m46-2352 and docker CVE-2026-76092 originSecurityHandler allowing no-Origin. Non-browser clients legitimately omit Origin, so rule must be credential-conditioned: absent Origin OK only with bearer/mTLS credential, never with ambient auth (cookies, loopback trust).",
+   "urls": [
+    "https://github.com/modelcontextprotocol/modelcontextprotocol"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Read of spec tag text by me at 2026-10; not re-quoted verbatim in this node",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.sdk-default-tension",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "Secure-default vs usability: Go PR #842 default CrossOriginProtection (2026-03-13) reverted by PR #906 (2026-04-24, fixes #902) after github-mcp-server browser clients broke",
+   "summary": "Contrarian: defaults get reverted. Gateway must expose typed explicit opt-out rather than silent default-off.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.conformance-gap",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "modelcontextprotocol/conformance (package 0.2.0-alpha.12, release v0.1.16 2026-03-27, pushed 2026-10-19) covers dns-rebinding (cites GHSA-w48q) but no scenarios found by code search for 13 of ~20 case classes",
+   "summary": "Missing: text/plain no-preflight, 413 cap, redirect header strip, session-principal binding, task cross-principal, server-side aud rejection, JSON key case/NUL/dup, absent-Origin, requestState tamper. License field NOASSERTION.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/conformance"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Code search by grep over repo, not exhaustive; scenario names may be elsewhere",
+   "underclaim_risk": "Alpha package; coverage may have grown since 10-19",
+   "specifics": ""
+  },
+  {
+   "id": "fin.rmcp-3.7.0",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "fact",
+   "title": "rmcp 3.7.0 (crates.io, created 2026-10-22T20:07:18Z, Apache-2.0) implements stable MCP 2026-07-28 incl. stateless streamable HTTP and MRTR; 2025-11-25 compatible",
+   "summary": "Supersedes j-rmcp-sdk license note: crates.io says Apache-2.0 while GitHub field says NOASSERTION. 39,898,077 total / 22,373,610 recent downloads. 3.6.0 2026-10-20; 3.5.1 2026-10-05. requestState sealing = opt-in feature `request-state` (RequestStateCodec, HMAC, MIN_KEY_LENGTH). Spec 2026-07-28 stable tag published 2026-07-28T16:47:49Z (RC 2026-05-29T12:51:22Z; 2025-11-25 at 2025-11-25T21:17:42Z). 7 rmcp GHSAs, 5 in 2026-06..10: pin >=3.7.0 and re-audit each bump.",
+   "urls": [
+    "https://crates.io/crates/rmcp",
+    "https://github.com/modelcontextprotocol/rust-sdk"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Download counts are from a point-in-time API read",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.toolhive-policy-bypass",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "ToolHive (43 GHSAs) shows gateway policy-bypass is dominated by parser differentials and middleware skips",
+   "summary": "8 advisories 2026-09..10 (hxx3, 9v4w, vpfq, rxgh, g7gq, h4mf, gc9p critical, 5cgx). Fix versions: 0.47.0, 0.50.0, 0.51.4, 0.54.0, 0.56.0.",
+   "urls": [
+    "https://github.com/stacklok/toolhive/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Read from advisory bodies, fix versions not re-verified against tags",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.requeststate",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "finding",
+   "title": "MRTR requestState is a new client-held confused-deputy surface; python PR #3032 (merged 2026-06-30, +3338/-183) seals with TTL, audience, principal, request digest",
+   "summary": "Spec mrtr.mdx server req 4: MUST treat as attacker-controlled; MUST integrity-protect if it influences authz/resource/business; SHOULD include principal/ttl/audience.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.papers-unverified",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "calibration",
+   "title": "arXiv 2603.10163 (clause-compliance vulns, 2026-03-10): abstract gives no counts; '78.5% of 1265' only from third-party summary, unverified. arXiv 2606.05339 (v2 2026-09-19): 833 threads, 473 repos, 73 leaf categories verified from abstract",
+   "summary": "Do not cite 78.5%/1265.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "fin.mcp-remote",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "fact",
+   "title": "CVE-2025-6514 mcp-remote: published 2025-07-09, CVSS 9.6 per JFrog (secondary), alias GHSA-6xpm-ggf7-wc3p; geelen/mcp-remote has 0 repo advisories",
+   "summary": "Malicious server-supplied authorization_endpoint reached shell: untrusted metadata into argv (same invariant as docker GHSA-r2xf, Inspector q978).",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "l5.invariant-list",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "invariant-list",
+   "title": "Invariant list ranked by advisories prevented (of 58)",
+   "summary": "1. Outbound fetches checked on resolved connected address; redirects strip credentials cross-origin (18); 2. Listener gate: Host allowlist + Origin allowlist (absent Origin treated per credential) + Content-Type application/json, applied at the listener for every route and protocol revision (15); 3. One strict parser shared by policy and backend: reject duplicate/case-variant/NUL/BOM keys; policy evaluates only fully parsed names, unparseable denies (8); 4. Token aud == this resource server, enforced non-optionally; OAuth credentials only to pinned issuer; PRM resource must match (8); 5. Pre-auth and per-request memory bounded: body cap, batch cap, session TTL, no unbounded caches (8); 6. Listener cannot be constructed without authenticator; defaults secure (signature verify, audience) with typed opt-out (8); 7. Principal scoping: every stateful handle (session, task, requestState, response route) is bound to authenticated principal and scope; lookup outside scope returns 404 (7)",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Ranking depends on my class assignment and counts duplicates of one bug across SDKs as separate advisories (that is the point: they recur)",
+   "underclaim_risk": "Counts understate: single advisory may break several invariants",
+   "specifics": "[[\"inv.egress-resolved\", \"Outbound fetches checked on resolved connected address; redirects strip credentials cross-origin\", 18], [\"inv.listener-gate\", \"Listener gate: Host allowlist + Origin allowlist (absent Origin treated per credential) + Content-Type application/json, applied at the listener for every route and protocol revision\", 15], [\"inv.strict-parse-fail-closed\", \"One strict parser shared by policy and backend: reject duplicate/case-variant/NUL/BOM keys; policy evaluates only fully parsed names, unparseable denies\", 8], [\"inv.audience-issuer\", \"Token aud == this resource server, enforced non-optionally; OAuth credentials only to pinned issuer; PRM resource must match\", 8], [\"inv.bounded-prealloc\", \"Pre-auth and per-request memory bounded: body cap, batch cap, session TTL, no unbounded caches\", 8], [\"inv.fail-closed-construction\", \"Listener cannot be constructed without authenticator; defaults secure (signature verify, audience) with typed opt-out\", 8], [\"inv.principal-scope\", \"Principal scoping: every stateful handle (session, task, requestState, response route) is bound to authenticated principal and scope; lookup outside scope returns 404\", 7]]"
+  },
+  {
+   "id": "l5.conformance-manifest",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "test-corpus",
+   "title": "Conformance corpus manifest: case id -> source advisories -> expected behaviour",
+   "summary": "33 cases; each: request shape, expected status. See specifics.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Expected statuses are my proposals (403/400/404/413/401), not spec-mandated except Origin 403, HeaderMismatch -32020 400",
+   "underclaim_risk": "",
+   "specifics": "{\"host-allowlist-required\": {\"advisories\": [\"GHSA-w48q-cv73-mx4w\", \"GHSA-9h52-p55h-vw2f\", \"GHSA-xw59-hvm2-8pj6\", \"GHSA-8jxr-pr72-r468\", \"GHSA-46gc-mwh4-cc5r\", \"GHSA-vcc9-3xgm-p9v4\", \"GHSA-7h6f-8rq9-53cw\"], \"expect\": \"POST with Host: evil.example to loopback listener -> 403, no handler call\"}, \"reject-text-plain-post\": {\"advisories\": [\"GHSA-89xv-2j6f-qhc8\", \"GHSA-hp8w-r5wh-cw9q\"], \"expect\": \"POST Content-Type text/plain, any Origin -> 415 or 403, handler not invoked\"}, \"no-wildcard-cors\": {\"advisories\": [\"GHSA-hv2w-8mjj-jw22\"], \"expect\": \"see advisory\"}, \"ws-origin-check\": {\"advisories\": [\"GHSA-vj7q-gjh5-988w\"], \"expect\": \"see advisory\"}, \"host-allowlist-required;h2-authority\": {\"advisories\": [\"GHSA-89vp-x53w-74fx\"], \"expect\": \"see advisory\"}, \"proxy-token-required\": {\"advisories\": [\"GHSA-7f8r-222p-6f5g\"], \"expect\": \"see advisory\"}, \"absent-origin-fail-closed\": {\"advisories\": [\"GHSA-wmjf-2m46-2352\"], \"expect\": \"no Origin + ambient credential -> 403; no Origin + bearer -> allowed\"}, \"token-not-to-app-origin\": {\"advisories\": [\"GHSA-6x67-4w4w-9f3w\"], \"expect\": \"see advisory\"}, \"session-principal-binding\": {\"advisories\": [\"GHSA-jpw9-pfvf-9f58\", \"GHSA-hqg7-qjgg-q779\"], \"expect\": \"session minted by A used by B -> 404, A's state unchanged\"}, \"session-route-pin\": {\"advisories\": [\"GHSA-mvgg-jvj2-4frq\"], \"expect\": \"session from route X on route Y -> 404\"}, \"task-cross-principal-404\": {\"advisories\": [\"GHSA-hvrp-rf83-w775\", \"GHSA-22jm-h49p-29qw\"], \"expect\": \"B get/cancel A's task -> 404\"}, \"id-collision-two-clients\": {\"advisories\": [\"GHSA-345p-7cg4-v4c7\", \"GHSA-jm63-cq47-j5jp\"], \"expect\": \"two clients same JSON-RPC id concurrently -> each gets own result\"}, \"token-wrong-audience-401\": {\"advisories\": [\"GHSA-rvq5-wwqv-78pq\", \"GHSA-w4fh-qvv9-3v23\"], \"expect\": \"valid token aud=other -> 401 invalid_token\"}, \"oauth-issuer-pin\": {\"advisories\": [\"GHSA-6qxp-vccf-f47h\", \"GHSA-qx49-fqc8-xw99\"], \"expect\": \"AS metadata issuer != pinned -> abort, no credentials sent\"}, \"resource-mismatch\": {\"advisories\": [\"GHSA-33f5-2c5q-wgwj\"], \"expect\": \"PRM.resource != URL -> abort\"}, \"ssrf-resolved-address\": {\"advisories\": [\"GHSA-c9xm-49cp-xcr9\", \"GHSA-5p52-q7pq-9fq2\", \"GHSA-625j-rw87-4ghr\"], \"expect\": \"hostname resolving to 127.0.0.1/169.254.169.254 at connect -> blocked; DNS rebinding between check and connect -> blocked\"}, \"redirect-strip-headers\": {\"advisories\": [\"GHSA-6prh-2h8m-c8cw\", \"GHSA-5h93-6whr-6q8j\", \"GHSA-9g45-5xwm-f3wc\", \"GHSA-f6mc-jg3x-vq53\"], \"expect\": \"302 to other origin -> Authorization/custom headers/body absent\"}, \"json-case-variant-reject\": {\"advisories\": [\"GHSA-wvj2-96wp-fq3f\"], \"expect\": \"{\\\"Method\\\":..} -> -32700/-32600, policy sees same as backend\"}, \"json-dup-nul-reject\": {\"advisories\": [\"GHSA-q382-vc8q-7jhj\", \"GHSA-hxx3-f8cg-r974\"], \"expect\": \"duplicate key or NUL key -> reject\"}, \"json-bom-reject\": {\"advisories\": [\"GHSA-9v4w-3mqh-6vmm\"], \"expect\": \"BOM-prefixed body -> reject or normalise before policy\"}, \"policy-fail-closed\": {\"advisories\": [\"GHSA-vpfq-5j3m-j36r\", \"GHSA-g7gq-2r4g-3qw8\"], \"expect\": \"1e1000 name / non-JSON content-type -> deny, middleware still runs\"}, \"toolname-collision\": {\"advisories\": [\"GHSA-qg99-jrvf-j9fh\", \"GHSA-m5m2-mrxf-7j7q\"], \"expect\": \"case-variant/shadow name -> rejected at registration\"}, \"unauth-listener-refused\": {\"advisories\": [\"GHSA-g879-4j4f-6vj7\"], \"expect\": \"construct listener without authenticator -> error\"}, \"path-allowlist\": {\"advisories\": [\"GHSA-mqq5-qh4g-2g8g\"], \"expect\": \"see advisory\"}, \"scheme-allowlist\": {\"advisories\": [\"GHSA-6pq5-p7fc-7xhq\"], \"expect\": \"see advisory\"}, \"verify-default-on\": {\"advisories\": [\"GHSA-6m8f-w97w-99h7\"], \"expect\": \"see advisory\"}, \"argv-injection\": {\"advisories\": [\"GHSA-r2xf-7jw5-pjg6\"], \"expect\": \"see advisory\"}, \"openapi-traversal\": {\"advisories\": [\"GHSA-v2x6-wwfw-r2rq\", \"GHSA-h7hp-2f8r-9g9c\"], \"expect\": \"param ../, ..\\\\, %2e%2e, repeated separators -> upstream receives 0 requests\"}, \"session-table-bound\": {\"advisories\": [\"GHSA-9pj6-vhgr-3mwh\", \"GHSA-84m7-p3x7-pcfv\", \"GHSA-2hm9-qff2-hrpj\"], \"expect\": \"10^5 unauth initialize -> memory bounded, entries reclaimed by TTL\"}, \"cache-bound\": {\"advisories\": [\"GHSA-4432-vg92-fqh6\"], \"expect\": \"unauth varied requests -> cache size bounded\"}, \"body-cap-413\": {\"advisories\": [\"GHSA-fmmv-w9g8-j3gc\", \"GHSA-4x8c-5vv7-973f\", \"GHSA-f897-62hf-6gxq\"], \"expect\": \"body > cap or batch > N -> 413 before buffering\"}, \"amplification-bound\": {\"advisories\": [\"GHSA-46jr-4wx8-v453\"], \"expect\": \"see advisory\"}, \"oauth-state-bound\": {\"advisories\": [\"GHSA-2gjv-f568-6cxp\"], \"expect\": \"see advisory\"}}"
+  },
+  {
+   "id": "l5.origin-audience-session-rules",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "rule-set",
+   "title": "Origin / audience / session rule set for AEGIS listener",
+   "summary": "1) Host in allowlist else 403 (HTTP/1.1 Host and H2 :authority both). 2) Origin present and not allowlisted -> 403; Origin absent allowed only if request carries bearer or mTLS credential. 3) POST Content-Type must be application/json else 415. 4) No ACAO wildcard; preflight only for allowlisted origins. 5) Token aud == canonical resource URI, mandatory, no opt-out in release builds. 6) Any state handle (Mcp-Session-Id if accepted for legacy, task id, requestState, SSE stream) carries (principal, route, backend, policy-version, ttl) and is sealed (AEAD); mismatch -> 404. 7) Under 2026-07-28 no session minting; requestState sealed by default (not opt-in). 8) Rules live in listener type so every protocol revision route inherits them (ToolHive 7h6f). 9) Strict JSON parse shared with policy engine; unparseable -> deny. 10) Egress: resolved-address check at connect, redirects stripped cross-origin, args never from untrusted metadata.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Rule 2 absent-Origin conditioning is my design, not tested against real clients",
+   "underclaim_risk": "Rule 7 default-sealing may be unnecessary if no handler uses requestState",
+   "specifics": ""
+  },
+  {
+   "id": "l5.ci-gate",
+   "layer": "L5",
+   "domain": "W-AGENT-PROTOCOL x W-THREAT",
+   "type": "ci-gate",
+   "title": "CI gate: every merged advisory regression test must map to a corpus case id; run modelcontextprotocol/conformance (pin tag v0.1.16 or later alpha) plus local cases; fuzz parser differential between gateway parser and rmcp/serde with dup/case/NUL/BOM/1e1000 seeds",
+   "summary": "Acceptance: 100% of the 58 rows have a case; fix-twice classes (openapi-traversal, ssrf, shared-instance) have >=5 variants each; zero handler invocations on rejected requests (assert via counter, as agentgateway received_requests empty test).",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "Gate is a proposal",
+   "underclaim_risk": "",
+   "specifics": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "gap.mcp-gateway-misc",
+   "type": "extends"
+  },
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "gap.agentgateway",
+   "type": "extends"
+  },
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "gap.docker-mcp-gateway",
+   "type": "extends"
+  },
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "j-mcp-2026-07-28",
+   "type": "extends"
+  },
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "rec60-mcp-2026-07-28",
+   "type": "extends"
+  },
+  {
+   "src": "adv.corpus-r2-09",
+   "dst": "j-rmcp-sdk",
+   "type": "corrects"
+  },
+  {
+   "src": "fin.rmcp-3.7.0",
+   "dst": "j-rmcp-sdk",
+   "type": "corrects",
+   "note": "license Apache-2.0 per crates.io"
+  },
+  {
+   "src": "l5.invariant-list",
+   "dst": "adv.corpus-r2-09",
+   "type": "derived-from"
+  },
+  {
+   "src": "l5.conformance-manifest",
+   "dst": "adv.corpus-r2-09",
+   "type": "derived-from"
+  },
+  {
+   "src": "l5.origin-audience-session-rules",
+   "dst": "adv.corpus-r2-09",
+   "type": "derived-from"
+  },
+  {
+   "src": "l5.ci-gate",
+   "dst": "adv.corpus-r2-09",
+   "type": "derived-from"
+  },
+  {
+   "src": "fin.spec-absent-origin",
+   "dst": "cal-mcp-2026-07-28",
+   "type": "refines"
+  },
+  {
+   "src": "fin.stateless-not-sufficient",
+   "dst": "rec60-mcp-2026-07-28",
+   "type": "contradicts-partially"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does any MCP client in the wild omit Origin and rely on ambient auth, i.e. what breaks if absent-Origin is rejected unconditionally?",
+   "layer": "L5",
+   "expected_info_gain": 0.5,
+   "domain": "W-AGENT-PROTOCOL"
+  },
+  {
+   "question": "Write and run the 25-case corpus against rmcp 3.7.0, agentgateway 1.6.x and docker mcp-gateway to measure pass rate",
+   "layer": "L6",
+   "expected_info_gain": 0.7
+  },
+  {
+   "question": "Fuzz parser differential between serde_json and Go/TS parsers on MCP messages",
+   "layer": "L5",
+   "expected_info_gain": 0.4
+  },
+  {
+   "question": "Ruby/Kotlin/PHP SDK and litellm/context-forge/microsoft mcp-gateway advisories: add to corpus",
+   "layer": "L4",
+   "expected_info_gain": 0.3
+  }
+ ],
+ "numbers_checked": [
+  "rmcp 3.7.0 created 2026-10-22T20:07:18Z; Apache-2.0; downloads 39,898,077 total: crates.io API read 2026-10-24 (primary)",
+  "spec 2026-07-28 published 2026-07-28T16:47:49Z; RC 2026-05-29T12:51:22Z; 2025-11-25 at 2025-11-25T21:17:42Z: gh releases of modelcontextprotocol/modelcontextprotocol (primary)",
+  "66 GHSAs from 10 repos (TS10, Py12, Rust7, Go4, Java7, C#0, Inspector11, agentgateway5, docker10, mcp-remote0): gh api, counts of published advisories at 2026-10-24 (primary); sum=66",
+  "ToolHive 43 GHSAs: gh api (primary); only ~13 individually analysed",
+  "conformance 0.2.0-alpha.12, v0.1.16 2026-03-27, pushed 2026-10-19, 136 stars: GitHub API (primary)",
+  "python PR #3032 +3338/-183 merged 2026-06-30; rmcp PRs #764 (2026-04-01, +279/-2), #935 (+302/-22), #1349 (+110/-30): GitHub PR API (primary)",
+  "agentgateway PR #2691 +122/-8 merged 2026-07-27; #3598 +206/-68 2026-09-22: GitHub PR API (primary)",
+  "CVSS 9.6 for CVE-2025-6514 from JFrog secondary; NVD publish 2025-07-09",
+  "78.5%/1265 NOT verified; excluded",
+  "58 analysed advisory rows counted by script from table, class counts {'A': 15, 'B': 7, 'C': 2, 'D': 6, 'E': 4, 'G': 8, 'H': 8, 'F': 8}"
+ ],
+ "advisory_table": [
+  {
+   "ghsa": "GHSA-w48q-cv73-mx4w",
+   "cve": "CVE-2025-66414",
+   "date": "2025-12-02",
+   "repo": "ts-sdk",
+   "class": "A",
+   "root_cause": "localhost HTTP server had Host/Origin validation default-off",
+   "invariant": "Every request to a loopback-bound listener is rejected unless Host is in an allowlist",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-9h52-p55h-vw2f",
+   "cve": "CVE-2025-66416",
+   "date": "2025-12-02",
+   "repo": "py-sdk",
+   "class": "A",
+   "root_cause": "same default-off DNS-rebind protection",
+   "invariant": "as above",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-xw59-hvm2-8pj6",
+   "cve": "CVE-2026-34742",
+   "date": "2026-03-30",
+   "repo": "go-sdk",
+   "class": "A",
+   "root_cause": "same default-off in Go; fixed 1.4.0, then default reverted in PR #906",
+   "invariant": "as above",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-89xv-2j6f-qhc8",
+   "cve": "CVE-2026-33252",
+   "date": "2026-03-18",
+   "repo": "go-sdk",
+   "class": "A",
+   "root_cause": "cross-site POST text/plain skipped CORS preflight, no Origin/Content-Type check",
+   "invariant": "POST bodies are parsed only when Content-Type is application/json AND Origin is allowed",
+   "structural": "T",
+   "conformance_case": "reject-text-plain-post"
+  },
+  {
+   "ghsa": "GHSA-8jxr-pr72-r468",
+   "cve": "CVE-2026-35568",
+   "date": "2026-04-07",
+   "repo": "java-sdk",
+   "class": "A",
+   "root_cause": "DNS rebinding, no Host check",
+   "invariant": "Host allowlist enforced",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-hv2w-8mjj-jw22",
+   "cve": "CVE-2026-34237",
+   "date": "2026-03-30",
+   "repo": "java-sdk",
+   "class": "A",
+   "root_cause": "hardcoded ACAO:*",
+   "invariant": "No response carries wildcard ACAO",
+   "structural": "T",
+   "conformance_case": "no-wildcard-cors"
+  },
+  {
+   "ghsa": "GHSA-hp8w-r5wh-cw9q",
+   "cve": "",
+   "date": "2026-10-20",
+   "repo": "java-sdk",
+   "class": "A",
+   "root_cause": "default stateless Servlet transport accepted browser cross-origin tool calls (stateless removes session as accidental CSRF barrier)",
+   "invariant": "Stateless endpoints get the same Origin/Content-Type gate; absence of session is not authentication",
+   "structural": "T",
+   "conformance_case": "reject-text-plain-post"
+  },
+  {
+   "ghsa": "GHSA-vj7q-gjh5-988w",
+   "cve": "CVE-2026-59950",
+   "date": "2026-07-07",
+   "repo": "py-sdk",
+   "class": "A",
+   "root_cause": "WebSocket transport had no Host/Origin validation (WS exempt from CORS)",
+   "invariant": "Upgrade handshake checks Origin",
+   "structural": "T",
+   "conformance_case": "ws-origin-check"
+  },
+  {
+   "ghsa": "GHSA-89vp-x53w-74fx",
+   "cve": "CVE-2026-42559",
+   "date": "2026-04-29",
+   "repo": "rmcp",
+   "class": "A",
+   "root_cause": "DNS rebinding in Streamable HTTP; fix PR #764 (2026-04-01), Origin PR #823",
+   "invariant": "Host allowlist enforced; also HTTP/2 :authority (#827)",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required;h2-authority"
+  },
+  {
+   "ghsa": "GHSA-46gc-mwh4-cc5r",
+   "cve": "CVE-2025-64443",
+   "date": "2025-12-03",
+   "repo": "docker/mcp-gateway",
+   "class": "A",
+   "root_cause": "gateway sse/streaming mode DNS rebinding",
+   "invariant": "gateway listener enforces Host allowlist",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-7f8r-222p-6f5g",
+   "cve": "CVE-2025-49596",
+   "date": "2025-06-13",
+   "repo": "inspector",
+   "class": "A",
+   "root_cause": "proxy had no auth and listened/accepted any origin: browser to local RCE",
+   "invariant": "Local proxy requires per-launch token + Origin/Host check",
+   "structural": "T",
+   "conformance_case": "proxy-token-required"
+  },
+  {
+   "ghsa": "GHSA-vcc9-3xgm-p9v4",
+   "cve": "",
+   "date": "2026-10-21",
+   "repo": "inspector",
+   "class": "A",
+   "root_cause": "incomplete fix of 49596: DNS-rebind disclosed API token and stored OAuth tokens",
+   "invariant": "Tokens never readable by a request whose Host is not the bound loopback name",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-wmjf-2m46-2352",
+   "cve": "",
+   "date": "2026-10-21",
+   "repo": "inspector",
+   "class": "A",
+   "root_cause": "Origin check fail-open when Origin header absent",
+   "invariant": "Missing Origin on a state-changing request is treated as untrusted when no other credential is present",
+   "structural": "T",
+   "conformance_case": "absent-origin-fail-closed"
+  },
+  {
+   "ghsa": "GHSA-6x67-4w4w-9f3w",
+   "cve": "",
+   "date": "2026-10-21",
+   "repo": "inspector",
+   "class": "A",
+   "root_cause": "remote MCP App could steal proxy auth token then run local commands",
+   "invariant": "Proxy credential is never exposed to content from an MCP server origin",
+   "structural": "T",
+   "conformance_case": "token-not-to-app-origin"
+  },
+  {
+   "ghsa": "GHSA-jpw9-pfvf-9f58",
+   "cve": "CVE-2026-52869",
+   "date": "2026-06-05",
+   "repo": "py-sdk",
+   "class": "B",
+   "root_cause": "session id alone authorised requests, no principal binding",
+   "invariant": "Session is bound to authenticated principal at creation; every use re-checks it",
+   "structural": "S",
+   "conformance_case": "session-principal-binding"
+  },
+  {
+   "ghsa": "GHSA-mvgg-jvj2-4frq",
+   "cve": "",
+   "date": "2026-07-27",
+   "repo": "agentgateway",
+   "class": "B",
+   "root_cause": "stateful session id reused across routes, overwrote authorization policy",
+   "invariant": "Session pinned to (route, backend, policy version); mismatch gives 404",
+   "structural": "S",
+   "conformance_case": "session-route-pin (agentgateway test stateful_session_cannot_cross_mcp_backends)"
+  },
+  {
+   "ghsa": "GHSA-hvrp-rf83-w775",
+   "cve": "CVE-2026-52870",
+   "date": "2026-06-05",
+   "repo": "py-sdk",
+   "class": "B",
+   "root_cause": "tasks listable/cancellable by any client",
+   "invariant": "Task id resolves only within creator principal scope",
+   "structural": "T",
+   "conformance_case": "task-cross-principal-404"
+  },
+  {
+   "ghsa": "GHSA-22jm-h49p-29qw",
+   "cve": "CVE-2026-111767",
+   "date": "2026-10-02",
+   "repo": "ts-sdk",
+   "class": "B",
+   "root_cause": "tasks not tied to creating session",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "task-cross-principal-404"
+  },
+  {
+   "ghsa": "GHSA-345p-7cg4-v4c7",
+   "cve": "CVE-2026-25536",
+   "date": "2026-02-04",
+   "repo": "ts-sdk",
+   "class": "B",
+   "root_cause": "shared server/transport instance delivered responses to wrong client (JSON-RPC id collision)",
+   "invariant": "Response routing key includes connection identity, never JSON-RPC id alone",
+   "structural": "T",
+   "conformance_case": "id-collision-two-clients"
+  },
+  {
+   "ghsa": "GHSA-jm63-cq47-j5jp",
+   "cve": "CVE-2026-111770",
+   "date": "2026-10-15",
+   "repo": "ts-sdk",
+   "class": "B",
+   "root_cause": "recurrence of shared-instance cross-delivery",
+   "invariant": "same; per-request context object, no mutable shared state",
+   "structural": "S",
+   "conformance_case": "id-collision-two-clients"
+  },
+  {
+   "ghsa": "GHSA-rvq5-wwqv-78pq",
+   "cve": "CVE-2026-111771",
+   "date": "2026-10-05",
+   "repo": "ts-sdk",
+   "class": "C",
+   "root_cause": "bearer verification accepted token for another resource server",
+   "invariant": "Token aud must equal this resource; verified server-side, not opt-in",
+   "structural": "T",
+   "conformance_case": "token-wrong-audience-401"
+  },
+  {
+   "ghsa": "GHSA-w4fh-qvv9-3v23",
+   "cve": "",
+   "date": "2026-10-05",
+   "repo": "py-sdk",
+   "class": "C",
+   "root_cause": "audience check opt-in, default off",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "token-wrong-audience-401"
+  },
+  {
+   "ghsa": "GHSA-6qxp-vccf-f47h",
+   "cve": "CVE-2026-104850",
+   "date": "2026-09-30",
+   "repo": "ts-sdk",
+   "class": "D",
+   "root_cause": "OAuth client sent credentials to AS chosen by MCP server (mix-up)",
+   "invariant": "Client sends credentials only to an AS whose issuer matches pinned/discovered issuer (RFC 9207)",
+   "structural": "T",
+   "conformance_case": "oauth-issuer-pin"
+  },
+  {
+   "ghsa": "GHSA-qx49-fqc8-xw99",
+   "cve": "CVE-2026-115563",
+   "date": "2026-09-28",
+   "repo": "py-sdk",
+   "class": "D",
+   "root_cause": "same",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "oauth-issuer-pin"
+  },
+  {
+   "ghsa": "GHSA-33f5-2c5q-wgwj",
+   "cve": "CVE-2026-63127",
+   "date": "2026-06-29",
+   "repo": "rmcp",
+   "class": "D",
+   "root_cause": "resource field of PRM not validated against requested URL",
+   "invariant": "PRM.resource must equal the server URL used",
+   "structural": "T",
+   "conformance_case": "resource-mismatch"
+  },
+  {
+   "ghsa": "GHSA-c9xm-49cp-xcr9",
+   "cve": "",
+   "date": "2026-06-29",
+   "repo": "rmcp",
+   "class": "D",
+   "root_cause": "client fetched server-controlled resource_metadata URLs (SSRF)",
+   "invariant": "Metadata URLs pass an egress policy on resolved addresses",
+   "structural": "T",
+   "conformance_case": "ssrf-resolved-address"
+  },
+  {
+   "ghsa": "GHSA-5p52-q7pq-9fq2",
+   "cve": "",
+   "date": "2026-10-22",
+   "repo": "rmcp",
+   "class": "D",
+   "root_cause": "SSRF filter checked host strings, not resolved IPs (incomplete fix; DNS TOCTOU)",
+   "invariant": "Egress check applies to the connected socket address",
+   "structural": "T",
+   "conformance_case": "ssrf-resolved-address"
+  },
+  {
+   "ghsa": "GHSA-6prh-2h8m-c8cw",
+   "cve": "CVE-2026-111769",
+   "date": "2026-10-02",
+   "repo": "ts-sdk",
+   "class": "E",
+   "root_cause": "cross-origin redirect re-sent custom headers/body",
+   "invariant": "Credentials/headers are stripped on cross-origin redirect",
+   "structural": "T",
+   "conformance_case": "redirect-strip-headers"
+  },
+  {
+   "ghsa": "GHSA-5h93-6whr-6q8j",
+   "cve": "",
+   "date": "2026-10-02",
+   "repo": "py-sdk",
+   "class": "E",
+   "root_cause": "same",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "redirect-strip-headers"
+  },
+  {
+   "ghsa": "GHSA-9g45-5xwm-f3wc",
+   "cve": "CVE-2026-64684",
+   "date": "2026-07-02",
+   "repo": "rmcp",
+   "class": "E",
+   "root_cause": "same",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "redirect-strip-headers"
+  },
+  {
+   "ghsa": "GHSA-f6mc-jg3x-vq53",
+   "cve": "",
+   "date": "2026-10-21",
+   "repo": "inspector",
+   "class": "E",
+   "root_cause": "regression: /fetch proxy leaked Authorization/Cookie across redirects",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "redirect-strip-headers"
+  },
+  {
+   "ghsa": "GHSA-wvj2-96wp-fq3f",
+   "cve": "CVE-2026-27896",
+   "date": "2026-02-25",
+   "repo": "go-sdk",
+   "class": "G",
+   "root_cause": "encoding/json case-insensitive keys: policy layer sees 'method', SDK accepts 'Method'",
+   "invariant": "Gateway and backend parse with identical strictness; reject case-variant, duplicate keys",
+   "structural": "T",
+   "conformance_case": "json-case-variant-reject"
+  },
+  {
+   "ghsa": "GHSA-q382-vc8q-7jhj",
+   "cve": "",
+   "date": "2026-03-18",
+   "repo": "go-sdk",
+   "class": "G",
+   "root_cause": "segmentio NUL-char key folding plus duplicate-key last-wins",
+   "invariant": "reject duplicate keys and NUL",
+   "structural": "T",
+   "conformance_case": "json-dup-nul-reject"
+  },
+  {
+   "ghsa": "GHSA-hxx3-f8cg-r974",
+   "cve": "",
+   "date": "2026-09-21",
+   "repo": "toolhive",
+   "class": "G",
+   "root_cause": "duplicate/case-variant JSON members bypass tool policy",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "json-dup-nul-reject"
+  },
+  {
+   "ghsa": "GHSA-9v4w-3mqh-6vmm",
+   "cve": "",
+   "date": "2026-09-08",
+   "repo": "toolhive",
+   "class": "G",
+   "root_cause": "UTF-8 BOM bypasses tool allowlist",
+   "invariant": "Normalise or reject BOM before policy",
+   "structural": "T",
+   "conformance_case": "json-bom-reject"
+  },
+  {
+   "ghsa": "GHSA-vpfq-5j3m-j36r",
+   "cve": "",
+   "date": "2026-10-14",
+   "repo": "toolhive",
+   "class": "G",
+   "root_cause": "1e1000 number yields empty tool name; Cedar evaluates empty string",
+   "invariant": "Policy fails closed on unparseable method/tool name",
+   "structural": "T",
+   "conformance_case": "policy-fail-closed"
+  },
+  {
+   "ghsa": "GHSA-g7gq-2r4g-3qw8",
+   "cve": "",
+   "date": "2026-10-07",
+   "repo": "toolhive",
+   "class": "G",
+   "root_cause": "non-JSON Content-Type skipped webhook/ratelimit middleware",
+   "invariant": "Middleware never skipped by content-type; unparseable means reject",
+   "structural": "T",
+   "conformance_case": "policy-fail-closed"
+  },
+  {
+   "ghsa": "GHSA-qg99-jrvf-j9fh",
+   "cve": "",
+   "date": "2026-10-13",
+   "repo": "docker/mcp-gateway",
+   "class": "G",
+   "root_cause": "case-variant tool names bypass reserved-name collision",
+   "invariant": "Tool names compared by exact canonical form; namespaced",
+   "structural": "T",
+   "conformance_case": "toolname-collision"
+  },
+  {
+   "ghsa": "GHSA-m5m2-mrxf-7j7q",
+   "cve": "CVE-2026-76097",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "G",
+   "root_cause": "tool-name shadowing across aggregated servers (tool poisoning/shadowing)",
+   "invariant": "Aggregated tool names are server-prefixed; collision is a config error",
+   "structural": "T",
+   "conformance_case": "toolname-collision"
+  },
+  {
+   "ghsa": "GHSA-g879-4j4f-6vj7",
+   "cve": "CVE-2026-76092",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "container mode proxied tools with no authentication",
+   "invariant": "No listener starts without an authenticator (fail-closed construction)",
+   "structural": "T",
+   "conformance_case": "unauth-listener-refused"
+  },
+  {
+   "ghsa": "GHSA-mqq5-qh4g-2g8g",
+   "cve": "CVE-2026-76099",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "config-driven bind mount via dynamic tools",
+   "invariant": "Mounts/paths from tool config are validated against allowlist",
+   "structural": "T",
+   "conformance_case": "path-allowlist"
+  },
+  {
+   "ghsa": "GHSA-6pq5-p7fc-7xhq",
+   "cve": "CVE-2026-76095",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "file:// server reference reads host files",
+   "invariant": "Server refs restricted to https/registry scheme",
+   "structural": "T",
+   "conformance_case": "scheme-allowlist"
+  },
+  {
+   "ghsa": "GHSA-625j-rw87-4ghr",
+   "cve": "CVE-2026-76093",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "SSRF via attacker remote server URL",
+   "invariant": "Egress policy on resolved address",
+   "structural": "T",
+   "conformance_case": "ssrf-resolved-address"
+  },
+  {
+   "ghsa": "GHSA-6m8f-w97w-99h7",
+   "cve": "CVE-2026-76094",
+   "date": "2026-07-09",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "image signature verification off by default",
+   "invariant": "Unverified artifacts cannot be launched in default config",
+   "structural": "T",
+   "conformance_case": "verify-default-on"
+  },
+  {
+   "ghsa": "GHSA-r2xf-7jw5-pjg6",
+   "cve": "CVE-2026-55887",
+   "date": "2026-06-16",
+   "repo": "docker/mcp-gateway",
+   "class": "H",
+   "root_cause": "argument injection via OCI label YAML",
+   "invariant": "Untrusted metadata never reaches argv",
+   "structural": "T",
+   "conformance_case": "argv-injection"
+  },
+  {
+   "ghsa": "GHSA-v2x6-wwfw-r2rq",
+   "cve": "CVE-2026-29791",
+   "date": "2026-03-04",
+   "repo": "agentgateway",
+   "class": "H",
+   "root_cause": "missing path-param sanitization in MCP-to-OpenAPI",
+   "invariant": "Path params can not contain separators or dot segments",
+   "structural": "T",
+   "conformance_case": "openapi-traversal"
+  },
+  {
+   "ghsa": "GHSA-h7hp-2f8r-9g9c",
+   "cve": "",
+   "date": "2026-10-02",
+   "repo": "agentgateway",
+   "class": "H",
+   "root_cause": "same class re-opened: incomplete fix 7 months later (PR #3598 rstest cases)",
+   "invariant": "same; regression corpus (dot_dot, backslash_parent) kept",
+   "structural": "T",
+   "conformance_case": "openapi-traversal"
+  },
+  {
+   "ghsa": "GHSA-9pj6-vhgr-3mwh",
+   "cve": "CVE-2026-63128",
+   "date": "2026-06-29",
+   "repo": "rmcp",
+   "class": "F",
+   "root_cause": "unauthenticated permanent session-table leak",
+   "invariant": "State allocated pre-auth is bounded and TTL-reclaimed",
+   "structural": "S",
+   "conformance_case": "session-table-bound"
+  },
+  {
+   "ghsa": "GHSA-84m7-p3x7-pcfv",
+   "cve": "CVE-2026-59951",
+   "date": "2026-09-30",
+   "repo": "py-sdk",
+   "class": "F",
+   "root_cause": "sessions never reclaimed by default",
+   "invariant": "same",
+   "structural": "S",
+   "conformance_case": "session-table-bound"
+  },
+  {
+   "ghsa": "GHSA-2hm9-qff2-hrpj",
+   "cve": "",
+   "date": "2026-10-20",
+   "repo": "java-sdk",
+   "class": "F",
+   "root_cause": "initialize flood retains sessions",
+   "invariant": "same",
+   "structural": "S",
+   "conformance_case": "session-table-bound"
+  },
+  {
+   "ghsa": "GHSA-4432-vg92-fqh6",
+   "cve": "",
+   "date": "2026-10-20",
+   "repo": "rmcp",
+   "class": "F",
+   "root_cause": "unauth unbounded tool_schemas cache growth (fix #1349 per-request)",
+   "invariant": "No unauthenticated request can grow server memory without bound",
+   "structural": "S",
+   "conformance_case": "cache-bound"
+  },
+  {
+   "ghsa": "GHSA-fmmv-w9g8-j3gc",
+   "cve": "CVE-2026-109527",
+   "date": "2026-09-30",
+   "repo": "py-sdk",
+   "class": "F",
+   "root_cause": "no body size limit",
+   "invariant": "Body cap enforced before buffering (413)",
+   "structural": "T",
+   "conformance_case": "body-cap-413"
+  },
+  {
+   "ghsa": "GHSA-4x8c-5vv7-973f",
+   "cve": "CVE-2026-108395",
+   "date": "2026-08-19",
+   "repo": "java-sdk",
+   "class": "F",
+   "root_cause": "unbounded body reads",
+   "invariant": "same",
+   "structural": "T",
+   "conformance_case": "body-cap-413"
+  },
+  {
+   "ghsa": "GHSA-f897-62hf-6gxq",
+   "cve": "",
+   "date": "2026-10-15",
+   "repo": "ts-sdk",
+   "class": "F",
+   "root_cause": "no body or JSON-RPC batch length limit",
+   "invariant": "same plus batch cap",
+   "structural": "T",
+   "conformance_case": "body-cap-413"
+  },
+  {
+   "ghsa": "GHSA-46jr-4wx8-v453",
+   "cve": "CVE-2026-111768",
+   "date": "2026-10-15",
+   "repo": "ts-sdk",
+   "class": "F",
+   "root_cause": "single in-limit request exhausts memory in validation (amplification)",
+   "invariant": "Validation memory bounded by input size factor",
+   "structural": "T",
+   "conformance_case": "amplification-bound"
+  },
+  {
+   "ghsa": "GHSA-hqg7-qjgg-q779",
+   "cve": "",
+   "date": "2026-09",
+   "repo": "toolhive",
+   "class": "B",
+   "root_cause": "sessions not bound to principal",
+   "invariant": "as session-principal-binding",
+   "structural": "S",
+   "conformance_case": "session-principal-binding"
+  },
+  {
+   "ghsa": "GHSA-7h6f-8rq9-53cw",
+   "cve": "",
+   "date": "2026-10-22",
+   "repo": "toolhive",
+   "class": "A",
+   "root_cause": "2026-07-28 path skipped Host check (new protocol revision = new unguarded route)",
+   "invariant": "Origin/Host gate sits in listener, not per-route",
+   "structural": "T",
+   "conformance_case": "host-allowlist-required"
+  },
+  {
+   "ghsa": "GHSA-2gjv-f568-6cxp",
+   "cve": "",
+   "date": "2026-09",
+   "repo": "toolhive",
+   "class": "D",
+   "root_cause": "OAuth callback state not browser-bound: login CSRF/fixation",
+   "invariant": "state bound to initiating browser",
+   "structural": "T",
+   "conformance_case": "oauth-state-bound"
+  }
+ ],
+ "protocol_implications": [
+  "Opt-in security recurs as advisories; make gate types non-optional",
+  "Statelessness is not a security property by itself; new revision paths need the same listener gate",
+  "Conformance corpus from advisories is the repo's direct input"
+ ],
+ "self_improvement": [
+  "Round-1 over-grading: require numbers_checked with API source per number; compute counts by script not by hand",
+  "Crash recovery worked because progress file was checkpointed every ~5 sources"
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-002/09-agent-gateway-cves-to-invariants.json"
+}

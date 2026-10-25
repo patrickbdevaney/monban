@@ -1,0 +1,218 @@
+{
+ "wasmtime-advisory-share-by-config": [
+  "C",
+  0.68,
+  "unchanged (direction) / refined (band) / underclaim on aarch64",
+  "M0 12 escapes 2021-2026 => 14 hits - 2 embedder-only = 12 (11 excl. knob) [recomputed]; 2.0/yr (CI 1.0-3.5) over 5.8 y => 5.43 y span -> 2.21/yr (1.14-3.86); post-1.0 1.22-1.46/yr; crit/high 0.49-0.92/yr [recomputed]; 0.36/yr since 2024 => 1 in 2.8 y = 0.36 [recomputed]; snapshot complete as of 2026-10-25 => gh api repo advisories = 81 (latest 2026-10-19) [read]"
+ ],
+ "threat-ledger-middle-tier-2023-2026": [
+  "B",
+  0.75,
+  "unchanged (numbers) / down (reproducibility of the instrument)",
+  "resource 61% (47-73) 2023+ => script 31/52=60%; hand relabel+dedupe 31/51=60.8% (47-73) [recomputed]; 2026 resource 50% => script 13/28=46%; independent hand relabel 14/28=50% [recomputed]; 2026 TLS-logic 25% => 7/28 hand relabel [recomputed]"
+ ],
+ "w02.handshake-pq-cost": [
+  "B",
+  0.65,
+  "unchanged (r3 revision confirmed)",
+  "+12.5-15.0% rustls => 141.677->159.338; 254.814->292.927 [recomputed]; <=2.4 KB extra wire => +2272 B [recomputed]"
+ ],
+ "w02.ipc-hop-cost-1core": [
+  "A",
+  0.8,
+  "unchanged (number) / scope-down (budget derivation)",
+  "4.8 us UDS => 4795.5 ns median of 10 per-run p50 [recomputed]; 2.1 us ring => 2054 ns [recomputed]; (implicit) budget hop = 4.8 us => cross-core 8066 ns [recomputed]"
+ ],
+ "r3e05.tenuo-cel-attenuation-bypass": [
+  "A",
+  0.85,
+  "unchanged",
+  "unfixed on main 2026-10-24 => main HEAD 486be6819 2026-10-24T14:48Z; CEL logic unchanged [read]"
+ ],
+ "sc3.cooldown-executed-cargo-198": [
+  "A",
+  0.95,
+  "up (independently re-executed)",
+  "7-day cooldown lands RUSTSEC-2026-0382 => re-executed: webpki 0.103.15, OSV hit RUSTSEC-2026-0382 only [recomputed]; 220 crates => 233 packages [recomputed]; 0.103.16 4.7 days old => published 2026-10-20T08:58Z [read]"
+ ],
+ "irl-l5-differential-oracle-harness": [
+  "A",
+  0.82,
+  "down (slight, scope)",
+  "naive SQLite leak 1004-1492 => 1004-1505 [recomputed]; citext 481-495 => 481-508 [recomputed]; hardened 0/0 on 4 seeds => 0/0 on 3 seeds; 4th seed pre-fix only [recomputed]"
+ ],
+ "r3e07-L5-swarm-acceptance-criteria": [
+  "D",
+  0.6,
+  "down (overclaim of pass scope)",
+  "r2 human failure 99.1% => 0.9912 mean / 0.9941 max (mixed) [recomputed]; r2 verified 59.7% => mean 0.6351, min 0.597 [recomputed]; tuned C1 pass 0.9/1.3% => mixed only; aged 2.47/3.16, flash 2.48/2.84, dc worst 2.34 FAIL [recomputed]; tuned C2 82-92 ms => cheap_flood 177.5 ms FAIL [recomputed]"
+ ],
+ "ops.fips-module-boundary-pin": [
+  "B",
+  0.75,
+  "down (B 0.82 -> B 0.75): pin unresolved-conflict not 'resolved'",
+  "fips-sys =0.13.11 is the pin => OSV: 2 advisories affect 0.13.11 [read]; aws-lc-rs 1.15.2-1.17.2 => 1.15.1-1.17.2 accept ^0.13.1 [read]; AWS-LC 4 Comment Resolution 2026-10-22 => unchanged on 2026-10-25 [read]"
+ ],
+ "sc3.l5-ci-gate-list": [
+  "A",
+  0.75,
+  "down (A 0.80 -> A 0.75; add gate)",
+  "cargo-audit 0 vulnerabilities on golden => 0 OSV hits for r3 gold lock on 2026-10-25; but cedar GHSA-m84h (>=4.3,<4.13) invisible to OSV [read]"
+ ],
+ "sdg-rls-plan-cache-family": [
+  "A",
+  0.85,
+  "extends (new instance, unreleased)",
+  "RLS family recurs => new master-only regression 2026-08-28..09-29 [read]"
+ ],
+ "isolation-decision-inputs-table": [
+  "C",
+  0.65,
+  "unchanged (direction) / stale tag",
+  "R-ISO-1 [A inputs] => advisory input C 0.62 [read]"
+ ],
+ "dx.l5-decision-sdk-shape": [
+  "C",
+  0.55,
+  "unchanged",
+  "prior art policy-core/typesec-agent/capsec => exist; 63/585/327 downloads [read]"
+ ],
+ "_predictions": {
+  "pred-wasmtime-adv-2027h1": [
+   "on-track",
+   null
+  ],
+  "pred-rust-1100-min-publish-age": [
+   "on-track",
+   0.9
+  ],
+  "pred-mtc-not-rfc": [
+   "on-track",
+   null
+  ],
+  "pred-mcp-next-revision": [
+   "pending",
+   null
+  ],
+  "pred-quinn-more-high": [
+   "pending",
+   null
+  ],
+  "pred-awslc-fips-v4-cmvp": [
+   "on-track",
+   null
+  ],
+  "pred-pg-rls-cve": [
+   "pending",
+   null
+  ],
+  "pred-h3-qpack-limit": [
+   "on-track",
+   null
+  ],
+  "pred-cedar-no-delegation": [
+   "on-track",
+   null
+  ],
+  "pred-new-h2h3-dos-variant": [
+   "pending",
+   null
+  ],
+  "pred-rustls-024": [
+   "on-track",
+   null
+  ],
+  "pred-idempotency-not-rfc": [
+   "on-track",
+   null
+  ],
+  "pred-cve-volume-2026": [
+   "resolved-true",
+   1.0
+  ],
+  "pred-pingora-tokio154": [
+   "on-track",
+   0.65
+  ],
+  "pred-kani-release-4910": [
+   "at-risk",
+   0.5
+  ],
+  "pred-mcp-conformance-server-classes": [
+   "pending",
+   null
+  ],
+  "pred-ssdf-r1-final": [
+   "pending",
+   null
+  ],
+  "pred-wasmtime-m0-escape": [
+   "pending",
+   null
+  ],
+  "pred-hyper-h2-stall-or-count-cap": [
+   "pending",
+   null
+  ],
+  "pred-redb-5-release": [
+   "on-track",
+   null
+  ],
+  "pred-privacypass-batched-rfc": [
+   "on-track",
+   0.75
+  ],
+  "pred-curl-reuse-cves": [
+   "pending",
+   null
+  ],
+  "pred-supavisor-stable-210": [
+   "on-track",
+   0.8
+  ],
+  "pred-lean-paranoid-checker-arena": [
+   "pending",
+   null
+  ],
+  "pred-chrome-mtc-default-2027": [
+   "pending",
+   null
+  ],
+  "pred-cab-mldsa-ballot-2027": [
+   "pending",
+   null
+  ],
+  "pred-rustls-trust-anchor-ids": [
+   "on-track",
+   null
+  ],
+  "pred-sqlx-cancel-fix-release": [
+   "at-risk",
+   0.45
+  ],
+  "pred-tokio-postgres-1374": [
+   "pending",
+   null
+  ],
+  "pred-wasmtime-cm-async-cancel-adv": [
+   "pending",
+   null
+  ],
+  "pred-pg-14666-regress-test": [
+   "pending",
+   null
+  ],
+  "pred-webtrans-h3-rfc": [
+   "pending",
+   null
+  ],
+  "pred-tenuo-cel-advisory": [
+   "at-risk",
+   null
+  ],
+  "pred-awslc4-cmvp-2027q1": [
+   "on-track",
+   null
+  ]
+ }
+}

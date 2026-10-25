@@ -1,0 +1,17 @@
+{"kind":"rss_meta","exe_bytes":771088,"self_rss_kb":2076}
+{"kind":"rss_helpers","mode":"exec","n":1,"avg_rss_kb":2488,"avg_pss_kb":784,"avg_private_dirty_kb":560}
+{"kind":"rss_helpers","mode":"exec","n":8,"avg_rss_kb":2473,"avg_pss_kb":618,"avg_private_dirty_kb":562}
+{"kind":"rss_helpers","mode":"exec","n":32,"avg_rss_kb":2476,"avg_pss_kb":581,"avg_private_dirty_kb":561}
+{"kind":"rss_helpers","mode":"fork_zygote_1MB","n":1,"avg_rss_kb":2776,"avg_pss_kb":1381,"avg_private_dirty_kb":492}
+{"kind":"rss_helpers","mode":"fork_zygote_1MB","n":8,"avg_rss_kb":2776,"avg_pss_kb":692,"avg_private_dirty_kb":492}
+{"kind":"rss_helpers","mode":"fork_zygote_1MB","n":32,"avg_rss_kb":2776,"avg_pss_kb":548,"avg_private_dirty_kb":492}
+{"kind":"spawn_lat","mode":"fork_zygote_1MB","n":200,"p50_us":250,"p99_us":645,"min_us":246}
+{"kind":"rss_helpers","mode":"fork_zygote_8MB","n":1,"avg_rss_kb":9944,"avg_pss_kb":4969,"avg_private_dirty_kb":500}
+{"kind":"rss_helpers","mode":"fork_zygote_8MB","n":8,"avg_rss_kb":9944,"avg_pss_kb":1492,"avg_private_dirty_kb":496}
+{"kind":"rss_helpers","mode":"fork_zygote_8MB","n":32,"avg_rss_kb":9944,"avg_pss_kb":769,"avg_private_dirty_kb":496}
+{"kind":"spawn_lat","mode":"fork_zygote_8MB","n":200,"p50_us":297,"p99_us":511,"min_us":287}
+{"kind":"rss_helpers","mode":"fork_zygote_64MB","n":1,"avg_rss_kb":67292,"avg_pss_kb":33645,"avg_private_dirty_kb":504}
+{"kind":"rss_helpers","mode":"fork_zygote_64MB","n":8,"avg_rss_kb":67292,"avg_pss_kb":7867,"avg_private_dirty_kb":500}
+{"kind":"rss_helpers","mode":"fork_zygote_64MB","n":32,"avg_rss_kb":67292,"avg_pss_kb":2511,"avg_private_dirty_kb":500}
+{"kind":"spawn_lat","mode":"fork_zygote_64MB","n":200,"p50_us":615,"p99_us":1060,"min_us":576}
+{"kind":"spawn_lat","mode":"exec_fork_exec","n":200,"p50_us":544,"p99_us":841,"min_us":512}

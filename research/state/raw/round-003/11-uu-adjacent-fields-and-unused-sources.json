@@ -1,0 +1,646 @@
+{
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-003/11-uu-adjacent-fields-and-unused-sources.json",
+ "nodes": [
+  {
+   "id": "r3e11.osv-snapshot-2026-10-25",
+   "layer": "L4",
+   "domain": "W-UNKNOWN/W-SUPPLY",
+   "type": "dataset",
+   "title": "OSV/RustSec dated snapshot 2026-08-25..2026-10-25: 51 unique advisories across 8 target crates; 36 are wasmtime-family",
+   "summary": "api.osv.dev queried 2026-10-25 for 30 crates.io + 36 non-crates packages; per-package JSON and delta table written under state/raw/round-003/_advisories/ (delta_since_2026-08-25.json, osv_*.json, osv_nc_*.json, gh_releases_since_2026-08-25.txt). Unique RUSTSEC/GHSA groups published in window: wasmtime 21, wasmtime-wasi 8, wasmtime-wasi-http 7 (=36, about 0.6 per day), rustls 5, rmcp 4, quinn-proto 3, tokio 2, rustls-webpki 1. ZERO in window for hyper, h2, hyper-util, axum, tower, aws-lc-rs, aws-lc-sys, aws-lc-fips-sys, cedar-policy, pingora (crates.io), quinn-udp, h3, httparse, redb, ml-kem, libcrux-ml-kem, sqlx, ring, openssl, regex. Release cadence in window (GitHub): wasmtime 18 tags (v50.0.0 2026-10-20; four live branches 36/48/49/50), rmcp 16 tags (3.2.0 -> 3.7.0, 8 weeks), tokio 6 (1.54.0 2026-10-19 -> 1.54.1 2026-10-21), rustls 3, quinn-proto 2, hyper 2 (1.11.1, 1.12.0), h2 1 (0.4.20), cedar 4.13.0/4.14.0 + symcc 0.7/0.8, aws-lc C lib v5.6..v5.12 (7 releases), aws-lc-rs 1.17.4/1.18.1/1.18.2.",
+   "urls": [
+    "https://api.osv.dev/v1/query",
+    "https://github.com/bytecodealliance/wasmtime/releases",
+    "https://rustsec.org/advisories/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "OSV 'published' date is not the disclosure/patch date (RUSTSEC ids can be backfilled, e.g. RUSTSEC-2026-0182/0188 are older ids published late); counts are advisories not distinct bugs.",
+   "underclaim_risk": "Zero hyper/h2/aws-lc-rs advisories in 61 days is a real signal about the narrow Rust core vs the 36 wasmtime ones; do not read it as 'verified'.",
+   "specifics": "L5 CI gate: scripts/osv_delta.py run nightly pinned to Cargo.lock; fail build if any lockfile crate has an OSV id published within last 7d unless a signed waiver; reuse snapshot as baseline."
+  },
+  {
+   "id": "r3e11.wasi-http-host-side-framing-batch",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "type": "cve",
+   "title": "wasmtime Oct 2026 non-Cranelift batch: wasi-http host side mis-implements HTTP framing/egress; wasi fs sandbox escape; fuel/limit bypasses",
+   "summary": "Beyond the Cranelift critical batch already mapped: RUSTSEC-2026-0350 (guests send absolute-form requests to different hosts; fixed 36.0.18/48.0.6/49.0.3, 2026-10-14), 0376 (guests add conflicting content-lengths; 36.0.19/48.0.7/49.0.4, 10-19), 0375 and 0377 (wasi-http p3: spliced response content-length; forwarded trailers skip is_forbidden_header hook), 0351 (long URL before query crashes host), 0352 (filesystem sandbox escape: rename of symlinks with trailing slash, 10-14), GHSA-4ch3-9j33-3pmj/CVE-2026-58494 (hard links bypass FilePerms for destination, 10-16, fixed 24.0.11/36.0.12/45.0.3), 0363 (component handle tables capped per instance, charged to no limit), 0315/0316/0321 (fuel amplification via call_ref/catch, record lifting beyond hostcall fuel, WASI p0 poll_oneoff skips fuel), 0322/0313 (host memory exhaustion without stdio / outgoing body writes). Pattern: the host-side WASI/HTTP shims, not the Wasm sandbox core, supply the attack surface; framing validation (CL/TE, absolute-form, trailers) is re-implemented per host shim.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0350.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0376.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0352.html",
+    "https://github.com/advisories/GHSA-4ch3-9j33-3pmj",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0363.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Advisory text fetched via OSV summaries only (not full exploit conditions); I did not read each patch.",
+   "underclaim_risk": "A host that never exposes wasi-http, wasi-fs or fuel-based limits is unaffected by about 15 of the 22 non-Cranelift ones; counting them all as Wasm weakness would overclaim.",
+   "specifics": "L5 decision input: if Wasm handlers are used, do NOT use wasmtime-wasi-http as the egress path; implement a narrow outgoing-fetch host function (host+method+path allowlist per capability, CL/TE rebuilt by host, trailers dropped) and gate with a differential test (guest-supplied header corpus vs hyper). Pin >=49.0.4/50.0.0, keep 36.0.19 LTS only if the 36 branch is needed. Extends gap.wasmtime-adv, vfg-wasi-default-grants, wasmtime-advisory-share-by-config."
+  },
+  {
+   "id": "r3e11.quinn-proto-0.11.18-19",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "cve",
+   "title": "quinn-proto 0.11.18 (2026-09-14) fixes three remote panics (zero-length STREAM frames, ACK_FREQUENCY min ack delay, datagram buffer accounting); 0.11.19 follows 2026-09-30",
+   "summary": "RUSTSEC-2026-0338 (GHSA-465w-v9q3-7j98) remote peer panics quinn-proto via zero-length STREAM frames during unordered reads; 0340 (GHSA-3g6h-r5qx-f6hq) peer minimum ACK delay panics when ACK_FREQUENCY transmission enabled; 0343 (GHSA-ppcp-v39w-8jq2) outgoing datagram buffer accounting panics sender. All fixed 0.11.18; quinn-udp 0.6.2/0.6.3 and 0.5.16 shipped 09-06/09-30. All three are panic (availability) bugs reachable from an unauthenticated QUIC peer; two sit in optional extensions (ACK_FREQUENCY, datagrams).",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0338.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0340.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0343.html",
+    "https://github.com/quinn-rs/quinn/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Panic is not memory corruption; severity depends on panic=abort vs per-connection catch_unwind.",
+   "specifics": "L5: build H3 module with panic=abort OFF for the connection task and a test that a peer-triggered panic kills only that connection (fault-injection test using the three PoC frame shapes as regression vectors); disable ACK_FREQUENCY and datagram extensions in transport config unless needed. Extends rec60-quinn-advisory-wave, crate-quinn."
+  },
+  {
+   "id": "r3e11.tokio-1.54-regression-and-asyncfd",
+   "layer": "L4",
+   "domain": "W-TRANSPORT/W-PERF",
+   "type": "cve",
+   "title": "tokio 1.54.0 (2026-10-19) shipped a tokio::time::Interval race fixed in 1.54.1 two days later; RUSTSEC-2026-0386 AsyncFd I/O-safety violation fixed 1.51.6/1.53.3",
+   "summary": "RUSTSEC-2026-0384 / CVE-2026-115567 / GHSA-5wjr-9356-4wc8: race in tokio::time::Interval only on 1.54.0, fixed 1.54.1 (2026-10-21). RUSTSEC-2026-0386 (2026-10-13): AsyncFd::new and related constructors violate I/O safety; backported to 1.51.6 and 1.53.3. Six tokio tags in 18 days. Combined with the mapped Pingora+tokio>=1.54 panic (w02.pingora-tokio-panic) this is evidence that the newest tokio minor is not safe to track on day 0.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0384.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0386.html",
+    "https://github.com/tokio-rs/tokio/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "underclaim_risk": "Three of four recent tokio issues had LTS backports (1.51.x); LTS lines exist and work.",
+   "specifics": "L5 policy: pin tokio to an LTS branch (1.51.x series, currently 1.51.6) in Cargo.lock; promote a new minor only after 14 days AND a green DST/fuzz run; CI check that fails on tokio x.y.0 younger than 14 days. Extends rec60-tokio-axum-rmcp-versions."
+  },
+  {
+   "id": "r3e11.cross-stack-bug-classes-sep-oct-2026",
+   "layer": "L2",
+   "domain": "W-THREAT/W-TRANSPORT",
+   "type": "threat",
+   "title": "Same four bug classes recur independently in Go, Node, Traefik, Caddy, Apache and wasi-http within 6 weeks: trailers, H3-to-H1/H2 bridging state, validator-vs-handler divergence, unbounded sizes",
+   "summary": "OSV deltas since 2026-08-25. (1) Trailers bypass header controls: Traefik GHSA-v67p-phpq-fc8x/CVE-2026-88004 (header-name sanitization bypassed via trailers), Go GO-2026-6603/CVE-2026-78659 (H2 trailers memory exhaustion), wasmtime RUSTSEC-2026-0377 (trailers skip is_forbidden_header). (2) Cross-version bridging: Traefik CVE-2026-88007 (H3 backend NTLM connection reuse), CVE-2026-88012 (readTimeout not applied to H3), Go CVE-2026-78660 (H2 transport forwards malformed framing headers), apache mod_proxy_uwsgi TE smuggling CVE-2026-63718. (3) Validator/handler divergence: Fastify CVE-2026-84504 (async validation collision replaces body), CVE-2026-76169 (auth bypass via malformed URL to encapsulated 404 handler), CVE-2026-84428/84469/107832 (schema validation bypasses), Traefik CVE-2026-88009 (rootless request-target routed as / but forwarded verbatim), CVE-2026-88011 (ForwardAuth identity spoof via dot-form header alias). (4) Unbounded sizes: Apache Thrift 61 CVEs, undici 11 advisories 2026-09-29 (decompression, EventSource, chunked dump), Go CVE-2026-78667 Range, 94440 multipart, MCP TS SDK CVE-2026-111768. Go 2026-10-08 batch is already in the map (rec60-go-1.27.2-batch); the cross-stack pattern is not.",
+   "urls": [
+    "https://osv.dev/list?q=traefik",
+    "https://github.com/advisories/GHSA-v67p-phpq-fc8x",
+    "https://github.com/advisories/GHSA-w4v4-9rw7-5326",
+    "https://pkg.go.dev/vuln/GO-2026-6603",
+    "https://github.com/advisories/GHSA-667r-xxjv-c9mm"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Classification is mine from advisory titles; I read titles and OSV summaries, not patches. Counts of 'classes' are not rates.",
+   "underclaim_risk": "Rust-core servers (hyper/h2) had 0 such advisories in window, but absence over 61 days is weak evidence given smaller deployment.",
+   "specifics": "L5 invariants: I-TRAILER (trailers pass through the same name/value sanitizer as headers, or are dropped), I-ONE-PARSE (the object validated is byte-identical to the object handed to the handler; type-level: handler takes Validated<T>, never raw request), I-SIZE (every length-prefixed or streaming decoder takes a mandatory Budget param; no default-unbounded constructor), I-BRIDGE (per-backend-connection state not shared across client streams for H3->H1). Test: differential corpus built from the 40+ ids above run against the golden and nginx/hyper."
+  },
+  {
+   "id": "r3e11.ai-found-bug-flood-vendor-posture",
+   "layer": "L3",
+   "domain": "W-THREAT/W-OPS",
+   "type": "incident",
+   "title": "OpenSSH 10.6 (oss-security, Oct 2026) states AI-found bugs are being independently rediscovered and moves to more frequent releases; Apache httpd 2.4.69 and Thrift 0.25.0 each fixed 20-60 CVEs in one release",
+   "summary": "oss-security Q4 2026: OpenSSH 10.6 announcement text: 'a large number of security bug reports, many ... findings from AI models'; 'cases where a security bug identified by AI tools is subsequently independently discovered by a different researcher ... adversaries who do not report bugs ... likely able to discover these bugs too'; team will make more frequent releases instead of batching. Apache httpd 2.4.69 (2026-10-01; reported 2026-06-15 for CVE-2026-57941 mod_http2 UAF) shipped about 22 CVEs in the oss-security thread index; Apache Thrift 0.25.0 (released 2026-09-30) fixed 61 CVEs announced 2026-10-01 in one combined message (e.g. CVE-2026-61373 8.7 pre-auth unbounded SASL frame allocation, CVE-2026-63772 8.7 single-packet crash of Go Thrift servers). Also a thread (2026-10-04) proposing a disclosure list for cloud/VPS providers because they are not on distros@. Map already has httpd 2.4.69 and OpenSSH 10.6 items; new here: the maintainers' explicit rediscovery statement as primary evidence for short time-to-exploit and the Thrift 61-CVE batch as size of the backlog an AI audit can surface in a mature C/Java/Go codebase.",
+   "urls": [
+    "https://seclists.org/oss-sec/2026/q4/58",
+    "https://seclists.org/oss-sec/2026/q4/38",
+    "https://seclists.org/oss-sec/2026/q4/18",
+    "https://seclists.org/oss-sec/2026/q4/39"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "OpenSSH statement is anecdotal ('a number of cases'), no rate; Apache counts are from a mailing-list index, not from the vendor page.",
+   "underclaim_risk": "Do not dismiss: this is a maintainer-level primary statement, stronger than vendor blog claims about AI vuln discovery.",
+   "specifics": "L5 requirement: support security-patch release SLA of <=7 days from upstream dependency fix to signed golden rebuild; zero-downtime binary swap via fd handoff must be exercised in CI weekly; SECURITY.md to state cadence. Feeds W-OPS and the unsafe/C-dependency budget (every C library in the TCB is a flood target)."
+  },
+  {
+   "id": "r3e11.ietf-window-pq-tls-http-drafts",
+   "layer": "L3",
+   "domain": "W-PQC/W-TRANSPORT/W-AUTHZ",
+   "type": "standard",
+   "title": "IETF datatracker deltas 2026-08-25..10-25: draft-ietf-tls-mlkem-11, tls-composite-mldsa-00, tls-super-jumbo-record-limit-03, trust-anchor-ids-06, rfc6265bis-22, wimse-http-signature-08, oauth-rfc8725bis-10 (JWT BCP), oauth-v2-1-16",
+   "summary": "Datatracker REST API (no key) results with rev and date: draft-ietf-tls-mlkem 11 (2026-10-12; map holds -10), draft-ietf-tls-composite-mldsa 00 (2026-10-23, new WG doc), draft-ietf-tls-mldsa 06 (10-12), draft-ietf-tls-trust-anchor-ids 06 (09-30), draft-ietf-tls-super-jumbo-record-limit 03 (10-09), draft-ietf-tls-key-share-prediction 05 (10-15), draft-ietf-plants-merkle-tree-certs 07 (10-07), draft-ietf-lamps-pq-composite-sigs 19 / kem 23, draft-ietf-httpbis-rfc6265bis 22 (10-19, cookies), secondary-server-certs 02, resumable-upload 14, connect-tcp 16, no-vary-search 10, pre-denied 01, draft-ietf-oauth-v2-1 16 (09-03), rfc8725bis 10 (08-31; JWT BCP, relevant to NDSS26 Token Time Bomb), attestation-based-client-auth 12, sd-jwt-vc 19, draft-ietf-wimse-http-signature 08 (10-20), wimse-wpt 02, wimse-mutual-tls 03, draft-ietf-wimse-aims 00 (09-15, new WG item 'AI Identity Management System'), draft-ietf-privacypass-arc-protocol 01 + arc-crypto 01 (09-03), batched-tokens 09, idempotency-key-header 08 (10-22), quic-multipath 21, load-balancers 22, reliable-stream-reset 11, draft-ietf-aipref-vocab 08 (09-14). None changes an architecture decision today; the actionable ones are rfc8725bis (JWT validation checklist), wimse-http-signature (workload-to-workload HTTP signatures, overlapping Web Bot Auth/RFC 9421 machinery) and rfc6265bis (cookie parsing used by the session layer).",
+   "urls": [
+    "https://datatracker.ietf.org/api/v1/doc/document/?type=draft&time__gte=2026-08-25T00:00:00&name__startswith=draft-ietf-tls",
+    "https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/",
+    "https://datatracker.ietf.org/doc/draft-ietf-oauth-rfc8725bis/",
+    "https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Draft revisions are not consensus; I did not read diffs between revisions.",
+   "specifics": "L5: add draft-ietf-oauth-rfc8725bis-10 checklist items to JWT/token verifier acceptance tests (alg allowlist, typ, aud, iss) only if JWT is in the golden; none otherwise. Extends v.pure-mlkem-tls-draft-contested, std-mtc-plants."
+  },
+  {
+   "id": "r3e11.ietf-window-agent-individual-drafts",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL/W-AUTHZ",
+   "type": "standard",
+   "title": "IETF individual (non-WG) drafts on MCP/agents in window: none is standards-track; ~15 exist, mostly telecom-ops framing; two address server-side authz metadata",
+   "summary": "name contains mcp / agent, rev and date: draft-serra-mcp-discovery-uri-04 (09-27, 'mcp:' URI scheme), draft-morrison-mcp-dns-discovery-09 and mcp-tool-surface-names-registry-03 (10-22), draft-correctover-gg-mcp-parameter-risk-01 (10-14: five canonical MCP parameter risk classes with deterministic rules, machine-readable pre-invocation metadata), draft-mcphillips-agentenvelope-derived-authority-01 (08-31: derived scoped capabilities from custody material, no bearer credential), draft-emirdag-scitt-ai-agent-execution-01 (10-12), draft-ni-a2a-ai-agent-security-requirements-02 (10-21), draft-ni-wimse-ai-agent-identity-03 (10-01), draft-jennings-ai-mcp-over-moq-00 (09-03), draft-niyikiza-oauth-attenuating-agent-tokens-01 (June, already known), draft-zeng-*/draft-zm-* (NETCONF/telemetry use of MCP, 10-14). Individual submissions carry no WG adoption; only wimse-aims-00 is WG-owned. Takeaway: no IETF consensus artifact for MCP exists; MCP governance remains the MCP spec repo (2026-07-28 revision), so IETF work is a watch item.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-correctover-gg-mcp-parameter-risk/",
+    "https://datatracker.ietf.org/doc/draft-mcphillips-agentenvelope-derived-authority/",
+    "https://datatracker.ietf.org/doc/draft-serra-mcp-discovery-uri/",
+    "https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "overclaim_risk": "Anyone can post an I-D; counts say nothing about adoption.",
+   "underclaim_risk": "The parameter-risk-class idea is a cheap schema annotation worth borrowing for tool-argument policy even if the draft dies.",
+   "specifics": "Decision impact: none on load-bearing; optional L5 borrow: tag each exposed tool arg with a risk class in the handler schema and deny-by-default classes in policy."
+  },
+  {
+   "id": "r3e11.rfcs-published-in-window",
+   "layer": "L3",
+   "domain": "W-SUPPLY/W-PQC/W-OPS",
+   "type": "standard",
+   "title": "RFCs published in window that matter: RFC 10033 (stateful hash-based signature state/backup), RFC 10042 (ML-KEM hybrid KEX for SSH), RFC 10032 (AEGIS AEAD), RFC 10049 (Roughtime), RFC 10055 (UDP ECN sockets)",
+   "summary": "datatracker API type=rfc, time>=2026-08-25 (19 RFCs). Informational: RFC 10033 'Hash-Based Signatures: State and Backup Management' (2026-09-15): operational and technical guidance for LMS/HSS/XMSS state; RFC 10042 PQ/T hybrid key exchange with ML-KEM for SSH (2026-08-31); RFC 10032 AEGIS-128L/256/128X/256X AEAD, CFRG (2026-09-19; name collides with our working name 'Aegis'); RFC 10049 Roughtime (2026-10-05); RFC 10055 configuring UDP sockets for ECN (2026-10-14; QUIC server socket setup). RFC 4229 header registrations updated 10-16. No new TLS or HTTP core RFC in the window.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/rfc10033/",
+    "https://datatracker.ietf.org/doc/rfc10042/",
+    "https://datatracker.ietf.org/doc/rfc10032/",
+    "https://datatracker.ietf.org/doc/rfc10055/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "underclaim_risk": "RFC 10033 is the only primary guidance that tells us stateful HBS (LMS/XMSS) is operationally dangerous without state backup discipline; that argues against LMS for solo-operator release signing, favoring stateless SLH-DSA.",
+   "specifics": "L5: release-signing decision record cites RFC 10033; prefer SLH-DSA (stateless) for release signatures unless an HSM enforces single-use state; operational SSH hardening can enable mlkem768x25519 per RFC 10042 (OpenSSH default already). Name collision: rename working title before any public crate name. Extends fips205-slhdsa-sizes."
+  },
+  {
+   "id": "r3e11.leanserver-lean4-https",
+   "layer": "L3",
+   "domain": "W-FORMAL/W-GAP",
+   "type": "system",
+   "title": "LeanServer (AfonsoBitoque, Apache-2.0, Feb-May 2026): Lean 4 'verified HTTPS server' with TLS1.3/H2/H3/WS/gRPC, 914-935 theorems, 0 sorry; toy-depth existence proof",
+   "summary": "github.com/AfonsoBitoque/LeanServer: created 2026-02-20, last push 2026-05-14, 5 stars, 15 commits, Reservoir 0.1.0. About 32k Lean LOC in 81 modules plus about 1k LOC C FFI; README breakdown of 935 theorems: protocol about 166, codec roundtrip about 120, safety about 110, crypto about 100, refinement about 50, structural about 200, sanity about 189 (RFC test vectors via native_decide, which trusts the compiler). The authors' own THREAT_MODEL.md says IO boundary (sockets/epoll/OpenSSL/SQLite) is extern C and unverified, crypto unaudited, not for production; the headline counts disagree (914 vs 935). Crypto is X25519, RSA-PSS, AES-GCM, SHA-256: no PQC. About 40 percent of theorems are structural/sanity, not security properties. Value: an existence proof that a whole-stack Lean 4 HTTP/TLS state-machine formalization can be built by one person (apparently LLM-assisted) in under 3 months; it is not evidence of security. Also relevant to the map's vfg-lean-std-http-unknown (Lean core Std.Http).",
+   "urls": [
+    "https://github.com/AfonsoBitoque/LeanServer",
+    "https://reservoir.lean-lang.org/@AfonsoBitoque/LeanServer"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "Calling it 'verified HTTPS server' overclaims: refinement links cover about 50 theorems, I/O and crypto primitives are outside, 'no spec-impl gap' claim is self-assessed.",
+   "underclaim_risk": "Dismissing it entirely underclaims: proof-engineering cost for protocol FSM + codec roundtrips is now small enough for a solo developer, which supports the Lean-in-the-assurance-story plan for state machines and parsers.",
+   "specifics": "L5 spike: read LeanServer/Proofs for reusable HPACK/varint roundtrip theorem shapes (license Apache-2.0) and port them as acceptance templates; acceptance metric for our own proofs: report theorem count by category and exclude native_decide-only items from the 'security properties proven' count."
+  },
+  {
+   "id": "r3e11.velvet-veil-lean-verifiers",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "type": "system",
+   "title": "Velvet (Lean 4 imperative verifier, CAV 2026 distinguished paper) and Veil (Lean 4 distributed-protocol verifier) are active Apache-2.0 Lean-native options; spec-underspecification measured at about 1 in 10",
+   "summary": "CAV 2026 (Lisbon, July 26-29): 'Velvet: A Foundational Multi-Modal Verifier for Imperative Programs in Lean' (Gladshtein, Sergey et al.), one of 8 distinguished papers of 81 accepted / 311 submitted (NUS news). Velvet verifier is proven sound so trust rests on Lean kernel; one program+spec can be tested, SMT-checked or interactively proven; github verse-lab/velvet 132 stars, pushed 2026-10-24, Apache-2.0; verse-lab/veil 345 stars, pushed 2026-10-25, Apache-2.0 (protocol model checker + SMT + Lean; AI invariant inference checked by Lean). Secondhand (azbigmedia, not verified at lab source): lab found underspecification in about one in ten machine-generated specs from major Lean benchmarks; an AI assistant produced 39,000 lines of Lean for Move borrow-checker metatheory in about 27 working days (March 2026). Neither tool verifies Rust directly; both need code written in Lean's imperative subset, so for Rust the path stays Aeneas/Charon->Lean or Verus.",
+   "urls": [
+    "https://www.comp.nus.edu.sg/bytes/associate-professor-ilya-sergey-and-team-win-distinguished-paper-award-at-cav-2026/",
+    "https://reservoir.lean-lang.org/@verse-lab/Velvet",
+    "https://github.com/verse-lab/veil",
+    "https://github.com/verse-lab/velvet",
+    "https://azbigmedia.com/business/veil-and-velvet-the-new-lean-tools-bringing-mathematical-proof-to-working-code/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Secondhand numbers (1-in-10, 39k LOC/27 days) come from a trade-press article, grade C until the lab sources are read.",
+   "underclaim_risk": "Veil is the most plausible Lean-native tool for the server's own distributed pieces (idempotency, session table, rollout protocol) where Verus is awkward.",
+   "specifics": "L5 spike: model the idempotency-key store state machine (draft-ietf-httpapi-idempotency-key-header-08) in Veil and prove no-double-effect; budget 1 person-week; success = invariant checked + model-check counterexample for the known cross-client retrieval case (crs-ce-idempotency-key-scope). Extends proof-cedar-lean, vfg-lean-core-minimal-measured."
+  },
+  {
+   "id": "r3e11.emvco-agentic-payments-framework",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL/W-STATE",
+   "type": "standard",
+   "title": "EMVCo 'Agentic Payments: Framework for Specifications v1.0' draft (2026-09-01; comments closed 2026-09-30): Intent Services layer for lifecycle state of consumer-authorized intent",
+   "summary": "Payments-network vocabulary. EMVCo (six card networks) published a draft framework, not a spec, for AI-agent-initiated card payments with an Agentic Payments Task Force (chair Clinton Allen; work with FIDO Alliance, OpenID Foundation, OpenWallet Foundation, W3C). 'Intent Services': a shared layer to register, reference, retrieve and manage consumer-authorized purchasing intent over time (recurring purchases, cumulative budgets, post-transaction activity), complementing AP2 signed Mandates and Verifiable Intent delegation chains. It adds no merchant/server technical requirement yet; no security parameters in the public summaries. Relevance: a signed capability proves an action was authorized, not how much authority remains; the payments industry is converging on server-held budget state, i.e. the same stateful-budget problem as W-STATE/W-ABUSE. PCI DSS 4.0.1 req 6.4.2 (mandatory since 2025-03-31, automated technical solution for public-facing web apps) is technology-neutral and silent on agents.",
+   "urls": [
+    "https://stellagent.ai/insights/emvco-agentic-payments-framework",
+    "https://fintech.global/2026/09/04/emvco-drafts-framework-for-agentic-card-payments/",
+    "https://blog.qualys.com/product-tech/2026/08/27/pci-dss-4-0-1-application-requirements-youre-being-assessed-on-in-2026"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "overclaim_risk": "Source is secondary trade coverage; EMVCo document itself not fetched.",
+   "specifics": "L5: capability tokens in our design should carry a budget id, with remaining balance held server-side (journaled, idempotent decrements) rather than encoded in the token; add 'remaining-authority' query to the policy PEP interface. Decision impact on Biscuit/Cedar choice: supports 'token = identity+scope; budget = server state'."
+  },
+  {
+   "id": "r3e11.capmas-and-agent-authz-review",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "paper",
+   "title": "CAPMAS (arXiv 2609.06500) macaroon delegation vs RFC 8693 token exchange, and a 89-source agent authorization review (arXiv 2609.15906): both Sept 2026, both self-reported",
+   "summary": "CAPMAS (Veski, Guerraoui, Froelicher; 2026-09-06): contrastive-learning scoping maps natural-language queries to bounded privilege sets plus Macaroon tokens for offline attenuation; claims about 30x faster delegation ops, 2x less delegation latency and 3x lower bandwidth than OAuth 2.0 Token Exchange (RFC 8693); over 90 percent perfect privilege-bundle retrieval within 17 ms over 3,100+ endpoints; 99.5 percent fewer unnecessary privileges. No code, hardware or TCB stated. Caveat for us: its scoping step is an ML classifier deciding privileges, which re-introduces a probabilistic component in front of the authorization decision. arXiv 2609.15906 (2026-09-14, Surapani et al., 70 pages): narrative review of 89 sources; five-level principal hierarchy (user, operator, orchestrator, sub-agent, tool endpoint), seven structural requirements; names runtime enforcement and aggregation bounds as the main open gaps. Offline attenuation is not unique to Macaroons: Biscuit and UCAN (already mapped) do it with public-key signatures.",
+   "urls": [
+    "https://arxiv.org/abs/2609.06500",
+    "https://arxiv.org/abs/2609.15906"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "overclaim_risk": "Latency/bandwidth ratios are against a baseline of their choice and unspecified hardware; do not cite as evidence that macaroons beat Biscuit.",
+   "underclaim_risk": "The 'aggregation bounds' gap (many individually allowed calls summing to an unauthorized outcome) is real and not solved by attenuation alone.",
+   "specifics": "L5: add invariant AGG (per-principal cumulative budgets across calls, server-held, monotonically decreasing, journaled) to SPEC_INVARIANTS; do not put any ML component in the authorization decision path (scoping suggestions may only narrow, and human/static policy approves). Extends macaroons-ndss2014, biscuit-auth-6.0, ucan-1.0-spec."
+  },
+  {
+   "id": "r3e11.patents-fto-flags",
+   "layer": "L3",
+   "domain": "W-GAP/W-PQC",
+   "type": "patent",
+   "title": "Patent scan (Google Patents, priority >=2024-01-01): no hits on agent capability-token attenuation or Web Bot Auth; PQC-TLS patents from John A. Nix and IBM are the freedom-to-operate flags; MCP security filings are mostly Chinese",
+   "summary": "Method: patents.google.com/xhr/query (works unauthenticated, rate-limits with 503 after about 6 rapid queries). Zero results: capability token + attenuat* + AI agent; HTTP message signature + bot identity; macaroon/biscuit + agent. PQC handshake: US12088706B2 (John A. Nix, granted 2024-09-10, device securing communications using two PQ KEMs), US20250141853A1 (secure session resumption using PQC), US20250266991A1 (multiple PQC KEM with authentication), US20250330306A1, EP4176563B1 (IBM, TLS integration of PQ algorithms, granted 2024-08-14), EP4238272B1 (IBM, certificate-based security using PQC, 2025-10-15). Agent/MCP security: US12574336B1 (Airia LLC, MCP server integrity, 2026-03-10), US20260067335A1 (Bao Tran, agentic browser step-up auth, spend/scope limits, pub 2026-03-05), US20260238651A1 (action-level constraint enforcement for agents, pub 2026-08-13), CN121750291A (Topsec access control), CN120653465A (Baidu, MCP task execution). Netcode: Roblox US20260108808A1 (flexible netcode architecture, 2026-04-23). Absence of hits is not clearance: search covered titles/abstract snippets only. Not legal advice; flag only.",
+   "urls": [
+    "https://patents.google.com/patent/US12088706B2/en",
+    "https://patents.google.com/patent/EP4176563B1/en",
+    "https://patents.google.com/patent/US12574336B1/en",
+    "https://patents.google.com/patent/US20260067335A1/en"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.5,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "Claims were not read; titles/abstract snippets only. Patent assertion risk from a PQC-hybrid TLS implementation using standard ML-KEM is unquantified.",
+   "underclaim_risk": "The Nix portfolio is a continuing family (applications still publishing 2025) and covers session resumption and multi-KEM, which are exactly what a PQ-hybrid TLS server does; do not assume standards-based implementation is immune.",
+   "specifics": "L5 action: put Nix and IBM families on a counsel-review list before a commercial release; engineering mitigation is to rely on rustls/aws-lc-rs (patent indemnity unknown) and keep PQ handshake logic in upstream libraries instead of custom code. No design change."
+  },
+  {
+   "id": "r3e11.xguardian-server-side-anticheat",
+   "layer": "L3",
+   "domain": "W-ABUSE",
+   "type": "paper",
+   "title": "XGuardian (USENIX Sec '26 artifact, arXiv 2601.18068): game server-side aim-assist detection from 2 inputs (pitch,yaw) at 88.9% accuracy and 4-6% false positives",
+   "summary": "Game anti-cheat vocabulary. Server-side, asynchronous replay analysis (idle-time batch, 'marginal overhead'), 96-tick elimination window, GRU-CNN scoring + random forest + SHAP explanations. CS2 dataset: 3,069,216 aiming operations, 31,971 trajectories, 5,486 players. Default split accuracy 0.889, FPR 0.062, precision 0.938; best split recall 0.907 at FPR 0.041; datasets and code released. Companion HAWK (arXiv 2409.14830, IEEE TIFS Nov 2025). Transferable lesson: even with a rich, tightly structured signal, behavioral classification of automated play has 4-6 percent false positives; games therefore keep detection asynchronous and use bans after review, not inline blocking. For a web server this argues that inline behavior-based agent classification cannot gate access; it can only weight budgets. Not evaluated against adaptive (LLM) evaders.",
+   "urls": [
+    "https://arxiv.org/abs/2601.18068",
+    "https://arxiv.org/abs/2409.14830",
+    "https://www.usenix.org/system/files/conference/usenixsecurity26/sec26_prepub_zhang-jiayi.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Domain gap: FPS aim telemetry is far more constrained than HTTP request streams; numbers do not transfer.",
+   "specifics": "L5: admission design rule A-ASYNC: behavior-derived scores may adjust token-bucket rates and challenge probability, never produce a hard deny without a cryptographic identity signal; measure FPR on humans before enabling (acceptance: <=0.1 percent human challenge rate on a labeled corpus). Extends abuse-wba-interplay."
+  },
+  {
+   "id": "r3e11.deterministic-core-exchange-analogy",
+   "layer": "L3",
+   "domain": "W-STATE/W-ASSURE",
+   "type": "system",
+   "title": "Exchange matching-engine pattern: single-threaded deterministic state machine + external ordered command log + snapshot (matchcore 0.4.0, intrepidkarthi/orderbook): same shape as sans-IO core + journal",
+   "summary": "Exchange vocabulary. crates.io matchcore 0.4.0 (updated 2026-04-05, 188 downloads, github.com/minyukim/matchcore): deterministic in-memory price-time matching engine, persistence/replication left to event logs and snapshots. Go orderbook lib: byte-identical outputs from the same ordered command stream, durable WAL, gap-free resume across disconnect, bounded backpressure at every stage; HA left to the operator. These are tiny, low-adoption projects (grade D) but they restate the architecture (sequencer, deterministic apply, replay) behind TigerBeetle/VOPR (map: as.tigerbeetle-vopr) used by real exchanges. No source found on adversarial bot order flow (spoofing, quote stuffing) for 2025-26. Decision: none; adds a second vocabulary check that 'deterministic apply + ordered log' is the common reliability core of financial systems.",
+   "urls": [
+    "https://docs.rs/crate/matchcore/latest",
+    "https://github.com/minyukim/matchcore",
+    "https://pkg.go.dev/github.com/intrepidkarthi/orderbook"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.5,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "overclaim_risk": "Low-adoption hobby crates; do not cite as exchange practice."
+  },
+  {
+   "id": "r3e11.adjacent-standards-negative-results",
+   "layer": "L1",
+   "domain": "W-UNKNOWN",
+   "type": "negative",
+   "title": "Adjacent-field standards swept with no 2025-26 change that touches a web-server decision: GSMA FS.11/FS.19, DO-326A/ED-202A/ED-203, UNECE R155/R156 + ISO 21434, Uptane, PCI DSS 6.4.2",
+   "summary": "Telecom: searches for GSMA FS.11 (SS7) and FS.19 (Diameter) returned only vendor pages and a Lebanese government tender requiring FS.11 plus SBA interconnect protection; no 2025-26 revision found; primary documents are in the GSMA library (membership/gated). Avionics: DO-326A/ED-202A (2014) mandatory since about 2019; no ED-203A or revision found; RTCA/EUROCAE standards are paywalled so nothing was read. Automotive: UNECE R156 SUMS requires certified software-update management with records and impact assessment (in force Jan 2021), secondary sources only; Uptane 2.1.0 is the latest standard found (director + image repositories; freeze-attack time requirement), no 2026 revision. Payments: PCI DSS 4.0.1 req 6.4.2 technology-neutral. Conclusion: transferable ideas already exist in the map (TUF/Sigstore update chain, DST, journaled replay); Uptane's compromise-resilient two-repository split (director decides what to install, image repo holds what exists) is a design pattern for our signed-artifact deploy path but not a change. This is a recorded negative result with an honest access limit (paywalls), not evidence of absence.",
+   "urls": [
+    "https://uptane.org/papers/uptane-standard.2.1.0.pdf",
+    "https://interactive.aviationtoday.com/how-do-326-and-ed-202-are-becoming-mandatory-for-airworthiness/",
+    "https://blog.adaptivemobile.com/the-signalling-firewall-and-beyond-how-to-maintain-an-effective-signalling-protection-capability"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.5,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "underclaim_risk": "Absence due to paywall/search reach; a member-access read of GSMA FS.19 could still find reusable filtering categories (categories 1-3 message filtering = deny-by-message-type + stateful plausibility check).",
+   "specifics": "L5 optional borrow: 'director/image repository' split for update path: signed policy of WHICH build may run (short-lived, online key) separate from signed artifact catalogue (offline key); acceptance: compromise of one key cannot install an unlisted binary. Extends sc.sigstore-tuf-threshold."
+  }
+ ],
+ "edges": [
+  {
+   "src": "r3e11.wasi-http-host-side-framing-batch",
+   "dst": "gap.wasmtime-adv",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.wasi-http-host-side-framing-batch",
+   "dst": "vfg-wasi-default-grants",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.wasi-http-host-side-framing-batch",
+   "dst": "wasmtime-advisory-share-by-config",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.wasi-http-host-side-framing-batch",
+   "dst": "rec60-wasmtime-cranelift-crit-2026-10",
+   "type": "depends_on"
+  },
+  {
+   "src": "r3e11.quinn-proto-0.11.18-19",
+   "dst": "rec60-quinn-advisory-wave",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.quinn-proto-0.11.18-19",
+   "dst": "crate-quinn",
+   "type": "cve"
+  },
+  {
+   "src": "r3e11.tokio-1.54-regression-and-asyncfd",
+   "dst": "rec60-tokio-axum-rmcp-versions",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.tokio-1.54-regression-and-asyncfd",
+   "dst": "w02.pingora-tokio-panic",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.cross-stack-bug-classes-sep-oct-2026",
+   "dst": "rec60-go-1.27.2-batch",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.cross-stack-bug-classes-sep-oct-2026",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.cross-stack-bug-classes-sep-oct-2026",
+   "dst": "gap.traefik",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.cross-stack-bug-classes-sep-oct-2026",
+   "dst": "l4-cve-corpus-h2-h3-2023-2026",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.ai-found-bug-flood-vendor-posture",
+   "dst": "rec60-supply-chain-incidents",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.ietf-window-pq-tls-http-drafts",
+   "dst": "v.pure-mlkem-tls-draft-contested",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.ietf-window-pq-tls-http-drafts",
+   "dst": "std-mtc-plants",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.ietf-window-pq-tls-http-drafts",
+   "dst": "r2e11.token-time-bomb-jwt",
+   "type": "mitigates"
+  },
+  {
+   "src": "r3e11.ietf-window-agent-individual-drafts",
+   "dst": "j-webbotauth",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.ietf-window-agent-individual-drafts",
+   "dst": "j-rmcp-sdk",
+   "type": "depends_on"
+  },
+  {
+   "src": "r3e11.rfcs-published-in-window",
+   "dst": "fips205-slhdsa-sizes",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.rfcs-published-in-window",
+   "dst": "sc.sigstore-tuf-threshold",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.leanserver-lean4-https",
+   "dst": "vfg-lean-std-http-unknown",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.leanserver-lean4-https",
+   "dst": "proof-cedar-lean",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.velvet-veil-lean-verifiers",
+   "dst": "proof-cedar-lean",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.velvet-veil-lean-verifiers",
+   "dst": "vfg-lean-core-minimal-measured",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.velvet-veil-lean-verifiers",
+   "dst": "sdg-idempotency-draft",
+   "type": "depends_on"
+  },
+  {
+   "src": "r3e11.velvet-veil-lean-verifiers",
+   "dst": "rec60-spec-fidelity-verus",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.emvco-agentic-payments-framework",
+   "dst": "j-ap2",
+   "type": "depends_on"
+  },
+  {
+   "src": "r3e11.emvco-agentic-payments-framework",
+   "dst": "abuse-arc-act",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.capmas-and-agent-authz-review",
+   "dst": "macaroons-ndss2014",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.capmas-and-agent-authz-review",
+   "dst": "biscuit-auth-6.0",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.capmas-and-agent-authz-review",
+   "dst": "ucan-1.0-spec",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.patents-fto-flags",
+   "dst": "crate-rustls-pq",
+   "type": "conflicts_with"
+  },
+  {
+   "src": "r3e11.patents-fto-flags",
+   "dst": "crate-aws-lc-rs",
+   "type": "conflicts_with"
+  },
+  {
+   "src": "r3e11.xguardian-server-side-anticheat",
+   "dst": "abuse-wba-interplay",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.xguardian-server-side-anticheat",
+   "dst": "abuse-anubis-bypass-evidence",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.deterministic-core-exchange-analogy",
+   "dst": "as.tigerbeetle-vopr",
+   "type": "alternative_to"
+  },
+  {
+   "src": "r3e11.adjacent-standards-negative-results",
+   "dst": "sc.sigstore-tuf-threshold",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.osv-snapshot-2026-10-25",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "extends"
+  },
+  {
+   "src": "r3e11.osv-snapshot-2026-10-25",
+   "dst": "sc.rustsec-volume",
+   "type": "extends"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Read cedar-spec/Velvet/Veil sources directly: does Veil prove an idempotency-store state machine with the cross-client retrieval counterexample, and at what person-week cost?",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.5,
+   "reason": "converts a tooling survey into a spike with acceptance test"
+  },
+  {
+   "question": "Differential HTTP framing corpus: build one trailers/absolute-form/CL-TE/dot-form header corpus from the 40+ Sept-Oct 2026 ids and run it against hyper, nginx, Go, Traefik, Caddy to measure which stacks diverge",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.6,
+   "reason": "turns the cross-stack bug-class node into a measured test; implementation-phase spike under heavy.sh"
+  },
+  {
+   "question": "Read the full text of GSMA FS.19 / FS.11 (member access or public summaries) for reusable stateful filtering categories",
+   "layer": "L3",
+   "domain": "W-ABUSE",
+   "expected_info_gain": 0.2,
+   "reason": "only adjacent-field standard with plausible transferable filter taxonomy; gated"
+  },
+  {
+   "question": "Patent claim reading for Nix US12088706B2 / IBM EP4176563B1 against hybrid ML-KEM TLS server use (counsel, not research)",
+   "layer": "L4",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.2,
+   "reason": "FTO flag needs a lawyer, not more search"
+  },
+  {
+   "question": "What is MCP 2026-07-28 spec stance on session-table limits given the rmcp/Python SDK session accumulation CVEs, and does the spec define server limits?",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "expected_info_gain": 0.3,
+   "reason": "three SDKs shipped the same unbounded-session bug in window"
+  }
+ ],
+ "protocol_implications": [
+  "Add nightly OSV-delta CI gate (scripts/osv_delta.py) over Cargo.lock; the snapshot method here is the template.",
+  "Do not use wasmtime-wasi-http as egress; write a narrow outgoing-fetch host function and differential-test framing vs hyper.",
+  "Pin tokio to a backport line and enforce a 14-day age gate on new minors; pin wasmtime >=49.0.4 / 50.0.0.",
+  "Add invariants I-TRAILER, I-ONE-PARSE, I-SIZE, I-BRIDGE (cross-stack classes) and AGG (cumulative budgets) to SPEC_INVARIANTS.",
+  "Behavior-derived agent scores may weight budgets only; no inline hard deny without cryptographic identity (XGuardian FPR 4-6 percent).",
+  "Release signing: prefer stateless SLH-DSA unless HSM-enforced state (RFC 10033). Patch SLA <=7 days (OpenSSH 10.6 statement).",
+  "Capability tokens carry budget ids; remaining balance server-held (EMVCo Intent Services direction).",
+  "Rename working title: RFC 10032 'AEGIS' AEAD collides."
+ ],
+ "self_improvement": [
+  "Datatracker REST API (name__startswith, time__gte) and OSV api.osv.dev/v1/query are keyless and give exact dated deltas; add them to the explorer toolkit as tools/osv_delta.py and tools/dt_delta.py to avoid web-search fallback.",
+  "Google Patents xhr/query works unauthenticated but 503s after ~6 rapid requests; space calls 10s+ and cache results to the raw dir; WebSearch never returns patent pages.",
+  "WebSearch repeatedly returned only vendor/blog pages for gated standards (GSMA, RTCA); mark those cells as access-limited rather than re-querying.",
+  "Round-2 explorer 11 already covered 5G SBI, JVN stall, KpqC, APISIX: the planner brief should have included r2 node ids for the adjacent-field axis to avoid overlap.",
+  "The crash recovery: no progress file existed after the memory crash; checkpoint after every 2 sources, not 5."
+ ],
+ "notes": {
+  "queries_run": 40,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "new_urls_approx": 45,
+  "sources_fetched": [
+   "api.osv.dev (66 packages)",
+   "datatracker REST (drafts, RFCs, 5 doc detail)",
+   "GitHub releases API (11 repos)",
+   "patents.google.com xhr (2 successful batches)",
+   "seclists oss-sec 2026 q4 index + 4 messages",
+   "reservoir.lean-lang.org LeanServer",
+   "github AfonsoBitoque/LeanServer README/THREAT_MODEL",
+   "arxiv 2609.06500, 2609.15906, 2601.18068",
+   "stellagent EMVCo",
+   "azbigmedia Veil/Velvet",
+   "drweb.de NSA/ML-KEM",
+   "crates.io matchcore",
+   "cedar v4.14.0 and hyper v1.12.0 release notes"
+  ],
+  "numbers_checked": [
+   "51 unique advisories in window (computed from OSV, deduped by RUSTSEC alias)",
+   "wasmtime-family 36 = 21+8+7",
+   "LeanServer theorem categories sum ~935 (166+120+110+100+50+200+189=935)",
+   "XGuardian 3,069,216 ops / 31,971 trajectories / 5,486 players (page text)",
+   "Thrift 61 CVEs (oss-sec message)",
+   "datatracker dates via API"
+  ],
+  "verification_status": "Existence confirmed by fetching every RUSTSEC/GHSA/CVE/RFC/draft id and repo cited, except patent claims and EMVCo primary text (not fetched).",
+  "contrarian_direction": "skeptic reading of LeanServer theorem counts and of CAPMAS/XGuardian self-reported numbers",
+  "vocabularies": [
+   "telecom",
+   "payments",
+   "avionics",
+   "automotive",
+   "gaming",
+   "exchanges",
+   "legal/patent",
+   "non-English (JVN/CERT-Bund/KISA search; mostly no hit)"
+  ],
+  "source_types": [
+   "API datasets (OSV, datatracker, GitHub)",
+   "mailing list (oss-security)",
+   "patents",
+   "standards bodies",
+   "academic preprints"
+  ],
+  "limits": "KISA/CNVD/BSI primary advisories not reached via search; CCS/PLDI 2026 verification papers not enumerated (only CAV Velvet); GSMA/RTCA paywalled."
+ }
+}

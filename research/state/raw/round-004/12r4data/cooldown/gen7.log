@@ -1,0 +1,10 @@
+heavy.sh: waiting for the heavy-job lock (one at a time)...
+    Updating crates.io index
+     Locking 233 packages to latest compatible versions
+      Adding cc v1.8.0 (available: v1.10.0, published 47 hours ago)
+      Adding find-msvc-tools v0.1.14 (available: v0.1.15, published 6 days ago)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding rustls-webpki v0.103.15 (available: v0.103.16, published 5 days ago)
+      Adding smallvec v1.16.3 (available: v1.16.4, published 38 hours ago)
+      Adding smol_str v0.3.6 (available: v0.3.7, published 5 days ago)
+      Adding tokio v1.53.3 (available: v1.54.1, published 3 days ago)

@@ -1,0 +1,346 @@
+{
+ "nodes": [
+  {
+   "id": "dx.r4-real-axum-mutant-scores",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "measurement",
+   "title": "32 mutants x 4 shapes on real axum 0.8.9 + tokio 1.54.1 (rustc 1.88.0): compile-rejected A 3, B1 16, B2 25, B2-no-deps 28; residual accepted-and-violating after clippy+forbid(unsafe): A 17, B1 2, B2 2",
+   "summary": "Own experiment (05-work, 2 sdk + app + in-process tower oneshot oracle). A=ordinary extractor app (Option principal, pub fields, Clone handles). B1=owned FromRequestParts Ctx<E> capability extractors (non-optional Principal, tenant handles, Tx typestate+Drop guard, effect classes). B2=scoped adapter Ctx<'r,E> via Routes::{read,write,net} + HRTB ScopedHandler. 16 ported mutants (M1-16) + 16 async (N1,N1b,N2-N15). Rejected at compile: A M 1/16 (same as r3) N 2/16; B1 M 12/16 N 4/16; B2 M 13/16 N 12/16; B2nd M 13/16 N 15/16. Compiled-neutralized (oracle clean): B1 M3,N7,N8,N11; B2 M3,N7,N8. Accepted+violating: B1 12 (M11,M15,M16,N1,N2,N3,N4,N9,N12,N13,N14,N15), B2 4 (M15,M16,N9 mem::forget,N14 unsafe transmute). Lint tier (clippy 0.1.88 disallowed_methods/types, clippy::mem_forget, -F unsafe_code) catches 12/29 of A violators, 10/12 of B1, 2/4 of B2; residual is only semantic (M15 ownership check, M16 archived filter) for B1/B2 and 17 for A.",
+   "urls": [
+    "file:///home/patrickd/aegis/research/state/raw/round-004/05-work/results.json"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "n=1 toy-sized app (~100 LOC SDK, ~45 LOC handlers), mutants written by the same author as the SDK; one rustc (1.88.0); oracle is runtime probes not a security proof. Do not read 25/32 as a general rejection rate.",
+   "underclaim_risk": "Rejection of B2 is structural (lifetime + privacy), not coverage-dependent; the two residual B2 accepts are semantic/unsafe classes no type system here targets."
+  },
+  {
+   "id": "dx.r4-owned-extractor-static-escape",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "negative-result",
+   "title": "Negative result: B-style owned FromRequestParts capability extractors do NOT reject any 'static escape under async: move into tokio::spawn, static Mutex/OnceLock, Arc<Mutex> Extension layer, Box::leak, mpsc Box<dyn Any+Send>, whole-Ctx spawn, Tx spawn all compile and violate",
+   "summary": "axum extractors return owned values and handler futures must be Send+'static-compatible, so capability handles in B1 are owned Arc-backed structs: 'static + Send. 8 of 8 escape mutants (M11,N1,N2,N3,N4,N12,N13,N15) plus N14 (unsafe) compile in B1; only by-reference spawn (N1b, E0373) is rejected, and that is plain borrowck equally rejected in A. Making handles !Send (PhantomData<*const ()>, variant sdk_b1ns) rejects the BASELINE handler itself (E0277 Handler<_,_> not satisfied) because handlers hold ctx across .await; so !Send is unusable on axum. This refutes the claim in dx.l5-decision-sdk-shape that shape B's rejection carries over to async axum when written as extractors; r3's 13/16 was true only because r3's Ctx<'r> borrowed, which an extractor cannot do.",
+   "urls": [
+    "https://users.rust-lang.org/t/axum-and-lifetimes-scoped-routes/136484",
+    "https://github.com/tokio-rs/tokio/issues/3162"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Applies to extractor-returning-owned design; says nothing about B2.",
+   "underclaim_risk": "Includes unsafe-free, ordinary app code; the escapes are the idiomatic patterns agents write."
+  },
+  {
+   "id": "dx.r4-scoped-adapter-hrtb",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "measurement",
+   "title": "Scoped capability handlers work on real axum 0.8.9 with plain stable Rust: blanket trait ScopedHandler<'r,E> (Fn(Ctx<'r,E>)->Fut, Fut: Send+'r) + bound for<'r> gives Send futures for unboxed `async fn(Ctx<'_,Read>)->Resp`; escapes rejected with E0521 in 13 lines",
+   "summary": "Routes::read/write/net(path, h) wraps h in axum get/post closure; adapter builds Principal/Ctx locally inside the async block so Ctx<'r> borrows request-scope data. Compiled first try on rustc 1.88; baseline oracle clean. Rejects M11 (E0521 13L/579c), N1 spawn-move (E0521 13L/748c), N2 OnceLock (E0521), N3 whole-ctx spawn (E0521), N4 shared-layer struct (E0521), N12 Box::leak and N13 mpsc Any (rustc 'lifetime may not live long enough', no code, 8L), N15 Tx spawn (E0521). Wrong-verb registration N11 becomes compile-time (E0631 23L). Costs: the error for non-Send (N10) names the SDK bound but is code-less 19L; handler signature restricted to Ctx only (no extra extractors/body) in this prototype; closures returning async blocks hit known HRTB inference limits (forum 136722, 138786) so handlers must be async fn items; AsyncFn path not tested.",
+   "urls": [
+    "https://users.rust-lang.org/t/lifetime-inference-issue-around-async-and-hrtb/136722",
+    "https://users.rust-lang.org/t/how-to-teach-the-compiler-that-asyncfnmut-callreffuture-is-send-for-all-lifetimes-up-to-an-upper-bound/138786",
+    "https://docs.rs/scoped-futures"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Prototype lacks body extractors, streaming responses, websockets, middleware ordering; production surface may reintroduce 'static needs (background work, response streams).",
+   "underclaim_risk": "Only one rustc tested; newer toolchains 1.93/1.98 installed but not run."
+  },
+  {
+   "id": "dx.r4-async-cancel-neutralization",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "measurement",
+   "title": "Cancellation (timeout/select!) leaving a Tx open is NOT a type-system property: plain A leaks (OPEN_TX=1) while B1/B2 are neutral only because the SDK Tx carries a Drop guard; mem::forget defeats the guard in every shape (clippy::mem_forget is the only catch)",
+   "summary": "N7 tokio::time::timeout and N8 tokio::select! drop the commit future: A violates, B1 and B2 oracle clean (Drop decrement). N9 std::mem::forget(tx): violating in all four shapes, lint-rejected by clippy::mem_forget. A real DB Tx (sqlx) rolls back on Drop but only synchronously queues cleanup; Oxide RFD 400 lists production cancel bugs (omicron#3356, wicketd, sled-agent zone deletion) and fixes (spawn-to-completion, actor, reserve split). Rust cannot express must-run-to-completion (no async Drop, no unforgettable types).",
+   "urls": [
+    "https://rfd.shared.oxide.computer/rfd/400",
+    "https://lwn.net/Articles/1036924",
+    "https://docs.rs/tokio-cancel-guard"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Guard here is an in-memory counter, not a real DB connection.",
+   "underclaim_risk": "Neutralisation is a design choice portable to A as well; do not credit 'shape B' per se."
+  },
+  {
+   "id": "dx.r4-lint-tier",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "measurement",
+   "title": "clippy 0.1.88 disallowed_methods/disallowed_types + clippy::mem_forget + -F unsafe_code form a working second gate: catches 10/12 of B1's accepted violators, all 5 spawn/static/leak/channel/unsafe escapes in A, with zero baseline false positives",
+   "summary": "app crate clippy.toml bans tokio::spawn family, Box::leak, mem::forget/transmute, tokio mpsc channel ctors, axum::middleware::from_fn*, std Mutex/RwLock/OnceLock/LazyLock/RefCell, axum State/Extension (B2 also axum::routing::* and Router::{route,layer,new}). All baselines lint-clean. Per shape lint-caught-among-violators: A 12 of 29, B1 10 of 12, B2 2 of 4. Residual violators: A 17 (M1,M3,M4,M5,M6,M8,M9,M10,M12,M13,M15,M16,N7,N8,N11,M2,M7), B1 2, B2 2. A dependency ban (app crate without tokio/axum) is a third, trivially strong tier: B2nd rejects 28/32 (E0433) but the rejection is for absent crate not type reasoning, and error text for N5/N6 reaches 40L/2099c. Not tested: dylint custom lints; clippy disallowed paths do not see macro-expanded calls (documented gap in config docs; unverified).",
+   "urls": [
+    "https://doc.rust-lang.org/clippy/lint_configuration.html",
+    "https://trailofbits.com/tools/dylint/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Ban-list tuned by me knowing the mutants (overfit to the corpus).",
+   "underclaim_risk": "Cost near zero; still a defence-in-depth, a motivated agent can use a non-listed path (e.g. via re-export)."
+  },
+  {
+   "id": "dx.r4-error-signal-async",
+   "layer": "L4",
+   "domain": "W-DX",
+   "type": "measurement",
+   "title": "Rejection diagnostics under real axum: median 16 lines (A, n=3), 10.5 (B1, n=16), 11 (B2, n=25); worst async cases are Send/Handler errors 18-23 lines and the no-deps variant 40 lines / 2099 chars",
+   "summary": "Recomputed from JSON diagnostics (rendered text, excluding summary line). B1 mean 592 chars, B2 689, A 974. axum's Handler<_,_> failure points at get(list_notes) with 'Consider using #[axum::debug_handler]' and a long-type file; B2's equivalent names 'future returned by list_notes is not Send' and 'required by a bound in Routes::read' with the MutexGuard await point (19L, no code) - better than axum's own. Privacy errors E0616/E0599 are short (5L). Prior r3 finding that in-crate privacy errors suggest 'make field public' stays relevant: separate crate required.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Small n for A.",
+   "underclaim_risk": "Agent repair outcomes not measured."
+  },
+  {
+   "id": "dx.r4-l5-sdk-api-changes",
+   "layer": "L5",
+   "domain": "W-DX",
+   "type": "interface-sketch",
+   "title": "SDK API changes required to keep rejection under async: (1) handlers registered ONLY through sdk Routes with for<'r> ScopedHandler<'r,E>; handles/Tx/Ctx carry 'r and are not Clone; (2) no pub Router/State/Extension access, app crates depend on sdk only (no tokio/axum direct deps); (3) Tx owns a Drop guard and a must-use committed token; (4) background work only via sdk-provided ctx.detach(Job) that re-mints a 'static Detached<Principal-snapshot> capability; (5) forbid(unsafe_code)+clippy ban list in app crates; (6) optional invariant brand (generativity-style) only for nested sub-scopes",
+   "summary": "Evidence: B1 owned extractors fail on 8/8 escapes; B2 scoped adapter rejects 7/8 plus Tx spawn. Sketch: pub struct Routes; impl Routes { fn read<H: for<'r> ScopedHandler<'r,Read>>(self,path,H); write; net }. pub struct Ctx<'r,E>{ db: TenantDb<'r>, ... } !Clone; Tx<'r,Open> with Drop guard; ScopedHandler blanket impl for Fn(Ctx<'r,E>)->Fut where Fut: Send+'r. Gaps to close before acceptance: body/query typed extraction inside Ctx (not extra axum extractors), response streaming, WebSocket/SSE (need 'static lifetimes: design a Detached capability), graceful shutdown, trait ScopedHandler is pub so apps can implement it (N4 showed still rejected, but seal it). Brand tokens (generativity make_guard!/GhostCell) add nothing for request-scope borrow because the adapter's local borrow already gives the lifetime; they matter only if one scope holds two tenants' contexts (admin cross-tenant op), untested. Scoped spawn on tokio is impossible safely (tokio#3162 closed not-planned 2024-05-28; trilemma 2023-04-08), so provide join-before-return structured primitives (FuturesUnordered/select inside the handler) not spawn.",
+   "urls": [
+    "https://github.com/tokio-rs/tokio/issues/3162",
+    "https://without.boats/blog/the-scoped-task-trilemma/",
+    "https://docs.rs/generativity/latest/generativity/",
+    "https://plv.mpi-sws.org/rustbelt/ghostcell/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Design not exercised on streaming/websocket handlers; Detached API is unimplemented sketch.",
+   "underclaim_risk": "Core adapter compiled and verified."
+  },
+  {
+   "id": "dx.r4-l5-ci-gate-trybuild",
+   "layer": "L5",
+   "domain": "W-DX / W-SUPPLY",
+   "type": "ci-gate",
+   "title": "CI gate spec: trybuild 1.0.122 compile-fail corpus (one file per mutant, expected .stderr snapshots) + one t.pass baseline + oracle run for compiled mutants + clippy ban-list; measured 25 fail files + 1 pass, 18.8 s cold, 3.2 s warm, 16.8 KB snapshots",
+   "summary": "gate crate: tests/ui/fail_<id>.rs generated from mutants (mutated app lib + fn main), pass_baseline.rs; test capability_sdk_ui { t.pass('tests/ui/pass_*.rs'); t.compile_fail('tests/ui/fail_*.rs') }. Generate snapshots with TRYBUILD=overwrite, review git diff, commit. Run result: test capability_sdk_ui ... ok, all 25 fail cases ok. Drift controls: pin toolchain in rust-toolchain.toml with components=['rust-src'] (trybuild docs say diagnostics vary with rust-src and compiler version), rerun snapshot refresh as a reviewed PR on toolchain bump; pair every compile_fail with a t.pass baseline so an unrelated syntax error cannot satisfy the gate; keep a manifest listing mutant class + expected error code, and fail CI when a mutant file stops failing OR its error code changes class. Acceptance criterion: 0 compile_fail case compiles, 0 pass case fails, B2 rejection >= 25/32 on the corpus, residual accepted set exactly {M15,M16,N9,N14} documented with lint/ semantic-test owner. Semantic residual (M15, M16) must be covered by oracle tests, not trybuild. Add new corpus entry per escaped-bug incident (regression corpus). Limitation: .stderr embeds line numbers and type names so any SDK refactor churns snapshots; consider trybuild only for escape and privacy classes.",
+   "urls": [
+    "https://docs.rs/trybuild/latest/trybuild/",
+    "https://github.com/dtolnay/trybuild"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Gate tested on one toolchain; snapshot churn cost not measured over time.",
+   "underclaim_risk": "Gate ran green end-to-end."
+  },
+  {
+   "id": "dx.r4-l5-decision-update",
+   "layer": "L5",
+   "domain": "W-DX",
+   "type": "decision",
+   "title": "UPDATE to dx.l5-decision-sdk-shape: keep capability-typed SDK in a separate crate, but choose the scoped-adapter form (B2), NOT owned FromRequestParts extractors (B1); R-DX-1 async-lifetime risk is retired for the request-scoped path and moves to detached/streaming work",
+   "summary": "Decision evidence: B2 compile-rejects 25/32 (78%) vs B1 16/32 (50%) vs A 3/32 (9%); with lint tier residual 2 semantic classes vs 17. Reversal conditions: (a) scoped adapter cannot support streaming/WebSocket/SSE without a 'static escape hatch whose Detached capability leaks authority, (b) rustc diagnostics for HRTB failures degrade for agents (measure repair rate), (c) axum Handler API changes break the adapter (axum 0.8.9 released with MSRV 1.80), (d) a safe scoped-spawn lands in tokio (currently 'not planned'). R-DX-1: lowers risk from 'could flip C' to 'prototype-validated for request/response handlers', still unproven for streaming. Prior art (capsec 0.2.2 with 74 adversarial tests, typesec-agent 0.14.0, policy-core 0.0.0 with 63 downloads) provides tokens/typestate but none documents spawn/'static handling; capsec marks tokens !Send by default which, per our b1ns result, would break axum handlers if applied to handles held across await.",
+   "urls": [
+    "https://github.com/auths-dev/capsec",
+    "https://github.com/querygraph/typesec",
+    "https://github.com/camadkins/policy-core"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Decision rests on one experiment authored by one agent.",
+   "underclaim_risk": "r3 candidate left B undifferentiated; this separates the two forms."
+  },
+  {
+   "id": "dx.r4-prior-art-capability-crates",
+   "layer": "L3",
+   "domain": "W-DX",
+   "type": "prior-art",
+   "title": "Rust capability crates exist but none validated spawn/'static: capsec 0.2.2 (2026-03-24, Apache-2.0, 327 downloads, 74 adversarial tests, !Send-by-default tokens, 'sound only within safe Rust'), typesec-agent 0.14.0 (2026-09-04, 585 dl, pub(crate) capability ctor, sealed traits), policy-core 0.0.0 (2026-01-27, 63 dl)",
+   "summary": "Registry API reads. capsec crates: core, macro, std, tokio, tests, proof, deep. Neither fetched repo README mentions trybuild compile-fail tests or tokio::spawn handling. License inconsistency in typesec README (MIT OR Apache-2.0 vs sidebar Apache-2.0). Tests not run (not cloned) - existence/maintenance only.",
+   "urls": [
+    "https://crates.io/crates/capsec",
+    "https://crates.io/crates/typesec-agent",
+    "https://crates.io/crates/policy-core"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "Low adoption numbers make these weak priors.",
+   "underclaim_risk": "Source not inspected beyond README/dir listing."
+  },
+  {
+   "id": "dx.r4-tokio-scoped-impossible",
+   "layer": "L3",
+   "domain": "W-DX",
+   "type": "fact",
+   "title": "Safe scoped spawn on tokio is closed not-planned (tokio#3162, 2020-11-21 opened, closed 2024-05-28, reiterated 2026-02-09 and 2026-09); trilemma concurrency/parallelism/borrowing (without.boats 2023-04-08); axum has no 'scoped routes' (forum 2025-11-23)",
+   "summary": "Implication: any SDK relying on borrowed handles must keep the borrow inside the handler future and forbid spawn, rather than provide a scoped spawn. async-scoped is unsafe-to-call; Oxide RFD 400 notes language proposals (async drop, unforgettable, undroppable types) unavailable as of Rust 1.89.",
+   "urls": [
+    "https://github.com/tokio-rs/tokio/issues/3162",
+    "https://without.boats/blog/the-scoped-task-trilemma/",
+    "https://users.rust-lang.org/t/axum-and-lifetimes-scoped-routes/136484"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dx.r4-brand-lifetime-prior",
+   "layer": "L3",
+   "domain": "W-DX",
+   "type": "fact",
+   "title": "Brand/generativity patterns: GhostCell (ICFP 2021, Coq/RustBelt proof; ghost-cell crate 0.2.6, 2024-01-28) and generativity 1.2.1 (2026-04-26, 4.8M downloads) give invariant lifetimes only inside a closure scope; unverified for async/await",
+   "summary": "Not needed for request-scope tenant isolation (adapter lifetime suffices); relevant only for same-scope multi-tenant mixing. generativity docs say nothing on async. trybuild 1.0.122 (2026-10-07, 75.7M dl).",
+   "urls": [
+    "https://plv.mpi-sws.org/rustbelt/ghostcell/",
+    "https://docs.rs/generativity/latest/generativity/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "Brand+async interaction not experimentally tested."
+  }
+ ],
+ "edges": [
+  {
+   "src": "dx.r4-real-axum-mutant-scores",
+   "dst": "dx.exp-handler-sdk-mutants",
+   "type": "extends",
+   "note": "r3 toy 1/16 vs 13/16 reproduced on real axum: A M 1/16, B1 12 rejected + 1 neutral; but async classes added"
+  },
+  {
+   "src": "dx.r4-owned-extractor-static-escape",
+   "dst": "dx.l5-decision-sdk-shape",
+   "type": "weakens",
+   "note": "owned extractor form of shape B fails async escapes"
+  },
+  {
+   "src": "dx.r4-scoped-adapter-hrtb",
+   "dst": "dx.l5-decision-sdk-shape",
+   "type": "supports-refined",
+   "note": "scoped form rejects escapes"
+  },
+  {
+   "src": "dx.r4-l5-decision-update",
+   "dst": "dx.l5-decision-sdk-shape",
+   "type": "supersedes"
+  },
+  {
+   "src": "dx.r4-error-signal-async",
+   "dst": "dx.exp-error-signal",
+   "type": "extends"
+  },
+  {
+   "src": "dx.r4-l5-sdk-api-changes",
+   "dst": "dx.omission-problem",
+   "type": "addresses",
+   "note": "N6 raw handler / N5 middleware omission closed by privacy + Routes-only registration"
+  },
+  {
+   "src": "dx.r4-lint-tier",
+   "dst": "ac.l5-coding-rule-lint-gate",
+   "type": "complements"
+  },
+  {
+   "src": "dx.r4-async-cancel-neutralization",
+   "dst": "ac.l5-coding-rule-lint-gate",
+   "type": "complements"
+  },
+  {
+   "src": "dx.r4-l5-ci-gate-trybuild",
+   "dst": "dx.exp-handler-sdk-mutants",
+   "type": "operationalises"
+  },
+  {
+   "src": "dx.r4-tokio-scoped-impossible",
+   "dst": "dx.r4-l5-sdk-api-changes",
+   "type": "constrains"
+  },
+  {
+   "src": "dx.r4-prior-art-capability-crates",
+   "dst": "dx.r4-l5-decision-update",
+   "type": "context"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Extend B2 scoped adapter to streaming/SSE/WebSocket responses and detached jobs: can a Detached<'static> capability re-minted from a Principal snapshot keep M11/N1-class rejection while allowing background work?",
+   "layer": "L4",
+   "expected_info_gain": 0.8,
+   "reason": "Only remaining R-DX-1 hole"
+  },
+  {
+   "question": "Measure LLM coding-agent repair success on the B2 diagnostics (E0521, HRTB Send, E0631) vs A on real axum: edit-to-green rate and iterations",
+   "layer": "L4",
+   "expected_info_gain": 0.7,
+   "reason": "error-signal quality unmeasured for agents"
+  },
+  {
+   "question": "Re-run corpus on rustc 1.93 and 1.98 (installed) to quantify trybuild snapshot drift and whether HRTB scoped adapter still compiles",
+   "layer": "L4",
+   "expected_info_gain": 0.6
+  },
+  {
+   "question": "Does async-closure AsyncFn(Ctx<'_,E>) bound (stable 1.85) replace the ScopedHandler trait trick and keep Send futures?",
+   "layer": "L4",
+   "expected_info_gain": 0.5
+  },
+  {
+   "question": "Write a dylint lint that bans any path reaching tokio::spawn/axum from app crates incl. macro expansion and re-exports; test evasion corpus",
+   "layer": "L5",
+   "expected_info_gain": 0.5
+  }
+ ],
+ "protocol_implications": [
+  "Any compile-experiment on SDK shape must use the real framework's extractor/lifetime model; toy borrowed-Ctx results overstate extractor designs.",
+  "Report rejection rate with owned vs borrowed handle distinction.",
+  "Pair every compile_fail corpus with t.pass baseline."
+ ],
+ "self_improvement": [
+  "Mutant strings with shared placeholder (sdk_PROBE) silently produced E0433 false rejections in first run; guard: validate each mutant fails for the intended error class before counting (cross-check first error code against expected class).",
+  "heavy.sh lock queues behind sibling jobs; run the whole mutant loop under one lock acquisition.",
+  "WebSearch/WebFetch returned 404 for some GitHub issue searches; use gh api."
+ ],
+ "sources": [
+  "https://github.com/tokio-rs/tokio/issues/3162",
+  "https://without.boats/blog/the-scoped-task-trilemma/",
+  "https://users.rust-lang.org/t/axum-and-lifetimes-scoped-routes/136484",
+  "https://rfd.shared.oxide.computer/rfd/400",
+  "https://lwn.net/Articles/1036924",
+  "https://docs.rs/trybuild/latest/trybuild/",
+  "https://docs.rs/generativity/latest/generativity/",
+  "https://plv.mpi-sws.org/rustbelt/ghostcell/",
+  "https://github.com/auths-dev/capsec",
+  "https://github.com/querygraph/typesec",
+  "https://github.com/camadkins/policy-core",
+  "https://crates.io/crates/capsec",
+  "https://github.com/tokio-rs/axum/releases",
+  "https://doc.rust-lang.org/clippy/lint_configuration.html",
+  "https://trailofbits.com/tools/dylint/",
+  "https://users.rust-lang.org/t/lifetime-inference-issue-around-async-and-hrtb/136722",
+  "https://users.rust-lang.org/t/axum-handler-not-handling/133018",
+  "https://docs.rs/tokio-cancel-guard",
+  "https://docs.rs/async-scoped",
+  "https://docs.rs/structured-spawn",
+  "https://docs.rs/scoped-futures"
+ ]
+}

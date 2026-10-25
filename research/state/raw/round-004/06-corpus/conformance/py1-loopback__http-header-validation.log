@@ -1,0 +1,84 @@
+Running client scenario 'http-header-validation' against server: http://127.0.0.1:18002/mcp
+Checks:
+[90m2026-10-25T08:17:07.494Z[0m [sep-2243-server-standard-setup                 ] [31mFAILURE[0m Setup for header validation tests
+[90m2026-10-25T08:17:07.494Z[0m [sep-2243-server-reject-invalid-headers         ] [31mFAILURE[0m Server rejects tools/call where Mcp-Name does not match body params.name
+[90m2026-10-25T08:17:07.494Z[0m [sep-2243-server-accepts-whitespace-header-value] [31mFAILURE[0m Server MUST accept leading/trailing whitespace in Mcp-Name value (RFC 9110 §5.5: field parsing MUST exclude OWS before evaluating)
+[90m2026-10-25T08:17:07.494Z[0m [sep-2243-server-reject-invalid-headers         ] [31mFAILURE[0m Server MUST reject tools/call with missing Mcp-Name header when body has params.name
+[90m2026-10-25T08:17:07.494Z[0m [wire-schema-valid                              ] [32mSUCCESS[0m Every JSON-RPC message the implementation sent is valid per the spec JSON schema for the negotiated spec version
+
+Test Results:
+Passed: 1/5, 4 failed, 0 warnings
+
+=== Failed Checks ===
+
+  - HttpHeaderValidationSetup: Setup for header validation tests
+    Error: tools/list discovery failed: HTTP 400, JSON-RPC error -32600: Bad Request: Missing session ID
+
+Test server validation of standard MCP request headers (SEP-2243).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoint[0m: Streamable HTTP
+
+[1mRequirements[0m:
+- Server MUST reject requests where Mcp-Method header doesn't match the body method
+- Server MUST reject requests where Mcp-Name header doesn't match the body params.name/uri
+- Server MUST accept header names case-insensitively
+- Server MUST reject case-mismatched header values (method values are case-sensitive)
+- Server MUST accept extra whitespace around header values (per HTTP spec)
+- Server MUST return HTTP 400 Bad Request for validation failures
+- Server MUST return JSON-RPC error with code -32020 (HeaderMismatch)
+
+  - ServerRejectsMismatchedNameHeader: Server rejects tools/call where Mcp-Name does not match body params.name
+    Error: Not testable: tools/list discovery failed, so the Mcp-Name header-validation cases could not be exercised
+
+Test server validation of standard MCP request headers (SEP-2243).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoint[0m: Streamable HTTP
+
+[1mRequirements[0m:
+- Server MUST reject requests where Mcp-Method header doesn't match the body method
+- Server MUST reject requests where Mcp-Name header doesn't match the body params.name/uri
+- Server MUST accept header names case-insensitively
+- Server MUST reject case-mismatched header values (method values are case-sensitive)
+- Server MUST accept extra whitespace around header values (per HTTP spec)
+- Server MUST return HTTP 400 Bad Request for validation failures
+- Server MUST return JSON-RPC error with code -32020 (HeaderMismatch)
+
+  - ServerAcceptsWhitespaceHeaderValue: Server MUST accept leading/trailing whitespace in Mcp-Name value (RFC 9110 §5.5: field parsing MUST exclude OWS before evaluating)
+    Error: Not testable: tools/list discovery failed, so the Mcp-Name header-validation cases could not be exercised
+
+Test server validation of standard MCP request headers (SEP-2243).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoint[0m: Streamable HTTP
+
+[1mRequirements[0m:
+- Server MUST reject requests where Mcp-Method header doesn't match the body method
+- Server MUST reject requests where Mcp-Name header doesn't match the body params.name/uri
+- Server MUST accept header names case-insensitively
+- Server MUST reject case-mismatched header values (method values are case-sensitive)
+- Server MUST accept extra whitespace around header values (per HTTP spec)
+- Server MUST return HTTP 400 Bad Request for validation failures
+- Server MUST return JSON-RPC error with code -32020 (HeaderMismatch)
+
+  - ServerRejectsMissingNameHeader: Server MUST reject tools/call with missing Mcp-Name header when body has params.name
+    Error: Not testable: tools/list discovery failed, so the Mcp-Name header-validation cases could not be exercised
+
+Test server validation of standard MCP request headers (SEP-2243).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoint[0m: Streamable HTTP
+
+[1mRequirements[0m:
+- Server MUST reject requests where Mcp-Method header doesn't match the body method
+- Server MUST reject requests where Mcp-Name header doesn't match the body params.name/uri
+- Server MUST accept header names case-insensitively
+- Server MUST reject case-mismatched header values (method values are case-sensitive)
+- Server MUST accept extra whitespace around header values (per HTTP spec)
+- Server MUST return HTTP 400 Bad Request for validation failures
+- Server MUST return JSON-RPC error with code -32020 (HeaderMismatch)

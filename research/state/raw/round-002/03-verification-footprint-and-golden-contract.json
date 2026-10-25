@@ -1,0 +1,895 @@
+{
+ "explorer": "03-verification-footprint-and-golden-contract",
+ "round": 2,
+ "date": "2026-10-25",
+ "target": "W-FORMAL + W-ASSURE L3->L5: verification footprint + golden extension contract",
+ "nodes": [
+  {
+   "id": "vfg-toolchain-pin-footprint-table",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "artifact",
+   "title": "Verification toolchain pin table with measured download, installed size, peak RAM and toy-check time (2026-10-25)",
+   "summary": "Measured on the operator laptop (x86_64, 31 GiB RAM, Linux 6.17) and from release assets read with HTTP range requests on the zip central directory or streamed tar listings, so nothing was fully installed to /home. Lean 4 core without Mathlib needs about 0.7-1.0 GB and about 0.5-0.7 GB RAM for the golden's proofs. Verus plus its pinned rustc needs about 3.2 GB and Kani plus its nightly about 2.0 GB, so both belong in CI, not on the laptop. TLC, z3 and cvc5 are each under 200 MB.",
+   "specifics": "PIN | download | installed | peak RSS toy | toy wall\nlean4 v4.35.0 (2026-10-12) via elan v4.2.4 (4 MB) | 926 MB zip / 566 MB tar.zst | full 3,365 MB (18,571 files; lib/lean 2,859; bundled LLVM/clang ~370) ; MINIMAL Init-only subset 676 MB ; Init+Std 1,002 MB | 514 MB (Init) / 667 MB (Std) | 0.24 s warm (8 s cold); bv_decide 10 s warm/48 s cold\n  leanchecker replay 0.19 s/453 MB; leanexport 14.3 s/991 MB (346 MB NDJSON incl. all Init); nanoda_bin 0.4.19 on export 49.7 s/362 MB (59,400 decls)\nMathlib (AVOIDED) | n/a | Mathlib export 5.8 GB/109.8M lines; anecdotal starter project ~7 GB | official kernel re-check 9.9 GB / 32.3 min; nanoda 6.0 GB/16.5 min; lean4lean 11.6 GB/38.8 min | -\naeneas nightly-2026.10.24 | 153 MB + 65 MB lean-build | + Charon (rust nightly) + REQUIRES mathlib@v4.35.0 => Mathlib-sized | n/m | n/m\nverus 0.2026.10.18.7d82994 | 487 MB zip + rust 1.99.1 {rustc,rust-std,cargo,rustfmt,rustc-dev,llvm-tools} 295 MB xz | 1,643 MB + 1,521 MB = ~3.16 GB | NOT MEASURED (spike) | CI basic-test linux 8 min\nkani 0.68.0 (2026-09-16) | 140 MB + nightly-2026-08-21 {llvm-tools,rustc-dev,rust-src,rustfmt} 299 MB xz | 508 MB + ~1.5 GB = ~2.0 GB | harness-dependent 0.1-22 GB (issues) ; NOT MEASURED locally | std CI partitions 30-56 min\ncbmc 6.11.0 standalone | 73 MB deb | (bundled in Kani: cbmc 18.6 MB, goto-instrument 15.6 MB) | - | -\nF* v2026.10.18 | 234 MB | 694 MB (needs z3-5.3.0, bundled) | n/m | n/m\nEverParse v2026.10.06 | 288 MB | 973 MB self-contained (fstar.exe 63 MB, z3-4.13.3 33 MB, krml, 3d.exe, cddl.exe) | n/m | n/m\napalache 0.62.4 (2026-10-12) | 192 MB | 197 MB jar + JVM17+ | default heap -Xmx4096m | n/m\nTLC tla2tools.jar 1.8.0 (2026-10-24) | 4.5 MB | 4.5 MB + JVM (OpenJDK 21 present) | 110 MB (348 states) / 362 MB (2.67M states) | 0.49 s / 4.4 s\ncvc5 1.4.2 static (BSD-3 build) | 44 MB | 158 MB (bin 32 MB) | 24 MB | 0.65 s (QF_BV u64 budget step, unsat)\nz3 5.3.1 | 69 MB | 141 MB (bin 40 MB) | 41 MB | 0.16 s (same query)\nLAPTOP REQUIRED SET: lean4 v4.35.0 minimal (Init+Std, +batteries if needed) ~1.0-1.1 GB + TLC 4.5 MB + z3 bin 40 MB ~= 1.1 GB. CI-ONLY SET: Kani (main >= 4910 fix), Verus (if chosen for impl proofs), EverParse (if binary framings are generated).",
+   "urls": [
+    "https://github.com/leanprover/lean4/releases/tag/v4.35.0",
+    "https://github.com/verus-lang/verus/releases/tag/release/0.2026.10.18.7d82994",
+    "https://github.com/model-checking/kani/releases/tag/kani-0.68.0",
+    "https://github.com/FStarLang/FStar/releases/tag/v2026.10.18",
+    "https://github.com/project-everest/everparse/releases/tag/v2026.10.06",
+    "https://github.com/apalache-mc/apalache/releases/tag/v0.62.4",
+    "https://github.com/cvc5/cvc5/releases/tag/cvc5-1.4.2",
+    "https://github.com/Z3Prover/z3/releases/tag/z3-5.3.1",
+    "https://github.com/tlaplus/tlaplus/releases/tag/v1.8.0",
+    "https://github.com/diffblue/cbmc/releases/tag/cbmc-6.11.0",
+    "https://static.rust-lang.org/dist/channel-rust-1.99.1.toml",
+    "https://static.rust-lang.org/dist/2026-08-21/channel-rust-nightly.toml",
+    "https://github.com/AeneasVerif/aeneas/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The toy obligations are tiny, so RSS is dominated by mmapped Init/Std oleans. Real proofs for the golden will add CPU time but little RAM unless Mathlib is imported. Verus and Kani RAM were not measured locally.",
+   "underclaim_risk": "Lean's footprint is often quoted from Mathlib projects (7 GB+, 10 GB RAM to re-check). Core-only Lean is about 5x smaller on disk and checks in under a second.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "tool": "multiple",
+   "version": "see specifics",
+   "license": "Lean Apache-2.0; Verus MIT; Kani Apache-2.0/MIT; CBMC BSD-style; cvc5 BSD-3 (static non-GPL build); z3 MIT; TLA+ tools MIT; Apalache Apache-2.0; F*/EverParse Apache-2.0"
+  },
+  {
+   "id": "vfg-lean-core-minimal-measured",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "Lean 4.35 core-only proof checking measured: 676 MB subset, 0.24 s, 514 MB RSS for budget/attenuation/no-mutation toy obligations",
+   "summary": "I extracted only bin/, libleanshared*.so, libInit_shared.so, Init oleans and IR, and the small runtime libs. That is 676 MB, against 3,365 MB for the full toolchain. A toy file proved three obligations with no Mathlib and no Batteries: a budget-invariant induction closed by omega, attenuation monotonicity by List.mem_filter, and failed=>no-mutation by simp. lean -o took 0.24 s warm and peaked at 514 MB. A false budget theorem was correctly rejected. Adding Std (for bv_decide) brings the subset to 1,002 MB and 667 MB RSS.",
+   "specifics": "Minimal subset is undocumented (I chose it by trial: Init *.ir needed for compiler IR check of computable defs; libLake_shared.so 14 MB needed by leanchecker). Supported install remains elan+full toolchain (3.4 GB). omega-closed theorem depends on no axioms (#print axioms).",
+   "urls": [
+    "https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.zip"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "A hand-carved subset is not a supported distribution; CI should use the full toolchain image, cached.",
+   "underclaim_risk": "Shows Lean needs neither GPU nor GBs of RAM for the golden's obligation classes.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "property": "budget bound, attenuation monotonicity, failed=>no mutation (toy models)",
+   "tool": "Lean 4.35.0 core",
+   "tcb": "Lean kernel (+ nanoda as second checker)",
+   "effort": "toy: 54 lines",
+   "llm_synthesizable": "n/a"
+  },
+  {
+   "id": "vfg-lean-multikernel-paranoid-check",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "tool",
+   "title": "Lean toolchains now bundle independent kernel checkers; `lake check --paranoid` accepts only if all accept",
+   "summary": "Since September 2026, Lean release toolchains bundle nanoda (PR #15099, merged 2026-09-10), lean4lean (#15048, 2026-09-10), leanchecker-paranoid, con-leche and con-ron. lake check/lake comparator --paranoid (#15145, 2026-09-14) runs leanchecker-paranoid, lean4lean, nanoda and con-leche over the export plus Lean's own kernel, and accepts only if every one accepts. Since #15762 (2026-10-19), unpermitted axioms are reported before the checkers run. In the Lean Kernel Arena (73 bad, 127 good tests, generated 2026-10-24), official, nanoda and lean4lean accept 0 bad proofs, while con-ron and con-leche each accept 3. The conjunction is therefore sound if any one checker is sound.",
+   "specifics": "Measured: nanoda_bin 0.4.19 re-checked 59,400 declarations (all Init + toy) in 49.7 s / 362 MB. Running bundled lean4lean directly on .olean files printed 'incompatible header' for every module. Either I invoked it wrong (the intended path is lake check) or it is a packaging bug; unresolved. Whole-export nanoda config with unpermitted_axiom_hard_error=true rejects because Init declares sorryAx, so audit axioms per theorem (lake check does this).",
+   "urls": [
+    "https://github.com/leanprover/lean4/pull/15145",
+    "https://github.com/leanprover/lean4/pull/15099",
+    "https://github.com/leanprover/lean4/pull/15048",
+    "https://github.com/leanprover/lean4/pull/15762",
+    "https://arena.lean-lang.org/",
+    "https://arena.lean-lang.org/test/mathlib/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Independent kernels share the export format and elaborated terms; the spec-to-code gap is untouched.",
+   "underclaim_risk": "Kernel diversity costs under 1 min for a core-only project. It closes the 'tiny trusted kernel' single point of failure that the 2026 kernel bugs exposed.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "tool": "lake check --paranoid",
+   "tcb": "any one of {Lean C++ kernel, nanoda (Rust), lean4lean (Lean), leanchecker-paranoid}"
+  },
+  {
+   "id": "vfg-lean-kernel-soundness-bugs-2026",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure",
+   "title": "Lean kernel soundness bugs fixed in 2026 (is_prop stuck term, nested-inductive params), one also accepted by nanoda",
+   "summary": "#14807 (merged 2026-08-18): the kernel's is_prop returned false on a stuck non-sort type, which broke the proof-irrelevance guard on projections. Daniel Selsam (OpenAI) reported it, found with internal models. nanoda also accepted the bogus proof; lean4lean did not. #14577 (2026-07-28): parametric args of nested inductives escaped type checking. #14498 (2026-07-22): opaque values not checked for fvars. AI-driven kernel fuzzing is finding real bugs, so a single kernel is not enough for a required gate.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/leanprover/lean4/pull/14807",
+    "https://github.com/leanprover/lean4/pull/14577",
+    "https://github.com/leanprover/lean4/pull/14498"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Exploiting these needs deliberately crafted terms; honest proofs almost never hit them.",
+   "underclaim_risk": "LLM-written proofs optimise to pass the checker. That is the adversary that finds these bugs, so the golden's gate must be multi-kernel.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "cwe": "CWE-697 (incorrect comparison in checker)",
+   "agent_amplified": true
+  },
+  {
+   "id": "vfg-native-axiom-tcb",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure",
+   "title": "native_decide and bv_decide add per-proof axioms that trust the Lean compiler; confirmed with #print axioms",
+   "summary": "Lean/Meta/Native.lean (v4.35.0): proofs by native evaluation 'assert the result of that computation as an axiom'. ImplementedByAttr.lean: an incorrect @[implemented_by] 'makes it possible to prove False with native_decide'. Measured: a bv_decide proof depends on [propext, Classical.choice, Quot.sound, len_mask._native.bv_decide.ax_1_5]; the omega proof depends on no axioms. Golden rule: axiom allowlist {propext, Classical.choice, Quot.sound}; no native_decide or bv_decide in assurance proofs; omega, decide or grind instead.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/leanprover/lean4/blob/master/src/Lean/Meta/Native.lean",
+    "https://github.com/leanprover/lean4/blob/master/src/Lean/Compiler/ImplementedByAttr.lean"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "bv_decide's SAT certificate is LRAT-checked. The trust gap is the compiled checker plus the compiler, not CaDiCaL.",
+   "underclaim_risk": "One stray native_decide silently widens the TCB to the whole compiler; nanoda and lake check catch it only if the allowlist is enforced.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-mathlib-avoided-cost-and-aeneas-dependency",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "Mathlib is avoidable for the golden: Cedar's Lean proofs need only Batteries, but the Aeneas Lean backend requires Mathlib",
+   "summary": "cedar-spec/cedar-lean (Lean v4.35.0) lakefile requires only leanprover-community/batteries, plus doc-gen4 in dev. That is an industrial existence proof that authorization semantics, validator and SymCC proofs need no Mathlib. In contrast, AeneasVerif/aeneas backends/lean/lakefile.lean requires mathlib @ v4.35.0. Choosing Aeneas (Rust->Lean translation) therefore drags in Mathlib: about 5.8 GB of export, and 9.9 GB RAM / 32 min to re-check with the official kernel (arena).",
+   "specifics": "Decision: Lean is used as a spec/model language with proofs plus DRT against the Rust code, in the Cedar pattern. Aeneas is NOT in the required path. Reversal: if the golden needs a refinement link from Rust code to Lean, accept Mathlib in CI only, never on the laptop.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/lakefile.lean",
+    "https://github.com/AeneasVerif/aeneas/blob/main/backends/lean/lakefile.lean",
+    "https://arena.lean-lang.org/test/mathlib/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Mathlib re-check numbers are for the full library; a project uses prebuilt oleans (download, not re-check), unless --paranoid is run.",
+   "underclaim_risk": "The Aeneas/Mathlib cost is the hidden price of 'Lean proves the Rust code'.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-verus-footprint",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "Verus 0.2026.10.18: ~3.16 GB installed (1.64 GB release + 1.52 GB pinned rustc 1.99.1 with rustc-dev and llvm-tools)",
+   "summary": "The release zip is 487 MB and unpacks to 1,643 MB (4,617 files, with duplicate rlibs under deps/, bundled z3 35 MB). rust-toolchain.toml on main pins channel 1.99.1 with rustc-dev and llvm-tools. Streamed component sizes: rustc 416, rust-std 167, cargo 37, rustc-dev 685, llvm-tools 216 MB. Verus CI: basic-test linux 8 min; full-test 36 min; nightly verita (external projects) 42 min (2026-10-24). Open check-api-safety gaps: #3184, #3213, #3215 (Oct 2026). Peak RAM was not measured locally because it exceeds the 1.5 GB per-explorer disk cap.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/verus-lang/verus/blob/main/rust-toolchain.toml",
+    "https://github.com/verus-lang/verus/releases/tag/release/0.2026.10.18.7d82994",
+    "https://github.com/verus-lang/verus/issues/3184",
+    "https://github.com/verus-lang/verus/issues/3213",
+    "https://github.com/verus-lang/verus/actions"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Duplicate rlibs inflate the size; a CI cache image could be smaller.",
+   "underclaim_risk": "Verus's toolchain pin moves with rustc (1.99.1 now), so CI images are rebuilt often.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-kani-footprint-and-gate-failures",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure",
+   "title": "Kani 0.68.0: ~2 GB with pinned nightly; no released Kani contains the fix for VERIFICATION SUCCESSFUL on CBMC OOM; memory blowups to 22 GB",
+   "summary": "Bundle 140 MB -> 508 MB, plus nightly-2026-08-21 (llvm-tools, rustc-dev, rust-src, rustfmt; 299 MB xz). #4905: when CBMC hit bad_alloc while writing JSON (exit 6), Kani computed its verdict from truncated results and could report VERIFICATION SUCCESSFUL. Fix PR #4910 was merged 2026-09-30, after 0.68.0 (2026-09-16), which is still the latest release. #4965 (open): goto-instrument --ensure-one-backedge-per-target needs over 20 GB (22 GB uncapped) on a 4-byte sha2 0.11 harness, against 202 MB on 0.10.9. #4747: CBMC SIGSEGV under ulimit -v 10 GiB, clean OOM at 6 GiB. #5043: with 24-way parallelism, 30/220 verdicts changed versus serial runs; --dfcc took 8,111 s on one harness; proposes an instruction budget (333 G). verify-rust-std CI: 4 partitions of 30-56 min each, 70 min-3 h per run.",
+   "specifics": "Gate: pin Kani to a main commit >= the #4910 merge, or wrap it with a check that fails on any CBMC exit status other than 0 or 10. Run harnesses serially or with an instruction budget. Cap each harness at 6 GB, and treat OOM/timeout as FAIL, never skip. Keep harnesses away from crypto crates (sha2 0.11 blowup); stub them.",
+   "urls": [
+    "https://github.com/model-checking/kani/issues/4905",
+    "https://github.com/model-checking/kani/pull/4910",
+    "https://github.com/model-checking/kani/issues/4965",
+    "https://github.com/model-checking/kani/issues/4747",
+    "https://github.com/model-checking/kani/issues/5043",
+    "https://github.com/model-checking/kani/issues/3965",
+    "https://github.com/model-checking/kani/blob/kani-0.68.0/rust-toolchain.toml",
+    "https://github.com/model-checking/verify-rust-std/actions/workflows/kani.yml"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The sha2 blowup is one pass on one crate; most small harnesses run in seconds.",
+   "underclaim_risk": "A false PASS from the gate itself is the worst failure mode for 'proofs as CI gates'.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "tool": "Kani 0.68.0 / CBMC 6.11.0",
+   "cve_count": 0
+  },
+  {
+   "id": "vfg-fstar-everparse-footprint",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "F* v2026.10.18 694 MB; EverParse v2026.10.06 973 MB self-contained (own F*, z3 4.13.3, KaRaMeL)",
+   "summary": "Streamed tar listing: F* 234 MB -> 694 MB (lib 623); INSTALL.md requires z3-5.3.0 on PATH (bundled in binary releases). EverParse 288 MB -> 973 MB, of which lib/fstar 239, cddl sources 174, lowparse 137, pulse 114, fstar.exe 63, krml 37, 3d.exe 15.5, cddl.exe 21, z3-4.13.3 33. EverParse is only needed when regenerating parsers. The generated C/Rust has no runtime dependency, so it can be a CI-only, on-change job.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/project-everest/everparse/releases/tag/v2026.10.06",
+    "https://github.com/FStarLang/FStar/releases/tag/v2026.10.18",
+    "https://github.com/FStarLang/FStar/blob/master/INSTALL.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.75,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "About 1 GB for proof-free verified binary parsers is cheap per obligation discharged.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-tla-apalache-smt-measured",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "TLC 4.5 MB checks a budget plus no-mutation-on-fail spec (2.67M states) in 4.4 s / 362 MB; Apalache 197 MB jar, default heap 4 GB; cvc5/z3 under 50 MB RSS",
+   "summary": "Measured: TLC 1.8.0 on OpenJDK 21 with -Xmx512m and 1 worker, Req.tla with Budget and NoMutationOnFail invariants. Limit=20: 348 distinct states, 0.49 s, 110 MB. Limit=2000: 2,674,668 states, 4.4 s, 362 MB. Without -deadlock, TLC flagged terminal states as deadlock, which needs to be modelled. Apalache 0.62.4: launcher sets -Xmx4096m unless JVM_ARGS is given; liveness via liveness-to-safety. SMT: a QF_BV u64 overflow-safe budget inductive step was unsat in cvc5 1.4.2 (0.65 s, 24 MB) and z3 5.3.1 (0.16 s, 41 MB).",
+   "specifics": "",
+   "urls": [
+    "https://github.com/tlaplus/tlaplus/releases/tag/v1.8.0",
+    "https://github.com/apalache-mc/apalache/blob/main/src/universal/bin/apalache-mc",
+    "https://github.com/apalache-mc/apalache/blob/main/docs/src/apalache/running.md",
+    "https://github.com/apalache-mc/apalache/blob/main/docs/src/apalache/features.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-ci-walltime-toy-and-reference",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "CI wall-time: toy obligations under 1 min per tool on a laptop; reference projects take 8 min (Verus basic) to 3 h (verify-rust-std Kani)",
+   "summary": "Toy (measured, warm): Lean core 0.24 s; nanoda second kernel 50 s plus 14 s export (the full Init export dominates); TLC 0.5-4.4 s; z3/cvc5 under 1 s; bv_decide 10 s. Cold-start Lean 8 s. Reference CI: Verus basic-test linux 8 min, full 36 min, verita 42 min; verify-rust-std Kani 4 partitions x 30-56 min (runs 70 min-2 h 56 min, Oct 2026); Cedar Lean proofs about 3 min (round-1 node). For the golden's projected 5-10 K proof lines core-only, Lean check plus paranoid should fit in about 10 min on a 4-vCPU runner (estimate, D).",
+   "specifics": "",
+   "urls": [
+    "https://github.com/model-checking/verify-rust-std/actions",
+    "https://github.com/verus-lang/verus/actions"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Projection from toy to the golden is unmeasured.",
+   "underclaim_risk": "",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-obligation-to-tool-map",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "artifact",
+   "title": "Obligation class -> minimal tool map, with where Lean is required vs where another tool fits better",
+   "summary": "The smallest toolchain that discharges each obligation, using no prover LLMs. Lean core (no Mathlib) carries every spec/model obligation: attenuation, policy semantics, canonical grammar, the budget model and the effect mediator, all tied to Rust by differential testing. Kani covers unsafe glue and arithmetic in Rust, TLA+/TLC covers liveness and cross-request interleavings, and EverParse or Vest covers binary framings.",
+   "specifics": "1 PARSER CANONICALITY. Binary framings (H2 frame header, QUIC varint/frames, PROXY v2, CBOR tokens): EverParse 3D/CDDL, proof-free generated (CI-only, 973 MB), or Vest/Verus (3.2 GB). HTTP/1.1 text grammar: LEAN REQUIRED as spec. Write a canonical-grammar model in Lean core and prove (a) unambiguity (at most one parse), (b) parse(serialize(m)) = m and serialize(parse(b)) = canon(b), (c) rejection of the desync classes (CL+TE, obs-fold, bare LF). Rust impl tied by DRT plus fuzz; Lean Std.Http (13.5 K lines, unproven framing) is a second oracle. Verus impl proof is optional.\n2 BUDGET INVARIANTS (per-request bytes/streams/time/host-calls): Lean core model with omega (measured 0.24 s). Kani harnesses for Rust counter arithmetic and saturating ops (small, bounded, under 1 GB). TLA+/TLC for global/cross-request budgets under concurrency.\n3 ATTENUATION MONOTONICITY / NO AMBIENT AUTHORITY: LEAN REQUIRED (best fit). rights(attenuate(c, r)) is a subset of rights(c); chain closure; delegation never amplifies. Cedar precedent: Batteries only, 3.4:1 proof:model.\n4 POLICY SEMANTICS: LEAN, with a tri-state evaluator Allow | Deny | Error and the theorem Error => Deny (fail-closed). Motivated by Envoy CVE-2026-73552, where an RBAC regex error collapsed into no-match and failed open. DRT against the Rust evaluator. cvc5/z3 only through SymCC-style analysis if policy diffing is needed.\n5 UNSAFE GLUE (FFI to aws-lc-rs, io_uring/epoll shims, arena allocator): KANI (bounded UB/panic freedom), pinned >= #4910, serial or instruction-budgeted. Miri in tests. #![forbid(unsafe_code)] elsewhere. Lean is NOT applicable.\n6 LIVENESS (graceful drain completes, WAL eventually commits or aborts, no starvation under fair scheduling): TLA+/TLC with fairness at design time (4.5 MB). Apalache for larger parameters. Verus/Anvil-style impl liveness only if the controller is complex. Lean is a poor fit (no model checker).\n7 FAILED REQUEST => NO MUTATION: Lean model of the host effect mediator (staged effects, commit iff ok; measured toy). TLA+ for crash interleavings. DST for the implementation.\n8 AUDIT COMPLETENESS: Lean model that every committed effect has a preceding audit record (same mediator). Implementation by construction (single choke point), plus a test that diffs the audit log against effects.\nGate rules: Lean axiom allowlist {propext, Classical.choice, Quot.sound}; lake check --paranoid; Kani nonzero CBMC exit => FAIL; 6 GB cap per proof job.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec",
+    "https://github.com/leanprover/lean4/pull/15145",
+    "https://github.com/model-checking/kani/issues/4905",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-23xh-2qxr-3xv8"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Lean model proofs prove models, not Rust. The tie is DRT, which Cedar showed misses some bugs (validator non-termination).",
+   "underclaim_risk": "Every obligation class except unsafe glue and liveness can be carried by core Lean, so Lean-in-the-story costs about 1 GB, not 10 GB.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-extension-boundary-cves",
+   "layer": "L4",
+   "domain": "W-ISOLATE",
+   "type": "threat",
+   "title": "Out-of-process extension boundaries still break the host: Envoy ext_proc/ext_authz CVEs 2024-2026",
+   "summary": "CVE-2026-47207 (GHSA-68cv-hq5f-g6xv, 2026-06-23): an ext_proc server packing two unexpected ProcessingResponses into one gRPC message causes a UAF in Envoy, affecting all supported versions. CVE-2024-23324: ext_authz bypassed via PROXY-protocol invalid UTF-8 when failure_mode_allow=true. CVE-2026-47205 ext_authz UAF on teardown; CVE-2026-50572 ext_authz segfault; CVE-2025-30157 ext_proc local-reply crash; CVE-2026-73552 RBAC fail-open on obs-text. Lesson: the HOST's parser and state machine for module responses is part of the TCB. Out-of-process placement keeps module memory away from the host but does not protect host invariants against hostile responses.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-68cv-hq5f-g6xv",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-23xh-2qxr-3xv8",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-mvh9-767w-x47j",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-cf3q-gqg7-3fm9"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "These are C++ memory bugs; a Rust host removes the UAF class but not the protocol-state or fail-open classes.",
+   "underclaim_risk": "Protocol-state bugs from malformed module responses carry over to any extension protocol.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "cwe": "CWE-416, CWE-636 (fail-open)",
+   "example_cves": [
+    "CVE-2026-47207",
+    "CVE-2024-23324",
+    "CVE-2026-73552",
+    "CVE-2026-47205",
+    "CVE-2026-50572",
+    "CVE-2025-30157"
+   ],
+   "likelihood": "high",
+   "impact": "DoS / authz bypass",
+   "agent_amplified": true
+  },
+  {
+   "id": "vfg-proxywasm-abi-not-capability-safe",
+   "layer": "L4",
+   "domain": "W-ISOLATE",
+   "type": "finding",
+   "title": "Proxy-Wasm ABI v0.2.1 is not capability-safe by spec: limits are SHOULD, plugins can switch effective context, and plugins share global KV and queues",
+   "summary": "The spec says hosts 'should' enforce memory/CPU limits and 'should' keep per-plugin external-resource lists. proxy_set_effective_context lets a plugin act on other connections or requests, and hosts only 'might limit' this. proxy_set_shared_data, proxy_get_shared_data and the shared queues are cross-plugin global state. After a crash the host recreates the VM, rate-limited. An extension contract copied from Proxy-Wasm would let a malicious module break tenant isolation and no-ambient-authority unless the host removes these functions.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/proxy-wasm/spec/blob/main/abi-versions/v0.2.1/README.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Real hosts (Envoy) may restrict some of this in configuration.",
+   "underclaim_risk": "This is the de facto plugin ABI for Envoy, Istio, APISIX and others, and copying it would import the weaknesses.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-wasi-default-grants",
+   "layer": "L4",
+   "domain": "W-ISOLATE",
+   "type": "finding",
+   "title": "wasmtime-wasi 50.0.0 WasiCtxBuilder::new() grants no env, args, preopens or DNS, but does grant clocks and RNG; Component Model goal is capability-safe, shared-nothing",
+   "summary": "docs.rs wasmtime-wasi 50.0.0 says the defaults are: stdin closed, stdout/err discarded, no env, no args, no preopens, sockets with all addresses denied, ip-name-lookup denied, host wall and monotonic clocks, and RNG. The page also contradicts itself on whether allow_tcp/allow_udp are on by default. Component Model Goals.md: 'capability-safe ... interfaces', fine-grained sandboxing, shared-nothing linking. Ambient authority is therefore decided by the embedder's linker. The golden must ship a linker allowlist and a static import check.",
+   "specifics": "",
+   "urls": [
+    "https://docs.rs/wasmtime-wasi/latest/wasmtime_wasi/struct.WasiCtxBuilder.html",
+    "https://github.com/WebAssembly/component-model/blob/main/design/high-level/Goals.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "The default clock grant is a timing-channel input for Spectre-class attacks. Coarsen it or virtualize it for untrusted modules.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-invariant-survival-table",
+   "layer": "L5",
+   "domain": "W-ISOLATE",
+   "type": "artifact",
+   "title": "Golden extension contract: which core invariants SURVIVE an arbitrary malicious sandboxed/out-of-process module vs ASSUME golden modules",
+   "summary": "Each invariant is classified with its architectural reason. The rule underneath: an invariant survives only if it is enforced at a host choke point that the module cannot bypass and the host code at that point is in the verified TCB. Everything that depends on module semantics or on non-transactional external side effects assumes golden modules.",
+   "specifics": "I1 NO AMBIENT AUTHORITY: SURVIVES. Module gets only host-minted, unforgeable handles (component resources, or capability tokens over IPC). Linker allowlist plus static import check (no shared-KV, no effective-context switch, no raw sockets/fs). Out-of-process: seccomp+Landlock, no netns egress. Residual TCB: runtime escapes (wasmtime 57 GHSAs in 2026, Cranelift criticals Oct 2026), kernel.\nI2 BOUNDED RESOURCES PER REQUEST: SURVIVES if enforced by the host, never by module cooperation. Epoch/deadline interruption (not fuel; fuel had bypass CVEs), ResourceLimiter memory caps, per-request host-call and I/O-byte quotas (USENIX'25 WASI I/O amplification shows CPU metering is not enough), cgroup v2 for out-of-process. Proof: Lean budget model plus Kani on host counters.\nI3 FAILED REQUEST => NO MUTATION: SURVIVES only for effects routed through the host transactional effect API, where the module stages writes and the host commits iff the request succeeds. ASSUMES GOLDEN for any module or adapter with direct external side effects (third-party DB adapters, outbound HTTP, email/payments), because these cannot be rolled back. At best they are idempotency-keyed (outbox pattern), which the golden's adapters implement and forks may not.\nI4 TENANT ISOLATION: data-plane SURVIVES with instance-per-tenant(-request), host-keyed storage namespaces and no cross-instance shared state. Side channels: in-process Wasm does NOT survive (Swivel/Spectre), so a hostile multi-tenant deployment needs process-per-tenant plus coarsened clocks. Classified SURVIVES (logical) / ASSUMES (microarchitectural, unless process-isolated).\nI5 PARSER CANONICALITY / NO DESYNC: SURVIVES if the host core parses and canonicalizes before any module sees the request, modules receive structured values, and the host re-serializes everything a module emits. Modules never write raw bytes to the client or upstream. The host's decoder of module responses is in the verified TCB (CVE-2026-47207 pattern). ASSUMES GOLDEN if a module is given raw stream access (Proxy-Wasm TCP callbacks).\nI6 AUDIT COMPLETENESS: SURVIVES for host-mediated effects: every capability invocation is logged by the host before it executes, in a tamper-evident chain. Does NOT survive for module-internal intent, covert channels, or module-authored log contents (ASSUMES GOLDEN).\nI7 FAIL-CLOSED AUTHZ (extra): SURVIVES if a module decision is one input to a host tri-state combiner where Error, timeout or crash => Deny. A failure_mode_allow-style config is forbidden in the golden (CVE-2024-23324).\nI8 AVAILABILITY UNDER MODULE CRASH: PARTIAL. A crash is contained per instance, and crash-loop rate-limiting returns errors (Proxy-Wasm spec pattern). The module's own function is lost.",
+   "urls": [
+    "https://github.com/proxy-wasm/spec/blob/main/abi-versions/v0.2.1/README.md",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-68cv-hq5f-g6xv",
+    "https://docs.rs/wasmtime-wasi/latest/wasmtime_wasi/struct.WasiCtxBuilder.html",
+    "https://github.com/WebAssembly/component-model/blob/main/design/high-level/Goals.md"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "SURVIVES assumes the host TCB (runtime, kernel, mediator) is correct; runtime CVEs make this probabilistic.",
+   "underclaim_risk": "Four of six core invariants survive arbitrary modules by construction. That is the responsibility boundary the operator asked for.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-conformance-suite-outline",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "type": "artifact",
+   "title": "Conformance suite third parties can run: static import check, behavioral contract, adversarial-module corpus against the host, and DRT against Lean reference models",
+   "summary": "Modeled on the wasi-testsuite adapter layout (Apache-2.0, active 2026-10-23), CNCF k8s-conformance self-certification by PR, Cedar DRT, and duvet requirement traceability.",
+   "specifics": "Package: aegis-conformance (Apache-2.0), versioned with the WIT world golden:module@1.\nC0 STATIC (module): component imports subset of the allowlist (wasm-tools component wit); no core-wasm imports outside the canonical ABI; size and declared-limits manifest present.\nC1 BEHAVIORAL (module): handler totality under budget; deterministic output for declared-pure handlers on replay; error mapping to the contract's error enum; idempotency-key honoured for effectful adapters (re-run => no second effect).\nC2 ADVERSARIAL (host; for forks of the host): a corpus of hostile modules must leave invariants I1-I7 intact. Includes infinite loop, memory bomb, I/O amplification (fsync/urandom), forged/stale handle ids, use-after-drop handles, attempted effective-context switch, double or late responses (ext_proc CVE-2026-47207 pattern), oversized or non-canonical header output, invalid UTF-8/obs-text in decisions (CVE-2026-73552), crash loops, and partial commits followed by trap. Oracle: host invariant monitors plus audit-vs-effect diff.\nC3 DIFFERENTIAL (adapters/parsers/policy): DRT against the Lean reference models (policy evaluator, canonical HTTP grammar, budget model) compiled from Lean; N=1e6 cases per release; plus h2spec/h3spec/BoGo where relevant.\nC4 TRACEABILITY: duvet annotations from contract MUST-clauses to tests; coverage report.\nOutput: signed JSON report (suite version, module digest, pass/fail per clause). Self-certification by PR to a public registry, k8s-conformance style. Acceptance: C0-C2 100% pass to claim 'golden-contract conformant'; C3 for adapters claiming fail-closed or canonical guarantees.",
+   "urls": [
+    "https://github.com/WebAssembly/wasi-testsuite",
+    "https://github.com/cncf/k8s-conformance",
+    "https://github.com/cedar-policy/cedar-spec",
+    "https://github.com/awslabs/duvet"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "A conformance suite shows behavior on a corpus, not a proof. Forks may pass and still be unsound.",
+   "underclaim_risk": "C2 runs against the host, so it detects forks that broke the surviving invariants. That is the property the responsibility boundary needs.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-lean-std-http-unknown",
+   "layer": "L3",
+   "domain": "W-PARSE",
+   "type": "system",
+   "title": "Lean core ships Std.Http, a sans-I/O HTTP/1.1 server (13.5 K lines) with no framing proofs: a candidate Lean-side reference oracle",
+   "summary": "PR #10478 (2026-01-25) added a simple Http library to Std, and #12126 (2026-03-04) added core HTTP data types. In v4.35.0 it is 47 files, 13,462 lines, 23 theorems (char classes, lowercase idempotence, URI-encoding ASCII/UTF-8 lemmas), 0 sorry. It supports keep-alive, chunked encoding, header validation and limits, and recent fixes include RFC 9110 Date format (#15469) and split chunk extensions (#15841). It has no unambiguity or canonicality theorem, but it is a no-Mathlib Lean codebase where an HTTP/1.1 framing spec and theorems could live next to an executable oracle for DRT against the Rust parser.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/leanprover/lean4/pull/10478",
+    "https://github.com/leanprover/lean4/pull/12126",
+    "https://github.com/leanprover/lean4/tree/master/src/Std/Http"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Unverified; may have its own desync bugs (it is a second implementation, not a ground truth).",
+   "underclaim_risk": "Gives us an executable Lean HTTP/1.1 implementation for free, which shortens the Lean-spec route for the HTTP/1.1 canonicality obligation.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-policy-tristate-failclosed-invariant",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "artifact",
+   "title": "Invariant: policy evaluation is three-valued, and Error/timeout/crash => Deny; proven in Lean, enforced at the host combiner",
+   "summary": "Statement: forall req, policies: eval(policies, req) is one of {Allow, Deny, Error}; decide = Allow iff eval = Allow and no module veto is Error. Error-producing matchers (regex on invalid UTF-8, missing :path, oversized values) can never be coerced to no-match. Motivated by Envoy CVE-2026-73552 (RBAC safe_regex fail-open on obs-text) and CVE-2024-23324 (failure_mode_allow bypass). The Cedar model already distinguishes errors; mirror that.",
+   "specifics": "Lean: inductive Decision | allow | deny | error; theorem combine_failclosed : combine ds = allow -> forall d in ds, d != error. CI: DRT where the fuzzer emits obs-text and invalid UTF-8 header values.",
+   "urls": [
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-23xh-2qxr-3xv8",
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6",
+    "https://github.com/cedar-policy/cedar-spec"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract",
+   "property": "fail-closed authorization",
+   "tool": "Lean 4 core + DRT",
+   "tcb": "Lean kernel; DRT harness"
+  },
+  {
+   "id": "vfg-proof-ci-gate-spec",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "type": "artifact",
+   "title": "CI proof-gate spec: pinned toolchains, multi-kernel Lean check, axiom allowlist, Kani exit-code hardening, memory/instruction budgets",
+   "summary": "This is the machine-checkable gate that makes 'proofs are build-time artifacts' hold even when the verifiers themselves fail.",
+   "specifics": "lean-toolchain: leanprover/lean4:v4.35.0; lakefile requires at most batteries @ v4.35.0; NO mathlib (CI greps lake-manifest.json for mathlib and fails if found).\nStep 1: lake build. Step 2: lake check --paranoid (Lean kernel + leanchecker-paranoid + lean4lean + nanoda + con-leche). Step 3: axioms of every exported theorem in the allowlist {propext, Classical.choice, Quot.sound}, else FAIL; grep forbids native_decide, bv_decide, implemented_by, sorry, admit and debug.skipKernelTC.\nKani: pin to a main commit >= the merge of #4910 (2026-09-30) until a release > 0.68.0 exists. Wrapper fails if any CBMC exit status is not in {0,10} or any harness is UNKNOWN/timeout. Serial or --harness-instructions budget; 6 GB MemoryMax per job.\nTLC: -workers 1 -Xmx2g; invariants and liveness properties listed in a .cfg checked into the repo; state-count floor asserted, so the check fails if the state space collapses to the trivial case.\nAcceptance: all steps green and toolchain digests recorded in the release attestation. The production artifact contains zero prover binaries (checked by listing the image contents).",
+   "urls": [
+    "https://github.com/leanprover/lean4/pull/15145",
+    "https://github.com/leanprover/lean4/pull/15762",
+    "https://github.com/model-checking/kani/pull/4910",
+    "https://github.com/model-checking/kani/issues/5043"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  },
+  {
+   "id": "vfg-cryptoprover-cloud-llm-optional",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "result",
+   "title": "Cloud LLM proof synthesis is an optional accelerator: CryptoProver produced Verus proofs for curve25519-dalek and chacha20 in 11.4 h for $467",
+   "summary": "arXiv 2608.00965 (v2 2026-10-16; Sun, Barrett, Dill et al.): CryptoProver synthesized internal specs and Verus proofs for curve25519-dalek (the human effort was 5 months x 3 people) and RustCrypto chacha20 against RFC 8439, in 11.4 h and USD 466.99 of API cost. Runs in the cloud with no local weights, consistent with section 0c.",
+   "specifics": "",
+   "urls": [
+    "https://arxiv.org/abs/2608.00965"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Abstract-level numbers; spec fidelity still needs human review.",
+   "underclaim_risk": "Makes the Verus-heavy alternative cheaper in authoring cost, though not in CI footprint.",
+   "first_seen_round": 2,
+   "last_verified": "2026-10-25",
+   "explorer": "03-verification-footprint-and-golden-contract"
+  }
+ ],
+ "edges": [
+  {
+   "src": "vfg-toolchain-pin-footprint-table",
+   "dst": "tool-landscape-rust-verifiers",
+   "type": "extends",
+   "note": "instrument survey -> measured footprint"
+  },
+  {
+   "src": "vfg-toolchain-pin-footprint-table",
+   "dst": "estimate-proof-cost-per-component",
+   "type": "extends",
+   "note": "adds disk/RAM/CI cost per tool"
+  },
+  {
+   "src": "vfg-obligation-to-tool-map",
+   "dst": "estimate-proof-cost-per-component",
+   "type": "refines",
+   "note": "per-obligation minimal tool"
+  },
+  {
+   "src": "vfg-lean-core-minimal-measured",
+   "dst": "vfg-toolchain-pin-footprint-table",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "vfg-mathlib-avoided-cost-and-aeneas-dependency",
+   "dst": "proof-cedar-lean",
+   "type": "extends",
+   "note": "cedar-lean needs only batteries"
+  },
+  {
+   "src": "vfg-mathlib-avoided-cost-and-aeneas-dependency",
+   "dst": "proof-aeneas-symcrypt",
+   "type": "conflicts_with",
+   "note": "Aeneas Lean backend requires Mathlib"
+  },
+  {
+   "src": "vfg-lean-multikernel-paranoid-check",
+   "dst": "vfg-lean-kernel-soundness-bugs-2026",
+   "type": "mitigates",
+   "note": "kernel diversity"
+  },
+  {
+   "src": "vfg-lean-kernel-soundness-bugs-2026",
+   "dst": "fail-verifier-soundness-bugs",
+   "type": "extends",
+   "note": "adds Lean kernel bugs to Verus/Z3/Dafny record"
+  },
+  {
+   "src": "vfg-kani-footprint-and-gate-failures",
+   "dst": "fail-verifier-soundness-bugs",
+   "type": "extends",
+   "note": "gate-level false PASS"
+  },
+  {
+   "src": "vfg-kani-footprint-and-gate-failures",
+   "dst": "proof-kani-verify-rust-std",
+   "type": "extends",
+   "note": "CI wall-time and memory numbers"
+  },
+  {
+   "src": "vfg-kani-footprint-and-gate-failures",
+   "dst": "l4-negative-kani-memory-explosion",
+   "type": "supports",
+   "note": "sibling r2 node"
+  },
+  {
+   "src": "vfg-native-axiom-tcb",
+   "dst": "vfg-proof-ci-gate-spec",
+   "type": "depends_on",
+   "note": "axiom allowlist"
+  },
+  {
+   "src": "vfg-proof-ci-gate-spec",
+   "dst": "vfg-lean-multikernel-paranoid-check",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "vfg-proof-ci-gate-spec",
+   "dst": "vfg-kani-footprint-and-gate-failures",
+   "type": "mitigates",
+   "note": ""
+  },
+  {
+   "src": "vfg-verus-footprint",
+   "dst": "cal-verus-z3",
+   "type": "extends",
+   "note": "rustc pin 1.99.1; size"
+  },
+  {
+   "src": "vfg-fstar-everparse-footprint",
+   "dst": "everparse-for-front",
+   "type": "extends",
+   "note": "measured footprint"
+  },
+  {
+   "src": "vfg-obligation-to-tool-map",
+   "dst": "everparse-for-front",
+   "type": "depends_on",
+   "note": "binary framings"
+  },
+  {
+   "src": "vfg-obligation-to-tool-map",
+   "dst": "proof-vest-verdict",
+   "type": "alternative_to",
+   "note": "Verus-based binary parsers"
+  },
+  {
+   "src": "vfg-obligation-to-tool-map",
+   "dst": "gap-verified-http1-parser",
+   "type": "fills_gap",
+   "note": "Lean spec + DRT route"
+  },
+  {
+   "src": "vfg-lean-std-http-unknown",
+   "dst": "gap-verified-http1-parser",
+   "type": "fills_gap",
+   "note": "executable Lean oracle"
+  },
+  {
+   "src": "vfg-lean-std-http-unknown",
+   "dst": "threat-request-smuggling-desync",
+   "type": "mitigates",
+   "note": "second-oracle DRT"
+  },
+  {
+   "src": "vfg-extension-boundary-cves",
+   "dst": "vfg-invariant-survival-table",
+   "type": "supports",
+   "note": "host-side response decoder in TCB"
+  },
+  {
+   "src": "vfg-proxywasm-abi-not-capability-safe",
+   "dst": "vfg-invariant-survival-table",
+   "type": "supports",
+   "note": "what not to copy"
+  },
+  {
+   "src": "vfg-wasi-default-grants",
+   "dst": "vfg-invariant-survival-table",
+   "type": "supports",
+   "note": "linker allowlist"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "fuel-not-a-security-bound",
+   "type": "depends_on",
+   "note": "epoch not fuel"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "wasi-resource-isolation-attack-usenix25",
+   "type": "depends_on",
+   "note": "I/O quotas"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "spectre-posture-matrix",
+   "type": "depends_on",
+   "note": "I4 side channels"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "trusts",
+   "note": "runtime in TCB"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "rec60-wasmtime-cranelift-crit-2026-10",
+   "type": "trusts",
+   "note": "runtime escape residual"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "extends",
+   "note": "adds per-invariant survival"
+  },
+  {
+   "src": "vfg-invariant-survival-table",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "depends_on",
+   "note": "I3 for external effects"
+  },
+  {
+   "src": "vfg-conformance-suite-outline",
+   "dst": "as.conformance-suites",
+   "type": "extends",
+   "note": "module-contract suite"
+  },
+  {
+   "src": "vfg-conformance-suite-outline",
+   "dst": "vfg-invariant-survival-table",
+   "type": "depends_on",
+   "note": "C2 oracle = I1-I7"
+  },
+  {
+   "src": "vfg-policy-tristate-failclosed-invariant",
+   "dst": "proof-cedar-lean",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "vfg-policy-tristate-failclosed-invariant",
+   "dst": "vfg-extension-boundary-cves",
+   "type": "mitigates",
+   "note": "CVE-2026-73552/CVE-2024-23324"
+  },
+  {
+   "src": "vfg-obligation-to-tool-map",
+   "dst": "vfg-policy-tristate-failclosed-invariant",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "vfg-tla-apalache-smt-measured",
+   "dst": "vfg-obligation-to-tool-map",
+   "type": "supports",
+   "note": "liveness/interleavings"
+  },
+  {
+   "src": "vfg-ci-walltime-toy-and-reference",
+   "dst": "vfg-toolchain-pin-footprint-table",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "vfg-cryptoprover-cloud-llm-optional",
+   "dst": "rec60-rust-prover-llm-proofs",
+   "type": "extends",
+   "note": "cloud-only synthesis"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Peak RAM and wall-time of Verus 0.2026.10.x and Kani main on the golden's first 10 real obligations, on a 4-vCPU/16 GB CI runner (implementation-phase spike: build CI image, run /usr/bin/time -v per crate, record).",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.6,
+   "reason": "Not measurable under the 1.5 GB per-explorer cap; decides whether Verus is affordable as a required gate."
+  },
+  {
+   "question": "Is Lean Std.Http's HTTP/1.1 framing canonical? Differential-fuzz it against hyper/httparse and llhttp on desync corpora (CL.TE, TE.CL, obs-fold, bare LF, chunk-ext).",
+   "layer": "L4",
+   "domain": "W-PARSE",
+   "expected_info_gain": 0.55,
+   "reason": "If it is clean, it becomes the Lean-side oracle; if not, its bugs are new desync evidence."
+  },
+  {
+   "question": "lake check --paranoid wall-time and RAM on a core+Batteries project of 5-10 K proof lines (Cedar-sized subset); does the bundled lean4lean 'incompatible header' reproduce via lake?",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.45,
+   "reason": "Gate cost and a possible packaging bug in a required checker."
+  },
+  {
+   "question": "Is there a verified (or formally specified) canonical-ABI lifting/lowering for the Wasm component model host side, given CVE-2026-115384?",
+   "layer": "L3",
+   "domain": "W-ISOLATE",
+   "expected_info_gain": 0.5,
+   "reason": "The host decoder of module outputs is in the TCB for invariants I1/I5."
+  },
+  {
+   "question": "What happens to the I3 (failed => no mutation) guarantee with an outbox/idempotency-keyed adapter when the module traps mid-staging? TLA+ model of stage/commit/trap/crash with the golden's adapters.",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.4,
+   "reason": "Turns the I3 classification from argued into model-checked."
+  }
+ ],
+ "protocol_implications": [
+  "Required proof toolchain for the golden = Lean 4.35 core (+Batteries at most) + TLC; Kani, Verus and EverParse are CI-only, on-change jobs. The production image ships zero prover binaries.",
+  "Lean is the spec/model language for attenuation, policy, HTTP/1.1 grammar, budget and effect-mediator obligations, tied to Rust by DRT (Cedar pattern). Aeneas is excluded from the required path because it requires Mathlib.",
+  "Proof gate = lake check --paranoid + axiom allowlist + Kani exit-code hardening (pin >= #4910). A single-kernel or single-tool gate is insufficient given the 2026 Lean kernel bugs and Kani's false-PASS-on-OOM.",
+  "The extension contract must not copy the Proxy-Wasm ABI. The linker allowlist must have no shared KV, no effective-context switch and no raw streams, and host-side decoding of module outputs is in the verified TCB.",
+  "Responsibility boundary: I1, I2, I5, I6 (host-mediated part) and I7 survive arbitrary modules. I3 and I4 (microarchitectural part) assume golden modules or process isolation. Publish this table in ARCHITECTURE.md section 5."
+ ],
+ "notes": {
+  "method": "Measured installed sizes with HTTP range reads of zip central directories (Lean, Verus, cvc5, z3) and streamed tar listings (Kani, F*, EverParse, Apalache, rust components). Partially installed Lean into /tmp scratch (676 MB / 1,002 MB subsets) under heavy.sh and ran toy proofs, leanchecker, leanexport and nanoda. TLC, cvc5 and z3 ran directly (under 400 MB RSS, under 5 s, below the heavy threshold). Everything downloaded was deleted after measurement.",
+  "heavy_sh": "heavy.sh refused twice because /home was 9 GB free, even though my files were on /tmp (root fs, 39 GB free). Verus and Kani were not installed (they exceed the 1.5 GB cap) and are recorded as spikes.",
+  "counts": {
+   "queries_logged": 24,
+   "dup_skipped": 0,
+   "near_dup_rewritten": 0,
+   "new_urls": "~45",
+   "seen_urls_reused": 1,
+   "new_nodes": 21,
+   "reused_node_ids_linked": 18
+  },
+  "anti_anchoring": "Alternatives enumerated per obligation (Lean/Verus/Kani/F*/EverParse/Vest/TLA+/Apalache/SMT direct/Creusot/Aeneas). Prior treatments were not opened.",
+  "crash_resume": "Resumed from progress checkpoint 1 after the laptop OOM crash; all later work used heavy.sh or stayed under 400 MB RSS."
+ },
+ "sources": [
+  "https://arena.lean-lang.org/",
+  "https://arena.lean-lang.org/test/mathlib/",
+  "https://arxiv.org/abs/2608.00965",
+  "https://docs.rs/wasmtime-wasi/latest/wasmtime_wasi/struct.WasiCtxBuilder.html",
+  "https://github.com/AeneasVerif/aeneas/blob/main/backends/lean/lakefile.lean",
+  "https://github.com/AeneasVerif/aeneas/releases",
+  "https://github.com/FStarLang/FStar/blob/master/INSTALL.md",
+  "https://github.com/FStarLang/FStar/releases/tag/v2026.10.18",
+  "https://github.com/WebAssembly/component-model/blob/main/design/high-level/Goals.md",
+  "https://github.com/WebAssembly/wasi-testsuite",
+  "https://github.com/Z3Prover/z3/releases/tag/z3-5.3.1",
+  "https://github.com/apalache-mc/apalache/blob/main/docs/src/apalache/features.md",
+  "https://github.com/apalache-mc/apalache/blob/main/docs/src/apalache/running.md",
+  "https://github.com/apalache-mc/apalache/blob/main/src/universal/bin/apalache-mc",
+  "https://github.com/apalache-mc/apalache/releases/tag/v0.62.4",
+  "https://github.com/awslabs/duvet",
+  "https://github.com/cedar-policy/cedar-spec",
+  "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/lakefile.lean",
+  "https://github.com/cncf/k8s-conformance",
+  "https://github.com/cvc5/cvc5/releases/tag/cvc5-1.4.2",
+  "https://github.com/diffblue/cbmc/releases/tag/cbmc-6.11.0",
+  "https://github.com/envoyproxy/envoy/security/advisories/GHSA-23xh-2qxr-3xv8",
+  "https://github.com/envoyproxy/envoy/security/advisories/GHSA-68cv-hq5f-g6xv",
+  "https://github.com/envoyproxy/envoy/security/advisories/GHSA-cf3q-gqg7-3fm9",
+  "https://github.com/envoyproxy/envoy/security/advisories/GHSA-gq3v-vvhj-96j6",
+  "https://github.com/envoyproxy/envoy/security/advisories/GHSA-mvh9-767w-x47j",
+  "https://github.com/leanprover/lean4/blob/master/src/Lean/Compiler/ImplementedByAttr.lean",
+  "https://github.com/leanprover/lean4/blob/master/src/Lean/Meta/Native.lean",
+  "https://github.com/leanprover/lean4/pull/10478",
+  "https://github.com/leanprover/lean4/pull/12126",
+  "https://github.com/leanprover/lean4/pull/14498",
+  "https://github.com/leanprover/lean4/pull/14577",
+  "https://github.com/leanprover/lean4/pull/14807",
+  "https://github.com/leanprover/lean4/pull/15048",
+  "https://github.com/leanprover/lean4/pull/15099",
+  "https://github.com/leanprover/lean4/pull/15145",
+  "https://github.com/leanprover/lean4/pull/15762",
+  "https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.zip",
+  "https://github.com/leanprover/lean4/releases/tag/v4.35.0",
+  "https://github.com/leanprover/lean4/tree/master/src/Std/Http",
+  "https://github.com/model-checking/kani/blob/kani-0.68.0/rust-toolchain.toml",
+  "https://github.com/model-checking/kani/issues/3965",
+  "https://github.com/model-checking/kani/issues/4747",
+  "https://github.com/model-checking/kani/issues/4905",
+  "https://github.com/model-checking/kani/issues/4965",
+  "https://github.com/model-checking/kani/issues/5043",
+  "https://github.com/model-checking/kani/pull/4910",
+  "https://github.com/model-checking/kani/releases/tag/kani-0.68.0",
+  "https://github.com/model-checking/verify-rust-std/actions",
+  "https://github.com/model-checking/verify-rust-std/actions/workflows/kani.yml",
+  "https://github.com/project-everest/everparse/releases/tag/v2026.10.06",
+  "https://github.com/proxy-wasm/spec/blob/main/abi-versions/v0.2.1/README.md",
+  "https://github.com/tlaplus/tlaplus/releases/tag/v1.8.0",
+  "https://github.com/verus-lang/verus/actions",
+  "https://github.com/verus-lang/verus/blob/main/rust-toolchain.toml",
+  "https://github.com/verus-lang/verus/issues/3184",
+  "https://github.com/verus-lang/verus/issues/3213",
+  "https://github.com/verus-lang/verus/releases/tag/release/0.2026.10.18.7d82994",
+  "https://static.rust-lang.org/dist/2026-08-21/channel-rust-nightly.toml",
+  "https://static.rust-lang.org/dist/channel-rust-1.99.1.toml"
+ ]
+}

@@ -1,0 +1,29 @@
+# progress 08-dx (started 2026-10-25T02:09:50-04:00); prior crash: no progress file existed, restarted
+## EXPERIMENT DONE (rustc 1.88.0, std-only, 16 mutants x 2 shapes; files in 08-exp/, results.json)
+Shape A (axum-like, 124 LOC sdk+app): 1/16 rejected (M14 use-after-commit E0382, Rust ownership), 15 compiled with violation (oracle-confirmed; M11 structural).
+Shape B (capability-typed, 105 LOC sdk+app): 13/16 rejected, 1 compiled-neutralized (M3 cache key: SDK namespaces by tenant so bug harmless), 2 compiled-violation (M15 same-tenant ownership, M16 archived visibility = semantic).
+Error text mean ~19 lines/~0.95KB for B rejects (range 10-34 lines); codes E0599 x5 (no such method = absent API), E0308 x3, E0382, E0277, E0425, E0423, E0521.
+Agent-repair hazard: in-crate privacy error says "help: consider making the field publicly accessible"; cross-crate sdk (x2/) drops that suggestion -> sdk must be a separate crate.
+Caveat: many B rejects = absent-API (E0599), i.e. API minimalism not clever types; M9/M1/M8/M2.
+## Sources 1-5 (Q1)
+S1 FPEval arXiv 2601.02060 (2026-01-05) fetched html: FPBench 721 tasks; pass@1 GPT-3.5/4o/5: Haskell 14.15/27.18/42.34, OCaml 9.43/36.20/52.16, Scala 19.28/38.83/58.36, Java 22.19/43.69/61.14. GPT-5 compile-error share: Haskell 24.28%, OCaml 13.73, Scala 9.27, Java 4.62. Repair (Table4, GPT-5 correct of 721): Haskell 287->301 simple->295 instr; OCaml 376->396; Scala 420->431/433 (+2-5pts). Contamination (App C, GPT-4o only): Java 52.0->32.8, Scala 35.8->21.6 after cutoff; Haskell/OCaml low and stable. Text/table inconsistencies in paper (14.5 vs 14.15).
+S2 PROBE 2607.13820 (2026-07-15, EMSE): CodeNet 1651 problems, 5 langs Python/C++/Java/C/Rust; models GPT-4.1-mini, Gemini-2.0-flash, Qwen2.5 14b, Qwen2.5-Coder 7b/14b, DeepSeek-Coder-v2. Passed rate GPT-4.1-mini Python .70 Rust .67; Gemini-2.0-flash .57/.55; Qwen2.5-Coder14b .44/.34; DS-Coder-v2 .41/.31; Qwen2.5 14b .38/.24. Rust last, highest compile-fail share; gap grows as model shrinks => CORRECTS prior node (frontier gap 2-3pts, small models 7-14pts). Old (2025) models; public judge problems, no contamination analysis.
+S3 Claw-SWE-Bench 2606.12344 (v2 2026-09-29): Rust resolve 93.0 GPT5.5, 88.4 Opus4.7, 86.0 GLM5.1, 79.1 DeepSeek-V4 Pro (per search snippet; PDF not parsed -> grade C). SWE-Bench ProMax 2608.09802 Rust: Sonnet4.6 63.6, Kimi-K2.5 18.2 (snippet). Multi-SWE-bench 2504.02605 Rust single digits for 2025 models.
+S4 Generative Compilation 2607.13921 (2026-07): Rust repo-level translation (CRUST-bench) + API update; 7 models; non-compiling outputs 20.7%->13.1% vs post-generation compiler feedback; functional correctness 59.5->63.0; errors found after 33.3% of file; Lean-mechanized calculus. eth-sri/generative-compilation.
+S5 AdaTrans 2606.31706: LLMs facing borrow checker often resort to unsafe/raw pointers => compiler-feedback-loop gaming hazard.
+S6 SWE-bench Multilingual page (SWE-agent+Claude 3.7 Sonnet, 300 tasks): Rust 25/43=58.14%, Java 53.49, PHP 48.84, Ruby 43.18, JS/TS 34.88, Go 30.95, C/C++ 28.57; overall 42.67. n~43/lang -> +-15pp CI.
+S7 Claw-SWE-Bench PDF App F.2 (parsed locally, 350 inst, 43/lang, OpenClaw harness; ranking 11 models): Rust best language for 7/11 models, Java 3, tie 1; Go worst for all 11. GPT5.5 Rust 93.0 vs Python 78.0; Opus4.7 Rust 88.4 vs Python 82.0, TS 81.4. Seed2.0-mini Rust 55.8 vs Py 54.0. No contamination analysis found in text (grep). => agentic loop + Rust >= other langs; CONTRARY to one-shot FPEval/PROBE.
+S8 Rust-SWE-bench 2602.22764 ICSE'26: 500 tasks/34 repos; 4 agents x 4 LLMs, ReAct up to 21.2%; RustForger+Claude Sonnet 3.7 28.6% (+34.9%); failure = repo structure + Rust type/trait semantics. (abstract only)
+S9 Rust crate hallucination 2606.08444 (Internetware, v2 2026-08-14): consistent hallucination rates across models, insensitive to params; compiler does NOT catch invented deps (only cargo resolve/ registry check). 
+S10 Agentic TS PRs 2602.17955: agents 9x more `any`, but 1.8x PR acceptance => type-bypass hazard (analogue: agent will use unsafe/any/clone to quiet compiler; AdaTrans).
+S11 2607.13080 monorepo case study: model switch effect >> language effect; TS vs Python fix-rate gaps not significant.
+S12 axum 0.8.9 extractor docs: guards opt-in per handler param; body extractor last (compile error); doc's own AuthenticatedUser example has placeholder "actually perform the authorization" -> omission problem (handler lacking extractor = unchecked).
+S13 Rocket 0.5 guide: request guard "type-level proof" claim, access control "guaranteed ... compile-time" ONLY if guard not otherwise constructible; handler omitting guard gets no check; Forward semantics + rank.
+S14 Leptos book: "server functions are syntax sugar for a public API"; no auth mechanism in chapter; do not return non-public info. => server fn = public endpoint with no default authz.
+S15 Convex functions-auth: ctx.auth.getUserIdentity() returns null if unauth; handler must check manually (opt-in). 
+S16 Encore Go defining APIs: //encore:api requires access level public|auth|private (mandatory token in annotation -> forced decision); static analysis generates schemas/clients; path conflicts disallowed.
+S17 Shuttle shutdown docs: Pro projects stopped 2026-01-16; community by start 2026; GitHub repo archived (mirror claim); Neptune successor (beta) per search, not on page. => "git push deploy for Rust" prior art died: sustainability signal.
+S18 Spin: vendor claim ~0.5ms cold start (Fermyon blog Mar 2025), no independent per-request bench found.
+S19 Dioxus 0.7 subsecond hot-patch experimental (dx serve --hotpatch); axum standalone no recipe.
+LOCAL MEASURE: std-only shape_b cold debug build 0.33-0.40s, 159MB RSS; incremental cargo check 0.11s (rustc 1.88). axum not in offline registry => axum cold build = implementation-phase spike.
+FINAL written 2026-10-25T02:17:35-04:00

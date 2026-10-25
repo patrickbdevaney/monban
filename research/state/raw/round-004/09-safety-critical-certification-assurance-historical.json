@@ -1,0 +1,661 @@
+{
+ "explorer": "09-safety-critical-certification-assurance-historical",
+ "round": 4,
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "sc.do333-credit-scope",
+   "layer": "L2",
+   "domain": "T-SAFETY-CERT",
+   "type": "standard",
+   "title": "DO-333 (Dec 2011) lets sound formal analysis replace specific reviews/analyses/tests, but EOC testing survives",
+   "summary": "DO-333/ED-216 is a supplement to DO-178C: formal analysis may replace some reviews, analyses and tests; almost all verification objectives are candidates; the analysis must be sound (never assert a property that does not hold); EOC-level objectives other than target-integration testing may be satisfied by formal analysis but need extra justification. Soundness required is of the METHOD (evidence typically peer-reviewed papers), not of the tool. Adoption: in Feb 2017 no avionics project had publicly acknowledged using it; unit-test replacement via Caveat on A380 (2002) and SPARK are the cited precedents.",
+   "urls": [
+    "https://learn.adacore.com/booklets/adacore-technologies-for-airborne-software/chapters/standards.html",
+    "https://militaryembedded.com/avionics/safety-certification/formal-program-verification-avionics-certification",
+    "https://shemesh.larc.nasa.gov/fm/DO-333-case-studies.html",
+    "https://ntrs.nasa.gov/citations/20140004055",
+    "https://www.faa.gov/regulations_policies/advisory_circulars/index.cfm/go/document.information/documentNumber/20-115D"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Table: DO-333 objectives FM.A-7 5-8 = unit-test replacement via SPARK analysis plus review (Moy 2017, vendor-authored). Integration tests still needed to show compiler preserves semantics. NASA/CR-2014-218244 (Apr 2014, 203 pp): three case studies (theorem proving, model checking, abstract interpretation) on a dual-channel Flight Guidance System; explicitly NOT a complete certification effort; no effort numbers. FAA AC 20-115D lists DO-333 (RTCA 2011-12-13)/ED-216 (2012-01); AC is non-mandatory. DO-178C Level A has 71 objectives (seL4 page).",
+   "overclaim_risk": "Credit is per-objective and negotiated with the authority; 'DO-333 permits' != 'any project got N% test reduction'. No quantified test-reduction found.",
+   "underclaim_risk": "AdaCore/Airbus/Dassault precedents exist; absence of public acknowledgment in 2017 is dated and is not evidence that no one has used it since.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.do330-tql-verification-tools",
+   "layer": "L2",
+   "domain": "T-SAFETY-CERT",
+   "type": "standard",
+   "title": "DO-330 TQL: a prover whose result eliminates other verification is TQL-4 at DAL A/B, TQL-5 at C/D; all other verification tools TQL-5",
+   "summary": "Cofer (Rockwell Collins, 2015): criterion 1 (tool can insert error; dev tools) A:TQL-1 B:2 C:3 D:4; criterion 2 (verification tool whose output justifies eliminating/reducing other verification or development process) A,B:TQL-4, C,D:TQL-5; criterion 3 (verification tool that could miss an error) TQL-5. Using proofs to replace tests is exactly criterion 2. TQL-5 needs only user-context evidence (test cases showing compliance with Tool Operational Requirements); TQL-1..4 require developer-context objectives approx. equal to the airborne software's. DO-333 requires soundness of the method, leaving tool soundness to DO-330.",
+   "urls": [
+    "https://sos-vo.org/system/files/sos_files/Qualification_of_Formal_Methods_Tools.pdf",
+    "https://iro.uiowa.edu/esploro/outputs/report/Formal-Methods-Tool-Qualification/9984410859402771",
+    "https://shemesh.larc.nasa.gov/fm/FMinCert/DO-330-case-studies-RC.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Read via pdftotext from the saved slides (Cofer 2015-05-05). Cofer observations: 'qualification of development tools (TQL 1-4) still difficult'; 'a qualified compiler or code generator does not buy you much'; mismatch between evidence DO-330 wants and the right way to assure FM tools; suggests DO-330A/DO-333-tailored DO-330. Alternatives discussed: qualify small proof-certificate checker instead of model checker (NASA/CR-2017-219371, Feb 2017, Kind 2 simulated qualification, 45 pp, no numbers); qualify code verifier (TQL-5) instead of generator (TQL-1) per DO-330 FAQ D.7; two independent tools cross-checking ('probably both need qualification').",
+   "overclaim_risk": "Slides are 2015 and a personal reading of DO-330 tables; I did not fetch DO-330 itself (paywalled RTCA). The TQL criterion-2 mapping is the key claim and should be re-read in DO-330 before it enters COMPLIANCE_MAP.",
+   "underclaim_risk": "TQL-5 is a black-box test-based activity: qualifying a prover at TQL-5 is cheap relative to TQL-1, so proofs-as-checked-by-a-qualified-small-checker is a plausible low-cost route.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.no-prover-qualified",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "negative-result",
+   "title": "No qualified Lean/Rocq/Isabelle/Z3/CBMC/Frama-C-WP found; seL4 itself says Isabelle is 'not qualified yet'",
+   "summary": "Searches for DO-330 qualification kits or qualified-use reports for Coq/Rocq, Lean, Isabelle, Z3, CBMC, Frama-C WP returned only generic kits (Rapita, SciTools Understand TQL-5 at $9,995 template, Polarion). seL4's certification page states Isabelle/HOL 'has not been qualified yet' for DO-178C, argues DO-330 criterion 1 does not apply (nothing generated from Isabelle into seL4) and that external-tool output is re-checked by Isabelle's kernel. NASA's own study found formal-methods tools 'rarely' qualified. AbsInt Astree/aiT/CompCert/Valex have qualification kits (vendor).",
+   "urls": [
+    "https://sel4.systems/Verification/certification.html",
+    "https://shemesh.larc.nasa.gov/fm/FMinCert/DO-330-case-studies-RC.html",
+    "https://scitools.com/do-330-qualification-kits",
+    "https://www.rapitasystems.com/do-330"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Absence-of-evidence from ~6 searches; Frama-C commercial TrustInSoft Analyzer and Astree are the nearest to qualified FM analyzers (vendor kits). Cost of qualifying a prover: no number found anywhere. Gap noted: no source states $ or person-months for any FM-tool DO-330 qualification except the ~$10k template price for a non-FM TQL-5 tool.",
+   "overclaim_risk": "Absence of evidence; vendor kits may exist behind sales pages.",
+   "underclaim_risk": "A proof assistant with a small kernel + independent checker is arguably better placed for TQL-5 than most qualified tools; nobody has paid for it yet.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.compcert-qualification-evidence",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "experience-report",
+   "title": "CompCert at MTU (IEC 60880 cat A / 61508 SCL3, 2017): 100k Coq lines/6 py proof, yet qualification still needed testsuite + translation validation + proven-in-use",
+   "summary": "K\u00e4stner et al. ERTS 2018: MTU Friedrichshafen engine controller (SCADE->C, PowerPC). Qualification rests on three columns: structured tool development evidence, user experience, validation. CompCert's proof (100,000 lines Coq, 6 person-years) covers front/back-end passes but not parsing, preprocessing, assembling, linking; those use gcc, a public validation suite and Valex (translation validator, itself qualified). Benefit with optimizations on: code size about -28%, stack about -40%, testing effort reduced. 2026-03-20: AbsInt announces CompCert qualified for ATR 42/72 MFC_NG (DO-178C/333/330) with no TQL, DAL, or cost stated.",
+   "urls": [
+    "https://www.absint.com/compcert/mtu_compcert_erts_2018.pdf",
+    "https://hal-univ-tlse3.archives-ouvertes.fr/INRIA/hal-01643290",
+    "https://aerospace-innovations.com/successful-qualification-of-compcert-for-the-multi-function-computer-new-generation-mfc_ng-of-atr-42-72-aircraft/",
+    "https://xavierleroy.org/bibrefs/Bedin-Franca-ERTS-2012.html",
+    "https://absint.com/compcert"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Read paper text via pdftotext. Airbus ERTS 2012 (Bedin Franca et al, hal-00653367) evaluated CompCert for DO-178 Level A flight control (WCET, code size) without cert conclusions in abstract. Csmith (PLDI 2011) found bugs only in unverified parts of CompCert (secondary source). No regulator sign-off statement for MTU; 'qualified' = applicant's own qualification accepted within its certification project (not independently confirmed). No cost numbers for the qualification itself: the only cost datum is the 6 py proof.",
+   "overclaim_risk": "Press release 2026 is vendor; MTU/ATR acceptance by authority not shown; proof did not remove validation, so 'proved compiler = no testing' would be an overclaim.",
+   "underclaim_risk": "Qualification of an optimizing compiler incl. optimizations is only practical because of the proof (paper's claim); benefit is 28%/40% size/stack, a measurable gain.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.cc-eal6-eal7-real-evals",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "evidence",
+   "title": "Real EAL6+/EAL7 evaluations are few, slow and expensive: INTEGRITY-178B 2005-2008 ('millions', ~decade), ProvenCore EAL7 2019, none for seL4/Muen/PikeOS found",
+   "summary": "INTEGRITY-178B: evaluation began April 2005 (SAIC lab), NIAP certification Sept/Nov 2008 against Separation Kernel Protection Profile (High Robustness); vendor: 'millions of dollars', 'nearly a decade' counting pre-cert use; formal methods are 'a mathematical proof of the security policy'; independent fact-check says NIAP's list shows SKPP High Robustness, not 'EAL6+'. ProvenCore v1.0 ANSSI-CC-2019/15 dated 2019-05-29 EAL7 (CC 3.1 r5, lab Trusted Labs). SYSGO PikeOS: ANSSI CSPN, EAL7 formal verification 'finalizing' (no completion found). Muen: SPARK AoRTE proofs since v0.6 (Jan 2015) and a 2020 IISc functional-correctness proof, no CC evaluation found. seL4: no completed CC evaluation per its own page. Recent kernel: BSI-DSZ-CC-1177-V2-2026 L4Re Secure Separation Kernel at EAL4+ (ALC_FLR.3, AVA_VAN.3), atsec, valid to 2031-04-15. US NIAP stopped EAL-based evaluations (2013 per vendor pages; 2009 per another).",
+   "urls": [
+    "https://ghs.com/news/20050829_eal6_skpp.html",
+    "https://vita.militaryembedded.com/201-an-hills-worlds-security/",
+    "https://cyber.gouv.fr/sites/default/files/document_type/certificat_2019-15.pdf",
+    "https://sec-certs.org/eucc/e3bedad9f0d6835b/cert.txt",
+    "https://sysgo.com/press-releases/sysgos-pikeos-achieved-security-certification-evaluation-according-to-french-national-security-agency",
+    "https://muen.sk/muen-report.pdf",
+    "https://sel4.systems/Verification/certification.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "Person-years for EAL6/7 evaluations not published; the only cost datums: $1,000/LOC rule of thumb for EAL6 (Heiser 2013, seL4 numbers page) and 'millions of dollars' (Green Hills 2009). DeLong & Rushby 9th ICCC 2008: few evaluations above EAL4, very few at EAL6/7, excessive cost and uncertain benefit. ProvenCore 'EAL7' is for a deliberately small TOE; ProvenCore-M RISC-V 2022 was EAL5+ evaluated but no ANSSI certificate requested. I did not fetch the ProvenCore certification report or CC portal tables, so TOE size is unknown.",
+   "overclaim_risk": "Vendor claims; ProvenCore certificate fetched only as a search-listed path; EAL labels are contested for INTEGRITY.",
+   "underclaim_risk": "CC portal tables may list more EAL6/7 products I did not enumerate.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.cc-formal-requirements",
+   "layer": "L2",
+   "domain": "T-SAFETY-CERT",
+   "type": "standard",
+   "title": "CC: formal methods enter only at EAL6 (design level) and EAL7 (formal policy model + formal correspondence); implementation proof not required",
+   "summary": "Per seL4 page: EAL7 requires formal security policy model, functional specification and design specification with formal correspondence between them; implementation mapping may be informal; FM appears in the Development class only from EAL6 and only down to design. Beckert et al. (cited by search) argue code verification is largely neglected in CC practice. NIST SP 800-53r5 SA-17(1) analogously demands a formal policy model plus proof that it is internally consistent and sufficient (mirror text; SA-17(3) formal correspondence unconfirmed). ISO 26262: formal verification only 'recommended' at ASIL C/D; only the specification must be formal and any analysis incl. testing satisfies it.",
+   "urls": [
+    "https://sel4.systems/Verification/certification.html",
+    "https://www.commoncriteriaportal.org/iccc/9iccc/pdf/B2410.pdf",
+    "https://ce.prod.cloudaware.com/frameworks/nist-sp-800-53-r5/sa/17/01"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Consequence: a code-level machine-checked proof exceeds what CC EAL7 asks for, so it buys no extra CC grade beyond the formal-model evidence; its value is in AVA_VAN-style resistance claims (not credited formally). For the golden: the credited artifact would be the Lean/TLA+ policy model + correspondence argument, not the Verus proofs.",
+   "overclaim_risk": "I did not read CC Part 3 text; ADV_SPM/ADV_FSP/ADV_TDS levels recalled from the seL4 page summary.",
+   "underclaim_risk": "EUCC (EU) still issues EAL-based certificates up to high; US NIAP does not.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.cost-per-verified-loc-curve",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "measurement",
+   "title": "Historical verification cost curve 1999-2025: 2.9 py/kLOC (seL4 2009 total) -> 0.3 py/kLOC (CertiKOS 2016, concurrency layer only); proof:code 23:1 -> 2-7:1",
+   "summary": "Points (R=read, C=recomputed): Mondex 1999 ITSEC E6: ~20pp abstract Z + ~60pp concrete + ~200pp hand refinement proof; KIV re-mechanisation ~1 person-month and found small errors in hand proofs (R, no cost). Tokeneer 2003: 9,939 LOC SPARK, 260 person-days = 26.2 pd/kLOC = 0.12 py/kLOC at 220 pd/py (C); formal spec + AoRTE/info-flow proofs, not full functional correctness. CompCert 2005-08: 6 py, 100k Coq lines (R). seL4 2009: 25 py total, 8,700 LOC C (7,500 verified), 200k Isabelle lines => 2.87 py/kLOC and 23:1 (C); kernel-only 12 py => 1.38 py/kLOC (C, matches Klein 1.4 R); $700/LOC all, <$350-400/LOC kernel (R); implied $348k/py (C, $8.7M/25 py). Heiser 2013 table: 20.5 py C-impl proof over 4.5 years, 4.5 py abstract model, ~2+2 py mostly tools; repeat estimate 6-10 py. IronFleet 2015: 3.7 py, proof:code 5-8:1 (graph). CertiKOS mC2 2016: 6.5 kLOC, concurrency proof <2 py => <0.31 py/kLOC (C, excludes earlier layers). BilbyFS/Cogent 2016: 0.6 py/kLOC (R). Verus 2024-25: ratios 1.9-7.5:1 and LLM closure 81% at ~$6/task (graph, reused). Baselines: 'high assurance' $1,000/LOC no guarantees, low assurance $100-200/LOC with 1-5 faults/kLOC (Heiser 2013); DO-178 $25-100/line vendor whitepaper and ~3-12 SLOC/day DAL A (unattributed), no measured public series.",
+   "urls": [
+    "https://trustworthy.systems/projects/OLD/l4.verified/numbers",
+    "https://microkerneldude.org/2016/06/16/verified-software-can-and-will-be-cheaper-than-buggy-stuff/",
+    "https://www.trustworthy.systems/publications/nicta_slides/7313.pdf",
+    "https://www.absint.com/compcert/mtu_compcert_erts_2018.pdf",
+    "https://www.adacore.com/tokeneer",
+    "https://flint.cs.yale.edu/flint/publications/certikos.pdf",
+    "https://vsr.sourceforge.net/mondex.htm",
+    "https://www.trustworthy.systems/publications/nictaabstracts/Staples_JAMKK_14.abstract"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Denominators differ (7.5k vs 8.7k vs 10k LOC), scopes differ (full functional correctness vs AoRTE vs one layer), dollar conversions assume ~$350k/py. Staples ESEM 2014: effort linear in proof lines (9 L4.verified projects); Matichuk ICSE 2015: proof size quadratic in statement size across 15,018 lemmas / ~215k proof lines. Not a like-for-like series; use order of magnitude only.",
+   "overclaim_risk": "Mixes tool-building and proof effort; the curve is NOT a clean learning curve.",
+   "underclaim_risk": "LLM-assisted 2025-26 costs (Verus/Lean agents) fall far below the human series; graph nodes hist-ironfleet-cost-vs-llm and estimate-proof-cost-per-component carry that side.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.sel4-maintenance-cost",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "evidence",
+   "title": "seL4 proof maintenance: platform port needs 'a few days to a few weeks' of proof update; proof test combinations multiply; single proof check >6 h; cost 'black art'",
+   "summary": "Klein 2015-01-08: 'Predicting cost for re-proof is a bit of a black art'. Andronick ITP 2019 'A Million Lines of Proof About a Moving Target': several proofs per kernel configuration (functional correctness, binary translation validation, integrity/confidentiality). Klein seL4 Summit 2023: new platform ports need contracted proof engineers (Proofcraft), few days to few weeks each; proof/config combinations multiply, maintaining multiple proof versions is painful (>6 h run time to check one proof); verification-expert availability still a bottleneck; plan to auto-generate proof inputs from build checks. Heiser 2013 candid skeptic quote: 'Formal verification probably didn't produce a more secure kernel ... traditional separation kernels are probably secure. But we now have certainty / did it probably at less cost.'",
+   "urls": [
+    "https://sel4.systems/Summit/2023/slides/day1-04-klein.pdf",
+    "https://drops.dagstuhl.de/opus/volltexte/2019/11056/",
+    "https://lists.sel4.systems/hyperkitty/list/devel@sel4.systems/message/YAUN2GL2TVNKN25T6H4CVICVTULAXCCG",
+    "https://www.trustworthy.systems/publications/nicta_slides/7313.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "specifics": "No per-change person-month series published; no figure for MCS or multicore proof effort found. Maintenance cost per change is therefore E-grade numerically; qualitative signals are B.",
+   "overclaim_risk": "Slides, not papers; 2023 data, no 2025-26 update found.",
+   "underclaim_risk": "AI proof repair (2025-26 graph nodes) may cut maintenance cost; no seL4-specific measurement.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.lean-kernel-soundness-2026",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "incident",
+   "title": "Lean 4 kernel soundness bugs July-Aug 2026: axiom-free proof of False accepted, also by independent checkers (nanoda, leanchecker)",
+   "summary": "Brossard oss-security 2026-08-02: nested-inductive projection check missing + expression hash collision lets a malicious metaprogram (e.g. in a Lake dependency) produce a checked axiom-free proof of False at --trust=0; affects <= v4.31.0, fixed nightly-2026-07-29 (lean4 #14576/#14577), CVSS 3.1 7.1, no CVE. Lean 4.32.1 (2026-07-22) and 4.32.2 (2026-07-28) release notes: earlier kernel soundness bugs; 4.32.2 bug exploitable even with `comparator`; nanoda unaffected by that bug but has a separate combinable bug; 4.34.0 fixes three more (two kernel, one runtime refcount) and a bogus proof accepted by nanoda. Report: a publicly claimed Collatz proof passed kernel and nanoda.",
+   "urls": [
+    "https://seclists.org/oss-sec/2026/q3/381",
+    "https://openwall.com/lists/oss-security/2026/08/02/1",
+    "https://lean-lang.org/doc/reference/stable/releases/v4.32.2/",
+    "https://lean-lang.org/doc/reference/latest/releases/v4.32.1/",
+    "https://lean-lang.org/doc/reference/4.36.0-rc1/releases/v4.34.0/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Coq/Rocq base rate: ~1 critical bug/year (arXiv 2201.10280 citing the official list); Rocq guard-checker flaw RH bugzilla 2523145. Affects the golden because vfg-lean-multikernel-paranoid-check assumes independent kernels agree: the Aug 2026 evidence shows agreement among kernel+nanoda+leanchecker was not sufficient. Threat is mostly malicious/adversarial metaprograms and dependencies, not accidental proof of a false lemma.",
+   "overclaim_risk": "Exploit needs deliberately constructed input; I read advisories and release notes, not the lean4 issue trackers; issue numbers across sources may denote distinct bugs.",
+   "underclaim_risk": "Fixes landed within days (nightly-2026-07-29 for a 07-28 identification), showing a responsive TCB maintainer; independent checker diversity still reduced risk in the 4.32.2 case (nanoda unaffected by that specific bug).",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.ferrocene-qualified-rustc",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "product",
+   "title": "Ferrocene 26.02.0: qualified Rust toolchain (TUV SUD ISO 26262 ASIL D, IEC 61508 SIL 3, IEC 62304 C), EUR 25/user/month; DO-178C only 'supports efforts' to DAL C",
+   "summary": "Published 2026-02-15. Core library subset certified IEC 61508 SIL 2 / ISO 26262 ASIL B; certified functions rose 2,903 -> 5,169. First qualification was Ferrocene 23.06.0 (Rust 1.68). Dec 2025: TUV SUD certified first core-library subset (SIL 2). Price EUR 240/user/year. rustc/LLVM are not formally verified; qualification is process-and-test based (TQL-style), so a qualified Rust compiler exists without a verified one.",
+   "urls": [
+    "https://ferrous-systems.com/blog/ferrocene-26-02-0/",
+    "https://www.theregister.com/2025/12/04/rust_core_library_partly_polished/",
+    "https://ferrous-systems.com/blog/officially-qualified-ferrocene/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Vendor pages and one news article; certificates not fetched from TUV SUD. Async Rust not covered. Targets not named on the page.",
+   "overclaim_risk": "Qualification is for specified use cases/targets; does not make server code safe; x86-64 Linux server targets may not be in the qualified set (unchecked).",
+   "underclaim_risk": "Cost is trivial vs custom compiler qualification; this is the cheapest regulator-recognised toolchain story for a Rust golden.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.regulator-2025-26-statements",
+   "layer": "L3",
+   "domain": "T-SAFETY-CERT",
+   "type": "regulatory",
+   "title": "2025-26 regulator statements (CISA, NSA, ANSSI, BSI, EASA): memory-safe-language roadmaps yes, formal proofs as accepted evidence no",
+   "summary": "CISA Product Security Bad Practices: new critical-infrastructure product lines should use memory-safe languages; existing products publish a memory safety roadmap by end of 2025 (products EOL before 2030-01-01 excluded); must show roadmap yields prioritized reduction and reasonable effort; formal verification/static analysis/testing not mentioned; voluntary. NSA+CISA CSI 'Memory Safe Languages' 2025-06-24 recommends planning MSL adoption (Android memory-safety vulns 76% in 2019 -> 24% in 2024 cited); no formal-verification text found in snippets (full text not read; NSA page 403). ANSSI Rust secure-programming guide v1.0 (2020) non-normative. BSI: memory safety as fundamental resilience element; no Rust/proof guidance found. EASA: ForMuLA (Collins, Oct 2021-Mar 2023) proposed formal methods as anticipated means of compliance for ML learning-assurance objectives; AI NPA 2025-07 comment period closed ~2026-02-10; no statement accepting proofs as evidence found. TrustInSoft marketing overstates CISA text.",
+   "urls": [
+    "https://www.cisa.gov/resources-tools/resources/product-security-bad-practices",
+    "https://www.cisa.gov/news-events/alerts/2025/06/24/new-guidance-released-reducing-memory-related-vulnerabilities",
+    "https://www.easa.europa.eu/en/node/137881",
+    "https://messervices.cyber.gouv.fr/documents-guides/anssi-guide-regles_de_programmation_pour_le_developpement_dapplications_securisees_en_rust-v1.0.pdf",
+    "https://www.sovereign.tech/news/european-memory-safety"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Meaning for the golden: a Rust (MSL) golden satisfies the MSL expectation by language choice; proofs are not credited by these regulators, so proofs belong in the NOT-proven-list as differentiating evidence not compliance evidence. A comment in a consultation proposed 'sound and exhaustive static analysers using formal verification' wording; adoption unknown (secondary).",
+   "overclaim_risk": "Absence of evidence over ~5 searches; BSI/ANSSI German/French pages not exhaustively searched; EASA Issue 03 text not read.",
+   "underclaim_risk": "Procurement offices (US DoD, UK, DE) may accept proofs informally via security architecture review; no public record found either way.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.tokeneer-fixed-price-eal5",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "experience-report",
+   "title": "Tokeneer (Praxis/NSA 2003-08): 9,939 SPARK LOC in 260 person-days, fixed price, 1-5 post-delivery defects (sources disagree)",
+   "summary": "Productivity 38 LOC/day overall (203 coding phase); formal Z spec plus SPARK proofs; designed to meet or exceed CC EAL5; independent blogger reviewed part of the code and was unimpressed; defects since delivery reported as 1 (2008 repost), 4 (AdaCore page), 5 (2006 slides).",
+   "urls": [
+    "https://www.adacore.com/tokeneer",
+    "https://www.adacore.com/uploads/technical-papers/issse2006tokeneer_altran.pdf",
+    "https://www.spinellis.gr/blog/20081018/index.html"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Vendor and sponsor sources. Existence proof that CC-oriented formal development at EAL5 scale was feasible at ~0.12 py/kLOC (C) in 2003, but spec scope was small. ",
+   "overclaim_risk": "Vendor-sourced; proofs were not full functional correctness.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.implication-checker-qualification-arguments",
+   "layer": "L5",
+   "domain": "T-SAFETY-CERT",
+   "type": "artifact",
+   "title": "L5: trusted-checker qualification argument template for the golden (TQL-5-style) with a known-false-proof regression corpus",
+   "summary": "For each checker in the proof TCB (Lean kernel + second kernel, Verus+Z3, Kani/CBMC, Aeneas) write a Tool Operational Requirements doc and a test suite showing compliance, DO-330 TQL-5 style: (1) TOR: 'accepts only closed theorems over declared axioms; rejects ...'; (2) test corpus of known-false proofs from public soundness incidents (Lean #14484, #14576, 4.34.0 trio; Rocq critical-bugs list; Z3 unsound-unsat; Dafny ensures-false), run on every pinned version bump and expected to be REJECTED; (3) pin kernel version, ban untrusted metaprograms/Lake dependencies in the proof build (vendored, hash-pinned), run checker in a sandbox with no network; (4) re-check all stored proof artifacts with the patched kernel on any soundness advisory (SLA: 7 days); (5) acceptance criterion: corpus 100% rejected; `lake check --paranoid`-style agreement among >=2 kernels; (6) record each unproved assumption and axiom in the NOT-proven list.",
+   "urls": [
+    "https://seclists.org/oss-sec/2026/q3/381",
+    "https://sos-vo.org/system/files/sos_files/Qualification_of_Formal_Methods_Tools.pdf",
+    "https://lean-lang.org/doc/reference/stable/releases/v4.32.2/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Implication 1 of 3. Cost estimate (E): 2-4 person-weeks to build corpus + TOR for Lean; incremental thereafter. CI gate: `known_false_corpus_rejected == total`.",
+   "overclaim_risk": "Not a certification; no authority has reviewed this structure.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.implication-case-structure-diverse-evidence",
+   "layer": "L5",
+   "domain": "T-SAFETY-CERT",
+   "type": "artifact",
+   "title": "L5: assurance-case structure: proofs discharge specific code/design claims; testing/fuzz/DST/reproducible build stay as independent legs; compiler and spec-fidelity are explicit residuals",
+   "summary": "From DO-333 (EOC objectives survive; integration tests show compiler preserves semantics), CompCert-at-MTU (proof + validation suite + translation validation + proven-in-use), DeLong/Rushby (goals-evidence-argument), seL4 (proof of model/code but 'probably secure anyway'): (a) every claim node cites >=2 evidence kinds where a proof is one; (b) toolchain residual: rustc/LLVM unverified -> pin Ferrocene-qualified rustc (SIL3/ASIL D) or accept and list; add differential/reproducibility legs; (c) spec-fidelity residual listed as 'not proven' with executable-spec differential tests; (d) which regime credits what is explicit (CC SA-17(1)-type formal policy model credits the Lean policy model, not Verus proofs; MSL roadmaps credit Rust language choice).",
+   "urls": [
+    "https://www.absint.com/compcert/mtu_compcert_erts_2018.pdf",
+    "https://www.commoncriteriaportal.org/iccc/9iccc/pdf/B2410.pdf",
+    "https://ferrous-systems.com/blog/ferrocene-26-02-0/",
+    "https://sel4.systems/Verification/certification.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.65,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Implication 2 of 3. Acceptance criterion: COMPLIANCE_MAP rows each list (claim, proof artifact, independent test artifact, residual).",
+   "overclaim_risk": "Structure is derived from precedent, not regulator-reviewed.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.implication-buyer-recognition-route",
+   "layer": "L5",
+   "domain": "T-SAFETY-CERT",
+   "type": "artifact",
+   "title": "L5: government-buyer recognition route: EUCC/CC at EAL4+ with PP and formal policy model beats pursuing EAL7; proofs presented as supplementary evidence",
+   "summary": "Because (i) no regulator surveyed credits code proofs, (ii) NIAP no longer runs EAL evaluations and EAL6/7 evaluations took ~3.5 years and 'millions', (iii) current separation-kernel certificates land at EAL4+ (L4Re 2026), (iv) CISA wants MSL roadmaps, the cheapest buyer-recognised package for the golden is: MSL language choice + FIPS-validated crypto module + EUCC/CC-style security target at EAL4+ (AVA_VAN.3, ALC_FLR.3) + formal policy model (SA-17(1)) as differentiator. EAL6/7 is a separate funded decision. Reversal condition: a US/EU authority publishes acceptance criteria for machine-checked code proofs.",
+   "urls": [
+    "https://sec-certs.org/eucc/e3bedad9f0d6835b/cert.txt",
+    "https://www.cisa.gov/resources-tools/resources/product-security-bad-practices",
+    "https://vita.militaryembedded.com/201-an-hills-worlds-security/",
+    "https://www.netapp.com/responsibility/trust-center/compliance/common-criteria/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Implication 3 of 3. This is a judgment from sparse evidence (E on EUCC fit for a web server: no protection profile for web servers verified here).",
+   "overclaim_risk": "Judgment node; CC cost for EAL4+ not found; scheme availability for software-only products unverified.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  },
+  {
+   "id": "sc.pikeos-muen-negative",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "type": "negative-result",
+   "title": "PikeOS EAL7 and Muen CC evaluations: no completed certificate found",
+   "summary": "SYSGO PikeOS (ANSSI CSPN) release said EAL7 formal kernel verification being finalized and EAL5+ artifacts prepared; no completion found. Muen has SPARK absence-of-runtime-error proofs (v0.6, Jan 2015) and an IISc ATVA 2020 functional-correctness proof; no CC/BSI evaluation found.",
+   "urls": [
+    "https://sysgo.com/press-releases/sysgos-pikeos-achieved-security-certification-evaluation-according-to-french-national-security-agency",
+    "https://muen.sk/muen-report.pdf",
+    "https://cse.iitk.ac.in/users/inzemam/papers/2020-atva.pdf"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.5,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "Searches only; CC portal not enumerated.",
+   "overclaim_risk": "Absence of evidence.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "09-safety-critical-certification-assurance-historical"
+  }
+ ],
+ "edges": [
+  {
+   "src": "sc.do330-tql-verification-tools",
+   "dst": "sc.do333-credit-scope",
+   "type": "constrains",
+   "note": "proof credit requires tool qualification"
+  },
+  {
+   "src": "sc.no-prover-qualified",
+   "dst": "sc.do330-tql-verification-tools",
+   "type": "instance-of",
+   "note": ""
+  },
+  {
+   "src": "sc.lean-kernel-soundness-2026",
+   "dst": "vfg-lean-multikernel-paranoid-check",
+   "type": "contradicts-partially",
+   "note": "independent kernels (nanoda, leanchecker) also accepted false proof in Aug 2026"
+  },
+  {
+   "src": "sc.lean-kernel-soundness-2026",
+   "dst": "fail-verifier-soundness-bugs",
+   "type": "extends",
+   "note": "adds Lean kernel 2026 incidents"
+  },
+  {
+   "src": "sc.lean-kernel-soundness-2026",
+   "dst": "vfg-native-axiom-tcb",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "sc.cost-per-verified-loc-curve",
+   "dst": "hist-ironfleet-cost-vs-llm",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc.cost-per-verified-loc-curve",
+   "dst": "estimate-proof-cost-per-component",
+   "type": "informs",
+   "note": ""
+  },
+  {
+   "src": "sc.sel4-maintenance-cost",
+   "dst": "hist-sel4-no-verified-web",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc.cc-eal6-eal7-real-evals",
+   "dst": "hist-sel4-no-verified-web",
+   "type": "extends",
+   "note": "seL4 has no CC cert"
+  },
+  {
+   "src": "sc.regulator-2025-26-statements",
+   "dst": "ops.compliance-map-800-53",
+   "type": "informs",
+   "note": ""
+  },
+  {
+   "src": "sc.regulator-2025-26-statements",
+   "dst": "ops.cra-obligation-split",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "sc.implication-buyer-recognition-route",
+   "dst": "ops.compliance-map-800-53",
+   "type": "informs",
+   "note": "SA-17(1) row"
+  },
+  {
+   "src": "sc.implication-buyer-recognition-route",
+   "dst": "ops.fedramp-20x-ksi-mapping",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "sc.implication-checker-qualification-arguments",
+   "dst": "l5-tbi-tool-assignment",
+   "type": "informs",
+   "note": "which checkers need qualification args"
+  },
+  {
+   "src": "sc.implication-checker-qualification-arguments",
+   "dst": "vfg-ci-walltime-toy-and-reference",
+   "type": "informs",
+   "note": "corpus run adds CI time"
+  },
+  {
+   "src": "sc.implication-case-structure-diverse-evidence",
+   "dst": "sc.compcert-qualification-evidence",
+   "type": "derived-from",
+   "note": ""
+  },
+  {
+   "src": "sc.implication-case-structure-diverse-evidence",
+   "dst": "sc.ferrocene-qualified-rustc",
+   "type": "derived-from",
+   "note": ""
+  },
+  {
+   "src": "sc.compcert-qualification-evidence",
+   "dst": "sc.do330-tql-verification-tools",
+   "type": "instance-of",
+   "note": ""
+  },
+  {
+   "src": "sc.cc-formal-requirements",
+   "dst": "sc.cc-eal6-eal7-real-evals",
+   "type": "constrains",
+   "note": ""
+  },
+  {
+   "src": "sc.tokeneer-fixed-price-eal5",
+   "dst": "sc.cost-per-verified-loc-curve",
+   "type": "data-point",
+   "note": ""
+  },
+  {
+   "src": "sc.pikeos-muen-negative",
+   "dst": "sc.cc-eal6-eal7-real-evals",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc.ferrocene-qualified-rustc",
+   "dst": "proof-kani-verify-rust-std",
+   "type": "related",
+   "note": "qualified compiler vs verified std"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Fetch DO-330 text (RTCA) or FAA Order 8110.49A/CAST-35 to confirm criterion-2 TQL-4/5 mapping and whether proof-replaces-test counts as criterion 2",
+   "layer": "L2",
+   "domain": "T-SAFETY-CERT",
+   "expected_info_gain": 0.5,
+   "reason": "Mapping currently from 2015 slides; load-bearing for qualification-cost claim"
+  },
+  {
+   "question": "CC portal / sec-certs enumeration: all EAL6/6+/7 certificates with dates, TOE size, lab; any software-only server TOEs at EAL4+ under EUCC",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "expected_info_gain": 0.45,
+   "reason": "Gives real denominators for buyer-recognition route"
+  },
+  {
+   "question": "Read ERTS/CEC papers on SPARK DO-333 usage numbers (Thales, NVIDIA SPARK, Dassault) for percentage of objectives or tests replaced",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "expected_info_gain": 0.4,
+   "reason": "No quantified test reduction found"
+  },
+  {
+   "question": "Implementation spike: build known-false-proof regression corpus from Lean #14484/#14576, Rocq critical-bugs, Z3/Dafny issues; run against pinned toolchain",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.4,
+   "reason": "Acceptance gate for sc.implication-checker-qualification-arguments"
+  },
+  {
+   "question": "Does Ferrocene qualification cover x86_64-unknown-linux-gnu servers and which rustc version; TUV SUD certificate text",
+   "layer": "L4",
+   "domain": "T-SAFETY-CERT",
+   "expected_info_gain": 0.35,
+   "reason": "Determines whether qualified rustc is usable for the golden"
+  },
+  {
+   "question": "Read full NSA/CISA MSL CSI (June 2025) and NIST SSDF/EO 14306 text for any mention of formal methods or sound static analysis as mitigation",
+   "layer": "L3",
+   "domain": "T-SAFETY-CERT",
+   "expected_info_gain": 0.3,
+   "reason": "PDF not fetched; snippets only"
+  }
+ ],
+ "protocol_implications": [
+  "Three assurance-case implications: (1) trusted checkers need TQL-5-style qualification arguments plus a known-false-proof regression corpus (Lean kernel soundness incidents Jul-Aug 2026 defeated kernel+nanoda+leanchecker); (2) proofs discharge specific claims while tests/fuzz/DST/reproducible builds remain independent legs and the unverified compiler and spec fidelity stay explicit residuals; (3) buyer recognition comes from MSL choice + EAL4+/formal policy model, not from code proofs, which no surveyed regulator credits.",
+  "R-FORMAL-2 (prover per component): qualification cost is not the discriminator (no prover is qualified, TQL-5 is cheap); small-kernel + second-checker agreement and absence of untrusted metaprograms are. Reuse of Lean with core-only deps reduces metaprogram attack surface.",
+  "COMPLIANCE_MAP: add rows keyed to SA-17(1) formal policy model (credits Lean policy model), SA-11/SA-15 testing evidence, CISA MSL roadmap; each row must have a residual column.",
+  "NOT-proven list wording for government buyers: 'machine-checked proofs cover X; no regulator surveyed (CISA, NSA, ANSSI, BSI, EASA, FAA) has published criteria crediting them; compiler (rustc/LLVM) unverified (Ferrocene-qualified option); proof checker TCB versions pinned with a known-false-proof corpus; spec fidelity validated by executable-spec differential tests.'"
+ ],
+ "self_improvement": [
+  "WebFetch on PDFs returns binary; the tool saves the PDF to tool-results - run pdftotext on that saved file immediately (worked for Cofer, Heiser, Klein, MTU, DeLong).",
+  "novelty_gate.py was not run (agent environment; fell back to grep of queries.jsonl/graph.jsonl for DO-178/CompCert/EAL: zero prior hits).",
+  "Searches via WebSearch return snippets with caveats; for load-bearing numbers always fetch the primary and read with pdftotext."
+ ],
+ "notes": {
+  "queries_run": 38,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "distinct_sources_read": 31,
+  "skeptic_query_share": "about 0.35 (no prover qualified, formal-adds-burden, Lean/Coq bugs, Csmith unverified parts, regulator acceptance, Heiser skeptic quote)",
+  "vocabularies": "DO-178C/DO-333/DO-330, IEC 61508/60880, ISO 26262, Common Criteria/NIAP/EUCC, NIST 800-53 SA-17, CISA/NSA/EASA",
+  "source_types": "standards summaries, vendor kits, experience-report papers, slides, advisories/release notes, press, mailing list",
+  "new_nodes": 16,
+  "reused_ids": [
+   "fail-verifier-soundness-bugs",
+   "vfg-lean-multikernel-paranoid-check",
+   "hist-sel4-no-verified-web",
+   "hist-ironfleet-cost-vs-llm",
+   "estimate-proof-cost-per-component",
+   "ops.compliance-map-800-53",
+   "ops.fedramp-20x-ksi-mapping",
+   "ops.cra-obligation-split",
+   "l5-tbi-tool-assignment",
+   "vfg-ci-walltime-toy-and-reference",
+   "vfg-native-axiom-tcb",
+   "proof-kani-verify-rust-std"
+  ],
+  "correction": "CISA roadmap deadline is end of 2025 per CISA page, not Jan 1 2026 as in secondary sources.",
+  "main_table": [
+   {
+    "regime": "DO-178C + DO-333 (avionics, FAA/EASA)",
+    "proof_buys": "sound formal analysis may replace specific reviews/analyses/unit tests (FM.A-7 obj 5-8); EOC objectives partly",
+    "still_required": "EOC integration testing on target, requirements/architecture reviews, soundness argument for the method, tool qualification",
+    "qualification_cost": "TQL-4 (A/B) or TQL-5 (C/D) for provers whose output eliminates other verification; no prover qualified found; no $",
+    "source": "Cofer 2015 slides; AdaCore booklet; Moy 2017-02-24"
+   },
+   {
+    "regime": "DO-330 applied to compilers (CompCert)",
+    "proof_buys": "optimizations enabled (-28% code, -40% stack at MTU); less compiler testing",
+    "still_required": "validation suite, translation validation (Valex) for asm/link, proven-in-use evidence; qualification of Astree/Valex",
+    "qualification_cost": "proof 6 py/100k Coq lines; qualification effort unpublished",
+    "source": "Kastner et al ERTS 2018; AbsInt 2026-03-20 ATR release"
+   },
+   {
+    "regime": "Common Criteria EAL6/EAL7",
+    "proof_buys": "EAL6 semiformal-to-formal design, EAL7 formal policy model + formal correspondence (impl mapping may be informal)",
+    "still_required": "pen testing (NSA for INTEGRITY), vulnerability analysis, full ALC/ATE, lab evaluation",
+    "qualification_cost": "INTEGRITY-178B 2005-2008 'millions', ~$1,000/LOC rule for EAL6; person-years not published",
+    "source": "sel4.systems certification page; VITA 2009; Heiser 2013"
+   },
+   {
+    "regime": "ISO 26262 ASIL D",
+    "proof_buys": "formal verification only 'recommended'; any analysis vs a formal spec satisfies",
+    "still_required": "testing per tables, tool confidence level (TCL) for tools",
+    "qualification_cost": "Ferrocene rustc qualified ASIL D, EUR 25/user/month",
+    "source": "sel4.systems page; Ferrocene 26.02.0"
+   },
+   {
+    "regime": "IEC 61508 / 60880 (industrial, nuclear)",
+    "proof_buys": "credit for tool (compiler) confidence in SCL3 / category A project",
+    "still_required": "validation evidence, user experience",
+    "qualification_cost": "Ferrocene SIL3 vendor-qualified; MTU CompCert 2017 self-qualified",
+    "source": "Ferrous Systems 2026; AbsInt page"
+   },
+   {
+    "regime": "CISA/NSA MSL guidance 2025",
+    "proof_buys": "nothing explicit; MSL language choice and roadmap are the evidence",
+    "still_required": "memory safety roadmap by end 2025; reasonable-effort demonstration",
+    "qualification_cost": "none",
+    "source": "CISA Product Security Bad Practices; CSI 2025-06-24"
+   },
+   {
+    "regime": "NIST 800-53r5 SA-17(1)",
+    "proof_buys": "formal policy model with consistency/sufficiency proof",
+    "still_required": "rest of SA family, assessor judgment",
+    "qualification_cost": "none specified",
+    "source": "cloudaware mirror (verify vs NIST)"
+   }
+  ]
+ }
+}

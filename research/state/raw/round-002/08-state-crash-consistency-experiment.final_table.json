@@ -1,0 +1,687 @@
+[
+ {
+  "store": "canopydb",
+  "cfg": "async",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 1430,
+   "lost_ack": 10600
+  },
+  "sigkill_all_full": {
+   "ok": 1203
+  },
+  "strict_dropall": {
+   "ok": 23,
+   "lost_ack": 1180
+  },
+  "journal_dropall": {
+   "ok": 23,
+   "lost_ack": 1180
+  },
+  "journal_subset": {
+   "ok": 24,
+   "lost_ack": 1179
+  },
+  "lag": {
+   "2": 76,
+   "3": 47,
+   "4": 56,
+   "5": 60,
+   "6": 80,
+   "7": 69,
+   "8": 71,
+   "9": 10081,
+   "1": 60
+  }
+ },
+ {
+  "store": "canopydb",
+  "cfg": "default",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 1430,
+   "lost_ack": 10600
+  },
+  "sigkill_all_full": {
+   "ok": 1203
+  },
+  "strict_dropall": {
+   "ok": 23,
+   "lost_ack": 1180
+  },
+  "journal_dropall": {
+   "ok": 23,
+   "lost_ack": 1180
+  },
+  "journal_subset": {
+   "ok": 24,
+   "lost_ack": 1179
+  },
+  "lag": {
+   "2": 76,
+   "3": 47,
+   "4": 56,
+   "5": 60,
+   "6": 80,
+   "7": 69,
+   "8": 71,
+   "9": 10081,
+   "1": 60
+  }
+ },
+ {
+  "store": "canopydb",
+  "cfg": "sync",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 12030
+  },
+  "sigkill_all_full": {
+   "ok": 1203
+  },
+  "strict_dropall": {
+   "ok": 1203
+  },
+  "journal_dropall": {
+   "ok": 1203
+  },
+  "journal_subset": {
+   "ok": 1203
+  },
+  "lag": {}
+ },
+ {
+  "store": "fjall",
+  "cfg": "default",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 5292,
+   "init_open_fail": 75,
+   "lost_ack": 6658,
+   "open_fail": 5
+  },
+  "sigkill_all_full": {
+   "ok": 754,
+   "init_open_fail": 8,
+   "lost_ack": 441
+  },
+  "strict_dropall": {
+   "ok": 490,
+   "init_open_fail": 9,
+   "lost_ack": 704
+  },
+  "journal_dropall": {
+   "ok": 492,
+   "init_open_fail": 7,
+   "lost_ack": 704
+  },
+  "journal_subset": {
+   "ok": 503,
+   "init_open_fail": 6,
+   "lost_ack": 693,
+   "open_fail": 1
+  },
+  "lag": {
+   "2": 422,
+   "3": 466,
+   "4": 273,
+   "5": 222,
+   "8": 181,
+   "9": 4379,
+   "1": 392,
+   "6": 164,
+   "7": 159
+  }
+ },
+ {
+  "store": "fjall",
+  "cfg": "syncall",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 11952,
+   "init_open_fail": 78
+  },
+  "sigkill_all_full": {
+   "init_open_fail": 8,
+   "ok": 1195
+  },
+  "strict_dropall": {
+   "init_open_fail": 8,
+   "ok": 1195
+  },
+  "journal_dropall": {
+   "ok": 1196,
+   "init_open_fail": 7
+  },
+  "journal_subset": {
+   "ok": 1197,
+   "init_open_fail": 6
+  },
+  "lag": {}
+ },
+ {
+  "store": "fjall",
+  "cfg": "syncdata",
+  "seeds": [
+   1,
+   2,
+   3
+  ],
+  "states": 12030,
+  "classes": {
+   "ok": 11959,
+   "init_open_fail": 71
+  },
+  "sigkill_all_full": {
+   "init_open_fail": 8,
+   "ok": 1195
+  },
+  "strict_dropall": {
+   "ok": 1195,
+   "init_open_fail": 8
+  },
+  "journal_dropall": {
+   "ok": 1197,
+   "init_open_fail": 6
+  },
+  "journal_subset": {
+   "ok": 1196,
+   "init_open_fail": 7
+  },
+  "lag": {}
+ },
+ {
+  "store": "heed",
+  "cfg": "default",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 3422,
+   "lost_ack": 587,
+   "init_open_fail": 1
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 207,
+   "lost_ack": 194
+  },
+  "journal_dropall": {
+   "ok": 401
+  },
+  "journal_subset": {
+   "ok": 401
+  },
+  "lag": {}
+ },
+ {
+  "store": "heed",
+  "cfg": "nometasync",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 1784,
+   "lost_ack": 2225,
+   "init_open_fail": 1
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 28,
+   "lost_ack": 373
+  },
+  "journal_dropall": {
+   "ok": 62,
+   "lost_ack": 339
+  },
+  "journal_subset": {
+   "ok": 222,
+   "lost_ack": 179
+  },
+  "lag": {
+   "1": 1613,
+   "2": 1,
+   "3": 3,
+   "4": 2,
+   "5": 2,
+   "6": 10,
+   "7": 3,
+   "8": 6,
+   "9": 585
+  }
+ },
+ {
+  "store": "heed",
+  "cfg": "nosync",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 420,
+   "lost_ack": 3057,
+   "init_open_fail": 2,
+   "open_fail": 395,
+   "atomicity": 2,
+   "read_fail": 23,
+   "crash_sig11": 55,
+   "crash_sig7": 55,
+   "init_crash_sig7": 1
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 2,
+   "lost_ack": 399
+  },
+  "journal_dropall": {
+   "ok": 2,
+   "lost_ack": 399
+  },
+  "journal_subset": {
+   "ok": 1,
+   "init_open_fail": 1,
+   "open_fail": 109,
+   "lost_ack": 260,
+   "atomicity": 2,
+   "read_fail": 4,
+   "crash_sig11": 11,
+   "crash_sig7": 13
+  },
+  "lag": {}
+ },
+ {
+  "store": "redb",
+  "cfg": "imm",
+  "seeds": [
+   1,
+   2
+  ],
+  "states": 8010,
+  "classes": {
+   "ok": 6833,
+   "lost_ack": 1177
+  },
+  "sigkill_all_full": {
+   "ok": 801
+  },
+  "strict_dropall": {
+   "ok": 418,
+   "lost_ack": 383
+  },
+  "journal_dropall": {
+   "ok": 801
+  },
+  "journal_subset": {
+   "ok": 801
+  },
+  "lag": {
+   "1": 1,
+   "2": 1,
+   "3": 2,
+   "5": 2,
+   "6": 2,
+   "9": 593,
+   "7": 2
+  }
+ },
+ {
+  "store": "redb",
+  "cfg": "imm2pc",
+  "seeds": [
+   1,
+   2
+  ],
+  "states": 8020,
+  "classes": {
+   "ok": 6844,
+   "lost_ack": 1176
+  },
+  "sigkill_all_full": {
+   "ok": 802
+  },
+  "strict_dropall": {
+   "ok": 422,
+   "lost_ack": 380
+  },
+  "journal_dropall": {
+   "ok": 802
+  },
+  "journal_subset": {
+   "ok": 802
+  },
+  "lag": {
+   "1": 3,
+   "2": 1,
+   "6": 3,
+   "8": 2,
+   "9": 584,
+   "3": 2,
+   "5": 1
+  }
+ },
+ {
+  "store": "redb",
+  "cfg": "none",
+  "seeds": [
+   1,
+   2
+  ],
+  "states": 6160,
+  "classes": {
+   "ok": 117,
+   "init_open_fail": 43,
+   "lost_ack": 6000
+  },
+  "sigkill_all_full": {
+   "ok": 10,
+   "init_open_fail": 6,
+   "lost_ack": 600
+  },
+  "strict_dropall": {
+   "ok": 14,
+   "init_open_fail": 2,
+   "lost_ack": 600
+  },
+  "journal_dropall": {
+   "ok": 12,
+   "init_open_fail": 4,
+   "lost_ack": 600
+  },
+  "journal_subset": {
+   "ok": 12,
+   "init_open_fail": 4,
+   "lost_ack": 600
+  },
+  "lag": {
+   "1": 10,
+   "2": 10,
+   "3": 10,
+   "4": 10,
+   "5": 10,
+   "6": 10,
+   "7": 10,
+   "8": 10,
+   "9": 2920
+  }
+ },
+ {
+  "store": "sqlite",
+  "cfg": "del-full",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 3347,
+   "lost_ack": 509,
+   "init_open_fail": 1,
+   "atomicity": 32,
+   "read_fail": 37,
+   "open_fail": 24,
+   "state_mismatch": 39,
+   "integrity_fail": 21
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 326,
+   "lost_ack": 75
+  },
+  "journal_dropall": {
+   "ok": 314,
+   "lost_ack": 87
+  },
+  "journal_subset": {
+   "ok": 312,
+   "lost_ack": 89
+  },
+  "lag": {}
+ },
+ {
+  "store": "sqlite",
+  "cfg": "del-normal",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 3377,
+   "lost_ack": 507,
+   "open_fail": 29,
+   "integrity_fail": 28,
+   "read_fail": 36,
+   "atomicity": 12,
+   "state_mismatch": 21
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 325,
+   "lost_ack": 76
+  },
+  "journal_dropall": {
+   "ok": 300,
+   "lost_ack": 101
+  },
+  "journal_subset": {
+   "ok": 305,
+   "lost_ack": 96
+  },
+  "lag": {
+   "1": 507
+  }
+ },
+ {
+  "store": "sqlite",
+  "cfg": "trunc-full",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 4010
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 401
+  },
+  "journal_dropall": {
+   "ok": 401
+  },
+  "journal_subset": {
+   "ok": 401
+  },
+  "lag": {}
+ },
+ {
+  "store": "sqlite",
+  "cfg": "wal-extra",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 4010
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 401
+  },
+  "journal_dropall": {
+   "ok": 401
+  },
+  "journal_subset": {
+   "ok": 401
+  },
+  "lag": {}
+ },
+ {
+  "store": "sqlite",
+  "cfg": "wal-full",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 4010
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 401
+  },
+  "journal_dropall": {
+   "ok": 401
+  },
+  "journal_subset": {
+   "ok": 401
+  },
+  "lag": {}
+ },
+ {
+  "store": "sqlite",
+  "cfg": "wal-normal",
+  "seeds": [
+   1
+  ],
+  "states": 4010,
+  "classes": {
+   "ok": 619,
+   "lost_ack": 3391
+  },
+  "sigkill_all_full": {
+   "ok": 401
+  },
+  "strict_dropall": {
+   "ok": 20,
+   "lost_ack": 381
+  },
+  "journal_dropall": {
+   "ok": 20,
+   "lost_ack": 381
+  },
+  "journal_subset": {
+   "ok": 20,
+   "lost_ack": 381
+  },
+  "lag": {
+   "2": 60,
+   "3": 73,
+   "5": 87,
+   "6": 70,
+   "7": 68,
+   "8": 79,
+   "9": 2770,
+   "1": 107,
+   "4": 77
+  }
+ },
+ {
+  "store": "wal",
+  "cfg": "naive",
+  "seeds": [
+   1,
+   2
+  ],
+  "states": 8000,
+  "classes": {
+   "ok": 836,
+   "lost_ack": 6679,
+   "crash_rc101": 239,
+   "state_mismatch": 246
+  },
+  "sigkill_all_full": {
+   "ok": 800
+  },
+  "strict_dropall": {
+   "ok": 2,
+   "lost_ack": 798
+  },
+  "journal_dropall": {
+   "ok": 2,
+   "lost_ack": 798
+  },
+  "journal_subset": {
+   "ok": 3,
+   "lost_ack": 637,
+   "crash_rc101": 73,
+   "state_mismatch": 87
+  },
+  "lag": {
+   "1": 14,
+   "3": 17,
+   "4": 19,
+   "5": 14,
+   "6": 14,
+   "7": 12,
+   "8": 26,
+   "9": 3195,
+   "2": 12
+  }
+ },
+ {
+  "store": "wal",
+  "cfg": "walcrc",
+  "seeds": [
+   1,
+   2
+  ],
+  "states": 8020,
+  "classes": {
+   "ok": 8020
+  },
+  "sigkill_all_full": {
+   "ok": 802
+  },
+  "strict_dropall": {
+   "ok": 802
+  },
+  "journal_dropall": {
+   "ok": 802
+  },
+  "journal_subset": {
+   "ok": 802
+  },
+  "lag": {}
+ }
+]

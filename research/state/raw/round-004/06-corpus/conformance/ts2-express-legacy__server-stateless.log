@@ -1,0 +1,899 @@
+Running client scenario 'server-stateless' against server: http://127.0.0.1:18003/mcp
+Checks:
+[90m2026-10-25T08:17:09.392Z[0m [sep-2575-http-server-error-jsonrpc-id                          ] [31mFAILURE[0m All error responses carry the request JSON-RPC id
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-request-meta-invalid-missing-meta                     ] [31mFAILURE[0m Rejects request with missing _meta with -32602 Invalid params
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-meta-invalid-400                          ] [32mSUCCESS[0m Rejections of requests missing required _meta fields use HTTP 400 Bad Request.
+[90m2026-10-25T08:17:09.395Z[0m [sep-2575-http-server-error-jsonrpc-id                          ] [31mFAILURE[0m All error responses carry the request JSON-RPC id
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-request-meta-invalid-missing-protocol-version         ] [31mFAILURE[0m Rejects request with _meta missing io.modelcontextprotocol/protocolVersion
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-meta-invalid-400                          ] [32mSUCCESS[0m Rejections of requests missing required _meta fields use HTTP 400 Bad Request.
+[90m2026-10-25T08:17:09.398Z[0m [sep-2575-http-server-error-jsonrpc-id                          ] [31mFAILURE[0m All error responses carry the request JSON-RPC id
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-request-meta-invalid-missing-client-capabilities      ] [31mFAILURE[0m Rejects request with _meta missing io.modelcontextprotocol/clientCapabilities
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-meta-invalid-400                          ] [32mSUCCESS[0m Rejections of requests missing required _meta fields use HTTP 400 Bad Request.
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-request-meta-client-info-optional                     ] [31mFAILURE[0m Serves requests whose _meta omits io.modelcontextprotocol/clientInfo (clientInfo is a SHOULD).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-implements-discover                            ] [31mFAILURE[0m Servers MUST implement server/discover.
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-identifies-in-result-meta                      ] [33mWARNING[0m Servers SHOULD identify themselves via _meta['io.modelcontextprotocol/serverInfo'] on responses (spec PR #3002).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-declares-prompts-in-discover                   ] [31mFAILURE[0m Servers that support prompts MUST declare the prompts capability in their DiscoverResult.
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-discover-capabilities-match-handlers                  ] [31mFAILURE[0m capabilities matches what the server honors on real RPC calls
+[90m2026-10-25T08:17:09.409Z[0m [sep-2575-http-server-error-jsonrpc-id                          ] [31mFAILURE[0m All error responses carry the request JSON-RPC id
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-unsupported-version-error                      ] [31mFAILURE[0m If the server does not implement the requested version (whether the version is unknown to the server, or is a known version the server has chosen not to support), it MUST respond with an UnsupportedProtocolVersionError listing the versions it does support; the error data carries the supported versions and echoes the requested version.
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-unsupported-version-400                   ] [32mSUCCESS[0m If the server does not implement the requested protocol version, it MUST respond with 400 Bad Request and an UnsupportedProtocolVersionError listing its supported versions.
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-header-mismatch-400                       ] [31mFAILURE[0m If the values do not match, the server MUST reject the request with 400 Bad Request and a HeaderMismatch JSON-RPC error.
+[90m2026-10-25T08:17:09.413Z[0m [sep-2575-http-server-error-jsonrpc-id                          ] [31mFAILURE[0m All error responses carry the request JSON-RPC id
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-rejects-undeclared-capability                  ] [31mFAILURE[0m A server MUST NOT rely on capabilities the client has not declared. If processing a request requires a capability the client did not include in io.modelcontextprotocol/clientCapabilities, the server MUST return a MissingRequiredClientCapabilityError (-32021).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-missing-capability-http-400                           ] [31mFAILURE[0m On HTTP, the response status MUST be 400 Bad Request [for MissingRequiredClientCapabilityError].
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404-initialize           ] [31mFAILURE[0m If the server does not implement the removed RPC method 'initialize', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404-ping                 ] [31mFAILURE[0m If the server does not implement the removed RPC method 'ping', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404-logging-setlevel     ] [31mFAILURE[0m If the server does not implement the removed RPC method 'logging/setLevel', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404-resources-subscribe  ] [31mFAILURE[0m If the server does not implement the removed RPC method 'resources/subscribe', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404-resources-unsubscribe] [31mFAILURE[0m If the server does not implement the removed RPC method 'resources/unsubscribe', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-method-not-found-404                      ] [31mFAILURE[0m If the server does not implement the requested RPC method, it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-http-server-no-independent-requests-on-stream         ] [31mFAILURE[0m Request stream contains only IncompleteResult, never independent JSON-RPC requests
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-no-log-without-loglevel                        ] [31mFAILURE[0m No notifications/message for requests that didn't set _meta.../logLevel
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-sends-subscription-ack                         ] [31mFAILURE[0m notifications/subscriptions/acknowledged is the first message on a subscriptions/listen stream
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-tags-subscription-id                           ] [31mFAILURE[0m Listen-stream notifications carry _meta.../subscriptionId
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-honors-notification-filter                     ] [32mSUCCESS[0m Server doesn't send notification types the client didn't request
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-sends-prompts-list-changed-on-subscription     ] [0mSKIPPED[0m List-changed-capable servers notify listen streams with promptsListChanged: true (SHOULD)
+[90m2026-10-25T08:17:09.379Z[0m [sep-2575-server-sends-tools-list-changed-on-subscription       ] [0mSKIPPED[0m List-changed-capable servers notify listen streams with toolsListChanged: true (SHOULD)
+
+Test Results:
+Passed: 5/31, 26 failed, 1 warnings
+
+=== Failed Checks ===
+
+  - HttpServerErrorJsonrpcId: All error responses carry the request JSON-RPC id
+    Error: Expected error response id 101, got null
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - RequestMetaInvalid: Rejects request with missing _meta with -32602 Invalid params
+    Error: Expected error code -32602, got -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerErrorJsonrpcId: All error responses carry the request JSON-RPC id
+    Error: Expected error response id 102, got null
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - RequestMetaInvalid: Rejects request with _meta missing io.modelcontextprotocol/protocolVersion
+    Error: Expected error code -32602, got -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerErrorJsonrpcId: All error responses carry the request JSON-RPC id
+    Error: Expected error response id 104, got null
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - RequestMetaInvalid: Rejects request with _meta missing io.modelcontextprotocol/clientCapabilities
+    Error: Expected error code -32602, got -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - RequestMetaClientInfoOptional: Serves requests whose _meta omits io.modelcontextprotocol/clientInfo (clientInfo is a SHOULD).
+    Error: Expected a result, got error -32000: Bad Request: Unsupported protocol version: 2026-07-28 (supported versions: 2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05, 2024-10-07)
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerImplementsDiscover: Servers MUST implement server/discover.
+    Error: Missing mandatory fields in discover response setup
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerDeclaresPromptsInDiscover: Servers that support prompts MUST declare the prompts capability in their DiscoverResult.
+    Error: Server handles prompts but did not declare prompts capability in discover result
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - DiscoverCapabilitiesMatchHandlers: capabilities matches what the server honors on real RPC calls
+    Error: Did not advertise tools capability but tools/list did not yield -32601
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerErrorJsonrpcId: All error responses carry the request JSON-RPC id
+    Error: Expected error response id 301, got null
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerUnsupportedVersionError: If the server does not implement the requested version (whether the version is unknown to the server, or is a known version the server has chosen not to support), it MUST respond with an UnsupportedProtocolVersionError listing the versions it does support; the error data carries the supported versions and echoes the requested version.
+    Error: Returned supported versions data layout does not correlate to active server metrics: undefined
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerHeaderMismatch400: If the values do not match, the server MUST reject the request with 400 Bad Request and a HeaderMismatch JSON-RPC error.
+    Error: Expected HTTP 400 and JSON-RPC error -32020, got status 400 with code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerErrorJsonrpcId: All error responses carry the request JSON-RPC id
+    Error: Expected error response id 401, got null
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerRejectsUndeclaredCapability: A server MUST NOT rely on capabilities the client has not declared. If processing a request requires a capability the client did not include in io.modelcontextprotocol/clientCapabilities, the server MUST return a MissingRequiredClientCapabilityError (-32021).
+    Error: Not testable: server does not list the diagnostic tool 'test_missing_capability' in tools/list and the probe call did not exercise it (required for the undeclared-capability rejection)
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - MissingCapabilityHttp400: On HTTP, the response status MUST be 400 Bad Request [for MissingRequiredClientCapabilityError].
+    Error: Not testable: server does not list the diagnostic tool 'test_missing_capability' in tools/list, so the -32021 HTTP status could not be validated
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404initialize: If the server does not implement the removed RPC method 'initialize', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and code -32601 for removed methods, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404ping: If the server does not implement the removed RPC method 'ping', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and code -32601 for removed methods, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404loggingsetLevel: If the server does not implement the removed RPC method 'logging/setLevel', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and code -32601 for removed methods, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404resourcessubscribe: If the server does not implement the removed RPC method 'resources/subscribe', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and code -32601 for removed methods, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404resourcesunsubscribe: If the server does not implement the removed RPC method 'resources/unsubscribe', it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and code -32601 for removed methods, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerMethodNotFound404: If the server does not implement the requested RPC method, it MUST respond with 404 Not Found and a JSON-RPC error with code -32601 (Method not found).
+    Error: Expected HTTP 404 and JSON-RPC error code -32601, got HTTP 400 and code -32000
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - HttpServerNoIndependentRequestsOnStream: Request stream contains only IncompleteResult, never independent JSON-RPC requests
+    Error: Not testable: server does not list the diagnostic tool 'test_streaming_elicitation' in tools/list, so the response stream could not be exercised
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerNoLogWithoutLogLevel: No notifications/message for requests that didn't set _meta.../logLevel
+    Error: Not testable: server does not list the diagnostic tool 'test_logging_tool' in tools/list, so the no-log-without-logLevel requirement could not be exercised
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerSendsSubscriptionAck: notifications/subscriptions/acknowledged is the first message on a subscriptions/listen stream
+    Error: Expected first frame method to be 'notifications/subscriptions/acknowledged', got 'undefined'
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  
+
+  - ServerTagsSubscriptionId: Listen-stream notifications carry _meta.../subscriptionId
+    Error: subscriptions/listen stream carried no notification frames to inspect
+
+Test stateless MCP server architecture (SEP-2575).
+
+[1mServer Implementation Requirements:[0m
+
+[1mEndpoints[0m:
+- [2mserver/discover[0m: Returns supportedVersions and capabilities; SHOULD identify itself via [2m_meta['io.modelcontextprotocol/serverInfo'][0m (spec PR #3002).
+- [2mtools/call[0m: Implement structural test tools like [2mtest_missing_capability[0m requiring explicit capabilities in [2m_meta[0m.
+
+[1mGrouped Specification Requirements[0m:
+
+1. [1mPer-Request _meta Validation (4 Checks)[0m
+   - Rejects requests missing [2m_meta[0m or lacking structural required internal subfields ([2mprotocolVersion[0m, [2mclientCapabilities[0m) with a JSON-RPC [2m-32602 Invalid params[0m error signature and an HTTP status code [2m400 Bad Request[0m.
+   - Serves requests whose [2m_meta[0m omits [2mclientInfo[0m (a SHOULD since spec PR #3002 — servers MUST NOT require it).
+2. [1mDiscovery & Capabilities (3 Checks)[0m
+   - Implements [2mserver/discover[0m mapping exact mandatory protocol elements.
+   - Dynamically checks prompt capability declaration constraints, validates that active RPC handlers match advertised discovery capacities.
+3. [1mVersion Negotiation & Headers (3 Checks)[0m
+   - Mismatched or unknown protocol versions must return an [2mUnsupportedProtocolVersionError[0m (HTTP status code [2m400 Bad Request[0m) carrying precise version tracking arrays.
+   - Absent or altered protocol version header metadata must trigger a [2m-32020 Header Mismatch[0m error with an HTTP 400 boundary state.
+4. [1mClient Capability Constraints (2 Checks)[0m
+   - Accessing platform capabilities without explicit declaration drops requests with a [2m-32021 MissingRequiredClientCapabilityError[0m returning an HTTP status code [2m400 Bad Request[0m. Its [2merror.data.requiredCapabilities[0m is a [2mClientCapabilities[0m object keyed by the missing capability (e.g. [2m{ "sampling": {} }[0m), not an array of names.
+5. [1mMethods & Routing Mechanics (5 Checks)[0m
+   - Removed legacy endpoints ([2minitialize[0m, [2mping[0m, [2mlogging/setLevel[0m, etc.) or generic unknown methods must cleanly yield an HTTP status code [2m404 Not Found[0m alongside a JSON-RPC [2m-32601 Method not found[0m payload. All error returns must preserve original request ID mappings.
+   - Validates response streams contain only [2mIncompleteResult[0m chunks and never independent top-level JSON-RPC requests, while enforcing that no log messages are emitted when [2m_meta.../logLevel[0m is omitted.
+6. [1mSubscription Streams & Filtering (3 Checks)[0m
+   - Mandates that [2mnotifications/subscriptions/acknowledged[0m is the first message on a [2msubscriptions/listen[0m stream, and that subsequent notifications carry a matching [2m_meta.../subscriptionId[0m.
+   - Verifies strict containment where servers do not dispatch notification types that fall outside the client's explicit requested subscription filter list.
+7. [1mDynamic List Mutations (2 Checks)[0m
+   - Evaluates that list-changed capable servers notify active listen streams with [2mpromptsListChanged: true[0m or [2mtoolsListChanged: true[0m upon live configuration or capability modifications.  

@@ -1,0 +1,43 @@
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i02-tokio-postgres-1374-leak", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i03-diesel-async-304-stale-result", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i04-redis-py-cve-2023-28858", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i05-go-cve-2025-47907", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i08-oneshot-uaf-on-cancel", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i09-omicron-3140-disconnect-mutex", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i10-futurelock", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i12-pg-pool-connect-timeout-leak", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.observed-vs-actual-outcome", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.i06-pg-cancelrequest-untargeted", "dst": "ac.root-cause-drop-at-await", "type": "instance_of", "note": ""}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "ac.root-cause-drop-at-await", "type": "amplifies", "note": "remote timing control"}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "l4-cve-corpus-h2-h3-2023-2026", "type": "extends", "note": "RST_STREAM as a cancellation-timing primitive, not only a DoS"}
+{"src": "ac.attacker-chosen-cancel-instant", "dst": "l4-handler-bounded-designs", "type": "extends", "note": "MadeYouReset = cancellation not propagated; the dual case"}
+{"src": "ac.counter-hypothesis-one-txn-outbox", "dst": "sdg-failed-request-no-mutation", "type": "refutes_sufficiency_of", "note": "one-txn rule necessary, not sufficient"}
+{"src": "ac.counter-hypothesis-one-txn-outbox", "dst": "sdg-exactly-once-boundary", "type": "depends_on", "note": ""}
+{"src": "ac.l5-inv-nomut-c", "dst": "sdg-failed-request-no-mutation", "type": "extends", "note": "adds NC1-NC8; turns the ambiguous-commit carve-out into a latch"}
+{"src": "ac.l5-inv-nomut-c", "dst": "crs-l5-invariant-text", "type": "extends", "note": "NC3 refines C8 and C6"}
+{"src": "ac.l5-inv-nomut-c", "dst": "vfg-policy-tristate-failclosed-invariant", "type": "extends", "note": "NC5: cancel/timeout => Error => Deny"}
+{"src": "ac.l5-inv-nomut-c", "dst": "abuse-L5-budget-invariants", "type": "extends", "note": "NC4 refines I5 (debit before work), I7"}
+{"src": "ac.l5-inv-nomut-c", "dst": "sdg-l5-idempotency-store", "type": "depends_on", "note": "NC2 outcome record; in_flight lease TTL"}
+{"src": "ac.l5-inv-nomut-c", "dst": "vfg-invariant-survival-table", "type": "extends", "note": "survival classification of NC1-NC8"}
+{"src": "ac.l5-inv-nomut-c", "dst": "dpf-l5-allowlist-generation", "type": "precondition_for", "note": "NC3 is a precondition for INV-NONEMPTY tenant binding across pooled txns"}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "as.dst-harness-spec", "type": "extends", "note": "adds cancellation as a fault class + enumeration method"}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "crs-l5-test-oracles", "type": "extends", "note": "C6/C8 oracles under cancellation"}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "as.oracle-mutation", "type": "depends_on", "note": ""}
+{"src": "ac.l5-cancel-sweep-harness", "dst": "ac.l5-inv-nomut-c", "type": "tests", "note": ""}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "dx.l5-decision-sdk-shape", "type": "extends", "note": "Tx commit via must-complete task; cancellation discipline for the SDK"}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "ac.l5-inv-nomut-c", "type": "enforces", "note": ""}
+{"src": "ac.l5-coding-rule-lint-gate", "dst": "ac.rust-cancel-tooling-landscape", "type": "depends_on", "note": ""}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "wasmtime-ghsa-record-2021-2026", "type": "extends", "note": "two advisories classified as cancel-on-drop"}
+{"src": "ac.i07-wasmtime-cancel-advisories", "dst": "wasmtime-minimal-config-pin", "type": "informs", "note": "pin >=49.0.3; component-model-async off"}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "sdg-compile-time-extraction", "type": "informs", "note": "sqlx 0.9.0 release carries the bug; pin git rev"}
+{"src": "ac.i01-sqlx-4393-begin-cancel", "dst": "sdg-txn-pooling-session-leak", "type": "extends", "note": "client-side pool analogue of the txn-pooling leak class"}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "abuse-rate-limit-algos-crates", "type": "informs", "note": ""}
+{"src": "ac.i11-ratelimit-incr-expire-window", "dst": "crs-ce-ratelimit-xff", "type": "related", "note": ""}
+{"src": "ac.principle-cancel-equals-crash", "dst": "hist-php-sharednothing-mechanism", "type": "related", "note": "process recycling = crash-only at request granularity"}
+{"src": "ac.principle-cancel-equals-crash", "dst": "ac.l5-spike-reconnect-cost", "type": "depends_on", "note": ""}
+{"src": "ac.cancel-models-compared", "dst": "ac.rust-cancel-tooling-landscape", "type": "informs", "note": ""}
+{"src": "ac.observed-vs-actual-outcome", "dst": "sdg-failed-request-no-mutation", "type": "extends", "note": "timer-driven ambiguous commit"}
+{"src": "ac.i10-futurelock", "dst": "as.dst-harness-spec", "type": "informs", "note": "liveness oracle O6"}

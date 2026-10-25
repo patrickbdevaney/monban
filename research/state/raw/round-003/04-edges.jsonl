@@ -1,0 +1,49 @@
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.vet-import-sets", "type": "extends", "note": "golden pins, 233 crates, six imports, zero exemptions"}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.deny-audit-gate", "type": "extends", "note": ""}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.unsafe-budget", "type": "extends", "note": ""}
+{"src": "sc3.golden-lock-gate-run", "dst": "sc.auditable-sbom", "type": "extends", "note": "190 deps embedded, audit bin 0 vulns"}
+{"src": "sc3.golden-lock-gate-run", "dst": "w02.L5-lean-budget", "type": "extends", "note": "233-crate lock vs 94; golden test binary 3.77 MB panic=abort lto"}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-hyper-h2", "type": "depends_on", "note": ""}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-rustls-pq", "type": "depends_on", "note": ""}
+{"src": "sc3.golden-lock-gate-run", "dst": "cedar-policy-crate-4.14", "type": "depends_on", "note": ""}
+{"src": "sc3.golden-lock-gate-run", "dst": "crate-aws-lc-rs", "type": "conflicts_with", "note": "resolves 1.18.2 (FIPS v4 line) while FIPS path needs <1.18.0"}
+{"src": "sc3.vet-zero-exemption-baseline", "dst": "sc.vet-import-sets", "type": "extends", "note": ""}
+{"src": "sc3.vet-zero-exemption-baseline", "dst": "sc.vet-ci-gate", "type": "depends_on", "note": ""}
+{"src": "sc3.geiger-014-golden-unsafe", "dst": "sc.unsafe-budget", "type": "extends", "note": ""}
+{"src": "sc3.deny-golden-duplicates", "dst": "sc.deny-audit-gate", "type": "extends", "note": ""}
+{"src": "sc3.repro-ablation-golden", "dst": "sc.repro-build-experiment", "type": "extends", "note": "new instrument: CARGO_HOME/SDE/ablation/toolchain/1.99.1 pair"}
+{"src": "sc3.repro-ablation-golden", "dst": "sc.rustc-bootstrap-trust", "type": "depends_on", "note": "toolchain digest is build identity; DDC not run"}
+{"src": "sc3.tarball-git-parity-golden", "dst": "sc.xz-lessons", "type": "extends", "note": "executes the proposed gate"}
+{"src": "sc3.tarball-git-parity-golden", "dst": "sc.xz-lessons", "type": "mitigates", "note": "xz tarball-only m4"}
+{"src": "sc3.trustpub-sha-gate", "dst": "sc.slsa-attest", "type": "extends", "note": "consumer-side registry check"}
+{"src": "sc3.trustpub-sha-gate", "dst": "sc.arrayref-incident", "type": "mitigates", "note": "TP regression alarm"}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "v.cargo-min-publish-age-rfc3923", "type": "extends", "note": "executed + date correction"}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc.cooldown-policy", "type": "extends", "note": ""}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc3.rustls-advisory-batch-2026-10", "type": "depends_on", "note": ""}
+{"src": "sc3.cooldown-executed-cargo-198", "dst": "sc.cooldown-policy", "type": "conflicts_with", "note": "blanket cooldown lands known advisories"}
+{"src": "sc3.cooldown-blocked-counts-golden", "dst": "sc.cooldown-policy", "type": "extends", "note": ""}
+{"src": "sc3.slopsquat-rust-study-2606", "dst": "sc.slopsquat-rates", "type": "extends", "note": "refutes no-Rust-data gap"}
+{"src": "sc3.slopsquat-rust-study-2606", "dst": "sc.crates-malicious-record", "type": "depends_on", "note": ""}
+{"src": "sc3.incident-gate-matrix", "dst": "sc.slsa-attest", "type": "conflicts_with", "note": "L3 verify stops 2/12"}
+{"src": "sc3.incident-gate-matrix", "dst": "sc.cooldown-policy", "type": "extends", "note": ""}
+{"src": "sc3.incident-gate-matrix", "dst": "rec60-supply-chain-incidents", "type": "extends", "note": ""}
+{"src": "sc3.incident-gate-matrix", "dst": "sc3.incident-class-fractions", "type": "depends_on", "note": ""}
+{"src": "sc3.incident-class-fractions", "dst": "sc.gha-hardening", "type": "extends", "note": ""}
+{"src": "sc3.slsa-scope-limit", "dst": "sc.slsa-attest", "type": "extends", "note": ""}
+{"src": "sc3.slsa-scope-limit", "dst": "sc.sigstore-tuf-threshold", "type": "extends", "note": "TUF 0/12 on intake"}
+{"src": "sc3.l5-ci-gate-list", "dst": "ops.ssdf-12-ci-gates", "type": "fills_gap", "note": "PS.2.1 PS.3.2 PW.6 RV.1-3"}
+{"src": "sc3.l5-ci-gate-list", "dst": "ops.cra-obligation-split", "type": "fills_gap", "note": "SBOM+provenance steward file set"}
+{"src": "sc3.l5-cooldown-security-bypass", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-repro-double-build", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-new-crate-intake", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-workflow-lint", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-release-attest-rebuild", "dst": "sc3.l5-ci-gate-list", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-cooldown-security-bypass", "dst": "sc3.cooldown-executed-cargo-198", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-repro-double-build", "dst": "sc3.repro-ablation-golden", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-new-crate-intake", "dst": "sc3.slopsquat-rust-study-2606", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-workflow-lint", "dst": "sc3.incident-class-fractions", "type": "depends_on", "note": ""}
+{"src": "sc3.l5-release-attest-rebuild", "dst": "sc3.slsa-scope-limit", "type": "depends_on", "note": ""}
+{"src": "sc3.xz-window-cooldown-limit", "dst": "sc.xz-lessons", "type": "extends", "note": "primary dates"}
+{"src": "sc3.arrayref-trust-model-gap", "dst": "sc.arrayref-incident", "type": "extends", "note": ""}
+{"src": "sc3.numbers-checked-supply", "dst": "v.cargo-min-publish-age-rfc3923", "type": "extends", "note": "date correction"}
+{"src": "sc3.numbers-checked-supply", "dst": "sc.slopsquat-rates", "type": "extends", "note": "refutation"}

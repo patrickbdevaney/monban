@@ -1,0 +1,290 @@
+zero-downtime-reload-and-scaleout-state	nginx binary upgrade USR2 WINCH docs	network-ops vendor-doc historical
+zero-downtime-reload-and-scaleout-state	HAProxy seamless reload fd transfer stats socket	network-ops vendor-doc/blog
+zero-downtime-reload-and-scaleout-state	Envoy hot restart shared memory design	network-ops source/doc
+zero-downtime-reload-and-scaleout-state	Pingora graceful upgrade fd transfer source	source
+zero-downtime-reload-and-scaleout-state	Facebook Zero Downtime Release SIGCOMM 2020 Proxygen socket takeover	paper hyperscaler
+zero-downtime-reload-and-scaleout-state	tableflip shellflip Cloudflare graceful restart Go Rust	blog/source
+zero-downtime-reload-and-scaleout-state	systemd FileDescriptorStore sd_notify FDSTORE rust crate	vendor doc/crate
+zero-downtime-reload-and-scaleout-state	reload outage postmortem nginx HAProxy Envoy	incident negative
+zero-downtime-reload-and-scaleout-state	STEK session ticket key rotation multi-node Cloudflare Twitter	blog
+zero-downtime-reload-and-scaleout-state	QUIC connection ID routing across processes reuseport BPF	RFC/draft
+ingress-nonhttp-frontends-defect-classes	gh api security-advisories per ingress crate (tungstenite,fastwebsockets,tonic,async-graphql,juniper,wtransport,h3,webhooks)	repo+advisory,attacker,2026
+abuse-economics-and-swarm-simulation	residential proxy pricing per GB Bright Data Oxylabs Decodo 2026	price-list,economics,attacker
+abuse-economics-and-swarm-simulation	CapSolver 2Captcha Turnstile solve price per 1000	price-list,attacker
+abuse-economics-and-swarm-simulation	Browserless headless browser hosting price per hour	vendor-doc
+abuse-economics-and-swarm-simulation	Anthropic OpenAI API pricing per million tokens current	vendor-doc
+abuse-economics-and-swarm-simulation	Hetzner DigitalOcean 1 vCPU VPS price egress	price-list,defender
+bridge-async-cancellation-failure-atomicity	sqlx transaction cancel drop connection returned to pool mid-transaction issue	systems,repo-issue,attacker,2025-26
+bridge-async-cancellation-failure-atomicity	tokio select cancel safety documentation methods	systems,vendor-doc,proponent
+bridge-async-cancellation-failure-atomicity	RUSTSEC cancellation async drop vulnerability	offsec,advisory,attacker
+bridge-async-cancellation-failure-atomicity	Postgres CancelRequest race wrong query cancelled	db-internals,mailing-list,attacker
+bridge-async-cancellation-failure-atomicity	redis-rs pipeline cancellation response desync	systems,repo-issue,attacker
+bridge-async-cancellation-failure-atomicity	wasmtime epoch interruption host call async	PL,source,skeptic
+bridge-async-cancellation-failure-atomicity	Go context cancellation database/sql race CVE	distsys-go,advisory,historical
+bridge-async-cancellation-failure-atomicity	Python asyncio CancelledError connection pool corrupted redis-py CVE-2023-28858	python,incident,attacker
+bridge-async-cancellation-failure-atomicity	async drop RFC status 2026	PL,RFC,2026
+bridge-async-cancellation-failure-atomicity	deadpool bb8 connection recycle cancel issue	systems,repo-issue
+golden-lock	cargo-audit/cargo-deny/cargo-vet run	W-SUPPLY executed
+uu-adjacent-fields-and-unused-sources	GSMA FS.19 Diameter firewall	adjacent;multi
+uu-adjacent-fields-and-unused-sources	PCI DSS 4.0.1 requirement 6.4.2 bot	adjacent;multi
+uu-adjacent-fields-and-unused-sources	EMV 3-D Secure bot detection	adjacent;multi
+uu-adjacent-fields-and-unused-sources	DO-326A airworthiness security network	adjacent;multi
+uu-adjacent-fields-and-unused-sources	UNECE R155 ISO 21434 update OTA rollback	adjacent;multi
+uu-adjacent-fields-and-unused-sources	game anti-cheat server authoritative	adjacent;multi
+uu-adjacent-fields-and-unused-sources	matching engine deterministic sequencer	adjacent;multi
+uu-adjacent-fields-and-unused-sources	google patents AI agent capability token	adjacent;multi
+uu-adjacent-fields-and-unused-sources	post-quantum handshake compression patent	adjacent;multi
+uu-adjacent-fields-and-unused-sources	datatracker MCP draft	adjacent;multi
+authz-token-format-code-level	datatracker draft-niyikiza-oauth-attenuating-agent-tokens	standards|spec-RFC|last-60d
+authz-token-format-code-level	datatracker draft-asor-wimse-agent-delegation-chain	standards|spec-RFC|last-60d
+authz-token-format-code-level	Tenuo capability token agents warrant	web-dev practitioner|repo|2026
+authz-token-format-code-level	IETF OAuth transaction tokens agent	standards|spec|2026
+authz-token-format-code-level	superfly macaroon Go tokenizer	practitioner|repo|2024-26
+authz-token-format-code-level	cedar-policy/rfcs delegation attenuation	PL-formal|spec-repo|2026
+authz-token-format-code-level	gh api security-advisories biscuit/ucan/macaroon/cedar repos	offsec|GHSA|all-era
+uu-adjacent-fields-and-unused-sources	datatracker api name contains webbotauth	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains web-bot-auth	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains aipref	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains agent	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains httpbis-ai	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains ietf-tls-ecdhe-mlkem	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains tls-mlkem	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains plants	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains mtc-tls	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains privacypass	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains idempotency	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains http-message-sig	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains wimse	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker api name contains oauth-ai	spec-rfc;60d
+abuse-economics-and-swarm-simulation	ISP proxy per IP per month static residential price	price-list,attacker
+abuse-economics-and-swarm-simulation	governor GCRA benchmark ns per check keyed dashmap	benchmark
+abuse-economics-and-swarm-simulation	rustls handshakes per second per core ECDSA X25519MLKEM768	benchmark,defender
+abuse-economics-and-swarm-simulation	Google Cloud reCAPTCHA Enterprise pricing per 1000 assessments Turnstile free	vendor-doc,defender
+abuse-economics-and-swarm-simulation	cost of AI web agent browser step tokens per page screenshot negative result agent scraping economics	economics,paper
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-httpbis since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-oauth since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-tls since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-quic since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-wimse since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-lamps-pq since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-masque since 2026-08-25	spec-rfc;60d
+uu-adjacent-fields-and-unused-sources	datatracker wg prefix draft-ietf-webtrans since 2026-08-25	spec-rfc;60d
+dataplane-ir-lowering-soundness	CVE-2026-14666 fix commit postgres row security cached plan role membership	security repo+commit 2026
+dataplane-ir-lowering-soundness	Cedar partial evaluation tpe residual source	PL-formal repo pinned-tag
+dataplane-ir-lowering-soundness	Lean 4 SQL semantics formalization three-valued logic	PL-formal paper/repo
+dataplane-ir-lowering-soundness	MongoDB query implicit array matching equality semantics security	web-dev vendor-doc contrarian
+dataplane-ir-lowering-soundness	redis stringmatchlen glob escape SCAN MATCH pattern injection	systems source-code
+dataplane-ir-lowering-soundness	verified query compilation 2025 Coq Lean	PL-formal paper 2025-26
+ingress-nonhttp-frontends-defect-classes	OSV crates.io per-package queries; websearch CSWSH/Upgrade-smuggling/permessage-deflate CVE 2025-26	cve+advisory,attacker,2026
+pq-authentication-and-hrr-acceptance	datatracker API doc revisions plants/lamps-composite/tls-mldsa/authkem/key-share-prediction	standards-policy|spec-RFC|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	rustls source: ML-DSA signing key loading any_supported_type aws-lc-rs	cryptography|repo-source|skeptic|last-60d
+zero-downtime-reload-and-scaleout-state	Springall TLS crypto shortcuts STEK lifetime	paper measurement
+zero-downtime-reload-and-scaleout-state	tcp_migrate_req SO_REUSEPORT socket migration kernel	kernel/LKML
+zero-downtime-reload-and-scaleout-state	Cloudflare TLS session resumption full speed secure ticket keys	blog
+uu-adjacent-fields-and-unused-sources	google patents xhr 10 queries (agent cap token, MCP auth, bot traffic classify, PQ TLS compress, web bot auth, macaroon, prompt-injection gateway, wasm per-request, journal replay)	patent;2024-26
+calibration-two-sided-could-flip-decisions	local recompute w02 raw logs rustls vs OpenSSL MLKEM handshake trials	benchmark-log,skeptic,2026
+calibration-two-sided-could-flip-decisions	local recompute wasmtime classified.json per-year M0 escape rate	repo+advisory,skeptic,2021-26
+calibration-two-sided-could-flip-decisions	local recompute OSV rust http alias-dedupe class shares per year	advisory-db,skeptic,2023-26
+calibration-two-sided-could-flip-decisions	CMVP certificate search AWS-LC 4.0 validated ML-KEM ML-DSA 2026	standards-policy,gov-db,2026
+pq-authentication-and-hrr-acceptance	gh search issues rustls/rustls: merkle | trust anchor | ML-DSA | HelloRetryRequest | mldsa signing	cryptography|repo-issue|skeptic|last-60d
+ingress-nonhttp-frontends-defect-classes	websearch webhook signature bypass/timing CVE; webhook SSRF DNS rebinding callback CVE; PROXY protocol spoof CVE	cve,attacker,2026
+bridge-async-cancellation-failure-atomicity	Oxide RFD futurelock async Rust cancellation 2025	systems,design-doc,practitioner
+bridge-async-cancellation-failure-atomicity	sunshowers cancelling async Rust RustConf 2025	systems,talk,practitioner
+bridge-async-cancellation-failure-atomicity	dropshot HandlerTaskMode Detached client disconnect cancel	web-framework,source,proponent
+bridge-async-cancellation-failure-atomicity	hyper server drops service future on client disconnect issue	systems,repo-issue,attacker
+bridge-async-cancellation-failure-atomicity	wasmtime epoch deadline async yield host function trap state	PL,source,skeptic
+bridge-async-cancellation-failure-atomicity	Java Thread.stop deprecated inconsistent state monitors	historical,JDK-doc
+bridge-async-cancellation-failure-atomicity	pthread_cancel deferred cancellation points cleanup handlers hazards	historical,POSIX
+calibration-two-sided-could-flip-decisions	CMVP cert pages 5429/5298/5314/5146/4816 + security policy PDFs version strings	gov-db,primary,2026
+calibration-two-sided-could-flip-decisions	aws-lc-fips-sys versions crates.io vs AWS-LC-FIPS source tag mapping	repo-source,skeptic,2026
+ingress-nonhttp-frontends-defect-classes	graphql DoS CVE 2026 advisory; IBM graphql-specs cost; async-graphql default limits source read	spec+cve,attacker,2026
+zero-downtime-reload-and-scaleout-state	Cloudflare 2025-11-18 outage config file ingestion panic	incident negative
+zero-downtime-reload-and-scaleout-state	nginx quic_bpf reload live upgrade	vendor doc
+zero-downtime-reload-and-scaleout-state	rustls Ticketer ticket rotation lifetime	crate
+zero-downtime-reload-and-scaleout-state	RFC 9113 GOAWAY graceful shutdown double GOAWAY	RFC
+zero-downtime-reload-and-scaleout-state	Caddy session tickets rotation sessiontickets.go	source
+zero-downtime-reload-and-scaleout-state	Raghavan distributed rate limiting gossip	paper
+dx-agent-checkable-handler-surface	SWE-bench Multilingual Rust resolve rate per language 2026	benchmark,2025-26
+dx-agent-checkable-handler-surface	compiler feedback loop ablation LLM Rust code generation borrow checker repair	paper,skeptic
+dx-agent-checkable-handler-surface	Rust agent benchmark RustEvo OR RustRepoTrans OR Rust-SWE	paper
+dx-agent-checkable-handler-surface	LLM Haskell OCaml code generation benchmark FPEval	paper
+dx-agent-checkable-handler-surface	axum extractor tenant isolation typed handler pattern	web-dev
+dx-agent-checkable-handler-surface	Leptos server functions security CSRF authorization pitfalls	web-dev,skeptic
+dx-agent-checkable-handler-surface	Ur/Web Chlipala typed SQL XSS guarantees	PL
+dx-agent-checkable-handler-surface	Spin time to first request cold start cargo component	vendor,bench
+dx-agent-checkable-handler-surface	Shuttle.dev OR Fly.io deploy time rust app first deploy	vendor
+dx-agent-checkable-handler-surface	does static typing help LLM agents empirical TypeScript vs Python agent SWE-bench	skeptic
+modularity-ipc-and-normalization-copy-spike	Envoy ext_proc gRPC latency overhead benchmark	systems;prior-art
+modularity-ipc-and-normalization-copy-spike	Chromium Mojo IPC latency benchmark	systems;prior-art
+modularity-ipc-and-normalization-copy-spike	seL4 IPC round trip cycles benchmark	systems;lower-bound
+ingress-nonhttp-frontends-defect-classes	gRPC CVE 2026 DoS; WebTransport CVE datagram/session; SSE DoS CVE 2026	cve,attacker,2026
+bridge-async-cancellation-failure-atomicity	gh search code rustsec advisory-db cancel	offsec,advisory-db,attacker
+bridge-async-cancellation-failure-atomicity	wasmtime component instance trap poisoned reentered	PL,advisory,attacker
+bridge-async-cancellation-failure-atomicity	wasmtime dropping call_async future cancellation	PL,advisory,2026
+authz-token-format-code-level	jsonwebtoken CVE-2026-25537 type confusion	offsec|GHSA|2026
+authz-token-format-code-level	zcap CVE-2024-31995 expiration capability chain	offsec|GHSA|2024
+authz-token-format-code-level	RFC 9964 ML-DSA JOSE COSE	crypto|RFC|2026
+authz-token-format-code-level	IETF agent authorization drafts 2026 on-behalf-of AAuth transaction tokens	standards|datatracker|last-60d
+modularity-ipc-and-normalization-copy-spike	UDS vs shared memory ring futex latency benchmark	systems;microbench
+modularity-ipc-and-normalization-copy-spike	iceoryx2 latency vs unix domain socket	systems;embedded-robotics
+modularity-ipc-and-normalization-copy-spike	rkyv postcard bincode serialization benchmark 2026	rust;bench-log
+bridge-async-cancellation-failure-atomicity	deadpool-postgres recycle cancelled query RecyclingMethod Verified	systems,source
+bridge-async-cancellation-failure-atomicity	bb8 connection returned to pool after future dropped broken connection	systems,repo-issue
+bridge-async-cancellation-failure-atomicity	diesel-async AsyncConnection transaction cancel safety	systems,repo-issue
+bridge-async-cancellation-failure-atomicity	redis-rs multiplexed connection cancellation pipeline	systems,repo-issue
+bridge-async-cancellation-failure-atomicity	tokio-postgres drop query future cancel_token	systems,source
+dx-agent-checkable-handler-surface	axum FromRequestParts extractor docs request guard authorization pattern	vendor-doc
+dx-agent-checkable-handler-surface	Rocket request guards forwarding outcome docs	vendor-doc
+dx-agent-checkable-handler-surface	Leptos server_fn middleware authentication security docs	repo
+dx-agent-checkable-handler-surface	Servant type-level API Haskell authentication combinators AuthProtect	PL
+dx-agent-checkable-handler-surface	OCaml Dream web framework CSRF session typing	PL
+dx-agent-checkable-handler-surface	Gleam Wisp web framework security	PL
+dx-agent-checkable-handler-surface	Encore.go static analysis infrastructure as code type-safe	vendor
+dx-agent-checkable-handler-surface	Convex row level security helpers function validators	vendor
+dx-agent-checkable-handler-surface	WIT component model http handler world capability imports	spec
+calibration-two-sided-could-flip-decisions	CMVP modules-in-process list AWS-LC 4/5 status	gov-db,primary,2026-10
+calibration-two-sided-could-flip-decisions	FIPS 140-3 validated module ML-DSA approved certificate 2026 first (wolfCrypt OpenSSL 3.5 SymCrypt)	standards-policy,vendor+gov,contrarian
+modularity-ipc-and-normalization-copy-spike	Fuchsia Zircon channel IPC latency	OS;lower-bound
+modularity-ipc-and-normalization-copy-spike	Pingora zero-copy body Bytes	prod-proxy
+modularity-ipc-and-normalization-copy-spike	NGINX Unit archived	contrarian
+modularity-ipc-and-normalization-copy-spike	lmbench pipe unix socket ping-pong latency	kernel;microbench
+modularity-ipc-and-normalization-copy-spike	RUSTSEC bincode unmaintained	advisory-db
+supply-chain-executed-on-golden-pins	Shai-Hulud npm worm 2025 initial access maintainer phishing postmortem	incident|npm|2025
+supply-chain-executed-on-golden-pins	Shai-Hulud 2.0 November 2025 preinstall bun trusted publishing	incident|npm|2025
+supply-chain-executed-on-golden-pins	TeamPCP trivy litellm compromise 2026 CI credential	incident|PyPI|2026
+supply-chain-executed-on-golden-pins	ultralytics PyPI December 2024 GitHub Actions cache poisoning build host	incident|build-host|2024
+supply-chain-executed-on-golden-pins	crates.io phishing campaign September 2025 token	incident|crates|2025
+supply-chain-executed-on-golden-pins	slopsquatting crates.io hallucinated Rust crate names rate	paper|Rust|2026
+modularity-ipc-and-normalization-copy-spike	Envoy ext_proc filter docs processing modes	docs
+modularity-ipc-and-normalization-copy-spike	pingora modify_filter body Bytes	repo-docs
+modularity-ipc-and-normalization-copy-spike	http-body Body trait Frame Bytes	docs.rs
+modularity-ipc-and-normalization-copy-spike	Chrome site isolation memory overhead	browser
+modularity-ipc-and-normalization-copy-spike	Envoy Wasm vs native filter overhead	wasm
+modularity-ipc-and-normalization-copy-spike	postmortem out-of-process IPC overhead brought back in-process	contrarian
+uu-adjacent-fields-and-unused-sources	OSV api query non-crates web stack packages (golang x/net, undici, netty, nghttp2, h2 python, caddy, traefik, envoy)	dataset;60d
+bridge-async-cancellation-failure-atomicity	PostgreSQL 18 protocol 3.2 longer cancel key	db-internals,spec,2025
+bridge-async-cancellation-failure-atomicity	Java Thread.stop deprecation damaged objects	historical,JDK-doc
+bridge-async-cancellation-failure-atomicity	pgx context cancellation closes connection asyncClose design	go,source,distsys
+bridge-async-cancellation-failure-atomicity	Python asyncio CancelledError swallowed structured concurrency PEP 789 TaskGroup	python,PEP,contrarian
+bridge-async-cancellation-failure-atomicity	Node undici AbortController request aborted body partial	node,repo-issue
+bridge-async-cancellation-failure-atomicity	async drop initiative status 2026 project goals	PL,RFC,2026
+calibration-two-sided-could-flip-decisions	cedar-spec@301bdd2 source grep native_decide/partial/unsafe/implemented_by + cedar-drt fuzz target table + CI workflow	PL-formal,repo-source-pinned,skeptic
+bridge-async-cancellation-failure-atomicity	rust async_drop tracking issue 126482 status	PL,repo-issue,2026
+bridge-async-cancellation-failure-atomicity	clippy await_holding_invalid_type let_underscore_future config	PL,lint-docs
+bridge-async-cancellation-failure-atomicity	completion crate CompletionFuture must-complete futures linear	PL,crate,contrarian
+bridge-async-cancellation-failure-atomicity	moro structured concurrency crate cancel-safe-futures	PL,crate
+ingress-nonhttp-frontends-defect-classes	PortSwigger websocket turbo intruder; QUIC amplification CVE 2026; GraphQL-over-HTTP spec; webtrans-http3 draft; Envoy threat model; Stripe/GitHub webhook docs; WHATWG SSE	spec+vendor-doc,attacker,2026
+modularity-ipc-and-normalization-copy-spike	pingora-proxy ProxyHttp body filter docs.rs	docs.rs
+modularity-ipc-and-normalization-copy-spike	bytes Bytes struct docs	docs.rs
+modularity-ipc-and-normalization-copy-spike	chromium mojo README performance	primary
+calibration-two-sided-could-flip-decisions	CRA OJ XHTML via publications.europa.eu cellar Art71/Art64/Art24	standards-policy,primary-law
+calibration-two-sided-could-flip-decisions	Digital Omnibus amendment CRA Article 14 reporting postponed	policy,law-firm,contrarian,2026
+calibration-two-sided-could-flip-decisions	FedRAMP/rules repo KSI count at HEAD (gh api)	standards-policy,repo,primary
+bridge-async-cancellation-failure-atomicity	hyper h2 server poll_reset RST_STREAM drops service future source	systems,source,attacker
+bridge-async-cancellation-failure-atomicity	rate limiter INCR EXPIRE not atomic key never expires permanent block issue	web-dev,repo-issue,attacker
+bridge-async-cancellation-failure-atomicity	idempotency key stuck in progress after timeout crash 409 forever library issue	web-dev,repo-issue,negative
+bridge-async-cancellation-failure-atomicity	authorization service timeout fail open CVE ext_authz OPA envoy 2025 2026	offsec,CVE,attacker
+uu-adjacent-fields-and-unused-sources	oss-security seclists oss-sec 2026 q3 q4 index	mailing-list;60d
+calibration-two-sided-could-flip-decisions	cveawg CVE-2023-27524 CVE-2024-52317 CVE-2026-14666 third-instance check for CRS C1/C8/C5	cve-db,offensive,2023-26
+bridge-async-cancellation-failure-atomicity	tower-http timeout ResponseFuture poll sleep first inner dropped source	systems,source,attacker
+bridge-async-cancellation-failure-atomicity	Go TimeoutHandler handler keeps running ErrHandlerTimeout	go,vendor-doc
+bridge-async-cancellation-failure-atomicity	SQLAlchemy asyncio CancelledError connection pool checkin invalid state issue	python,repo-issue
+bridge-async-cancellation-failure-atomicity	node-postgres query_timeout connection state abort	node,repo-issue
+bridge-async-cancellation-failure-atomicity	PEP 789 async generator cancellation structured concurrency trio	python,PEP,contrarian
+uu-adjacent-fields-and-unused-sources	seclists oss-sec 2026 q4 thread bodies (OpenSSH 10.6, Thrift 0.25.0, httpd 2.4.69)	mailing-list;60d
+bridge-async-cancellation-failure-atomicity	flake8-async ASYNC100 ASYNC102 cancel scope lint rules	python,lint-docs,other-ecosystem
+bridge-async-cancellation-failure-atomicity	python asyncio CancelledError shield uncancel docs	python,vendor-doc
+bridge-async-cancellation-failure-atomicity	rust test harness cancel future at every await point poll n times then drop	PL,repo,DST
+bridge-async-cancellation-failure-atomicity	futures-test interleave_pending PendingOnce assert cancel safety	PL,crate
+uu-adjacent-fields-and-unused-sources	Visa Trusted Agent Protocol Mastercard Agent Pay HTTP message signature merchant verification	payments;2026
+dataplane-ir-lowering-soundness	MongoDB equality match array field implicit element semantics docs	web-dev vendor-doc
+dataplane-ir-lowering-soundness	BSON comparison order numeric types int double decimal equal	systems spec
+dataplane-ir-lowering-soundness	SQLite datatype3 affinity comparison rules	systems vendor-doc
+dataplane-ir-lowering-soundness	PostgreSQL nondeterministic collation LIKE support 18 release	systems release-notes 2025
+dataplane-ir-lowering-soundness	SQLancer logic bugs SQLite collation affinity ternary logic partitioning	offensive/testing paper negative
+dataplane-ir-lowering-soundness	Hasura ndc-spec comparison operator expression semantics	web-dev spec-repo
+dataplane-ir-lowering-soundness	Benzaken Contejean Coq SQL semantics nulls	PL-formal paper
+dataplane-ir-lowering-soundness	SQLAlchemy or_ no arguments deprecated empty	web-dev practitioner changelog
+dataplane-ir-lowering-soundness	Prisma in empty list filter semantics	web-dev vendor-doc
+calibration-two-sided-could-flip-decisions	CVE TLS 1.3 0-RTT early data replay vulnerability server accepted replayed	offensive,cve,contrarian
+calibration-two-sided-could-flip-decisions	JWKS refresh failure clears cached keys advisory other than PyJWT	web-dev practitioner,advisory,2025-26
+supply-chain-executed-on-golden-pins	arXiv 2606.08444 When LLMs Invent Rust Crates figshare dataset 10.6084/m9.figshare.32233767	paper|Rust|2026
+calibration-two-sided-could-flip-decisions	agentgateway release 2026 Cedar authorization post-quantum TLS MCP	web-dev,vendor,skeptic
+calibration-two-sided-could-flip-decisions	deterministic simulation testing HTTP proxy gateway open source Rust 2026	systems,practitioner,skeptic
+calibration-two-sided-could-flip-decisions	formally verified MCP gateway Lean Verus Kani 2026	PL-formal,web,skeptic
+calibration-two-sided-could-flip-decisions	gh search repos proxy/gateway + verus|kani|lean|deterministic-simulation|post-quantum pushed>=2026-08	repo-search,skeptic,last-60d
+bridge-async-cancellation-failure-atomicity	diesel_async cancel cancelled dropped issues	systems,repo-issue,2026
+bridge-async-cancellation-failure-atomicity	rate limiter or authz fails open when backend times out redis unavailable CVE	offsec,CVE,attacker
+bridge-async-cancellation-failure-atomicity	Node.js request aborted handler continues AbortSignal database transaction	node,vendor-doc
+abuse-economics-and-swarm-simulation	Imperva Bad Bot Report 2026 residential proxy share of bad bot traffic	threat-intel,2026
+abuse-economics-and-swarm-simulation	booter DDoS-for-hire layer 7 price per hour 2026	economics,attacker
+abuse-economics-and-swarm-simulation	low-and-slow distributed HTTP flood per-IP rate limit evasion measurement	paper,negative
+abuse-economics-and-swarm-simulation	Cloudflare Turnstile pricing free enterprise 2026	vendor-doc,defender
+dataplane-ir-lowering-soundness	PostgreSQL 18 release notes LIKE nondeterministic collations support	systems release-notes/mailing-list
+bridge-async-cancellation-failure-atomicity	bitwarden CustomRedisProcessingStrategy skip rate limit on redis timeout source	offsec,source,attacker
+bridge-async-cancellation-failure-atomicity	Candea Fox crash-only software HotOS 2003	historical,paper
+bridge-async-cancellation-failure-atomicity	postgres new connection establishment latency ms TLS SCRAM benchmark	db-ops,benchmark
+dataplane-ir-lowering-soundness	cedar residual to SQL WHERE translation query filtering list resources	PL-formal/practitioner repo+forum
+dataplane-ir-lowering-soundness	authorization query pushdown data filtering OPA compile partial evaluation SQL translation unsound	authz practitioner contrarian
+calibration-two-sided-could-flip-decisions	gh repo inspect nucleus/Rullst/agentgateway README+code search kani verus cedar mlkem	repo-source,skeptic,last-60d
+bridge-async-cancellation-failure-atomicity	node-postgres query_timeout connection discarded bad state pool release	node,repo-issue
+abuse-economics-and-swarm-simulation	Anubis WebAssembly proof-of-work hash rate browser benchmark difficulty seconds phone	benchmark,practitioner
+abuse-economics-and-swarm-simulation	Turnstile hCaptcha Cloudflare Turnstile plans free enterprise pricing	vendor-doc
+abuse-economics-and-swarm-simulation	Google Cloud network egress price per GiB 2026 vs Hetzner overage TB defender bandwidth cost	price-list,defender
+dataplane-ir-lowering-soundness	SQL Server LIKE wildcard brackets ESCAPE clause no default escape	systems vendor-doc
+dataplane-ir-lowering-soundness	gh code search Lean 4 relational algebra SQL semantics formalization	PL-formal gh-code
+dataplane-ir-lowering-soundness	arXiv 2025 verified compiler SQL query Coq certified translation	PL-formal paper 2025-26
+dataplane-ir-lowering-soundness	Mongoose sanitizeFilter trusted operator injection	offensive web-dev vendor-doc
+dataplane-ir-lowering-soundness	MongoDB collection default collation strength equality case insensitive	web-dev vendor-doc
+dataplane-ir-lowering-soundness	SQLancer number of logic bugs found SQLite PostgreSQL TLP NoREC	testing paper negative-result
+dataplane-ir-lowering-soundness	sqlx query macro compile time check type affinity sqlite	rust practitioner repo
+abuse-economics-and-swarm-simulation	Cloudflare DDoS threat report 2026 Q2 HTTP DDoS median attack requests per second botnet size	threat-intel,2026
+supply-chain-executed-on-golden-pins	crates.io TUF signing RFC 3724 status 2026 index signing	spec-rfc|2026
+supply-chain-executed-on-golden-pins	crates.io trusted publishing require attestations cargo verify 2026 Sigstore provenance	repo|2026
+supply-chain-executed-on-golden-pins	SLSA provenance would not have prevented compromised build pipeline critique	skeptic|2025
+supply-chain-executed-on-golden-pins	diffoscope rust binary nondeterminism remap path debuginfo codegen-units	reproducible-builds|systems
+dataplane-ir-lowering-soundness	arXiv 2025 2026 mechanized SQL semantics proof assistant collation null verified query translation	PL-formal paper
+dataplane-ir-lowering-soundness	dblp certified query compil* / verified SQL 2024-2026	PL-formal bibliographic-db
+supply-chain-executed-on-golden-pins	slsa.dev spec v1.2 threats xz compromised source not covered build track	spec|skeptic
+dataplane-ir-lowering-soundness	SQLAlchemy or_ no arguments deprecated (executed 2.0.43, 2.1.6)	web-dev experiment
+dataplane-ir-lowering-soundness	MySQL PAD SPACE utf8mb4_bin trailing space comparison	systems vendor-doc
+dataplane-ir-lowering-soundness	Hasura ndc-spec scalar-types equal syntactic equality ndc-test	web-dev spec+test-suite
+dataplane-ir-lowering-soundness	MongoDB $eq operator user input injection explicit eq	offensive vendor-doc
+abuse-economics-and-swarm-simulation	proof-of-work client puzzles DDoS defense economic analysis asymmetry attacker GPU botnet paper	paper,economics,contrarian
+pq-authentication-and-hrr-acceptance	source-read: hyper h1 max_buf_size/max_headers, h2 max_header_list_size defaults (registry src)	web-dev-practitioner|repo-source|skeptic-on-size|current
+authz-token-format-code-level	Biscuit Datalog scope trusted origin authority block facts attack 3.0 change	PL-formal|spec+issues|attacker
+authz-token-format-code-level	macaroon third-party caveat discharge binding vulnerability Go superfly	offsec|repo-issues|attacker
+authz-token-format-code-level	UCAN 1.0 rust implementation 2026 release rs-ucan delegation policy	practitioner|repo|2026
+authz-token-format-code-level	agent delegation token lobste.rs hacker news macaroons vs biscuit criticism	forum|contrarian|2025-26
+pq-authentication-and-hrr-acceptance	nginx large_client_header_buffers http2_max_header_size source ngx_http_core_module default	network-ops|vendor-doc+source|skeptic-on-size|current
+pq-authentication-and-hrr-acceptance	envoy max_request_headers_kb default 60 api proto source	network-ops|spec-proto|skeptic-on-size|current
+pq-authentication-and-hrr-acceptance	undici maxHeaderSize node max-http-header-size default 16384 source	web-dev-practitioner|repo-source|skeptic-on-size|current
+pq-authentication-and-hrr-acceptance	Cloudflare request header size limit 128KB per-header 16KB docs	vendor-doc|hyperscaler|skeptic-on-size|current
+pq-authentication-and-hrr-acceptance	chromestatus Merkle Tree Certificates feature entry milestone shipping status	standards-policy|browser-tracker|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	Let's Encrypt MTC staging October 2026 announcement	vendor-doc|CA-blog|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	ML-DSA certificate handshake failure middlebox measurement 2026 negative result	network-ops|paper/measurement|contrarian|2026
+authz-token-format-code-level	crates.io api ucan zcap meadowcap keyhive versions	registry|repo|2026
+authz-token-format-code-level	EverParse Rust backend EverCBOR CDDL 2026	PL-formal|repo|2026
+authz-token-format-code-level	verified macaroon HMAC chain verifier Lean Verus F* capability token proof	PL-formal|paper|negative-search
+authz-token-format-code-level	Meadowcap Willow capability system specification	other-field(p2p)|spec|2024-26
+authz-token-format-code-level	RFC 8693 section 4.1 act claim nested actors informational	standards|RFC|historical
+authz-token-format-code-level	draft-ietf-oauth-transaction-tokens latest revision	standards|datatracker|last-60d
+authz-token-format-code-level	arXiv 2609.06500 CAPMAS capability delegation multi-agent	paper|2026|proponent
+authz-token-format-code-level	Keyhive capability groups Ink&Switch 2026	other-field(local-first)|repo|2026
+authz-token-format-code-level	Meadowcap spec willowprotocol.org	other-field(p2p)|spec|2024-26
+pq-authentication-and-hrr-acceptance	gh search: boulder/letsencrypt MTC PRs; cloudflare mtc repos; openssl MTC; boringssl trust anchor ids	cryptography|repo-PR|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	rustls issues middlebox reset after ML-DSA advertising 0.23.44 Palo Alto	offensive/network-ops|repo-issue|contrarian|last-60d
+authz-token-format-code-level	chio-kernel-core proof-manifest capability verify	repo|registry|2026|skeptic
+authz-token-format-code-level	keyhive repo status	local-first|repo|2026
+authz-token-format-code-level	IETF oauth charter-ietf-oauth-06 agents	standards|charter|2026
+pq-authentication-and-hrr-acceptance	CA/Browser Forum ballot SC ML-DSA server certificate 2026 voting	standards-policy|ballot-record|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	gh cabforum/servercert PRs ML-DSA	standards-policy|repo-PR|mainstream|last-60d
+authz-token-format-code-level	biscuit tokens criticism experience production hacker news lobsters	forum|contrarian|2024-26
+pq-authentication-and-hrr-acceptance	datatracker name search authkem|kemtls|composite-mldsa|pq certificate tls drafts (API)	cryptography|spec-RFC|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	NSA CNSA 2.0 FAQ hybrid composite ML-DSA-87 TLS certificates (gov policy)	standards-policy|gov-doc|mainstream|2025-26
+pq-authentication-and-hrr-acceptance	RFC 7541 4.4 entry larger than table; RFC 9113 SETTINGS_HEADER_TABLE_SIZE default; RFC 9204 QPACK max table capacity default 0	protocol-spec|spec-RFC|skeptic-on-size|foundational
+pq-authentication-and-hrr-acceptance	gh apple/apple-root-program commits/issues MTC post-quantum policy draft Oct 2026	standards-policy|repo-policy|mainstream|last-60d
+pq-authentication-and-hrr-acceptance	post-quantum certificates QUIC anti-amplification ML-DSA handshake RTT measurement paper (academic)	network-measurement|paper|skeptic-on-size|2025-26
+pq-authentication-and-hrr-acceptance	Merkle Tree Certificates criticism revocation short-lived offline clients (contrarian)	standards-policy|forum/blog|contrarian|2026
+abuse-economics-and-swarm-simulation	X25519MLKEM768 server CPU overhead handshake cost measured vs X25519 percent	benchmark,pqc
+supply-chain-executed-on-golden-pins	DONE nodes 23 edges	-

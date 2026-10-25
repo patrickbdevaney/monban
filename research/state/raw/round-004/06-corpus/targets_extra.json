@@ -1,0 +1,146 @@
+[
+ {
+  "name": "py-mcp-2.3.0/loopback-default",
+  "url": "http://127.0.0.1:18001/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/py2.cnt",
+  "pid_port": 18001,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "py-mcp-2.3.0/bind-0.0.0.0-default",
+  "url": "http://127.0.0.1:18011/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/py2b0.cnt",
+  "pid_port": 18011,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "ts-server-2.4.0+express-2.0.2/legacy-transport-default",
+  "url": "http://127.0.0.1:18003/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/ts2.cnt",
+  "pid_port": 18003,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "ts-server-2.4.0/createMcpHandler-bare",
+  "url": "http://127.0.0.1:18004/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/ts2m.cnt",
+  "pid_port": 18004,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/mcp-shorthand-default(up=py2-open:18101)",
+  "url": "http://127.0.0.1:18010/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18010,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/docs-example-cors-wildcard",
+  "url": "http://127.0.0.1:18013/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18013,
+  "flood_n": 12000,
+  "skip_flood": true,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ]
+ },
+ {
+  "name": "rmcp-3.7.0/default-config(Origin allowlist empty)",
+  "url": "http://127.0.0.1:18006/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/rmcp.cnt",
+  "pid_port": 18006,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ },
+ {
+  "name": "rmcp-3.7.0/with_allowed_origins(loopback)",
+  "url": "http://127.0.0.1:18007/mcp",
+  "eras": [
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/rmcph.cnt",
+  "pid_port": 18007,
+  "flood_n": 12000,
+  "only_cases": [
+   "N01-header-mismatch-protocol-version",
+   "N02-missing-mcp-method-header",
+   "N03-mcp-name-mismatch",
+   "N04-unsupported-protocol-version",
+   "N08-initialize-under-modern"
+  ],
+  "skip_flood": true
+ }
+]

@@ -1,0 +1,242 @@
+[
+ {
+  "target": "py-mcp-2.3.0/loopback-default",
+  "era": "legacy",
+  "PASS": 11,
+  "FAIL": 3,
+  "WARN": 1,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.73
+ },
+ {
+  "target": "py-mcp-2.3.0/loopback-default",
+  "era": "modern",
+  "PASS": 17,
+  "FAIL": 4,
+  "WARN": 1,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.77
+ },
+ {
+  "target": "py-mcp-2.3.0/bind-0.0.0.0-default",
+  "era": "legacy",
+  "PASS": 10,
+  "FAIL": 4,
+  "WARN": 1,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.67
+ },
+ {
+  "target": "py-mcp-2.3.0/bind-0.0.0.0-default",
+  "era": "modern",
+  "PASS": 16,
+  "FAIL": 5,
+  "WARN": 1,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.73
+ },
+ {
+  "target": "py-mcp-1.30.0/loopback-default",
+  "era": "legacy",
+  "PASS": 10,
+  "FAIL": 4,
+  "WARN": 1,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.67
+ },
+ {
+  "target": "ts-server-2.4.0+express-2.0.2/legacy-transport-default",
+  "era": "legacy",
+  "PASS": 9,
+  "FAIL": 4,
+  "WARN": 1,
+  "NA": 9,
+  "ERR": 0,
+  "pass_rate_executed": 0.64
+ },
+ {
+  "target": "ts-server-2.4.0/createMcpHandler-bare",
+  "era": "legacy",
+  "PASS": 8,
+  "FAIL": 5,
+  "WARN": 1,
+  "NA": 9,
+  "ERR": 0,
+  "pass_rate_executed": 0.57
+ },
+ {
+  "target": "ts-server-2.4.0/createMcpHandler-bare",
+  "era": "modern",
+  "PASS": 17,
+  "FAIL": 5,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.77
+ },
+ {
+  "target": "ts-sdk-1.32.2+express/default",
+  "era": "legacy",
+  "PASS": 7,
+  "FAIL": 5,
+  "WARN": 3,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.47
+ },
+ {
+  "target": "rmcp-3.7.0/default-config(Origin allowlist empty)",
+  "era": "legacy",
+  "PASS": 11,
+  "FAIL": 3,
+  "WARN": 1,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.73
+ },
+ {
+  "target": "rmcp-3.7.0/default-config(Origin allowlist empty)",
+  "era": "modern",
+  "PASS": 18,
+  "FAIL": 4,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.82
+ },
+ {
+  "target": "rmcp-3.7.0/with_allowed_origins(loopback)",
+  "era": "legacy",
+  "PASS": 12,
+  "FAIL": 2,
+  "WARN": 1,
+  "NA": 8,
+  "ERR": 0,
+  "pass_rate_executed": 0.8
+ },
+ {
+  "target": "rmcp-3.7.0/with_allowed_origins(loopback)",
+  "era": "modern",
+  "PASS": 19,
+  "FAIL": 3,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.86
+ },
+ {
+  "target": "agentgateway-1.6.0/docs-example-cors-wildcard",
+  "era": "legacy",
+  "PASS": 9,
+  "FAIL": 5,
+  "WARN": 1,
+  "NA": 7,
+  "ERR": 0,
+  "pass_rate_executed": 0.6
+ },
+ {
+  "target": "agentgateway-1.6.0/docs-example-cors-wildcard",
+  "era": "modern",
+  "PASS": 18,
+  "FAIL": 4,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.82
+ },
+ {
+  "target": "agentgateway-1.6.0/jwt+aud+origin-allowlist",
+  "era": "legacy",
+  "PASS": 14,
+  "FAIL": 3,
+  "WARN": 1,
+  "NA": 4,
+  "ERR": 0,
+  "pass_rate_executed": 0.78
+ },
+ {
+  "target": "agentgateway-1.6.0/jwt-audiences-UNSET(default)",
+  "era": "legacy",
+  "PASS": 13,
+  "FAIL": 4,
+  "WARN": 1,
+  "NA": 4,
+  "ERR": 0,
+  "pass_rate_executed": 0.72
+ },
+ {
+  "target": "agentgateway-1.6.0/mock-upstream(passthrough,redirect)",
+  "era": "legacy",
+  "PASS": 1,
+  "FAIL": 1,
+  "WARN": 0,
+  "NA": 0,
+  "ERR": 0,
+  "pass_rate_executed": 0.5
+ },
+ {
+  "target": "agentgateway-1.6.0/mcp-shorthand-default(up=py2-open:18101)",
+  "era": "legacy",
+  "PASS": 10,
+  "FAIL": 4,
+  "WARN": 2,
+  "NA": 7,
+  "ERR": 0,
+  "pass_rate_executed": 0.62
+ },
+ {
+  "target": "agentgateway-1.6.0/mcp-shorthand-default(up=py2-open:18101)",
+  "era": "modern",
+  "PASS": 19,
+  "FAIL": 3,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.86
+ },
+ {
+  "target": "docker-mcp-gateway-v0.44.2/token-auth(default,no --host)",
+  "era": "legacy",
+  "PASS": 9,
+  "FAIL": 1,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.9
+ },
+ {
+  "target": "docker-mcp-gateway-v0.44.2/--allow-unauthenticated",
+  "era": "legacy",
+  "PASS": 8,
+  "FAIL": 2,
+  "WARN": 0,
+  "NA": 1,
+  "ERR": 0,
+  "pass_rate_executed": 0.8
+ },
+ {
+  "target": "agentgateway-1.6.0/mcp.dnsRebindingProtection=true(up=py2-open:18101)",
+  "era": "legacy",
+  "PASS": 4,
+  "FAIL": 1,
+  "WARN": 0,
+  "NA": 0,
+  "ERR": 0,
+  "pass_rate_executed": 0.8
+ },
+ {
+  "target": "agentgateway-1.6.0/mcp.dnsRebindingProtection=true(up=py2-open:18101)",
+  "era": "modern",
+  "PASS": 5,
+  "FAIL": 1,
+  "WARN": 0,
+  "NA": 0,
+  "ERR": 0,
+  "pass_rate_executed": 0.83
+ }
+]

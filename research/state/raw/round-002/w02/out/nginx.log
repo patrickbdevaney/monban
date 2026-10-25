@@ -1,0 +1,10 @@
+Up 4 seconds
+[nginx] idle: RSS_kB=12528 PSS_kB=9452 nproc=2 cg_anon_kB=3620 cg_file_kB=6888 cg_current_kB=10972
+[nginx] 1k-idle-conns: RSS_kB=13392 PSS_kB=10192 nproc=2 cg_anon_kB=4216 cg_file_kB=6888 cg_current_kB=15400
+[nginx] after-close: RSS_kB=12660 PSS_kB=9518 nproc=2 cg_anon_kB=3648 cg_file_kB=6888 cg_current_kB=11012
+[nginx] 1k-idle-TLS-conns: RSS_kB=39640 PSS_kB=34102 nproc=2 cg_anon_kB=27852 cg_file_kB=7000 cg_current_kB=39192
+[nginx] h1 plain c64: req/s=189947.4871 p99=0.6797 ms server_cpu_us=9995866 Status code distribution:   [200] 1900020 responses  
+[nginx] h2+tls c64: req/s=72004.7612 p99=1.7139 ms server_cpu_us=9826092
+[nginx] hs x25519: group=x25519 handshakes=32337 secs=8.00 hs/s=4039.9 client_cpu_ms_per_hs=0.112 p50ms=3.86 p99ms=4.74 wire_bytes_per_hs rx(server->client)=819 tx(client->server)=351  server_cpu_us_per_hs=246219e-3
+[nginx] hs mlkem: group=mlkem handshakes=24557 secs=8.01 hs/s=3067.7 client_cpu_ms_per_hs=0.151 p50ms=5.13 p99ms=6.48 wire_bytes_per_hs rx(server->client)=1885 tx(client->server)=1535  server_cpu_us_per_hs=324664e-3
+[nginx] final: RSS_kB=16076 PSS_kB=10348 nproc=2 cg_anon_kB=3996 cg_file_kB=7012 cg_current_kB=11500

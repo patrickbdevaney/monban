@@ -1,0 +1,25 @@
+try_fips_mode = Ok(())
+default_provider.fips() = true
+KX X25519MLKEM768 fips=true
+KX secp256r1MLKEM768 fips=true
+KX X25519 fips=false
+KX secp256r1 fips=true
+KX secp384r1 fips=true
+KX MLKEM768 fips=true
+KX MLKEM1024 fips=true
+HS A fipsserver[P256MLKEM768,P256,P384] <- client[P256MLKEM768,P256]: result=Ok(()) group_client=Some(secp256r1MLKEM768) group_server=Some(secp256r1MLKEM768) kind=Some(Full) server_cfg.fips=true client_cfg.fips=true
+HS B fipsserver[P256MLKEM768,P256,P384] <- client[X25519MLKEM768 only]: result=Err("server: PeerIncompatible(NoKxGroupsInCommon)") group_client=None group_server=None kind=None server_cfg.fips=true client_cfg.fips=true
+HS C fipsserver[P256MLKEM768,P256,P384] <- client[X25519MLKEM768,X25519,P256MLKEM768]: result=Ok(()) group_client=Some(secp256r1MLKEM768) group_server=Some(secp256r1MLKEM768) kind=Some(FullWithHelloRetryRequest) server_cfg.fips=true client_cfg.fips=false
+HS D defaultserver[X25519MLKEM768,X25519,P256,P384] <- client[X25519MLKEM768]: result=Ok(()) group_client=Some(X25519MLKEM768) group_server=Some(X25519MLKEM768) kind=Some(Full) server_cfg.fips=false client_cfg.fips=true
+HS E fipsserver[P256MLKEM768,P256,P384] <- client[X25519,P256]: result=Ok(()) group_client=Some(secp256r1) group_server=Some(secp256r1) kind=Some(FullWithHelloRetryRequest) server_cfg.fips=true client_cfg.fips=false
+HS F fipsserver[P256MLKEM768 only] <- client[X25519,P256]: result=Err("server: PeerIncompatible(NoKxGroupsInCommon)") group_client=None group_server=None kind=None server_cfg.fips=true client_cfg.fips=false
+PROBE 1 fips pq-pref: pq first, classical share only: groups=[11eb, 0017] shares=[0017] -> Hrr(4587)
+PROBE 2 fips: pq first, pq share: groups=[11eb, 0017] shares=[11eb] -> ServerHello(4587)
+PROBE 3 fips pq-required: classical first, classical share: groups=[0017, 11eb] shares=[0017] -> Hrr(4587)
+PROBE 4 fips pq-required: classical only: groups=[0017] shares=[0017] -> Alert(40)
+PROBE 5 fips pref(non-req): classical first, classical share: groups=[0017, 11eb] shares=[0017] -> ServerHello(23)
+PROBE 6 fips server vs X25519MLKEM768-only hello: groups=[11ec] shares=[11ec] -> Alert(40)
+PROBE 7 fips server vs [X25519MLKEM768,P256MLKEM768] hello share X25519MLKEM768: groups=[11ec, 11eb] shares=[11ec] -> Hrr(4587)
+PROBE 8 fips server vs [X25519MLKEM768,P256MLKEM768] hello both shares: groups=[11ec, 11eb] shares=[11ec, 11eb] -> ServerHello(4587)
+PROBE 9 default-prefer-pq server: [x25519, mlkem] x25519 share: groups=[001d, 11ec] shares=[001d] -> ServerHello(29)
+PROBE 10 default-prefer-pq server: [mlkem, x25519] x25519 share: groups=[11ec, 001d] shares=[001d] -> Hrr(4588)

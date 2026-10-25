@@ -1,0 +1,3 @@
+rmcp-hardened | dns-rebinding-protection | Passed: 2/2, 0 failed, 0 warnings
+rmcp-hardened | http-header-validation | Passed: 14/14, 0 failed, 0 warnings
+rmcp-hardened | server-stateless | Passed: 19/25, 6 failed, 0 warnings

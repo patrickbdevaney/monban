@@ -1,0 +1,1116 @@
+{
+ "target": "switching-economics-practitioner-forums",
+ "nodes": [
+  {
+   "id": "econ.criteria-frequency",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "demand-table",
+   "title": "Stated selection criteria in practitioner forums, counted by segment (2025-26)",
+   "summary": "Keyword+hand coding of ~6.5k comments in 59 threads (HN, Lemmy) plus 18 GH/Discourse threads. Household: ACME/auto-TLS 195/18 HN + 45/13 Lemmy, config ergonomics 146/20 + 51/11, performance 155/20, security 113/19, vendor-risk 69/18, memory 88/14, license 57/16, single-binary 14/3. Enterprise k8s: vendor-risk 31/3, config/annotations 20/4, perf 25/3, security 20/3. Agent gateways: credential isolation 93c/10t, cost 60/7, authz 46/10, supply-chain/compiled 47/12, audit 48/10. PQ 0 and formal 0 in all selection threads.",
+   "urls": [
+    "https://news.ycombinator.com/item?id=45921431",
+    "https://news.ycombinator.com/item?id=43070025",
+    "https://news.ycombinator.com/item?id=50145507",
+    "https://gregtech.eu/post/7656913"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Keyword mention is not a buying criterion; enthusiast-skewed, non-random samples; Reddit/lobste.rs unreachable.",
+   "underclaim_risk": "Silent majority on managed platforms (ALB, Cloudflare) never posts; enterprise buyers decide off-forum, so formal/PQ/FIPS demand could exist in procurement documents not forums."
+  },
+  {
+   "id": "econ.differentiators-absent",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "PQ, formal assurance and compliance are not stated buying criteria in server/proxy selection threads",
+   "summary": "0 of ~8,175 comments in 56 selection threads state PQ as a criterion (109 PQ comments exist only in LE-PQ and NSA/ML-KEM threads, about CA/standards). Formal verification: 0 true hits in selection threads; one sarcastic reply in the formal-verification thread ('this is why one would prefer NGINX over a formally verified http server', 45566877). Memory safety is contested as 'moot out of scope contract' (49870493). Compliance (FIPS/FedRAMP/SOC2): ~0 outside agent threads. Agent hardening appears only inside agent-security product launches (145 comments, 12 threads). Probe scans of 500 recent HN comments each: 'post-quantum' 5 proxy mentions, 'ML-KEM' 1, 'formally verified' 2.",
+   "urls": [
+    "https://news.ycombinator.com/item?id=48385114",
+    "https://news.ycombinator.com/item?id=45555727",
+    "https://news.ycombinator.com/item?id=48760490",
+    "https://news.ycombinator.com/item?id=49856988"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Absence in forums != absence in procurement (CNSA 2.0, FedRAMP, EU CRA are mandated top-down).",
+   "underclaim_risk": "PQ is already shipped as library defaults (so nobody needs to ask); lack of mention could mean success of invisible defaults."
+  },
+  {
+   "id": "econ.deal-breakers",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "Top-5 explicit deal breakers for switching proxies/gateways",
+   "summary": "(1) annotation/feature non-parity in migration; (2) behavioural default drift causing incidents; (3) open-core paywall/licence; (4) maintainer/governance continuity; (5) missing ops must-haves (graceful reload, rate limit/geo, metrics) and install-trust/benchmark-credibility backlash. Evidence: RKE2 8672, kubero 717, EG 5594, kgateway 12896, NGF 4936, Traefik forum 29602/29612/29653/29733/29829, Nine blog, Ferron 45653350, nginx ACME 44889941.",
+   "urls": [
+    "https://github.com/nginx/nginx-gateway-fabric/discussions/4936",
+    "https://github.com/kgateway-dev/kgateway/discussions/12896",
+    "https://nine.ch/en/blog/haproxy-defaults-after-ingress-nginx-migration/",
+    "https://news.ycombinator.com/item?id=45653350"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Counts per breaker are 2-12 threads; ranking by thread count, not impact.",
+   "underclaim_risk": "Many switchers never post their reason."
+  },
+  {
+   "id": "econ.who-switches-first",
+   "layer": "L1",
+   "domain": "W-GAP",
+   "type": "hypothesis",
+   "title": "Who switches first: agent-infrastructure builders, not ingress or household users",
+   "summary": "H-W1: segment order (a) forced ingress-nginx migrators (adopt parity-compatible incumbents: RKE2->Traefik, Nine->HAProxy; none ask for assurance), (b) agent-infra startups (credential isolation, MCP authz, cost/audit, distrust of LiteLLM quality/vulns) - only segment with agent hardening as stated criterion, (c) household self-hosters only for <=3-line config + auto-ACME. A new server enters via (b), and must clear deal-breakers 1-5 in (a)/(c) later.",
+   "urls": [
+    "https://news.ycombinator.com/item?id=50145507",
+    "https://news.ycombinator.com/item?id=47849097",
+    "https://github.com/rancher/rke2/discussions/8672"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.5,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Inferred from launch-thread self-selection; no purchase data.",
+   "underclaim_risk": "Enterprise regulated buyers (FIPS/FedRAMP) may switch first for compliance reasons invisible on forums."
+  },
+  {
+   "id": "econ.ingress-nginx-migration-cost",
+   "layer": "L4",
+   "domain": "W-GAP",
+   "type": "measurement",
+   "title": "Quantified cost of ingress-nginx migration: weeks, >200 Ingresses, four prod incidents",
+   "summary": "Nine (Swiss SME host) migrated to haproxy-ingress 'over last few weeks' (blog 2026-10-07): 8 default differences; incidents: 504 on 55s exports (50s default vs 60s), maxconn 2000/pod, HTTP/1.0 passthrough 400 on S3 backend, bcrypt basic-auth spinlock >2 cores at 155 conns. RKE2 maintainer 2025-07: 'switching ingress controllers is a non-trivial exercise'. Brella: Traefik because migration tool allows staying on Ingress. K8s statement 2026-01-29: ingress-nginx used by about half of cloud-native environments.",
+   "urls": [
+    "https://nine.ch/en/blog/haproxy-defaults-after-ingress-nginx-migration/",
+    "https://github.com/rancher/rke2/discussions/8672",
+    "https://github.com/vitobotta/hetzner-k3s/discussions/712",
+    "https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "One vendor postmortem plus anecdotes.",
+   "underclaim_risk": "Larger enterprises likely paid far more; unreported."
+  },
+  {
+   "id": "econ.annotation-parity-traefik",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "product-evidence",
+   "title": "Traefik ingress-nginx compatibility layer: adoption driver and failure surface",
+   "summary": "Traefik v3.7 'Langres' (2026-05-11) claims ingress-nginx drop-in, 80+ annotations; v3.7.16 current 2026-10-20. Forum: migrants chose Traefik 'due to level of nginx annotation support' (29612) but hit use-regex not working in 3.6.6 (29602), whitelist-source-range on master not released in 3.6.8 (29653), helm key rename kubernetesIngressNginx->kubernetesIngressNGINX v39->v40 (29733), dual-controller status race (29704). Migration-compat is the winning criterion and the leaking one.",
+   "urls": [
+    "https://community.traefik.io/t/29612",
+    "https://community.traefik.io/t/29602",
+    "https://community.traefik.io/t/29653",
+    "https://community.traefik.io/t/29704"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Forum posts are the failures; successes are silent.",
+   "underclaim_risk": "Traefik share gain likely larger than visible."
+  },
+  {
+   "id": "econ.opencore-paywall-backlash",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "Paywalled features in open-source gateways trigger explicit churn threats",
+   "summary": "NGINX Gateway Fabric: Prometheus request metrics only in NGINX Plus; user 2026-03-16 'leaves a bitter taste... triggers me to check for alternatives', 2026-06-11 'need metrics on open-source ASAP, otherwise we will stop using'; maintainers: 'feedback we hear quite often'. HN: Bifrost features gated; GoModel licence page debate. Reinforces licence/open-core as deal breaker 3.",
+   "urls": [
+    "https://github.com/nginx/nginx-gateway-fabric/discussions/4936",
+    "https://news.ycombinator.com/item?id=47849097"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "n small (3 threads).",
+   "underclaim_risk": "-"
+  },
+  {
+   "id": "econ.agent-gateway-criteria",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "Agent/LLM/MCP gateway buyers: credential isolation, authz, cost, audit; LiteLLM distrust",
+   "summary": "12 HN launch/discussion threads (2025-07..2026-10): credential/secret isolation 93c/10t, cost-budget 60/7, audit 48/10, authz/OAuth 46/10, sandbox 36/11, prompt-injection/guardrails 32/10, gateway's own vuln/quality 16/7. Stated: virtual keys so provider keys never reach sandbox (50145507); LiteLLM 'vibecoded slop... vulnerabilities' and a new LiteLLM vuln on HN front page same day; preference for compiled Go/Rust gateways and compile-time supply-chain control (sbproxy in 47849097); 'missing authorization for MCP servers' (45010524); oauth2proxy+istio as DIY; agentgateway user: proxy pods hold 1.4 GiB RSS after load (glibc arenas; jemalloc not default; GH 1176).",
+   "urls": [
+    "https://news.ycombinator.com/item?id=50145507",
+    "https://news.ycombinator.com/item?id=45010524",
+    "https://news.ycombinator.com/item?id=47849097",
+    "https://github.com/agentgateway/agentgateway/discussions/1176"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Launch threads select for topic; includes vendor self-promotion comments.",
+   "underclaim_risk": "Enterprise MCP governance buyers (Stacklok survey 5% governed) are off-forum."
+  },
+  {
+   "id": "econ.household-criteria",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "Household/self-host server choice is driven by 3-line config and auto-ACME; switching cost quoted in minutes",
+   "summary": "Hand-coded ~30 first-person switch statements: config ergonomics ~10 ('3 lines of setup', 'ten minutes', 'one line with sane defaults'), ACME/internal-CA ~5, others scattered. Counterflow: users leave Caddy for Traefik/HAProxy when needing LB/rewrite/auth (4 stmts); Pangolin/Tailscale tunnels draw switchers (3). Cloudflare is the default 'security' answer in bot-flood threads (50073221, 45965060). Stated quantified cost: 10-15 minutes (Caddy).",
+   "urls": [
+    "https://news.ycombinator.com/item?id=43070025",
+    "https://news.ycombinator.com/item?id=44889941",
+    "https://gregtech.eu/post/7656913",
+    "https://news.ycombinator.com/item?id=45965060"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Caddy-fan selection bias on HN Caddy thread.",
+   "underclaim_risk": "Most households use NPM/Cloudflare tunnels silently."
+  },
+  {
+   "id": "econ.governance-continuity",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "demand-finding",
+   "title": "Governance continuity is a stated criterion: River 'died when grant funding stopped'",
+   "summary": "HN 45653865 (Ferron thread 2025-10-21): 'was waiting for River... like many grant-based projects it just died when funding stopped'. Traefik issue open since 2019 -> internal fork maintained 2 years -> HAProxy migration (45357732). Caddy maintainership thread 2025-10-15 (105c). nginx-unit bad experience -> Caddy (44889941). Extends gap.dormancy-churn with user-voice evidence.",
+   "urls": [
+    "https://news.ycombinator.com/item?id=45653350",
+    "https://news.ycombinator.com/item?id=45357732",
+    "https://news.ycombinator.com/item?id=45598590"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "-",
+   "underclaim_risk": "-"
+  },
+  {
+   "id": "econ.security-incident-no-switch",
+   "layer": "L4",
+   "domain": "W-GAP",
+   "type": "skeptic-finding",
+   "title": "Critical nginx CVEs do not produce stated switching: NGINX Rift and IngressNightmare threads",
+   "summary": "CVE-2026-42945 'NGINX Rift' (NVD 2026-05-13, CVSS 9.2/8.1, heap overflow in rewrite module since 0.6.27, public PoC 2026-05-12): HN 48138268, 101 comments, 0 comments say leaving nginx, 12 about patching, long ASLR debate (one: 'lately LLM agents lowering ASLR-bypass cost'). IngressNightmare thread 43465424 (9.8, 2025-03-24): 0 switch statements. One commenter (44889941) switched to Caddy citing nginx's non-information on an HTTP/1 desync and fear of auditor questions - security+compliance as driver n=1.",
+   "urls": [
+    "https://news.ycombinator.com/item?id=48138268",
+    "https://nvd.nist.gov/vuln/detail/CVE-2026-42945",
+    "https://news.ycombinator.com/item?id=43465424"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Reaction in a thread != behaviour over months.",
+   "underclaim_risk": "Switches after incidents happen quietly in ops teams."
+  },
+  {
+   "id": "econ.research-access-walls",
+   "layer": "L1",
+   "domain": "W-GAP",
+   "type": "method-finding",
+   "title": "Reddit blocks and lobste.rs PoW-walls automated research agents; Lemmy, Discourse, HN Algolia, GitHub GraphQL stay open",
+   "summary": "old.reddit/www.reddit JSON return a 'Blocked' page; lobste.rs serves an Anubis proof-of-work challenge on HTML/JSON/RSS routes (a live example of PoW gate stopping an agent with plain HTTP client); GH Discussions disabled on kubernetes/ingress-nginx. Practical: forum research must use HN Algolia items API, Lemmy /api/v3 (comment pagination returned duplicates; dedupe by id), Discourse /search.json and /t/ID.json, GraphQL search(type:DISCUSSION).",
+   "urls": [
+    "https://lobste.rs/",
+    "https://hn.algolia.com/api",
+    "https://lemmy.world/api/v3/search"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Only plain-HTTP client tested; headless browser would pass Anubis.",
+   "underclaim_risk": "-"
+  }
+ ],
+ "edges": [
+  {
+   "src": "econ.criteria-frequency",
+   "dst": "gap.demand-evidence",
+   "type": "extends",
+   "note": "quantifies 'what users switch for' with counts"
+  },
+  {
+   "src": "econ.differentiators-absent",
+   "dst": "gap.unserved-combination",
+   "type": "conflicts_with",
+   "note": "PQ/formal/compliance not stated criteria; gap exists but is not demand-signalled"
+  },
+  {
+   "src": "econ.differentiators-absent",
+   "dst": "gap.no-assurance-claims",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.deal-breakers",
+   "dst": "gap.demand-evidence",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.who-switches-first",
+   "dst": "gap.unserved-combination",
+   "type": "extends",
+   "note": "segment hypothesis for R-GAP-1"
+  },
+  {
+   "src": "econ.ingress-nginx-migration-cost",
+   "dst": "gap.traefik",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.ingress-nginx-migration-cost",
+   "dst": "gap.haproxy",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.annotation-parity-traefik",
+   "dst": "gap.traefik",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.opencore-paywall-backlash",
+   "dst": "gap.nginx",
+   "type": "extends",
+   "note": "NGF/Plus paywall"
+  },
+  {
+   "src": "econ.agent-gateway-criteria",
+   "dst": "gap.agentgateway",
+   "type": "extends",
+   "note": "memory RSS complaint"
+  },
+  {
+   "src": "econ.agent-gateway-criteria",
+   "dst": "gap.mcp-gateway-misc",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.household-criteria",
+   "dst": "gap.caddy",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.governance-continuity",
+   "dst": "gap.dormancy-churn",
+   "type": "extends",
+   "note": "user-voice evidence"
+  },
+  {
+   "src": "econ.governance-continuity",
+   "dst": "gap.river",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.governance-continuity",
+   "dst": "gap.nginx-unit",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "econ.security-incident-no-switch",
+   "dst": "gap.nginx",
+   "type": "extends",
+   "note": "CVE-2026-42945 reaction"
+  },
+  {
+   "src": "econ.security-incident-no-switch",
+   "dst": "gap.insecure-defaults",
+   "type": "extends",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Do FIPS/FedRAMP/CNSA2.0/EU-CRA procurement documents (RFPs, STIG, vendor questionnaires) list PQ-TLS, memory-safety or formal assurance as scored criteria for ingress/gateway products?",
+   "layer": "L1",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.7,
+   "reason": "Forum absence of differentiators may be an artifact; procurement text is the real test for R-GAP-1"
+  },
+  {
+   "question": "Headless-browser pull of r/kubernetes, r/selfhosted, r/sysadmin threads on ingress-nginx replacement (Anubis/Reddit bypass in a legit manner or via Pushshift-like archives) to code criteria counts and compare with HN/Lemmy",
+   "layer": "L1",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.4,
+   "reason": "unfilled source cell"
+  },
+  {
+   "question": "Measure ingress-nginx annotation coverage of Traefik 3.7, Envoy Gateway, kgateway, NGF, haproxy-ingress against the top-20 real-world annotations (translation matrix as L5 conformance fixture)",
+   "layer": "L4",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.5,
+   "reason": "deal breaker 1 quantification; defines a migration-parity test suite"
+  },
+  {
+   "question": "Agent-gateway adopters: GitHub issue/discussion mining of litellm, bifrost, agentgateway, envoy-ai-gateway, mcp-context-forge for stated deployment blockers (auth, memory, multi-tenant) with counts",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.55,
+   "reason": "the one segment where differentiators appear; extend with issue-level counts"
+  },
+  {
+   "question": "Quantify nginx->Caddy/Traefik hours from blog postmortems (n>=15) to get switching-cost distribution",
+   "layer": "L4",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.35,
+   "reason": "cost data scarce in forums"
+  }
+ ],
+ "protocol_implications": [
+  "Position assurance/PQ/agent hardening as invisible defaults, not selling points: no segment states PQ or formal assurance as a criterion (grade C).",
+  "Ship a migration-parity layer early (ingress-nginx annotation translation + defaults-compatible profile): deal breakers 1 and 2; acceptance test = Nine-style 8-default diff checklist passes.",
+  "Governance: foundation home / multiple maintainers is a criterion; avoid open-core metrics paywalls (deal breaker 3).",
+  "Household entry bar: <=3-line config + auto-ACME + single static binary; hot reload, rate limiting and metrics must exist at v1 (deal breaker 5).",
+  "First market: agent-infra builders: credential isolation (virtual keys), MCP OAuth authz, cost/audit, small memory (agentgateway 1.4 GiB RSS complaint) and clean supply chain; R-GAP-1 remains C-grade, partially supported only for this slice.",
+  "Security incidents alone do not drive switching (Rift thread: 0/101): do not count on CVE records of incumbents as a demand lever."
+ ],
+ "self_improvement": [
+  "Add a source-access preflight (reddit/lobste.rs/GH Discussions) to explorer briefs; list Lemmy/Discourse/HN-Algolia/GraphQL as the working forum APIs.",
+  "Lemmy comment pagination returns duplicate pages; dedupe by comment id.",
+  "Keyword regex 'Lean' matched 'lean' (case-insensitive): use case-sensitive proper-noun matching for tool names.",
+  "novelty_gate.py was not run (time); queries logged manually to _queries.log; ~70 queries logged."
+ ],
+ "criterion_table": {
+  "note": "comment-level keyword hits / distinct threads; keyword coding = mention frequency, not verified buying criterion; Lemmy = top ~50 comments per post",
+  "segments": {
+   "AGENT": "12 HN threads, 732 comments",
+   "ENT": "4 HN threads 227 comments + 10 GH discussions + 8 Traefik forum + Nine blog",
+   "HH_HN": "24 threads 4081 comments",
+   "HH_lemmy": "20 posts 1045 comments",
+   "PROBE": "3 HN threads 378 comments (PQ/formal specific; excluded from rates)"
+  },
+  "rows": {
+   "security_record": {
+    "AGENT": "8/4",
+    "ENT": "20/3",
+    "HH_HN": "113/19",
+    "HH_lemmy": "26/8",
+    "PROBE": "11/2"
+   },
+   "config_ergonomics": {
+    "AGENT": "13/4",
+    "ENT": "20/4",
+    "HH_HN": "146/20",
+    "HH_lemmy": "51/11"
+   },
+   "acme_auto_tls": {
+    "AGENT": "1/1",
+    "ENT": "1/1",
+    "HH_HN": "195/18",
+    "HH_lemmy": "45/13"
+   },
+   "memory_footprint": {
+    "AGENT": "6/4",
+    "ENT": "0/0",
+    "HH_HN": "88/14",
+    "HH_lemmy": "5/5"
+   },
+   "single_binary": {
+    "AGENT": "0/0",
+    "ENT": "0/0",
+    "HH_HN": "14/3",
+    "HH_lemmy": "1/1"
+   },
+   "license_change_or_paywall": {
+    "AGENT": "8/3",
+    "ENT": "2/2",
+    "HH_HN": "57/16",
+    "HH_lemmy": "10/4"
+   },
+   "vendor_risk_maintenance": {
+    "AGENT": "11/4",
+    "ENT": "31/3",
+    "HH_HN": "69/18",
+    "HH_lemmy": "11/6"
+   },
+   "performance": {
+    "AGENT": "25/7",
+    "ENT": "25/3",
+    "HH_HN": "155/20",
+    "HH_lemmy": "19/12"
+   },
+   "post_quantum": {
+    "AGENT": "0/0",
+    "ENT": "0/0",
+    "HH_HN": "0/0",
+    "HH_lemmy": "0/0",
+    "PROBE": "109/2 (CA/standards debate, not server choice)"
+   },
+   "compliance_fips_fedramp_soc2": {
+    "AGENT": "15/4 (mostly 'spec compliance' / enterprise generic; precision unchecked)",
+    "ENT": "0/0",
+    "HH_HN": "6/4",
+    "HH_lemmy": "0/0"
+   },
+   "formal_assurance": {
+    "AGENT": "0/0",
+    "ENT": "0/0",
+    "HH_HN": "0/0 (after fixing 'lean' false positives)",
+    "HH_lemmy": "0/0",
+    "PROBE": "16/1"
+   },
+   "agent_hardening_mcp_promptinj": {
+    "AGENT": "145/12 (thread topic, not comparison criterion)",
+    "ENT": "0/0",
+    "HH_HN": "8/4 tangential",
+    "HH_lemmy": "0/0"
+   }
+  }
+ },
+ "notes": {
+  "queries_run": 226,
+  "access_walls": "reddit old/www .json = HTTP Blocked page; WebSearch for reddit returns only mirrors (excluded per brief); lobste.rs = Anubis PoW challenge on every route (HTML+JSON+RSS); GitHub Discussions disabled on kubernetes/ingress-nginx (410). Net: zero real reddit/lobste.rs threads; substituted Lemmy c/selfhosted (federated, real), Traefik/Caddy Discourse, GitHub Discussions, HN.",
+  "thread_counts": {
+   "ENT": 22,
+   "HH": 45,
+   "AGENT": 14,
+   "PROBE": 3
+  },
+  "total_threads": 84,
+  "caveats": "Keyword coding over non-random forum samples; HN/Lemmy skew to enthusiasts; agent-gateway threads are product launches (self-selected for topic); GitHub discussions median 2 comments; switching-cost numbers rare (<=5 of ~80 threads); no hours/incidents for household beyond '10-15 minutes' anecdotes.",
+  "hand_coded_switch_statements": "~30 first-person switch statements (HN+Lemmy HH): config ergonomics ~10, ACME/auto-TLS/internal CA ~5, security/audit 1, product failure (nginx-unit) 1, scale/ALB 1, config-format churn 1, moved AWAY from Caddy/easy tool for features 4 (Caddy->Traefik LB/rewrites; opnsense Caddy plugin limits; authentik; Traefik->HAProxy after 2y internal fork), tunnel/zero-trust features 3.",
+  "nginx_rift": "CVE-2026-42945 (NVD published 2026-05-13, CVSS 9.2 v4/8.1 v3) heap overflow ngx_http_rewrite_module since 0.6.27; HN thread 48138268 (101 comments, 2026-05-14): 0 commenters stated leaving nginx; 12 comments about patch/upgrade; debate was ASLR. IngressNightmare thread 43465424 (9.8, 2025-03-24, 21c): 0 switch statements. => security incidents do not trigger switching by themselves in this sample.",
+  "dealbreakers_top5": [
+   "1. Migration non-parity: unsupported nginx annotations/snippets (whitelist-source-range, use-regex, proxy-ssl-verify, configuration-snippet) and missing auth features (kgateway lacked OIDC/basic/API-key) - appears in ~12 ENT threads (RKE2 8672, kubero 717, EG 5594, kgateway 12896, Traefik forum x6)",
+   "2. Behavioural default drift causing production incidents after a 'working' migration (Nine: 50s vs 60s timeouts -> 504, 2000 maxconn/pod, HTTP/1.0 passthrough -> 400, bcrypt spinlock; Traefik 29640 404s; 29704 dual-controller race)",
+   "3. Open-core / paywalled features and license risk (NGINX Gateway Fabric metrics Plus-only: 'we will stop using'; Bifrost gated features; GoModel licence debate; Sozu AGPL; Pingoo README complaint) - ~6 threads",
+   "4. Maintainer/governance continuity (River 'died when funding stopped' 45653865; nginx-unit archived; ingress-nginx retired; Caddy maintainership thread 45598590; Traefik issue open since 2019 -> internal fork 2y -> HAProxy)",
+   "5. Missing operational must-haves in the newcomer: hot/graceful config reload and dynamic backends, rate-limit/geo modules, metrics, sendfile/perf doubts, distro packaging and curl|bash install distrust (Ferron thread 45653350, nginx ACME 44889941, Caddy 43070025). Also benchmark-credibility backlash (Ferron charts, GoModel) in 2 threads."
+  ],
+  "who_switches_first": "Hypothesis H-W1 (grade C/D): first-adopter segments in order (a) forced ingress-nginx migrators (dated EOL; but they demand drop-in parity, not assurance: they will adopt Traefik/Envoy Gateway/HAProxy), (b) agent-infrastructure builders (YC-style startups; HN agent-gateway threads) who state credential isolation, authz/OAuth for MCP, cost/audit, distrust of LiteLLM-class supply-chain/quality - the only segment where agent hardening is a stated criterion; (c) household/Docker self-hosters switch only for config ergonomics + auto-ACME (Caddy/Traefik/Pangolin) - a new server must be <=3-line config with auto-TLS to even enter. Formal assurance, PQ, FIPS: no segment states them. Implication for R-GAP-1: demand evidence supports the unserved combination only for the agent-gateway slice; for ingress/household the gating criteria are migration parity, ergonomics, governance; differentiators should be positioned as invisible defaults, not selling points."
+ },
+ "thread_ledger": [
+  {
+   "seg": "ENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45921431",
+   "date": "2025-11-13",
+   "comments": 164,
+   "title": "Kubernetes Ingress Nginx is retiring"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=44889941",
+   "date": "2025-08-13",
+   "comments": 298,
+   "title": "Nginx introduces native support for ACME protocol"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=43070025",
+   "date": "2025-02-16",
+   "comments": 227,
+   "title": "Caddy \u2013 The Ultimate Server with Automatic HTTPS"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45598590",
+   "date": "2025-10-15",
+   "comments": 105,
+   "title": "Next Steps for the Caddy Project Maintainership"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45357732",
+   "date": "2025-09-24",
+   "comments": 147,
+   "title": "Traefik's 10-year anniversary"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48138268",
+   "date": "2026-05-14",
+   "comments": 101,
+   "title": "New Nginx Exploit"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=47950510",
+   "date": "2026-04-29",
+   "comments": 101,
+   "title": "FastCGI: 30 years old and still the better protocol for reverse proxies"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45214023",
+   "date": "2025-09-11",
+   "comments": 90,
+   "title": "Native ACME support comes to Nginx"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48527145",
+   "date": "2026-06-14",
+   "comments": 62,
+   "title": "Caddy compatibility for zeroserve: 3x throughput and 70% lower latency"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=50145507",
+   "date": "2026-10-18",
+   "comments": 219,
+   "title": "If you don't run your own LLM proxy, how do you know whats going on?"
+  },
+  {
+   "seg": "ENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=49990155",
+   "date": "2026-10-07",
+   "comments": 1,
+   "title": "Same Ingress, Different Defaults: What Changed When We Moved to HAProxy"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=46119740",
+   "date": "2025-12-02",
+   "comments": 3,
+   "title": "Another open source project dies of neglect, leaving thousands scrambling"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=50109715",
+   "date": "2026-10-15",
+   "comments": 433,
+   "title": "What I self-host"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48199858",
+   "date": "2026-05-19",
+   "comments": 2,
+   "title": "S\u014dzune \u2013 a reverse proxy built on S\u014dzu, with Traefik-style autodiscovery"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=44526015",
+   "date": "2025-07-10",
+   "comments": 126,
+   "title": "Show HN: Pangolin \u2013 Open source alternative to Cloudflare Tunnels"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45010524",
+   "date": "2025-08-25",
+   "comments": 53,
+   "title": "MCP Gateway and Registry"
+  },
+  {
+   "seg": "ENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=43912164",
+   "date": "2025-05-07",
+   "comments": 41,
+   "title": "The State of SSL Stacks"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45965060",
+   "date": "2025-11-18",
+   "comments": 372,
+   "title": "Do not put your site behind Cloudflare if you don't need to"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=43865015",
+   "date": "2025-05-02",
+   "comments": 6,
+   "title": "The Cost of Poison [with Iocaine]"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=50073221",
+   "date": "2026-10-13",
+   "comments": 179,
+   "title": "I posted to HN, and then my website was flooded with AI bot traffic"
+  },
+  {
+   "seg": "ENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=43465424",
+   "date": "2025-03-24",
+   "comments": 21,
+   "title": "Multiple vulnerabilities in ingress-Nginx (Score 9.8)"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45653350",
+   "date": "2025-10-21",
+   "comments": 93,
+   "title": "Show HN: I'm rewriting a web server written in Rust for speed and ease of use"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=44612151",
+   "date": "2025-07-19",
+   "comments": 207,
+   "title": "My Self-Hosting Setup"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=46580326",
+   "date": "2026-01-11",
+   "comments": 549,
+   "title": "CLI agents make self-hosting on a home server easier and fun"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=47298743",
+   "date": "2026-03-08",
+   "comments": 215,
+   "title": "My Homelab Setup"
+  },
+  {
+   "seg": "PROBE",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48385114",
+   "date": "2026-06-03",
+   "comments": 167,
+   "title": "A Post-Quantum Future for Let's Encrypt"
+  },
+  {
+   "seg": "PROBE",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48760490",
+   "date": "2026-07-02",
+   "comments": 98,
+   "title": "NSA tries to weaken mlkem standardisation?"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=47849097",
+   "date": "2026-04-21",
+   "comments": 75,
+   "title": "Show HN: GoModel \u2013 an open-source AI gateway in Go"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48762862",
+   "date": "2026-07-02",
+   "comments": 71,
+   "title": "Launch HN: Manufact (YC S25) \u2013 MCP Cloud"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45347914",
+   "date": "2025-09-23",
+   "comments": 67,
+   "title": "Launch HN: Strata (YC P25) \u2013 One MCP server for AI to handle thousands of tools"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=47865822",
+   "date": "2026-04-22",
+   "comments": 55,
+   "title": "Show HN: Agent Vault \u2013 Open-source credential proxy and vault for agents"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=49023427",
+   "date": "2026-07-23",
+   "comments": 33,
+   "title": "Show HN: OneCLI \u2013 OSS credential gateway that keeps secrets out of AI agents"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=48462928",
+   "date": "2026-06-09",
+   "comments": 32,
+   "title": "Show HN: Claw Patrol, a security firewall for agents"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45223102",
+   "date": "2025-09-12",
+   "comments": 23,
+   "title": "Show HN: An MCP Gateway to block the lethal trifecta"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=44546265",
+   "date": "2025-07-12",
+   "comments": 16,
+   "title": "Show HN: ArchGW \u2013 An intelligent edge and service proxy for agents"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45613567",
+   "date": "2025-10-17",
+   "comments": 182,
+   "title": "Ask HN: How to stop an AWS bot sending 2B requests/month?"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=49582000",
+   "date": "2026-09-06",
+   "comments": 313,
+   "title": "Cloud in a Bottle: making self-hosting accessible to everyone"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=50176908",
+   "date": "2026-10-21",
+   "comments": 50,
+   "title": "Launch HN: Alter (YC S25) \u2013 Access control for multi-user agents"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=49363710",
+   "date": "2026-08-19",
+   "comments": 38,
+   "title": "Launch HN: OneCLI (YC S26) \u2013 OSS sandboxed agent harness for teams"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=47536761",
+   "date": "2026-03-26",
+   "comments": 92,
+   "title": "Show HN: I put an AI agent on a $7/month VPS with IRC as its transport layer"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=46416618",
+   "date": "2025-12-29",
+   "comments": 118,
+   "title": "Self-hosting is being enshittified"
+  },
+  {
+   "seg": "HH",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=43286363",
+   "date": "2025-03-07",
+   "comments": 60,
+   "title": "Ask HN: Best way to simultaneously run multiple projects locally?"
+  },
+  {
+   "seg": "PROBE",
+   "kind": "HN",
+   "url": "https://news.ycombinator.com/item?id=45555727",
+   "date": "2025-10-12",
+   "comments": 113,
+   "title": "Three ways formally verified code can go wrong in practice"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://gregtech.eu/post/7656913",
+   "date": "2025-02-17",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemm.ee/post/64380360",
+   "date": "2025-05-19",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://programming.dev/post/24618997",
+   "date": "2025-01-27",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://feddit.uk/post/38844824",
+   "date": "2025-11-01",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.dbzer0.com/post/60824940",
+   "date": "2026-01-02",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.dbzer0.com/post/73497592",
+   "date": "2026-08-06",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://discuss.tchncs.de/post/43969984",
+   "date": "2025-09-01",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://piefed.social/c/selfhosted/p/1520552",
+   "date": "2025-11-28",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.librebun.com/post/171140",
+   "date": "2025-07-12",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://feddit.nl/post/56825643",
+   "date": "2026-05-21",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://discuss.online/post/30666333",
+   "date": "2025-11-17",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://infosec.pub/post/51980512",
+   "date": "2026-09-07",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.one/post/23664908",
+   "date": "2025-01-19",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.world/post/28001255",
+   "date": "2025-04-09",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.dbzer0.com/post/52986771",
+   "date": "2025-09-10",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://piefed.social/c/selfhosted/p/1660839",
+   "date": "2026-01-14",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://sh.itjust.works/post/41842207",
+   "date": "2025-07-09",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.world/post/53000312",
+   "date": "2026-10-11",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://lemmy.ca/post/62413633",
+   "date": "2026-03-27",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "HH",
+   "kind": "Lemmy c/selfhosted",
+   "url": "https://programming.dev/post/53788984",
+   "date": "2026-07-20",
+   "note": "top ~50 comments by score"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "rancher/rke2#8672",
+   "date": "2025-07-29"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "vitobotta/hetzner-k3s#712",
+   "date": "2026-01-09"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "kubero-dev/kubero#717",
+   "date": "2025-12-12"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "HCL connections-automation#358",
+   "date": "2025-11-14"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "kgateway#12896",
+   "date": "2025-11-16"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "nginx-gateway-fabric#4936",
+   "date": "2026-03-16"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "envoyproxy/gateway#5594",
+   "date": "2025-03-24"
+  },
+  {
+   "seg": "ENT",
+   "kind": "GitHub Discussion",
+   "ref": "envoyproxy/gateway#9125",
+   "date": "2026-05-30"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "GitHub Discussion",
+   "ref": "agentgateway#1176",
+   "date": "2026-03-10"
+  },
+  {
+   "seg": "AGENT",
+   "kind": "GitHub Discussion",
+   "ref": "agentgateway#2305",
+   "date": "2026-06-24"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29704",
+   "date": "2026-02-25"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29640",
+   "date": "2026-02-04"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29612",
+   "date": "2026-01-23"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29602",
+   "date": "2026-01-22"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29733",
+   "date": "2026-03-09"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29721",
+   "date": "2026-03-06"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29829",
+   "date": "2026-04-20"
+  },
+  {
+   "seg": "ENT",
+   "kind": "Traefik Community Discourse",
+   "url": "https://community.traefik.io/t/29653",
+   "date": "2026-02-12"
+  },
+  {
+   "seg": "ENT",
+   "kind": "vendor blog (primary migration postmortem)",
+   "url": "https://nine.ch/en/blog/haproxy-defaults-after-ingress-nginx-migration/",
+   "date": "2026-10-07"
+  },
+  {
+   "seg": "ENT",
+   "kind": "kubernetes.io statement",
+   "url": "https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/",
+   "date": "2026-01-29"
+  },
+  {
+   "seg": "HH",
+   "kind": "NVD",
+   "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-42945",
+   "date": "2026-05-13",
+   "note": "NGINX Rift verified, CVSS 9.2/8.1"
+  }
+ ]
+}

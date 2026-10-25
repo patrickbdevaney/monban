@@ -173,3 +173,129 @@ h2-h3-budget-invariant-and-harness	verified QPACK OR verified HTTP/3 parser	W-FO
 h2-h3-budget-invariant-and-harness	Kani proof hyper OR h2 OR quinn issue (attempted, failed)	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
 h2-h3-budget-invariant-and-harness	HTTP/2 Bomb Calif mechanism HPACK zero window	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
 h2-h3-budget-invariant-and-harness	CPU complexity per frame HTTP/2 SETTINGS O(n^2) Ferron h3	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+ops-compliance-government-adoptability	CUE vs Pkl vs KCL config validation language 2026	W-OPS;L4-L5;ops-vocab;docs;neutral;2024-26
+ops-compliance-government-adoptability	systemd LoadCredential credentials encrypted systemd-creds rotation	W-OPS;L4-L5;ops-vocab;docs;neutral;2024-26
+ops-compliance-government-adoptability	rustls ResolvesServerCert hot reload certificate rotation	W-OPS;L4-L5;ops-vocab;docs;neutral;2024-26
+lean-footprint-measured-vs-incumbents	OWN-MEASURE docker nginx/caddy/envoy/haproxy image binary sizes ldd go version -m	systems|own-measurement|skeptic
+lean-footprint-measured-vs-incumbents	OWN-MEASURE hyper1+rustls aws-lc-rs hello server size cargo tree deps unsafe grep	systems|own-measurement
+lean-footprint-measured-vs-incumbents	OWN-MEASURE rustls X25519 vs X25519MLKEM768 handshake CPU bytes at 1 vCPU	crypto|own-measurement
+lean-footprint-measured-vs-incumbents	crates.io API pingora/hyper/rustls/aws-lc-rs/oha versions	registry|2026
+agent-gateway-cves-to-invariants	(resume r2) compile from advisory dump; no new queries	W-AGENT-PROTOCOL x W-THREAT
+cross-request-state-invariant-counterexamples	Next.js cache poisoning CVE-2025 x-middleware unkeyed	CVE+advisory/web-dev/attacker
+cross-request-state-invariant-counterexamples	web cache deception CVE 2025 path confusion framework	CVE+advisory/web-dev/attacker
+cross-request-state-invariant-counterexamples	QUIC 0-RTT replay vulnerability CVE server	CVE+advisory/web-dev/attacker
+cross-request-state-invariant-counterexamples	HTTP/2 connection coalescing cross-origin incident misdirected request bug	CVE+advisory/web-dev/attacker
+state-crash-consistency-experiment	redb fsync durability issue github 2026	repo;issue-tracker;negative
+state-crash-consistency-experiment	SQLite WAL synchronous NORMAL durability power loss docs	docs;sqlite
+state-crash-consistency-experiment	LMDB MDB_NOMETASYNC NOSYNC durability docs	docs;lmdb
+state-crash-consistency-experiment	fjall PersistMode SyncAll SyncData journal lost writes issue	repo;issue-tracker
+h2-h3-budget-invariant-and-harness	Vest verified parser Verus HTTP/2 frame or QUIC packet combinator	vocab=PL-formal src=repo+paper
+h2-h3-budget-invariant-and-harness	hpack decoder Coq OR Isabelle OR F* proof decompression bound	vocab=PL-formal src=paper
+h2-h3-budget-invariant-and-harness	kani proof stream limit flow control quic negative result unwind explosion	stance=negative src=repo-issue
+h2-h3-budget-invariant-and-harness	RFC 9113 section 10.5 denial of service considerations	vocab=standards src=RFC
+h2-h3-budget-invariant-and-harness	h2 RST_STREAM count invariant proptest state machine model hyperium	vocab=testing src=repo
+two-sided-calibration-load-bearing-numbers	cveawg postgres RLS plan-cache CVE family 2016-2193 2023-2455 2024-10976 2026-14666 CVSS+fixed versions	offensive;cve-db;prosecutor
+two-sided-calibration-load-bearing-numbers	gh api pgdog issues 1850 1341 1407 + supavisor PR 1113 state/dates	db-ops;issue-tracker;verify
+data-plane-backend-families-mediation	CockroachDB YugabyteDB CVE 2024 2025 privilege bypass NVD	offensive-security|nvd-search|2023-2026
+data-plane-backend-families-mediation	MariaDB MySQL server privilege escalation CVE 2025 authenticated	offensive-security|nvd-search|2023-2026
+data-plane-backend-families-mediation	Neo4j Cypher injection CVE 2024 2025	offensive-security|nvd-search|2023-2026
+data-plane-backend-families-mediation	Meilisearch tenant token filter bypass advisory	offensive-security|nvd-search|2023-2026
+data-plane-backend-families-mediation	rustls X25519MLKEM768 default key exchange release	offensive-security|nvd-search|2023-2026
+data-plane-backend-families-mediation	InfluxDB QuestDB CVE 2024 2025 authorization bypass	offensive-security|nvd-search|2023-2026
+cross-request-state-invariant-counterexamples	hyper-util legacy client pool key scheme authority source	source-code/systems/skeptic
+verification-footprint-and-golden-contract	zip central directory range request installed size lean4 verus cvc5 z3 release	PL-formal|release-artifact|own-measurement
+verification-footprint-and-golden-contract	streamed tar listing uncompressed size kani FStar everparse apalache	PL-formal|release-artifact|own-measurement
+verification-footprint-and-golden-contract	verus rust-toolchain.toml pinned rustc version	PL-formal|repo-code|measurement
+verification-footprint-and-golden-contract	peak RSS lean4 prelude-only proof check /usr/bin/time	PL-formal|own-measurement|skeptic
+state-crash-consistency-experiment	XFS atomic writes forcealign RWF_ATOMIC LWN	kernel;lwn
+state-crash-consistency-experiment	canopydb crash safe rust github	repo
+state-crash-consistency-experiment	LKML O_SYNC ext4 5000 bytes size wrong after crash 2026	kernel-ml;negative
+state-crash-consistency-experiment	lazyfs repo fault types	repo
+two-sided-calibration-load-bearing-numbers	UpGuard Supabase exposure 16,326 count methodology + Supabase data API grants default change date	db-ops;vendor-report;skeptic
+two-sided-calibration-load-bearing-numbers	gh api repos/*/security-advisories ferron docker/mcp-gateway pingora agentgateway insecure default	offensive;ghsa;prosecutor+defender
+two-sided-calibration-load-bearing-numbers	cargo-mutants exit codes + release 27.1.0; httparse commit a0fa552e; arithmetic recheck	software-testing;repo;verify
+h2-h3-budget-invariant-and-harness	Vest paper limitations stateful formats (pdf appendix)	vocab=PL-formal src=paper
+h2-h3-budget-invariant-and-harness	CERT VU#421644 CONTINUATION CVE list	vocab=offsec src=advisory
+h2-h3-budget-invariant-and-harness	CERT VU#767506 MadeYouReset vendor not-affected reasons	vocab=offsec stance=contrarian src=advisory
+h2-h3-budget-invariant-and-harness	HTTP/2 Bomb Calif HPACK flow control zero window write-up 2026	vocab=offsec src=incident
+h2-h3-budget-invariant-and-harness	everquic S&P 2021 verified QUIC record layer header parsing	vocab=PL-formal src=paper
+h2-h3-budget-invariant-and-harness	gh search issues kani OR verus OR 'model checking' in hyperium/h2 hyperium/hyper quinn-rs/quinn hyperium/h3	stance=negative src=repo-issue
+h2-h3-budget-invariant-and-harness	gh search code kani::proof language:rust http2 OR hpack OR qpack	vocab=PL-formal src=code-search
+state-crash-consistency-experiment	CrashMonkey ACE OSDI18 pdf full text	paper;foundational
+state-crash-consistency-experiment	avi.im sqlite fsync blog	practitioner
+state-crash-consistency-experiment	LWN update torn-write protection database double-write	lwn
+state-crash-consistency-experiment	virtio-blk cache writeback flush honored VPS host crash	sre;household
+state-crash-consistency-experiment	crash consistency file system fuzzing 2025 2026 new bugs	paper;2024-26
+two-sided-calibration-load-bearing-numbers	local registry source aws-lc-sys urandom.c syscall getrandom 0.2/0.3 libc path	systems;source-code;verify
+isolation-decision-inputs-measured	bench B1 rerun after crash; epoch deadline fix	own-measurement
+verification-footprint-and-golden-contract	gh search issues verus out of memory rlimit memory blowup	PL-formal|issue-tracker|negative
+verification-footprint-and-golden-contract	gh search issues kani CBMC out of memory unwind	PL-formal|issue-tracker|negative
+verification-footprint-and-golden-contract	verify-rust-std Kani CI workflow run durations via gh api actions	PL-formal|benchmark-log|measurement
+two-sided-calibration-load-bearing-numbers	arXiv 2605.26457 Verus-SpecBench numbers; Fonseca EuroSys17 16 bugs; IronSpec 10 spec bugs recount	PL-formal;paper-appendix;prosecutor+defender
+h2-h3-budget-invariant-and-harness	Kani rust feature support limitations concurrency async HashMap unbounded loops docs	vocab=PL-formal src=tool-doc
+h2-h3-budget-invariant-and-harness	golang x/net http2 server rapid reset handler goroutine cap maxConcurrentStreams queue	vocab=systems src=repo-code
+h2-h3-budget-invariant-and-harness	HAProxy tune.h2.fe.glitches-threshold glitch counter design	vocab=network-ops src=vendor-doc
+h2-h3-budget-invariant-and-harness	nghttp2 nghttp2_option_set_max_settings default max header list stream reset rate limit source	vocab=systems src=repo-code
+data-plane-backend-families-mediation	rustls default key exchange X25519MLKEM768 version	mixed|vendor-doc+advisory+PL|2024-2026
+data-plane-backend-families-mediation	Kafka KRaft ACL migration bypass CVE-2024-27309 details	mixed|vendor-doc+advisory+PL|2024-2026
+data-plane-backend-families-mediation	NATS JetStream CVE-2025-30215 authorization	mixed|vendor-doc+advisory+PL|2024-2026
+data-plane-backend-families-mediation	MongoDB queryable encryption field level redaction $redact authorization model	mixed|vendor-doc+advisory+PL|2024-2026
+data-plane-backend-families-mediation	Cedar policy language partial evaluation database query filter	mixed|vendor-doc+advisory+PL|2024-2026
+data-plane-backend-families-mediation	SpiceDB LookupResources authorization filter push down database	mixed|vendor-doc+advisory+PL|2024-2026
+state-crash-consistency-experiment	sqlite atomiccommit assumptions sector atomic powersafe overwrite	docs
+state-crash-consistency-experiment	dm-log-writes dm-flakey kernel docs replay	kernel-docs;tool
+state-crash-consistency-experiment	heed LMDB rust power loss NOSYNC WRITE_MAP meilisearch	forum;negative
+two-sided-calibration-load-bearing-numbers	nginx security_advisories page recount 2023-2026 memory vs logic; httpd vulnerabilities_24 recount	C-servers;vendor-advisory-page;recompute
+h2-h3-budget-invariant-and-harness	firecracker rate_limiter token bucket kani proof harness	vocab=PL-formal src=repo-code adjacent-field=VMM
+h2-h3-budget-invariant-and-harness	Kani token bucket proof firecracker blog verify rate limiter	vocab=PL-formal src=vendor-blog
+two-sided-calibration-load-bearing-numbers	nginx httpd 2026 vulnerability surge AI-found bugs cause	C-servers;news/practitioner;contrarian
+h2-h3-budget-invariant-and-harness	Ivy formal specification QUIC compositional testing quinn picoquic bugs 2024 2025	vocab=PL-formal(spec-based-testing) src=paper era=2024-25
+h2-h3-budget-invariant-and-harness	TLA+ OR P language model HTTP/2 flow control stream state machine	vocab=distributed-systems src=paper/repo
+two-sided-calibration-load-bearing-numbers	gh api OAI OpenAPI/Arazzo releases + sqlite WAL-reset bug + redb fjall heed releases dates	standards+storage;repo-release;verify
+verification-footprint-and-golden-contract	kani-0.68.0 rust-toolchain.toml pinned nightly	PL-formal|repo-code|measurement
+verification-footprint-and-golden-contract	aeneas backends/lean lakefile Mathlib dependency	PL-formal|repo-code|skeptic
+verification-footprint-and-golden-contract	cedar-spec lake-manifest Mathlib dependency or core-only	PL-formal|repo-code|existence-proof
+h2-h3-budget-invariant-and-harness	Calif blog codex hidden http2 bomb primary (Pingora/h2 results)	vocab=offsec src=primary-writeup
+h2-h3-budget-invariant-and-harness	RFC 9204 SETTINGS_QPACK_BLOCKED_STREAMS memory blocked streams encoder stream	vocab=standards src=RFC
+h2-h3-budget-invariant-and-harness	kani out of memory harness CBMC state explosion issue Vec HashMap	stance=negative src=tool-issue
+data-plane-backend-families-mediation	crates.io cedar-policy features tpe/partial-eval + CHANGELOG	PL-formal|registry+changelog|2025-2026
+two-sided-calibration-load-bearing-numbers	jepsen postgresql-12.3 G2-item since 2011 fix date; rds 17.4 long fork; PG sequences nontransactional	distributed-systems;jepsen-report;verify
+state-crash-consistency-experiment	sqlite forum WAL durability fsync forumpost	forum
+state-crash-consistency-experiment	redb CHANGELOG crash corruption entries	repo;release-notes
+state-crash-consistency-experiment	fjall CHANGELOG journal fsync	repo;release-notes
+two-sided-calibration-load-bearing-numbers	gh api openfga spicedb GHSA counts authz-bypass; biscuit-rust releases; osohq/oso archived; cedar-policy releases	authz;ghsa+repo-meta;prosecutor+defender
+isolation-decision-inputs-measured	sb.c zygote fork seccomp landlock microbench	own-measurement
+verification-footprint-and-golden-contract	Mathlib cache size GB lake exe cache get disk	PL-formal|forum|measurement
+verification-footprint-and-golden-contract	Apalache launcher JVM_ARGS default heap	PL-formal|repo-code|measurement
+data-plane-backend-families-mediation	gh api envoyproxy/envoy security-advisories filtered redis/mongo/kafka/mysql/postgres proxy filters (contrarian: in-path wire-protocol PEP parsers as attack surface)	offensive-security|repo-advisory|contrarian|2019-2026
+two-sided-calibration-load-bearing-numbers	OSV querybatch crates hyper h2 quinn-proto pingora-core rustls tokio-rustls hickory class tally 2023-2026	Rust-ecosystem;OSV-dataset;recompute
+data-plane-backend-families-mediation	Envoy extensions_metadata.yaml security_posture for DB protocol network filters	systems|repo-metadata|contrarian|2026
+data-plane-backend-families-mediation	hasura ndc-spec + substrait as precedent uniform data-connector IR (repo/releases)	database-systems|repo|2024-2026
+data-plane-backend-families-mediation	GitHub code search: drivers accepting caller-supplied rustls::ClientConfig (PQ-hybrid injectability)	cryptography|code-search|2026
+two-sided-calibration-load-bearing-numbers	OSV RUSTSEC-2026-0349 rustls PQ downgrade via cached kx group details	crypto;advisory-db;contrarian
+verification-footprint-and-golden-contract	bv_decide ofReduceBool axiom trusted compiler TCB native_decide	PL-formal|vendor-doc|skeptic
+verification-footprint-and-golden-contract	verify-rust-std actions workflow run durations kani	PL-formal|benchmark-log|measurement
+verification-footprint-and-golden-contract	lake check paranoid docs external checkers	PL-formal|repo-code|proponent
+verification-footprint-and-golden-contract	envoy ext_proc failure_mode_allow fail-open semantics	network-ops|vendor-doc|attacker
+verification-footprint-and-golden-contract	proxy-wasm ABI spec host functions capabilities	systems|spec|skeptic
+verification-footprint-and-golden-contract	wasi-testsuite conformance runner adapters	standards|repo|proponent
+verification-footprint-and-golden-contract	kubernetes conformance certification third-party self-test program	standards-policy|repo|proponent
+verification-footprint-and-golden-contract	envoy wasm filter advisory GHSA crash	offensive|advisory|attacker
+isolation-decision-inputs-measured	sb scaling 8/64/256MB	own-measurement
+isolation-decision-inputs-measured	wasmtime stability-tiers+Config/Pooling docs fetch, GHSA-897f advisory page, seccomp bitmap cache lwn/phoronix	repo-docs|kernel-lore|web
+isolation-decision-inputs-measured	Landlock fs_bench kernsec; Sandlock arxiv 2605.26298; Hyperlight latency; Chromium zygote docs	academic|kernel-lore|practitioner
+isolation-decision-inputs-measured	CVE-2026-34971 jhxm Cranelift aarch64 memory64 spectre; CVE-2026-34987 winch	advisory|offensive-security
+verification-footprint-and-golden-contract	wasmtime-wasi WasiCtxBuilder defaults ambient authority	systems|vendor-doc|skeptic
+verification-footprint-and-golden-contract	verus-lang actions CI job durations vstd verification	PL-formal|benchmark-log|measurement
+lean-footprint-measured-vs-incumbents	gh api cloudflare/pingora issue 1059 + tokio PR 8494	repo-issue|negative-result
+lean-footprint-measured-vs-incumbents	dlopen vs wasm vs cargo features unused module binary size TCB	systems|PL
+lean-footprint-measured-vs-incumbents	nginx dynamic module ABI signature; envoy build extension exclusion; caddy xcaddy	ops-SRE|docs
+lean-footprint-measured-vs-incumbents	wasmtime minimal embedding binary size	systems|measured
+verification-footprint-and-golden-contract	component-model Goals capability-safe; wasmtime-wasi WasiCtxBuilder defaults docs.rs	systems|spec|skeptic
+verification-footprint-and-golden-contract	Lean source Native.lean ImplementedByAttr axiom trust; Std.Http theorem count	PL-formal|repo-code|skeptic
+verification-footprint-and-golden-contract	arxiv CryptoProver Verus AI crypto 2608.00965	PL-formal|paper|proponent
+state-crash-consistency-experiment	rustix linux_raw backend rustix_use_libc	repo;negative-harness
+state-crash-consistency-experiment	LD_PRELOAD interposition Rust raw syscalls bypass	forum;negative
+lean-footprint-measured-vs-incumbents	HTTP request smuggling differential parsing proxy chain 2025-26	offensive|negative
+lean-footprint-measured-vs-incumbents	hyperium/h3 status 2026	repo
+lean-footprint-measured-vs-incumbents	wasmtime features minimal docs	docs

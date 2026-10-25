@@ -1,0 +1,10 @@
+Up 4 seconds
+[caddy] idle: RSS_kB=46332 PSS_kB=45704 nproc=1 cg_anon_kB=8932 cg_file_kB=42040 cg_current_kB=51768
+[caddy] 1k-idle-conns: RSS_kB=53652 PSS_kB=53012 nproc=1 cg_anon_kB=16156 cg_file_kB=42116 cg_current_kB=60380
+[caddy] after-close: RSS_kB=53840 PSS_kB=53222 nproc=1 cg_anon_kB=16332 cg_file_kB=42120 cg_current_kB=59232
+[caddy] 1k-idle-TLS-conns: RSS_kB=84832 PSS_kB=84192 nproc=1 cg_anon_kB=46964 cg_file_kB=42436 cg_current_kB=91556
+[caddy] h1 plain c64: req/s=64824.2456 p99=3.8679 ms server_cpu_us=9999167 Status code distribution:   [200] 648287 responses  
+[caddy] h2+tls c64: req/s=31236.2117 p99=5.2032 ms server_cpu_us=9972681
+[caddy] hs x25519: group=x25519 handshakes=44866 secs=8.00 hs/s=5606.7 client_cpu_ms_per_hs=0.089 p50ms=2.70 p99ms=4.60 wire_bytes_per_hs rx(server->client)=925 tx(client->server)=335  server_cpu_us_per_hs=177570e-3
+[caddy] hs mlkem: group=mlkem handshakes=31434 secs=8.00 hs/s=3927.6 client_cpu_ms_per_hs=0.132 p50ms=3.97 p99ms=6.41 wire_bytes_per_hs rx(server->client)=2013 tx(client->server)=1519  server_cpu_us_per_hs=253533e-3
+[caddy] final: RSS_kB=40512 PSS_kB=39906 nproc=1 cg_anon_kB=21260 cg_file_kB=19108 cg_current_kB=41156

@@ -1,0 +1,31 @@
+{"src": "r4e07.invariant-canon-one-owner", "dst": "threat-path-canonicalization-authz-bypass", "type": "mitigates", "note": "CANON-1..5 remove the authz/route divergence; 2026 instances Heimdall, Quarkus, middie, s3-proxy, opa-envoy"}
+{"src": "r4e07.invariant-canon-one-owner", "dst": "crs-l5-invariant-text", "type": "extends", "note": "CRS keyed state on canonical scope; CANON supplies the canonical values those keys use"}
+{"src": "r4e07.owner-table", "dst": "crs-l5-keying-table", "type": "extends", "note": "response-cache key 'router-canonical path [same parser]' made concrete with owners and reject rules"}
+{"src": "r4e07.hyper-h2-authority-host-unchecked", "dst": "crs-l5-keying-table", "type": "extends", "note": "code-level evidence hyper/h2 do not implement the :authority/SNI/Host rule; the core must"}
+{"src": "r4e07.hyper-h2-authority-host-unchecked", "dst": "rec60-pingora-envoy-haproxy-nginx-h2h3", "type": "extends", "note": "Pingora CVE-2026-105298 class reproduced by source read in AEGIS's own stack"}
+{"src": "r4e07.ring1-canon-verdict", "dst": "w02.ingress-design-verdict", "type": "extends", "note": "adds identity-class evidence (27/34 instances core-class) to the one-core verdict"}
+{"src": "r4e07.ring1-canon-verdict", "dst": "r3e09.ring1-verdict-amendment", "type": "extends", "note": "identity half: one owner per identity kind in core; per-media-type codec registry; per-upstream profile"}
+{"src": "r4e07.ring1-canon-verdict", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "extends", "note": "'canonical route identity' row expanded to 11 identity kinds"}
+{"src": "r4e07.instance-ledger", "dst": "r3e09.grpc-defect-classes", "type": "extends", "note": "grpc :path instance generalized; plus CVE-2026-84303 OSV-confirmed 2026-09-01"}
+{"src": "r4e07.instance-ledger", "dst": "crs-ce-cache-poison-deception", "type": "extends", "note": "normalization differentials are the cache-poison root cause; same owner fixes both"}
+{"src": "r4e07.instance-ledger", "dst": "r3e11.cross-stack-bug-classes-sep-oct-2026", "type": "extends", "note": "validator-vs-handler divergence class: 34 dated instances across 7 languages"}
+{"src": "r4e07.instance-ledger", "dst": "threat-request-smuggling-desync", "type": "alternative_to", "note": "sibling class: smuggling = framing disagreement; CANON = identity disagreement; same multi-parser root"}
+{"src": "r4e07.ci-gate-canon-property", "dst": "r3e09.L5-ingress-conformance-harness", "type": "extends", "note": "adds G1-G4 canonical-identity gates; item (4) gRPC path variants subsumed by G1/G3"}
+{"src": "r4e07.ci-gate-canon-property", "dst": "irl-l5-differential-oracle-harness", "type": "extends", "note": "same instrument (reference vs real parsers, LEAK/MISS) applied to request identity; both caught the author's own hardened version"}
+{"src": "r4e07.ci-gate-canon-property", "dst": "proof-cedar-lean", "type": "depends_on", "note": "authz decision function in G1 is the Cedar/route-id policy; DRT precedent 21 vs 4 bugs"}
+{"src": "r4e07.owner-table", "dst": "irl-pg-collation-cex", "type": "depends_on", "note": "tenant identity bytewise comparison in DB gate (COLLATE \"C\") closes class 11 at the data plane"}
+{"src": "r4e07.owner-table", "dst": "dpf-upstream-http-grpc", "type": "extends", "note": "'canonical method/path allowlist' for upstream adapters = canon_path output + CANON-4 re-serialization"}
+{"src": "r4e07.owner-table", "dst": "dpf-l5-allowlist-generation", "type": "extends", "note": "JSON canonical body for document/search adapters must come from the same dup-rejecting codec"}
+{"src": "r4e07.owner-table", "dst": "l5.origin-audience-session-rules", "type": "extends", "note": "Host/Origin/Content-Type rules given single owners and reject semantics"}
+{"src": "r4e07.origin-allowlist-tuple", "dst": "l5.origin-audience-session-rules", "type": "extends", "note": "tuple compare, no regex; 2026 CVEs"}
+{"src": "r4e07.owner-table", "dst": "dx.l5-decision-sdk-shape", "type": "depends_on", "note": "Canon_K newtypes with private constructors fit the capability-typed SDK (Ctx built only by router)"}
+{"src": "r4e07.invariant-canon-one-owner", "dst": "vfg-invariant-survival-table", "type": "extends", "note": "CANON survives arbitrary modules iff modules receive only Canon_K values (host choke point); raw bytes only via RawFor<Signature> capability"}
+{"src": "r4e07.json-parser-dup-key-matrix", "dst": "r4e07.owner-table", "type": "supports", "note": "excludes simd-json/sonic-rs; one parse two consumers"}
+{"src": "r4e07.cookie-rs-nbsp-trim", "dst": "r4e07.owner-table", "type": "supports", "note": "cookie owner uses 6265bis WSP trim"}
+{"src": "r4e07.mime-dup-param-first", "dst": "r4e07.owner-table", "type": "supports", "note": "media type owner rejects duplicate params"}
+{"src": "r4e07.whatwg-914-rust-url-divergence", "dst": "r4e07.ingress-host-exact-match", "type": "supports", "note": "WHATWG host semantics drift monthly; keep them off ingress"}
+{"src": "r4e07.sni-authority-cluster-2026", "dst": "r4e07.invariant-canon-one-owner", "type": "supports", "note": "CANON-6"}
+{"src": "r4e07.reject-vs-normalize-contrarian", "dst": "r4e07.invariant-canon-one-owner", "type": "qualifies", "note": "CANON-2 reject-default, CANON-4 forward-canonical are where both camps agree"}
+{"src": "r4e07.diff-corpus-executed", "dst": "r4e07.canon-ref-zero-disagreement", "type": "supports", "note": "before/after"}
+{"src": "r4e07.canon-ref-zero-disagreement", "dst": "r4e07.ring1-canon-verdict", "type": "supports", "note": "executed existence proof"}
+{"src": "r4e07.spike-false-reject-rate", "dst": "r4e07.invariant-canon-one-owner", "type": "tests", "note": "decides reject vs redirect default for CANON-2"}

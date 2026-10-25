@@ -1,0 +1,11 @@
+{
+	auto_https off
+	admin off
+}
+:18080 {
+	respond "hello aegis\n" 200
+}
+:18443 {
+	tls /w/cert.pem /w/key.pem
+	respond "hello aegis\n" 200
+}

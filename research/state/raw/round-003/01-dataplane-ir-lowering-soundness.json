@@ -1,0 +1,867 @@
+{
+ "explorer": "01-dataplane-ir-lowering-soundness",
+ "round": 3,
+ "date": "2026-10-25",
+ "target": "IR filter fragment lowering soundness per adapter (SQL WHERE SQLite/PG, Redis key-prefix+SCAN, Mongo filter) + q1-012",
+ "closes": [
+  "q2-011",
+  "q1-012"
+ ],
+ "nodes": [
+  {
+   "id": "irl-l5-lean-lowering-theorems",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "proof-artifact",
+   "title": "L5: Lean 4 core model + theorem statements for IR filter lowering soundness (refinement-parameterised)",
+   "summary": "Core-only Lean 4 (no Mathlib/Batteries) model of the IR filter fragment (tt/ff/eq/in/range/prefix/and/or/not; n-ary And[]=tt, Or[]=ff), a Kleene 3VL mini-SQL WHERE semantics, the structural lowering, and soundness theorems parameterised by a Backend record of the engine's primitive comparisons. Key insight: lowering soundness reduces to per-adapter REFINEMENT facts (backend eq/range/prefix true => reference true); the connective/NULL part is engine-independent and provable once. A counter-theorem shows refinement is necessary (any coarser equality, e.g. NOCASE, affinity 1='1', ICU NFC=NFD, PAD SPACE, yields a leak).",
+   "specifics": "File research/state/raw/round-003/01-work/lean/AegisIR/Lowering.lean, 262 lines / 232 non-blank-non-comment; lakefile.lean + lean-toolchain leanprover/lean4:v4.35.0.\nTHEOREMS: (T1) lower_sound_pos {B} (h : B.Refines) r : ∀ p, p.positive = true → sql3 B r (lower p) = some true → eval r p = true. (T2) lowerQ_sound: keeps B r (lowerQ tf t p) = true → refQ tf t r p = true (mandatory tenant conjunct). (T3) refines_necessary: x ≠ t → B.beq x t = true → ∃ r, keeps B r (lowerQ tf t .tt) ∧ ¬refQ. (T4) lower_sound_full (with NOT) under Backend.Exact (two-sided atoms) — stated, `sorry` (~40 LOC). (T5) orN_nil / andN_nil by rfl. Helper lemmas k3and_true, k3or_true, anyEq_sound.\nBackend.Refines := {eq_ok : beq x v → x = v; range_ok : brange lo hi x → refRange lo hi x; pfx_ok : bpfx s x → refPrefix s x}.\nSTATUS: NOT CHECKED — no elan/Lean on the laptop and the brief forbids downloading; recorded as spike SPK-LEAN-IR-1 (heavy.sh /usr/bin/time -v lake build). Projection from r2 measurement (vfg-lean-core-minimal-measured: toy obligations 0.24 s warm, 514 MB RSS, Init-only 676 MB subset): expect <5 s, <0.7 GB.\nEFFORT ESTIMATE (core Lean LOC, model+proof): SQL filter fragment 260 (this file) + NOT fragment 40; Redis key encoding (hex injectivity + glob literal-prefix lemma over a model of stringmatchlen restricted to literal+'*' patterns) ~150; Mongo filter fragment with $not-$type-array guard and simple collation ~120; write-path (UPDATE/DELETE ... WHERE cond, Put cond) reuse T2 + ~60. Total ~630 LOC ≈ 2-4 engineer-days at Cedar's ratio (3.4:1 proof:model; proof-cedar-lean).",
+   "urls": [
+    "https://github.com/leanprover/lean4/releases/tag/v4.35.0",
+    "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/Cedar/Thm/TPE.lean"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "property": "result-set soundness of IR->SQL lowering (rows returned ⊆ rows permitted)",
+   "tool": "Lean 4 core (v4.35.0 pinned)",
+   "tcb": "Lean kernel; the per-adapter Refines facts (NOT provable about real engines; discharged by the executed oracle at a pinned engine version); engine logic bugs; the model-to-Rust correspondence (tested, not proven)",
+   "effort": "~630 core-Lean LOC total for SQL+Redis+Mongo lowerings",
+   "llm_synthesizable": "unknown; proofs are induction+case-splits of the class Cedar/CompCert-style agents handle, not measured",
+   "overclaim_risk": "Unchecked proof scripts may not compile on first try (simp lemma names drift between Lean versions). Proves a model of the lowering, not the Rust adapter; says nothing about timing side channels, projection, ordering or write paths.",
+   "underclaim_risk": "The engine-independent part (connectives, NULL/3VL, empty And/Or, tenant conjunct) is genuinely provable in a few hundred core-Lean lines with no Mathlib; the theorem shape (soundness iff refinement) makes the remaining TCB explicit and testable.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-l5-differential-oracle-harness",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "test-harness",
+   "title": "L5: executed differential oracle for IR lowerings (reference evaluator vs native rows) + seed corpus + CI gate",
+   "summary": "Python harness (stdlib sqlite3 + psycopg2) generating typed rows with adversarial values and random IR predicates, running each adapter's lowered query and the strict reference evaluator over the STORED values, and reporting LEAK (unsound) vs MISS (incomplete). It found unsoundness in every naive lowering and also caught a leak in my own first 'hardened' SQLite lowering (NUMERIC-affinity param coercion), which is the evidence that the oracle is a necessary instrument rather than a formality.",
+   "specifics": "Files: 01-work/oracle.py (IR, reference, SQLite/PG/Redis adapters), cex.py (78 single-cause cases), oracle_typed.py, cost.py, q1012_repro.py; results *.json alongside.\nSEED CORPUS: tenants ['acme','ACME','Acme','acme ','acmé', NFD('acmé'),'1','01','a%','a_','a\\\\','évil','ǅ','ß','ss']; values [0,1,2,10,-1,1.0,2.5,'1','10','2','a','A','ab','AB','a%b','a_b','ä',NFD('ä'),'',' ','z',NULL]; Redis tenants ['acme','acme:x','a*','a?','a[b]','[ab]','a\\\\','a\\\\*','ab','abc','a','','*','a:b:c','x]','^','a-c','ACME','acmé']; extra probe 'acme\\x00evil'. Seeds 1,2,3,20261025; 400 rows; 3000 cases/SQLite schema, 1500/PG schema.\nMEASURED (SQLite 3.45.3, PG 17.11 + 19rc1 containers): naive-bound lowering LEAK in 1004-1492/3000 SQLite cases, 282-307 (PG default collation), 481-495 (citext), 518-577 (nondet ICU, PG17; 305-346 LIKE errors fail-closed) and 725 on PG19rc1 (LIKE now allowed on nondeterministic collations). Hardened lowerings: 0 LEAK / 0 MISS on all 4 seeds x 4 SQLite schemas x 3 PG schemas. Redis: naive 10/19 tenants leak, escaped-but-':'-delimited 3/19, length-prefixed 0, hex {hash-tag} 0.\nTHROUGHPUT: ~5.7k lowered queries/s SQLite in-process, ~2.6k/s PG over loopback (incl. reference eval) => 100k cases/adapter in <1 min.\nCI GATE (proposed): `xtask oracle --adapter <a> --engine-pin <ver> --cases 100000 --seeds 4` must report leak_cases=0 for the golden adapters; re-run on every engine minor bump (PG minor, SQLite amalgamation, Redis/Valkey tag); any MISS>0 is a warning; the 78-case cex corpus runs as unit tests. The Rust implementation re-uses the corpus; the Python oracle is the spec-of-record until a Rust port exists.",
+   "urls": [
+    "https://www.sqlite.org/datatype3.html",
+    "https://github.com/redis/redis/blob/8.10.2/src/util.c"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Random testing over a curated corpus is not exhaustive; the reference evaluator is my own code (a bug there would mask leaks). Mongo, MySQL, SQL Server were not executed (no images within the 500 MB limit).",
+   "underclaim_risk": "Zero leaks across ~70k hardened-lowering executions plus 78 targeted cases, and the oracle caught a real bug in a lowering written specifically to be safe.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-l5-unsound-lowering-denylist",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "ci-gate",
+   "title": "L5: per-adapter unsound-lowering denylist + mandated hardened forms (SQLite, Postgres, MySQL, SQL Server, Redis/Valkey, MongoDB)",
+   "summary": "Build-time rule set the lowering compiler and the allowlist generator must enforce; each entry is tied to an executed counterexample (A) or a primary doc (B).",
+   "specifics": "SQLite (A): DENY LIKE/GLOB for Prefix (ASCII case-fold, '_'/'%' wildcards, no default ESCAPE, NUL terminates: 'acme\\0evil' LIKE 'acme' = 1); DENY columns with COLLATE NOCASE/RTRIM for tenant or filter fields unless every comparison carries COLLATE BINARY; DENY comparing a literal whose IR class differs from column affinity (TEXT col vs int literal; NUMERIC col vs text literal: ''>=10 true); REQUIRE typeof(col)=<class> guard + COLLATE BINARY, Prefix via substr(col,1,n)=? ; PREFER STRICT tables with declared type == IR field type (then index-friendly form is sound; schema-agnostic unary-+ form is sound but 5,000x slower).\nPostgres (A): DENY nondeterministic collations (ICU deterministic=false: case/accent-insensitive AND canonical-equivalence NFC==NFD) and citext on tenant/filter columns, or force COLLATE \"C\" on every text comparison; DENY LIKE for Prefix (use left(col,n) = ? COLLATE \"C\"); DENY Range on text under libc/ICU locale collations unless COLLATE \"C\" (glibc en_US.utf8: 'A' BETWEEN 'a' AND 'b' = true); IN-list as = ANY($1::text[]) ('IN ()' is a syntax error = fail-closed). Note PG18+ made LIKE legal on nondeterministic collations: an error that failed closed on 17 becomes a leak on 18/19.\nMySQL/MariaDB (B, not executed): DENY default *_ci/_ai_ci collations and PAD SPACE collations (incl. utf8mb4_bin: 'a ' = 'a') on tenant/filter fields; REQUIRE utf8mb4_0900_bin (NO PAD) or BINARY/VARBINARY columns, or COLLATE utf8mb4_0900_bin on comparisons; LIKE escaping depends on sql_mode NO_BACKSLASH_ESCAPES -> always emit explicit ESCAPE.\nSQL Server (B): DENY LIKE without explicit ESCAPE (no default escape; '[' ']' '^' are live wildcards); default *_CI_AS collation case-insensitive -> REQUIRE *_BIN2 column or COLLATE Latin1_General_100_BIN2_UTF8 on comparisons; trailing blanks ignored in = (ANSI padding) -> tenant ids must be fixed-format (e.g. hex/uuid) or compared with DATALENGTH guard.\nRedis/Valkey (A): DENY raw tenant text inside SCAN MATCH / KEYS / ACL %R~ patterns (same stringmatchlen matcher in db.c and acl.c); DENY ':'-delimited unescaped prefixes (tenant 'acme' matches 'acme:x' keys); REQUIRE tenant encoded over a metachar-free alphabet with a terminator: t:{<hex(tenant)>}:<suffix> (also pins cluster slot) or length-prefixed + glob-escaped.\nMongoDB (B): DENY implicit {f: v} form (regex value becomes $regex) -> always {f:{$eq:v}}; DENY reliance on $type:'string' for type exactness (matches arrays containing strings); REQUIRE tenant guard {tenant:{$eq:t}} AND {tenant:{$not:{$type:'array'}}} (implicit array membership makes ['acme','evil'] visible to both); numeric literals carry {$type:<exact>} when the IR distinguishes int/double/decimal (all numerics compare equal); every find/aggregate passes collation {locale:'simple'} (collection default collation is inherited otherwise); never pass a NULL literal (matches missing fields and arrays containing null); $where/$function/$accumulator/$expr never from request data.\nALL: Or([]) MUST render FALSE and And([]) TRUE; any builder that drops empty sub-expressions (go-sqlbuilder Cond.Or, SQLAlchemy or_(), ucast-prisma 0.1.6) is forbidden in the lowering path.",
+   "urls": [
+    "https://www.sqlite.org/datatype3.html",
+    "https://www.postgresql.org/docs/current/collation.html",
+    "https://dev.mysql.com/doc/refman/8.4/en/charset-binary-collations.html",
+    "https://learn.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql",
+    "https://www.mongodb.com/docs/manual/reference/operator/query/eq/",
+    "https://www.mongodb.com/docs/manual/reference/operator/query/type/",
+    "https://github.com/redis/redis/blob/8.10.2/src/acl.c"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "MySQL/SQL Server/Mongo entries are doc-derived (B), not executed; denylist completeness is not provable (new collations/planner features appear, cf. PG18 LIKE).",
+   "underclaim_risk": "Every SQLite/PG/Redis entry has a concrete executed leak; these are the exact failure modes generic query builders and policy-to-SQL compilers ship today.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-l5-backend-refinement-contract",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "interface-sketch",
+   "title": "L5: adapter refinement contract (the TCB line between Lean proof and engine) + startup schema gate",
+   "summary": "Each adapter ships (a) the Lean-side Backend instance it claims, (b) a schema precondition checker run at build time and at startup against the live catalog, (c) the oracle corpus result at the pinned engine version. The core accepts an adapter only if all three are present; this is what makes 'soundness by proof' honest about what is trusted.",
+   "specifics": "trait AdapterContract { const ENGINE_PIN: &str; fn refinement_claims() -> RefinementClaims /* eq_exact, range_codepoint, prefix_exact per field type */; fn check_schema(&Catalog) -> Result<(), SchemaViolation> /* SQLite: PRAGMA table_xinfo + sqlite_schema parse: STRICT, declared type == IR type, no NOCASE/RTRIM; PG: pg_attribute.attcollation in {C, POSIX, or deterministic + COLLATE C emitted}, no citext, collprovider/collisdeterministic; MySQL: INFORMATION_SCHEMA.COLUMNS COLLATION_NAME in allowlist with PAD_ATTRIBUTE='NO PAD'; SQL Server: sys.columns collation_name like '%BIN2%'; Mongo: listCollections options.collation absent or simple, $jsonSchema bsonType for tenant */; fn oracle_report() -> &'static OracleReport /* leak_cases == 0, corpus hash, engine version */ }.\nStartup refuses to serve the adapter if check_schema fails or the live engine version != ENGINE_PIN major.minor (PG minor >= 18.6/17.11 for CVE-2026-14666). Lean side: one `instance : Backend.Refines (sqliteStrictBackend)` axiom per adapter, named in the TCB ledger.",
+   "urls": [
+    "https://github.com/hasura/ndc-spec/blob/v0.2.14/specification/src/specification/schema/scalar-types.md"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Design, unimplemented; catalog introspection itself can be wrong (e.g., expression-level COLLATE in views/generated columns).",
+   "underclaim_risk": "Hasura NDC already normatively requires 'equal' = syntactic equality, so the contract shape has precedent; it just was never machine-checked.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-l5-q1012-role-plan-cache-gate",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "test-harness",
+   "title": "L5: executed q1-012 reproducer — SET LOCAL ROLE + named prepared statements + plan cache on PG 17.11 / 19rc1 (DISCARD PLANS not needed for role switching)",
+   "summary": "On patched Postgres, switching SET LOCAL ROLE per transaction on one pooled connection while reusing a named prepared statement never leaked across 8 alternations in all three plan_cache_modes; revoking role membership or BYPASSRLS while a plan is cached was also honoured (CVE-2026-14666 fix). A positive control (session-level set_config not reset between requests) leaked in every mode, proving the harness detects leaks.",
+   "specifics": "q1012_repro.py scenarios x plan_cache_mode {auto (after 6 warm-up executions), force_generic_plan, force_custom_plan}: S1 SET LOCAL ROLE tenant_a/tenant_b alternating x8 with `PREPARE q` reused: PASS; S1b after COMMIT executing as NOINHERIT authenticator: permission error (fail-closed); S2 member of grp_all (policy TO grp_all USING true) -> REVOKE while cached: PASS (0 rows after); S3 BYPASSRLS -> NOBYPASSRLS while cached: PASS; S4 policy on current_setting('app.tenant', true) with set_config(...,true): PASS; S4b set_config(...,false) leaks to the next request: LEAK (control). Same on PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) and 19rc1.\nDECISION: (1) SET LOCAL ROLE per txn + prepared statements is safe on >= 17.11/18.6 because plancache revalidates when rewriteRoleId != current user for dependsOnRLS plans; DISCARD PLANS buys nothing for role switches. (2) On < 17.11 / 18.6 a membership/attribute/db-owner change does not invalidate cached RLS plans until another inval or disconnect -> gate: refuse to start on older minors, or recycle pooled connections after any role DDL. (3) GUC-keyed tenancy must use is_local=true (SET LOCAL) only; session-level SET is the measured leak. CI: run q1012_repro.py against each pinned PG minor and PG beta.\nSPIKE SPK-PG-14666-UNPATCHED: same script against postgres:17.10 (not pulled per brief) — expected S2/S3 LEAK in force_generic_plan/auto; confirms the version gate.",
+   "urls": [
+    "https://github.com/postgres/postgres/commit/1974acf23",
+    "https://www.postgresql.org/support/security/CVE-2026-14666/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Psycopg2 uses SQL-level PREPARE (same CachedPlanSource path as protocol-level Parse, but not byte-identical to a Rust driver's unnamed/named statements); unpatched behaviour not reproduced locally.",
+   "underclaim_risk": "Directly retires the open question whether SET LOCAL ROLE + statement caching is usable as defense-in-depth on current minors: it is.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-cve-2026-14666-fix-anatomy",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "cve",
+   "title": "CVE-2026-14666 fix anatomy: commit 1974acf23 adds PlanCacheRoleCallback on pg_auth_members/pg_authid/pg_database; no regression test",
+   "summary": "Fix (Nathan Bossart, authored by reporters Ilya Staroverov and Shinya Kato; reviewed by Tom Lane; 2026-08-10, backpatched to 14, released 2026-08-13 in 18.6/17.11/16.15/15.19/14.24) registers syscache callbacks on AUTHMEMROLEMEM, AUTHOID and DATABASEOID that invalidate saved plans with dependsOnRLS (querytree + generic plan) or a generic plan with dependsOnRole; pg_database changes for other DBs ignored. Scope: role MEMBERSHIP, role ATTRIBUTE and DB OWNERSHIP changes — not SET ROLE switching, which was already covered.",
+   "specifics": "Diff: acl.c (cached_db_hash made extern), plancache.c +60, acl.h +3; 3 files +63/-2. No src/test/regress change in the commit (checked the patch). CVSS 3.0 4.2 AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:L/A:N. Same 17.11 release fixed CVE-2026-16239 (EXECUTE/FETCH portal row-type divergence -> memory disclosure/ACE; reported with Claude/Anthropic Research) and CVE-2026-14671 (contrib/refint plan cache).",
+   "urls": [
+    "https://github.com/postgres/postgres/commit/1974acf23",
+    "https://www.postgresql.org/docs/release/17.11/",
+    "https://www.postgresql.org/support/security/CVE-2026-14666/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "No public exploit; needs app-specific privilege-removal pattern.",
+   "underclaim_risk": "Absent regression test means a future plancache refactor could silently regress; our q1012_repro.py S2/S3 is the missing test.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-sqlite-affinity-collation-cex",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "SQLite lowering counterexamples (executed, 3.45.3): affinity coercion of bound params, NOCASE, LIKE wildcards/case/NUL, int=real",
+   "summary": "Ten single-cause leaks under a bound-parameter naive lowering, each with a one-row reproducer; plus one leak in a deliberately hardened lowering (text bound param gets NUMERIC affinity on a NUMERIC column, so '' >= 10 is true because TEXT sorts above numbers). Not leaks: NULL (3VL only shrinks results for this fragment), NFC vs NFD under BINARY, non-ASCII under NOCASE, trailing space, empty IN.",
+   "specifics": "Leak list: NOCASE tenant ('ACME' for 'acme'); NOCASE field eq; Eq(x,1) vs TEXT col storing '1'; Eq(x,'10') vs NUMERIC col storing 10; Range(x,'10','z') on NUMERIC col matches ''; Eq(x,1) matches 1.0 (untyped col); LIKE 'admin%' matches 'ADMIN-x'; LIKE 'a_%' matches 'aXb'; LIKE 'a%%' matches 'aZZ'; Or([])->TRUE; LIKE 'acme' matches 'acme\\0evil'. Docs: datatype3 §4.2 affinity rules; §3.2 unary + strips affinity; §7.1 '+X' still counts as a column for collation (verified: +tenant = ? still NOCASE). Fix: typeof guard + COLLATE BINARY + (schema-typed) or unary + (schema-agnostic).",
+   "urls": [
+    "https://www.sqlite.org/datatype3.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "SQLite 3.45.3 (Python bundle) is older than current 3.5x; behaviour here is documented semantics, unlikely to differ.",
+   "underclaim_risk": "Affinity coercion bit a lowering written to be safe.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-pg-collation-cex",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Postgres lowering counterexamples (executed, 17.11 + 19rc1): nondeterministic ICU (case + NFC==NFD tenant collision), citext, glibc range, LIKE regression from error to leak in 18+",
+   "summary": "With deterministic=false ICU collations, tenant 'acmé' (NFC) equals stored NFD 'acmé' and 'ACME' equals 'acme' — distinct tenant ids collide. citext same for case. Under the default en_US.utf8 (libc) collation 'A' BETWEEN 'a' AND 'b' is true. LIKE on a nondeterministic column errors on 17.11 (fail-closed) but succeeds and leaks on 19rc1 (PG18 added LIKE support, committed 2024-11-27). COLLATE \"C\" on every text comparison removed all leaks.",
+   "specifics": "PG docs (collation.html): deterministic flag only decides bytewise tie-break; 'und' nondeterministic treats canonically equivalent sequences equal even at identic level. pgsql-bugs #19681 (ILIKE rejected while LIKE works on 18.6) shows the area is still moving. 'IN ()' syntax error; '= ANY(empty array)' false.",
+   "urls": [
+    "https://www.postgresql.org/docs/current/collation.html",
+    "https://www.depesz.com/?p=4321",
+    "https://www.postgresql.org/message-id/19681-074ed6100d92cc5b@postgresql.org"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Needs a schema that uses those collations/types; default deterministic text with '=' is exact.",
+   "underclaim_risk": "Version-dependent: an upgrade (17->18) turned a fail-closed error into a leak with no schema change.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-redis-glob-key-prefix-cex",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Redis/Valkey key-prefix lowering: glob metacharacters and delimiter confusion leak across tenants; ACL key patterns share the matcher",
+   "summary": "Using a line-for-line Python port of stringmatchlen_impl (redis 8.10.2 src/util.c; identical algorithm in valkey 9.1.2), naive MATCH t:<tenant>:* leaked for 10/19 adversarial tenants (tenant 'a*' saw 72 foreign keys) and glob-escaping alone still leaked 3/19 because ':' inside a tenant id makes 'acme' a prefix of 'acme:x'. Length-prefixed+escaped and hex-encoded {hash-tag} encodings leaked 0. acl.c ACLSelectorCheckKey uses the same stringmatchlen/prefixmatch, so per-tenant ACL users with %R~ patterns built from raw tenant ids inherit the bug.",
+   "specifics": "Pattern recursion guard 'if (nesting > 1000) return 0' (CVE-2024-31228 fix; CVE-2022-36021 earlier) makes pathological patterns return no-match (fail-closed). db.c SCAN uses patternHashSlot to restrict cluster scans to one slot when the pattern has a fixed hash tag -> t:{hex}: encoding also makes tenant SCAN single-slot. Hardened: tenant handle -> hex (alphabet [0-9a-f]) inside {} + ':' terminator; adapter never accepts raw keys.",
+   "urls": [
+    "https://github.com/redis/redis/blob/8.10.2/src/util.c",
+    "https://github.com/valkey-io/valkey/blob/9.1.2/src/util.c",
+    "https://github.com/redis/redis/blob/8.10.2/src/acl.c",
+    "https://cveawg.mitre.org/api/cve/CVE-2024-31228",
+    "https://cveawg.mitre.org/api/cve/CVE-2022-36021"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Executed against a port, not a live server (no redis image present); port fidelity is by inspection.",
+   "underclaim_risk": "The ':'-in-tenant leak survives correct glob escaping — a reviewer would likely miss it.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-mongo-filter-semantics-cex",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "MongoDB filter lowering hazards from primary docs: implicit array membership, $type on arrays, numeric type equivalence, null≡missing, implicit regex, inherited collation",
+   "summary": "Doc-derived counterexamples: {tenant:'acme'} matches {tenant:['acme','evil']} (also visible to 'evil'); {$type:'string'} matches arrays containing strings so it does not enforce scalar-ness ({$type:'array'} does match array fields); all numeric BSON types compare equal; {f:null} matches null, missing and arrays containing null; implicit {f: <regex>} becomes $regex (explicit $eq does not; docs: always use explicit $eq with user input); operations inherit a collection's default collation unless {locale:'simple'} is passed, and strength 1/2 ignore case/diacritics; views reject collation override (fail-closed).",
+   "specifics": "Hardened lowering: {$and:[{tenant:{$eq:t}},{tenant:{$not:{$type:'array'}}}, ...pred with explicit $eq/$in/$gte/$lte, plus {$type:<exact numeric>} when IR distinguishes]} with collation {locale:'simple'}. Executed oracle = spike SPK-MONGO-ORACLE (mongo:8 image > 500 MB limit; FerretDB is not semantics-identical).",
+   "urls": [
+    "https://www.mongodb.com/docs/manual/tutorial/query-arrays/",
+    "https://www.mongodb.com/docs/manual/reference/operator/query/type/",
+    "https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/",
+    "https://www.mongodb.com/docs/manual/tutorial/query-for-null-fields/",
+    "https://www.mongodb.com/docs/manual/reference/operator/query/eq/",
+    "https://www.mongodb.com/docs/manual/reference/collation/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Not executed; array-membership leak requires a writer able to store an array in the tenant field (validator absent or validationLevel moderate).",
+   "underclaim_risk": "Array membership is a uniquely document-model hazard that SQL-trained lowerings and reviewers do not anticipate.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-opa-compile-sql-lowering-defects",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "OPA v1.21.4 Compile API (Rego->SQL/UCAST) executed: SQL Server startswith unsound, CI collations ignored, deny/allow encoded as absent vs empty",
+   "summary": "Existing art for policy-to-native lowering, executed locally (static binary sha256 2ab571f3… matches release). startswith -> LIKE with backslash escaping and no ESCAPE clause for every dialect: correct for Postgres/MySQL default escape, unsound for SQL Server where '\\\\' is literal and '[b-z]' stays a live wildcard class (LIKE N'a\\_[b-z]\\%\\\\%'). No collation awareness: '=' and LIKE inherit MySQL/SQL Server case-insensitive defaults while Rego is case-sensitive. Unconditional include = {'result':{'query':''}}, unconditional deny = {} — documented, but a consumer defaulting a missing query to '' converts deny-all into allow-all.",
+   "specifics": "Code: internal/ucast/ucast.go (ported from EOPA 2025-09-22, PR #7887) on huandu/go-sqlbuilder v1.43.0. Empty IN -> '0 = 1' (sound). Field node with nil value returns '' and go-sqlbuilder And/Or filter empty strings -> a dropped conjunct widens. Commit 986642777c (2026-07-27) 'ucast: Quote SQL filter field identifiers' fixed identifier injection (dynamic key input.fruits[input.column] -> \"WHERE fruit.name = 'allowed' OR 1=1 --\"); no GHSA in OPA's advisory list for it (checked 2026-10-25; latest GHSA-g2pf-6v5v-qcc8 2026-10-19 is unrelated). Values are interpolated inline (E'..', N'..'), not bound.",
+   "urls": [
+    "https://github.com/open-policy-agent/opa/blob/v1.21.4/internal/ucast/ucast.go",
+    "https://github.com/open-policy-agent/opa/commit/986642777c",
+    "https://github.com/open-policy-agent/opa/blob/v1.21.4/docs/docs/rest-api.md",
+    "https://github.com/huandu/go-sqlbuilder/blob/v1.43.0/cond.go",
+    "https://learn.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "SQL Server leak inferred from executed OPA output + MS doc, not run on SQL Server; OPA's docs may scope the fragment per target.",
+   "underclaim_risk": "The most widely used policy engine's SQL lowering has the same bug classes our denylist targets, a year after release; an identifier-injection fix landed silently in July 2026.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-empty-or-widening-family",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Empty-disjunction widening, executed in three popular lowerers: SQLAlchemy 2.1.6 or_(), go-sqlbuilder 1.43 Cond.Or(), @open-policy-agent/ucast-prisma 0.1.6",
+   "summary": "Or([]) denotes FALSE, but SQLAlchemy 2.0.43 and 2.1.6 (latest, 2026-10-21) render or_() as no WHERE and and_(tenant=='acme', or_()) as WHERE tenant='acme' (the FALSE conjunct vanishes; DeprecationWarning only, deprecated since 1.4); go-sqlbuilder v1.43.0 Or()/And() drop empty members and return '' (no condition); ucast-prisma 0.1.6 maps an empty UCAST 'or' to {} (Prisma: all rows) and and[tenant, or[]] to {AND:[{tenant},{}]}. Hasura's ndc-test is the counter-example of good practice: it explicitly tests empty-OR returns no rows and empty-AND is a no-op.",
+   "specifics": "Same failure as dpf-empty-means-all-pattern at the expression level. Our Lean model makes orN_nil = false a definitional theorem and the oracle exercises And([])/Or([]) nested inside conjunctions. Latent in OPA: its partial evaluator returned {} (deny) rather than an empty 'or' in our probes, so reachability through OPA is not shown.",
+   "urls": [
+    "https://docs.sqlalchemy.org/en/20/core/sqlelement.html",
+    "https://pypi.org/project/SQLAlchemy/2.1.6/",
+    "https://github.com/huandu/go-sqlbuilder/blob/v1.43.0/cond.go",
+    "https://www.npmjs.com/package/@open-policy-agent/ucast-prisma",
+    "https://github.com/hasura/ndc-spec/blob/v0.2.14/ndc-test/src/test_cases/query/simple_queries/predicates.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Each needs a caller that builds an empty list dynamically (e.g., 'projects the user belongs to' = []).",
+   "underclaim_risk": "That caller pattern is the normal way authorization filters are assembled; the result is cross-row exposure with no error.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-cedar-tpe-no-native-lowering",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "gap",
+   "title": "Cedar TPE: Lean-proved residual soundness, but no residual->SQL/native lowering (issue #592 open since 2024-01-22)",
+   "summary": "cedar v4.14.0 (2026-10-17) ships type-aware partial evaluation (cedar-policy-core/src/tpe: evaluator.rs 120 KB, residual.rs 33 KB) and cedar-spec main (301bdd22, 2026-10-23) proves reauthorize_is_sound / partial_authorize_decision_is_sound in Lean (re-evaluating a residual with concrete data equals full authorization), DRT-fuzzed (tpe-residual-reauthorize-drt). Nothing lowers residuals to a database query; maintainers suggest attaching SQL WHERE clauses as policy metadata (unverified). The step from residual to native rows is exactly the unproven gap our lowering theorem + refinement contract fills.",
+   "specifics": "cedar-drt fuzz targets: tpe-is-authorized-drt, tpe-residual-reauthorize-drt, tpe-pbt, tpe-query-action-pbt. If Cedar is used as the policy language, the IR Pred becomes the target of a residual->Pred translation whose soundness is a second Lean theorem (Cedar residual semantics -> Pred eval).",
+   "urls": [
+    "https://github.com/cedar-policy/cedar/blob/v4.14.0/cedar-policy-core/src/tpe.rs",
+    "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/Cedar/Thm/TPE.lean",
+    "https://github.com/cedar-policy/cedar/issues/592"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Cedar may add data filtering later; absence is as of 2026-10-25.",
+   "underclaim_risk": "Cedar's TPE proof is reusable: a residual->Pred translation plus our T2 would compose into an end-to-end Lean statement.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-AUTHZ"
+  },
+  {
+   "id": "irl-ndc-equal-syntactic-equality",
+   "layer": "L3",
+   "domain": "W-DATA-GATE",
+   "type": "spec",
+   "title": "Hasura NDC spec v0.2.14 normatively defines `equal` as syntactic equality (case-insensitive types must not offer it); ndc-test checks completeness, not soundness",
+   "summary": "Closest existing art to the refinement contract: rows returned by an equal-predicate must carry exactly the compared value (equal as JSON values); `in` = disjunction of such equalities; ordering operators must be complementary and reflexive. ndc-test generates eq/in predicates from sampled values and only asserts non-empty results, plus explicit empty-AND/empty-OR tests; it never checks that returned rows actually equal the literal.",
+   "specifics": "Release v0.2.14 2026-09-29. Our oracle's LEAK check is the missing soundness assertion; adopting NDC's wording for the IR spec costs nothing.",
+   "urls": [
+    "https://github.com/hasura/ndc-spec/blob/v0.2.14/specification/src/specification/schema/scalar-types.md",
+    "https://github.com/hasura/ndc-spec/blob/v0.2.14/ndc-test/src/test_cases/query/simple_queries/predicates.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "'should' prose; connectors may deviate.",
+   "underclaim_risk": "A production data-connector ecosystem already converged on the same equality discipline.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-engine-logic-bugs-tcb",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "result",
+   "title": "DBMS logic bugs in exactly the collation/affinity area make the engine part of the lowering TCB (SQLancer/Rigger evidence)",
+   "summary": "SQLancer-family oracles (PQS OSDI'20, NoREC FSE'20: 159 bugs/141 fixed/51 optimization; TLP OOPSLA'20; DQP SIGMOD'24; CODDTest SIGMOD'25) found >=131 fixed SQLite bugs, 80 logic bugs, including COLLATE expressions taking an affinity so an integer equalled a text value (#33), CAST inheriting COLLATE so a case-sensitive comparison matched (#41), COLLATE in BETWEEN ignored (#44), IN performing unexpected affinity conversion (#63). A lowering that is sound by the documented semantics can still leak on a buggy engine version.",
+   "specifics": "Implication: Backend.Refines is a claim about (engine, version, schema); pin engine versions, re-run the differential oracle on every engine bump, and consider running SQLancer TLP/NoREC on the pinned engine in nightly CI (repo pushed 2026-10-21).",
+   "urls": [
+    "https://github.com/sqlancer/sqlancer",
+    "https://arxiv.org/abs/2007.08292",
+    "https://www.manuelrigger.at/dbms-bugs/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Historic bugs (2019-2021) are fixed; current rate unknown.",
+   "underclaim_risk": "Planner regressions keep appearing (cf. sdg-sje-rls-2026).",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-post-filter-side-channel-2026",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "threat",
+   "title": "Result-set soundness ≠ non-interference: RLS/DLS post-filter timing and scoring channels amplified by range/prefix predicates (Espiritu & Cash, arXiv 2608.11730, 2026-08-12)",
+   "summary": "Rich predicates (range, prefix, conjunction) turn existence leakage into record reconstruction via PG RLS timing and OpenSearch DLS scoring/prefix expansion. Our lowering theorem guarantees only that returned rows are permitted; it says nothing about time/cost. The IR's Range and Prefix are exactly the amplifiers.",
+   "specifics": "NOT-proven list entry. Mitigations to measure (spike SPK-IR-TIMING): tenant-leading composite indexes so the tenant conjunct bounds the scan (cost.py shows index SEARCH on (tenant,x)); per-tenant partitions/schemas; budgeted predicate complexity; constant-time padding only for high-assurance tenants. cwe: CWE-208; agent_amplified: true (agents can issue thousands of probing queries).",
+   "urls": [
+    "https://arxiv.org/abs/2608.11730"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "cwe": "CWE-208",
+   "likelihood": "medium",
+   "impact": "high",
+   "agent_amplified": true,
+   "overclaim_risk": "Attack demonstrated where untrusted queries run over all data (post-filter); a tenant-first index plan narrows but may not remove the channel.",
+   "underclaim_risk": "LLM agents make high-volume adaptive probing cheap.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-DATA-GATE"
+  },
+  {
+   "id": "irl-sql-mechanized-semantics-landscape",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "type": "survey",
+   "title": "Mechanized SQL semantics 2020-26 model NULLs, never collation/affinity: Ricciotti-Cheney (Coq, JAR 2022), wrwgs/sqlsem (Lean 4 refinement, 2026), lean-linq",
+   "summary": "Coq 'A Formalization of SQL with Nulls' (arXiv 2003.11331; JAR 2022) mechanizes nested queries, bags and NULL 3VL with a certified relational-calculus->SQL translation. 2026 Lean 4 experiments: wrwgs/sqlsem proves RelExpr.Refines between two parsed SQL queries (null-aware boolean simplification, projection fusion) — 0 stars; palladin/lean-linq (27 stars, Lean v4.35.0) compiles a typed DSL to parameterized SQL for SQLite/PG/MySQL/SQL Server without engine-semantics proofs. None model collation, type affinity, LIKE escaping or Redis/Mongo — the exact sources of leaks found here — so per-adapter refinement must stay an explicit, tested TCB item.",
+   "specifics": "arXiv API search (abs:SQL AND Coq/Lean, 'query compiler' verified, collation SQL; 2023-2026) returned no verified query-compilation paper covering collation; DBLP blocked by an Anubis PoW page.",
+   "urls": [
+    "https://arxiv.org/abs/2003.11331",
+    "https://github.com/wrwgs/sqlsem",
+    "https://github.com/palladin/lean-linq"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Search coverage incomplete (DBLP unavailable).",
+   "underclaim_risk": "Our refinement-parameterised theorem is novel in shape but small; the mechanized-NULL literature validates the 3VL part.",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25",
+   "explorer": "01-dataplane-ir-lowering-soundness",
+   "pillar": "W-FORMAL"
+  }
+ ],
+ "edges": [
+  {
+   "src": "irl-l5-lean-lowering-theorems",
+   "dst": "dpf-l5-op-capability-ir",
+   "type": "proves",
+   "note": "proves(result-set soundness of Pred lowering, Lean 4 core, tcb=Refines facts+engine) for the IR's Pred fragment"
+  },
+  {
+   "src": "irl-l5-lean-lowering-theorems",
+   "dst": "vfg-lean-core-minimal-measured",
+   "type": "depends_on",
+   "note": "toolchain footprint projection"
+  },
+  {
+   "src": "irl-l5-lean-lowering-theorems",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "extends",
+   "note": "same model-proof+DRT pattern; composes with Cedar TPE residual soundness"
+  },
+  {
+   "src": "irl-l5-lean-lowering-theorems",
+   "dst": "irl-l5-backend-refinement-contract",
+   "type": "trusts",
+   "note": "Backend.Refines instances are axioms per adapter"
+  },
+  {
+   "src": "irl-l5-differential-oracle-harness",
+   "dst": "irl-l5-backend-refinement-contract",
+   "type": "depends_on",
+   "note": "oracle discharges the refinement facts per engine pin"
+  },
+  {
+   "src": "irl-l5-differential-oracle-harness",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "extends",
+   "note": "adds executed soundness check (LEAK=0) to the lock-generation CI gate"
+  },
+  {
+   "src": "irl-l5-unsound-lowering-denylist",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "extends",
+   "note": "family denylists gain collation/affinity/glob/array-membership entries with executed cex"
+  },
+  {
+   "src": "irl-l5-unsound-lowering-denylist",
+   "dst": "dpf-mongodb",
+   "type": "extends",
+   "note": "array membership, $type-on-arrays, numeric equivalence, collation inheritance"
+  },
+  {
+   "src": "irl-l5-unsound-lowering-denylist",
+   "dst": "dpf-redis-valkey",
+   "type": "extends",
+   "note": "glob + delimiter confusion; ACL patterns share matcher"
+  },
+  {
+   "src": "irl-l5-unsound-lowering-denylist",
+   "dst": "dpf-mysql-mariadb",
+   "type": "extends",
+   "note": "PAD SPACE incl utf8mb4_bin; _ai_ci defaults"
+  },
+  {
+   "src": "irl-l5-unsound-lowering-denylist",
+   "dst": "dpf-sqlserver",
+   "type": "extends",
+   "note": "LIKE no default escape, [ ] wildcards, CI default, trailing blanks"
+  },
+  {
+   "src": "irl-l5-backend-refinement-contract",
+   "dst": "dpf-l5-op-capability-ir",
+   "type": "extends",
+   "note": "adapter acceptance requires refinement claims + schema gate + oracle report"
+  },
+  {
+   "src": "irl-l5-backend-refinement-contract",
+   "dst": "irl-ndc-equal-syntactic-equality",
+   "type": "extends",
+   "note": "NDC equal=syntactic equality is the prose precedent"
+  },
+  {
+   "src": "irl-l5-q1012-role-plan-cache-gate",
+   "dst": "sdg-rls-plan-cache-family",
+   "type": "extends",
+   "note": "executed reproducer; DISCARD PLANS unnecessary for SET LOCAL ROLE on patched minors"
+  },
+  {
+   "src": "irl-l5-q1012-role-plan-cache-gate",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "extends",
+   "note": "INV-ROLE confirmed executable; adds S4b GUC positive control"
+  },
+  {
+   "src": "irl-l5-q1012-role-plan-cache-gate",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "extends",
+   "note": "session-level set_config leak measured in all plan_cache_modes"
+  },
+  {
+   "src": "irl-cve-2026-14666-fix-anatomy",
+   "dst": "sdg-rls-plan-cache-family",
+   "type": "cve",
+   "note": "cve(CVE-2026-14666) fix commit 1974acf23"
+  },
+  {
+   "src": "irl-sqlite-affinity-collation-cex",
+   "dst": "irl-l5-unsound-lowering-denylist",
+   "type": "supports"
+  },
+  {
+   "src": "irl-pg-collation-cex",
+   "dst": "irl-l5-unsound-lowering-denylist",
+   "type": "supports"
+  },
+  {
+   "src": "irl-redis-glob-key-prefix-cex",
+   "dst": "irl-l5-unsound-lowering-denylist",
+   "type": "supports"
+  },
+  {
+   "src": "irl-mongo-filter-semantics-cex",
+   "dst": "irl-l5-unsound-lowering-denylist",
+   "type": "supports"
+  },
+  {
+   "src": "irl-empty-or-widening-family",
+   "dst": "dpf-empty-means-all-pattern",
+   "type": "extends",
+   "note": "expression-level instance, executed in SQLAlchemy 2.1.6 / go-sqlbuilder / ucast-prisma"
+  },
+  {
+   "src": "irl-opa-compile-sql-lowering-defects",
+   "dst": "irl-empty-or-widening-family",
+   "type": "related"
+  },
+  {
+   "src": "irl-opa-compile-sql-lowering-defects",
+   "dst": "dpf-uniform-abstraction-comparison",
+   "type": "contradicts",
+   "note": "policy->SQL compilers as an alternative to a typed IR are currently unsound for some dialects"
+  },
+  {
+   "src": "irl-cedar-tpe-no-native-lowering",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "extends",
+   "note": "TPE theorems exist; native lowering absent"
+  },
+  {
+   "src": "irl-cedar-tpe-no-native-lowering",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "fills_gap"
+  },
+  {
+   "src": "irl-engine-logic-bugs-tcb",
+   "dst": "irl-l5-backend-refinement-contract",
+   "type": "conflicts_with",
+   "note": "refinement can fail through engine bugs; pin + re-oracle"
+  },
+  {
+   "src": "irl-engine-logic-bugs-tcb",
+   "dst": "sdg-sje-rls-2026",
+   "type": "related"
+  },
+  {
+   "src": "irl-post-filter-side-channel-2026",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "conflicts_with",
+   "note": "outside the theorem: timing/cost channels"
+  },
+  {
+   "src": "irl-sql-mechanized-semantics-landscape",
+   "dst": "sdg-sql-equivalence-verif",
+   "type": "extends",
+   "note": "adds 2026 Lean experiments; confirms no collation modelling"
+  },
+  {
+   "src": "irl-ndc-equal-syntactic-equality",
+   "dst": "dpf-uniform-abstraction-comparison",
+   "type": "extends"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Check AegisIR/Lowering.lean with Lean 4.35 (SPK-LEAN-IR-1) and close lower_sound_full: measure lake build wall/RSS; does any proof need Batteries?",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.5,
+   "reason": "only unchecked artifact in this node set; converts E to A",
+   "from_node": "irl-l5-lean-lowering-theorems"
+  },
+  {
+   "question": "Write-path lowering soundness: UPDATE/DELETE ... WHERE and Mongo updateMany with the same Pred — do RETURNING, upsert (ON CONFLICT / upsert:true) or $setOnInsert break the subset property (rows mutated ⊆ rows permitted, and new rows carry the caller's tenant)?",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.6,
+   "reason": "theorem covers reads only; writes are where tenant-field forgery happens",
+   "from_node": "irl-l5-lean-lowering-theorems"
+  },
+  {
+   "question": "Executed Mongo/MySQL/SQL Server oracles in CI (images >500 MB locally): mongo:8, mysql:8.4, mcr.microsoft.com/mssql/server:2025 — confirm the B-grade denylist entries",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.45,
+   "reason": "three of six denylist families are doc-derived",
+   "from_node": "irl-l5-unsound-lowering-denylist"
+  },
+  {
+   "question": "Timing side channel under the hardened lowering: with tenant-leading composite indexes and per-tenant partitions, does Espiritu-Cash style range/prefix reconstruction still work on PG 18? Measure bits/query.",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.55,
+   "reason": "decides whether Range/Prefix must be budgeted or removed from the agent-facing IR",
+   "from_node": "irl-post-filter-side-channel-2026"
+  },
+  {
+   "question": "Projection/ordering/aggregate leaks: can ORDER BY on a non-permitted column, COUNT(*), LIMIT/OFFSET cursors or error messages reveal non-permitted rows even when the WHERE is sound?",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.45,
+   "reason": "IR Query also has proj/order/cursor; theorem scope is filter only",
+   "from_node": "irl-l5-lean-lowering-theorems"
+  },
+  {
+   "question": "Run SPK-PG-14666-UNPATCHED (postgres:17.10) and a pgx/tokio-postgres protocol-level prepared-statement variant of q1012_repro to confirm identical plancache behaviour for unnamed statements",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.3,
+   "reason": "only the patched side was reproduced",
+   "from_node": "irl-l5-q1012-role-plan-cache-gate"
+  },
+  {
+   "question": "OpenSearch/Elasticsearch bool.filter lowering (part of q2-011, not covered here): term on analyzed text vs keyword fields, keyword normalizers (lowercase), match-query analyzers, prefix/wildcard query metachars, and DLS scoring channels — build the same LEAK oracle against opensearch:3 (image size permitting)",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.5,
+   "reason": "q2-011 named OpenSearch; analyzers are a fourth lowering shape (tokenized equality) with its own refinement failures",
+   "from_node": "irl-l5-unsound-lowering-denylist"
+  },
+  {
+   "question": "Should the golden adopt Cedar as policy language with a Lean-proved residual->Pred translation, composing Cedar's TPE soundness with our lowering theorem into an end-to-end statement?",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.4,
+   "reason": "unique compositional proof opportunity; no existing system has it",
+   "from_node": "irl-cedar-tpe-no-native-lowering"
+  }
+ ],
+ "protocol_implications": [
+  "Every DB adapter in the golden must ship three artifacts before it is accepted: a Lean Backend.Refines claim, a live-catalog schema gate, and an executed differential-oracle report with leak_cases=0 at the pinned engine version.",
+  "The IR spec must define Or([]) = FALSE and And([]) = TRUE, and CI must test both nested inside conjunctions; generic query builders that drop empty sub-expressions (SQLAlchemy or_(), go-sqlbuilder Cond.Or, ucast-prisma) are banned from the lowering path.",
+  "Prefix must never lower to LIKE/GLOB/SCAN-glob over raw values; use substr/left = ? under binary collation, and hex/length-prefixed key encodings for KV stores (the same rule covers Redis ACL key patterns).",
+  "Text comparisons in lowered SQL carry an explicit binary collation (SQLite COLLATE BINARY, PG COLLATE \"C\", MySQL utf8mb4_0900_bin, SQL Server *_BIN2); tenant/filter columns using nondeterministic, citext, *_ci or PAD SPACE collations fail the schema gate.",
+  "Engine upgrades (including PG 17->18) re-run the oracle and the q1012 role/plan-cache reproducer before rollout, because a fail-closed error can become a leak with no code change (PG18 LIKE on nondeterministic collations).",
+  "Postgres minor floor 17.11/18.6 is a startup check; SET LOCAL ROLE per transaction with statement caching is permitted on those minors; session-level SET of tenant GUCs is forbidden.",
+  "Result-set soundness goes on the assured list; timing/cost side channels of Range/Prefix predicates go on the NOT-proven list until SPK-IR-TIMING is measured."
+ ],
+ "self_improvement": [
+  "DBLP search API now sits behind an Anubis proof-of-work page (HTML 'Making sure you're not a bot!'); explorers should use the arXiv export API or Semantic Scholar for bibliographic sweeps.",
+  "Executing the existing art (OPA binary, SQLAlchemy, ucast-prisma via scratchpad installs under 100 MB) produced more A-grade findings per minute than reading docs; brief writers should list 'run the competitor' as a default tactic when a static binary or pip/npm package under 100 MB exists.",
+  "Explorer briefs should state which docker images are already present (postgres:17 = 17.11 here, i.e., already patched for the CVE under study) so explorers know up front which reproducers are feasible."
+ ],
+ "notes": {
+  "counts": {
+   "queries_logged": 31,
+   "dup_skipped": 0,
+   "near_dup_rewritten": 2,
+   "new_urls": 37,
+   "seen_urls": 1,
+   "new_nodes": 17,
+   "reused_nodes": 0
+  },
+  "executed": [
+   "q1012_repro.py on PG 17.11 + 19rc1",
+   "oracle.py 4 seeds (SQLite 4 schemas, PG 3 schemas x 2 versions, Redis 4 encodings)",
+   "cex.py 78 cases",
+   "oracle_typed.py",
+   "cost.py",
+   "probe_nul.json",
+   "OPA v1.21.4 compile API",
+   "SQLAlchemy 2.0.43/2.1.6",
+   "ucast-prisma 0.1.6"
+  ],
+  "not_executed_spikes": [
+   "SPK-LEAN-IR-1 (no Lean toolchain; brief forbids download)",
+   "SPK-PG-14666-UNPATCHED (postgres:17.10 not present)",
+   "SPK-MONGO-ORACLE / MySQL / SQL Server (images >500 MB)",
+   "SPK-IR-TIMING"
+  ],
+  "disk": "01-work ~1 MB; scratchpad: opa 64 MB, sqlalchemy ~15 MB, ucast-prisma 0.6 MB (deleted at end); no target/ dirs; no heavy.sh jobs needed (no builds ran).",
+  "anchoring": "Alternatives enumerated independently for the lowering instrument: (a) trusted builder + review, (b) policy->SQL compiler (OPA/Cedar metadata), (c) typed IR + proof + oracle, (d) native RLS only. Measured evidence (OPA/SQLAlchemy defects; RLS plan-cache CVEs) favours (c) with (d) as defense-in-depth. Prior treatments not opened."
+ },
+ "numbers_checked": [
+  {
+   "claim": "CVE-2026-14666 fixed 18.6/17.11/16.15/15.19/14.24 on 2026-08-13, CVSS 4.2",
+   "url": "https://www.postgresql.org/support/security/CVE-2026-14666/",
+   "fix_state_main": "fixed (1974acf23, backpatch-through 14)"
+  },
+  {
+   "claim": "fix commit touches 3 files +63/-2, no regression test",
+   "url": "https://github.com/postgres/postgres/commit/1974acf23",
+   "fix_state_main": "fixed"
+  },
+  {
+   "claim": "OPA identifier injection fixed 2026-07-27",
+   "url": "https://github.com/open-policy-agent/opa/commit/986642777c",
+   "fix_state_main": "fixed on main and in v1.21.4"
+  },
+  {
+   "claim": "OPA sqlserver startswith LIKE without ESCAPE",
+   "url": "https://github.com/open-policy-agent/opa/blob/v1.21.4/internal/ucast/ucast.go",
+   "fix_state_main": "unfixed at v1.21.4 (latest release)"
+  },
+  {
+   "claim": "SQLAlchemy or_() empty renders blank (deprecated since 1.4)",
+   "url": "https://pypi.org/project/SQLAlchemy/2.1.6/",
+   "fix_state_main": "still blank in 2.1.6 (2026-10-21)"
+  },
+  {
+   "claim": "ucast-prisma empty or -> {}",
+   "url": "https://www.npmjs.com/package/@open-policy-agent/ucast-prisma",
+   "fix_state_main": "unfixed in 0.1.6 (latest on npm 2026-10-25)"
+  },
+  {
+   "claim": "go-sqlbuilder Cond.Or() empty -> ''",
+   "url": "https://github.com/huandu/go-sqlbuilder/blob/v1.43.0/cond.go",
+   "fix_state_main": "by design (v1.43.0 as pinned by OPA)"
+  },
+  {
+   "claim": "PG18 LIKE on nondeterministic collations (committed 2024-11-27)",
+   "url": "https://www.depesz.com/?p=4321",
+   "fix_state_main": "feature; executed: error on 17.11, allowed on 19rc1"
+  },
+  {
+   "claim": "Redis glob DoS CVE-2022-36021 fixed 6.0.18/6.2.11/7.0.9; CVE-2024-31228 fixed 6.2.16/7.2.6/7.4.1",
+   "url": "https://cveawg.mitre.org/api/cve/CVE-2024-31228",
+   "fix_state_main": "fixed; nesting>1000 guard present in 8.10.2 and valkey 9.1.2"
+  },
+  {
+   "claim": "NoREC 159 bugs, 141 fixed, 51 optimization",
+   "url": "https://arxiv.org/abs/2007.08292",
+   "fix_state_main": "n/a"
+  },
+  {
+   "claim": "Cedar v4.14.0 2026-10-17; cedar-spec main 301bdd22 2026-10-23 has TPE soundness theorems",
+   "url": "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/Cedar/Thm/TPE.lean",
+   "fix_state_main": "n/a"
+  },
+  {
+   "claim": "Hasura ndc-spec v0.2.14 2026-09-29",
+   "url": "https://github.com/hasura/ndc-spec/blob/v0.2.14/specification/src/specification/schema/scalar-types.md",
+   "fix_state_main": "n/a"
+  }
+ ],
+ "sources": [
+  "https://www.postgresql.org/support/security/CVE-2026-14666/",
+  "https://www.postgresql.org/docs/release/17.11/",
+  "https://github.com/postgres/postgres/commit/1974acf23",
+  "https://github.com/redis/redis/blob/8.10.2/src/util.c",
+  "https://github.com/redis/redis/blob/8.10.2/src/acl.c",
+  "https://github.com/redis/redis/blob/8.10.2/src/db.c",
+  "https://github.com/valkey-io/valkey/blob/9.1.2/src/util.c",
+  "https://www.mongodb.com/docs/manual/tutorial/query-arrays/",
+  "https://www.mongodb.com/docs/manual/reference/bson-type-comparison-order/",
+  "https://www.mongodb.com/docs/manual/tutorial/query-for-null-fields/",
+  "https://www.mongodb.com/docs/manual/reference/operator/query/type/",
+  "https://www.mongodb.com/docs/manual/reference/operator/query/eq/",
+  "https://www.mongodb.com/docs/manual/reference/collation/",
+  "https://www.sqlite.org/datatype3.html",
+  "https://www.postgresql.org/docs/current/collation.html",
+  "https://www.depesz.com/?p=4321",
+  "https://www.postgresql.org/message-id/19681-074ed6100d92cc5b@postgresql.org",
+  "https://github.com/cedar-policy/cedar/blob/v4.14.0/cedar-policy-core/src/tpe.rs",
+  "https://github.com/cedar-policy/cedar-spec/blob/main/cedar-lean/Cedar/Thm/TPE.lean",
+  "https://github.com/cedar-policy/cedar/issues/592",
+  "https://github.com/open-policy-agent/opa/blob/v1.21.4/internal/ucast/ucast.go",
+  "https://github.com/open-policy-agent/opa/blob/v1.21.4/docs/docs/rest-api.md",
+  "https://github.com/open-policy-agent/opa/commit/986642777c",
+  "https://github.com/open-policy-agent/opa/security/advisories",
+  "https://github.com/huandu/go-sqlbuilder/blob/v1.43.0/cond.go",
+  "https://www.npmjs.com/package/@open-policy-agent/ucast-prisma",
+  "https://learn.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql",
+  "https://dev.mysql.com/doc/refman/8.4/en/charset-binary-collations.html",
+  "https://github.com/sqlancer/sqlancer",
+  "https://arxiv.org/abs/2007.08292",
+  "https://www.manuelrigger.at/dbms-bugs/",
+  "https://arxiv.org/abs/2003.11331",
+  "https://github.com/wrwgs/sqlsem",
+  "https://github.com/palladin/lean-linq",
+  "https://arxiv.org/abs/2608.11730",
+  "https://github.com/hasura/ndc-spec/blob/v0.2.14/specification/src/specification/schema/scalar-types.md",
+  "https://github.com/hasura/ndc-spec/blob/v0.2.14/ndc-test/src/test_cases/query/simple_queries/predicates.rs",
+  "https://docs.sqlalchemy.org/en/20/core/sqlelement.html",
+  "https://pypi.org/project/SQLAlchemy/2.1.6/",
+  "https://cveawg.mitre.org/api/cve/CVE-2022-36021",
+  "https://cveawg.mitre.org/api/cve/CVE-2024-31228"
+ ],
+ "artifacts": [
+  "01-work/build_output.py",
+  "01-work/cedar/Soundness.lean",
+  "01-work/cedar/TPE.lean",
+  "01-work/cedar/tpe.rs",
+  "01-work/cex.py",
+  "01-work/cex_err.txt",
+  "01-work/cex_results.json",
+  "01-work/cost.py",
+  "01-work/cost_results.json",
+  "01-work/fix-1974acf23.patch",
+  "01-work/lean/AegisIR/Lowering.lean",
+  "01-work/lean/SPIKE.md",
+  "01-work/lean/lakefile.lean",
+  "01-work/lean/lean-toolchain",
+  "01-work/ndc/filtering.md",
+  "01-work/ndc/predicates.rs",
+  "01-work/ndc/scalar-types.md",
+  "01-work/opa/cond.go",
+  "01-work/opa/fragment.md",
+  "01-work/opa/ucast.go",
+  "01-work/opa/ucast_test.go",
+  "01-work/oracle.py",
+  "01-work/oracle_err.txt",
+  "01-work/oracle_pg17_s1.json",
+  "01-work/oracle_pg17_s2.json",
+  "01-work/oracle_pg17_s3.json",
+  "01-work/oracle_pg19_s1.json",
+  "01-work/oracle_run1.json",
+  "01-work/oracle_typed.json",
+  "01-work/oracle_typed.py",
+  "01-work/probe_nul.json",
+  "01-work/q1012_55417.json",
+  "01-work/q1012_55419.json",
+  "01-work/q1012_repro.py",
+  "01-work/redis-acl.c",
+  "01-work/redis-db.c",
+  "01-work/redis-util.c",
+  "01-work/valkey-util.c"
+ ]
+}

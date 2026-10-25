@@ -1,0 +1,1220 @@
+{
+ "explorer": "12-calibration-two-sided-top-findings-r3",
+ "round": 4,
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "wasmtime-advisory-share-by-config",
+   "revision_of": "wasmtime-advisory-share-by-config",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-ISOLATION",
+   "type": "analysis",
+   "title": "Wasmtime M0 escape rate re-derived: 12 escapes reproduce, but the rate swings 0.36-2.2/yr with the denominator; post-1.0 1.2-1.5/yr, critical/high-only 0.5-0.9/yr; aarch64 adds a 2026 critical",
+   "summary": "Recomputed from state/raw/round-002/07-data/classified.json (81 unique GHSAs, 2021-05-21..2026-10-19; repo count re-checked by gh api 2026-10-25 = 81, so no new advisories). M0 ESC hits = 14, of which 2 are embedder-only (GHSA-v4cp 2021, GHSA-hgjw 2026), leaving the r3 count of 12. One of those 12 is knob-only (GHSA-44mr zero-pages, 2022), so 11 without it. Denominator: r3 used 5.8 y. The real span 2021-05-21..2026-10-25 is 5.43 y, giving 12/5.43 = 2.21/yr (exact Poisson 95% 1.14-3.86). Since Wasmtime 1.0 (2022-09-20, 4.10 y): 6 escapes (5 without the knob) = 1.22-1.46/yr. Critical/high only: 5 in 5.43 y = 0.92/yr; since 1.0 only ff4p and 897f = 0.49/yr. 3 of the 12 are rated low (xm67, ch89, gw5p). 2024-26: 1 in 2.8 y = 0.36/yr. Underclaim: M0 is defined as x86_64 only. On aarch64 (common on cheap ARM VPS) add GHSA-7f6x (2022) and GHSA-mghf-wjfp-p5xm (critical, 2026-10-19, br_table mis-jump), so 2026 has 2 critical M0-class escapes on aarch64 vs 1 on x86_64.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-002/07-data/classified.json",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-mghf-wjfp-p5xm"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.68,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "verdict": "unchanged (direction) / refined (band) / underclaim on aarch64",
+   "numbers_checked": [
+    {
+     "claim": "M0 12 escapes 2021-2026",
+     "source_value": "14 hits - 2 embedder-only = 12 (11 excl. knob)",
+     "method": "recomputed",
+     "url": "state/raw/round-002/07-data/classified.json"
+    },
+    {
+     "claim": "2.0/yr (CI 1.0-3.5) over 5.8 y",
+     "source_value": "5.43 y span -> 2.21/yr (1.14-3.86); post-1.0 1.22-1.46/yr; crit/high 0.49-0.92/yr",
+     "method": "recomputed",
+     "url": "state/raw/round-002/07-data/classified.json"
+    },
+    {
+     "claim": "0.36/yr since 2024",
+     "source_value": "1 in 2.8 y = 0.36",
+     "method": "recomputed",
+     "url": "state/raw/round-002/07-data/classified.json"
+    },
+    {
+     "claim": "snapshot complete as of 2026-10-25",
+     "source_value": "gh api repo advisories = 81 (latest 2026-10-19)",
+     "method": "read",
+     "url": "https://api.github.com/repos/bytecodealliance/wasmtime/security-advisories"
+    }
+   ],
+   "overclaim_risk": "Hand tags inherited from r2. Per-year n is tiny. The 2026 audit sprint makes the rate non-stationary.",
+   "underclaim_risk": "Excluding aarch64 hides a 2026 critical. Excluding 'low' sev items that are still memory-unsafe guest reads/writes understates exposure.",
+   "decision_change": "R-ISO-1 direction unchanged. Its reversal trigger (an M0 escape within 6 months) fires with P = 1-exp(-rate*0.5) = 0.16 / 0.45-0.52 / 0.67 at 0.36 / 1.2-1.46 / 2.21 per yr, so at the post-1.0 base rate it is a coin flip and carries no new information. Replace it with '>=3 M0-class escapes in any 12 months' (P about 0.14 at 1.3/yr) or pre-commit P2 to per-tenant processes. R-ISO-2 should name the arch: an aarch64 golden needs >=48.0.7/49.0.4/50.0.0 for GHSA-mghf. GHSA-mghf range: <36.0.19, 37.0.0-<48.0.7, 49.0.0-<49.0.4.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "threat-ledger-middle-tier-2023-2026",
+   "revision_of": "threat-ledger-middle-tier-2023-2026",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-THREAT",
+   "type": "result",
+   "title": "Rust-stack resource-exhaustion share 61% (47-73) and 2026 50% reproduce only with r3's hand relabels; the committed script prints 60% / 46%",
+   "summary": "Re-ran state/raw/round-003/12data/ledger_recompute.py on round-002/12data/osv_rust_http.json (python3 -I). It gives 111 records -> 69 alias clusters, 2023+ n=52 (the MadeYouReset Pingora duplicate is still split), resource 31/52 = 60% (Wilson .46-.72), and 2026 13/28 = 46% (.30-.64). The regex misfiles 4 rows: brotli 1 GiB decompression goes to tls instead of resource, ServerHello downgrade to resource instead of tls, zero-length DATAGRAM buffer-limit bypass to other instead of resource, and tokio unsplit unsound to smuggling. My own independent relabel of all 28 2026 rows: resource 14/28 = 50.0%, tls-logic 7/28 = 25% (CRL DP, 2 name constraints, cross-epoch, downgrade, distrusted intermediates, ECH), smuggling 3, memory 1 (quiche UAF), other 3. 2023+ with the dup merged: 31/51 = 60.8% (Wilson 47-73). Dropping hickory (DNS) and tokio leaves 2026 at 12/24 = 50%. OSV delta since the 2026-10-25 02:07 snapshot: 0 new records for these packages.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-003/12data/ledger_recompute.py",
+    "state/raw/round-002/12data/osv_rust_http.json",
+    "state/raw/round-004/12r4data/ledger_rows_rerun.json",
+    "https://api.osv.dev/v1/query"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "verdict": "unchanged (numbers) / down (reproducibility of the instrument)",
+   "numbers_checked": [
+    {
+     "claim": "resource 61% (47-73) 2023+",
+     "source_value": "script 31/52=60%; hand relabel+dedupe 31/51=60.8% (47-73)",
+     "method": "recomputed",
+     "url": "state/raw/round-003/12data/ledger_recompute.py"
+    },
+    {
+     "claim": "2026 resource 50%",
+     "source_value": "script 13/28=46%; independent hand relabel 14/28=50%",
+     "method": "recomputed",
+     "url": "state/raw/round-002/12data/osv_rust_http.json"
+    },
+    {
+     "claim": "2026 TLS-logic 25%",
+     "source_value": "7/28 hand relabel",
+     "method": "recomputed",
+     "url": "state/raw/round-002/12data/osv_rust_http.json"
+    }
+   ],
+   "overclaim_risk": "The headline rests on uncommitted hand relabels, and the package set was chosen in r1/r2.",
+   "underclaim_risk": "Repo-only GHSAs absent from OSV (quinn x3 HIGH 2026-09-30) are uncounted. Adding them raises the 2026 resource share to about 17/31 = 55%.",
+   "decision_change": "None for THREAT_MODEL ranking. Commit the relabel table (id -> class) next to the script so the number is reproducible.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "w02.handshake-pq-cost",
+   "revision_of": "w02.handshake-pq-cost",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-PERF",
+   "type": "measurement",
+   "title": "PQ handshake cost r3 correction upheld from all 12 logged trial pairs: rustls +12.5/+15.0%, 123.4 us appears in no log",
+   "summary": "Re-extracted every 'hs x25519 / hs mlkem' line in state/raw/round-002/w02/out and out2. rustls (hellotls): 141.7->159.3 us (+12.5%) and 254.8->292.9 (+15.0%). Envoy: 170.8->211.9 (+24.0%), 121.1->151.7 (+25.3%). Caddy: +42.8%, +39.0%. HAProxy: +31.6%, +28.6%, +30.3%. nginx: +55.5%, +31.9%, +74.2%. Wire +1088 B server->client and +1184 B client->server (total +2272 B <= the 2.4 KB budget). rustls handshake/s 6926 -> 6215 (-10.3%). No log contains 123.4.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-002/w02/out/hellotls.log",
+    "state/raw/round-002/w02/out2/hellotls.log",
+    "state/raw/round-002/w02/out2/envoy.log"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.65,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "verdict": "unchanged (r3 revision confirmed)",
+   "numbers_checked": [
+    {
+     "claim": "+12.5-15.0% rustls",
+     "source_value": "141.677->159.338; 254.814->292.927",
+     "method": "recomputed",
+     "url": "state/raw/round-002/w02/out*/hellotls.log"
+    },
+    {
+     "claim": "<=2.4 KB extra wire",
+     "source_value": "+2272 B",
+     "method": "recomputed",
+     "url": "state/raw/round-002/w02/out/hellotls.log"
+    }
+   ],
+   "overclaim_risk": "n=2 per server on a contended host, trials not interleaved.",
+   "underclaim_risk": "Still negligible at household handshake rates.",
+   "decision_change": "None. R-PERF-1 text is already correct.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "w02.ipc-hop-cost-1core",
+   "revision_of": "w02.ipc-hop-cost-1core",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-PERF",
+   "type": "measurement",
+   "title": "IPC hop numbers reproduce (UDS 4.80 us, shm 2.05 us, same core), but they are the same-core best case; the cross-core control is 8.07 us UDS / 4.78 us shm",
+   "summary": "From state/raw/round-003/02-ipc-1core.jsonl (n=10 runs): uds-postcard noop median p50 4795.5 ns [4750-5899], p99 5706. shm-futex 2054 [2035-2797]. inproc 23 ns, timer 21 ns. From 02-ipc-2core-control.jsonl (n=5, helper on another core): uds-postcard 8066 ns (p99 11653), uds-raw 8021, shm-futex 4784, shm-spin 195 ns (burns a core). On a multicore host with default scheduling the hop is about 1.7x the headline number. A 1-vCPU VPS is the same-core case, but hypervisor context-switch cost is unmeasured.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-003/02-ipc-1core.jsonl",
+    "state/raw/round-003/02-ipc-2core-control.jsonl"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "verdict": "unchanged (number) / scope-down (budget derivation)",
+   "numbers_checked": [
+    {
+     "claim": "4.8 us UDS",
+     "source_value": "4795.5 ns median of 10 per-run p50",
+     "method": "recomputed",
+     "url": "state/raw/round-003/02-ipc-1core.jsonl"
+    },
+    {
+     "claim": "2.1 us ring",
+     "source_value": "2054 ns",
+     "method": "recomputed",
+     "url": "state/raw/round-003/02-ipc-1core.jsonl"
+    },
+    {
+     "claim": "(implicit) budget hop = 4.8 us",
+     "source_value": "cross-core 8066 ns",
+     "method": "recomputed",
+     "url": "state/raw/round-003/02-ipc-2core-control.jsonl"
+    }
+   ],
+   "overclaim_risk": "Laptop with a powersave governor at load 10-25.",
+   "underclaim_risk": "The 2-core control may land on P/E-mixed cores.",
+   "decision_change": "R-MOD-1 hop budget 'rate x 4.8 us <= 10% core (~20k calls/s)' becomes 12.4k calls/s at 8.07 us unless the helper is pinned to the caller's core. State which one the golden does.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.tenuo-cel-attenuation-bypass",
+   "revision_of": "r3e05.tenuo-cel-attenuation-bypass",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-AUTHZ",
+   "type": "defect",
+   "title": "Tenuo CEL attenuation check still unfixed on main as of 2026-10-25 (HEAD 486be6819)",
+   "summary": "Fetched tenuo-core/src/constraints.rs at main and at v0.3.3. CelConstraint::validate_attenuation (main line ~3970), normalize_cel_whitespace (split_whitespace().join(\"\")) and has_balanced_outer_parens are logically identical to v0.3.3. The last commit touching the file is 63fca0c7e (2026-10-24T03:17Z, 'restore Range precision warning'); 4 constraint-decoding fixes landed 2026-10-23/24 but none touch CEL. Repo security advisories: [] (none published). Latest release v0.3.3 (2026-10-22). No PoC published here.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/tenuo-ai/tenuo/blob/main/tenuo-core/src/constraints.rs",
+    "https://github.com/tenuo-ai/tenuo/commits/main/tenuo-core/src/constraints.rs",
+    "https://github.com/tenuo-ai/tenuo/releases/tag/v0.3.3"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "verdict": "unchanged",
+   "numbers_checked": [
+    {
+     "claim": "unfixed on main 2026-10-24",
+     "source_value": "main HEAD 486be6819 2026-10-24T14:48Z; CEL logic unchanged",
+     "method": "read",
+     "url": "https://api.github.com/repos/tenuo-ai/tenuo/commits/main"
+    }
+   ],
+   "overclaim_risk": "Non-default 'cel' feature only. Whether the operator has privately reported it is unknown.",
+   "underclaim_risk": "None.",
+   "decision_change": "R-AUTHZ-6 unchanged. pred-tenuo-cel-advisory is pending and depends on the operator's disclosure.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "sc3.cooldown-executed-cargo-198",
+   "revision_of": "sc3.cooldown-executed-cargo-198",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-SUPPLY",
+   "type": "experiment",
+   "title": "7-day cooldown re-executed independently on the golden manifest: lands rustls-webpki 0.103.15 and exactly one OSV hit, RUSTSEC-2026-0382",
+   "summary": "Re-ran on 2026-10-25T07:37Z with rustup run 1.98.0 cargo -Zmin-publish-age generate-lockfile, RUSTC_BOOTSTRAP=1, [registry] global-min-publish-age='7 days', via tools/heavy.sh, own CARGO_HOME. Result: 233 packages (r3 said 220). The resolver held back rustls-webpki 0.103.15 (0.103.16 published 2026-10-20T08:58Z, 5 days), tokio 1.53.3 (1.54.1 3 days), cc 1.8.0, smallvec 1.16.3, smol_str 0.3.6, find-msvc-tools 0.1.14 and generic-array 0.14.7. OSV querybatch of the resulting lock: exactly 1 hit, RUSTSEC-2026-0382 on rustls-webpki@0.103.15. The r3 golden lock (tokio 1.54.1, webpki 0.103.16) has 0 OSV hits now. The window closes 2026-10-27T08:58Z, after which a 7-day cooldown would pick 0.103.16.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-004/12r4data/cooldown/gen7.log",
+    "state/raw/round-004/12r4data/osv_cooldown7_lock.json",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0382.html",
+    "https://crates.io/api/v1/crates/rustls-webpki"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "verdict": "up (independently re-executed)",
+   "numbers_checked": [
+    {
+     "claim": "7-day cooldown lands RUSTSEC-2026-0382",
+     "source_value": "re-executed: webpki 0.103.15, OSV hit RUSTSEC-2026-0382 only",
+     "method": "recomputed",
+     "url": "state/raw/round-004/12r4data/cooldown/gen7.log"
+    },
+    {
+     "claim": "220 crates",
+     "source_value": "233 packages",
+     "method": "recomputed",
+     "url": "state/raw/round-004/12r4data/cooldown/proj/Cargo.lock"
+    },
+    {
+     "claim": "0.103.16 4.7 days old",
+     "source_value": "published 2026-10-20T08:58Z",
+     "method": "read",
+     "url": "https://crates.io/api/v1/crates/rustls-webpki"
+    }
+   ],
+   "overclaim_risk": "Time-window specific: the result reverses after 2026-10-27.",
+   "underclaim_risk": "A security-bypass list is mandatory, and repo-only GHSAs (see r4c12.repo-ghsa-osv-blindspot) would not even appear in cargo-audit.",
+   "decision_change": "R-SUP cooldown rule unchanged (cooldown + security bypass). Cite the re-execution.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "irl-l5-differential-oracle-harness",
+   "revision_of": "irl-l5-differential-oracle-harness",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-DATA-GATE",
+   "type": "tool",
+   "title": "IR-lowering leak counts: bands widen slightly (SQLite naive 1004-1505, citext 481-508); the 'hardened 0/0 on 4 seeds' claim rests on 3 post-fix seeds",
+   "summary": "Recounted all leak_cases in state/raw/round-003/01-work/oracle_*.json. SQLite naive across 5 runs: 1004-1505 (claim 1004-1492; seed 20261025 NOCASE = 1505). PG default 282-307 (match). citext 481-508 (claim 481-495; run1 = 508). Nondeterministic ICU PG17 518-577 (match), errors 305-346. PG19rc1 725 (match). Hardened lowerings 0 LEAK / 0 MISS on seeds 1, 2, 3 (pg17_s1-3, pg19_s1). Seed 20261025 exists only as the pre-fix run, which shows strict-typed TEXT/NUMERIC with 39 leaks / 7 misses, so the post-fix 4th seed is unevidenced. oracle_typed.json: the index-friendly variant leaks 42-44/3000 on NUMERIC-affinity columns, as documented as a precondition.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-003/01-work/oracle_run1.json",
+    "state/raw/round-003/01-work/oracle_pg17_s1.json",
+    "state/raw/round-003/01-work/oracle_typed.json"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.82,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "verdict": "down (slight, scope)",
+   "numbers_checked": [
+    {
+     "claim": "naive SQLite leak 1004-1492",
+     "source_value": "1004-1505",
+     "method": "recomputed",
+     "url": "state/raw/round-003/01-work/oracle_*.json"
+    },
+    {
+     "claim": "citext 481-495",
+     "source_value": "481-508",
+     "method": "recomputed",
+     "url": "state/raw/round-003/01-work/oracle_run1.json"
+    },
+    {
+     "claim": "hardened 0/0 on 4 seeds",
+     "source_value": "0/0 on 3 seeds; 4th seed pre-fix only",
+     "method": "recomputed",
+     "url": "state/raw/round-003/01-work/"
+    }
+   ],
+   "overclaim_risk": "Random testing over a curated corpus; the reference evaluator was self-written.",
+   "underclaim_risk": "PG master shows optimizer rewrites can drop RLS quals (dca6a9e32), so the oracle should add multi-RTE/self-join cases.",
+   "decision_change": "R-DB-7 unchanged. The CI gate should require all 4 seeds post-fix and add a self-join/same-table-twice query family.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e07-L5-swarm-acceptance-criteria",
+   "revision_of": "r3e07-L5-swarm-acceptance-criteria",
+   "layer": "L5",
+   "domain": "K-CALIBRATION/W-ABUSE",
+   "type": "artifact",
+   "title": "Swarm acceptance table overclaims: TUNED passes C1 (human failure <=2%) only in 'mixed'; it fails in aged_swarm, flash_crowd and worst-seed dc_swarm, and fails C2 in cheap_flood",
+   "summary": "Recomputed from 07-work/panel_r2.jsonl and panel_tuned2.jsonl (10 seeds each). r2 mixed: human failure 99.12% (max 99.41%), matching the 99.1% claim. Verified-agent success mean 63.5%, min 59.7%: the table's 59.7% is the worst seed, not the mean. TUNED2, all 10 scenarios: human failure mean/worst baseline 0/0, naive 0/0, solver 0.97/1.11%, browser 1.04/1.23%, aged_swarm 2.47/3.16% FAIL, cheap_flood 0/0, dc_swarm 1.84/2.34% (worst FAIL), heavy 0/0, flash_crowd 2.48/2.84% FAIL, mixed 0.95/1.27%. Human p99: cheap_flood 177.5 ms > 140 ms, so C2 FAILS. Verified agents 100% (min 99.98%). The draft's 'C1 0.9% mean / 1.3% worst' and 'C2 82-92 ms' are the mixed scenario only, though the table is labelled '10 seeds x 10 scenarios'.",
+   "specifics": "",
+   "urls": [
+    "state/raw/round-003/07-work/panel_r2.jsonl",
+    "state/raw/round-003/07-work/panel_tuned2.jsonl"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.6,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "verdict": "down (overclaim of pass scope)",
+   "numbers_checked": [
+    {
+     "claim": "r2 human failure 99.1%",
+     "source_value": "0.9912 mean / 0.9941 max (mixed)",
+     "method": "recomputed",
+     "url": "state/raw/round-003/07-work/panel_r2.jsonl"
+    },
+    {
+     "claim": "r2 verified 59.7%",
+     "source_value": "mean 0.6351, min 0.597",
+     "method": "recomputed",
+     "url": "state/raw/round-003/07-work/panel_r2.jsonl"
+    },
+    {
+     "claim": "tuned C1 pass 0.9/1.3%",
+     "source_value": "mixed only; aged 2.47/3.16, flash 2.48/2.84, dc worst 2.34 FAIL",
+     "method": "recomputed",
+     "url": "state/raw/round-003/07-work/panel_tuned2.jsonl"
+    },
+    {
+     "claim": "tuned C2 82-92 ms",
+     "source_value": "cheap_flood 177.5 ms FAIL",
+     "method": "recomputed",
+     "url": "state/raw/round-003/07-work/panel_tuned2.jsonl"
+    }
+   ],
+   "overclaim_risk": "Simulator-only (D). The tuned params were selected on the same seeds and scenarios (in-sample).",
+   "underclaim_risk": "The collapse of r2 defaults is robust (99.1% reproduces).",
+   "decision_change": "R-ABUSE-4 table: report per-scenario and mark C1 FAIL for aged_swarm/flash_crowd and C2 FAIL for cheap_flood. Tune on held-out seeds.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "ops.fips-module-boundary-pin",
+   "revision_of": "ops.fips-module-boundary-pin",
+   "layer": "L5",
+   "domain": "K-CALIBRATION/W-PQC",
+   "type": "artifact",
+   "title": "R-PQC-2 FIPS pin aws-lc-fips-sys =0.13.11 carries two open RustSec advisories (CVE-2026-3337, CVE-2026-4428); the FIPS lock fails cargo-audit unless they are ignored with a reachability argument; the aws-lc-rs range is 1.15.1-1.17.2",
+   "summary": "OSV query for aws-lc-fips-sys@0.13.11 returns RUSTSEC-2026-0043 / GHSA-65p9-r9h6-22vj / CVE-2026-3337 (AES-CCM tag-verification timing side channel, fixed 0.13.12) and RUSTSEC-2026-0042 / GHSA-9f94-5g5w-gf6r / CVE-2026-4428 (CRL Distribution Point scope-check logic error, fixed 0.13.13). Both are dated March 2026, after 0.13.11 (2026-01-14). Reachability: rustls 0.23.46 aws-lc-rs provider suites are only AES-GCM and ChaCha20-Poly1305 (TLS 1.3 and 1.2), with no CCM, and rustls verifies CRLs in rustls-webpki rather than AWS-LC X.509. So both are likely unreachable through rustls, but reachable if any code calls aws-lc-rs CCM or AWS-LC X.509 directly. crates.io dependency API: aws-lc-rs 1.15.1-1.17.2 all require aws-lc-fips-sys ^0.13.1 (1.15.1 is also compatible; the r3 lower bound of 1.15.2 is unexplained); 1.17.3 ^0.13.16; 1.17.4 ^0.13.17; 1.18.x ^0.14. CMVP MIP 2026-10-25: AWS-LC 4 still 'Comment Resolution - Lab (10/22/2026)', AWS-LC 5 'Pending Review (10/5/2026)'.",
+   "specifics": "",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0043.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0042.html",
+    "https://api.osv.dev/v1/query",
+    "https://crates.io/api/v1/crates/aws-lc-rs/1.17.2/dependencies",
+    "https://github.com/rustls/rustls/blob/v/0.23.46/rustls/src/crypto/aws_lc_rs/mod.rs",
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "verdict": "down (B 0.82 -> B 0.75): pin unresolved-conflict not 'resolved'",
+   "numbers_checked": [
+    {
+     "claim": "fips-sys =0.13.11 is the pin",
+     "source_value": "OSV: 2 advisories affect 0.13.11",
+     "method": "read",
+     "url": "https://api.osv.dev/v1/query"
+    },
+    {
+     "claim": "aws-lc-rs 1.15.2-1.17.2",
+     "source_value": "1.15.1-1.17.2 accept ^0.13.1",
+     "method": "read",
+     "url": "https://crates.io/api/v1/crates/aws-lc-rs/1.15.1/dependencies"
+    },
+    {
+     "claim": "AWS-LC 4 Comment Resolution 2026-10-22",
+     "source_value": "unchanged on 2026-10-25",
+     "method": "read",
+     "url": "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list"
+    }
+   ],
+   "overclaim_risk": "Reachability is argued from rustls source, not proved.",
+   "underclaim_risk": "None.",
+   "decision_change": "R-PQC-2 gate: the FIPS lock's cargo-audit runs with an explicit ignore for RUSTSEC-2026-0042/0043, each with a written reachability argument, plus a CI grep/deny that no workspace crate calls aws_lc_rs CCM or AWS-LC X.509/CRL APIs. Otherwise 'any lock drift off 0.13.11 fails CI' and 'cargo-audit 0 vulns' conflict.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "sc3.l5-ci-gate-list",
+   "revision_of": "sc3.l5-ci-gate-list",
+   "layer": "L5",
+   "domain": "K-CALIBRATION/W-SUPPLY",
+   "type": "artifact",
+   "title": "Supply-chain advisory gates (cargo-audit/deny/OSV) miss repo-level GitHub advisories: 7 of 133 repo advisories across 15 golden/adjacent repos are absent from OSV, incl. a cedar HIGH (3 days) and a cedar LOW (4 months)",
+   "summary": "See r4c12.repo-ghsa-osv-blindspot. The draft's 'cargo-audit 0.22.2: 0 vulnerabilities' holds for the main golden lock, but it is structurally blind to repo-only GHSAs, and the FIPS lock fails cargo-audit on 2 advisories.",
+   "specifics": "",
+   "urls": [
+    "https://github.com/cedar-policy/cedar/security/advisories/GHSA-m84h-6f26-p3p7",
+    "https://api.osv.dev/v1/vulns/GHSA-m84h-6f26-p3p7"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "verdict": "down (A 0.80 -> A 0.75; add gate)",
+   "numbers_checked": [
+    {
+     "claim": "cargo-audit 0 vulnerabilities on golden",
+     "source_value": "0 OSV hits for r3 gold lock on 2026-10-25; but cedar GHSA-m84h (>=4.3,<4.13) invisible to OSV",
+     "method": "read",
+     "url": "state/raw/round-004/12r4data/osv_r3gold_lock.json"
+    }
+   ],
+   "overclaim_risk": "The golden cedar =4.14.0 is not affected today.",
+   "underclaim_risk": "None.",
+   "decision_change": "R-SUP-1: add gate G10 'repo-advisory poll'. For every direct golden dependency's source repo, run gh api repos/<r>/security-advisories?state=published and fail if any affected range matches the lock. Run it daily and on every lock change.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "sdg-rls-plan-cache-family",
+   "revision_of": "sdg-rls-plan-cache-family",
+   "layer": "L4",
+   "domain": "K-CALIBRATION/W-DATA-GATE",
+   "type": "threat",
+   "title": "New near-miss in the RLS family: PG master self-join elimination merged RTEs with different securityQuals (RLS qual loss), fixed before release",
+   "summary": "postgres/postgres dca6a9e32 (2026-09-29, rowsecurity.sql tests added) fixes a regression from 2ebf25e7d (2026-08-28, 'Perform join removal by editing the query's jointree'). Self-join elimination could merge two RTEs on the same table with different securityQuals 'thereby possibly losing quals that need to be enforced'. The fix restricts SJE to RTEs with equal checkAsUser. 2ebf25e7d is not in REL_19_STABLE (compare: diverged 632/785), so it was master-only (PG 20 dev) and has no CVE. REL_19_STABLE still received 3 SJE fixes on 2026-10-14/15 (86ce68d9e, cbcccca71, 0c45929db). It shows that optimizer rewrites, not only plan caching, can silently drop RLS predicates.",
+   "urls": [
+    "https://github.com/postgres/postgres/commit/dca6a9e32",
+    "https://github.com/postgres/postgres/commit/2ebf25e7d",
+    "https://github.com/postgres/postgres/compare/REL_19_STABLE...2ebf25e7d"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "verdict": "extends (new instance, unreleased)",
+   "numbers_checked": [
+    {
+     "claim": "RLS family recurs",
+     "source_value": "new master-only regression 2026-08-28..09-29",
+     "method": "read",
+     "url": "https://github.com/postgres/postgres/commit/dca6a9e32"
+    }
+   ],
+   "overclaim_risk": "Never shipped in a release, so it does not count toward pred-pg-rls-cve.",
+   "underclaim_risk": "PG 19 SJE code is new and churning (3 fixes in Oct).",
+   "decision_change": "R-DB-1/R-DB-7: the oracle and the RLS regression gate add self-join / same-table-twice queries under different roles, re-run on every PG minor.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "isolation-decision-inputs-table",
+   "revision_of": "isolation-decision-inputs-table",
+   "layer": "L5",
+   "domain": "K-CALIBRATION/W-ISOLATION",
+   "type": "artifact",
+   "title": "R-ISO-1 support audit: perf inputs A, advisory-rate input C; the rule's '[A inputs]' tag is stale",
+   "summary": "R-ISO-1 is tagged '[E design; A inputs]', but the advisory input row is C 0.62 (r3 verifier). Perf rows (native 0.38 us, component 1.24 us, pooled instance 20 us, zygote fork 124 us) are A from one machine. Hyperlight/Sandlock rows are B/C. The direction (Wasm never the sole boundary for P2/P3) is supported by the escape-rate floor (>=0.36/yr even in the quietest window, and 2 aarch64/x86 criticals on 2026-10-19). The reversal trigger is mis-calibrated (see wasmtime-advisory-share-by-config).",
+   "urls": [
+    "state/raw/round-002/07-data/classified.json"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "verdict": "unchanged (direction) / stale tag",
+   "numbers_checked": [
+    {
+     "claim": "R-ISO-1 [A inputs]",
+     "source_value": "advisory input C 0.62",
+     "method": "read",
+     "url": "ARCHITECTURE-DRAFT.md L224"
+    }
+   ],
+   "overclaim_risk": "Single-machine perf rows.",
+   "underclaim_risk": "aarch64 escapes omitted.",
+   "decision_change": "Retag R-ISO-1 '[E design; A perf / C advisory-rate inputs]'.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "dx.l5-decision-sdk-shape",
+   "revision_of": "dx.l5-decision-sdk-shape",
+   "layer": "L5",
+   "domain": "K-CALIBRATION/W-DX",
+   "type": "decision",
+   "title": "R-DX-1 support audit: unchanged at C; named prior art exists but is unadopted (63-585 downloads); cap-std (27.9M) is the mature capability-typed base",
+   "summary": "crates.io 2026-10-25: capsec 0.2.2 (327 downloads, updated 2026-03-24), policy-core 0.0.0 (63 downloads, a placeholder version), typesec-agent 0.14.0 (585 downloads, 2026-09-04), cap-std 4.0.3 (27,966,146 downloads, 2026-08-20). The 13/16 vs 1/16 mutant result (Fisher exact two-sided p ~ 1e-4) is real, but the mutants and SDK come from the same author (in-sample). Two-sided: R-DX-1 is not novel (prior art exists) but is not crowded (no adopted crate). Its fs/net capability layer could reuse cap-std rather than invent one.",
+   "urls": [
+    "https://crates.io/crates/capsec",
+    "https://crates.io/crates/policy-core",
+    "https://crates.io/crates/typesec-agent",
+    "https://crates.io/crates/cap-std"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "verdict": "unchanged",
+   "numbers_checked": [
+    {
+     "claim": "prior art policy-core/typesec-agent/capsec",
+     "source_value": "exist; 63/585/327 downloads",
+     "method": "read",
+     "url": "https://crates.io/api/v1/crates/typesec-agent"
+    }
+   ],
+   "overclaim_risk": "Toy experiment, self-chosen mutants.",
+   "underclaim_risk": "cap-std alternative unmentioned in R-DX-1.",
+   "decision_change": "Add cap-std to R-DX-1's prior-art/build-on list. Grade unchanged.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4c12.repo-ghsa-osv-blindspot",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "finding",
+   "title": "Repo-level GitHub security advisories invisible to OSV/RustSec: 7 of 133 across 15 repos, incl. cedar HIGH GHSA-m84h-6f26-p3p7 (cedar-policy >=4.3,<4.13)",
+   "summary": "2026-10-25: compared gh api repos/<r>/security-advisories (published) with the OSV snapshot and live OSV for 15 repos. Missing from OSV (api.osv.dev/v1/vulns/<id> = 404) and not version-matched by OSV queries: cedar GHSA-m84h-6f26-p3p7 HIGH 2026-10-22 ('has' expression with a nested attribute path exhausts memory; cedar-policy >=4.3 <4.13; GitHub global advisory DB also 404) and GHSA-c33x-vcv4-vg3g LOW 2026-06-25 (<4.11.1; 4 months invisible). quinn GHSA-53rm-773f-4q8c HIGH (MAX_STREAM_DATA opens streams over limit), GHSA-wppq-2f6r-wfvm HIGH (Retry long token panic/memory), GHSA-6pp4-4cxf-xf88 HIGH (quinn-udp recv spin), all 2026-09-30 and fixed in quinn-proto 0.11.19 / quinn-udp 0.6.3 / 0.5.16. OSV returns [] for quinn-proto@0.11.18 and quinn-udp@0.6.2. rmcp GHSA-4432-vg92-fqh6 HIGH 2026-10-20 (<3.6.0) and GHSA-5p52-q7pq-9fq2 2026-10-22 (<=3.6.0, fixed 3.7.0); OSV [] for rmcp@3.5.1. cargo-audit, cargo-deny and osv-scanner all read RustSec/OSV, so they pass these locks. Golden impact today: none (cedar =4.14.0, quinn off, rmcp >=3.7.0 per R-AGENT). The gate is structurally blind, though.",
+   "specifics": "Repos checked: rustls, hyper, tokio, quinn, aws-lc-rs, webpki, wasmtime, cedar, sqlx, rmcp, biscuit-rust, governor, redb, h3, pingora. Pingora: 8 repo GHSAs not matched by id (snapshot keyed pingora-core under nc_ files), not golden. L5 gate: `xtask repo-advisories --lock Cargo.lock` maps each direct dependency to its repository (crates.io API), pulls published repo GHSAs, evaluates vulnerable_version_range against the lock, and fails CI on a match. Schedule: every PR plus daily cron.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar/security/advisories/GHSA-m84h-6f26-p3p7",
+    "https://api.osv.dev/v1/vulns/GHSA-m84h-6f26-p3p7",
+    "https://github.com/quinn-rs/quinn/security/advisories/GHSA-53rm-773f-4q8c",
+    "https://github.com/modelcontextprotocol/rust-sdk/security/advisories/GHSA-4432-vg92-fqh6",
+    "https://api.osv.dev/v1/query"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "OSV ingestion may catch up within days. The point-in-time count is 7/133 (5.3%), and the lag for the cedar LOW is 4 months.",
+   "underclaim_risk": "Unreviewed repo advisories and silent fixes are not counted at all.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4c12.prediction-scorecard-2026-10-25",
+   "layer": "L5",
+   "domain": "K-CALIBRATION",
+   "type": "artifact",
+   "title": "Prediction ledger scored 2026-10-25: 34 predictions; 1 resolved TRUE, 14 on-track, 3 at-risk, 16 pending (no signal yet)",
+   "summary": "See predictions_scorecard in the raw file. Resolved: pred-cve-volume-2026 TRUE (NVD 88,663 CVEs published 2026-01-01..10-25). At-risk: pred-kani-release-4910 (merged 2026-09-30 after kani-0.68.0 on 2026-09-16; release gaps up to 8 months; p 0.85 -> ~0.5), pred-sqlx-cancel-fix-release (no sqlx release since 0.9.0 on 2026-05-21; 41 commits ahead; p 0.6 -> ~0.45), pred-tenuo-cel-advisory (still unfixed on main; depends on the operator's report). Re-priced up: pred-privacypass-batched-rfc (now in IETF Last Call; 0.6 -> ~0.75). Re-dated: pred-rust-1100-min-publish-age resolves ~2026-11-12 (1.99.0 shipped 2026-10-01).",
+   "urls": [
+    "https://services.nvd.nist.gov/rest/json/cves/2.0",
+    "https://github.com/model-checking/kani/releases",
+    "https://github.com/transact-rs/sqlx",
+    "https://datatracker.ietf.org/doc/draft-ietf-privacypass-batched-tokens/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Most horizons are months away. 'On-track' only means no contrary evidence.",
+   "underclaim_risk": "None.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4c12.stale-grade-list-2026-10-25",
+   "layer": "L5",
+   "domain": "K-CALIBRATION",
+   "type": "artifact",
+   "title": "Draft rules still citing support at a stale or inconsistent grade (r3 verifier down-list x ARCHITECTURE-DRAFT.md)",
+   "summary": "All 52 verifier-down nodes have their downgraded grade in graph.jsonl (0 graph/verifier mismatches). Draft inconsistencies: (1) R-ISO-1 '[A inputs]' with the advisory input at C 0.62. (2) L250 cites cedar-lean-proofs-2026-10 '(A, revised)' but the graph has B 0.75 (L257 has the correct r3 tag). (3) L501 cites ops.compliance-map-800-53 '(B, down)' but the graph has A 0.82 (under-cited). (4) R-PQC-2 '[B] resolved', yet its pin carries 2 open advisories. (5) R-SUP-1 '[A]' rests on sc3.l5-ci-gate-list (end-to-end G1-G9 never shown; OSV-blind). (6) R-MOD-1 hop budget '~20k calls/s/core' uses the same-core 4.8 us (cross-core 8.07 us gives 12.4k). (7) R-ABUSE-4 table 'C1 0.9%/1.3%, C2 82-92 ms' labelled 10x10 but covering the mixed scenario only (3 C1 fails, 1 C2 fail). (8) R-DX-2 [B] carries a C 0.5 node (dx.compiler-feedback-ablations) for its 'compiler does not catch hallucinated deps' clause. (9) R-AUTHZ-2 [B] / R-AUTHZ-6 [A] cite r3e05.l5-token-wire-format-lean (C 0.65), but both rules state the Lean part is unchecked, so this is consistent.",
+   "urls": [
+    "ARCHITECTURE-DRAFT.md",
+    "state/raw/round-003/_verify_r3_verdicts.json",
+    "state/graph.jsonl"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "Line numbers drift.",
+   "underclaim_risk": "Only explicit `id` (grade) citations were parsed.",
+   "seen_round": 4,
+   "explorer": "12-calibration-two-sided-top-findings-r3",
+   "last_verified": "2026-10-25"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r4c12.repo-ghsa-osv-blindspot",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "conflicts_with",
+   "note": "audit gates blind to repo-only GHSAs"
+  },
+  {
+   "src": "r4c12.repo-ghsa-osv-blindspot",
+   "dst": "r3e11.osv-snapshot-2026-10-25",
+   "type": "extends",
+   "note": "snapshot missing 7 repo GHSAs"
+  },
+  {
+   "src": "r4c12.repo-ghsa-osv-blindspot",
+   "dst": "threat-ledger-middle-tier-2023-2026",
+   "type": "extends",
+   "note": "quinn x3 HIGH uncounted"
+  },
+  {
+   "src": "r4c12.repo-ghsa-osv-blindspot",
+   "dst": "r3e11.quinn-proto-0.11.18-19",
+   "type": "extends",
+   "note": "0.11.19 also fixes 3 repo-only HIGH GHSAs"
+  },
+  {
+   "src": "ops.fips-module-boundary-pin",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "conflicts_with",
+   "note": "FIPS lock fails cargo-audit (RUSTSEC-2026-0042/0043)"
+  },
+  {
+   "src": "w02.ipc-hop-cost-1core",
+   "dst": "w02.L5-adapter-oop-threshold-table",
+   "type": "refines",
+   "note": "cross-core 8.07us -> 12.4k calls/s budget"
+  },
+  {
+   "src": "wasmtime-advisory-share-by-config",
+   "dst": "isolation-decision-inputs-table",
+   "type": "refines",
+   "note": "rate band + aarch64"
+  },
+  {
+   "src": "sdg-rls-plan-cache-family",
+   "dst": "irl-l5-differential-oracle-harness",
+   "type": "refines",
+   "note": "add self-join/same-table-twice family"
+  },
+  {
+   "src": "sc3.cooldown-executed-cargo-198",
+   "dst": "v.cargo-min-publish-age-rfc3923",
+   "type": "extends",
+   "note": "re-executed 2026-10-25"
+  },
+  {
+   "src": "r4c12.prediction-scorecard-2026-10-25",
+   "dst": "r4c12.stale-grade-list-2026-10-25",
+   "type": "related"
+  },
+  {
+   "src": "dx.l5-decision-sdk-shape",
+   "dst": "v3.typed-authz-ctx-prior-art",
+   "type": "extends",
+   "note": "download counts"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does AWS-LC FIPS 3.1.0 (aws-lc-fips-sys 0.13.11) expose any CCM or X.509/CRL entry point reachable from aws-lc-rs as used by the golden? Write the deny-gate (cargo-semver-checks/grep of aws_lc_rs::aead::AES_*_CCM and aws-lc X509 symbols) and verify on the FIPS lock.",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "R-PQC-2 needs a reachability-backed audit ignore"
+  },
+  {
+   "question": "Implement and run the repo-advisory poll gate over every direct and transitive golden dependency (not only 15 repos): what fraction of all crates.io repo GHSAs from 2026 never reach OSV within 30 days?",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.6,
+   "reason": "Quantifies the blindspot rate beyond a point sample"
+  },
+  {
+   "question": "Re-baseline the IPC hop on a real 1-vCPU KVM VPS (same-core) and a 2-vCPU VPS (cross-core) and recompute the R-MOD-1 budget",
+   "layer": "L4",
+   "domain": "W-PERF",
+   "expected_info_gain": 0.45,
+   "reason": "Laptop same-core 4.8 us vs cross-core 8.07 us gives a 1.7x budget swing"
+  },
+  {
+   "question": "Held-out-seed and held-out-scenario evaluation of the tuned admission table: does any single table pass C1 in aged_swarm and flash_crowd without breaking verified agents?",
+   "layer": "L4",
+   "domain": "W-ABUSE",
+   "expected_info_gain": 0.4,
+   "reason": "The tuned table was fitted in-sample and fails 3 scenarios"
+  },
+  {
+   "question": "Add an aarch64 column to the Wasmtime config-exposure table (M0-arm64) and check whether 36.x carries the GHSA-mghf backport",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "expected_info_gain": 0.35,
+   "reason": "ARM VPS is common at household scale; a 2026 critical is excluded by x86-only M0"
+  }
+ ],
+ "protocol_implications": [
+  "Commit relabel tables beside recompute scripts; a number that needs hand edits after the script is not reproducible (threat-ledger 61% vs script 60%/46%).",
+  "Advisory gates must union OSV/RustSec with repo-level GHSAs (gh api repos/<r>/security-advisories). 7/133 sampled repo advisories, including a cedar HIGH and a 4-month-old cedar LOW, were invisible to OSV on 2026-10-25.",
+  "Certified-module pins (FIPS) must carry an explicit advisory-ignore list with reachability arguments; otherwise the 'audit clean' and 'lock frozen to certified source' gates contradict each other.",
+  "Reversal triggers must be calibrated against the base rate: a trigger that fires with P~0.5 under the status quo (an M0 escape within 6 months) is not a signal.",
+  "Report acceptance tables per scenario; never label a mixed-scenario result as '10 seeds x 10 scenarios'.",
+  "Prediction ledger: re-score every round; at-risk items (Kani, sqlx) show that maintainer release cadence must enter p, not just merge status."
+ ],
+ "self_improvement": [
+  "Integrator: when a verifier lowers a node, also grep ARCHITECTURE-DRAFT.md for '`id` (' citations and the rule header grade tag. 3 inconsistencies survived r3 (cedar-lean-proofs L250, compliance-map L501, R-ISO-1 [A inputs]).",
+  "Recompute protocol: explorers should save the exact executed command logs (the r3 cooldown run had no raw log; r4 re-executed it into 12r4data/cooldown/gen7.log).",
+  "Advisory snapshot tooling should pull repo GHSAs per golden repo alongside OSV; add to r3e11-style snapshots.",
+  "Prediction ledger lacks a 'status' field; add status/last_checked/suggested_p columns so scoring is incremental."
+ ],
+ "predictions_scorecard": [
+  {
+   "id": "pred-wasmtime-adv-2027h1",
+   "claim": "Wasmtime publishes >=10 additional GHSAs between 2026-10-25 and 2027-04-30, at least 1 rated critical",
+   "p": 0.8,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "0 new since 2026-10-25 snapshot (repo count 81); 57 advisories in 2026 so far implies base rate >>10/6mo",
+   "url": "https://github.com/bytecodealliance/wasmtime/security/advisories",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-rust-1100-min-publish-age",
+   "claim": "Rust 1.100 stable (or the first stable after 2026-10-24) ships cargo min-publish-age (RFC 3923) as a stable feature by 2026-12-31",
+   "p": 0.85,
+   "resolve_by": "2026-12-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "cargo#17335 merged 2026-08-28 milestone 1.100.0; Rust 1.99.0 released 2026-10-01 so 1.100.0 due ~2026-11-12",
+   "url": "https://github.com/rust-lang/cargo/pull/17335",
+   "suggested_p": 0.9
+  },
+  {
+   "id": "pred-mtc-not-rfc",
+   "claim": "draft-ietf-plants-merkle-tree-certs is NOT published as an RFC by 2027-03-31",
+   "p": 0.85,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "draft-ietf-plants-merkle-tree-certs-07 (2026-10-07), state WG Document",
+   "url": "https://datatracker.ietf.org/doc/draft-ietf-plants-merkle-tree-certs/",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-mcp-next-revision",
+   "claim": "A new dated stable MCP spec revision after 2026-07-28 is released by 2027-04-30",
+   "p": 0.6,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "pending",
+   "evidence": "latest release 2026-07-28 (prior 2025-11-25, ~8-month cadence)",
+   "url": "https://github.com/modelcontextprotocol/modelcontextprotocol/releases",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-quinn-more-high",
+   "claim": "quinn-proto publishes >=3 more HIGH-severity GHSAs between 2026-10-25 and 2027-03-31",
+   "p": 0.7,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "pending",
+   "evidence": "0 since 2026-10-25; note 3 HIGH repo-only GHSAs on 2026-09-30 (pre-window, OSV-invisible) show the rate",
+   "url": "https://github.com/quinn-rs/quinn/security/advisories",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-awslc-fips-v4-cmvp",
+   "claim": "A CMVP FIPS 140-3 certificate for AWS-LC FIPS v4 (or any AWS-LC cert listing ML-DSA) is published by 2027-06-30",
+   "p": 0.5,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "MIP: AWS-LC 4 Comment Resolution - Lab (10/22/2026); AWS-LC 5 Pending Review (10/5/2026)",
+   "url": "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-pg-rls-cve",
+   "claim": "PostgreSQL publishes at least one new CVE in the RLS/plan-cache/leaky-operator/securityQuals family between 2026-10-25 and 2027-10-31",
+   "p": 0.6,
+   "resolve_by": "2027-10-31",
+   "status_2026_10_25": "pending",
+   "evidence": "no new CVE; near-miss master-only SJE securityQuals regression fixed dca6a9e32 (2026-09-29)",
+   "url": "https://github.com/postgres/postgres/commit/dca6a9e32",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-h3-qpack-limit",
+   "claim": "hyperium/h3 merges a finite default max_field_section_size (PR #377/#378 or equivalent) by 2027-01-31",
+   "p": 0.65,
+   "resolve_by": "2027-01-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "PRs #377 and #378 open since 2026-10-22; issue #379 open",
+   "url": "https://github.com/hyperium/h3/pull/377",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-cedar-no-delegation",
+   "claim": "No Cedar RFC adding delegation/attenuation tokens is accepted in cedar-policy/rfcs by 2027-06-30",
+   "p": 0.75,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "10 most recent cedar-policy/rfcs PRs (#105-#117): none on delegation/attenuation",
+   "url": "https://github.com/cedar-policy/rfcs/pulls",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-new-h2h3-dos-variant",
+   "claim": "A new named HTTP/2 or HTTP/3 protocol-state resource-exhaustion variant with CVEs in >=3 major servers is disclosed between 2026-10-25 and 2027-10-24",
+   "p": 0.75,
+   "resolve_by": "2027-10-24",
+   "status_2026_10_25": "pending",
+   "evidence": "none disclosed since 2026-10-25",
+   "url": "https://kb.cert.org/vuls/",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-rustls-024",
+   "claim": "rustls 0.24.0 stable is released on crates.io by 2027-03-31",
+   "p": 0.6,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "0.24.0-dev.2 on crates.io 2026-10-14; stable still 0.23.46",
+   "url": "https://crates.io/crates/rustls/versions",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-idempotency-not-rfc",
+   "claim": "draft-ietf-httpapi-idempotency-key-header is NOT an RFC by 2027-04-30",
+   "p": 0.8,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "draft-ietf-httpapi-idempotency-key-header-08 (2026-10-22), WG Document",
+   "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-cve-volume-2026",
+   "claim": ">=60,000 CVE records are published in calendar 2026 (NVD/CVE.org count)",
+   "p": 0.7,
+   "resolve_by": "2027-01-31",
+   "status_2026_10_25": "resolved-true",
+   "evidence": "NVD API 2.0 pubDate windows: 22,140 + 37,096 + 29,427 = 88,663 CVEs 2026-01-01..2026-10-25",
+   "url": "https://services.nvd.nist.gov/rest/json/cves/2.0?pubStartDate=2026-01-01T00:00:00.000Z&pubEndDate=2026-04-30T23:59:59.999Z",
+   "suggested_p": 1.0
+  },
+  {
+   "id": "pred-pingora-tokio154",
+   "claim": "A Pingora release (>0.9.0) that serves requests with tokio >= 1.54 (BufStream zero-capacity fix, PR #1060 or equivalent) is published by 2026-12-31",
+   "p": 0.8,
+   "resolve_by": "2026-12-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "fix commit 5b30d71d63 'Keep zero-capacity L4 read buffers working on tokio 1.54' on pingora main (authored 2026-10-19); PR #1060/issue #1059 open; no release since 0.9.0 (2026-09-09); cadence ~3 months (Mar/Jun/Sep)",
+   "url": "https://github.com/cloudflare/pingora/commit/5b30d71d63",
+   "suggested_p": 0.65
+  },
+  {
+   "id": "pred-kani-release-4910",
+   "claim": "A tagged Kani release containing PR #4910 (fail on abnormal CBMC exit) is published by 2026-12-31",
+   "p": 0.85,
+   "resolve_by": "2026-12-31",
+   "status_2026_10_25": "at-risk",
+   "evidence": "PR #4910 merged 2026-09-30 (16c774cf4) after kani-0.68.0 (2026-09-16); prior gaps 2025-11-06 -> 2026-01-16 -> 2026-09-16 (8 months)",
+   "url": "https://github.com/model-checking/kani/releases",
+   "suggested_p": 0.5
+  },
+  {
+   "id": "pred-mcp-conformance-server-classes",
+   "claim": "modelcontextprotocol/conformance adds server-side scenarios for >=3 of: text/plain no-preflight rejection, 413 body cap, cross-origin redirect header strip, server-side token audience rejection, by 2027-04-30",
+   "p": 0.4,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "pending",
+   "evidence": "last commits 2026-10-01 (DPoP SEP-1932), 2026-09 (RFC 8707 resource); no server-side scenarios for the 4 named classes found",
+   "url": "https://github.com/modelcontextprotocol/conformance",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-ssdf-r1-final",
+   "claim": "NIST SP 800-218 Rev 1 (SSDF 1.2) is published final by 2027-06-30",
+   "p": 0.55,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "pending",
+   "evidence": "SP 800-218 r1 still Initial Public Draft; /final returns 404",
+   "url": "https://csrc.nist.gov/pubs/sp/800/218/r1/ipd",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-wasmtime-m0-escape",
+   "claim": "Another Wasmtime advisory exploitable as a sandbox escape under the M0 config (x86_64, Cranelift, core wasm only, defaults otherwise) is published between 2026-10-25 and 2027-04-30",
+   "p": 0.45,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "pending",
+   "evidence": "0 since 2026-10-25; base rate gives P(>=1 in 6 mo) 0.16 (0.36/yr) / 0.45-0.52 (post-1.0) / 0.67 (2.2/yr)",
+   "url": "https://github.com/bytecodealliance/wasmtime/security/advisories",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-hyper-h2-stall-or-count-cap",
+   "claim": "hyper or h2 ships a stream stall/send timeout or a header field-count cap in a release by 2027-06-30",
+   "p": 0.35,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "pending",
+   "evidence": "no hyper/h2 release since 1.12.0/0.4.20 (2026-10-06)",
+   "url": "https://crates.io/crates/h2",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-redb-5-release",
+   "claim": "redb 5.0.0 (SingleWriter always 2PC, Durability::None refused) is released by 2027-03-31",
+   "p": 0.6,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "CHANGELOG has '5.0.0 - 2026-XX-XX' section (experimental-api-5); latest 4.4.0 2026-10-13",
+   "url": "https://github.com/cberner/redb/blob/master/CHANGELOG.md",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-privacypass-batched-rfc",
+   "claim": "draft-ietf-privacypass-batched-tokens is published as an RFC by 2027-06-30",
+   "p": 0.6,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "-09 (2026-10-19) In Last Call / Submitted to IESG for Publication",
+   "url": "https://datatracker.ietf.org/doc/draft-ietf-privacypass-batched-tokens/",
+   "suggested_p": 0.75
+  },
+  {
+   "id": "pred-curl-reuse-cves",
+   "claim": "curl publishes >=5 additional connection/session/credential-reuse CVEs between 2026-10-25 and 2027-04-30",
+   "p": 0.6,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "pending",
+   "evidence": "last curl CVE batch 2026-10-14 (incl. Negotiate sent to foreign origin, pre-window); next release cycle ~Dec",
+   "url": "https://curl.se/docs/vuln.json",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-supavisor-stable-210",
+   "claim": "Supavisor stable v2.10.0 (transaction-mode SET handling from PR #1113) is released by 2027-01-31",
+   "p": 0.7,
+   "resolve_by": "2027-01-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "v2.10.0-rc.0 published 2026-10-24",
+   "url": "https://github.com/supabase/supavisor/releases",
+   "suggested_p": 0.8
+  },
+  {
+   "id": "pred-lean-paranoid-checker-arena",
+   "claim": "Kernel Arena shows a bundled Lean checker (official, nanoda or lean4lean) accepting >=1 bad proof after 2026-10-25 (new soundness bug) by 2027-06-30",
+   "p": 0.45,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "pending",
+   "evidence": "no lean4 issues labelled soundness since 2026-10-20 via API; arena not checked",
+   "url": "https://github.com/leanprover/lean4/issues?q=label%3Asoundness",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-chrome-mtc-default-2027",
+   "claim": "Chrome Stable verifies publicly-trusted MTCs by default (CQRS launched) by 2027-12-31",
+   "p": 0.55,
+   "resolve_by": "2027-12-31",
+   "status_2026_10_25": "pending",
+   "evidence": "no change since r3 (Chrome 152 Canary testing 2026-10-16)",
+   "url": "https://chromium.googlesource.com/chromium/src/+/main/net/docs/certificate-transparency.md",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-cab-mldsa-ballot-2027",
+   "claim": "CA/B Forum adopts a ballot permitting ML-DSA in publicly-trusted TLS server certificates by 2027-12-31",
+   "p": 0.2,
+   "resolve_by": "2027-12-31",
+   "status_2026_10_25": "pending",
+   "evidence": "no change since r3 (PR #679/SC-106 withdrawn 2026-10-21)",
+   "url": "https://cabforum.org/ballots/",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-rustls-trust-anchor-ids",
+   "claim": "rustls releases trust anchor IDs support (PR #3376 or successor) in a crates.io release by 2027-06-30",
+   "p": 0.65,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "on-track",
+   "evidence": "PR #3376 open since 2026-10-21",
+   "url": "https://github.com/rustls/rustls/pull/3376",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-sqlx-cancel-fix-release",
+   "claim": "sqlx publishes a crates.io release containing f1e94ec (cancelled Pool::begin fix, #4394) by 2027-01-31",
+   "p": 0.6,
+   "resolve_by": "2027-01-31",
+   "status_2026_10_25": "at-risk",
+   "evidence": "f1e94ec (2026-09-09) on transact-rs/sqlx main, 41 commits ahead of v0.9.0 (2026-05-21); no release in 5 months",
+   "url": "https://github.com/transact-rs/sqlx/compare/v0.9.0...main",
+   "suggested_p": 0.45
+  },
+  {
+   "id": "pred-tokio-postgres-1374",
+   "claim": "rust-postgres PR #1374 (drop guard for server-side state on cancel) is merged by 2027-03-31",
+   "p": 0.5,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "pending",
+   "evidence": "PR #1374 open since 2026-08-03 (83 days)",
+   "url": "https://github.com/sfackler/rust-postgres/pull/1374",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-wasmtime-cm-async-cancel-adv",
+   "claim": "At least one further Wasmtime advisory whose trigger is dropping/cancelling a component-model-async call is published between 2026-10-25 and 2027-04-30",
+   "p": 0.55,
+   "resolve_by": "2027-04-30",
+   "status_2026_10_25": "pending",
+   "evidence": "0 since 2026-10-25",
+   "url": "https://github.com/bytecodealliance/wasmtime/security/advisories",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-pg-14666-regress-test",
+   "claim": "PostgreSQL adds a regression test covering role-change invalidation of RLS plans (CVE-2026-14666 class) by 2027-06-30",
+   "p": 0.35,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "pending",
+   "evidence": "no role-change plancache/rowsecurity test since 2026-08-13; only rowsecurity.sql change is dca6a9e32 (SJE)",
+   "url": "https://github.com/postgres/postgres/commits/master/src/test/regress/sql/rowsecurity.sql",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-webtrans-h3-rfc",
+   "claim": "draft-ietf-webtrans-http3 is published as an RFC by 2027-06-30",
+   "p": 0.35,
+   "resolve_by": "2027-06-30",
+   "status_2026_10_25": "pending",
+   "evidence": "-16 (2026-07-06) In WG Last Call",
+   "url": "https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-tenuo-cel-advisory",
+   "claim": "Tenuo publishes a fix or security advisory for CEL attenuation validation by 2027-01-31 (after private report)",
+   "p": 0.45,
+   "resolve_by": "2027-01-31",
+   "status_2026_10_25": "at-risk",
+   "evidence": "CEL validate_attenuation unchanged on main HEAD 486be6819 (2026-10-24); no repo advisory; depends on operator private report",
+   "url": "https://github.com/tenuo-ai/tenuo/blob/main/tenuo-core/src/constraints.rs",
+   "suggested_p": null
+  },
+  {
+   "id": "pred-awslc4-cmvp-2027q1",
+   "claim": "CMVP issues a certificate for AWS-LC FIPS 4.x (currently Comment Resolution, 2026-10-22) by 2027-03-31",
+   "p": 0.5,
+   "resolve_by": "2027-03-31",
+   "status_2026_10_25": "on-track",
+   "evidence": "MIP unchanged: Comment Resolution - Lab (10/22/2026)",
+   "url": "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list",
+   "suggested_p": null
+  }
+ ],
+ "pin_floor_delta": [
+  {
+   "pin": "aws-lc-fips-sys =0.13.11 (FIPS lock, R-PQC-2)",
+   "advisories": [
+    "RUSTSEC-2026-0043/CVE-2026-3337 AES-CCM timing (fixed 0.13.12)",
+    "RUSTSEC-2026-0042/CVE-2026-4428 CRL DP scope (fixed 0.13.13)"
+   ],
+   "changes_floor": "conflict: certified source vs patched; keep 0.13.11 with documented ignore and a no-CCM/no-AWS-LC-X509 usage gate",
+   "new_since_snapshot": false,
+   "visible_in_osv": true
+  },
+  {
+   "pin": "cedar-policy =4.14.0",
+   "advisories": [
+    "GHSA-m84h-6f26-p3p7 HIGH 2026-10-22 (>=4.3,<4.13)",
+    "GHSA-c33x-vcv4-vg3g LOW 2026-06-25 (<4.11.1)"
+   ],
+   "changes_floor": "floor >=4.13 (golden 4.14.0 OK; 14-day cooldown path 4.13.0 OK)",
+   "new_since_snapshot": false,
+   "visible_in_osv": false
+  },
+  {
+   "pin": "rmcp (MCP adapter)",
+   "advisories": [
+    "GHSA-4432-vg92-fqh6 HIGH 2026-10-20 (<3.6.0)",
+    "GHSA-5p52-q7pq-9fq2 2026-10-22 (<=3.6.0)"
+   ],
+   "changes_floor": "floor >=3.7.0 (draft already cites fin.rmcp-3.7.0)",
+   "new_since_snapshot": false,
+   "visible_in_osv": false
+  },
+  {
+   "pin": "quinn-proto / quinn-udp (H3 off in golden)",
+   "advisories": [
+    "GHSA-53rm-773f-4q8c HIGH",
+    "GHSA-wppq-2f6r-wfvm HIGH",
+    "GHSA-6pp4-4cxf-xf88 HIGH (quinn-udp)"
+   ],
+   "changes_floor": "quinn-proto >=0.11.19 (already), quinn-udp >=0.6.3 / >=0.5.16 (new explicit floor)",
+   "new_since_snapshot": false,
+   "visible_in_osv": false
+  },
+  {
+   "pin": "rustls-webpki",
+   "advisories": [
+    "RUSTSEC-2026-0382 (fixed 0.103.16)"
+   ],
+   "changes_floor": ">=0.103.16 (golden lock has it)",
+   "new_since_snapshot": false,
+   "visible_in_osv": true
+  },
+  {
+   "pin": "wasmtime (aarch64 golden only)",
+   "advisories": [
+    "GHSA-mghf-wjfp-p5xm critical 2026-10-19 aarch64"
+   ],
+   "changes_floor": "GHSA-mghf patched 36.0.19 / 48.0.7 / 49.0.4 (37.0.0-48.0.6 affected). R-ISO-2's first-bullet floor '>=36.0.19 or >=43' is insufficient on aarch64 (43-48.0.6 vulnerable). Its Diff r3 floor '>=36.0.19 or >=49.0.4/50.0.0' is correct, so delete the stale first-bullet floor.",
+   "new_since_snapshot": false,
+   "visible_in_osv": true
+  },
+  {
+   "pin": "all 30 golden/adjacent crates",
+   "advisories": [],
+   "changes_floor": "OSV delta since 2026-10-25T02:07 snapshot: 0 new, 0 modified records",
+   "new_since_snapshot": false,
+   "visible_in_osv": true
+  }
+ ],
+ "sources": [
+  "state/raw/round-002/07-data/classified.json",
+  "state/raw/round-002/12data/osv_rust_http.json",
+  "state/raw/round-003/12data/ledger_recompute.py",
+  "state/raw/round-002/w02/out/",
+  "state/raw/round-002/w02/out2/",
+  "state/raw/round-003/02-ipc-1core.jsonl",
+  "state/raw/round-003/02-ipc-2core-control.jsonl",
+  "state/raw/round-003/01-work/oracle_*.json",
+  "state/raw/round-003/07-work/panel_*.jsonl",
+  "state/raw/round-003/04-work/gold/Cargo.toml",
+  "https://api.github.com/repos/tenuo-ai/tenuo/contents/tenuo-core/src/constraints.rs",
+  "https://api.github.com/repos/tenuo-ai/tenuo/commits",
+  "https://api.github.com/repos/model-checking/kani/pulls/4910",
+  "https://github.com/model-checking/kani/releases",
+  "https://github.com/transact-rs/sqlx/compare/v0.9.0...main",
+  "https://crates.io/api/v1/crates/sqlx",
+  "https://crates.io/api/v1/crates/rustls",
+  "https://crates.io/api/v1/crates/rustls-webpki",
+  "https://crates.io/api/v1/crates/pingora-core",
+  "https://crates.io/api/v1/crates/aws-lc-rs/1.15.1/dependencies",
+  "https://crates.io/api/v1/crates/aws-lc-fips-sys",
+  "https://api.osv.dev/v1/querybatch",
+  "https://api.osv.dev/v1/query",
+  "https://api.osv.dev/v1/vulns/GHSA-m84h-6f26-p3p7",
+  "https://github.com/cedar-policy/cedar/security/advisories",
+  "https://github.com/quinn-rs/quinn/security/advisories",
+  "https://github.com/modelcontextprotocol/rust-sdk/security/advisories",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories",
+  "https://github.com/rustsec/advisory-db/commits/main",
+  "https://github.com/advisories?query=ecosystem%3Arust",
+  "https://rustsec.org/advisories/RUSTSEC-2026-0382.html",
+  "https://rustsec.org/advisories/RUSTSEC-2026-0042.html",
+  "https://rustsec.org/advisories/RUSTSEC-2026-0043.html",
+  "https://github.com/rustls/rustls/blob/v/0.23.46/rustls/src/crypto/aws_lc_rs/mod.rs",
+  "https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-plants-merkle-tree-certs/",
+  "https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-httpapi-idempotency-key-header/",
+  "https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-privacypass-batched-tokens/",
+  "https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-webtrans-http3/",
+  "https://github.com/rustls/rustls/pull/3376",
+  "https://github.com/sfackler/rust-postgres/pull/1374",
+  "https://github.com/hyperium/h3/pull/377",
+  "https://github.com/cloudflare/pingora/commit/5b30d71d63",
+  "https://github.com/rust-lang/rust/releases",
+  "https://github.com/rust-lang/cargo/pull/17335",
+  "https://github.com/modelcontextprotocol/modelcontextprotocol/releases",
+  "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list",
+  "https://github.com/supabase/supavisor/releases",
+  "https://github.com/cberner/redb/blob/master/CHANGELOG.md",
+  "https://curl.se/docs/vuln.json",
+  "https://github.com/cedar-policy/rfcs/pulls",
+  "https://github.com/postgres/postgres/commit/dca6a9e32",
+  "https://github.com/postgres/postgres/compare/REL_19_STABLE...2ebf25e7d",
+  "https://csrc.nist.gov/pubs/sp/800/218/r1/ipd",
+  "https://services.nvd.nist.gov/rest/json/cves/2.0",
+  "https://github.com/modelcontextprotocol/conformance",
+  "https://crates.io/api/v1/crates/capsec",
+  "https://crates.io/api/v1/crates/typesec-agent",
+  "https://crates.io/api/v1/crates/policy-core",
+  "https://crates.io/api/v1/crates/cap-std"
+ ],
+ "counts": {
+  "queries_logged": 18,
+  "DUP_skipped": 0,
+  "NEAR_DUP_rewritten": 1,
+  "new_vs_seen_urls": "~44 new API/primary URLs (most are dated API states); ~10 local raw logs (seen, used for recompute only)",
+  "new_nodes": 3,
+  "revision_records": 13
+ },
+ "still_load_bearing_at_stale_grade": "All 52 verifier-down nodes have their downgraded grade in graph.jsonl (0 graph/verifier mismatches). Draft inconsistencies: (1) R-ISO-1 '[A inputs]' with the advisory input at C 0.62. (2) L250 cites cedar-lean-proofs-2026-10 '(A, revised)' but the graph has B 0.75 (L257 has the correct r3 tag). (3) L501 cites ops.compliance-map-800-53 '(B, down)' but the graph has A 0.82 (under-cited). (4) R-PQC-2 '[B] resolved', yet its pin carries 2 open advisories. (5) R-SUP-1 '[A]' rests on sc3.l5-ci-gate-list (end-to-end G1-G9 never shown; OSV-blind). (6) R-MOD-1 hop budget '~20k calls/s/core' uses the same-core 4.8 us (cross-core 8.07 us gives 12.4k). (7) R-ABUSE-4 table 'C1 0.9%/1.3%, C2 82-92 ms' labelled 10x10 but covering the mixed scenario only (3 C1 fails, 1 C2 fail). (8) R-DX-2 [B] carries a C 0.5 node (dx.compiler-feedback-ablations) for its 'compiler does not catch hallucinated deps' clause. (9) R-AUTHZ-2 [B] / R-AUTHZ-6 [A] cite r3e05.l5-token-wire-format-lean (C 0.65), but both rules state the Lean part is unchecked, so this is consistent.",
+ "notes": "Blind per \u00a70a: no prior_treatments or seed_conversation opened. Heavy command (cargo generate-lockfile) ran via tools/heavy.sh with its own CARGO_HOME under 12r4data. The Tenuo PoC is not reproduced or published. Verdict file: state/raw/round-004/_calibration_verdicts_12.json.",
+ "progress_file": "/home/patrickd/aegis/research/state/raw/round-004/12-calibration-two-sided-top-findings-r3.progress.md",
+ "data_dir": "/home/patrickd/aegis/research/state/raw/round-004/12r4data"
+}

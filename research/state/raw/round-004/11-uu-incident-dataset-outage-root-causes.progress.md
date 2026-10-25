@@ -1,0 +1,10 @@
+# progress 11 started Sun Oct 25 03:30:12 AM EDT 2026
+## checkpoint 1 ($(date))
+Data in 11-data/: danluu.md (240 entries parsed), k8s.md (codeberg k8s.af), cf.xml (22 CF post-mortem posts; blog pagination does not work), gh*.xml (85 GitHub availability reports 2020-11..2025-11), wm/pages.json (899 Wikimedia Incidents/* wikitext with start/end), sp/*.json (statuspage latest-50 x8 providers), mac.json (macintux list, 20 entries only), gcp.json (only 8 current incidents).
+NEGATIVES: VOID (thevoid.community) is a Softr app, no bulk export/API found; sitemap exists, search result: no download. GCP incidents.json holds only recent 8. Statuspage api ignores ?page. Cloudflare blog tag pagination ignored.
+Plan: build corpus builder at scratchpad code.py + build.py; MT-filter by regex; class-code by priority regex; audit sample for precision.
+## checkpoint 2
+Built corpus.json (1322 raw recs from wikimedia 421, statuspage 400, danluu 240, github avail 182 chunks, k8s.af 59, cloudflare 20). Regex coding was poor (dns/resolv false positive, etc.) -> switched to MANUAL labelling of 343 candidate records (labels.txt: idx|class|component|mt_flag; idx indexes cand_idx.json/review.txt). Class codes: CERT CLOCK REGEX CFG FLAG FD DISK MEM RETRY DNS NET RELOAD BUG DEP CAP HW HUM CACHE HC ABUSE UNK DROP.
+Findings so far: GitHub 2025-11-18 expired internal TLS cert (git ops down 1h4m); GitHub 2020-11-02 *.githubassets.com expiry 32m; Wikimedia 2021-02-05 wmflabs proxy certs expired; Wikimedia 2022-05-01 etcd cert; CF 2025-11-18 feature file; CF 2025-12-05 WAF body parse; CF 2019 regex; CF 2017 leap second RRDNS; Azure 2012 leap day cert; Wikimedia php-fpm worker exhaustion x7+ (2021-2022) caused by slow DB; Wikimedia LVS reimage during scap 2023-04-17/2023-05-25 (human/tooling); Wikimedia WAF global rate-limit 2025-11-06; k8s ELB dynamic IP DNS caching x6.
+Negatives: VOID no bulk export; GCP incidents.json recent 8 only; statuspage ?page ignored.
+## DONE Sun Oct 25 03:42:59 AM EDT 2026: raw json written; 160 known-cause MT incidents coded.

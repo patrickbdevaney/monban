@@ -1,0 +1,18 @@
+    Updating crates.io index
+rustls v0.23.46
+├── rustls feature "aws-lc-rs"
+│   └── golden-lock v0.0.0 (/home/patrickd/aegis/research/scratch03/gold)
+│       └── golden-lock feature "default" (command-line)
+│   └── rustls feature "aws_lc_rs"
+│       ├── rustls feature "aws-lc-rs" (*)
+│       └── tokio-rustls feature "aws_lc_rs"
+│           └── tokio-rustls feature "aws-lc-rs"
+│               └── golden-lock v0.0.0 (/home/patrickd/aegis/research/scratch03/gold) (*)
+├── rustls feature "aws_lc_rs" (*)
+├── rustls feature "std"
+│   ├── golden-lock v0.0.0 (/home/patrickd/aegis/research/scratch03/gold) (*)
+│   └── tokio-rustls v0.26.6
+│       ├── tokio-rustls feature "aws-lc-rs" (*)
+│       └── tokio-rustls feature "aws_lc_rs" (*)
+└── rustls feature "tls12"
+    └── golden-lock v0.0.0 (/home/patrickd/aegis/research/scratch03/gold) (*)
