@@ -7,6 +7,8 @@ static binary in front of (or instead of) nginx / PHP-FPM / Node, with machine-c
 proven: hyper / h2 / tokio, the AWS-LC C crypto code, rustls, and the Rust compiler are in the trusted computing
 base and are **not** formally verified.
 
+- `SECURITY_BY_DESIGN.md` — how finite code and proofs extend to unbounded use, the responsibility boundary, and the
+  ordered path to shrink the trusted computing base, extension contracts and developer recipes.
 - `crates/` — the server (layered L1 types → L5 assembly; `cargo xtask layering`). `aegis-bin` is the binary.
 - `spec/` — Lean 4 specification and proofs (frozen statements). `interfaces/` — frozen interfaces F1–F13.
 - `oracles/` — the verify wall: independent checkers, each proven able to fail. `gates/` — phase go/no-go.
