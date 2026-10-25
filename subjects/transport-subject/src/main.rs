@@ -4,8 +4,9 @@
 //!
 //! Prints `PID <pid>` and `READY <port> <tls|plain> wrapper=<on|off>` on stdout, then a `STAT <t_ms> k=v ...` line
 //! of the transport counters on stderr every `--stat-ms` (default 500). Routes (any vhost below):
-//! `/` 200 `ok\n`; `/big` 200 with `--body-mib` MiB (default 64) generated chunk by chunk; `/echo` 200 with the
-//! request body length. Vhosts: `aegis.test`, `localhost`, each also with `:<port>`.
+//! `/` 200 `aegis ok\n` (at least 5 bytes, so h2spec 6.9.2/2 runs instead of skipping); `/big` 200 with
+//! `--body-mib` MiB (default 64) generated chunk by chunk; `/echo` 200 with the request body length.
+//! Vhosts: `aegis.test`, `localhost`, `127.0.0.1`, each also with `:<port>`.
 //!
 //! Limits are `aegis_config::Limits::default()` (F8 golden) mapped by name onto `WrapperLimits`.
 //! `--no-wrapper` is the oracle negative control (feature `negative-control`): the AEGIS wrapper layer is off.
@@ -113,7 +114,7 @@ impl App for Subject {
         match head.route.get() {
             2 => Reply::new(200, "application/octet-stream", ReplyBody::Fill { len: self.big, byte: 0xA5 }),
             3 => Reply::new(200, "text/plain", ReplyBody::Owned(message.len().to_string().into_bytes())),
-            _ => Reply::new(200, "text/plain", ReplyBody::Static(b"ok\n")),
+            _ => Reply::new(200, "text/plain", ReplyBody::Static(b"aegis ok\n")),
         }
     }
 }
@@ -160,7 +161,9 @@ async fn run(o: Opts) -> R<()> {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", o.port)).await.map_err(|e| format!("bind: {e}"))?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let mut vhosts = VhostTable::new();
-    for h in ["aegis.test", "localhost"] {
+    // `127.0.0.1` is the address the listener is bound to: clients that address it directly (h2spec via
+    // oracles/h2-conformance) must reach the routes, not a 421 that would end every stream before its request does.
+    for h in ["aegis.test", "localhost", "127.0.0.1"] {
         vhosts.add(h.as_bytes(), &[]);
         vhosts.add(format!("{h}:{port}").as_bytes(), &[]);
     }

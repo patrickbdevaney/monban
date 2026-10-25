@@ -88,8 +88,9 @@
   unverified (only a unit test checks the PQ-first preference). ACME uses blocking std sockets + rustls (no tokio).
 
 ## Transport (from P2-transport-001, 2026-10-25)
-- h2spec 132–133/146 over h2c: 9–10 RFC 9113 stream-state/flow-control behaviours wrong → P2-transport-002.
-  (An earlier run showed 144/146; repeated runs are stable at 9–10 failures, so that run was the outlier.)
+- h2spec: RESOLVED by P2-transport-002 (145/146 stable; failures were a subject vhost misconfig). Two h2 0.4.20
+  deviations remain (crates/aegis-transport/INFEASIBLE_REPORT.md): GOAWAY(PROTOCOL_ERROR) instead of STREAM_CLOSED
+  for HEADERS on a client-reset stream; pseudo-headers in END_STREAM trailers accepted. Strict tests #[ignore]d.
 - Resource-limit oracle (stall / reset / header-block budgets measured against the running server) NOT built:
   generating that client tripped a content safety stop during this session. Coverage today: aegis-transport e2e
   tests (window-0 stall reset, 431 on 129 cookie crumbs, idle close, strict H1 rejects) and spike q2-009's
