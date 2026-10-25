@@ -96,15 +96,20 @@ struct Pkg {
 }
 
 /// Constructor-gate modules of aegis-types and the only crate allowed to use each (REPO_LAYOUT §3, F2).
-const OWNERS: &[(&str, &str, &str)] =
-    &[("authn-path", "authn_path", "aegis-token"), ("canon-owner", "canon_owner", "aegis-canon"), ("raw-owner", "raw_owner", "aegis-transport")];
+const OWNERS: &[(&str, &str, &str)] = &[
+    ("authn-path", "authn_path", "aegis-token"),
+    ("canon-owner", "canon_owner", "aegis-canon"),
+    ("raw-owner", "raw_owner", "aegis-transport"),
+];
 /// Same-layer edges allowed by the crate table (REPO_LAYOUT §4). Everything else must point strictly downward.
 const INTRA_LAYER: &[(&str, &str)] = &[("aegis-admission", "aegis-budget")];
 /// Crates permitted to relax `forbid(unsafe_code)` (each call site audited, ≤20 sites).
 const UNSAFE_ALLOWED: &[&str] = &["aegis-iso"];
 
 fn workspace_model() -> Result<Vec<Pkg>, String> {
-    let out = run(Command::new("cargo").args(["metadata", "--format-version", "1", "--no-deps", "--offline"]).current_dir(root()))?;
+    let out = run(Command::new("cargo")
+        .args(["metadata", "--format-version", "1", "--no-deps", "--offline"])
+        .current_dir(root()))?;
     let meta = json::parse(&out)?;
     let mut pkgs = Vec::new();
     for p in meta.get("packages").map(Json::arr).unwrap_or(&[]) {
@@ -125,7 +130,14 @@ fn workspace_model() -> Result<Vec<Pkg>, String> {
             .map(|d| {
                 let n = d.get("name").and_then(Json::str).unwrap_or_default().to_string();
                 let k = d.get("kind").and_then(Json::str).unwrap_or("normal").to_string();
-                let f = d.get("features").map(Json::arr).unwrap_or(&[]).iter().filter_map(Json::str).map(String::from).collect();
+                let f = d
+                    .get("features")
+                    .map(Json::arr)
+                    .unwrap_or(&[])
+                    .iter()
+                    .filter_map(Json::str)
+                    .map(String::from)
+                    .collect();
                 (n, k, f)
             })
             .collect();
@@ -149,7 +161,9 @@ fn check_layering(pkgs: &[Pkg]) -> Vec<String> {
                 (_, Layer::Tool) => kind == "dev",
                 (Layer::Sdk, Layer::N(d)) => *d <= 2,
                 (Layer::N(_), Layer::Sdk) | (Layer::Sdk, Layer::Sdk) => false,
-                (Layer::N(a), Layer::N(b)) => b < a || (a == b && INTRA_LAYER.contains(&(p.name.as_str(), dn.as_str()))),
+                (Layer::N(a), Layer::N(b)) => {
+                    b < a || (a == b && INTRA_LAYER.contains(&(p.name.as_str(), dn.as_str())))
+                }
             };
             if !ok {
                 v.push(format!("{} ({pl:?}) -> {dn} ({dl:?}) [{kind}]: upward or cross-zone edge", p.name));
@@ -187,7 +201,8 @@ fn check_sources(pkgs: &[Pkg]) -> Vec<String> {
     for p in pkgs.iter().filter(|p| p.layer != Some(Layer::Tool)) {
         let mut files = Vec::new();
         rust_files(&p.dir.join("src"), &mut files);
-        let roots: BTreeSet<PathBuf> = ["src/lib.rs", "src/main.rs"].iter().map(|r| p.dir.join(r)).filter(|f| f.exists()).collect();
+        let roots: BTreeSet<PathBuf> =
+            ["src/lib.rs", "src/main.rs"].iter().map(|r| p.dir.join(r)).filter(|f| f.exists()).collect();
         for r in &roots {
             let src = std::fs::read_to_string(r).unwrap_or_default();
             let forbids = src.contains("#![forbid(unsafe_code)]");
@@ -253,10 +268,17 @@ fn check_lock_targets(pkgs: &[lock::LockPkg], targets: &BTreeMap<String, String>
 
 fn lock_targets(self_test: bool) -> Result<(), String> {
     let mut pkgs = read_lock()?;
-    let targets = lock::parse_kv(&std::fs::read_to_string(root().join("supply-chain/lock-targets.toml")).map_err(|e| e.to_string())?);
+    let targets = lock::parse_kv(
+        &std::fs::read_to_string(root().join("supply-chain/lock-targets.toml")).map_err(|e| e.to_string())?,
+    );
     if self_test {
         let (n, want) = targets.iter().next().ok_or("no targets to mutate")?;
-        pkgs.push(lock::LockPkg { name: n.clone(), version: format!("{want}-mutated"), source: Some("registry".into()), deps: vec![] });
+        pkgs.push(lock::LockPkg {
+            name: n.clone(),
+            version: format!("{want}-mutated"),
+            source: Some("registry".into()),
+            deps: vec![],
+        });
     }
     let present = targets.keys().filter(|k| pkgs.iter().any(|p| &p.name == *k)).count();
     println!("lock-targets: {present}/{} pinned crates present in Cargo.lock", targets.len());
@@ -323,7 +345,11 @@ fn lock_age(min_days: u64, self_test: bool) -> Result<(), String> {
     let mut ages: Vec<(String, String, i64)> = Vec::new();
     for p in pkgs.iter().filter(|p| p.source.as_deref().is_some_and(|s| s.starts_with("registry+"))) {
         let j = curl_json(&format!("https://crates.io/api/v1/crates/{}/{}", p.name, p.version), None)?;
-        let created = j.path(&["version", "created_at"]).and_then(Json::str).and_then(rfc3339_day).ok_or(format!("{}: no created_at", p.name))?;
+        let created = j
+            .path(&["version", "created_at"])
+            .and_then(Json::str)
+            .and_then(rfc3339_day)
+            .ok_or(format!("{}: no created_at", p.name))?;
         ages.push((p.name.clone(), p.version.clone(), today() - created));
     }
     if self_test {
@@ -359,7 +385,13 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
         let body = format!(r#"{{"queries":[{}]}}"#, queries.join(","));
         let res = curl_json("https://api.osv.dev/v1/querybatch", Some(&body))?;
         for ((n, ver), r) in chunk.iter().zip(res.get("results").map(Json::arr).unwrap_or(&[])) {
-            let ids: Vec<&str> = r.get("vulns").map(Json::arr).unwrap_or(&[]).iter().filter_map(|x| x.get("id").and_then(Json::str)).collect();
+            let ids: Vec<&str> = r
+                .get("vulns")
+                .map(Json::arr)
+                .unwrap_or(&[])
+                .iter()
+                .filter_map(|x| x.get("id").and_then(Json::str))
+                .collect();
             if !ids.is_empty() {
                 v.push(format!("{n} {ver}: OSV {}", ids.join(",")));
             }
@@ -368,7 +400,8 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
     // GitHub global advisories include unreviewed repository advisories that never reach RustSec/OSV
     // (r4c12.repo-ghsa-osv-blindspot).
     for (n, ver) in &pkgs {
-        let url = format!("https://api.github.com/advisories?ecosystem=rust&affects={n}@{ver}&per_page=100&type=unreviewed");
+        let url =
+            format!("https://api.github.com/advisories?ecosystem=rust&affects={n}@{ver}&per_page=100&type=unreviewed");
         match curl_json(&url, None) {
             Ok(j) => {
                 let ids: Vec<&str> = j.arr().iter().filter_map(|a| a.get("ghsa_id").and_then(Json::str)).collect();
@@ -410,13 +443,20 @@ fn check_fips_lock(pkgs: &[lock::LockPkg], pins: &BTreeMap<String, String>) -> V
 
 fn fips_lock(profile: &str, self_test: bool) -> Result<(), String> {
     let dir = root().join("profiles").join(profile);
-    let pins = lock::parse_kv(&std::fs::read_to_string(dir.join("pins.toml")).map_err(|e| format!("{profile}/pins.toml: {e}"))?);
+    let pins = lock::parse_kv(
+        &std::fs::read_to_string(dir.join("pins.toml")).map_err(|e| format!("{profile}/pins.toml: {e}"))?,
+    );
     let mut pkgs = match std::fs::read_to_string(dir.join("Cargo.lock")) {
         Ok(s) => lock::parse_lock(&s)?,
         Err(_) => Vec::new(),
     };
     if self_test {
-        pkgs.push(lock::LockPkg { name: "aws-lc-fips-sys".into(), version: "0.14.3".into(), source: None, deps: vec![] });
+        pkgs.push(lock::LockPkg {
+            name: "aws-lc-fips-sys".into(),
+            version: "0.14.3".into(),
+            source: None,
+            deps: vec![],
+        });
     }
     verdict("FIPS-LOCK", &check_fips_lock(&pkgs, &pins), self_test)
 }

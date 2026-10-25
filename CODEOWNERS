@@ -1,0 +1,18 @@
+# Verify wall and hub files: spec-author / integrator approval required (IMPLEMENTATION_PLAN §1, §6.4).
+# Forgejo reads CODEOWNERS from the repo root, .forgejo/ or .gitea/.
+/spec/                  @patrickd
+/interfaces/            @patrickd
+/oracles/               @patrickd
+/sdk/                   @patrickd
+/ci/                    @patrickd
+/gates/                 @patrickd
+/tls/                   @patrickd
+/supply-chain/          @patrickd
+/.github/               @patrickd
+/crates/aegis-types/    @patrickd
+/Cargo.toml             @patrickd
+/Cargo.lock             @patrickd
+/deny.toml              @patrickd
+/rust-toolchain.toml    @patrickd
+/CODEOWNERS             @patrickd
+/CLAUDE.md              @patrickd

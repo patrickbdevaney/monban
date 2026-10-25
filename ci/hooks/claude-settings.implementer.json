@@ -1,0 +1,12 @@
+{
+  "$comment": "Settings for implementer-role Claude Code sessions: claude --settings ci/hooks/claude-settings.implementer.json. Integrator/spec-author sessions do not load this file.",
+  "env": { "AEGIS_ROLE": "implementer" },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [{ "type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/ci/hooks/protect-paths.py\"", "timeout": 10 }]
+      }
+    ]
+  }
+}

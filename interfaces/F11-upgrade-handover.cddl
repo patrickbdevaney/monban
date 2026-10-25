@@ -1,0 +1,15 @@
+; Frozen interface F11: zero-downtime upgrade handover between parent and child (UP-1..7, ARCHITECTURE §3.11).
+; Channel: AF_UNIX SOCK_SEQPACKET in a 0700 directory; peer checked with SO_PEERCRED (same uid, expected exe);
+; fds passed with SCM_RIGHTS alongside `listeners`. Every frame <= 64 KiB; the parser never panics (UP-7).
+; Never a second-process SO_REUSEPORT bind (UP-2): the child validates each received fd (SO_TYPE, SO_ACCEPTCONN,
+; getsockname) and claims or closes it.
+
+msg = hello / listeners / stek / ready / drain / done / abort
+hello     = [0, version: 1, child-pid: uint, config-hash: bstr .size 32]
+listeners = [1, [* listener]]                 ; order matches the SCM_RIGHTS fd array
+listener  = [name: tstr, family: 0..2, addr: bstr, proto: 0..1]   ; family inet/inet6/unix; proto tcp/udp
+stek      = [2, epoch: uint, keys: [1*4 bstr .size 80]]           ; session ticket keys by pipe only (UP-5)
+ready     = [3, claimed: [* tstr]]                                ; child claimed these listeners
+drain     = [4, deadline-ms: uint]                                ; parent: two-phase GOAWAY then drain (UP-3/4)
+done      = [5, forced-closes: uint]
+abort     = [6, reason: tstr .size (0..256)]                      ; failing child never degrades the parent (UP-7)

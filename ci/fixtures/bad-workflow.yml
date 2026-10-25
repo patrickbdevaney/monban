@@ -1,0 +1,12 @@
+# Negative control for the workflow-lint gate: zizmor must flag this file (pull_request_target + PR-head checkout,
+# unpinned action, template injection, default permissions).
+name: bad
+on: pull_request_target
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: echo "${{ github.event.pull_request.title }}"

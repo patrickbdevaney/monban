@@ -1,0 +1,27 @@
+# PR gates (SUPPLY_CHAIN §D, cheapest first). Forgejo Actions reads .github/workflows when .forgejo/ is absent.
+# Policy (G6): top-level permissions {}, every `uses:` pinned to a 40-hex SHA, no pull_request_target,
+# no github.event.* interpolation in run:, no caches shared with release workflows.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions: {}
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  phase-gates:
+    name: phase gates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned gate tools (sha256-verified)
+        run: ci/install-tools.sh
+      - name: Phase gates
+        run: python3 -I ci/run-gates.py --phase 0
