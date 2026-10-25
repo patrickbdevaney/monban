@@ -13,11 +13,13 @@ clients = sys.argv[8] if len(sys.argv) > 8 else "4,5,6,7"
 os.makedirs(out, exist_ok=True)
 logs = os.path.join(out, "logs")
 os.makedirs(logs, exist_ok=True)
+work = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".work")  # sockets + cwasm cache (deleted)
+os.makedirs(work, exist_ok=True)
 N = 3000
 
 cal = json.load(open(os.path.join(out, "calibrate.json"))) if os.path.exists(os.path.join(out, "calibrate.json")) else None
 FPM = cal["loop_fuel_per_ms"] if cal else 3_000_000
-F2, F10 = int(2 * FPM), int(10 * FPM)
+F2, F10 = 15_000_000, 75_000_000  # ~2 ms and ~10 ms of guest work on the laptop (calibrate.json: ~7.4M fuel/ms)
 S = bin_ + " serve "
 V = {
     "E4": S + "cordon --guest {guest} --data {data} --threads 4 --budget epoch --epoch-ms 100",
@@ -35,7 +37,7 @@ def drive(var, fault, rate, trial, i):
     pre = os.path.join(logs, "%s-t%d-%s-%s-%s" % (phase, trial, var, fault, rate))
     cmd = [bin_, "drive", "--server", V[var], "--guest", guest, "--data", data, "--fault", fault, "--rate", str(rate),
            "--n", str(N), "--conc", "16", "--seed", str(trial * 7919 + i), "--prefix", pre, "--server-core", core,
-           "--client-cores", clients, "--max-seconds", "120", "--sockdir", out]
+           "--client-cores", clients, "--max-seconds", "120", "--sockdir", work]
     t0 = time.time()
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -69,18 +71,25 @@ if phase == "loop":
     vs = ["E4", "E64", "F4-2", "F64-10", "F64-2", "FW-E", "FW-F10", "FW-F2"]
     matrix([(v, "none", 0.0) for v in vs] + [(v, "loop", r) for v in vs for r in (0.01, 0.05)])
 elif phase == "fi":
-    fs = ["panic", "abort", "segv", "loop", "oom", "poison", "hostabort"]
+    fs = ["panic", "abort", "segv", "loop", "oom", "poison", "hostabort", "hostpoison"]
     vs = ["F64-2", "FW-F2"]
     matrix([(v, "none", 0.0) for v in vs] + [(v, f, r) for v in vs for f in fs for r in (0.01, 0.05)])
 elif phase == "lan":
     vs = ["F64-2", "FW-F2", "E4"]
-    matrix([(v, "none", 0.0) for v in vs] + [(v, f, 0.01) for v in vs for f in ("loop", "hostabort", "abort", "poison")])
+    matrix([(v, "none", 0.0) for v in vs] + [(v, f, 0.01) for v in vs for f in ("loop", "hostabort", "hostpoison", "abort", "poison")])
 elif phase == "forkcost":
     with open(os.path.join(out, "forkcost.jsonl"), "a") as res:
         for t in range(1, trials + 1):
-            for pool in ("ondemand", "pool"):
+            # zygote_mode: "compiled" = module compiled inside the zygote; "cwasm" = zygote loads the cached
+            # precompiled module (the AEGIS design). The first run of each pool mode fills the cache.
+            for pool, zmode in (("ondemand", "compiled"), ("ondemand", "cwasm"), ("pool", "compiled"), ("pool", "cwasm")):
+                cache = os.path.join(work, "fc-cache-" + pool)
+                if zmode == "compiled":
+                    subprocess.run(["rm", "-rf", cache])
+                os.makedirs(cache, exist_ok=True)
+                env = dict(os.environ, ISOFI_CWASM_DIR=cache)
                 p = subprocess.run(["taskset", "-c", core, bin_, "forkcost", "--guest", guest, "--n", "3000", "--pool",
-                                    pool, "--fuel", str(F2)], capture_output=True, text=True, timeout=600)
+                                    pool, "--fuel", str(F2)], capture_output=True, text=True, timeout=600, env=env)
                 d = json.loads(p.stdout.strip().splitlines()[-1])
                 d.update(trial=t)
                 res.write(json.dumps(d) + "\n")

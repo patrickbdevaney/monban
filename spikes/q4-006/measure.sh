@@ -8,7 +8,7 @@ if [ -z "${Q4006_UNDER_HEAVY:-}" ]; then
   exec env Q4006_UNDER_HEAVY=1 HEAVY_TIMEOUT="${HEAVY_TIMEOUT:-1790}" "$REPO/ci/heavy.sh" "$0" "$@"
 fi
 T="$HERE/target"; D="$HERE/data"; mkdir -p "$D"
-trap '[ "${KEEP:-0}" = 1 ] || rm -rf "$T"' EXIT
+trap '[ "${KEEP:-0}" = 1 ] || rm -rf "$T"; rm -rf "$HERE/.work"' EXIT
 "$REPO/oracles/isolation-fi/rust/build.sh" "$T"
 B="$T/release/isofi"; G="$T/wasm32-unknown-unknown/release/guest.wasm"; DATA="$REPO/oracles/isolation-fi/rust/data.bin"
 du -sh "$T" | tee -a "$D/disk.txt"
