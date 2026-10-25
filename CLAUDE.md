@@ -9,6 +9,9 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
   machine-wide (one job at a time, 6 GB memory cap, nice 15, 30 min timeout, refuses below 10 GB free disk).
   Never run `cargo build/test/clippy` bare. `cargo fmt` and `cargo xtask <gate>` are light and may run bare.
 - No Docker image >500 MB, no apt/sudo, no model weights, no Mathlib. Delete build dirs you create outside `target/`.
+- Offload: `ci/remote.sh <cmd>` runs a heavy command on the LAN desktop (Ryzen 9 5900X, shared with the operator's
+  other builds; its own lock, 12 GB cap, nice 15, 8 jobs; isolated toolchain under ~/aegis-ci). Prefer it for long
+  oracle runs and release builds. Provers (Kani, Verus, Cedar Lean) run on kamrui via ci/kani.sh.
 
 ## Privacy
 - Never put the operator's name or email in requests to external services (User-Agent, headers, query strings).
