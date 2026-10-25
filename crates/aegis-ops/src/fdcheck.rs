@@ -5,7 +5,7 @@ use crate::wire::{Family, ListenerDesc, Proto};
 use nix::sys::socket::{SockType, SockaddrStorage, getsockname, getsockopt, sockopt};
 use std::fmt;
 use std::net::{SocketAddr, TcpListener};
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd};
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, OwnedFd};
 use std::os::unix::ffi::OsStrExt;
 
 /// Why an fd was rejected.
@@ -106,6 +106,16 @@ pub fn claim_tcp(fd: BorrowedFd<'_>, desc: &ListenerDesc) -> Result<TcpListener,
     }
     let owned = fd.as_fd().try_clone_to_owned().map_err(|_| FdReject::NotSocket)?;
     Ok(TcpListener::from(owned))
+}
+
+/// Validate then claim a received fd (SCM_RIGHTS, already CLOEXEC via `MSG_CMSG_CLOEXEC`): on success the fd itself
+/// becomes the `TcpListener`; on any failure it is dropped, i.e. closed (claim-or-close, UP-2).
+pub fn claim_owned_tcp(fd: OwnedFd, desc: &ListenerDesc) -> Result<TcpListener, FdReject> {
+    validate(fd.as_fd(), desc)?;
+    if desc.proto != Proto::Tcp {
+        return Err(FdReject::WrongType);
+    }
+    Ok(TcpListener::from(fd))
 }
 
 #[cfg(test)]

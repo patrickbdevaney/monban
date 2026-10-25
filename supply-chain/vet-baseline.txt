@@ -33,3 +33,6 @@ sd-notify:0.5.0  systemd readiness protocol (tiny)
 memoffset:0.9.1  pulled by nix socket feature
 autocfg:1.5.1  build-time only (memoffset)
 bitflags:2.13.2  macro-only flags type (nix)
+# Added 2026-10-25 with P2-upgrade-002 (safe SCM_RIGHTS).
+rustix:1.1.5  safe syscall API (OwnedFd SCM_RIGHTS); replaces unsafe RawFd handling
+linux-raw-sys:0.12.1  generated Linux ABI bindings (rustix)

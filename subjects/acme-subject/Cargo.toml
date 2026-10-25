@@ -1,0 +1,20 @@
+[package]
+name = "acme-subject"
+description = "Oracle subject for oracles/acme-pebble: obtains, serves and renews a certificate through aegis-ops (feature acme) and the CERT-1..4 store."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-ops = { workspace = true, features = ["acme"] }
+aegis-tls = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+
+[lints]
+workspace = true

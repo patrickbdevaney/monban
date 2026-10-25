@@ -1,18 +1,19 @@
 //! upgrade-subject: tiny HTTP/1.1 server for `oracles/upgrade-harness`.
 //!
 //! ```text
-//! upgrade-subject --listen 127.0.0.1:8080 --pidfile /path/pid [--drain-ms 2000] [--handover-ms 5000]
-//!                 [--runtime-dir DIR]
+//! upgrade-subject --listen 127.0.0.1:8080 [--listen 127.0.0.1:8081 ...] --pidfile /path/pid [--drain-ms 2000]
+//!                 [--handover-ms 5000] [--runtime-dir DIR]
 //! ```
-//! SIGHUP or SIGUSR2: re-exec itself as the upgrade child through `aegis_ops::handover` (listener handed over by fd
-//! inheritance, never a second SO_REUSEPORT bind). The pidfile is (re)written atomically by whichever process
-//! currently owns the listener, once the handover is complete. SIGTERM/SIGINT: drain and exit.
+//! `--listen` may repeat (1..=`MAX_HANDOVER_LISTENERS` listeners, served by one accept thread each).
+//! SIGHUP or SIGUSR2: re-exec itself as the upgrade child through `aegis_ops::handover` (every listener handed over
+//! by SCM_RIGHTS on the handover socket, never a second SO_REUSEPORT bind). The pidfile is (re)written atomically by
+//! whichever process currently owns the listeners, once the handover is complete. SIGTERM/SIGINT: drain and exit.
 //! Every response is `200 OK` with body `ok <pid>\n`; keep-alive is honoured until the drain starts.
 #![forbid(unsafe_code)]
 
 use aegis_ops::drain::{ConnGuard, ConnTracker, accept_loop};
 use aegis_ops::fdcheck::describe_tcp;
-use aegis_ops::handover::{self, LeakPolicy, Offered, ParentConfig, ParentHooks};
+use aegis_ops::handover::{self, LeakPolicy, MAX_HANDOVER_LISTENERS, Offered, ParentConfig, ParentHooks};
 use aegis_ops::notify::Notifier;
 use aegis_ops::signals::{Sig, Signals};
 use aegis_ops::stek::StekRing;
@@ -34,7 +35,7 @@ const TICK: Duration = Duration::from_millis(50);
 
 #[derive(Debug, Clone)]
 struct Opts {
-    listen: String,
+    listen: Vec<String>,
     pidfile: PathBuf,
     drain: Duration,
     handover: Duration,
@@ -42,7 +43,7 @@ struct Opts {
 }
 
 fn parse_opts(args: &[OsString]) -> Result<Opts, String> {
-    let mut listen = None;
+    let mut listen = Vec::new();
     let mut pidfile = None;
     let mut drain = Duration::from_millis(2000);
     let mut handover = Duration::from_millis(5000);
@@ -53,7 +54,9 @@ fn parse_opts(args: &[OsString]) -> Result<Opts, String> {
     };
     while let Some(a) = it.next() {
         match a.to_str() {
-            Some("--listen") => listen = it.next().and_then(|s| s.to_str()).map(str::to_string),
+            Some("--listen") => {
+                listen.push(it.next().and_then(|s| s.to_str()).map(str::to_string).ok_or("bad --listen")?)
+            }
             Some("--pidfile") => pidfile = it.next().map(PathBuf::from),
             Some("--drain-ms") => drain = ms(it.next())?,
             Some("--handover-ms") => handover = ms(it.next())?,
@@ -61,13 +64,10 @@ fn parse_opts(args: &[OsString]) -> Result<Opts, String> {
             _ => return Err(format!("unknown argument {a:?}")),
         }
     }
-    Ok(Opts {
-        listen: listen.ok_or("--listen required")?,
-        pidfile: pidfile.ok_or("--pidfile required")?,
-        drain,
-        handover,
-        runtime_dir,
-    })
+    if listen.is_empty() || listen.len() > MAX_HANDOVER_LISTENERS {
+        return Err(format!("--listen required, 1..={MAX_HANDOVER_LISTENERS} times"));
+    }
+    Ok(Opts { listen, pidfile: pidfile.ok_or("--pidfile required")?, drain, handover, runtime_dir })
 }
 
 fn log(msg: &str) {
@@ -88,6 +88,7 @@ fn handle(mut s: TcpStream, tracker: &ConnTracker, guard: ConnGuard) {
     let mut buf: Vec<u8> = Vec::with_capacity(1024);
     let mut chunk = [0u8; 2048];
     let mut idle_since = Instant::now();
+    let mut served = 0u64;
     loop {
         // Serve every complete request in the buffer.
         while let Some(end) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
@@ -104,6 +105,7 @@ fn handle(mut s: TcpStream, tracker: &ConnTracker, guard: ConnGuard) {
             if s.write_all(resp.as_bytes()).is_err() || close {
                 return;
             }
+            served += 1;
             idle_since = Instant::now();
         }
         if buf.len() > MAX_HEADER {
@@ -116,8 +118,12 @@ fn handle(mut s: TcpStream, tracker: &ConnTracker, guard: ConnGuard) {
             Ok(0) => return,
             Ok(n) => buf.extend_from_slice(chunk.get(..n).unwrap_or_default()),
             Err(e) if matches!(e.kind(), io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut) => {
-                // Phase 1 of the drain: an idle keep-alive connection (no partial request) is closed.
-                if (tracker.is_draining() && buf.is_empty()) || idle_since.elapsed() > IDLE_TIMEOUT {
+                // Phase 1 of the drain: an idle keep-alive connection (no partial request, at least one response
+                // already sent) is closed. A connection accepted just before the listener closed whose first
+                // request has not arrived yet is not idle: closing it would drop that request (EOF before any
+                // response); it is served, bounded by the drain deadline and IDLE_TIMEOUT.
+                let keepalive_idle = tracker.is_draining() && buf.is_empty() && served > 0;
+                if keepalive_idle || idle_since.elapsed() > IDLE_TIMEOUT {
                     return;
                 }
             }
@@ -129,16 +135,20 @@ fn handle(mut s: TcpStream, tracker: &ConnTracker, guard: ConnGuard) {
 
 struct Server {
     stop: Arc<AtomicBool>,
-    accept: Option<JoinHandle<()>>,
+    accept: Vec<JoinHandle<()>>,
     tracker: ConnTracker,
 }
 
 impl Server {
-    fn start(l: TcpListener, tracker: ConnTracker) -> Self {
+    /// One accept thread per listener; all share the stop flag and the connection tracker.
+    fn start(ls: Vec<TcpListener>, tracker: ConnTracker) -> Self {
         let stop = Arc::new(AtomicBool::new(false));
-        let st = stop.clone();
-        let tr = tracker.clone();
-        let accept = std::thread::spawn(move || {
+        let accept = ls.into_iter().map(|l| Self::spawn_accept(l, stop.clone(), tracker.clone())).collect();
+        Self { stop, accept, tracker }
+    }
+
+    fn spawn_accept(l: TcpListener, st: Arc<AtomicBool>, tr: ConnTracker) -> JoinHandle<()> {
+        std::thread::spawn(move || {
             let r = accept_loop(l, &st, TICK, |s| {
                 // Register before handing off, so a drain can never miss a connection that is accepted but whose
                 // thread has not started yet (that connection would be reset at process exit).
@@ -150,16 +160,15 @@ impl Server {
             if let Err(e) = r {
                 log(&format!("accept loop error: {e}"));
             }
-        });
-        Self { stop, accept: Some(accept), tracker }
+        })
     }
 }
 
 impl ParentHooks for Server {
     fn close_listeners(&mut self) {
         self.stop.store(true, Ordering::Release);
-        if let Some(h) = self.accept.take() {
-            let _ = h.join(); // the accept thread drops its listener fd on exit
+        for h in self.accept.drain(..) {
+            let _ = h.join(); // each accept thread drops its listener fd on exit
         }
     }
     fn drain(&mut self, deadline: Duration) -> u64 {
@@ -178,23 +187,33 @@ fn run() -> Result<(), String> {
     let notifier = Notifier::from_env();
     let tracker = ConnTracker::new();
 
-    let (listener, mut ring, takeover) = if handover::is_upgrade_child() {
+    let (listeners, mut ring, takeover) = if handover::is_upgrade_child() {
         let mut t = handover::child_takeover([0; 32], opts.handover, LeakPolicy::Refuse).map_err(|e| e.to_string())?;
-        let (_, l) = t.listeners.pop().ok_or("no listener claimed")?;
+        let ls: Vec<TcpListener> = t.listeners.drain(..).map(|(_, l)| l).collect();
+        if ls.len() != opts.listen.len() {
+            return Err(format!("claimed {} listeners, expected {}", ls.len(), opts.listen.len()));
+        }
         let ring = t.stek.clone();
-        (l, ring, Some(t))
+        (ls, ring, Some(t))
     } else {
-        let l = TcpListener::bind(&opts.listen).map_err(|e| format!("bind {}: {e}", opts.listen))?;
-        (l, StekRing::generate().map_err(|e| format!("stek: {e}"))?, None)
+        let mut ls = Vec::new();
+        for a in &opts.listen {
+            ls.push(TcpListener::bind(a).map_err(|e| format!("bind {a}: {e}"))?);
+        }
+        (ls, StekRing::generate().map_err(|e| format!("stek: {e}"))?, None)
     };
-    let desc: ListenerDesc = describe_tcp("http", &listener).map_err(|e| e.to_string())?;
-    // This process's handle for offering the listener to a future child; the accept thread owns the other.
-    let offer = listener.try_clone().map_err(|e| e.to_string())?;
-    let mut server = Server::start(listener, tracker);
+    let mut descs: Vec<ListenerDesc> = Vec::new();
+    // This process's handles for offering the listeners to a future child; the accept threads own the others.
+    let mut offers: Vec<TcpListener> = Vec::new();
+    for (i, l) in listeners.iter().enumerate() {
+        descs.push(describe_tcp(&format!("http{i}"), l).map_err(|e| e.to_string())?);
+        offers.push(l.try_clone().map_err(|e| e.to_string())?);
+    }
+    let mut server = Server::start(listeners, tracker);
 
     if let Some(t) = takeover {
         let main = t.ready(opts.handover);
-        log(&format!("took over listener; parent drain deadline {:?} ms", main.drain_deadline_ms));
+        log(&format!("took over {} listeners; parent drain deadline {:?} ms", descs.len(), main.drain_deadline_ms));
         std::thread::spawn(move || {
             if let Some(f) = main.wait_done(Duration::from_secs(120)) {
                 log(&format!("parent done, forced closes {f}"));
@@ -217,7 +236,8 @@ fn run() -> Result<(), String> {
         match signals.wait().map_err(|e| format!("sigwait: {e}"))? {
             Sig::Hup | Sig::Usr2 => {
                 ring.epoch = ring.epoch.wrapping_add(1);
-                let offered = [Offered { desc: &desc, fd: offer.as_fd() }];
+                let offered: Vec<Offered<'_>> =
+                    descs.iter().zip(&offers).map(|(d, o)| Offered { desc: d, fd: o.as_fd() }).collect();
                 match handover::upgrade(&cfg, &offered, &ring, &mut server) {
                     Ok(h) => {
                         log(&format!("handed over to {}, forced closes {}", h.child_pid, h.forced));
@@ -229,7 +249,7 @@ fn run() -> Result<(), String> {
             Sig::Term => {
                 let _ = notifier.stopping();
                 server.close_listeners();
-                drop(offer);
+                drop(offers);
                 let forced = server.drain(opts.drain);
                 log(&format!("terminated, forced closes {forced}"));
                 return Ok(());

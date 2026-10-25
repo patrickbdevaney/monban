@@ -116,15 +116,15 @@ pub fn judge(m: &Measured) -> Vec<String> {
     if m.unsafe_noncrypto > MAX_NONCRYPTO_UNSAFE {
         v.push(format!("non-crypto unsafe lines {} > {}", m.unsafe_noncrypto, MAX_NONCRYPTO_UNSAFE));
     }
-    if let Runtime::Bytes(b) = m.idle_rss {
-        if b > MAX_IDLE_RSS_BYTES {
-            v.push(format!("idle RSS {b} B > {MAX_IDLE_RSS_BYTES} B"));
-        }
+    if let Runtime::Bytes(b) = m.idle_rss
+        && b > MAX_IDLE_RSS_BYTES
+    {
+        v.push(format!("idle RSS {b} B > {MAX_IDLE_RSS_BYTES} B"));
     }
-    if let Runtime::Bytes(b) = m.tls1k_rss {
-        if b > MAX_TLS1K_RSS_BYTES {
-            v.push(format!("1k idle TLS RSS {b} B > {MAX_TLS1K_RSS_BYTES} B"));
-        }
+    if let Runtime::Bytes(b) = m.tls1k_rss
+        && b > MAX_TLS1K_RSS_BYTES
+    {
+        v.push(format!("1k idle TLS RSS {b} B > {MAX_TLS1K_RSS_BYTES} B"));
     }
     v
 }
