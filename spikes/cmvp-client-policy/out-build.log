@@ -1,0 +1,20 @@
+total 48408
+-rwxrwxr-x 1 patrickd patrickd 5745256 Oct 25 09:40 bad_client
+-rw-rw-r-- 1 patrickd patrickd 2127260 Oct 25 09:40 bad_client.map
+-rwxrwxr-x 1 patrickd patrickd 5743472 Oct 25 09:40 bad_resume
+-rw-rw-r-- 1 patrickd patrickd 2126585 Oct 25 09:40 bad_resume.map
+-rw-rw-r-- 1 patrickd patrickd     497 Oct 25 09:41 clippy-bad_client.log
+-rw-rw-r-- 1 patrickd patrickd     549 Oct 25 09:41 clippy-bad_resume.log
+-rw-rw-r-- 1 patrickd patrickd     523 Oct 25 09:41 clippy-dead_client.log
+-rw-rw-r-- 1 patrickd patrickd       0 Oct 25 09:41 clippy-pq_client.log
+-rw-rw-r-- 1 patrickd patrickd       0 Oct 25 09:41 clippy-srv_only.log
+-rwxrwxr-x 1 patrickd patrickd 5432088 Oct 25 09:40 dead_client
+-rw-rw-r-- 1 patrickd patrickd 1921076 Oct 25 09:40 dead_client.map
+-rwxrwxr-x 1 patrickd patrickd 5743064 Oct 25 09:40 pq_client
+-rw-rw-r-- 1 patrickd patrickd 2119291 Oct 25 09:40 pq_client.map
+-rwxrwxr-x 1 patrickd patrickd 3722848 Oct 25 09:41 pq_client.stripped
+-rw-rw-r-- 1 patrickd patrickd 2117006 Oct 25 09:41 pq_client.stripped.map
+-rwxrwxr-x 1 patrickd patrickd 5431872 Oct 25 09:39 srv_only
+-rw-rw-r-- 1 patrickd patrickd 1903250 Oct 25 09:39 srv_only.map
+-rwxrwxr-x 1 patrickd patrickd 3467800 Oct 25 09:41 srv_only.stripped
+-rw-rw-r-- 1 patrickd patrickd 1900686 Oct 25 09:41 srv_only.stripped.map

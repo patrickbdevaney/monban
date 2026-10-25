@@ -6,6 +6,7 @@
 //!                    mid-protocol); fire-and-forget CancelRequest so the orphan backend stops; drop the conn;
 //!                    connect a replacement; `SELECT 1`. Timed from the drop to the replacement being ready.
 //!   discard-nocancel same, without the CancelRequest (orphan backend runs the query out, then sees EOF).
+//!   reuse-wait       as reuse but WITHOUT a CancelRequest: wait for the in-flight statement to finish.
 //!   reuse            held conn: same cancelled query; await CancelRequest; `ROLLBACK`; `DISCARD ALL`;
 //!                    `SELECT 1` sentinel on the SAME conn. Any error => counted + fall back to discard.
 //! Output: one JSON line.
@@ -129,8 +130,12 @@ where
 
 /// Put the held connection mid-protocol: open txn, then drop a query future after it was sent.
 async fn cancel_midflight(c: &Client) -> Result<(), tokio_postgres::Error> {
+    // Q3008_SLEEP_MS / Q3008_CANCEL_AFTER_MS: in-flight query length and when it is cancelled (default 50 / 2).
+    let env = |k: &str, d: u64| std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(d);
+    let (sleep_ms, after_ms) = (env("Q3008_SLEEP_MS", 50), env("Q3008_CANCEL_AFTER_MS", 2));
     c.batch_execute("BEGIN").await?;
-    let _ = tokio::time::timeout(Duration::from_millis(2), c.batch_execute("SELECT pg_sleep(0.05)")).await;
+    let q = format!("SELECT pg_sleep({})", sleep_ms as f64 / 1000.0);
+    let _ = tokio::time::timeout(Duration::from_millis(after_ms), c.batch_execute(&q)).await;
     Ok(())
 }
 
@@ -154,16 +159,19 @@ where
                     drop(c);
                     Ok(dt.as_secs_f64() * 1e6)
                 }
-                "discard" | "discard-nocancel" | "reuse" => {
+                "discard" | "discard-nocancel" | "reuse" | "reuse-wait" => {
                     if held.is_none() {
                         held = Some(ready(&cfg, tls.clone()).await?);
                     }
                     let c = held.take().unwrap();
                     cancel_midflight(&c).await?;
                     let t0 = Instant::now();
-                    if a.mode == "reuse" {
+                    if a.mode.starts_with("reuse") {
                         let ok: Result<(), tokio_postgres::Error> = async {
-                            c.cancel_token().cancel_query(tls.clone()).await?;
+                            if a.mode == "reuse" {
+                                c.cancel_token().cancel_query(tls.clone()).await?;
+                            } // reuse-wait: no CancelRequest; ROLLBACK queues behind the in-flight statement
+
                             c.batch_execute("ROLLBACK").await?;
                             c.batch_execute("DISCARD ALL").await?;
                             c.clear_type_cache();
@@ -174,7 +182,9 @@ where
                         if ok.is_ok() {
                             held = Some(c);
                         } else {
-                            st.reuse_fail.fetch_add(1, Ordering::Relaxed);
+                            if st.reuse_fail.fetch_add(1, Ordering::Relaxed) < 5 {
+                                eprintln!("reuse_fail: {:?}", ok.as_ref().err());
+                            }
                             drop(c);
                             held = Some(ready(&cfg, tls.clone()).await?);
                         }

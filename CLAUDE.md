@@ -10,6 +10,10 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
   Never run `cargo build/test/clippy` bare. `cargo fmt` and `cargo xtask <gate>` are light and may run bare.
 - No Docker image >500 MB, no apt/sudo, no model weights, no Mathlib. Delete build dirs you create outside `target/`.
 
+## Privacy
+- Never put the operator's name or email in requests to external services (User-Agent, headers, query strings).
+  For crates.io and other APIs use `User-Agent: aegis-ci` (no hostnames, no contact details).
+
 ## Roles and write scope (IMPLEMENTATION_PLAN §6)
 - Spec author / integrator: may change `spec/ interfaces/ oracles/ sdk/ ci/ gates/ tls/ supply-chain/ .github/`,
   `crates/aegis-types/`, `Cargo.toml`, `Cargo.lock`. Any change to a frozen file needs a re-freeze

@@ -1,0 +1,81 @@
+heavy.sh: waiting for the heavy-job lock (one at a time)...
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+test mutants/d1_C1.rs [should pass] ... ok
+test mutants/d1_C2.rs [should pass] ... ok
+test mutants/d1_E1.rs [should fail to compile] ... ok
+test mutants/d1_E2.rs [should fail to compile] ... ok
+test mutants/d1_E3.rs [should fail to compile] ... ok
+test mutants/d1_E4.rs [should fail to compile] ... ok
+test mutants/d1_E5.rs [should fail to compile] ... ok
+test mutants/d1_E6.rs [should fail to compile] ... ok
+test mutants/d1_E7.rs [should fail to compile] ... ok
+test mutants/d1_E8.rs [should fail to compile] ... ok
+test mutants/d1_E9.rs [should fail to compile] ... ok
+test mutants/d1_E10.rs [should fail to compile] ... ok
+test mutants/d1_E14.rs [should pass] ... ok
+test mutants/d1_E15.rs [should pass] ... ok
+test mutants/d1_E16.rs [should fail to compile] ... ok
+test mutants/d1_E17.rs [should fail to compile] ... ok
+test mutants/d1_E18.rs [should fail to compile] ... ok
+test mutants/d1_E19.rs [should fail to compile] ... ok
+test mutants/d2_C1.rs [should pass] ... ok
+test mutants/d2_C2.rs [should pass] ... ok
+test mutants/d2_E1.rs [should fail to compile] ... ok
+test mutants/d2_E2.rs [should fail to compile] ... ok
+test mutants/d2_E3.rs [should fail to compile] ... ok
+test mutants/d2_E4.rs [should fail to compile] ... ok
+test mutants/d2_E5.rs [should fail to compile] ... ok
+test mutants/d2_E6.rs [should fail to compile] ... ok
+test mutants/d2_E7.rs [should fail to compile] ... ok
+test mutants/d2_E8.rs [should fail to compile] ... ok
+test mutants/d2_E9.rs [should fail to compile] ... ok
+test mutants/d2_E10.rs [should fail to compile] ... ok
+test mutants/d2_E11.rs [should fail to compile] ... ok
+test mutants/d2_E12.rs [should fail to compile] ... ok
+test mutants/d2_E12b.rs [should fail to compile] ... ok
+test mutants/d2_E13.rs [should fail to compile] ... ok
+test mutants/d2_E14.rs [should fail to compile] ... ok
+test mutants/d2_E15.rs [should fail to compile] ... ok
+test mutants/d2_E16.rs [should fail to compile] ... ok
+test mutants/d2_E17.rs [should fail to compile] ... ok
+test mutants/d2_E18.rs [should fail to compile] ... ok
+test mutants/d3strict_S1.rs [should fail to compile] ... ok
+test mutants/d3strict_S2.rs [should fail to compile] ... ok
+test mutants/d3strict_S3.rs [should fail to compile] ... ok
+test mutants/d3strict_S4.rs [should fail to compile] ... ok
+test mutants/d3_C1.rs [should pass] ... ok
+test mutants/d3_C2.rs [should pass] ... ok
+test mutants/d3_E1.rs [should pass] ... ok
+test mutants/d3_E2.rs [should pass] ... ok
+test mutants/d3_E3.rs [should pass] ... ok
+test mutants/d3_E4.rs [should pass] ... ok
+test mutants/d3_E5.rs [should pass] ... ok
+test mutants/d3_E6.rs [should pass] ... ok
+test mutants/d3_E7.rs [should pass] ... ok
+test mutants/d3_E8.rs [should pass] ... ok
+test mutants/d3_E9.rs [should pass] ... ok
+test mutants/d3_E10.rs [should pass] ... ok
+test mutants/d3_E11.rs [should pass] ... ok
+test mutants/d3_E12.rs [should pass] ... ok
+test mutants/d3_E12b.rs [should pass] ... ok
+test mutants/d3_E13.rs [should pass] ... ok
+test mutants/d3_E14.rs [should pass] ... ok
+test mutants/d3_E15.rs [should pass] ... ok
+test mutants/d3_E16.rs [should fail to compile] ... ok
+test mutants/d3_E17.rs [should fail to compile] ... ok
+test mutants/d3_E18.rs [should fail to compile] ... ok
+test mutants/d3_E19.rs [should pass] ... ok
+test mutants ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.19s
+test cap_revoked_mid_ws_session ... ok
+test detached_job_after_session_revocation ... ok
+test d1_body_sse_ws_run_in_static_task_without_leak ... ok
+test session_revoked_mid_stream_fails_closed_in_d1_and_d2 ... ok
+test d2_all_four_features_with_per_step_ctx ... ok
+test tenant_binding_holds_in_all_designs ... ok
+test d3_all_four_features_via_handler_spawn ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+real	20m14.985s
+user	0m24.858s
+sys	0m8.011s

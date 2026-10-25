@@ -1,0 +1,49 @@
+# otlp-footprint spike: representative "hello" server. Own workspace. Build only via ../measure.sh (ci/heavy.sh).
+# Variants (features): base | metrics | metrics,logs | metrics,logs,otlp | metrics,logs,otlp-grpc (comparison only)
+[package]
+name = "hello"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[features]
+default = []
+# Hand-written OpenMetrics text endpoint on a separate loopback admin listener. Zero extra crates.
+metrics = []
+# Structured JSON logs through tracing (the always-on logging baseline OTLP would attach to).
+logs = ["dep:tracing", "dep:tracing-subscriber"]
+# OTLP http/protobuf over hyper (no tonic/grpc), traces + metrics, tracing integration.
+otlp = ["logs", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp", "dep:tracing-opentelemetry",
+        "opentelemetry-otlp/http-proto", "opentelemetry-otlp/hyper-client"]
+# Comparison: OTLP over gRPC/tonic.
+otlp-grpc = ["logs", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp", "dep:tracing-opentelemetry",
+             "opentelemetry-otlp/grpc-tonic"]
+
+[dependencies]
+tokio = { version = "=1.53.3", default-features = false, features = ["rt-multi-thread", "net", "macros", "time", "signal"] }
+hyper = { version = "=1.12.0", default-features = false, features = ["server", "http1", "http2"] }
+hyper-util = { version = "=0.1.21", default-features = false, features = ["tokio", "server", "server-auto", "http1", "http2"] }
+http-body-util = { version = "=0.1.5", default-features = false }
+tokio-rustls = { version = "=0.26.6", default-features = false, features = ["aws_lc_rs", "tls12"] }
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+
+tracing = { version = "=0.1.44", default-features = false, features = ["std"], optional = true }
+tracing-subscriber = { version = "=0.3.23", default-features = false, features = ["std", "fmt", "json", "registry"], optional = true }
+
+opentelemetry = { version = "=0.33.1", default-features = false, features = ["trace", "metrics"], optional = true }
+opentelemetry_sdk = { version = "=0.33.1", default-features = false, features = ["trace", "metrics", "rt-tokio", "experimental_trace_batch_span_processor_with_async_runtime", "experimental_metrics_periodicreader_with_async_runtime"], optional = true }
+opentelemetry-otlp = { version = "=0.33.1", default-features = false, features = ["trace", "metrics"], optional = true }
+tracing-opentelemetry = { version = "=0.34.0", default-features = false, optional = true }
+
+[profile.release]
+# Copied from /home/patrickd/aegis/Cargo.toml [profile.release]. strip is overridden to "none" by measure.sh for the
+# symbol-count twin only; sizes are taken from the strip="symbols" build.
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+debug = false
+incremental = false

@@ -1,0 +1,5 @@
+Control.lean:3:8: warning: declaration uses `sorry`
+'ctl_native' depends on axioms: [ctl_native._native.native_decide.ax_1_1]
+'ctl_sorry' depends on axioms: [sorryAx]
+'ctl_user' depends on axioms: [ctl_user_ax]
+'ctl_clean' does not depend on any axioms
