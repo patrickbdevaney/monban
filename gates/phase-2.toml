@@ -133,9 +133,19 @@ name = "h2-conformance"
 cmd = "ci/heavy.sh cargo build --release --locked -q -p transport-subject && oracles/h2-conformance/run --subject target/release/transport-subject"
 selftest = "oracles/h2-conformance/run --self-test"
 
-# TODO (transport / proxy units): resource-limit oracle (stall/reset/header budgets), Kani TBI on the prover box,
-# systemd-analyze security ≤2, perf-w1 (provisional on laptop), end-to-end reverse-proxy smoke.
+[[gate]]
+name = "systemd-hardening"
+cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+
+[[gate]]
+name = "kani-tbi"
+cmd = "ci/kani.sh"
+selftest = "ci/kani.sh --self-test"
+heavy = true
+
+# OPEN (not yet a gate): transport resource-limit oracle measured against the running server (stall/reset/header
+# budgets) — see units/BACKLOG.md "Transport"; perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
-cmd = "test -x oracles/proxy-e2e/run && oracles/proxy-e2e/run --subject target/release/aegis"
-selftest = "test -x oracles/proxy-e2e/run && oracles/proxy-e2e/run --self-test"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+selftest = "oracles/proxy-e2e/run --self-test"
