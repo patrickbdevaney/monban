@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# oracles/hrr-verdicts/run [--file F] [--subject "CMD ARGS"] [--require-cmvp] | --self-test [--file F]
+# Builds through ci/heavy.sh (machine-wide lock, 6 GB cap), then runs the oracle binary. Last line:
+# HRR-VERDICTS: PASS|FAIL (...)  or  HRR-VERDICTS SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
+set -u
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$here/../.." && pwd)
+export CARGO_TARGET_DIR="$here/target"
+file="$repo/tls/verdicts.toml"
+mode=check
+args=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --file) f="$2"; case "$f" in /*) file="$f";; *) file="$(pwd)/$f";; esac; shift 2;;
+    --self-test) mode=self-test; shift;;
+    *) args+=("$1"); shift;;
+  esac
+done
+if ! "$repo/ci/heavy.sh" cargo build --locked --quiet --manifest-path "$here/Cargo.toml" >&2; then
+  echo "HRR-VERDICTS: FAIL (build failed)"; exit 1
+fi
+bin="$CARGO_TARGET_DIR/debug/hrr-verdicts"
+for c in rustls aws-lc-rs aws-lc-sys rustls-webpki rcgen; do
+  printf '%s %s  ' "$c" "$(awk -v n="$c" '$1=="name" && $3=="\""n"\"" {getline; gsub(/"/,"",$3); print $3}' "$here/Cargo.lock")"
+done; echo
+echo "verdict file: $file (sha256 $(sha256sum "$file" | cut -c1-16))"
+exec "$bin" "$mode" --file "$file" ${args[@]+"${args[@]}"}

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# CANON-DIFF oracle entry point (oracles/README.md contract). Stdlib Python, isolated mode.
+set -u
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I -B "$here/canon_diff.py" "$@"

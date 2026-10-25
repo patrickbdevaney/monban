@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# MCP-CORPUS oracle entry point (oracles/README.md contract). Stdlib Python, isolated mode, 127.0.0.1 only.
+set -u
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I -B "$here/mcp_corpus.py" "$@"

@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# known-false-proofs oracle: a corpus of ways to make a proof checker accept a false or
+# unjustified theorem. Each Lean case MUST be rejected by ci/gate.sh, and the rejection must
+# NAME the planted defect (not an unrelated error). Spec-only cases (tools not installed) are
+# reported, never passed. --self-test additionally requires the gate to ACCEPT an honest case.
+#
+# Usage (wrap the WHOLE run in heavy.sh -- NOT each gate call, or flock self-deadlocks since it
+#        is not reentrant):   AEGIS_NO_SANDBOX=1 ci/heavy.sh oracles/known-false-proofs/run [--self-test]
+# Last line: KNOWN-FALSE-PROOFS: PASS (n rejected, m spec-only)  (exit 0 only on PASS)
+set -uo pipefail
+NAME="KNOWN-FALSE-PROOFS"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$HERE/../.." && pwd)"
+GATE="$ROOT/ci/gate.sh"
+CASES="$HERE/cases"
+SELFTEST=0
+[ "${1:-}" = "--self-test" ] && SELFTEST=1
+
+# Laptop: bwrap userns is blocked -> AEGIS_NO_SANDBOX=1 (set by the caller, defaulted here).
+# This oracle calls ci/gate.sh DIRECTLY; the caller is responsible for the single heavy.sh wrap
+# (CLAUDE.md). Re-wrapping each gate in heavy.sh would deadlock on the machine-wide flock.
+export AEGIS_NO_SANDBOX="${AEGIS_NO_SANDBOX:-1}"
+GOUT="$(mktemp)"; trap 'rm -f "$GOUT"' EXIT
+run_gate () { # <case-dir> -> writes gate output to $GOUT, sets global RC (runs in THIS shell)
+  "$GATE" "$1" >"$GOUT" 2>&1; RC=$?
+}
+
+rejected=0 speconly=0 accepted=0 bad=0
+fails=()
+
+# Deterministic order; honest-control only runs under --self-test.
+mapfile -t ALL < <(ls -1 "$CASES" | sort)
+for id in "${ALL[@]}"; do
+  d="$CASES/$id"; [ -d "$d" ] || continue
+  exp="$(head -n1 "$d/expect" 2>/dev/null || echo FAIL)"
+
+  if [ "$exp" = "SPECONLY" ]; then
+    speconly=$((speconly+1))
+    echo "[$id] SPEC-ONLY -- $d/SPEC.md (not executed; tool not installed / out of gate scope)"
+    continue
+  fi
+
+  if [ "$exp" = "ACCEPT" ]; then
+    [ "$SELFTEST" = 1 ] || { echo "[$id] skipped (honest control runs under --self-test only)"; continue; }
+    run_gate "$d"; out="$(cat "$GOUT")"
+    if [ "$RC" = 0 ] && grep -qF 'PROOF GATE: PASS' <<<"$out"; then
+      accepted=$((accepted+1)); echo "[$id] ACCEPTED by gate (honest control) -- OK"
+    else
+      bad=$((bad+1)); fails+=("$id: gate REJECTED the honest control (rc=$RC) -- gate is over-strict")
+      echo "[$id] *** gate rejected honest control (rc=$RC) ***"; echo "$out" | tail -8
+    fi
+    continue
+  fi
+
+  # exp = FAIL : exploit case. Gate must FAIL AND name the planted defect.
+  run_gate "$d"; out="$(cat "$GOUT")"
+  if [ "$RC" = 0 ]; then
+    bad=$((bad+1)); fails+=("$id: GATE ACCEPTED A KNOWN-FALSE PROOF (gate hole!) -- reproducer: $d")
+    echo "[$id] *** GATE ACCEPTED (rc=0) -- GATE HOLE -- $d ***"; echo "$out" | tail -12
+    continue
+  fi
+  # which planted defect must be named (any one listed substring suffices)
+  want_hit=""; missing=1
+  if [ -f "$d/defect" ]; then
+    while IFS= read -r pat; do
+      [ -z "$pat" ] && continue
+      if grep -qiF -- "$pat" <<<"$out"; then want_hit="$pat"; missing=0; break; fi
+    done < "$d/defect"
+  else
+    missing=0  # no defect file: FAIL alone counts (shouldn't happen)
+  fi
+  if [ "$missing" = 0 ]; then
+    rejected=$((rejected+1)); echo "[$id] rejected (rc=$RC), defect named: \"$want_hit\""
+  else
+    bad=$((bad+1)); fails+=("$id: gate FAILed but did not name the planted defect $(tr '\n' '|' <"$d/defect")")
+    echo "[$id] *** rejected but defect NOT named (unrelated error?) rc=$RC ***"; echo "$out" | tail -12
+  fi
+done
+
+echo "--------------------------------------------------------------------"
+if [ "$bad" -ne 0 ]; then
+  for f in "${fails[@]}"; do echo "  FAIL: $f"; done
+  if [ "$SELFTEST" = 1 ]; then echo "$NAME SELF-TEST: FAIL ($bad problem(s))"; else echo "$NAME: FAIL ($bad problem(s))"; fi
+  exit 1
+fi
+if [ "$SELFTEST" = 1 ]; then
+  echo "$NAME SELF-TEST: PASS ($rejected rejected, $accepted honest accepted, $speconly spec-only)"
+else
+  echo "$NAME: PASS ($rejected rejected, $speconly spec-only)"
+fi
+exit 0

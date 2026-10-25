@@ -1,0 +1,45 @@
+# Backlog found while building the verify wall (not yet units)
+
+## xtask fips-lock gaps (from the oracles/hrr-verdicts port, 2026-10-25). Phase 6 gate.
+1. G1 prefer-post-quantum on every rustls node (needs `cargo metadata`, not Cargo.lock text).
+2. G2b which aws-lc-fips-sys version aws-lc-rs actually links.
+3. G3 aws-lc-rs window [1.15.2, 1.17.1] instead of a single exact pin compare.
+4. G4 floors rustls ≥0.23.46 / webpki ≥0.103.16 and the report that cmvp cannot meet them (ledger entries).
+5. G5 floor-profile lineage (aws-lc-fips-sys ≥0.13.13) once profiles/floor exists.
+6. G6 `AWS-LC FIPS 3.1.0` string present in the binary (P-PQ5 module identity).
+7. Read `cargo metadata --locked` rather than Cargo.lock text.
+8. Add self-test mutants for G1, G3, G6.
+
+## TLS
+- rustls 0.23.46 selects by client order: server list order never changes the outcome until the PreferServerOrder
+  backport; PUB-T2 flips deliberately then (re-freeze F12).
+- P-PQ3 ticket scope, P-PQ6 cmvp client policy, 0-RTT: no verdicts yet. P-CNSA: no frozen verdicts.
+
+## Canon / MCP (from the oracle ports, 2026-10-25)
+- Research claim "331/331/69 → 0/0/0" corrected: before-counts are 444/331/69 (paths/hosts/JSON); the 0/0/0 holds
+  over only 6/6/9 accepted values. ARCHITECTURE §3.3 cites the wrong path number.
+- The research canon_ref.py used Python IDNA2003 for xn-- labels, which violates its own no-IDNA-on-ingress rule; the
+  oracle now uses a structural Punycode check only.
+- G3 "34 dated instances" is not reconstructible; 47 ledger rows reconstructed from one-line descriptions.
+- Pending: G2 through every Rust identity parser in the lock; h2c :authority case; CANON-8 folding; q4-008.
+- MCP corpus: 44 cases (union of two research lists); 13 not black-box executable; only 19/33 advisory cases had
+  ever run on any target. Several expected statuses are research proposals, not spec text: ratify at Phase 3 freeze.
+
+## Data plane (from the lowering oracle ports, 2026-10-25)
+- Spec §E corrected (equality → subset; UNKNOWN gap is a miss, never a leak); F4 gained `Collation` + key flag and
+  rejects non-binary tenant/key collations (W3 no-op on NOCASE/ICU: 51/1200 cases).
+- Lean comment on `inList []` says FALSE; the definition yields UNKNOWN on a NULL column. Fix the comment in a
+  spec-change PR (comments are stripped from the statement ledger, so no hash change).
+- Research hardened SQLite filter was two-valued on NULL (wrong under NOT); prefix check misses on NUL (fails safe).
+- Pending oracle coverage: W5 (triggers, data-modifying CTEs, FK actions), W6, MERGE, native PG RLS; PG 19rc1;
+  SQLite at the adapter pin (≥3.51.3, not Python's 3.45.3); Redis ACL hostile-command corpus; MySQL/Cockroach (q4-005).
+
+## State (from crash-harness / cancel-sweep ports, 2026-10-25)
+- NEW: SQLite 3.53.2 silently falls back from WAL to rollback-journal if the first fsync fails during WAL
+  conversion (PRAGMA had already returned "wal"); acked writes are then lost. aegis-state MUST re-read
+  journal_mode and synchronous after the first write and refuse to serve otherwise (INV-DURABLE).
+- redb 2PC passes only with the bootstrap parent-directory fsync (research's 1,176/8,020 losses reproduce without it).
+- Store creation must be temp file + rename + dir fsync so a crash inside create is retryable.
+- Full-size crash run (~170k images) is a CI/VPS job. Rust subjects need `--cfg rustix_use_libc` for the tracer.
+- Cancel-sweep pending: real-driver regression cases, task abort / h1 FIN / shutdown deadline / Wasm trap modes, NC6–NC8.
+- Admission: I3/I6/I9/I10 need TLA+; governor is not LRU, so the I4 check needs a declared eviction policy.

@@ -27,8 +27,9 @@ echo "== step 3: axiom allowlist"; python3 -I "$ROOT/ci/axiom_audit.py" . || fai
 [ "$fail" = 0 ] || { echo "PROOF GATE: FAIL"; exit 1; }
 echo "== step 4: lake check --paranoid"
 extra=(); [ "${AEGIS_NO_SANDBOX:-0}" = 1 ] && extra=(--inadvisably-no-sandbox)
-lake check --paranoid "${extra[@]}"
+lake check --paranoid "${extra[@]}" || { echo "PROOF GATE: FAIL (step 4: an independent checker rejected the build)"; exit 1; }
 if [ -f STATEMENTS.sha256 ]; then
-  echo "== step 5: frozen statement hashes"; python3 -I "$ROOT/ci/statements.py" check .
+  echo "== step 5: frozen statement hashes"
+  python3 -I "$ROOT/ci/statements.py" check . || { echo "PROOF GATE: FAIL (step 5: frozen statement changed)"; exit 1; }
 fi
 echo "PROOF GATE: PASS"

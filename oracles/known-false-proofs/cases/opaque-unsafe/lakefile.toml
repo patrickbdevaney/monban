@@ -1,0 +1,8 @@
+name = "kf"
+version = "0.1.0"
+defaultTargets = ["KF"]
+leanOptions = { autoImplicit = false }
+
+[[lean_lib]]
+name = "KF"
+roots = ["KF"]

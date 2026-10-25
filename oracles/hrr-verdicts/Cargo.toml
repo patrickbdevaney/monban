@@ -1,0 +1,20 @@
+# Oracle workspace (excluded from the main workspace by `exclude = ["oracles"]`); own Cargo.lock; build only via
+# ci/heavy.sh (see ./run). Pins = golden lock targets (REPO_LAYOUT §1) except rustls-webpki, see README.
+[package]
+name = "hrr-verdicts"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+# webpki 0.103.16 (2026-10-20) is inside the 7-day cooldown on 2026-10-25: substituted with 0.103.15 (2026-08-21).
+rustls-webpki = { version = "=0.103.15", default-features = false, features = ["alloc", "aws-lc-rs"] }
+rcgen = { version = "=0.14.10", default-features = false, features = ["aws_lc_rs", "crypto"] }
+
+[profile.dev]
+debug = 0
+incremental = false

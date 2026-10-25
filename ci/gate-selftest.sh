@@ -8,4 +8,9 @@ for want in 'sorry warning' 'native_decide\b/' 'axiom\b/' "uses_sorry: unpermitt
             'uses_native: unpermitted axioms' "uses_axiom: unpermitted axioms ['AegisIR.Bad.cheat']" 'PROOF GATE: FAIL'; do
   grep -qF -- "$want" <<<"$out" || { echo "SELFTEST FAIL: gate output lacks: $want"; echo "$out" | tail -30; exit 1; }
 done
-echo "GATE SELFTEST: PASS (negative control rejected with every planted defect named)"
+# Frozen-statement control: weakening a frozen theorem statement in a copy of spec/ must fail the ledger check.
+t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+cp -r "$ROOT/spec/AegisIR" "$ROOT/spec/lakefile.toml" "$ROOT/spec/STATEMENTS.sha256" "$t/"
+sed -i 's/theorem combine_empty : combine \[\] = .deny/theorem combine_empty : combine [] ≠ .allow/' "$t/AegisIR/Combine.lean"
+if python3 -I "$ROOT/ci/statements.py" check "$t" >/dev/null; then echo "SELFTEST FAIL: weakened statement not detected"; exit 1; fi
+echo "GATE SELFTEST: PASS (negative control rejected with every planted defect named; weakened statement detected)"

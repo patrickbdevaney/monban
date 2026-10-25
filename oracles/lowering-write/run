@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# LOWERING-WRITE oracle entry point (oracles/README.md contract). python3 -I, stdlib only.
+set -u
+exec python3 -I "$(dirname "$(readlink -f "$0")")/write_oracle.py" "$@"

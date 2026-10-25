@@ -72,11 +72,26 @@ pub struct Op {
     pub returning: Vec<Field>,
 }
 
+/// Engine collation of a column. Soundness needs engine equality to refine the reference (`Backend.Refines`);
+/// case-insensitive or nondeterministic collations break it (`refines_necessary`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Collation {
+    /// Byte-wise / deterministic (PG "C" or deterministic ICU, SQLite BINARY, Redis keys).
+    Binary,
+    /// SQLite NOCASE, MySQL *_ci, citext and similar.
+    CaseInsensitive,
+    /// Nondeterministic ICU or anything else not byte-wise.
+    Nondeterministic,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Column {
     pub field: Field,
     pub name: String,
     pub nullable: bool,
+    pub collation: Collation,
+    /// Part of the upsert/merge arbiter key (W3).
+    pub key: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -93,6 +108,8 @@ pub enum SchemaError {
     UnknownField(Field),
     NotOverNullable(Field),
     TenantFieldNullable,
+    /// Tenant or key column with a non-binary collation (W3, `refines_necessary`).
+    NonBinaryCollation(Field),
     TenantFieldWritten,
     ReturningNotPermitted(Field),
     CollectionMismatch,
@@ -117,6 +134,10 @@ pub fn check_schema(op: &Op, s: &Schema) -> Result<(), SchemaError> {
     }
     if s.columns.iter().any(|c| c.field == s.tenant_field && c.nullable) {
         return Err(SchemaError::TenantFieldNullable);
+    }
+    if let Some(c) = s.columns.iter().find(|c| (c.field == s.tenant_field || c.key) && c.collation != Collation::Binary)
+    {
+        return Err(SchemaError::NonBinaryCollation(c.field));
     }
     let mut reads = Vec::new();
     op.filter.reads(&mut reads);
@@ -168,9 +189,15 @@ mod tests {
             collection: "notes".into(),
             tenant_field: 0,
             columns: vec![
-                Column { field: 0, name: "tenant".into(), nullable: false },
-                Column { field: 1, name: "title".into(), nullable: false },
-                Column { field: 2, name: "archived_at".into(), nullable: true },
+                Column { field: 0, name: "tenant".into(), nullable: false, collation: Collation::Binary, key: true },
+                Column { field: 1, name: "title".into(), nullable: false, collation: Collation::Binary, key: false },
+                Column {
+                    field: 2,
+                    name: "archived_at".into(),
+                    nullable: true,
+                    collation: Collation::Binary,
+                    key: false,
+                },
             ],
             permitted: vec![1, 2],
         }
@@ -193,6 +220,11 @@ mod tests {
         w.kind = OpKind::Update;
         w.writes = vec![(0, Value::Int(1))];
         assert_eq!(check_schema(&w, &s), Err(SchemaError::TenantFieldWritten));
+        let mut ci = schema();
+        if let Some(c) = ci.columns.first_mut() {
+            c.collation = Collation::CaseInsensitive;
+        }
+        assert_eq!(check_schema(&op(Pred::Tt), &ci), Err(SchemaError::NonBinaryCollation(0)));
         assert_eq!(Pred::or_n(vec![]), Pred::Ff);
         assert_eq!(Pred::and_n(vec![]), Pred::Tt);
     }
