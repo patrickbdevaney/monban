@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# AEGIS oracle: ACME (RFC 8555 + RFC 9773 ARI) against Pebble, CERT-1..4. Contract: oracles/README.md.
+#   ./run [--subject target/release/acme-subject]   issue + ARI renewal + clock renewal + atomic swap + alerts
+#   ./run --self-test                                mutations (wrong-key JWS, replayed nonce, tampered order,
+#                                                    tampered chain, expired without renewal) + negative controls
+# Last line: ACME-PEBBLE: PASS|FAIL (...)  /  ACME-PEBBLE SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
+# Light: runs two ~8 MB containers and the prebuilt subject; the subject is built through ci/heavy.sh if missing.
+set -u
+here="$(cd "$(dirname "$0")" && pwd)"
+repo="$(cd "$here/../.." && pwd)"
+subject_given=0
+for a in "$@"; do [ "$a" = "--subject" ] && subject_given=1; done
+if [ "$subject_given" = 0 ] && [ ! -x "$repo/target/release/acme-subject" ]; then
+  (cd "$repo" && ci/heavy.sh cargo build --release -p acme-subject) >&2 || { echo "ACME-PEBBLE: FAIL (subject build failed)"; exit 1; }
+fi
+cd "$repo" && exec python3 -I "$here/oracle.py" "$@"

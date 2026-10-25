@@ -75,9 +75,14 @@
   unapplied action, never the reverse. Document in the audit-failure policy.
 
 ## Upgrade (from P2-upgrade-001)
-- F11 SCM_RIGHTS transport: nix returns RawFd; taking ownership needs unsafe. Decision: keep F11; follow-up unit
-  P2-upgrade-002 moves fd passing to rustix's safe recvmsg (ScmRights yields OwnedFd). Until then listeners go via
-  stdio inheritance (safe, ≤2 listeners per handover; more ⇒ parent refuses upgrade and keeps serving).
+- F11 SCM_RIGHTS transport: RESOLVED by P2-upgrade-002 (rustix safe sendmsg/recvmsg, OwnedFd, MSG_CTRUNC ⇒ close
+  all + abort; ≤64 listeners per handover; stdio inheritance removed).
 - Not done: FDSTORE, UP-3 (h2 GOAWAY, needs transport), ACME/CERT-1..4 (P2-ops-cert-001).
 - Child crash after READY and after the parent closed its copies loses the listeners (documented in handover.rs):
   FDSTORE closes this.
+
+## ACME (from P2-acme-cert-001)
+- `aegis_ops::acme::Faults` (oracle fault hooks) is public production API, off by default: move behind a
+  `test-faults` feature so release builds cannot enable it.
+- Not done: TLS-ALPN-01, EAB; Let's Encrypt staging interop (needs a public name); PQ group negotiation with Pebble
+  unverified (only a unit test checks the PQ-first preference). ACME uses blocking std sockets + rustls (no tokio).

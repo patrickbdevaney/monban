@@ -13,11 +13,28 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-config = { workspace = true }
+# rustix: safe SCM_RIGHTS sendmsg/recvmsg for the F11 handover (received fds arrive as OwnedFd; no unsafe here).
+# "time": rustix 1.1.5 with only "net" fails to build on the linux_raw backend (its net sockopt code needs the
+# `timespec` module, which is gated on time/fs/event/...); "time" is the smallest feature that enables it.
+rustix = { workspace = true, features = ["time"] }
 # nix: only what the upgrade path needs. socket/net (net = socket + inet sockaddr accessors) = SEQPACKET handover socket, SO_PEERCRED, SO_TYPE, SO_ACCEPTCONN,
 # getsockname; poll = accept loop with a stop flag; signal = sigwait-based signal handling (no handlers, no unsafe);
 # fs = mkfifo for the STEK pipe; user = getuid for the 0700-dir / peer-uid checks.
 nix = { workspace = true, features = ["socket", "net", "poll", "signal", "fs", "user"] }
 sd-notify = { workspace = true }
+# CERT-1..4 (always on): the swappable server cert store (rustls ResolvesServerCert, server side only), preflight
+# signature checks (aws-lc-rs) and the profile sigalg rules (aegis-tls).
+aegis-tls = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+# ACME (feature `acme`, DEVIATIONS X-6): strict JSON from the one parser.
+aegis-canon = { workspace = true, optional = true }
+
+[features]
+default = []
+# In-house RFC 8555 / RFC 9773 client. This is the only code in aegis-ops that builds a rustls ClientConfig; with the
+# feature off no rustls client code is linked (spikes/cmvp-client-policy, compiled-out mode).
+acme = ["dep:aegis-canon"]
 
 [lints]
 workspace = true

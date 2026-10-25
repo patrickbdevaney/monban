@@ -5,8 +5,8 @@
 //!
 //! * [`wire`]: F11 codec, deterministic CBOR subset, total length-capped decoder (UP-7).
 //! * [`machine`]: sans-IO parent and child state machines (UP-1, UP-2, UP-4, UP-7).
-//! * [`handover`]: IO drivers: 0700 dir, SEQPACKET socket + SO_PEERCRED, STEK by pipe (UP-5), spawn with fd
-//!   inheritance, claim-or-close (UP-2), drain.
+//! * [`handover`]: IO drivers: 0700 dir, SEQPACKET socket + SO_PEERCRED, STEK by pipe (UP-5), listener fds by
+//!   SCM_RIGHTS (rustix, received as `OwnedFd`; P2-upgrade-002), claim-or-close (UP-2), drain.
 //! * [`fdcheck`]: SO_TYPE / SO_ACCEPTCONN / getsockname validation (UP-2).
 //! * [`cloexec`]: CLOEXEC hygiene audit (UP-6).
 //! * [`drain`]: accept loop with a stop flag, two-phase drain with forced-close count (UP-3 analogue, UP-4).
@@ -15,6 +15,8 @@
 //! * [`stek`]: STEK ring and its pipe framing (UP-5).
 #![forbid(unsafe_code)]
 
+pub mod acme;
+pub mod cert;
 pub mod cloexec;
 pub mod drain;
 pub mod fdcheck;

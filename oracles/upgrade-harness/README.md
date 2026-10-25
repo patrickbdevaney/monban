@@ -8,8 +8,9 @@ deadline D) and **UP-7** (a reload never degrades service), black-box, under loa
 ## Usage
 
 ```
-oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100
+oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 [--listeners 4]
     options: --interval 0.2 (s between reloads, 5/s)  --rate 2000 (new conn/s)  --drain-ms 2000
+             --listeners N (1..64, default 1): the subject serves N ports; the load is spread round-robin
 oracles/upgrade-harness/run --self-test
 ```
 
@@ -20,15 +21,16 @@ Subject stderr goes to `.work/subject.log` (git-ignored); the per-run temp dir i
 ## Subject protocol
 
 ```
-<subject> --listen 127.0.0.1:<port> --pidfile <file> --drain-ms <D>
+<subject> --listen 127.0.0.1:<port> [--listen 127.0.0.1:<port2> ...] --pidfile <file> --drain-ms <D>
 ```
-SIGHUP = upgrade. Whichever process owns the listener after a *completed* upgrade rewrites `<file>` (atomically)
+`--listen` is repeated once per listener (`--listeners N`). SIGHUP = upgrade. Whichever process owns the listeners
+after a *completed* upgrade rewrites `<file>` (atomically)
 with its pid. SIGTERM = drain and exit. Every request `GET / HTTP/1.1 ... Connection: close` gets a `200` with a
 `Content-Length` body. The harness launches the subject with `close_fds=True` in its own session.
 
 ## What is checked
 
-A single-threaded epoll client opens `--rate` new connections per second, sends one request on each and reads the
+A single-threaded epoll client opens `--rate` new connections per second (round-robin over the N ports), sends one request on each and reads the
 response. Meanwhile, every `--interval` seconds, it sends SIGHUP to the pid in the pidfile and waits (≤10 s) for the
 pidfile to name a new pid. Counted:
 
@@ -41,7 +43,10 @@ pidfile to name a new pid. Counted:
 | `reloads_done` | reloads whose pidfile changed; must equal `--reloads` (a subject that ignores SIGHUP cannot pass) |
 | `old_alive` | handed-over pids still alive (not zombie) D + 1 s after the load ends (UP-4) |
 
-**PASS** iff `refused = rst = dropped_before_D = client_err = old_alive = 0`, `reloads_done = N`, and `ok > 0`.
+| `ok_per_listener` | completed responses per port; every port must be > 0 (a subject that hands over only some listeners cannot pass) |
+
+**PASS** iff `refused = rst = dropped_before_D = client_err = old_alive = 0`, `reloads_done = N`, `ok > 0`, and
+every listener served traffic. With `--self-test --listeners N` the naive controls also serve N ports.
 
 ## Self-test (negative controls)
 
@@ -69,7 +74,11 @@ Built-in naive subjects (in `harness.py`, same CLI) that must be caught:
 
 * Research: ARCHITECTURE §3.11 (R-OPS-7) and its HAProxy citation; no research script was ported or executed; the
   naive controls are written from the description.
-* Loopback only, one listener, plain HTTP/1.1. UP-3 (H2 GOAWAY last_stream_id), UP-5 (STEK) and UP-6 (CLOEXEC) are
+* P2-upgrade-002 (SCM_RIGHTS transport): 100 reloads with `--listeners 4` at 2k conn/s: 0/0/0, 42 000 ok spread
+  10 500 per listener, reload p50 ≈ 8.7 ms. A pre-existing subject race surfaced at 1 listener (EOF drops: the
+  drain's phase 1 closed a just-accepted connection whose first request had not arrived yet as "idle keep-alive");
+  fixed in the subject (only connections that already got a response count as idle). The harness caught it.
+* Loopback only, plain HTTP/1.1. UP-3 (H2 GOAWAY last_stream_id), UP-5 (STEK) and UP-6 (CLOEXEC) are
   not observable black-box here; they are covered by `aegis-ops` unit tests.
 * The client counts at connection granularity; a subject that answered with a wrong-but-200 body would pass.
 * Laptop timings are provisional; `client_err` would flag ephemeral-port exhaustion at much higher rates.
