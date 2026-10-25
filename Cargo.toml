@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "sdk/aegis-sdk", "xtask"]
+members = ["crates/*", "sdk/aegis-sdk", "xtask", "subjects/*"]
 exclude = ["oracles", "research", "conformance", "bench", "profiles"]
 default-members = ["crates/*", "sdk/aegis-sdk"]
 
