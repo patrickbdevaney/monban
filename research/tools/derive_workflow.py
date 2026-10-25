@@ -1,5 +1,9 @@
 # Derives aegis.workflow.js from ~/frontier-research/arsenal/arsenal.workflow.js (same pattern as sovereign/tools/derive_workflow.py).
 # Run: python3 -I ~/aegis/research/tools/derive_workflow.py
+# Refuses while research/.inflight-run exists: regenerating changes agent prompts and voids that run's resume cache.
+import os, sys
+if os.path.exists('/home/patrickd/aegis/research/.inflight-run') and '--force' not in sys.argv:
+    sys.exit('refusing: a run is in flight (research/.inflight-run); delete it when the run has finished')
 s = open('/home/patrickd/frontier-research/arsenal/arsenal.workflow.js').read()
 
 def rep(a, b):
@@ -71,6 +75,15 @@ b = s.index("You may write only these files.")
 s = s[:a] + """(a) ${ROOT}/ARCHITECTURE.md per directive §9 (version it v${lastRound} with date and saturation status), with an evidence appendix (item → node ids/URLs → grade → last checked) and a RECONCILIATION section vs prior research (PDF1, PDF2, seed conversation: confirmed / refuted / they missed / adopted with independent evidence) and an ANCHORING AUDIT table (decision → prior-treatment pick → our pick → independent evidence).
 (b) ${ROOT}/templates/: REPO_LAYOUT.md, IMPLEMENTATION_PLAN.md, THREAT_MODEL.md, VERIFICATION_PLAN.md, SPEC_INVARIANTS.md, SUPPLY_CHAIN.md, COMPLIANCE_MAP.md, BENCH_PLAN.md (contents per directive §0).
 """ + s[b:]
+
+# Crash/session-loss resumability (META resume is same-session only; these make a fresh run restartable from disk).
+rep("If ${prog} already exists, read it first and continue from it instead of restarting.",
+    "If ${prog} already exists, read it first and continue from it instead of restarting. If ${raw} already exists and is complete JSON "
+    "(nodes + source list), a previous attempt finished: do NOT redo research, return its contents as the structured result.")
+rep("You are the INTEGRATOR for AEGIS round ${round} — the ONLY writer of map state.",
+    "You are the INTEGRATOR for AEGIS round ${round} — the ONLY writer of map state. IDEMPOTENCY: a previous attempt may have crashed mid-write, "
+    "so before appending check state/graph.jsonl, edges.jsonl and seen.jsonl for entries with first_seen_round=${round} and skip ids/URLs already present; "
+    "rewrite whole files (frontier_queue, LATEST, ARCHITECTURE-DRAFT) via a temp file then rename, never truncate in place.")
 
 left = [l for l in s.splitlines() if 'ARSENAL' in l or 'PLAYBOOK' in l or 'A-LADDER' in l]
 assert not left, left

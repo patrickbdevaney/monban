@@ -5,3 +5,7 @@ research/state/raw/*/work/
 research/state/raw/*/*bench/
 *.cwasm
 *.wasm
+research/state/raw/*/*-work/
+research/state/raw/*/w[0-9]*/
+**/cargohome/
+.git/checkpoint.index
