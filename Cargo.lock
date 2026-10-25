@@ -111,6 +111,11 @@ dependencies = [
  "aegis-transport",
  "aegis-types",
  "aegis-wasm",
+ "h2",
+ "http",
+ "hyper",
+ "rustls",
+ "tokio",
 ]
 
 [[package]]
