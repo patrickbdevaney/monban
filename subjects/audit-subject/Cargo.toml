@@ -1,0 +1,18 @@
+[package]
+name = "audit-subject"
+description = "Oracle subject: writes an aegis-audit log in the C2SP tlog-tiles layout for oracles/tlog-verify. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-audit = { workspace = true }
+aegis-types = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# TLOG-VERIFY oracle entry point (oracles/README.md contract).
+#   run --subject <cmd>        run <cmd> --out <tmp> (an aegis-audit tlog-tiles writer), then verify its output
+#   run --self-test [--subject <cmd>]   mutate the subject's output (default subject: target/release/audit-subject)
+#                                        and require every mutation to FAIL for its intended reason
+# The Go verifier is built on first use (and whenever src/ changes) inside a digest-pinned golang:1.26-alpine
+# container (~241 MB) through ci/heavy.sh, into the gitignored .build/ directory; caches are deleted afterwards.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(cd "$here/../.." && pwd)"
+IMAGE="golang:1.26-alpine@sha256:d1f3216ef30257c850cc136ba42a359ccd9d3e75f19b2c276e520c0b4ef327ce"
+bin="$here/.build/tlog-verify"
+stamp="$here/.build/src.sha256"
+
+build() {
+  local want; want="$(cd "$here/src" && cat go.mod go.sum ./*.go | sha256sum | cut -d' ' -f1)"
+  if [ -x "$bin" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$want" ]; then return 0; fi
+  echo "tlog-verify: building verifier in $IMAGE" >&2
+  mkdir -p "$here/.build/gomod" "$here/.build/gocache"
+  "$repo/ci/heavy.sh" docker run --rm --network=bridge --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp -e GOMODCACHE=/b/gomod -e GOCACHE=/b/gocache -e GOTOOLCHAIN=local -e CGO_ENABLED=0 \
+    -e GOFLAGS=-mod=readonly -e GOPROXY=https://proxy.golang.org -e GOSUMDB=sum.golang.org \
+    -v "$here/src:/src:ro" -v "$here/.build:/b" -w /src "$IMAGE" \
+    go build -trimpath -ldflags=-s -o /b/tlog-verify . >&2
+  chmod -R u+w "$here/.build/gomod" 2>/dev/null || true
+  rm -rf "$here/.build/gomod" "$here/.build/gocache"
+  echo "$want" > "$stamp"
+}
+
+subject=""; selftest=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --subject) subject="$2"; shift 2 ;;
+    --self-test) selftest=1; shift ;;
+    *) echo "usage: run --subject <cmd> | --self-test [--subject <cmd>]" >&2; echo "TLOG-VERIFY: FAIL (usage)"; exit 2 ;;
+  esac
+done
+
+if ! build; then echo "TLOG-VERIFY: FAIL (could not build the Go verifier)"; exit 1; fi
+work="$(mktemp -d "${TMPDIR:-/tmp}/tlog-verify.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+
+if [ "$selftest" = 1 ]; then
+  subject="${subject:-$repo/target/release/audit-subject}"
+  first="${subject%% *}"
+  if [ ! -x "$first" ] && ! command -v "$first" >/dev/null; then
+    echo "TLOG-VERIFY SELF-TEST: FAIL (subject $first not found; build it: ci/heavy.sh cargo build --release -p audit-subject)"
+    exit 1
+  fi
+  exec "$bin" self-test --subject "$subject" --work "$work"
+fi
+
+[ -n "$subject" ] || { echo "TLOG-VERIFY: FAIL (no --subject)"; exit 2; }
+# shellcheck disable=SC2086
+if ! $subject --out "$work/log" > "$work/subject.stdout"; then
+  echo "TLOG-VERIFY: FAIL (subject exited non-zero)"; exit 1
+fi
+# Trust on first use: the subject's declared verifier keys are copied out of the log directory before verifying,
+# so later edits to the directory cannot change which keys are trusted.
+mkdir -p "$work/trusted"
+keys=()
+for k in vkey vkey.mldsa87; do
+  if [ -f "$work/log/$k" ]; then cp "$work/log/$k" "$work/trusted/$k"; keys+=(--key "$work/trusted/$k"); fi
+done
+[ ${#keys[@]} -gt 0 ] || { echo "TLOG-VERIFY: FAIL (subject published no vkey)"; exit 1; }
+"$bin" verify --dir "$work/log" "${keys[@]}"
