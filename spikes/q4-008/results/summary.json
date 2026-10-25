@@ -302,7 +302,7 @@
    },
    "secrepo-2017-2023/raw": {
     "pct_lines": 0.0234,
-    "pct_sole": 0.0163,
+    "pct_sole": 0.0165,
     "pct_unique": 0.7572,
     "lines": 852
    },
@@ -382,7 +382,7 @@
   "p.enc_nul": {
    "secrepo-2024-2026/raw": {
     "pct_lines": 0.0165,
-    "pct_sole": 0.0162,
+    "pct_sole": 0.0163,
     "pct_unique": 0.0172,
     "lines": 376
    },
@@ -510,7 +510,7 @@
    },
    "secrepo-2017-2023/raw": {
     "pct_lines": 0.0091,
-    "pct_sole": 0.0006,
+    "pct_sole": 0.0009,
     "pct_unique": 0.4754,
     "lines": 333
    },
@@ -538,7 +538,7 @@
   "p.enc_nonascii": {
    "secrepo-2024-2026/raw": {
     "pct_lines": 0.0332,
-    "pct_sole": 0.0322,
+    "pct_sole": 0.0326,
     "pct_unique": 0.1216,
     "lines": 757
    },
@@ -550,13 +550,13 @@
    },
    "cc-main-2026-43/raw": {
     "pct_lines": 2.8509,
-    "pct_sole": 2.2928,
+    "pct_sole": 2.8284,
     "pct_unique": 3.085,
     "lines": 28223
    },
    "cc-main-2026-43/benign": {
     "pct_lines": 2.854,
-    "pct_sole": 2.2952,
+    "pct_sole": 2.8314,
     "pct_unique": 3.0885,
     "lines": 28219
    },
@@ -568,7 +568,7 @@
    },
    "secrepo-2017-2023/benign": {
     "pct_lines": 0.0699,
-    "pct_sole": 0.064,
+    "pct_sole": 0.0641,
     "pct_unique": 0.5958,
     "lines": 2213
    },
@@ -953,10 +953,10 @@
   },
   "p.dot_segment": {
    "secrepo-2024-2026/raw": {
-    "pct_lines": 0.003,
+    "pct_lines": 0.0026,
     "pct_sole": 0.0021,
-    "pct_unique": 0.0671,
-    "lines": 68
+    "pct_unique": 0.0608,
+    "lines": 60
    },
    "secrepo-2024-2026/benign": {
     "pct_lines": 0.0002,
@@ -965,22 +965,22 @@
     "lines": 3
    },
    "cc-main-2026-43/raw": {
-    "pct_lines": 0.0002,
+    "pct_lines": 0.0,
     "pct_sole": 0.0,
-    "pct_unique": 0.0002,
-    "lines": 2
+    "pct_unique": 0.0,
+    "lines": 0
    },
    "cc-main-2026-43/benign": {
-    "pct_lines": 0.0002,
+    "pct_lines": 0.0,
     "pct_sole": 0.0,
-    "pct_unique": 0.0002,
-    "lines": 2
+    "pct_unique": 0.0,
+    "lines": 0
    },
    "secrepo-2017-2023/raw": {
-    "pct_lines": 0.0009,
+    "pct_lines": 0.0008,
     "pct_sole": 0.0007,
-    "pct_unique": 0.0259,
-    "lines": 34
+    "pct_unique": 0.0198,
+    "lines": 30
    },
    "secrepo-2017-2023/benign": {
     "pct_lines": 0.0006,
@@ -1005,10 +1005,10 @@
   },
   "p.empty_segment": {
    "secrepo-2024-2026/raw": {
-    "pct_lines": 0.9903,
+    "pct_lines": 0.99,
     "pct_sole": 0.9642,
-    "pct_unique": 12.9672,
-    "lines": 22573
+    "pct_unique": 12.9579,
+    "lines": 22565
    },
    "secrepo-2024-2026/benign": {
     "pct_lines": 0.5453,
@@ -1017,28 +1017,28 @@
     "lines": 9023
    },
    "cc-main-2026-43/raw": {
-    "pct_lines": 0.5596,
+    "pct_lines": 0.0112,
     "pct_sole": 0.0112,
-    "pct_unique": 0.603,
-    "lines": 5540
+    "pct_unique": 0.0104,
+    "lines": 111
    },
    "cc-main-2026-43/benign": {
-    "pct_lines": 0.5603,
+    "pct_lines": 0.0112,
     "pct_sole": 0.0112,
-    "pct_unique": 0.6038,
-    "lines": 5540
+    "pct_unique": 0.0104,
+    "lines": 111
    },
    "secrepo-2017-2023/raw": {
-    "pct_lines": 1.8257,
+    "pct_lines": 1.8252,
     "pct_sole": 1.7126,
-    "pct_unique": 9.6564,
-    "lines": 66572
+    "pct_unique": 9.6336,
+    "lines": 66555
    },
    "secrepo-2017-2023/benign": {
-    "pct_lines": 0.2597,
+    "pct_lines": 0.2596,
     "pct_sole": 0.2524,
-    "pct_unique": 3.3429,
-    "lines": 8219
+    "pct_unique": 3.3381,
+    "lines": 8217
    },
    "nasa-1995/raw": {
     "pct_lines": 0.0364,
@@ -1052,7 +1052,7 @@
     "pct_unique": 0.4717,
     "lines": 1236
    },
-   "max_modern_benign_pct": 0.5603,
+   "max_modern_benign_pct": 0.5453,
    "decision": "flip"
   },
   "q.too_long": {
@@ -1434,13 +1434,13 @@
    },
    "cc-main-2026-43/raw": {
     "pct_lines": 0.0114,
-    "pct_sole": 0.0064,
+    "pct_sole": 0.0084,
     "pct_unique": 0.0124,
     "lines": 113
    },
    "cc-main-2026-43/benign": {
     "pct_lines": 0.0114,
-    "pct_sole": 0.0064,
+    "pct_sole": 0.0084,
     "pct_unique": 0.0124,
     "lines": 113
    },
@@ -2057,16 +2057,16 @@
     "lines": 2
    },
    "cc-main-2026-43/raw": {
-    "pct_lines": 0.1787,
+    "pct_lines": 0.1767,
     "pct_sole": 0.1302,
-    "pct_unique": 0.1937,
-    "lines": 1769
+    "pct_unique": 0.1915,
+    "lines": 1749
    },
    "cc-main-2026-43/benign": {
-    "pct_lines": 0.1789,
+    "pct_lines": 0.1769,
     "pct_sole": 0.1304,
-    "pct_unique": 0.194,
-    "lines": 1769
+    "pct_unique": 0.1918,
+    "lines": 1749
    },
    "secrepo-2017-2023/raw": {
     "pct_lines": 0.0751,
@@ -2092,7 +2092,7 @@
     "pct_unique": 0.0,
     "lines": 0
    },
-   "max_modern_benign_pct": 0.1789,
+   "max_modern_benign_pct": 0.1769,
    "decision": "flip"
   },
   "h.userinfo": {
@@ -2669,10 +2669,10 @@
   },
   "p.trailing_slash_308": {
    "secrepo-2024-2026/raw": {
-    "pct_lines": 4.2786,
+    "pct_lines": 4.2785,
     "pct_sole": 0.0,
-    "pct_unique": 5.0724,
-    "lines": 97524
+    "pct_unique": 5.0709,
+    "lines": 97522
    },
    "secrepo-2024-2026/benign": {
     "pct_lines": 2.2863,
@@ -2681,28 +2681,28 @@
     "lines": 37831
    },
    "cc-main-2026-43/raw": {
-    "pct_lines": 40.4763,
+    "pct_lines": 40.3406,
     "pct_sole": 0.0,
-    "pct_unique": 41.9998,
-    "lines": 400697
+    "pct_unique": 41.8533,
+    "lines": 399354
    },
    "cc-main-2026-43/benign": {
-    "pct_lines": 40.5167,
+    "pct_lines": 40.381,
     "pct_sole": 0.0,
-    "pct_unique": 42.0462,
-    "lines": 400612
+    "pct_unique": 41.8996,
+    "lines": 399270
    },
    "secrepo-2017-2023/raw": {
-    "pct_lines": 3.5209,
+    "pct_lines": 3.5205,
     "pct_sole": 0.0,
-    "pct_unique": 29.6808,
-    "lines": 128389
+    "pct_unique": 29.6625,
+    "lines": 128374
    },
    "secrepo-2017-2023/benign": {
-    "pct_lines": 3.5183,
+    "pct_lines": 3.5179,
     "pct_sole": 0.0,
-    "pct_unique": 44.4867,
-    "lines": 111364
+    "pct_unique": 44.4604,
+    "lines": 111350
    },
    "nasa-1995/raw": {
     "pct_lines": 4.8854,
@@ -2716,7 +2716,7 @@
     "pct_unique": 4.064,
     "lines": 164713
    },
-   "max_modern_benign_pct": 40.5167,
+   "max_modern_benign_pct": 40.381,
    "decision": "already 308"
   }
  },

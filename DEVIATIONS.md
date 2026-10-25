@@ -1,0 +1,11 @@
+# Deviations from research/ARCHITECTURE.md v4 (implementation-time decisions)
+
+Each entry: what the architecture said, what we do instead, why, and what would reverse it.
+
+| # | architecture | implementation | why | reverse if |
+|---|---|---|---|---|
+| X-1 | "zero cargo-vet exemptions" (G1) | frozen exemption baseline, monotone down (supply-chain/POLICY.md) | 63/81 Phase-2 crates (≈3.8M lines) uncovered by the six import sets; the research CI row itself says "0 new unaudited, monotone down" | imports cover the core stack, or audit capacity exists |
+| X-2 | serde_json 1.0.154 + duplicate-rejecting visitor for JSON bodies and config | planned: one strict I-JSON parser owned by aegis-canon (JsonBody kind), also used by aegis-config | removes ~10 crates (serde, serde_json, serde_derive, syn, quote, proc-macro2, itoa, zmij, memchr, unicode-ident) from a ≤60-crate budget; one canonical parser for policy, handler and config (CANON-1) | the parser's fuzz/differential gate cannot be made green, or the crate budget is relaxed |
+| X-3 | OTLP behind a Cargo feature | out-of-process exporter only (spikes/otlp-footprint) | in-process OTLP busts the crate budget (62–81) | — (decided by measurement) |
+| X-4 | NC3 discard-on-cancel | state-tracked recovery (spikes/q3-008) | 30–53 cancels/s per 1-vCPU-class core | recovery leaks session state in the cancel sweep |
+| X-5 | §6 household capacity 3.1–3.7k req/s | ≈1.0k/s X25519, ≈0.9k/s hybrid on an N95 core (spikes/q3-001) | measured | real KVM VPS measurement |

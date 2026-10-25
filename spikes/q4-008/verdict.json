@@ -1,0 +1,78 @@
+{
+ "id": "q4-008",
+ "question": "CANON false-reject on 1M real request lines (own logs or public corpora)",
+ "flips_if": ">0.1% per clause -> 308/repair for that clause",
+ "measured": {
+  "corpora": {
+   "cc-main-2026-43": "Common Crawl Oct 2026 URL index, 989,955 URLs (913,268 distinct targets) from 1000 of 886,601 random cdx blocks, every 3rd line; crawler-normalized link URLs, many sites; benign 988,758",
+   "secrepo-2024-2026": "SecRepo self.logs (www.secrepo.com, Apache combined), 2024-01-01..2026-10-22, 2,279,367 request lines; benign 1,654,694 after removing 624,673 attack/scanner lines (18,920 scanner IPs)",
+   "secrepo-2017-2023 (comparison only)": "same site, 3,646,443 lines; benign 3,165,265",
+   "nasa-1995 (comparison only)": "NASA KSC Jul+Aug 1995 (ITA), 3,459,784 HTTP request lines; benign 3,366,062"
+  },
+  "units": "percent of request lines (benign-only), any-hit per clause; sole-cause in parentheses; decision uses max over the two 2024-2026 sources",
+  "hardware": "this laptop, python 3.12 stdlib, canon_ref.py imported unmodified; detector-vs-reference reject/accept disagreements = 0 on all 10.4M lines",
+  "per_clause_benign_pct": {
+   "p.enc_slash (%2F)":           {"cc": 0.0479, "secrepo": 0.0001, "nasa": 0.0, "decision": "keep reject"},
+   "p.dot_segment":               {"cc": 0.0,    "secrepo": 0.0002, "nasa": 0.0042, "decision": "keep reject"},
+   "h.non_ascii (Host U-label)":  {"cc": 0.0,    "secrepo": "n/a (no Host in log)", "nasa": "n/a", "decision": "keep reject"},
+   "p.enc_backslash (%5C)":       {"cc": 0.0004, "secrepo": 0.0035, "decision": "keep reject"},
+   "p.backslash":                 {"cc": 0.0,    "secrepo": 0.0,    "decision": "keep reject"},
+   "p.enc_semicolon (%3B)":       {"cc": 0.0035, "secrepo": 0.0,    "decision": "keep reject"},
+   "p.semicolon (matrix ;)":      {"cc": 0.0856, "secrepo": 0.0005, "decision": "keep reject (closest to threshold)"},
+   "p.enc_nul / p.enc_ctrl":      {"cc": 0.0008, "secrepo": 0.0001, "decision": "keep reject"},
+   "p.enc_pct (%25)":             {"cc": 0.0097, "secrepo": 0.0095, "decision": "keep reject"},
+   "p.raw_nonascii":              {"cc": 0.0,    "secrepo": 0.0987, "decision": "keep reject (secrepo hits are mostly GBK backup-archive probes the heuristic misses)"},
+   "p.bad_pct / forbidden ASCII / space / fragment / ctrl": {"cc": 0.0, "secrepo": 0.0018, "decision": "keep reject"},
+   "p.enc_nonascii (%80-%FF, e.g. UTF-8 slugs)": {"cc": 2.8540, "secrepo": 0.0299, "decision": "FLIP: accept as opaque octets"},
+   "p.empty_segment (//)":        {"cc": 0.0112, "secrepo": 0.5453, "decision": "FLIP: 308 to slash-merged form"},
+   "p.trailing_slash (already 308 in canon_ref)": {"cc": 40.3810, "secrepo": 2.2863, "nasa": 4.8933, "decision": "FLIP the 308: trailing slash is a distinct single reading, accept"},
+   "q.no_eq (?token)":            {"cc": 0.4756, "secrepo": 0.0074, "nasa": 2.1399, "decision": "FLIP (query opaque)"},
+   "q.multi_eq (= in value)":     {"cc": 0.2005, "secrepo": 1.0245, "decision": "FLIP (query opaque)"},
+   "q.enc_amp_eq (%26 %3D)":      {"cc": 0.5724, "secrepo": 0.2304, "decision": "FLIP (query opaque)"},
+   "q.enc_semicolon (%3B)":       {"cc": 0.0114, "secrepo": 0.1667, "decision": "FLIP (query opaque)"},
+   "q.enc_pct (%25)":             {"cc": 0.3597, "secrepo": 0.0,    "decision": "FLIP (query opaque)"},
+   "q.enc_nonascii":              {"cc": 0.3294, "secrepo": 0.0,    "decision": "FLIP (query opaque)"},
+   "q.plus (+)":                  {"cc": 0.4438, "secrepo": 0.0126, "decision": "FLIP (query opaque)"},
+   "q.semicolon (; separator)":   {"cc": 0.1259, "secrepo": 1.0879, "decision": "FLIP (query opaque)"},
+   "q.dup_name":                  {"cc": 0.1769, "secrepo": 0.0001, "decision": "FLIP (query opaque)"},
+   "q.empty_pair (&&)":           {"cc": 0.0868, "secrepo": 0.0004, "decision": "keep reject"},
+   "q.enc_plus (%2B)":            {"cc": 0.0686, "secrepo": 0.0001, "decision": "keep reject"},
+   "q.empty_name / bad_pct / enc_nul_ctrl / raw non-ASCII / space / forbidden ASCII": {"cc": 0.0029, "secrepo": 0.0, "decision": "keep reject"},
+   "h.underscore / other host clauses": {"cc": 0.0019, "decision": "keep reject"}
+  },
+  "family_totals_benign_pct": {
+   "any path reject (current canon_ref)": {"cc": 3.0115, "secrepo": 0.6883},
+   "any query reject (current canon_ref)": {"cc": 2.2510, "secrepo": 1.2753},
+   "any CANON reject, line level": {"cc": 5.242, "secrepo": 1.960, "secrepo-2017-2023": 2.437, "nasa": 2.248},
+   "308 trailing slash": {"cc": 38.265, "secrepo": 1.094}
+  },
+  "cc_pct_nonascii_paths": "28,223 paths with %80-%FF: 1 invalid UTF-8, 190 valid but not NFC (0.019% of all lines)"
+ },
+ "verdict": "flip",
+ "decision_effect": {
+  "F8 canon block, existing keys (freeze; drop PROVISIONAL)": {"dot_segments": "reject", "encoded_slash": "reject", "non_ascii_host": "reject"},
+  "F8 canon block, keys to add (re-freeze by spec author; canon_ref.py and expected.json must follow)": {
+   "encoded_non_ascii_path": "accept_opaque",
+   "empty_segments": "redirect_308",
+   "trailing_slash": "accept",
+   "query": "opaque"
+  },
+  "semantics of the added values": {
+   "encoded_non_ascii_path=accept_opaque": "%80-%FF escapes in a path are kept as uppercase-hex octets, never decoded or Unicode-normalized for matching (RFC 3986 6.2.2.1 only); still reject if the octets are not strict UTF-8 (overlong, surrogates) or not NFC (0.019% of CC lines). Enum: reject | accept_opaque.",
+   "empty_segments=redirect_308": "'//' inside a path answers 308 to the slash-merged path; nothing is forwarded in the non-canonical form. Enum: reject | redirect_308.",
+   "trailing_slash=accept": "'/a/' is its own canonical form (distinct from '/a'), as RFC 3986 defines; the canon_ref '308 strip' rule would redirect 40% of CC URLs and would loop on sites whose own canonical form is '/a/' (e.g. WordPress redirect_canonical; known behaviour, not measured here). Enum: accept | redirect_308_strip.",
+   "query=opaque": "the query is canonicalized only by 6.2.2.1/6.2.2.2 and otherwise forwarded byte-exact; AEGIS never splits it, and authz never keys on it (CANON-5). Still rejected in opaque mode: bad percent-escape, raw non-ASCII, raw space/forbidden ASCII, encoded or raw NUL/controls, '#', length > 8192, '&&' empty pair, empty name, %2B. A route that declares typed parameters gets query=strict for that route (the current canon_query rules, with declared list parameters exempt from dup_name). Enum: strict | opaque."
+  },
+  "unchanged": "all other CANON-2 path rejects (encoded / \\ ; NUL ctrl %25, raw \\ ;, dot segments, raw non-ASCII), host rules and header rules"
+ },
+ "rung": "measurement grade B (public real-world corpora, not AEGIS traffic; one small site plus a crawler-derived URL sample; laptop run)",
+ "reproduce": [
+  "mkdir -p $DL/nasa $DL/secrepo $DL/cc  # DL outside the repo",
+  "curl -o $DL/nasa/NASA_access_log_Jul95.gz https://ita.ee.lbl.gov/traces/NASA_access_log_Jul95.gz ; same for NASA_access_log_Aug95.gz",
+  "fetch www.secrepo.com/self.logs/access.log.YYYY-MM-DD.gz for 2017-01-01..2026-10-22 into $DL/secrepo",
+  "curl -o $DL/cc/cluster.idx https://data.commoncrawl.org/cc-index/collections/CC-MAIN-2026-43/indexes/cluster.idx",
+  "DL=$DL spikes/q4-008/run.sh   # every step via ci/heavy.sh; writes spikes/q4-008/results/{*.json,summary.json,table.md,cc_utf8_check.txt}"
+ ],
+ "limits": "Era/site bias: SecRepo is one static security-dataset site with Apache autoindex (its own '?C=M;O=A' sort links drive q.semicolon/q.multi_eq) and heavy scanner load; CC URLs are link-derived and crawler-normalized (dot segments resolved, raw non-ASCII percent-encoded, hosts as A-labels), so CC under-counts dot_segment, raw_nonascii and non_ascii_host and is not a browser request stream; NASA 1995 is pre-modern (imagemap/isindex queries) and never decides. No API, mobile-app, gRPC-gateway or SPA traffic, no Host header in the access logs (host clauses measured on CC authorities only). The benign heuristic is signature-based and misses some probes (ThinkPHP invokefunction, GBK backup-archive names), which inflates benign rates slightly; it never decided a verdict. Encoded slash (0.048% CC, click-tracker paths) is the reject clause closest to the threshold after p.semicolon (0.086%).",
+ "date": "2026-10-25"
+}

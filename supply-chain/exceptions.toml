@@ -1,2 +1,11 @@
 # Expiring exception ledger. Entries only decrease. Each: crate, version, reason, expires (YYYY-MM-DD), approver.
 # An expired entry no longer exempts anything (lock-age, vet) and fails the ledger-validity gate.
+
+[[exception]]
+crate = "rustls-webpki"
+version = "0.103.16"
+kind = "cooldown-bypass"
+advisory = "RUSTSEC-2026-0382"
+reason = "0.103.15 (the cooldown-resolved version) lacks the emSign distrust fix; the fixed release is 5 days old"
+approver = "spec-author"
+expires = "2026-11-24"

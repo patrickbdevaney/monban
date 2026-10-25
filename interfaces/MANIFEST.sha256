@@ -1,4 +1,4 @@
-0ecebc3c84069ec0c4c9b830f0c4c24a120be08f61ca2c6cf7836fb5902c4ff9  F1   frozen               spec/SPEC_INVARIANTS.md
+1fd940943a4c1e67921cca70b5a556231598b6f0222e9c5821baffd0e02c82c1  F1   frozen               spec/SPEC_INVARIANTS.md
 3b3cf61ad63bac6e8d37a8cf554a3aff527c842016057018334ef78ea812c063  F1   frozen               spec/STATEMENTS.sha256
 41fd3610443380a00455b522fa5a11a5499244a05a4585c6dcd7d043ddcef729  F2   frozen               crates/aegis-types/src/lib.rs
 14e1351481b8653852a80bb703e2821bd438511ba029210922e956b149741e7c  F3   frozen               crates/aegis-transport/src/exchange.rs
@@ -7,7 +7,7 @@ fd23c657e48ab0b89abb84df03a68923431514551ffbbdc7a19e67c4f4611540  F5   frozen   
 e354026e9f401bc6fc8ce5a97dc248a4960737e99eab6d5fdb7e1f24eeeb9e46  F6   frozen               crates/aegis-authz/src/combine.rs
 553aef65c97e625565ba3420047cd0349622621abfa6ad62a8089eeb7511ae05  F7   frozen               sdk/aegis-sdk/src/surface.rs
 b94664807c816b150d4ef22079a49ea2bcade29fd7599729fb76dc5f173b332f  F7b  frozen               sdk/aegis-sdk/src/streaming.rs
-96718517dd97fabcf651ef48560c7d6d714f19d814179b754cb43d0f31dddd8d  F8   provisional:q4-008   interfaces/F8-config.schema.json
+d3a8de13c46eaf5315a5ffcdb8b586bb3573e68570382af7f604885c4b4d6aad  F8   frozen               interfaces/F8-config.schema.json
 672c1d28fa535c7f03c6a0ca7dfeacb045ba2296ef5f6e65c73072cb69e31708  F9   frozen               interfaces/F9-audit-event.schema.json
 dac0f21de4ecb9a871d0490f7ba9376f48f5f70281b5133988ebb02c90e9d7dc  F10  frozen               interfaces/F10-module-wire.cddl
 3f7376c7d893cf851de0d78ad97b480a90da144ccbcf424d446da64a37589f39  F11  frozen               interfaces/F11-upgrade-handover.cddl

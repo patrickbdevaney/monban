@@ -14,7 +14,7 @@ them; `ci/interfaces.py check` fails on any change. A change goes through a spec
 | F6 | `crates/aegis-authz/src/combine.rs` | frozen | tri-state; Error/timeout/crash ⇒ Deny; `combine` = Combine.lean `combine` |
 | F7 | `sdk/aegis-sdk/src/surface.rs` | frozen | request-scoped surface |
 | F7b | `sdk/aegis-sdk/src/streaming.rs` | frozen | host-driven streaming/SSE/WS/detached jobs (q4-001 D2) |
-| F8 | `interfaces/F8-config.schema.json` | provisional: q4-008 | every limit bounded; CANON-2 reject vs 308 per clause after q4-008 |
+| F8 | `interfaces/F8-config.schema.json` | frozen (q4-008 resolved) | every limit bounded; canon block per q4-008 (empty segments 308, trailing slash accepted, encoded non-ASCII opaque, opaque query) |
 | F9 | `interfaces/F9-audit-event.schema.json` | frozen | tlog-tiles leaf fields |
 | F10 | `interfaces/F10-module-wire.cddl` | frozen | out-of-process module wire; host decoders in the verified TCB |
 | F11 | `interfaces/F11-upgrade-handover.cddl` | frozen | UP-1..7 handover messages |

@@ -1,0 +1,8 @@
+{"id":"P2-tls-001",
+ "crates":["aegis-tls"],
+ "spec_refs":["F1#P-PQ1","F1#P-PQ2","F1#P-PQ4","F12 tls/verdicts.toml","spikes/q4-026 (0x11ED)","spikes/cmvp-client-policy"],
+ "oracles":["oracles/hrr-verdicts/run --file tls/verdicts.toml --subject target/release/tls-subject"],
+ "acceptance":{"cmd":"ci/heavy.sh cargo build --release -p tls-subject && ci/heavy.sh oracles/hrr-verdicts/run --file tls/verdicts.toml --subject 'target/release/tls-subject subject'","must":"HRR-VERDICTS: PASS (FIPS halves SKIPPED with reason is allowed)"},
+ "write_scope":["crates/aegis-tls/**","subjects/tls-subject/**"],
+ "deferred":["PreferServerOrder backport (28ee6c68) — separate unit; PUB-T2 flips deliberately then","P-PQ3 ticket scope + STEK ring — P2-tls-002","cmvp lock profile — Phase 6"],
+ "infeasible_exit":true,"max_retries":30,"passes":false}

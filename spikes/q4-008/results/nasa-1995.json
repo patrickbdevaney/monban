@@ -699,6 +699,33 @@
     "examples": [
      "/images/b%3acables.jpg"
     ]
+   },
+   "F.p": {
+    "lines": 3915,
+    "pct_lines": 0.1132,
+    "sole_cause_lines": 3885,
+    "pct_sole": 0.1123,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 73880,
+    "pct_lines": 2.1354,
+    "sole_cause_lines": 73850,
+    "pct_sole": 2.1345,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {
@@ -1360,6 +1387,33 @@
     "examples": [
      "/images/b%3acables.jpg"
     ]
+   },
+   "F.p": {
+    "lines": 3643,
+    "pct_lines": 0.1082,
+    "sole_cause_lines": 3616,
+    "pct_sole": 0.1074,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 72035,
+    "pct_lines": 2.14,
+    "sole_cause_lines": 72008,
+    "pct_sole": 2.1392,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {

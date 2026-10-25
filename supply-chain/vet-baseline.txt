@@ -1,0 +1,1 @@
+# Frozen cargo-vet exemption baseline: crate:version  reason. Spec-author only; see POLICY.md.

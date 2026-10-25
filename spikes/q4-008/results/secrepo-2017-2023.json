@@ -120,8 +120,8 @@
    "p.enc_backslash": {
     "lines": 852,
     "pct_lines": 0.0234,
-    "sole_cause_lines": 596,
-    "pct_sole": 0.0163,
+    "sole_cause_lines": 601,
+    "pct_sole": 0.0165,
     "unique_targets": 497,
     "pct_unique": 0.7572,
     "examples": [
@@ -176,8 +176,8 @@
    "p.enc_ctrl": {
     "lines": 333,
     "pct_lines": 0.0091,
-    "sole_cause_lines": 21,
-    "pct_sole": 0.0006,
+    "sole_cause_lines": 34,
+    "pct_sole": 0.0009,
     "unique_targets": 312,
     "pct_unique": 0.4754,
     "examples": [
@@ -192,7 +192,7 @@
    "p.enc_nonascii": {
     "lines": 2269,
     "pct_lines": 0.0622,
-    "sole_cause_lines": 2063,
+    "sole_cause_lines": 2065,
     "pct_sole": 0.0566,
     "unique_targets": 270,
     "pct_unique": 0.4114,
@@ -306,28 +306,28 @@
     ]
    },
    "p.dot_segment": {
-    "lines": 34,
-    "pct_lines": 0.0009,
+    "lines": 30,
+    "pct_lines": 0.0008,
     "sole_cause_lines": 27,
     "pct_sole": 0.0007,
-    "unique_targets": 17,
-    "pct_unique": 0.0259,
+    "unique_targets": 13,
+    "pct_unique": 0.0198,
     "examples": [
      "/self.logs/.",
      "/+CSCOU+/../+CSCOE+/files/file_list.json",
-     "/%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../etc/hosts",
      "//vulnweb.com/%2e%2e",
      "////vulnweb.com/%2e%2e",
-     "/../../../../../../../../../../../../etc/passwd"
+     "/../../../../../../../../../../../../etc/passwd",
+     "/../../../../../../../../../../../../windows/win.ini"
     ]
    },
    "p.empty_segment": {
-    "lines": 66572,
-    "pct_lines": 1.8257,
+    "lines": 66555,
+    "pct_lines": 1.8252,
     "sole_cause_lines": 62448,
     "pct_sole": 1.7126,
-    "unique_targets": 6338,
-    "pct_unique": 9.6564,
+    "unique_targets": 6323,
+    "pct_unique": 9.6336,
     "examples": [
      "/honeypot//%22http://amunhoney.sourceforge.net//%22",
      "/honeypot//%22http://glastopf.org//%22",
@@ -338,12 +338,12 @@
     ]
    },
    "p.trailing_slash_308": {
-    "lines": 128389,
-    "pct_lines": 3.5209,
+    "lines": 128374,
+    "pct_lines": 3.5205,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 19481,
-    "pct_unique": 29.6808,
+    "unique_targets": 19469,
+    "pct_unique": 29.6625,
     "examples": [
      "/self.logs/",
      "/self.logs/?C=S%3BO%3DA",
@@ -802,6 +802,33 @@
      "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=6&p=0&pp=0&mid=9&ep=6&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=652C78CDABA4B0F4DAD4B610B9732D78",
      "/index.php/Index/dytvent/dtype/%24%7b@eval($_POST%5B'test'%5D)%7d"
     ]
+   },
+   "F.p": {
+    "lines": 75107,
+    "pct_lines": 2.0597,
+    "sole_cause_lines": 71502,
+    "pct_sole": 1.9609,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 74145,
+    "pct_lines": 2.0334,
+    "sole_cause_lines": 70540,
+    "pct_sole": 1.9345,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {
@@ -952,8 +979,8 @@
    "p.enc_nonascii": {
     "lines": 2213,
     "pct_lines": 0.0699,
-    "sole_cause_lines": 2026,
-    "pct_sole": 0.064,
+    "sole_cause_lines": 2028,
+    "pct_sole": 0.0641,
     "unique_targets": 249,
     "pct_unique": 0.5958,
     "examples": [
@@ -1078,12 +1105,12 @@
     ]
    },
    "p.empty_segment": {
-    "lines": 8219,
-    "pct_lines": 0.2597,
+    "lines": 8217,
+    "pct_lines": 0.2596,
     "sole_cause_lines": 7988,
     "pct_sole": 0.2524,
-    "unique_targets": 1397,
-    "pct_unique": 3.3429,
+    "unique_targets": 1395,
+    "pct_unique": 3.3381,
     "examples": [
      "/honeypot//%22http://amunhoney.sourceforge.net//%22",
      "/honeypot//%22http://glastopf.org//%22",
@@ -1094,12 +1121,12 @@
     ]
    },
    "p.trailing_slash_308": {
-    "lines": 111364,
-    "pct_lines": 3.5183,
+    "lines": 111350,
+    "pct_lines": 3.5179,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 18591,
-    "pct_unique": 44.4867,
+    "unique_targets": 18580,
+    "pct_unique": 44.4604,
     "examples": [
      "/self.logs/",
      "/self.logs/?C=S%3BO%3DA",
@@ -1545,6 +1572,33 @@
      "/honeypot/Honeypot%20-%20Howto.pdf&coi=1494&npp=6&p=0&pp=0&mid=9&ep=6&du=www.secrepo.com/honeypot/Honeypot%2b-%2bHowto.pdf=652C78CDABA4B0F4DAD4B610B9732D78",
      "/%25%7b(%23dm%3d%40ognl.OgnlContext%40DEFAULT_MEMBER_ACCESS).(%23_memberAccess%3f(%23_memberAccess%3d%23dm)%3a((%23container%3d%23context%5b%27com.opensymphony."
     ]
+   },
+   "F.p": {
+    "lines": 13875,
+    "pct_lines": 0.4384,
+    "sole_cause_lines": 13801,
+    "pct_sole": 0.436,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 63331,
+    "pct_lines": 2.0008,
+    "sole_cause_lines": 63257,
+    "pct_sole": 1.9985,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {

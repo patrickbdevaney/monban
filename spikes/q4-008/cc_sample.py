@@ -45,7 +45,7 @@ def main(argv):
             fn, off, ln = blocks[bi]
             req = urllib.request.Request(BASE % (args["--crawl"], fn),
                                          headers={"Range": "bytes=%d-%d" % (off, off + ln - 1),
-                                                  "User-Agent": "aegis-q4-008-research/1.0"})
+                                                  "User-Agent": "aegis-ci"})
             data = None
             for attempt in range(4):
                 try:
