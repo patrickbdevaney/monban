@@ -1,0 +1,18 @@
+[package]
+name = "aegis-state"
+description = "Idempotency, outbox, commit-point latch, durable store (INV-NOMUT-C, INV-IDEMP, INV-DURABLE)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 4
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-audit = { workspace = true }
+
+[lints]
+workspace = true

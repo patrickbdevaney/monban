@@ -1,0 +1,17 @@
+[package]
+name = "aegis-metrics"
+description = "OpenMetrics endpoint on the admin listener (always compiled)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 3
+
+[dependencies]
+
+
+[lints]
+workspace = true

@@ -1,0 +1,6 @@
+[alias]
+xtask = "run --locked --quiet --package xtask --"
+
+[build]
+# Reproducibility (SUPPLY_CHAIN G-repro): remap host paths out of binaries.
+rustflags = ["--remap-path-prefix=/home=/build", "-Cforce-frame-pointers=yes"]

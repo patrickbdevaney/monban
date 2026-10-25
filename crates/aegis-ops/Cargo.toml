@@ -1,0 +1,18 @@
+[package]
+name = "aegis-ops"
+description = "ACME, certificate lifecycle CERT-1..4, zero-downtime upgrade UP-1..7, sd-notify."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 4
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-config = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+[package]
+name = "aegis-canon"
+description = "Sole identity canonicalizer, CANON-1..8. Reject, never repair (CANON-2)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 2
+
+[dependencies]
+aegis-types = { workspace = true, features = ["canon-owner"] }
+
+[lints]
+workspace = true

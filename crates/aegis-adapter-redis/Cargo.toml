@@ -1,0 +1,18 @@
+[package]
+name = "aegis-adapter-redis"
+description = "Redis/Valkey adapter: key lowering and reply subset (W7)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 4
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-data-ir = { workspace = true }
+
+[lints]
+workspace = true

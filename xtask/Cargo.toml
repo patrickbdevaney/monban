@@ -1,0 +1,18 @@
+[package]
+name = "xtask"
+description = "Repository gates (layering, lock-age, lock-targets, repo-advisories, fips-lock). Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# Zero dependencies on purpose: gate tooling must not widen the supply chain it is checking.
+# HTTP goes through the system `curl`; JSON via the small parser in src/json.rs.
+[dependencies]
+
+[lints]
+workspace = true

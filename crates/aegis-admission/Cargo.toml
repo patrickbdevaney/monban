@@ -1,0 +1,18 @@
+[package]
+name = "aegis-admission"
+description = "Admission and abuse control stages S0-S6 (I1-I11)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 2
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-budget = { workspace = true }
+
+[lints]
+workspace = true

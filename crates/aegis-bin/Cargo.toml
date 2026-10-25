@@ -1,0 +1,42 @@
+[package]
+name = "aegis-bin"
+description = "Assembly: startup assertions and fail-closed default boot."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 5
+
+[[bin]]
+name = "aegis"
+path = "src/main.rs"
+
+[dependencies]
+aegis-adapter-host = { workspace = true }
+aegis-adapter-pg = { workspace = true }
+aegis-adapter-redis = { workspace = true }
+aegis-adapter-sqlite = { workspace = true }
+aegis-admission = { workspace = true }
+aegis-agent = { workspace = true }
+aegis-audit = { workspace = true }
+aegis-authz = { workspace = true }
+aegis-budget = { workspace = true }
+aegis-canon = { workspace = true }
+aegis-config = { workspace = true }
+aegis-data-ir = { workspace = true }
+aegis-egress = { workspace = true }
+aegis-iso = { workspace = true }
+aegis-metrics = { workspace = true }
+aegis-ops = { workspace = true }
+aegis-state = { workspace = true }
+aegis-tls = { workspace = true }
+aegis-token = { workspace = true }
+aegis-transport = { workspace = true }
+aegis-types = { workspace = true }
+aegis-wasm = { workspace = true }
+
+[lints]
+workspace = true
