@@ -1,0 +1,629 @@
+{
+ "explorer": "11-uu-incident-dataset-outage-root-causes",
+ "round": 4,
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "uu11.outage-class-frequency-table",
+   "layer": "L2",
+   "domain": "W-THREAT/W-OPS",
+   "type": "measurement",
+   "title": "Non-adversarial outage root causes for middle-tier components: 160 coded incidents (172 incl. 12 unknown-cause)",
+   "summary": "Hand-coded (snippet-level, single coder; script-counted) corpus of 301 public incident reports 2009-2026 from Wikimedia (421 pages parsed), danluu list (240), k8s.af (59), GitHub availability reports (182 chunks), Cloudflare blog (20), 8 status pages (400), plus 3 fetched primaries; 172 involve a middle-tier component (reverse proxy/LB/CDN edge/ingress/TLS terminator/app-server tier/WAF) directly, 160 with known cause. Primary class shares: config push/validation 28 (17.5%), latent code bug/regression 20 (12.5%), fd/port/conntrack/worker-pool exhaustion 17 (10.6%), non-malicious capacity saturation 15 (9.4%), retry storm/herd/cascade 11 (6.9%), upstream dependency 11 (6.9%), DNS incl ELB-IP caching 10 (6.2%), reload/restart/upgrade 8 (5.0%), cert/key expiry or wrong cert 8 (5.0%), operator-tooling error 7 (4.4%), network/BGP 5, abusive traffic 4, clock/leap 4, health-check/depool logic 3, memory leak/OOM 3, cache poisoning/staleness 2, regex backtracking 2, disk/log fill 1, kernel/hw/power 1. Median reported duration over 64 incidents with durations: 52.9 min (p90 ~759 min). Per-class medians (n small): config 75.2 (n10), bug 42 (n5), fd/worker 19.9 (n5), capacity 36 (n8), retry 6.5 (n4), dependency 191.5 (n9), dns 48.8 (n3), cert 101 (n6), operator 11 (n3), network 77.7 (n5). Sensitivity: excluding Wikimedia (62 of 160) config stays 18%, bug 14%, DNS 9%, cert 7%; Wikimedia alone is fd/worker 16% and config 16%.",
+   "urls": [
+    "https://github.com/danluu/post-mortems",
+    "https://wikitech.wikimedia.org/wiki/Incidents",
+    "https://codeberg.org/hjacobs/kubernetes-failure-stories",
+    "https://github.blog/tag/github-availability-report/",
+    "https://blog.cloudflare.com/tag/post-mortem/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Dataset: state/raw/round-004/11-data/coded_dataset.csv|json (url,date,source,component,class,mt_direct,duration_min). class_table.json. labels.txt are the coder decisions. 20 classes; primary class only.",
+   "overclaim_risk": "Single coder, primary-label only, snippet reading (Wikimedia restricted/empty reports dropped, 41 dropped); convenience sample over-weights Wikimedia (39%) and 2026 status-page recents (29 of 160 are 2026); public postmortems over-represent config/code classes; durations are vendor-reported and n<=10 per class. Do not read shares as population rates.",
+   "underclaim_risk": "Local-resource and clock classes are probably under-counted because they rarely get public postmortems (see uu11.postmortem-selection-bias)."
+  },
+  {
+   "id": "uu11.dataset-access-negative-results",
+   "layer": "L3",
+   "domain": "W-THREAT/W-OPS",
+   "type": "negative-result",
+   "title": "Dataset access: VOID has no bulk export; GCP incidents.json holds only 8 recent; Statuspage API caps at 50 and ignores paging; Cloudflare blog tag feeds do not paginate",
+   "summary": "VOID (thevoid.community) is a Softr app; sitemap exposes only graph/report pages, web search found no download link or license (2022 report: ~10,000 incidents / ~600 orgs, only ~25% of reports identify a root cause, so VOID would also be thin on cause coding). status.cloud.google.com/incidents.json returned 8 incidents (2026 only). Atlassian Statuspage /api/v2/incidents.json returns the latest 50 (25 for Fly) and ignores ?page; status.fastly.com, status.heroku.com, status.railway.com return non-JSON. Cloudflare /tag/post-mortem/rss yields 22 unique posts (20 parseable) regardless of ?page. macintux/Service-postmortems json has only 20 entries (stale). What did work as bulk: wikitech MediaWiki API (899 Incidents/* pages with start/end), danluu README, k8s.af README on codeberg, github.blog availability-report feed (85 reports, ?paged=1..8).",
+   "urls": [
+    "https://www.thevoid.community",
+    "https://status.cloud.google.com/incidents.json",
+    "https://www.cloudflarestatus.com/api/v2/incidents.json",
+    "https://wikitech.wikimedia.org/w/api.php",
+    "https://github.com/macintux/Service-postmortems",
+    "https://library.cyentia.com/report/report_013508.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "Absence of VOID export is as of 2026-10-25 from site crawl + search; a logged-in/Softr API path was not tried.",
+   "underclaim_risk": "VOID may offer researcher access on request."
+  },
+  {
+   "id": "uu11.postmortem-selection-bias",
+   "layer": "L2",
+   "domain": "W-THREAT/W-OPS",
+   "type": "result",
+   "title": "Public postmortems under-sample boring local-resource classes: targeted searches for cert-expiry-in-mesh, nginx fd exhaustion, conntrack-full, log-disk-full, Envoy leak, NTP skew return KB guides, not postmortems",
+   "summary": "Eight class-targeted searches (2026-10-25) found zero formal public postmortems for: Istio root-cert expiry (docs + forum threads only; Istio docs themselves warn of cluster-wide outage), Linkerd trust-anchor expiry (forum + one 3h status entry, Sapling 2026-01-25), nginx worker_connections/fd exhaustion (netdata guides, nginx mailing list 2007-2010), nf_conntrack table full (Habr, Platform9 KB, Alibaba KB), nginx access-log disk full (netdata guide; 850 GB log forum report), Envoy memory growth (only CVE advisories CVE-2023-35945, CVE-2024-34364, CVE-2026-47774), NTP-skew cert-not-yet-valid (vendor docs). Yet these appear as contributing causes inside the postmortems that do exist (ProxySQL LimitNOFILE, k8s conntrack, php-fpm worker exhaustion). Implication: frequency in public postmortems measures reportability, not incidence; classes with cheap structural fixes (preflight rlimit check, log budget, cert-age gate) deserve gates even at low counted frequency.",
+   "urls": [
+    "https://www.netdata.cloud/guides/nginx/nginx-too-many-open-files/",
+    "https://www.netdata.cloud/guides/nginx/nginx-log-disk-full/",
+    "https://habr.com/en/articles/1086398",
+    "https://istio.io/blog/2019/root-transition",
+    "https://www.buoyant.io/blog/a-guide-to-linkerd-trust-anchor-rotation-with-cert-manager",
+    "https://osv.dev/vulnerability/CVE-2023-35945"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Absence in a web-search index is not absence in the world; search engine returned SEO guides first.",
+   "underclaim_risk": "Internal incident trackers (not public) likely hold many of these."
+  },
+  {
+   "id": "uu11.cfg-push-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Config/data push is the largest class: 17.5% of coded middle-tier incidents; fleet-wide propagation within seconds and panic-on-invalid-input are the repeating mechanisms",
+   "summary": "Primary-verified 2025 cases: Cloudflare 2025-11-18 (Bot Management feature file regenerated every 5 min by ClickHouse query exceeded the 200-feature limit [normal ~60]; FL2 Rust code did Result::unwrap() on Err and panicked; 11:20-17:06 UTC = 5h46m; remediation: validate internally generated config like user input, global kill switches). Cloudflare 2025-12-05 (WAF testing tool disabled via global config system, propagated to fleet in seconds, non-gradual; FL1 Lua nil-index on skipped killswitch rule; 08:47-09:12 UTC = 25 min; 28% of HTTP traffic; remediation: fail-open to last-known-good, gradual rollout for threat-response data). Wikimedia 2025-11-06 WAF rule set global instead of per-IP, syntactically valid, committed without review, 4 min, ~10% of requests got 429. GitHub 2025-01-13 internal LB routing config dropped Git requests 49 min; GitHub 2024-01-31 LB change turned IPv4 into IPv4-mapped IPv6 at edge sites 147 min; Wikimedia 2023-08-09 global k8s defaults picked wrong TLS cert (30 min, 1% traffic), 2025-02-19 missing SAN (31k 50x). Common mechanisms: (a) syntactically valid but semantically wrong value, (b) size/shape limit violated by generated file, (c) unwrap/panic or exception on config read, (d) no staged rollout or no bake time. Median duration 75 min (n=10).",
+   "urls": [
+    "https://blog.cloudflare.com/18-november-2025-outage/",
+    "https://blog.cloudflare.com/5-december-2025-outage/",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2025-11-06_WAF",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2023-08-09_mw-on-k8s_outage_due_to_wrong_tls_cert"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Cloudflare numbers fetched 2026-10-25 from primary posts.",
+   "overclaim_risk": "Cloudflare is a 330-city fleet; household single node has no fleet push. Analog exists only for any network-fed data (ACME, rule/feed updates, remote policy).",
+   "underclaim_risk": "Config-class may include things typed validators already prevent (ops.config-lang-and-creds); semantic misconfig (per-IP vs global) is not caught by types."
+  },
+  {
+   "id": "uu11.cert-lifecycle-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Certificate lifecycle failures (expiry, wrong cert, missing SAN, chain/root expiry, issuer outage): 8 of 160 directly, 14 of 287 overall; median 101 min, always avoidable by age/chain gates",
+   "summary": "Dated cases: GitHub 2025-11-18 expired internal service-to-service TLS cert, all Git ops down 20:30-21:34 UTC (64 min), no alert existed for it, remediation: eliminate manually managed certs; GitHub 2020-11-02 *.githubassets.com expired, 32 min, an auto-generated 30-days-before issue existed but was not actioned; ftrack 2020-05-30 AddTrust External CA Root expiry 10:48-~15:30 UTC (282 min; bundle from 2020-02-13 contained soon-expiring roots; fetched); Wikimedia 2021-02-05 Cloud VPS web-proxy certs expired, 2022-05-01 etcd cert (2h, renewal needed extra SANs), 2023-08-09 wrong cert in TLS termination, 2025-02-19 missing SAN; Azure 2012-02-29 leap-day cert creation (global ~day); Sapling 2026-01-25 Linkerd trust anchor expiry ~3h (status snippet only, grade C); Let us Encrypt upstream pauses/outages hit DO, Render, Bunny cert issuance 2026-05-08, 2026-06-03/18 (existing certs unaffected, renewals delayed). Failure is silent until the instant of expiry, or at next restart (Linkerd proxies load anchors at start).",
+   "urls": [
+    "https://github.blog/news-insights/company-news/github-availability-report-november-2025/",
+    "https://status.ftrack.com/incidents/pmmdkj2f18ls",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2022-05-01_etcd",
+    "https://www.buoyant.io/blog/a-guide-to-linkerd-trust-anchor-rotation-with-cert-manager"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "GitHub 2025-11 text read from feed; ftrack fetched.",
+   "overclaim_risk": "",
+   "underclaim_risk": "Short-lived cert (47-day CA/B baseline by 2029) will multiply renewal events; incident rate may rise."
+  },
+  {
+   "id": "uu11.worker-exhaustion-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Worker/fd/connection-pool exhaustion induced by a slow upstream is the third-largest class (10.6%), and is not an attacker scenario",
+   "summary": "Wikimedia 2021-03-14, 2021-09-04, 2021-09-18, 2021-09-26, 2022-03-31, 2022-05-20, 2022-12-09: php-fpm worker exhaustion after DB slowness (impact 10-26 min each, error text \"upstream connect error ... reset reason: overflow\"); GitHub 2022-02/03 ProxySQL meltdowns: systemd silently capped LimitNOFILE from 1,073,741,824 to 65,536 because of kernel fs.nr_open 1,048,576 (8h14m total across four incidents); GitHub 2023-04-28 DB proxy connection-pool exhaustion from inconsistently applied config (19 min); AWS Kinesis 2020-11 front-end fleet exceeded OS thread limit on scale-out; k8s.af: HAProxy/nginx-ingress conntrack saturation (loveholidays 2020, Xing 2019), HAProxy too many open files (ThredUP 2018). Median 19.9 min (n=5).",
+   "urls": [
+    "https://github.blog/news-insights/company-news/february-service-disruptions-post-incident-analysis/",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2021-09-18_appserver_latency",
+    "https://k8s.af"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "Wikimedia contributes 10 of 17; single-operator effect."
+  },
+  {
+   "id": "uu11.retry-herd-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Retry storms, reconnect herds and cascading overload: 6.9%, shortest median (6.5 min) because they self-trigger and self-recover",
+   "summary": "Discord frontends OOM from reconnect herd after a flapping service; LaunchDarkly 2025-10 AWS us-east-1 recovery: SDK retries hammered streaming service and LB; GitHub 2025-08-12 search: LB<->search hosts connectivity blips, retry logic initially masked then retry queues amplified (3h44m); Wikimedia 2022-06-10 Varnish 429 responses caused HAProxy overload (3 min); 2017-10-18 retry mechanism of health checks added load; Slack 2018 reconnect storm; Spotify no exponential backoff; GCP Service Control 2025 thundering herd on Spanner at restart.",
+   "urls": [
+    "https://wikitech.wikimedia.org/wiki/Incidents/2022-06-10_overload_varnish_haproxy",
+    "https://status.discordapp.com/incidents/dj3l6lw926kl"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Several cases are not middle-tier components themselves (clients).",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "uu11.dns-elb-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "DNS/resolution class: ELB dynamic-IP caching hit six k8s shops 2017-2019; Cloudflare 1.1.1.1 record-order change 2026-01-08 broke clients",
+   "summary": "k8s.af: Zalando, Nordstrom, Turnitin, SaleMove, Saltside: Kubernetes/clients cached ELB IPs beyond AWS rotation. Cloudflare 2026-01-08: a CNAME/A record ordering shift in 1.1.1.1 responses caused resolution failures in clients that assumed order. Cloudflare 2023-10-04 DNS internal software error. DNS accounts for 6.2% of coded incidents; median 48.8 min (n=3).",
+   "urls": [
+    "https://blog.cloudflare.com/cname-a-record-order-dns-standards/",
+    "https://k8s.af"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "uu11.lifecycle-operator-class",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Reload/restart/upgrade lifecycle (5%) and operator-tooling blast radius (4.4% + health-check/depool logic 1.9%): one command depools the whole tier",
+   "summary": "Wikimedia: 2020-02-11 all edge caches depooled in maintenance (15 min); 2022-05-09 confctl run with invalid selector depooled all Codfw web (5 min); 2023-02-22 all ATS backends depooled by mismatched maintenance (18 min); 2023-04-17 and 2023-05-25 one LVS node reimaged mid-deploy depooled servers (11 and 15-20 min); PyBal depool-protection kicked in 2022-09-08 (a working floor guard); Cloudflare 2025-02-06 and 2025-03-21 R2 gateway disabled / wrong --env flag; AWS S3 2017 typo removing too many servers. Lifecycle: php-fpm restart picking up extension.json before code (15 min, 2023-01-17), Apache restart failing from puppet (2022-05-24), ingress SIGTERM before endpoint removal causing 502s (Ravelin 2019), Istio 1.15->1.24 upgrade took ML ingress down ~24h (2026-02-23), kube-proxy/kubelet skew iptables storm (CircleCI).",
+   "urls": [
+    "https://wikitech.wikimedia.org/wiki/Incidents/2022-05-09_confctl",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2023-04-17_eqiad/LVS",
+    "https://wikitech.wikimedia.org/wiki/Incidents/2026-02-23_ml-serve"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "Overlaps with existing zd.* reload nodes for the process-level mechanics."
+  },
+  {
+   "id": "uu11.clock-regex-rare-classes",
+   "layer": "L4",
+   "domain": "W-THREAT/W-OPS",
+   "type": "failure-class",
+   "title": "Clock/leap-second (4 of 160) and regex backtracking (2 of 160): rare, old, but each is a one-line preventable design rule",
+   "summary": "Cloudflare 2016-12-31 leap second: Go time.Now() assumed monotonic, negative duration injected into rand.Int63n, RRDNS CNAME lookups panicked. Linux 2009 leap-second printk/xtime_lock deadlock and 2012 CLOCK_REALTIME rewind spinning timers (many web services down). Azure 2012-02-29 leap-day cert. Cloudflare 2019-07-02 WAF regex backtracking, 27 min global CPU exhaustion; Stack Exchange 2016-07-20 regex on one post failing health checks. No leap-second or regex incident after 2019 in the 160-incident corpus; Go 1.9 monotonic clock and RE2-class engines exist.",
+   "urls": [
+    "https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/",
+    "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/",
+    "http://web.archive.org/web/20160720200842/https://stackstatus.net/post/147710624694/outage-postmortem-july-20-2016"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "Leap seconds are being abolished by 2035 (CGPM), but leap-smear and clock-step events remain."
+  },
+  {
+   "id": "uu11.threat-ledger-gap-classes",
+   "layer": "L1",
+   "domain": "W-THREAT/W-OPS",
+   "type": "gap-analysis",
+   "title": "Classes absent from the AEGIS threat ledger and which architecture element would have prevented each",
+   "summary": "Threat ledger (threat-ledger-middle-tier-2023-2026) is attacker/CVE-centric: H2/H3 exhaustion, canonicalization/authz, smuggling, memory corruption, agent/MCP, TLS validation. Absent non-adversarial classes (share of 160): config/data push 17.5% (prevented by staged-rollout + last-known-good + non-panicking config ingestion + semantic validator; single-binary household node has no fleet push, so only network-fed data is exposed; a typed config language catches syntax, not semantics such as global-vs-per-IP); cert lifecycle 5% (prevented by cert-age/chain gate, ACME with ARI and renewal alarms; none by memory-safety/proofs); upstream-induced worker exhaustion 10.6% and retry amplification 6.9% (prevented by per-upstream concurrency budgets, deadlines, retry budgets; per-IP token buckets already judged ineffective by abuse-per-ip-limits-fail-swarm do not help); operator-tooling blast radius 6.3% (prevented by min-healthy floor in the pool controller; formal specs of pool controller); DNS 6.2% (TTL-honouring re-resolution invariant). Classes where NO architecture element would have prevented the incident: latent bugs triggered by valid input (12.5%: only canary + fault isolation reduce blast radius), upstream third-party outages (6.9%), power/hardware, BGP. Three classes the current design does not address: (1) fleet/network-fed config & data push, (2) cert lifecycle failure, (3) upstream-induced exhaustion and retry amplification.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Mapping from class to \"would have prevented\" is my judgment on summaries, not tested.",
+   "underclaim_risk": "Existing ops.config-lang-and-creds and zd.* nodes already cover parts of (1) and lifecycle."
+  },
+  {
+   "id": "uu11.l5-config-lkg-canary-rule",
+   "layer": "L5",
+   "domain": "W-THREAT/W-OPS",
+   "type": "invariant",
+   "title": "L5 invariant CFG-1..4: every config or data artifact read by the data plane is size-bounded, parsed total (no panic), versioned with last-known-good fallback, and applied in stages with bake",
+   "summary": "CFG-1: parse is total: for all byte strings b, parse_config(b) returns Ok(cfg) or Err(e) and never panics, aborts or allocates beyond limit L (checked by Kani/cargo-fuzz harness; clippy deny unwrap_used, expect_used, panic, indexing_slicing in config/ingest crates). CFG-2: generated or fetched artifacts carry hard max entries/bytes and the producer asserts the same bound (Cloudflare 200-feature limit vs 60 used). CFG-3: on Err the server keeps serving with LKG and increments aegis_config_rejected_total (fail-static, not fail-closed, except for authz policy where fail-closed to deny). CFG-4: staged apply: validate -> shadow-evaluate against recorded traffic sample (reject if 5xx or deny-rate delta > threshold) -> apply to 1 listener/worker or 1% of connections -> bake >= T -> full; automatic rollback on error-rate SLO breach; no code path applies to 100% in one step. Acceptance: fuzz 1e7 inputs, zero panics; CI test injecting 3x oversize feature file keeps serving. Semantic guards: rate-limit rules require explicit scope field (global vs per-key) that must be stated, never defaulted.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Derived from 2025 Cloudflare/Wikimedia cases; not yet prototyped.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "uu11.l5-cert-expiry-gate",
+   "layer": "L5",
+   "domain": "W-THREAT/W-OPS",
+   "type": "ci-gate",
+   "title": "L5 gate CERT-1..4: certificate age/chain gate and renewal alarm, with startup preflight and hot-reload swap",
+   "summary": "CERT-1 (runtime): server computes min(notAfter) over served leaf, intermediates, trust anchors it pins and mTLS peers; exports gauge aegis_cert_seconds_to_expiry{role,subject}; alert at 30/14/7/3 days; at <7 days renewal retries every hour with jitter; refuses to start-with-expired only if no LKG. CERT-2 (startup preflight, ExecStartPre `aegis check-config --tls`): chain builds to a trust anchor, SAN covers every configured hostname (catches Wikimedia 2025-02-19 SAN miss), notBefore <= now (clock-skew check), no root/intermediate expiring within 90 days (catches AddTrust ftrack). CERT-3: rotation by atomic swap of rustls ResolvesServerCert without restart, and internal mTLS certs issued short-lived by the same ACME/CA path (no manually managed certs; GitHub 2025-11 remediation). CERT-4 (CI): synthetic test with faketime +400d asserts alert fires 30 days prior and swap succeeds. Acceptance: zero hand-managed certs in repo.",
+   "urls": [
+    "https://github.blog/news-insights/company-news/github-availability-report-november-2025/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "ACME/ARI details in ops.acme-crate-maturity."
+  },
+  {
+   "id": "uu11.l5-upstream-budget-retry-budget",
+   "layer": "L5",
+   "domain": "W-THREAT/W-OPS",
+   "type": "invariant",
+   "title": "L5 invariants UP-1..5: bounded per-upstream concurrency with deadline propagation, retry budget, startup resource preflight, log budget, TTL-honouring resolution",
+   "summary": "UP-1: each upstream has max_inflight (semaphore) and queue bound; excess is shed with 503 + Retry-After in < 1 ms, so one slow upstream cannot consume the shared worker/fd pool (Wikimedia php-fpm pattern). UP-2: end-to-end deadline decrements across hops; no work after deadline. UP-3: retry budget: retries <= 10% of first attempts over a 10 s window per upstream (Envoy-style retry budget), jittered exponential backoff, never retry on 429/503-overload, circuit-open on 5 s consecutive failures. UP-4 (preflight): at start compute needed_fds = 2*max_conns + files + margin; assert getrlimit(NOFILE) >= needed_fds and fs.nr_open, conntrack_max headroom, else refuse to start (catches ProxySQL LimitNOFILE 1,073,741,824 -> 65,536). UP-5: access/error log size budget with drop-with-counter, never block request path, never fill the disk (log volume cap + rate-limited error lines). UP-6: DNS: upstream names re-resolved on TTL expiry (bounded min 1 s), address set refreshed on connect failure; no unbounded address caching (ELB IP class). Test: deterministic-simulation harness that injects 10x upstream latency and asserts p99 of unrelated routes unchanged.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "uu11.l5-pool-floor-and-rule-guards",
+   "layer": "L5",
+   "domain": "W-THREAT/W-OPS",
+   "type": "invariant",
+   "title": "L5 invariants OPS-1..3: min-healthy floor on pool/listener drain, two-person or dry-run for destructive control-plane commands, regex and clock rules",
+   "summary": "OPS-1: the control interface (admin socket, depool, reload) refuses any action leaving fewer than ceil(f*N) healthy backends or zero listeners (PyBal depool-protection pattern, Wikimedia 2022-09-08); TLA+ safety: always(healthy >= floor) for every enabled action. OPS-2: destructive admin commands default to --dry-run output with diff and require explicit --confirm; unknown selectors error out instead of matching all/none (confctl host= vs name=, 2022-05-09). OPS-3 regex: data-plane matching only via linear-time engines (Rust regex/RE2 class), cargo-deny bans on fancy-regex, pcre2, onig in data-plane crates; user/agent-supplied patterns compiled with size limit. OPS-4 clock: durations and deadlines use CLOCK_MONOTONIC only; wall clock used for cert validity and logs; clock step > 1 s detected and logged; no panic on negative durations (saturating_sub). OPS-5 reload: new process acknowledges readiness before old drains (ties to zd.l4-orphan-socket-blackhole).",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "uu11.negative-result-ledger-completeness",
+   "layer": "L1",
+   "domain": "W-THREAT/W-OPS",
+   "type": "negative-result",
+   "title": "Negative result: none of 160 middle-tier outage causes in this corpus were memory-safety or parser-differential bugs; the attacker-centric ledger and outage record barely overlap",
+   "summary": "Across 160 coded middle-tier incidents only 4 were adversarial (abusive traffic/connection-exhaustion) and 1 involved memory exposure (Cloudflare 2017 Cloudbleed parser bug, coded under bug). The classes that dominate real downtime (config push, latent logic bugs, exhaustion, retries, certs) are untouched by memory-safe languages or formal parsers; they require operational invariants and process gates. For a durability objective, the threat ledger is necessary but not sufficient.",
+   "urls": [
+    "https://github.com/danluu/post-mortems"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Corpus bias: security incidents are reported as advisories, not postmortems.",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "uu11.outage-class-frequency-table",
+   "dst": "threat-ledger-middle-tier-2023-2026",
+   "type": "complements",
+   "note": "ledger is attacker-centric; this is the non-adversarial counterpart"
+  },
+  {
+   "src": "uu11.cfg-push-class",
+   "dst": "ops.config-lang-and-creds",
+   "type": "extends",
+   "note": "typed validation catches syntax; adds panic-free ingestion, LKG, staged rollout, semantic scope"
+  },
+  {
+   "src": "uu11.cert-lifecycle-class",
+   "dst": "ops.acme-crate-maturity",
+   "type": "extends",
+   "note": "crate choice lacks expiry-failure invariant/alarm"
+  },
+  {
+   "src": "uu11.lifecycle-operator-class",
+   "dst": "zd.l4-orphan-socket-blackhole",
+   "type": "extends",
+   "note": "adds operator blast-radius and min-healthy floor beyond fd handoff"
+  },
+  {
+   "src": "uu11.worker-exhaustion-class",
+   "dst": "abuse-per-ip-limits-fail-swarm",
+   "type": "complements",
+   "note": "exhaustion also arises with zero attackers; per-upstream budgets needed"
+  },
+  {
+   "src": "uu11.clock-regex-rare-classes",
+   "dst": "threat-decompression-parser-complexity",
+   "type": "extends",
+   "note": "benign-trigger ReDoS cases"
+  },
+  {
+   "src": "uu11.threat-ledger-gap-classes",
+   "dst": "sc3.incident-class-fractions",
+   "type": "analogous-method",
+   "note": "same fraction-coding approach on outage domain"
+  },
+  {
+   "src": "uu11.l5-config-lkg-canary-rule",
+   "dst": "uu11.cfg-push-class",
+   "type": "implements",
+   "note": ""
+  },
+  {
+   "src": "uu11.l5-cert-expiry-gate",
+   "dst": "uu11.cert-lifecycle-class",
+   "type": "implements",
+   "note": ""
+  },
+  {
+   "src": "uu11.l5-upstream-budget-retry-budget",
+   "dst": "uu11.worker-exhaustion-class",
+   "type": "implements",
+   "note": ""
+  },
+  {
+   "src": "uu11.l5-upstream-budget-retry-budget",
+   "dst": "uu11.retry-herd-class",
+   "type": "implements",
+   "note": ""
+  },
+  {
+   "src": "uu11.l5-pool-floor-and-rule-guards",
+   "dst": "uu11.lifecycle-operator-class",
+   "type": "implements",
+   "note": ""
+  },
+  {
+   "src": "uu11.postmortem-selection-bias",
+   "dst": "uu11.outage-class-frequency-table",
+   "type": "qualifies",
+   "note": "frequency measures reportability"
+  },
+  {
+   "src": "uu11.dataset-access-negative-results",
+   "dst": "uu11.outage-class-frequency-table",
+   "type": "qualifies",
+   "note": "source coverage limits"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Pull Wikimedia-style structured incident corpora from other operators (Fastly, Heroku, Fly.io, Hetzner, OVH, Google Cloud history via web.archive of incidents.json, AWS PES, Azure PIR RSS) to remove the Wikimedia 39% skew and test whether fd/worker exhaustion share holds",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.45,
+   "reason": "Corpus skew is the main load-bearing weakness"
+  },
+  {
+   "question": "Build the deterministic-simulation fault-injection suite for UP-1..UP-6 and CFG-4 (slow upstream 10x, oversize config, retry storm) and measure shed latency and LKG behavior on a 1 vCPU box",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "expected_info_gain": 0.4,
+   "reason": "Turns invariants into gates; implementation-phase spike"
+  },
+  {
+   "question": "Quantify 47-day certificate lifetimes (CA/B ballot SC-081) impact on renewal-failure incident rate and what ACME ARI plus staging does to renewal availability",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.3,
+   "reason": "Cert class will grow as lifetimes shrink"
+  },
+  {
+   "question": "Which published proxies fail static on invalid config: audit nginx, Envoy (xDS NACK), HAProxy, Caddy, Pingora, River reload paths for panic-on-invalid and LKG behavior",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.35,
+   "reason": "Tests CFG-1/3 against prior art"
+  },
+  {
+   "question": "Classify arXiv/USENIX outage-study corpora (e.g. metastable failures OSDI 2022, cloud incident studies) for middle-tier share to cross-validate this coding",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.3,
+   "reason": "Independent coder / source for inter-rater check"
+  }
+ ],
+ "protocol_implications": [
+  "Add non-adversarial outage classes (config push, cert lifecycle, upstream-induced exhaustion, retry amplification, operator blast radius, DNS TTL) to THREAT_MODEL as first-class rows with L5 gates CFG-1..4, CERT-1..4, UP-1..6, OPS-1..5.",
+  "Spec: SPEC_INVARIANTS should include safety property always(healthy >= floor) for the control plane, and totality of config parse (no panic) with Kani harness.",
+  "Acceptance gate: faketime +400d CI test for cert alarms; oversize-config fuzz test; slow-upstream deterministic simulation.",
+  "Do not treat memory safety or formal parsing as addressing durability: none of the 160 outage causes were memory-corruption or parser differentials."
+ ],
+ "self_improvement": [
+  "Statuspage API ignores paging and caps at 50: use history atom/HTML or wayback for depth; wikitech MediaWiki API is the only bulk structured incident source with start/end fields.",
+  "Regex auto-coding of incident text was unusable (false positives such as resolv matching resolved); manual snippet labelling with scripted counts is required; add an inter-coder check seed.",
+  "novelty_gate query output is useful but labels most outage-vocabulary queries NOVEL because earlier rounds had no incident-dataset vocabulary; keep logging."
+ ],
+ "notes": {
+  "queries_run": 20,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "new_urls": "~45 (danluu raw, codeberg k8s.af, CF rss, GH feed x8, wikitech API, 8 status APIs, GCP, macintux, VOID, ftrack, fastly, CF 2025-11-18, CF 2025-12-05, 8 search result sets)",
+  "nodes_new": 16,
+  "nodes_reused": 0,
+  "reused_ids_linked": [
+   "threat-ledger-middle-tier-2023-2026",
+   "ops.config-lang-and-creds",
+   "ops.acme-crate-maturity",
+   "zd.l4-orphan-socket-blackhole",
+   "abuse-per-ip-limits-fail-swarm",
+   "threat-decompression-parser-complexity",
+   "sc3.incident-class-fractions"
+  ],
+  "class_table": [
+   {
+    "code": "CFG",
+    "cls": "config-push-validation",
+    "n": 28,
+    "pct": 17.5,
+    "n_dur": 10,
+    "median_min": 75.2
+   },
+   {
+    "code": "BUG",
+    "cls": "code-bug-regression-latent",
+    "n": 20,
+    "pct": 12.5,
+    "n_dur": 5,
+    "median_min": 42
+   },
+   {
+    "code": "FD",
+    "cls": "fd-port-conntrack-worker-exhaustion",
+    "n": 17,
+    "pct": 10.6,
+    "n_dur": 5,
+    "median_min": 19.9
+   },
+   {
+    "code": "CAP",
+    "cls": "capacity-saturation-nonmalicious",
+    "n": 15,
+    "pct": 9.4,
+    "n_dur": 8,
+    "median_min": 36.0
+   },
+   {
+    "code": "RETRY",
+    "cls": "retry-storm-herd-cascade",
+    "n": 11,
+    "pct": 6.9,
+    "n_dur": 4,
+    "median_min": 6.5
+   },
+   {
+    "code": "DEP",
+    "cls": "dependency-upstream",
+    "n": 11,
+    "pct": 6.9,
+    "n_dur": 9,
+    "median_min": 191.5
+   },
+   {
+    "code": "DNS",
+    "cls": "dns-incl-elb-ip-caching",
+    "n": 10,
+    "pct": 6.2,
+    "n_dur": 3,
+    "median_min": 48.8
+   },
+   {
+    "code": "RELOAD",
+    "cls": "reload-restart-upgrade-deploy-lifecycle",
+    "n": 8,
+    "pct": 5.0,
+    "n_dur": 2,
+    "median_min": 591.6
+   },
+   {
+    "code": "CERT",
+    "cls": "cert-key-expiry",
+    "n": 8,
+    "pct": 5.0,
+    "n_dur": 6,
+    "median_min": 101.0
+   },
+   {
+    "code": "HUM",
+    "cls": "operator-error-tooling",
+    "n": 7,
+    "pct": 4.4,
+    "n_dur": 3,
+    "median_min": 11.0
+   },
+   {
+    "code": "NET",
+    "cls": "network-routing-bgp",
+    "n": 5,
+    "pct": 3.1,
+    "n_dur": 5,
+    "median_min": 77.7
+   },
+   {
+    "code": "ABUSE",
+    "cls": "abusive-traffic",
+    "n": 4,
+    "pct": 2.5,
+    "n_dur": 1,
+    "median_min": 126
+   },
+   {
+    "code": "CLOCK",
+    "cls": "clock-leapsecond-time",
+    "n": 4,
+    "pct": 2.5,
+    "n_dur": 0,
+    "median_min": null
+   },
+   {
+    "code": "HC",
+    "cls": "healthcheck-depool-logic",
+    "n": 3,
+    "pct": 1.9,
+    "n_dur": 1,
+    "median_min": 33.0
+   },
+   {
+    "code": "MEM",
+    "cls": "memory-leak-oom",
+    "n": 3,
+    "pct": 1.9,
+    "n_dur": 0,
+    "median_min": null
+   },
+   {
+    "code": "CACHE",
+    "cls": "cache-poisoning-staleness",
+    "n": 2,
+    "pct": 1.2,
+    "n_dur": 1,
+    "median_min": 8069.0
+   },
+   {
+    "code": "REGEX",
+    "cls": "regex-catastrophic-backtracking",
+    "n": 2,
+    "pct": 1.2,
+    "n_dur": 0,
+    "median_min": null
+   },
+   {
+    "code": "DISK",
+    "cls": "disk-log-fill",
+    "n": 1,
+    "pct": 0.6,
+    "n_dur": 0,
+    "median_min": null
+   },
+   {
+    "code": "HW",
+    "cls": "kernel-firmware-hardware-power",
+    "n": 1,
+    "pct": 0.6,
+    "n_dur": 1,
+    "median_min": 3057.5
+   }
+  ],
+  "dataset_files": [
+   "11-data/coded_dataset.csv",
+   "11-data/coded_dataset.json",
+   "11-data/labels.txt",
+   "11-data/labels2.txt",
+   "11-data/extra.json",
+   "11-data/class_table.json"
+  ],
+  "negative_result_share": "5 of 16 nodes are negative-result/qualifying (dataset access, selection bias, ledger completeness, no memory-safety causes, KB-not-postmortem classes) = ~31%+"
+ }
+}

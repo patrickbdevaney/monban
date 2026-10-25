@@ -1,0 +1,7 @@
+Running client scenario 'dns-rebinding-protection' against server: http://127.0.0.1:18002/mcp
+Checks:
+[90m2026-10-25T08:17:06.948Z[0m [localhost-host-rebinding-rejected] [32mSUCCESS[0m Server rejects requests with non-localhost Host/Origin headers
+[90m2026-10-25T08:17:06.948Z[0m [localhost-host-valid-accepted    ] [32mSUCCESS[0m Server accepts requests with valid localhost Host/Origin headers
+
+Test Results:
+Passed: 2/2, 0 failed, 0 warnings

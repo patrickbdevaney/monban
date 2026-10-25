@@ -1,0 +1,1241 @@
+{
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-003/04-supply-chain-executed-on-golden-pins.json",
+ "nodes": [
+  {
+   "id": "sc3.golden-lock-gate-run",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "tool-measurement",
+   "title": "Golden-pin lockfile (233 crates, resolved 2026-10-25) run through vet, deny, audit, geiger, auditable: counts per gate with tool versions",
+   "summary": "Cargo 1.98.0 resolved hyper =1.12.0, h2 =0.4.20, rustls 0.23.46 (aws-lc-rs 1.18.2 / aws-lc-sys 0.46.0), tokio 1.54.1, governor =0.10.4, cedar-policy =4.14.0, tokio-rustls 0.26.6, hyper-util 0.1.21, rustls-webpki 0.103.16 into a 233-crate lock (cargo tree linux normal+build 165; cargo-auditable embeds 190). cargo-audit 0.22.2 (advisory-db 1,352 advisories, commit 21d909e 2026-10-24): 0 vulnerabilities, 0 warnings. cargo-deny 0.20.2: advisories ok, sources ok, licenses ok with an 11-SPDX allowlist, bans FAIL on 6 duplicate crates (getrandom x2, hashbrown x3, itertools x2, r-efi x2, syn x2, unicode-width x2). cargo-vet 0.10.3 with six imports (mozilla, google, bytecode-alliance, zcash, isrg, embark-studios) and zero exemptions: 183 of 233 crates unaudited (78.5%); cargo-geiger 0.14.0: 24,928 unsafe items used / 43,116 total over 133 scanned crates, 80 crates with used unsafe, 9 with forbid(unsafe). All counts are one-day snapshots on the pins; 0 audit findings is not safety.",
+   "urls": [
+    "https://github.com/mozilla/cargo-vet/releases/tag/v0.10.3",
+    "https://github.com/rustsec/rustsec",
+    "https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.20.2",
+    "https://github.com/geiger-rs/cargo-geiger",
+    "https://github.com/rust-secure-code/cargo-auditable/releases/tag/v0.7.7"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "One lock on one date and one host cfg; the 233 includes optional-feature and other-target crates (ring 0.17.14 is locked but not linked), so per-gate denominators differ (233/190/165/133) and must not be compared across gates.",
+   "underclaim_risk": "Four of five gates are cheap to run in CI (prebuilt binaries for vet 3.6 MB, audit 6.5 MB, auditable 0.45 MB, deny 4.9 MB musl; only geiger needs compiling, 8-9 min under heavy.sh).",
+   "specifics": "Tool versions: cargo-vet 0.10.3 (2026-10-22), cargo-audit 0.22.2 (2026-06-05), cargo-deny 0.20.2 (2026-07-09), cargo-auditable 0.7.7 (2026-10-02), cargo-geiger 0.14.0 (2026-10-12; no release binary; needs rustc>=1.97; built with 1.98.0). Lock pins: aws-lc-rs 1.18.2, aws-lc-sys 0.46.0, ring 0.17.14 (locked), rustls-webpki 0.103.16 (2026-10-20), tokio-rustls 0.26.6, hyper-util 0.1.21. Note aws-lc-rs 1.18.x is the not-yet-validated FIPS v4 line (see crate-aws-lc-rs): the golden FIPS decision and the >=1.18 resolution are in tension.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.vet-zero-exemption-baseline",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "tool-measurement",
+   "title": "cargo-vet on the golden lock with NO exemptions: 183/233 unaudited, 116/165 on the linux target, 3.66M lines of backlog (2.09M is aws-lc-sys)",
+   "summary": "Removing the 184 exemptions that `cargo vet init` auto-generates leaves 50 crates covered by the six imports (45 fully, 4 partially audited after init). Unaudited: 183 (59 delta audits worth 0.32M lines, 124 full audits worth 5.21M lines; 5.53M total over all targets). Restricting to the linux target tree: 116 unaudited, 3,659,266 lines, of which aws-lc-sys 0.46.0 2,089,732, tokio 1.54.1 154,803, libc 0.2.191 135,905, cedar-policy-core 4.14.0 133,820, regex-automata 69,141, syn 3.0.9 68,605, syn 2.0.119 66,976, lalrpop 0.22.2 66,186. Marginal value of each import set alone (unaudited of 233): none 233, mozilla 219, bytecode-alliance 227, google 229, isrg 232, embark 232, zcash 232; all six 183 (linux-target 164 -> 116). Mozilla alone supplies 14 of the 50; zcash adds one crate beyond the others. The suggested-criteria for all 183 is safe-to-deploy only.",
+   "urls": [
+    "https://github.com/mozilla/supply-chain",
+    "https://github.com/google/rust-crate-audits",
+    "https://github.com/bytecodealliance/wasmtime/blob/main/supply-chain/audits.toml",
+    "https://github.com/zcash/rust-ecosystem",
+    "https://github.com/divviup/libprio-rs/blob/main/supply-chain/audits.toml",
+    "https://github.com/EmbarkStudios/rust-ecosystem"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Coverage is crate-version specific (delta audits chain) and moves daily as sets grow; line counts are diffstat lines of unaudited versions, not review effort; cargo-vet resolves all targets (windows-sys 335k+385k, web-sys 232k, winapi 181k are irrelevant to a linux server), so the 183 overstates the deployable backlog by about 1.6x.",
+   "underclaim_risk": "The ratchet is still the right gate: the golden can start at 0 new exemptions and eliminate the 116 only for crates the first-party code reaches; audit sharing makes the realistic first-party burden tokio, aws-lc-sys, cedar-policy-core and the syn/regex families, not 183 crates.",
+   "specifics": "Method: cargo vet init; python removes [[exemptions.*]] blocks from supply-chain/config.toml; `cargo vet --output-format json` -> suggest.suggestions/total_lines; linux set from `cargo tree --target x86_64-unknown-linux-gnu -e normal,build --prefix none`. Extends sc.vet-import-sets (94-crate lock, 14 fully audited, 3.94M lines) with the golden pins and a seventh-set comparison; r1 imported 5 sets, this run imported 6 (adds zcash).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.geiger-014-golden-unsafe",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "tool-measurement",
+   "title": "cargo-geiger 0.14.0 on the golden lock: hyper 123 unsafe items, h2 3, rustls/webpki/cedar 0; the unsafe mass sits in tokio, memchr, hashbrown, aws-lc",
+   "summary": "cargo-geiger 0.14.0 --all-targets=false over 133 scanned packages: 24,928 unsafe items used of 43,116 (functions+exprs+impls+traits+methods), 80 crates with used unsafe, only 9 with forbid(unsafe_code). Per-crate used/total: tokio 1.54.1 2,527/3,372; memchr 2.8.3 2,138/2,638; hashbrown 0.14.5/0.16.1/0.17.1 1,502/1,492/1,449 (three versions linked); aho-corasick 1,097; aws-lc-rs 1.18.2 1,052; parking_lot_core 936; allocator-api2 862; bytes 849; lock_api 739; aws-lc-sys 715/10,748 (C unsafe not counted); socket2 674; hyper 1.12.0 123/153; hyper-util 50/53; governor 0.10.4 7/8; h2 0.4.20 3/3; rustls 0.23.46 0 (forbid); rustls-webpki 0; tokio-rustls 0; cedar-policy 4.14.0 and cedar-policy-core 0. Counts differ from r1 (tokio exprs-only 2,394) because this sums all five geiger categories.",
+   "urls": [
+    "https://github.com/geiger-rs/cargo-geiger",
+    "https://crates.io/crates/cargo-geiger/0.14.0"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Syntactic count not risk; host-cfg only; macro-generated unsafe may be missed; the 9 forbid crates exclude rustls-webpki (0 used but no forbid attribute).",
+   "underclaim_risk": "The security-critical protocol logic (TLS state machine, X.509 path building, Cedar policy evaluation) is unsafe-free; h2 is 3 items. The memory-unsafe surface a ceiling gate must watch is the runtime/allocator layer.",
+   "specifics": "L5 ceiling file unsafe-allowlist.json seeds: {\"tokio\":2527,\"memchr\":2138,\"hashbrown\":1502,\"aho-corasick\":1097,\"aws-lc-rs\":1052,\"hyper\":123,\"hyper-util\":50,\"governor\":7,\"h2\":3,\"rustls\":0,\"rustls-webpki\":0,\"cedar-policy-core\":0}; fail when a crate absent from the file has used>0 or any ceiling grows; ceiling changes need CODEOWNER review. Extends sc.unsafe-budget (0.13.0 numbers on a 94-crate lock).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.deny-golden-duplicates",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "tool-measurement",
+   "title": "cargo-deny 0.20.2 on the golden lock: licenses pass with 11 SPDX ids, 6 duplicate crates break multiple-versions=deny (hashbrown x3)",
+   "summary": "deny.toml: yanked=deny, unmaintained=all, multiple-versions=deny, wildcards=deny, unknown-registry/git=deny, license allow = Apache-2.0, MIT, ISC, BSD-3-Clause, BSD-2-Clause, Unicode-3.0, Zlib, OpenSSL, CDLA-Permissive-2.0, Apache-2.0 WITH LLVM-exception, MPL-2.0 (confidence 0.8). Result: advisories ok (0 yanked, 0 unmaintained), sources ok, licenses ok (3 allow entries unused; the only unlicensed hit is the root crate), bans fail: getrandom (2 versions), hashbrown (3), itertools (2), r-efi (2), syn (2), unicode-width (2). The shipped default `cargo deny init` allow list is empty and fails 100+ crates, so a hand-curated allowlist is mandatory. In r1 the 94-crate lock had one duplicate (syn).",
+   "urls": [
+    "https://github.com/EmbarkStudios/cargo-deny",
+    "https://embarkstudios.github.io/cargo-deny/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Duplicate versions are mostly Cedar (itertools/hashbrown/syn via lalrpop/miette) and are not vulnerabilities; the gate measures attack-surface duplication.",
+   "underclaim_risk": "Cedar 4.14 alone pulls the largest dependency fan-out (233 vs 94 crates without it): the cost of the policy engine to the supply-chain gate is quantifiable here.",
+   "specifics": "L5: `cargo deny --locked check` with [bans] skip = [{crate=\"getrandom\"},{crate=\"hashbrown\"},{crate=\"itertools\"},{crate=\"r-efi\"},{crate=\"syn\"},{crate=\"unicode-width\"}] and CI fails if a new duplicate appears or the skip list grows. Extends sc.deny-audit-gate.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.repro-ablation-golden",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "experiment",
+   "title": "Reproducible build of the golden binary: byte-identical across CARGO_HOME, directory and SOURCE_DATE_EPOCH with 3 remap flags; fails with none or only the source remap; toolchain change breaks it",
+   "summary": "Binary links hyper, h2, rustls (aws-lc-rs), tokio-rustls, tokio, governor, cedar-policy, hyper-util (full 233-crate lock; release, lto=true, codegen-units=1, panic=abort, --locked; rustc 1.98.0 host x86_64 glibc, same machine). Pair A/B: different CARGO_HOME, different directory (rb/a/golden vs rb/b/much-longer-directory-name/g2) and SOURCE_DATE_EPOCH 1.7e9 vs 1.8e9. (1) No RUSTFLAGS: A d342e069.. != B 07f3f95b.. (121 of 124 differing strings are absolute registry paths). (2) Remap only the source dir: a5e357c2.. != 990ad966.. (3,777,056 vs 3,777,760 bytes; 242 of 248 differing strings are registry paths). (3) --remap-path-prefix for source, $CARGO_HOME/registry/src and $RUSTUP_HOME: IDENTICAL 397c98ae76a5bf65de099be32205d925c6e8b04abd5a99a41ab262e0159d6d6b (3,769,888 B, builds 1m45s and 1m56s), and with debug=2 also IDENTICAL a47adadd8289.. (37,598,656 B). (4) Same flags with rustc 1.93.1: f71b50b6.. (3,681,400 B), a different binary, so the toolchain digest is part of the build identity. (5) cargo auditable build changes the hash (b79de142..; it adds the dependency section) so compare like with like. SOURCE_DATE_EPOCH had no measurable effect. 1.99.1 re-run: IDENTICAL 521dcda5d6f2bb243fb93986be3b61e14cb67883a14785a56bf644c3b63d4c26 for both A and B (rustc 1.99.1 pair, same flags, different CARGO_HOME/dir/SDE). What still differs/untested: different host glibc/linker/gcc (aws-lc-sys is compiled C), cross-machine, proc-macro/build.rs that read env, and CARGO_BUILD_JOBS parallelism (not varied).",
+   "urls": [
+    "https://doc.rust-lang.org/rustc/command-line-arguments.html#--remap-path-prefix",
+    "https://github.com/rust-lang/rust/blob/master/RELEASES.md",
+    "https://github.com/rust-lang/cargo/pull/17488"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.82,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Single host, single OS image, single compiler per row: identical here does not prove independent-rebuilder reproducibility (glibc, binutils, gcc/cc versions for aws-lc C code were identical). Dir/home independence is necessary not sufficient.",
+   "underclaim_risk": "This removes the common blocker (paths) for a 233-crate lock including a C-heavy crypto library and a 100k-line policy engine at zero code cost; the previous r1 experiment used 94 crates and debug=1 only.",
+   "specifics": "Extends sc.repro-build-experiment (94 crates, rustc 1.88). New: CARGO_HOME independence, SDE independence, debug=2, ablation of which flag is needed (registry remap is necessary), toolchain sensitivity. cargo PR #17488 (profile.trim-paths stabilization) merged 2026-10-06 milestone 1.101.0 will replace the 3 manual flags from Rust 1.101 (not before ~2027-01); rustc --remap-path-prefix/--remap-path-scope stabilizations listed in RELEASES 1.97.0 / 1.95.0.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.tarball-git-parity-golden",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "experiment",
+   "title": "Executed tarball-vs-git parity on the golden pins: 13 of 15 crates byte-identical to the recorded commit; aws-lc-sys (1,964 files) and ring (107 files) contain content not in git",
+   "summary": "230 of 233 locked crates ship .cargo_vcs_info.json (missing: precomputed-hash, winapi-i686-pc-windows-gnu, winapi-x86_64-pc-windows-gnu; 4 marked dirty). For 15 key crates I ran `git fetch --depth 1 <repository> <sha1>` and compared every file of the crates.io source to the git tree (Cargo.toml compared via Cargo.toml.orig): hyper 1.12.0, h2 0.4.20, rustls 0.23.46, tokio 1.54.1, governor 0.10.4, cedar-policy-core 4.14.0, rustls-webpki 0.103.16, hyper-util 0.1.21, tokio-rustls 0.26.6, aws-lc-rs 1.18.2, cc 1.10.0, smallvec 1.16.4, bytes 1.12.1: 0 content differences, Cargo.toml.orig == git Cargo.toml in all 15. Exceptions are files absent from the git tree: aws-lc-sys 0.46.0 1,964 of 2,045 files (the vendored aws-lc submodule is not in the aws-lc-rs tree), ring 0.17.14 107 pregenerated assembler files, rustls README.md (1). The xz CVE-2024-3094 pattern (release artifact differs from git) is detectable for pure-Rust crates in about a minute per crate, but not for the two crates carrying the largest vendored C/asm mass (2.09M audit lines).",
+   "urls": [
+    "https://github.com/rust-lang/cargo/issues/12567",
+    "https://research.swtch.com/xz-timeline",
+    "https://crates.io/crates/aws-lc-sys/0.46.0"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "A forged .cargo_vcs_info.json (author-controlled) defeats the gate: parity to a commit the attacker chose proves nothing about review. 15 of 233 crates sampled; submodule and generated-file crates unverified.",
+   "underclaim_risk": "Cheap, deterministic and catches the exact xz tarball-injection class for the pure-Rust majority; the exception list is itself a ranked worklist of where trust remains.",
+   "specifics": "L5 script (tvg.py in raw dir): for each lock entry with vcs info: git fetch --depth 1 repository sha; diff; allowlist = {\".cargo-ok\", Cargo.toml (vs Cargo.toml.orig), aws-lc-sys:aws-lc/**, ring:pregenerated/**}; pass = 0 unexplained diffs; for allowlisted crates, second-stage check: aws-lc submodule commit from aws-lc-rs tree vs vendored files; regenerate ring pregenerated via its script and compare. Extends sc.xz-lessons (which was grade C and proposed this gate without running it).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.trustpub-sha-gate",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "experiment",
+   "title": "crates.io trustpub_data covers 30/233 golden-lock versions; trustpub sha equals the packaged commit for only 24 of 30 (20% false-positive for a naive equality gate)",
+   "summary": "crates.io API /api/v1/crates/{name}/{version} exposes trustpub_data {provider, repository, run_id, sha} for versions published via Trusted Publishing (governor 0.10.4: github boinkor-net/governor, run_id 20275765132, sha 9f3a79dd47, published 2025-12-16; published_by null). Across the golden lock: 30 of 233 versions (12.9%), all GitHub, 87 distinct publishers overall (dtolnay 18 crates, kennykerr 17, BurntSushi 13). Core pins hyper/h2/rustls/tokio/aws-lc/ring/webpki/hyper-util/tokio-rustls are still token-published (published_by a person: seanmonstar, ctz, justsmth, Darksonn, briansmith, djc); governor, cedar-policy/-core/-formatter, libc, cc, rand, zerocopy, getrandom, zeroize are trusted-published. trustpub sha vs .cargo_vcs_info sha1: equal for 24; differ for cedar x3 (cf7e99c7d4 vs 5e54be8a16), pin-project-lite, portable-atomic, portable-atomic-util (release flows that commit after the workflow-start sha). cargo has no verification of any of this (cargo issue 12567 open; no Sigstore attestations on crates.io found).",
+   "urls": [
+    "https://blog.rust-lang.org/2026/01/21/crates-io-development-update",
+    "https://crates.io/api/v1/crates/governor/0.10.4",
+    "https://github.com/rust-lang/cargo/issues/12567"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Presence of trustpub_data shows a CI run published it, not that the CI run was uncompromised (ultralytics round 1 used trusted publishing; Shai-Hulud 2.0/PostHog pushed a malicious workflow commit directly).",
+   "underclaim_risk": "It is a free, registry-side, per-version provenance field that already differs between the attacker-token case (arrayref: null) and the legitimate pipeline; a policy \"TP-published or allowlisted\" would have flagged arrayref 0.3.10 had arrayref been TP-only before.",
+   "specifics": "L5 intake rule: for every lock diff, record trustpub_data presence; crates previously TP-published that suddenly ship a non-TP version => hard fail (regression alarm, generalizes arrayref). Use ancestry (`git merge-base --is-ancestor vcs_sha trustpub_sha` or tag-contains) not equality. Extends sc.slsa-attest (producer side only) with a consumer-side registry check.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.cooldown-executed-cargo-198",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "experiment",
+   "title": "Executed cargo cooldown: 7 days downgrades 6 crates and lands a known advisory (RUSTSEC-2026-0382); 14 days downgrades 26 and lands 6 advisories incl. rustls 0.23.45 classical-KX downgrade",
+   "summary": "cargo 1.98.0 (stable binary; -Zmin-publish-age enabled with RUSTC_BOOTSTRAP=1) with [registry] global-min-publish-age = \"7 days\": `cargo generate-lockfile` on the golden Cargo.toml (hyper/h2/governor/cedar exact pins) yields 220 crates, 6 older than latest: tokio 1.53.3 (1.54.1 is 3.2 days old), rustls-webpki 0.103.15 (0.103.16 is 4.7 days old), cc 1.8.0, smallvec 1.16.3, smol_str 0.3.6, find-msvc-tools 0.1.14. cargo-audit on that lock: 1 vulnerability, RUSTSEC-2026-0382 (CVE-2026-111943, 2026-10-20) rustls-webpki 0.103.15 accepts certificate paths through distrusted emSign intermediates; fixed 0.103.16. With 14 days: the exact pin cedar-policy =4.14.0 (7.4 days) is a hard resolver error (\"version 4.14.0 is too new (published 8 days ago, minimum age 14 days)\", help suggests 4.13.0 and CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow); after relaxing cedar and rustls ranges, 26 crates are downgraded (aws-lc-rs 1.18.1, aws-lc-sys 0.45.0, cedar 4.13.0, rustls 0.23.45, rustls-webpki 0.103.15, tokio 1.53.2 ...) and cargo-audit reports 6 advisories: rustls 0.23.45 RUSTSEC-2026-0346 (Debug impls expose TLS secrets), -0347 (buffered data sent to outer server after ECH rejection), -0348 (brotli certificate decompression allocates up to 1 GiB pre-auth), -0349 (unauthenticated ServerHello can downgrade later connections to classical key exchange) all dated 2026-10-14 and patched in 0.23.46; webpki -0382; tokio 1.53.2 RUSTSEC-2026-0386 (patched >=1.53.3). A blanket cooldown without a security bypass is net-negative for a TLS server in the 2 weeks after a rustls advisory batch.",
+   "urls": [
+    "https://github.com/rust-lang/cargo/pull/17012",
+    "https://github.com/rust-lang/cargo/pull/17335",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0382.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0349.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Single resolution date (2026-10-25); the failure depends on advisory timing relative to the cooldown window and would be absent on a quiet week; cargo applies the age check only when resolving new versions, existing lock entries are not re-checked.",
+   "underclaim_risk": "Shows cargo already surfaces the conflict (messages list \"available: vX, published N days ago\" and the override env var), so the fix is policy plus a CI rule rather than tooling.",
+   "specifics": "Extends v.cargo-min-publish-age-rfc3923 and sc.cooldown-policy. Corrects dates: RFC 3923 PR opened 2026-02-23 and MERGED 2026-05-18 (r1 recorded 2026-02-23 as acceptance); cargo PR #17012 (-Zmin-publish-age) merged 2026-06-18 milestone 1.98.0; stabilization PR #17335 merged 2026-08-28 milestone 1.100.0; Rust stable is 1.99.1 (2026-10-13) with 1.100.0-beta.7 (2026-10-17) so stable cargo cannot use it until 1.100 (~2026-11-26 by the 6-week train); beta/stable cargo docs do not yet mention it. Config keys: registry.global-min-publish-age, registries.<name>.min-publish-age, resolver.incompatible-publish-age, env CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow (preserved in the lockfile).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.cooldown-blocked-counts-golden",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "measurement",
+   "title": "Golden lock publish-age distribution at 2026-10-25: 2 crates <3 days, 6 <7, 25 <14 (19 linux), 45 <30, 82 <90; median 188 days; core pins hyper/h2 18 days, tokio 3.2 days",
+   "summary": "crates.io API created_at for all 233 locked versions (0 yanked): a 3-day cooldown blocks 2 (cc 1.10.0 1.7d, smallvec 1.16.4 1.4d), 7 days blocks 6 (+ find-msvc-tools 0.1.15 5.8d, rustls-webpki 0.103.16 4.7d, smol_str 0.3.7 4.5d, tokio 1.54.1 3.2d), 14 days blocks 25 of 233 (19 on the linux tree: aws-lc-rs 1.18.2 12.5d, aws-lc-sys 0.46.0 12.5d, cedar-policy/-core/-formatter 4.14.0 7.4d, defmt 1.2.0, deranged 0.5.9, equivalent 1.0.3 ...), 30 days blocks 45 (29 linux), 90 days blocks 82 (60 linux). Median age 188 days, p10 12.9 days. Pin ages: hyper 1.12.0 and h2 0.4.20 18.4d, rustls 0.23.46 10.7d, hyper-util 30.4d, tokio-rustls 26.7d, governor 0.10.4 312d, ring 0.17.14 592d. The golden pins chosen in round 2 (released 2026-10-06 to 2026-10-17) are the newest tier by construction.",
+   "urls": [
+    "https://crates.io/api/v1/crates/tokio/1.54.1",
+    "https://crates.io/api/v1/crates/rustls-webpki/0.103.16"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Snapshot ages move daily; counts include crates for non-linux targets.",
+   "underclaim_risk": "A 7-day cooldown blocks only 6 of 233 (2.6%), so the operational cost is concentrated in the security-sensitive newest layer (tokio, webpki, rustls, aws-lc) rather than the long tail.",
+   "specifics": "Method: 233 GET /api/v1/crates/{n}/{v} at 1 req per 1.1 s with User-Agent (crates.io policy). Dates in UTC; now = 2026-10-25T02:30Z.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.slopsquat-rust-study-2606",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "measurement",
+   "title": "First Rust-specific package-hallucination study exists (arXiv 2606.08444): headline 22.23%, but the metric counts std items and local types; our re-extraction gives 6.1% of use-roots, 285 names, 272 currently unregistered",
+   "summary": "Zheng, Guan, Liu, \"When LLMs Invent Rust Crates\" (Internetware 2026; arXiv 2606.08444 v2; artifacts figshare 10.6084/m9.figshare.32233767, CC BY 4.0, 154 MB): 13-14 models (GPT-5, Gemini 2.5 Pro, Claude 4 Opus, Qwen2.5-Coder 0.5-32B, DeepSeek-Coder-V2 16B/236B, OpenCoder), 2,794 tasks, 16,764 snippets, 48,494 crate references, 10,779 flagged: crate hallucination rate (CHR) 22.23% overall (Gemini 16.18% to Claude 4 Opus 26.90%); 5,647 unique names after excluding module confusion; 45.47% of hallucinations are std modules misused as crates; weighted mean edit distance to nearest real crate 3.42; self-refinement cuts CHR by 2.2-3.3 points, RAG by -0.3 to 1.9. I reproduced the 10,779 / 48,494 from the artifact (rq1-a), and the top \"hallucinated\" entries are duration, u32, tokenstream, thread, ordering, tcplistener, atomicbool, bufreader: types and primitives, not installable names. Own re-extraction (regex for `use <root>::` and `extern crate`, excluding std/core/alloc/crate/self/super, locally declared mods and types) over 16,752 samples (3 prompt sets x 6 models): 10,462 roots, 640 (6.1%) absent from the paper's 270,227-name crates.io snapshot, 285 unique; per 999 LLM-generated prompts only 7 (Claude 4 Opus), 8 (DeepSeek, GPT-5), 12 (Gemini, Qwen), 30 (OpenCoder) samples (0.7% to 3.0%) contain a missing root. Live sparse-index check 2026-10-25 (no registration performed): 13 of the 285 now exist (abi, ark_bls12_381, assert_eq, inline_string, interface, mediapipe, my_macro, oncelock, thread_count, tok, ts_types, winhttp, x86_64), 272 are absent (many are placeholders such as crate1/foo_v2/another_crate, Windows import libs such as kernel32/gdi32, rust-analyzer internals ide_db/hir, or vendor-prefix guesses such as apache_arrow, aws_sdk_core, alloy_rpc). Refutes r1 sc.slopsquat-rates \"no crates.io-specific measurement exists\".",
+   "urls": [
+    "https://arxiv.org/abs/2606.08444",
+    "https://doi.org/10.6084/m9.figshare.32233767",
+    "https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "My regex ignores grouped use trees, fully-qualified paths and Cargo.toml dependencies; generated code contains many example placeholders; the paper's snapshot date is not stated; the model set (Claude 4 Opus, GPT-5, Gemini 2.5 Pro, Qwen2.5-Coder) predates 2026 frontier models, and no agent loop with cargo add was tested.",
+   "underclaim_risk": "Even at 0.7-3% of samples, a single registrable name that recurs across models (the Spracklen result: 43% of names repeat across 10 reruns) is exploitable; 272 names are claimable today and an agent running `cargo add` for a missing root would hit it. The 6.1% of use-roots dwarfs the zero measured crates.io slopsquat incidents, so exposure is real but unrealized.",
+   "specifics": "Extends sc.slopsquat-rates (reuse id). L5 acceptance metric: seed 500 server-coding prompts, count roots not in the live crates.io index; track per model release; threshold: any root resolving to a crate younger than 90 days or with <100k recent downloads blocks `cargo add` in the agent sandbox. Artifact inspected locally then deleted (halluc_summary.json, halluc_live.json kept).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.incident-gate-matrix",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "analysis",
+   "title": "Incident to gate back-test (12 incidents 2024-2026): vet+new-name+14-day cooldown stops 10/12; SLSA L3 verify + TUF alone stop 2/12; TUF stops 0/12",
+   "summary": "Each incident coded for whether a gate applied at dependency intake would have stopped the malicious artifact reaching a build (2 stops, 1 partial/conditional, 0 no, NA). Incidents: xz-utils 5.6.0/5.6.1 (2024-02-24 to 03-29, 34 d), ultralytics 8.3.41-46 (2024-12), tj-actions/changed-files CVE-2025-30066 (2025-03-14, tags moved, 3 d), faster_log/async_println (2025-05-25 to 09-24, 122 d), evm-units/uniswap-utils (2025-04 to 12-02, ~230 d), Nx s1ngularity (2025-08-26, 4 h), chalk/debug +16 (2025-09-08, ~2.5 h), Shai-Hulud wave 1 (2025-09-14..23), Shai-Hulud 2.0 (2025-11-21..24; PostHog 5 h 19 m publish-to-removal), Polymarket typosquats tracings (2026-02-26, ~9 h), Trivy v0.69.4 / TeamPCP CVE-2026-33634 (2026-03-19..22), arrayref 0.3.10 / internment / append-only-vec (2026-08-20, 86-107 min). Stops (of applicable): cargo-vet 4/5 (Rust-only; partial xz), new-name/age gate 3/4, cooldown 7 d 6/12 (+3 partial), 14 d 8/12, 35 d 8/12 (+2), trusted-publishing+attestation-required 2/12 (+7 partial), SLSA L3 provenance verify 2/12 (+3), reproducible independent rebuild 4/12 (+3), tarball-vs-git 3/10, SHA pinning 2/2 applicable, TUF 0/12. Combination vet+new-name+14 d cooldown 10/12 (misses xz and tj-actions-by-mutable-tag); adding SHA-pin, reproducible rebuild and tarball parity 12/12. The window medians matter: 8 of 12 had a public exposure window under 7 days (Yossarian 2025-11-21 found 8 of 10 under a week in a different incident set), the long-dwell cases are the typosquats and xz.",
+   "urls": [
+    "https://slsa.dev/spec/v1.2/threats",
+    "https://blog.yossarian.net/2025/11/21/We-should-all-be-using-dependency-cooldowns",
+    "https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem",
+    "https://posthog.com/blog/nov-24-shai-hulud-attack-post-mortem",
+    "https://github.com/advisories/GHSA-mrrh-fwg8-r2c3",
+    "https://blog.pypi.org/posts/2024-12-11-ultralytics-attack-analysis/",
+    "https://www.wiz.io/vulnerability-database/cve/cve-2026-33634",
+    "https://blog.rust-lang.org/2026/08/20/supply-chain-attack-on-arrayref/",
+    "https://blog.rust-lang.org/2025/09/24/crates.io-malicious-crates-fasterlog-and-asyncprintln/",
+    "https://blog.rust-lang.org/2025/12/03/crates.io-malicious-crates-evm-units-and-uniswap-utils",
+    "https://research.swtch.com/xz-timeline",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0027.html"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Cell values are my counterfactual judgments (not executed against the real artifacts); selection is the incidents named in the brief plus the 2026 additions (not a random sample); npm/PyPI incidents are mapped to a hypothetical Rust consumer; exposure windows come from secondary reports for chalk, Nx and Shai-Hulud; n=12 so single flips move fractions by 8 points.",
+   "underclaim_risk": "Even as judgment, the ordering is robust: gates that act on time and novelty (cooldown, vet on new crates) dominate gates that act on provenance, and no single gate covers more than 8/12 (14 d cooldown, 35 d cooldown).",
+   "specifics": "Raw matrix in 04-work/matrix.json. Contrarian conclusion: SLSA L3 provenance is necessary for our OWN release (it stops the build-host class for us) but as a consumer-side control on 2024-26 dependency incidents it stops 2/12 outright, because 9/12 were produced by legitimate pipelines or legitimate credentials. Extends sc.slsa-attest (grade B, build-host claim) and sc.cooldown-policy; closes q1-077.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.incident-class-fractions",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "analysis",
+   "title": "Of 12 incidents 2024-26: 5 CI/build-pipeline (42%), 3 maintainer credential or machine (25%), 3 new malicious packages (25%), 1 social-engineered insider (8%); 3 of 5 CI cases name pull_request_target",
+   "summary": "Classification: CI/build pipeline: ultralytics (GitHub Actions cache poisoning, then leftover PyPI token), tj-actions (reviewdog/spotbugs pull_request_target PAT chain, tags moved), Nx (pull_request_target PR-title injection, npm token), Shai-Hulud 2.0 via PostHog (2025-09-11 pull_request_target change, static-analysis alert dismissed, malicious PR 2025-11-18 ran <1 min and stole bot PAT, malicious publish 2025-11-24 04:11 UTC, removed 09:30 UTC), Trivy/TeamPCP (misconfigured workflow let a bot leak a privileged PAT, non-atomic credential rotation on 2026-03-01, malicious release 2026-03-19, backdoor injected at release build so Homebrew source builds were unaffected). Maintainer credential/machine: chalk/debug (npmjs.help TOTP phishing 2025-09-08), Shai-Hulud wave 1 (token theft and worm republish; CISA 2025-09-23 >500 packages, initial access not stated), arrayref/internment/append-only-vec (Rust blog 2026-08-20: maintainer computer or credentials likely compromised; new account impersonating dtolnay published typosquat proc-macro1 first). New malicious packages: faster_log/async_println, evm-units/uniswap-utils, Polymarket typosquats. Insider: xz (first contribution 2021-10-29, org member 2022-10-28, releases 2024-02-24/03-09, disclosure 2024-03-29). So the build-host/CI-secret class (42%) is the largest and its root cause in 3 of 5 (Nx, PostHog, tj-actions chain) is an explicit pull_request_target workflow, in the others a workflow injection/cache or credential-rotation failure.",
+   "urls": [
+    "https://posthog.com/blog/nov-24-shai-hulud-attack-post-mortem",
+    "https://unit42.paloaltonetworks.com/github-actions-supply-chain-attack/",
+    "https://www.wiz.io/vulnerability-database/cve/cve-2026-33634",
+    "https://blog.pypi.org/posts/2024-12-11-ultralytics-attack-analysis/",
+    "https://blog.rust-lang.org/2025/09/12/crates-io-phishing-campaign/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "n=12 and selection by prominence; classes overlap (Shai-Hulud 2.0 is both CI-initiated and token-propagated; arrayref root cause is not published); Nx and chalk root causes come from vendor write-ups.",
+   "underclaim_risk": "The CI-workflow class is bigger than the credential class and is entirely preventable by a 5-minute linter gate plus a rule that findings cannot be dismissed without a CODEOWNER; that gate is missing from most supply-chain checklists that stop at SBOM/provenance.",
+   "specifics": "Excluded from the denominators: crates.io GitHub-login phishing 2025-09-12 (Rust blog; no malicious publish stated) and rustdecimal (2022-05). Extends sc.gha-hardening and rec60-supply-chain-incidents; closes q1-077 fraction question.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.slsa-scope-limit",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "finding",
+   "title": "SLSA v1.2 states what Build L3 does not cover: malicious producers, dependencies, social/review attacks, and anything the consumer does not verify; Trivy and ultralytics show the legitimate pipeline producing the malicious artifact",
+   "summary": "slsa.dev/spec/v1.2/threats: malicious producer \"cannot be directly mitigated through SLSA controls\"; dependency threats \"not explicitly addressed\"; collusion, bugdoors and rubber-stamped reviews \"not currently addressed\"; protection applies \"when the consumer verifies artifacts against expectations\"; Source track L2+ blocks history rewrite and tag replacement, L4 requires approval of every change. Incident fit: ultralytics round 1 was published by Trusted Publishing from the legitimate workflow (cache poisoned), round 2 by a leftover API token with no attestation (provenance policy catches only round 2); Trivy v0.69.4 was built by the official release pipeline from a poisoned workflow commit (provenance would be valid; an independent source rebuild, e.g. Homebrew, was clean); PostHog 2.0 malicious versions came from a direct push of a workflow change by a stolen bot PAT. Consumer-side L3 verify would have stopped chalk-style hand-published versions and arrayref (no attestation) only if the project previously published with attestations.",
+   "urls": [
+    "https://slsa.dev/spec/v1.2/threats",
+    "https://blog.pypi.org/posts/2024-12-11-ultralytics-attack-analysis/",
+    "https://www.wiz.io/vulnerability-database/cve/cve-2026-33634"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Spec text and two incident write-ups; I did not retrieve in-toto attestations for Trivy.",
+   "underclaim_risk": "The same SLSA text supports using provenance for our own releases: it removes artifact-substitution and token-misuse, the class that is 42% of incidents when combined with reproducible rebuilds.",
+   "specifics": "Extends sc.slsa-attest. Practical rule: provenance is evidence, an independent rebuild is a test; require both (B/L5 gate sc3.l5-release-attest-rebuild).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.rustls-advisory-batch-2026-10",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "finding",
+   "title": "rustls 0.23.46 (2026-10-14) fixed four advisories incl. unauthenticated ServerHello downgrade to classical key exchange; rustls-webpki 0.103.16 (2026-10-20) fixed distrusted-intermediate acceptance",
+   "summary": "RUSTSEC-2026-0346 (Debug impls expose TLS secrets), -0347 (buffered data to outer server after ECH rejection), -0348 (brotli certificate decompression allocates up to 1 GiB before authentication), -0349 (unauthenticated ServerHello can downgrade later connections to classical key exchange) all dated 2026-10-14, patched >= 0.23.46; RUSTSEC-2026-0382 / CVE-2026-111943 (2026-10-20) emSign intermediates; tokio 1.54.0 UAF RUSTSEC-2026-0384 (fixed 1.54.1, 2026-10-21) and RUSTSEC-2026-0386 (patched >=1.51.6<1.52, >=1.53.3). The golden pin rustls >=0.23.46 is therefore a security floor, not a preference; rustls-webpki >=0.103.16 and tokio >=1.54.1 should be floors too.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0349.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0382.html",
+    "https://github.com/rustsec/advisory-db"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Titles and dates read from advisory-db files; I did not test exploitability.",
+   "underclaim_risk": "These land within the window where any 7-14 day cooldown would have held production on vulnerable versions; they are the executed evidence for a security-bypass clause.",
+   "specifics": "L5: Cargo.toml floors rustls = \">=0.23.46\", rustls-webpki = \">=0.103.16\", tokio = \">=1.54.1\" plus cargo-deny [advisories] so a downgrade by cooldown fails CI. Extends crate-rustls-pq and rec60-supply-chain-incidents.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-ci-gate-list",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5 CI gate list for the golden: 9 gates with exact commands, thresholds and the executed numbers that set them",
+   "summary": "G1 lock-intake: `cargo deny --locked check advisories bans licenses sources` (deny.toml: yanked=deny, unmaintained=all, multiple-versions=deny with skip = the 6 measured duplicates only, wildcards=deny, 11-SPDX allowlist) AND `cargo audit --deny warnings` (advisory-db commit age < 24 h) AND `cargo vet --locked` (six imports; exemptions count may only decrease; baseline unaudited 116 on linux tree; any NEW crate must be audited or imported, never exempted). G2 cooldown+bypass: see sc3.l5-cooldown-security-bypass. G3 reproducible double build: sc3.l5-repro-double-build. G4 tarball-vs-git parity: sc3.tarball-git-parity-golden (0 unexplained diffs; allowlist aws-lc-sys:aws-lc/**, ring:pregenerated/**). G5 new-crate intake: sc3.l5-new-crate-intake. G6 CI workflow lint: sc3.l5-workflow-lint. G7 unsafe ceiling: `cargo geiger --all-targets=false --output-format Json` vs unsafe-allowlist.json (sc3.geiger-014-golden-unsafe seeds); first-party `unsafe_code = \"forbid\"` in [workspace.lints.rust]. G8 release attest+rebuild: sc3.l5-release-attest-rebuild. G9 embedded SBOM: `cargo auditable build --release --locked` then `cargo audit bin <artifact> --deny warnings` (executed: 190 deps embedded, 0 vulns; hash differs from non-auditable build, so reproducibility compare is done on the shipped mode). Gate order is cheapest-first: G6 (seconds), G1, G5, G4, G7, G3, G8, G9.",
+   "urls": [
+    "https://github.com/EmbarkStudios/cargo-deny",
+    "https://github.com/mozilla/cargo-vet",
+    "https://github.com/rust-secure-code/cargo-auditable"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Gates are only as good as the allowlists; vet imports measure other people's reviews.",
+   "underclaim_risk": "All thresholds are anchored to executed numbers on the pins, so they are testable rather than aspirational.",
+   "specifics": "Acceptance criterion: a clean checkout of the golden commit passes G1-G9 in CI with zero manual overrides; each gate has a negative control (a PR that adds a typosquat dependency, a pull_request_target workflow, an extra unsafe block, a tarball-modified vendored file, a path-dependent build) that must fail. Maps to ops.ssdf-12-ci-gates (PS.2.1, PS.3.2, PW.6, RV.1-3) and ops.cra-obligation-split (SBOM+provenance steward file set).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-cooldown-security-bypass",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5: dependency cooldown of 7 days with an auditable security-advisory bypass (not 14 days, not unconditional)",
+   "summary": "Policy: .cargo/config.toml [registry] global-min-publish-age = \"7 days\" once the pinned toolchain is >= 1.100 (on 1.99.x use the nightly flag only in an update bot, never in the release build; release builds use --locked and are unaffected). Updates happen only through a bot PR created by `cargo update` under the cooldown. CI job after every lock change: (1) `cargo audit --deny warnings`: if it names an advisory whose patched version is newer than the cooldown, the PR must carry the label `security-advisory` and the commit message `CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update -p <crate> --precise <patched>`; (2) script queries crates.io created_at for every changed lock entry and fails if age < 7 days and the label is absent; (3) override needs a vet delta audit or a trusted-publisher entry plus second human approval, expiry 30 days. Why 7 and not 14: executed 7-day resolution produced 1 advisory (webpki), 14-day produced 6 (rustls x4, webpki, tokio) and a hard resolver failure on an exact pin; windows for 8 of 10 public attacks were under 7 days (Yossarian), 6 of 12 stopped at 7 d vs 8 of 12 at 14 d in our matrix, the 2 extra stops (Trivy images, Shai-Hulud wave 1) are long-tail. Exact first-party pins (=) are incompatible with cooldown; use caret ranges plus the lock.",
+   "urls": [
+    "https://github.com/rust-lang/cargo/pull/17335",
+    "https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Cooldown protects only against fast-detected compromises; xz (34 d) and the crates.io typosquats (122-230 d) pass it; the 7 d vs 14 d trade is inferred from n=12.",
+   "underclaim_risk": "Dependabot now defaults to a 3-day wait and security updates bypass it; cargo 1.100 makes this native and preserves the override in the lockfile.",
+   "specifics": "Extends sc.cooldown-policy and v.cargo-min-publish-age-rfc3923; closes q1-052 (exact cargo version: cargo 1.98.0 has -Z only; stable in 1.100.0; RFC 3923 merged 2026-05-18).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-repro-double-build",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5: reproducible double-build gate with exact flags, pass criterion and negative control",
+   "summary": "Pinned toolchain via rust-toolchain.toml channel = \"1.99.1\" (digest of the channel manifest recorded in the attestation). Job builds twice in different working dirs with different CARGO_HOME and SOURCE_DATE_EPOCH: `export RUSTFLAGS=\"--remap-path-prefix=$PWD=/src --remap-path-prefix=$CARGO_HOME/registry/src=/cargo/registry --remap-path-prefix=$RUSTUP_HOME=/rustup\"; cargo fetch --locked; cargo build --release --locked` with [profile.release] lto=true codegen-units=1 panic=abort (debug 0 or 2). Pass: sha256sum(binA)==sha256sum(binB). Negative control (must FAIL): the same build without the registry remap (measured: differing 242 path strings, sizes differ 704 bytes). Weekly: a second runner on a different OS image rebuilds from the git tag and compares to the published hash (cross-host spike not yet done). Build mode must equal the shipped mode (cargo auditable changes the hash). Do not ship from a build whose hash was not reproduced.",
+   "urls": [
+    "https://github.com/rust-lang/rust/blob/master/RELEASES.md",
+    "https://github.com/rust-lang/cargo/pull/17488"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Same-host proof only; aws-lc-sys C compilation depends on the system compiler version.",
+   "underclaim_risk": "Costs about 2 minutes per build on 4 cores for a 233-crate lock.",
+   "specifics": "Extends sc.repro-build-experiment; closes q1-092 on 1.98.0/1.93.1 here and 1.99.1 per R199 field of sc3.repro-ablation-golden; q1-041 (cross-machine, StageX) remains an implementation-phase spike: protocol = build in two distro images (debian:13 vs ubuntu 26.04) with identical toolchain tarball, compare sha256, diff with diffoscope.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-new-crate-intake",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5: new-crate intake gate for agent-added dependencies (slopsquat and typosquat), thresholds calibrated on 2025-26 cases",
+   "summary": "Trigger: any Cargo.lock diff that adds a crate name. Script (crates.io API, 1 req/s): fail unless (a) the crate is covered by an imported cargo-vet audit or first-party audit, or (b) age of first version >= 90 days AND recent_downloads >= 100,000 AND owner set unchanged for 90 days; always fail if Damerau-Levenshtein distance <= 2 to a top-1000 crate by downloads and the name is not in an allowlist, or if the crate has a build.rs/proc-macro and age < 365 days. Calibration: faster_log (7,181 dl, 122 d) and evm-units (7,257 dl, ~230 d) pass an age-only gate but fail the 100k download gate and vet; proc-macro1 (arrayref, hours old, impersonating dtolnay) and the Polymarket crates (9 h) fail the age gate; the paper reports mean edit distance 3.42 to the nearest valid crate for hallucinated names, so an edit-distance <=2 rule alone will miss most slopsquats and the download/age/vet rules must carry the load. Agent sandbox: `cargo add` wrapper that runs this gate and has no write token for crates.io.",
+   "urls": [
+    "https://arxiv.org/abs/2606.08444",
+    "https://blog.rust-lang.org/2025/09/24/crates.io-malicious-crates-fasterlog-and-asyncprintln/",
+    "https://blog.rust-lang.org/2026/08/20/supply-chain-attack-on-arrayref/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.72,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Thresholds (90 d, 100k, 365 d) are my choices from 5 cases; popular crates with real small maintainers fail it and need a human.",
+   "underclaim_risk": "The vet rule alone stopped all 3 new-malicious-crate incidents plus arrayref's new dependency (4 of the 5 Rust-applicable cases); the gate list is deliberately redundant.",
+   "specifics": "Extends sc.crates-malicious-record (its thresholds were E-graded) and sc.slopsquat-rates; closes q1-028.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-workflow-lint",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5: CI workflow lint that cannot be dismissed (zizmor + CODEOWNERS + SHA pins), aimed at the 42% CI-class incidents",
+   "summary": "Commands: `zizmor --pedantic --min-severity low .github/workflows` must exit 0; grep gate: every `uses:` pinned to a 40-hex SHA; top-level `permissions: {}`; forbid `pull_request_target` combined with `actions/checkout` of `github.event.pull_request.head.*`; no `${{ github.event.* }}` interpolated into `run:` (PR title/branch injection as in Nx); caches are not shared between untrusted PR workflows and release workflows (ultralytics); release job uses a protected GitHub environment with required reviewer, trusted publishing only, and long-lived publish tokens deleted (ultralytics round 2). Suppressions: `# zizmor: ignore` lines and any dismissal require a CODEOWNER review of .github/ (PostHog dismissed the static-analysis alert on the 2025-09-11 change that was used for the 2025-11-18 attack). Credential rotation after any incident must be atomic (Trivy 2026-03-01 rotation was not).",
+   "urls": [
+    "https://github.com/zizmorcore/zizmor",
+    "https://posthog.com/blog/nov-24-shai-hulud-attack-post-mortem",
+    "https://blog.pypi.org/posts/2024-12-11-ultralytics-attack-analysis/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Static lint cannot see a compromised runner image or a stolen human credential.",
+   "underclaim_risk": "It addresses the largest class (5 of 12) with a seconds-long job; in 3 of those 5 the vulnerable construct is a one-line trigger.",
+   "specifics": "Extends sc.gha-hardening (same tool, now tied to incident counts).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.l5-release-attest-rebuild",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "ci-gate",
+   "title": "L5: release gate = provenance + independent rebuild + branch protection (SLSA Build L3 and Source L2), not provenance alone",
+   "summary": "Release workflow (reusable, signing in a separate job): actions/attest@v4 with id-token: write, attestations: write; verification in a clean container: `gh attestation verify ./srv -R <org>/<repo> --signer-workflow <org>/<repo>/.github/workflows/attest.yml`. Add: (1) independent rebuild on a second runner image from the signed tag, hash must equal the attested subject digest (this is what detected Trivy v0.69.4 in the wild: source builds by Homebrew were clean); (2) protected default branch with required reviews and no force-push/tag replacement (SLSA Source L2+, the control that prevents the tj-actions retroactive tag move); (3) crates.io trusted publishing only for our own crates with token publishing disabled; (4) consumers' policy: reject versions whose trustpub/attestation disappears for a crate that had it. Pass: verify exit 0 AND rebuild hash equal AND tag object signed.",
+   "urls": [
+    "https://slsa.dev/spec/v1.2/build-requirements",
+    "https://slsa.dev/spec/v1.2/threats",
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Still trusts GitHub runners and Sigstore; fails to a legitimately merged malicious commit (xz-class).",
+   "underclaim_risk": "Provenance plus rebuild covers 6 of 12 incidents in the matrix versus 2 of 12 for provenance alone.",
+   "specifics": "Extends sc.slsa-attest and sc.sigstore-tuf-threshold. TUF (0/12) belongs to the update channel for the deployed server (rollback/freeze protection), not to dependency intake.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.xz-window-cooldown-limit",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "incident",
+   "title": "xz: exposure window 34 days (5.6.0 on 2024-02-24 to public disclosure 2024-03-29), so no cooldown under 30 days and no provenance check stops it; tarball-only m4 was the activation path",
+   "summary": "Russ Cox timeline: first Jia Tan patch 2021-10-29; commit merged 2022-06-10; org member 2022-10-28; 5.4.2 2023-03-18; backdoor test blobs merged 2024-02-23; 5.6.0 2024-02-24; 5.6.1 2024-03-09; Freund notified distros 2024-03-28, public 2024-03-29. build-to-host.m4 modification existed only in the release tarball. Gate outcomes: cooldown 7/14 d no; 35 d marginal; SLSA L3 no (built legitimately by maintainer); build-from-git-tag plus tarball-vs-git parity yes (the activation script is absent from git); cargo-vet partial (a reviewer of the delta must open binary test blobs). Social capture of a single maintainer is not stopped by any CI gate.",
+   "urls": [
+    "https://research.swtch.com/xz-timeline"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Counterfactual column is my analysis.",
+   "underclaim_risk": "xz is the one incident in the set where the executed tarball-vs-git gate is the decisive control.",
+   "specifics": "Extends sc.xz-lessons with primary dates (previous node cited secondary mailing-list/vendor blogs, grade C).",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.arrayref-trust-model-gap",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "incident",
+   "title": "arrayref 0.3.10: the compromised-publisher case defeats cargo-vet publisher trust but not new-crate vet; cooldown of 1 day would have stopped it (86-107 min live)",
+   "summary": "RUSTSEC-2026-0260: arrayref 0.3.10 published 2026-08-20, live ~86 min, 2,285 downloads (<10% of its traffic); append-only-vec 0.1.9 published 07:37:49Z deleted 09:25:24Z (107 min); the malicious versions added a dependency on proc-macro1 (typosquat of proc-macro2 created that morning by a new account impersonating dtolnay) whose build script ran the payload; arrayref was republished with the newest versions yanked to force resolution. Vet: trusted-publisher entries (mozilla 262, bytecode-alliance 165 in r1) would auto-accept a version from a compromised trusted account, but the new dependency proc-macro1 was unaudited so `cargo vet --locked` fails; lockfile consumers were largely unaffected (RUSTSEC text: \"most users were on older versions pinned in their lockfiles\").",
+   "urls": [
+    "https://blog.rust-lang.org/2026/08/20/supply-chain-attack-on-arrayref/",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0260.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Attribution claims (DPRK overlap) come from a single AI-assisted CSA note and are unverified; I do not use them.",
+   "underclaim_risk": "Shows --locked as the first line of defense and cooldown as the second; also that `cargo vet trust` expands the blast radius to everything the publisher owns.",
+   "specifics": "Extends sc.arrayref-incident. L5 consequence: do not use `cargo vet trust` for crates reached by build scripts or proc-macros; require per-version audits there.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  },
+  {
+   "id": "sc3.numbers-checked-supply",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "calibration",
+   "title": "Numbers re-derived in this run (not copied) and corrections to r1",
+   "summary": "Re-derived by command: lock 233 crates (Cargo.lock grep); vet unaudited 183 (cargo vet json); linux tree 165 (cargo tree); audit advisories 1,352 (cargo audit output); geiger totals 24,928/43,116; repro sha256 397c98ae.. x2; cooldown ages (crates.io API, 233 rows); stable Rust 1.99.1 and beta 1.100.0-beta.7 (static.rust-lang.org channel manifests); cargo PR dates via gh api (#17012 merged 2026-06-18 m1.98.0; #17335 merged 2026-08-28 m1.100.0; #17488 trim-paths merged 2026-10-06 m1.101.0); RFC 3923 PR created 2026-02-23 merged 2026-05-18. Corrections to r1: (1) v.cargo-min-publish-age-rfc3923 said RFC accepted 2026-02-23: that is the PR creation date, merge was 2026-05-18; (2) sc.slopsquat-rates said no Rust measurement exists: arXiv 2606.08444 exists (2026-06); (3) sc.cooldown-policy \"min-publish age evidence for\" omitted the advisory conflict now measured; (4) r1 geiger numbers were expressions only (hyper 119 exprs) vs this run 123 total items.",
+   "urls": [
+    "https://static.rust-lang.org/dist/channel-rust-stable.toml",
+    "https://github.com/rust-lang/rfcs/pull/3923"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Date fields rely on GitHub API merged_at; milestone 1.100.0 is a target, not a guarantee.",
+   "underclaim_risk": "The r1 refutation of \"no native cooldown\" stands; only the date of acceptance and the executed behavior are new.",
+   "specifics": "See raw JSON numbers_checked.",
+   "explorer": "supply-chain-executed-on-golden-pins",
+   "round": 3
+  }
+ ],
+ "edges": [
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "sc.vet-import-sets",
+   "type": "extends",
+   "note": "golden pins, 233 crates, six imports, zero exemptions"
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "sc.deny-audit-gate",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "sc.unsafe-budget",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "sc.auditable-sbom",
+   "type": "extends",
+   "note": "190 deps embedded, audit bin 0 vulns"
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "w02.L5-lean-budget",
+   "type": "extends",
+   "note": "233-crate lock vs 94; golden test binary 3.77 MB panic=abort lto"
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "crate-hyper-h2",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "crate-rustls-pq",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.golden-lock-gate-run",
+   "dst": "crate-aws-lc-rs",
+   "type": "conflicts_with",
+   "note": "resolves 1.18.2 (FIPS v4 line) while FIPS path needs <1.18.0"
+  },
+  {
+   "src": "sc3.vet-zero-exemption-baseline",
+   "dst": "sc.vet-import-sets",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.vet-zero-exemption-baseline",
+   "dst": "sc.vet-ci-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.geiger-014-golden-unsafe",
+   "dst": "sc.unsafe-budget",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.deny-golden-duplicates",
+   "dst": "sc.deny-audit-gate",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.repro-ablation-golden",
+   "dst": "sc.repro-build-experiment",
+   "type": "extends",
+   "note": "new instrument: CARGO_HOME/SDE/ablation/toolchain/1.99.1 pair"
+  },
+  {
+   "src": "sc3.repro-ablation-golden",
+   "dst": "sc.rustc-bootstrap-trust",
+   "type": "depends_on",
+   "note": "toolchain digest is build identity; DDC not run"
+  },
+  {
+   "src": "sc3.tarball-git-parity-golden",
+   "dst": "sc.xz-lessons",
+   "type": "extends",
+   "note": "executes the proposed gate"
+  },
+  {
+   "src": "sc3.tarball-git-parity-golden",
+   "dst": "sc.xz-lessons",
+   "type": "mitigates",
+   "note": "xz tarball-only m4"
+  },
+  {
+   "src": "sc3.trustpub-sha-gate",
+   "dst": "sc.slsa-attest",
+   "type": "extends",
+   "note": "consumer-side registry check"
+  },
+  {
+   "src": "sc3.trustpub-sha-gate",
+   "dst": "sc.arrayref-incident",
+   "type": "mitigates",
+   "note": "TP regression alarm"
+  },
+  {
+   "src": "sc3.cooldown-executed-cargo-198",
+   "dst": "v.cargo-min-publish-age-rfc3923",
+   "type": "extends",
+   "note": "executed + date correction"
+  },
+  {
+   "src": "sc3.cooldown-executed-cargo-198",
+   "dst": "sc.cooldown-policy",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.cooldown-executed-cargo-198",
+   "dst": "sc3.rustls-advisory-batch-2026-10",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.cooldown-executed-cargo-198",
+   "dst": "sc.cooldown-policy",
+   "type": "conflicts_with",
+   "note": "blanket cooldown lands known advisories"
+  },
+  {
+   "src": "sc3.cooldown-blocked-counts-golden",
+   "dst": "sc.cooldown-policy",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.slopsquat-rust-study-2606",
+   "dst": "sc.slopsquat-rates",
+   "type": "extends",
+   "note": "refutes no-Rust-data gap"
+  },
+  {
+   "src": "sc3.slopsquat-rust-study-2606",
+   "dst": "sc.crates-malicious-record",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.incident-gate-matrix",
+   "dst": "sc.slsa-attest",
+   "type": "conflicts_with",
+   "note": "L3 verify stops 2/12"
+  },
+  {
+   "src": "sc3.incident-gate-matrix",
+   "dst": "sc.cooldown-policy",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.incident-gate-matrix",
+   "dst": "rec60-supply-chain-incidents",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.incident-gate-matrix",
+   "dst": "sc3.incident-class-fractions",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.incident-class-fractions",
+   "dst": "sc.gha-hardening",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.slsa-scope-limit",
+   "dst": "sc.slsa-attest",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.slsa-scope-limit",
+   "dst": "sc.sigstore-tuf-threshold",
+   "type": "extends",
+   "note": "TUF 0/12 on intake"
+  },
+  {
+   "src": "sc3.l5-ci-gate-list",
+   "dst": "ops.ssdf-12-ci-gates",
+   "type": "fills_gap",
+   "note": "PS.2.1 PS.3.2 PW.6 RV.1-3"
+  },
+  {
+   "src": "sc3.l5-ci-gate-list",
+   "dst": "ops.cra-obligation-split",
+   "type": "fills_gap",
+   "note": "SBOM+provenance steward file set"
+  },
+  {
+   "src": "sc3.l5-cooldown-security-bypass",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-repro-double-build",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-new-crate-intake",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-workflow-lint",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-release-attest-rebuild",
+   "dst": "sc3.l5-ci-gate-list",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-cooldown-security-bypass",
+   "dst": "sc3.cooldown-executed-cargo-198",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-repro-double-build",
+   "dst": "sc3.repro-ablation-golden",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-new-crate-intake",
+   "dst": "sc3.slopsquat-rust-study-2606",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-workflow-lint",
+   "dst": "sc3.incident-class-fractions",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.l5-release-attest-rebuild",
+   "dst": "sc3.slsa-scope-limit",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc3.xz-window-cooldown-limit",
+   "dst": "sc.xz-lessons",
+   "type": "extends",
+   "note": "primary dates"
+  },
+  {
+   "src": "sc3.arrayref-trust-model-gap",
+   "dst": "sc.arrayref-incident",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "sc3.numbers-checked-supply",
+   "dst": "v.cargo-min-publish-age-rfc3923",
+   "type": "extends",
+   "note": "date correction"
+  },
+  {
+   "src": "sc3.numbers-checked-supply",
+   "dst": "sc.slopsquat-rates",
+   "type": "extends",
+   "note": "refutation"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Cross-host reproducibility of the golden binary: same tag built on debian:13 vs ubuntu 26.04 vs Nix/StageX with identical toolchain, diffoscope the delta (aws-lc-sys C compile is the expected break)",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.55,
+   "reason": "all repro evidence is same-host; implementation-phase spike with exact protocol"
+  },
+  {
+   "question": "Verify aws-lc-sys vendored aws-lc submodule (1,964 files) and ring pregenerated asm (107 files) against upstream tags; regenerate ring asm and compare",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.5,
+   "reason": "the only unexplained parity exceptions sit in the highest-audit-mass crates"
+  },
+  {
+   "question": "Measure an LLM coding agent loop (cargo add enabled, 2026 frontier models) on 500 server prompts: rate of non-existent or <90-day crates actually added to Cargo.toml",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.5,
+   "reason": "paper measures source references with a noisy metric; installable-dependency rate is unmeasured"
+  },
+  {
+   "question": "Ancestry-based trustpub sha gate: why 6/30 trustpub shas differ from .cargo_vcs_info sha1 (cedar, taiki-e crates) and whether git merge-base resolves all",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.3,
+   "reason": "false-positive rate of the registry-provenance gate"
+  },
+  {
+   "question": "Per-incident exposure-window primary data for chalk/debug, Nx, Shai-Hulud wave 1 and Trivy v0.69.4 (npm/GitHub timestamps) to firm the cooldown 7 vs 14 day choice",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.4,
+   "reason": "matrix windows for 4 incidents rest on secondary reports"
+  },
+  {
+   "question": "Cargo 1.100 stable: confirm global-min-publish-age works with exact pins, workspaces and cargo install/--locked, and how lock entries younger than the cooldown are reported (run on 1.100.0 stable ~2026-11-26)",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.35,
+   "reason": "executed here on 1.98.0 nightly flag only"
+  },
+  {
+   "question": "Audit-effort model for the 116 linux-target unaudited crates: which can be covered by cargo vet trust publishers (mozilla 262, bytecode-alliance 165) vs need first-party audit, and cost in reviewer-hours for tokio/aws-lc-sys/cedar-policy-core",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.45,
+   "reason": "3.66M-line backlog is the biggest unquantified supply-chain cost"
+  }
+ ],
+ "protocol_implications": [
+  "Make cooldown a 7-day default with an audited security-advisory bypass; a blanket 14-day cooldown on the golden pins would have resolved rustls 0.23.45 (four advisories incl. classical-KX downgrade) and tokio 1.53.2 (RUSTSEC-2026-0386). Do not use exact (=) pins for crates under cooldown; pin via Cargo.lock and security floors.",
+  "Treat SLSA provenance as evidence of where a build ran, not of benignity: as a consumer gate it stops 2/12 of the 2024-26 incidents. Pair it with an independent source rebuild and branch protection (Source L2+) for our own release.",
+  "The largest incident class (5/12, 42%) is CI/build pipeline compromise, 3 of 5 rooted in pull_request_target; add a non-dismissable workflow lint and atomic credential rotation before spending effort on TUF (0/12 on intake).",
+  "The crates with the largest audit mass (aws-lc-sys 2.09M lines, ring) are exactly those whose crates.io artifact is not derivable from git; xz-style parity needs submodule/regeneration checks there.",
+  "The Rust-specific hallucination headline (22%) is dominated by std items; the installable-name risk is ~0.7-3% of samples (6.1% of use-roots); gate on new-crate intake (vet/age/downloads), not on edit distance alone (mean 3.42).",
+  "Reproducibility of the 233-crate golden binary holds across CARGO_HOME/dir/SOURCE_DATE_EPOCH on rustc 1.98.0 and 1.99.1 with three remap flags; toolchain version and auditable mode change the hash, so both are part of the attested build identity."
+ ],
+ "self_improvement": [
+  "WebFetch summaries mis-handled structured dates (RFC merge date); use gh api merged_at/created_at for any date-bearing claim. r1 recorded the RFC 3923 PR creation date as acceptance.",
+  "heavy.sh serializes machine-wide; a queued job can wait >10 min behind sibling explorers: explorers should batch builds into one driver script and poll with until-loops instead of per-build waits. Also pgrep -f in an until loop matches the waiting shell itself.",
+  "novelty_gate.py must be run from the research dir (path-relative to tools/); an explorer in state/ cannot find it; document the invocation as python3 -I /home/patrickd/aegis/research/tools/novelty_gate.py.",
+  "A downloaded paper artifact (figshare) allowed re-deriving a headline metric and exposing a detector flaw: add to META a rule to fetch and re-run released artifacts for every load-bearing measured number.",
+  "cargo vet init auto-exempts every crate, so any vet coverage claim must remove exemptions first; record this in a methods note for future runs."
+ ],
+ "numbers_checked": [
+  "lock=233 (grep name in Cargo.lock)",
+  "cargo-audit advisories=1,352 commit 21d909e 2026-10-24",
+  "vet unaudited=183 all-target/116 linux-tree, lines 5,533,818/3,659,266",
+  "geiger used/total=24,928/43,116 over 133 pkgs",
+  "repro sha256 397c98ae.. (1.98.0, debug0), a47adadd.. (debug2), 521dcda5.. (1.99.1), f71b50b6.. (1.93.1)",
+  "cooldown blocked 2/6/25/45/82 at 3/7/14/30/90 d",
+  "7-day lock: 6 downgrades, 1 advisory; 14-day: 26 downgrades, 6 advisories",
+  "trustpub 30/233, sha-equal 24/30",
+  "tarball parity 13/15 clean, exceptions aws-lc-sys 1,964, ring 107",
+  "halluc paper: 10,779/48,494 reproduced from artifact; own: 16,752 samples, 10,462 roots, 640 absent, 285 unique, 13 exist, 272 absent",
+  "stable Rust 1.99.1, beta 1.100.0-beta.7 (channel manifests)",
+  "PR dates via gh api",
+  "incident windows: xz 34 d, arrayref 86/107 min, PostHog 5h19m, tj-actions tags moved 2025-03-14 16:57Z, reviewdog tag 1h50m, faster_log 122 d, evm-units 2025-12-02 22:01Z, tracings ~9 h"
+ ],
+ "notes": {
+  "queries_run": 14,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "new_urls": "~30",
+  "reused_nodes": 24,
+  "new_nodes": 23,
+  "sources_fetched": [
+   "CISA alert 2025-09-23",
+   "GitHub blog npm plan",
+   "PostHog postmortem",
+   "GHSA-mrrh-fwg8-r2c3",
+   "Unit42 tj-actions",
+   "Rust blog crates.io phishing 2025-09-12",
+   "Yossarian cooldowns",
+   "RUSTSEC-2026-0260",
+   "Russ Cox xz timeline",
+   "Rust blog arrayref",
+   "Wiz CVE-2026-33634",
+   "PyPI ultralytics analysis",
+   "SLSA v1.2 threats",
+   "arXiv 2606.08444",
+   "figshare 32233767 artifact",
+   "cargo PR 17012/17335/17488",
+   "rfcs PR 3923",
+   "Rust blog faster_log",
+   "Rust blog evm-units",
+   "crates.io API x260",
+   "static.rust-lang.org manifests",
+   "advisory-db clone",
+   "RustSec 0346-0349,0382,0384,0386",
+   "CSA/Hacker News arrayref (secondary)",
+   "Checkpoint/Semgrep chalk (secondary)",
+   "Wiz Nx (secondary)",
+   "package-manager cooldown survey (secondary)"
+  ]
+ },
+ "matrix": {
+  "gates": [
+   "vet",
+   "newname",
+   "cool7",
+   "cool14",
+   "cool35",
+   "tp_attest",
+   "slsa_l3_verify",
+   "repro_rebuild",
+   "tarball_git",
+   "sha_pin",
+   "tuf"
+  ],
+  "classes": {
+   "C": "maintainer credential/machine",
+   "B": "CI/build pipeline",
+   "I": "social-engineered insider",
+   "N": "new malicious package"
+  },
+  "incidents": [
+   {
+    "name": "xz-utils 5.6.0/5.6.1",
+    "dates": "2024-02-24..03-29",
+    "cls": "I",
+    "window_days": 34,
+    "cells": {
+     "vet": 1,
+     "newname": null,
+     "cool7": 0,
+     "cool14": 0,
+     "cool35": 1,
+     "tp_attest": 0,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 2,
+     "tarball_git": 2,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "ultralytics 8.3.41-46 (PyPI)",
+    "dates": "2024-12-04..07",
+    "cls": "B",
+    "window_days": 0.5,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 1,
+     "slsa_l3_verify": 1,
+     "repro_rebuild": 2,
+     "tarball_git": null,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "tj-actions/changed-files CVE-2025-30066",
+    "dates": "2025-03-14..15",
+    "cls": "B",
+    "window_days": 3,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 1,
+     "cool14": 1,
+     "cool35": 1,
+     "tp_attest": 0,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 0,
+     "tarball_git": null,
+     "sha_pin": 2,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "faster_log/async_println (crates.io)",
+    "dates": "2025-05-25..09-24",
+    "cls": "N",
+    "window_days": 122,
+    "cells": {
+     "vet": 2,
+     "newname": 2,
+     "cool7": 0,
+     "cool14": 0,
+     "cool35": 0,
+     "tp_attest": 1,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 0,
+     "tarball_git": 0,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "evm-units/uniswap-utils (crates.io)",
+    "dates": "2025-04..12-02",
+    "cls": "N",
+    "window_days": 230,
+    "cells": {
+     "vet": 2,
+     "newname": 1,
+     "cool7": 0,
+     "cool14": 0,
+     "cool35": 0,
+     "tp_attest": 1,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 0,
+     "tarball_git": 0,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "Nx s1ngularity (npm)",
+    "dates": "2025-08-26",
+    "cls": "B",
+    "window_days": 0.17,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 1,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 2,
+     "tarball_git": 1,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "chalk/debug +16 (npm)",
+    "dates": "2025-09-08",
+    "cls": "C",
+    "window_days": 0.1,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 2,
+     "slsa_l3_verify": 2,
+     "repro_rebuild": 1,
+     "tarball_git": 2,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "Shai-Hulud wave 1 (npm)",
+    "dates": "2025-09-14..23",
+    "cls": "C",
+    "window_days": 5,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 1,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 2,
+     "slsa_l3_verify": 2,
+     "repro_rebuild": 1,
+     "tarball_git": 2,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "Shai-Hulud 2.0 (npm; PostHog CI)",
+    "dates": "2025-11-21..24",
+    "cls": "B",
+    "window_days": 0.22,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 1,
+     "slsa_l3_verify": 1,
+     "repro_rebuild": 1,
+     "tarball_git": 1,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "Polymarket typosquats tracings etc (crates.io)",
+    "dates": "2026-02-26",
+    "cls": "N",
+    "window_days": 0.38,
+    "cells": {
+     "vet": 2,
+     "newname": 2,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 1,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 0,
+     "tarball_git": 0,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "Trivy v0.69.4 / TeamPCP (CVE-2026-33634)",
+    "dates": "2026-03-19..22",
+    "cls": "B",
+    "window_days": 3,
+    "cells": {
+     "vet": null,
+     "newname": null,
+     "cool7": 1,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 0,
+     "slsa_l3_verify": 0,
+     "repro_rebuild": 2,
+     "tarball_git": 0,
+     "sha_pin": 2,
+     "tuf": 0
+    }
+   },
+   {
+    "name": "arrayref/internment/append-only-vec (crates.io)",
+    "dates": "2026-08-20",
+    "cls": "C",
+    "window_days": 0.074,
+    "cells": {
+     "vet": 2,
+     "newname": 2,
+     "cool7": 2,
+     "cool14": 2,
+     "cool35": 2,
+     "tp_attest": 1,
+     "slsa_l3_verify": 1,
+     "repro_rebuild": 0,
+     "tarball_git": 0,
+     "sha_pin": null,
+     "tuf": 0
+    }
+   }
+  ],
+  "totals": {
+   "vet": [
+    4,
+    1,
+    5
+   ],
+   "newname": [
+    3,
+    1,
+    4
+   ],
+   "cool7": [
+    6,
+    3,
+    12
+   ],
+   "cool14": [
+    8,
+    1,
+    12
+   ],
+   "cool35": [
+    8,
+    2,
+    12
+   ],
+   "tp_attest": [
+    2,
+    7,
+    12
+   ],
+   "slsa_l3_verify": [
+    2,
+    3,
+    12
+   ],
+   "repro_rebuild": [
+    4,
+    3,
+    12
+   ],
+   "tarball_git": [
+    3,
+    2,
+    10
+   ],
+   "sha_pin": [
+    2,
+    0,
+    2
+   ],
+   "tuf": [
+    0,
+    0,
+    12
+   ]
+  }
+ }
+}

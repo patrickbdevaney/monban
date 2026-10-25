@@ -1,0 +1,4 @@
+basicConstraints=critical,CA:FALSE
+subjectAltName=DNS:localhost
+extendedKeyUsage=serverAuth
+keyUsage=digitalSignature

@@ -1,0 +1,674 @@
+{
+ "explorer": "10",
+ "round": 2,
+ "target": "cross-request-state-invariant-counterexamples",
+ "date": "2026-10-24",
+ "nodes": [
+  {
+   "id": "crs-ce-tls-ticket-cross-vhost",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "TLS 1.3 tickets: authenticated (STEK-sealed) yet unscoped state enables client-auth bypass across vhosts (CVE-2025-23419, CVE-2025-23048)",
+   "summary": "RFC 8446 \u00a74.2.11 says the server need not associate SNI with a ticket; \u00a74.6.1 SNI match is only a client-side SHOULD. Hebrok et al. (USENIX Security 2025, 'STEK Sharing is Not Caring') bypassed client-certificate auth by resuming a ticket issued by a non-mTLS vhost on an mTLS vhost sharing the STEK: nginx CVE-2025-23419 (pub 2025-02-05, 1.11.4+), Apache CVE-2025-23048 (pub 2025-07-10, 2.4.35-2.4.63), (Open)LiteSpeed, Caddy (single global STEK), Cloudflare mTLS (fixed by disabling resumption with mTLS), Fastly (resumed regardless of SNI; fixed 2023-09 by binding ticket to issuing cert). Scan Dec 2024-Jan 2025: 59.75M host pairs, 176 manually confirmed vulnerable. Binding to SNI alone is not enough; bind to server cert chain + client-auth trust config. VERDICT: the invariant as worded is FALSE. The state is authenticated, but authenticated means 'issued by us', not 'issued for this scope'.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11",
+    "https://www.usenix.org/conference/usenixsecurity25/presentation/hebrok",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-23419",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-23048",
+    "https://doi.org/10.1145/2736277.2741089"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Most of the 176 confirmed cases need a co-hosted mTLS vhost on the same IP:port. A single-tenant AEGIS listener without client auth is not exposed.",
+   "underclaim_risk": "Writing this off as 'a TLS-library bug'. Rustls documents that sharing a ticketer/session_storage across ServerConfigs is unenforced policy ('rustls does not enforce any policy here'), so AEGIS inherits the exact hazard.",
+   "cwe": "CWE-287/CWE-305",
+   "example_cves": [
+    "CVE-2025-23419",
+    "CVE-2025-23048"
+   ],
+   "agent_amplified": false,
+   "verdict": "FALSE-as-stated"
+  },
+  {
+   "id": "crs-ce-stek-lifecycle",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "STEK lifecycle failures: all-zero key (GnuTLS CVE-2020-13777) and faulty rotation (AWS ALB) turn ticket state into passive-decryption/auth-bypass",
+   "summary": "Hebrok et al. USENIX Security 2023: AWS ALB's faulty STEK rotation allowed passive decryption for at least 1.9% of the Tranco top-100k. Keystream reuse was also found. GnuTLS 3.6.4-3.6.13 used an all-zero STEK until the first rotation (CVE-2020-13777), which allowed TLS 1.3 auth bypass and passive decryption. Resumption costs about 4% of full-handshake CPU, so the perf gain is real but small. The STEK breaks forward secrecy for the ticket lifetime (max 604800 s per RFC 8446). VERDICT: covered only if 'authenticated' requires a fresh, secret, rotated key. Refine: key provenance and lifetime are part of the invariant.",
+   "urls": [
+    "https://www.usenix.org/conference/usenixsecurity23/presentation/hebrok",
+    "https://cveawg.mitre.org/api/cve/CVE-2020-13777"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "The 1.9% figure is ALB-specific (2023).",
+   "underclaim_risk": "Treating PQC KEM handshakes as making tickets safe: a ticket resumption skips the ML-KEM exchange entirely and relies on the symmetric STEK (and an optional psk_dhe_ke share), so the PQ property of resumed sessions equals the STEK's handling.",
+   "cwe": "CWE-1204/CWE-324",
+   "example_cves": [
+    "CVE-2020-13777"
+   ],
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-0rtt-replay",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "0-RTT early data: authenticated but replayable; RFC 8446 \u00a78 allows 'billions of replays' within the freshness window",
+   "summary": "RFC 8446 \u00a78: a server MUST accept the same 0-RTT handshake at most once per instance, but cross-instance replay remains, and application-level replay 'MUST be dealt with by any application'. The \u00a78.3 freshness window is about 10 s. RFC 9001 \u00a79.2: 'Disabling 0-RTT entirely is the most effective defense'; tickets/tokens MUST NOT carry application semantics. RFC 8470: intermediaries MUST add Early-Data: 1; origins return 425 Too Early; clients MUST retry. No dedicated CVE for QUIC-server 0-RTT anti-replay was found (negative result). Holz et al. (arXiv 1907.12762): 6.8% of TLS 1.3 connections carry early_data, but whether servers accept it cannot be observed passively. VERDICT: REFINE. The invariant needs a freshness/at-most-once clause, because the input is authenticated and still unsafe.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc8446#section-8",
+    "https://www.rfc-editor.org/rfc/rfc9001#section-9.2",
+    "https://www.rfc-editor.org/rfc/rfc8470",
+    "https://arxiv.org/abs/1907.12762",
+    "https://eprint.iacr.org/2017/082"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Replay needs a non-idempotent route reachable in early data. With GET-only early data plus 425, the risk is small.",
+   "underclaim_risk": "The absence of CVEs reflects that acceptance is unobservable, not that the risk is absent.",
+   "cwe": "CWE-294",
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-quic-token-unauth",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "result",
+   "title": "Contrarian: QUIC NEW_TOKEN/Retry tokens are spec-sanctioned UNAUTHENTICATED cross-connection state",
+   "summary": "RFC 9000 \u00a78.1.3/8.1.4: NEW_TOKEN tokens 'are not integrated into the cryptographic handshake, and so they are not authenticated'. Their use is limited to address validation; they must be unique per client and SHOULD expire. Rate-limit counters, DNS caches, hash tables and public caches are likewise necessary state that unauthenticated input influences. VERDICT: the invariant is TOO STRONG as a prohibition. Replace it with an authority ceiling. State that unauthenticated input influences may only affect resource budgets and address validation, never authorization or another principal's response bytes.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc9000#section-8.1.3"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "underclaim_risk": "Dropping the invariant because of these exceptions. They all share one property: a capped, non-authorizing influence.",
+   "verdict": "FALSE-as-prohibition"
+  },
+  {
+   "id": "crs-ce-coalescing-authority",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "HTTP/2/3 connection coalescing: connection-level authority decisions reused for requests to other origins",
+   "summary": "RFC 9113 \u00a79.1.1 lets one connection serve several authorities when the cert covers them. RFC 9110 \u00a77.4: the origin MUST reject a request not received on a connection secured with a cert valid for the target origin (421 Misdirected Request). draft-rajappa-httpbis-connection-contamination: routing decided once at connection setup misroutes coalesced requests across tenants. Delignat-Lavaud & Bhargavan (WWW 2015) broke OAuth on Akamai-hosted sites through virtual-host confusion. Contour issue #5240 (2023-04-03): a wildcard cert plus coalescing gives 421, and Safari gets stuck because the retry is only a MAY. VERDICT: REFINE. Anything derived from the connection (SNI vhost, client-cert verification, routing) must be re-checked per request against :authority.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc9110#section-7.4",
+    "https://www.rfc-editor.org/rfc/rfc9113#section-9.1.1",
+    "https://github.com/projectcontour/contour/issues/5240",
+    "https://access.redhat.com/solutions/4262421",
+    "https://datatracker.ietf.org/doc/draft-rajappa-httpbis-connection-contamination/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "The rajappa draft could not be fetched (404); the claim rests on the search summary only.",
+   "underclaim_risk": "A 421 is a liveness cost; send an ORIGIN frame (RFC 8336) to avoid clients stalling.",
+   "cwe": "CWE-346",
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-cache-poison-deception",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "Web cache poisoning/deception: unkeyed inputs and parser/normalization differentials (PortSwigger 2024; Next.js CVE-2026-44572, CVE-2025-49005)",
+   "summary": "Doyhenard, 'Gotta cache em all' (PortSwigger, BH USA 2024-08-08): delimiter discrepancies (Spring ';', Rails '.', OpenLiteSpeed %00, nginx %0a) and normalization discrepancies. CloudFront/Azure/Imperva normalize before applying cache rules; Cloudflare/GCP/Fastly do not. Next.js CVE-2026-44572 (pub 2026-05-13; 12.2.0-<15.5.16, 16.0-<16.2.5): a client-sent internal header x-nextjs-data rewrote the redirect, and one request poisoned the CDN's cached redirect. CVE-2025-49005 (pub 2025-07-03; 15.3.0-<15.3.3): a missing Vary served the RSC payload as HTML. Varnish CVE-2021-36740: H2 smuggling led to poisoning. HCache (Tsinghua, reportedly CCS 2024; secondary source): about 17% of Tranco top-1000 domains vulnerable. RFC 9111 \u00a77.1 names parsing differentials as the root cause; \u00a73.5 forbids shared reuse of Authorization responses unless explicitly public; \u00a77.3 notes Set-Cookie does not inhibit caching. VERDICT: COVERED in spirit. Unauthenticated input influences shared state, but it needs a key-completeness and single-parser rule to be checkable.",
+   "urls": [
+    "https://portswigger.net/research/gotta-cache-em-all",
+    "https://cveawg.mitre.org/api/cve/CVE-2026-44572",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-49005",
+    "https://www.rfc-editor.org/rfc/rfc9111#section-7.1",
+    "https://varnish-cache.org/security/VSV00007.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The HCache prevalence number is grade C (not fetched).",
+   "underclaim_risk": "AEGIS-as-origin is exposed even without its own cache, because downstream CDNs key differently. Ingress stripping of internal headers is mandatory.",
+   "cwe": "CWE-444/CWE-524",
+   "example_cves": [
+    "CVE-2026-44572",
+    "CVE-2025-49005",
+    "CVE-2021-36740"
+   ],
+   "agent_amplified": true,
+   "verdict": "COVERED+needs-keying-rule"
+  },
+  {
+   "id": "crs-ce-hpack-shared-context",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "HPACK/QPACK dynamic tables: cross-request compression state shared between mutually distrustful but possibly AUTHENTICATED principals",
+   "summary": "RFC 7541 \u00a77.1.1-7.1.3: the dynamic table is cross-request state. Anyone who can inject headers and observe lengths can probe it, and the risk applies whenever 'two mutually distrustful entities' share a connection, e.g. an intermediary multiplexing several clients upstream. The ideal is to segregate tables per entity; sensitive headers go never-indexed. HEIST (BH USA 2016) showed cross-origin length oracles. VERDICT: FALSE-as-stated. Both principals may be authenticated. The right axis is principal partitioning, not authentication.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc7541#section-7.1"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Server-side tables are per-connection, so the risk arises only in AEGIS's upstream proxy fan-out.",
+   "underclaim_risk": "QPACK has the same structure (see rec60-header-accordions-qpack for its DoS face).",
+   "cwe": "CWE-208",
+   "verdict": "FALSE-as-stated"
+  },
+  {
+   "id": "crs-ce-pool-reuse-incomplete-key",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "Connection-pool reuse with hand-enumerated keys: the curl 2026 CVE cluster, curl CVE-2024-0853 failed-validation caching, response-queue poisoning",
+   "summary": "curl vuln.json (fetched 2026-10-24) has 16 connection/session-reuse CVEs in 2026 alone, against 1-3 per year in 2014-2024. Examples: CVE-2026-8932 (private-key options missing from the mTLS reuse match), CVE-2026-80231 (native CA store not in the key), CVE-2026-107929 (bind interface not in the key), CVE-2026-87861 (cross-origin Negotiate reuse), CVE-2026-4873 (reuse ignores the TLS requirement). Root cause: a hand-maintained field list that omits newly added config. CVE-2024-0853 (curl 8.5.0) kept a session ID after OCSP verification FAILED, so the later transfer skipped the check. CVE-2016-5419: resumption after a client cert change. Kettle (BH USA 2021): response-queue poisoning through upstream connection reuse (Netty CVE-2021-21295; Jira global session mix-up). hyper-util 0.1.21 (2026-09-24) legacy Client uses `type PoolKey = (Scheme, Authority)` (client.rs l.95). It omits SNI override, client identity, CA store and tenant. VERDICT: REFINE. Add (a) key completeness by construction, (b) failure non-population, (c) drain on framing error.",
+   "urls": [
+    "https://curl.se/docs/vuln.json",
+    "https://cveawg.mitre.org/api/cve/CVE-2024-0853",
+    "https://raw.githubusercontent.com/hyperium/hyper-util/master/src/client/legacy/client.rs",
+    "https://portswigger.net/research/http2"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The 2026 curl spike may partly be an AI-assisted audit wave (more found, not more created).",
+   "underclaim_risk": "Assuming hyper-util's key is sufficient. It is safe only while every connection to a (scheme, authority) is identical in TLS identity.",
+   "cwe": "CWE-305/CWE-672",
+   "example_cves": [
+    "CVE-2026-8932",
+    "CVE-2026-80231",
+    "CVE-2024-0853",
+    "CVE-2021-21295"
+   ],
+   "agent_amplified": true,
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-idempotency-key-scope",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "Idempotency store keyed by client-chosen value: cross-client retrieval (draft-ietf-httpapi-idempotency-key-header-08 \u00a75)",
+   "summary": "Draft -08 (updated 2026-10-22) \u00a75: with low-entropy keys, attackers can guess other clients' keys and retrieve cached responses. The draft RECOMMENDS a composite key of the client key plus client-specific attributes. \u00a72.4: MAY fingerprint the payload; reuse with a different payload SHOULD return 422. VERDICT: REFINE. The key must include the authenticated principal; the client key alone is not authenticated state.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "underclaim_risk": "The draft only RECOMMENDS this. AEGIS should make it a MUST in the store's type signature.",
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-jwks-unverified-kid",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "JWKS caches mutated by an unverified kid: PyJWT CVE-2026-48524 (cache cleared on fetch error), CVE-2026-101917 (no negative cache)",
+   "summary": "PyJWT <2.13.0 (pub 2026-05-28): an unknown kid read from the UNVERIFIED header forces a JWKS refetch, and a finally-block clears the cache on network error, causing cascading auth failure. <2.14.0 (pub 2026-09-28): no negative cache or minimum refresh interval. libjwt added a cooldown. VERDICT: CONFIRMS the invariant. An unauthenticated field drives mutation of shared state. It also adds the rule that a failed operation must not destroy last-good state.",
+   "urls": [
+    "https://github.com/jpadilla/pyjwt/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "CVE-2026-101917 was seen via the advisory listing and not refetched from MITRE this session.",
+   "cwe": "CWE-400/CWE-754",
+   "example_cves": [
+    "CVE-2026-48524",
+    "CVE-2026-101917"
+   ],
+   "verdict": "COVERED"
+  },
+  {
+   "id": "crs-ce-ratelimit-xff",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "Rate-limiter state keyed on spoofable X-Forwarded-For (Litestar CVE-2025-59152, Lemmy CVE-2026-54738, 9Router CVE-2026-55501)",
+   "summary": "Limiter buckets keyed on the leftmost XFF let attackers rotate buckets (bypass) or exhaust victims' buckets. Lemmy <0.19.19 used actix realip_remote_addr. VERDICT: COVERED. Refine 'authenticated' to include transport-authenticated attributes (socket peer, or the rightmost untrusted hop of a validated trusted-proxy chain).",
+   "urls": [
+    "https://github.com/litestar-org/litestar/security/advisories",
+    "https://github.com/LemmyNet/lemmy/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "cwe": "CWE-348",
+   "verdict": "COVERED"
+  },
+  {
+   "id": "crs-ce-dns-rebinding-toctou",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "DNS resolution cached between validation and connect: SSRF rebinding TOCTOU cluster 2026 (MCP Atlassian CVE-2026-73497, ContextForge CVE-2026-53708, datamodel-code-generator CVE-2026-55391)",
+   "summary": "Validation resolves the name and checks the IP, then the client re-resolves at connect time and an attacker-controlled DNS answer changes. The fix is for validation to return the pinned IP that the connect uses, on every client path including redirects. VERDICT: REFINE. Add a time-of-use binding clause: the state checked must be the state used.",
+   "urls": [
+    "https://github.com/advisories/GHSA-489g-7rxv-6c8q"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "cwe": "CWE-367/CWE-918",
+   "example_cves": [
+    "CVE-2026-73497",
+    "CVE-2026-53708",
+    "CVE-2026-55391"
+   ],
+   "agent_amplified": true,
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-session-fixation-epoch",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "threat",
+   "title": "Session fixation and auth-change survival: pre-auth state carried across a privilege boundary",
+   "summary": "OWASP Session Management Cheat Sheet: regenerate the session ID after any privilege change, and never accept IDs the server did not generate. The same pattern shows up in curl CVE-2016-5419 (resumption after a client cert change) and the Hebrok 2025 mTLS bypass (state from a lower-assurance context reused in a higher one). VERDICT: REFINE. Add an epoch clause: state is bound to an auth-context epoch, and any auth change invalidates it.",
+   "urls": [
+    "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "verdict": "REFINE"
+  },
+  {
+   "id": "crs-ce-hashdos",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "result",
+   "title": "Contrarian: hash tables are cross-request state influenced by unauthenticated keys; the defense is secret keying, not authentication",
+   "summary": "HashDoS (CVE-2011-4885 class). Rust std HashMap uses keyed SipHash-1-3 (RandomState); foldhash is 'minimally DoS-resistant' and FxHash not at all. VERDICT: outside the prohibition, inside the authority ceiling (clause C7). Any map keyed by attacker input uses a secret-keyed hasher.",
+   "urls": [
+    "https://doc.rust-lang.org/std/collections/struct.HashMap.html",
+    "https://github.com/orlp/foldhash"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "verdict": "COVERED-by-C7"
+  },
+  {
+   "id": "crs-rustls-ticketer-policy",
+   "layer": "L3",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "tool",
+   "title": "rustls ServerConfig: ticketer/session_storage sharing across configs is unenforced ('rustls does not enforce any policy here')",
+   "summary": "The rustls 0.23.46 docs warn that sharing a ticketer or session_storage between ServerConfigs with different verifiers or cert resolvers is the caller's responsibility. AEGIS must therefore build one ticketer per (cert chain, client-auth verifier, config epoch) and make resumption impossible across those boundaries. For mTLS listeners the simplest safe choice is resumption off (Cloudflare's fix), at about 4% CPU cost per reconnect according to Hebrok 2023.",
+   "urls": [
+    "https://docs.rs/rustls/latest/rustls/server/struct.ServerConfig.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "underclaim_risk": "Not verifying that rustls binds tickets to SNI or the cert internally. Assume it does not; add the scope to the ticket AAD ourselves through a wrapping ProducesTickets.",
+   "repo": "https://github.com/rustls/rustls",
+   "version": "0.23.46"
+  },
+  {
+   "id": "crs-verdict-matrix",
+   "layer": "L4",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "result",
+   "title": "Verdict matrix: 'no unauthenticated cross-request state' across 14 counterexample classes is false as stated, too strong as a prohibition, and right in spirit",
+   "summary": "COVERED (unauthenticated input mutated shared state): cache poisoning/deception, JWKS kid refetch, XFF limiter. FALSE (authenticated state, wrong scope): TLS tickets across vhosts, HPACK across principals. REFINE (missing freshness, time-of-use or epoch): 0-RTT replay, coalescing, pool reuse, idempotency, DNS rebinding, session fixation, STEK lifecycle. TOO STRONG: QUIC tokens, rate counters, hash tables. Tally: 3 covered, 2 false-as-stated, 7 refine, 3 too strong (QUIC token counted once; hashdos in too-strong). The common root cause across all 14: a state lookup key or scope tuple that is a strict subset of the inputs that determine the authorization or response. 'Authenticated' must mean scope-bound, fresh and current-epoch; 'unauthenticated' input may influence only resource budgets.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "The classes are drawn from the attacker literature; frequency weighting per class is not established.",
+   "underclaim_risk": "Calling this just another checklist. The single root cause (key is a subset of the determining inputs) is mechanically testable."
+  },
+  {
+   "id": "crs-l5-invariant-text",
+   "layer": "L5",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "spec",
+   "title": "Refined invariant CRS (Cross-Request State) with clauses C1-C8 and definitions",
+   "summary": "DEFINITIONS. Cross-request state = any state that outlives the request that created it and can affect a later request's processing or response. It exists at four levels: connection (TLS session, H2/H3 stream tables, HPACK/QPACK), process (caches, pools, counters, maps), fleet (STEK, shared cache, idempotency/session store), and client-held server-issued (tickets, NEW_TOKEN, cookies, idempotency keys). Authenticated = this server verified a cryptographic binding at the time of use, under a current, non-default key and the current policy epoch, to a scope tuple sigma = (issuer cert-chain hash, origin/authority, principal/tenant or PUBLIC, auth context {client-cert trust store id, auth method, privilege level}, config epoch). Transport-authenticated attributes (socket peer, verified client cert) authenticate only what they prove. CLAUSES. C1 Provenance: server-issued state is AEAD-sealed under a CSPRNG key that is rotated (STEK at most 24 h with a 2-key window; ticket lifetime at most 24 h, below the 7 d spec max). Startup refuses an all-zero or default key. C2 Scope: state S may influence request R only if sigma(S) == sigma(R), with sigma(R) computed per request (not per connection) and equality on every component. PUBLIC is allowed only for responses the origin marked public, with no Authorization or Set-Cookie. C3 Key completeness: every input that can change the response bytes or the authorization outcome is in the lookup key, or is stripped or normalized at ingress by the SAME parser the router and origin use. C4 Freshness: state that authorizes a side effect is single-use, or the effect is idempotent. Early data is accepted only on routes marked replay_safe, with at-most-once per ticket per instance, Early-Data: 1 forwarded, and 425 otherwise. C5 Epoch revocation: any auth or config change (login, logout, privilege change, cert/CA rotation, reload) bumps the epoch. Old-epoch state is rejected; session IDs are regenerated and pooled upstream connections drained. C6 Failure atomicity: failed validation never inserts or retains state, and a failed refresh never evicts last-good state. C7 Authority ceiling: state influenced by unauthenticated input may affect only resource budgets and address validation. Its size is capped per transport-authenticated key, refreshes triggered by unverified fields are rate-limited and negatively cached, and maps over attacker keys use secret-keyed hashing. C8 Shared-context partitioning: compression contexts, upstream connections and response queues are never shared between principals. Sensitive headers are never-indexed, and the upstream connection is closed on any framing error.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The numeric parameters (24 h, the epoch granularity) are engineering choices, not evidence-derived optima.",
+   "underclaim_risk": "Treating C2 as optional for single-tenant deployments. Coalescing and vhosts make 'single tenant' rarer than it looks."
+  },
+  {
+   "id": "crs-l5-keying-table",
+   "layer": "L5",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "spec",
+   "title": "Keying rule for every cache/ticket/pool in AEGIS",
+   "summary": "TLS tickets/session cache: one ticketer per (cert-chain hash, client-auth verifier id, ALPN set, epoch). The scope hash goes in the ticket AAD and is checked on decrypt. Resumption is disabled on mTLS listeners by default. 0-RTT: off by default; max_early_data_size>0 only if the listener has replay_safe routes; an anti-replay set of (ticket nonce, obfuscated age) per instance for the freshness window. QUIC NEW_TOKEN/Retry: AEAD(client IP, issue time, expiry 24 h), consulted only for address validation. H2/H3 per-request authority: :authority is in the SAN of THIS connection's cert AND maps to the same vhost/trust config as the SNI, else 421; send an ORIGIN frame. HPACK/QPACK upstream: per-principal upstream connection, or dynamic table 0 when multiplexing principals; Authorization/Cookie never-indexed. Response cache: key = (method, scheme, authority, router-canonical path [same parser], canonical query, values of Vary-listed headers, response variant [e.g. RSC vs HTML], principal or PUBLIC, epoch). Ingress strips the internal header namespace by allowlist; no extension-based rules override origin Cache-Control. Upstream pool: key = the entire UpstreamConnConfig struct via derive(Hash, Eq) (scheme, host, port, pinned IP, SNI, ALPN, client identity, CA store id, TLS min, proxy, bind iface, epoch). Excluding a field requires an explicit #[pool_key(skip, reason=...)] attribute; do not use hyper-util's (Scheme, Authority) PoolKey directly when TLS identity varies. Idempotency store: (principal id, route template, client key) to (request fingerprint, response); fingerprint mismatch returns 422. JWKS: (issuer from static config, kid). Unknown kid triggers at most 1 fetch per 5 min per issuer, with a negative cache; last-good keys are kept on error. Rate limiter: socket peer, or the rightmost untrusted hop of a validated trusted-proxy chain; never raw XFF. DNS/egress: the connector resolves, checks the IP against policy and connects to that exact IP; no re-resolve; recheck on every redirect. Sessions: server-generated only, regenerated on privilege change, epoch-bound. Hash maps keyed by attacker input: std RandomState (SipHash).",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The JWKS interval and token expiry values are choices."
+  },
+  {
+   "id": "crs-l5-test-oracles",
+   "layer": "L5",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "spec",
+   "title": "Test-oracle spec per CRS clause (DST/property/differential harness)",
+   "summary": "C1: unit test that a startup with a zero or default STEK fails, plus a rotation property: a ticket under a key older than 2 rotations is rejected. C2: a two-scope differential harness for EVERY state type. Issue the artifact under scope A, present it under scope B (different vhost on the same IP:port, different client CA, different principal); expect a full handshake, cache miss or new upstream connection. Include the nginx CVE-2025-23419 replica as a named regression: two vhosts on one IP:port, one with mTLS; resuming the non-mTLS ticket must still demand a client cert. C3: cache-key completeness fuzzer. For each request field (every header, path variants with ; . %00 %0a %2f %23 .. and case, query order), mutate it and compare origin responses. Response differs but cache key unchanged means FAIL. Also a router-vs-cache canonicalization differential: one parser, assert identical output. C4: replay the same 0-RTT ClientHello N=1000 times at one instance, expect at most 1 acceptance; a non-replay_safe route in early data returns 425; with the proxy, Early-Data: 1 is present upstream. C5: after rotating the client CA, logging out, changing a role or reloading config, the old ticket, session ID and pooled connection must all fail to be reused (epoch counter assertion). C6: fault injection. A forced validation failure leaves the store snapshot byte-identical; a JWKS network error keeps the last-good key verifying. C7: an adversarial load of 10k req/s unknown-kid gives at most 1 upstream JWKS fetch per interval; rotating XFF gives the same limiter bucket; state bytes stay at or under the cap per peer. C8: two downstream principals through the proxy share no upstream connection IDs (or dynamic table size = 0); injecting malformed upstream framing closes the connection before the next request is dequeued. CI gate: all oracles run in the DST suite (as.dst-harness-spec), and oracle mutation (as.oracle-mutation) must show each one can fail. For example, removing the epoch from the pool key must turn C5 red.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "underclaim_risk": "Skipping the oracle-mutation step. Key-completeness tests are classically vacuous when the mutation set misses the one field that matters."
+  },
+  {
+   "id": "crs-gap-0rtt-acceptance",
+   "layer": "L2",
+   "domain": "W-BRIDGE(PQC+TRANSPORT+STATE+CACHE)",
+   "type": "gap",
+   "title": "Gap: no internet-scale measurement of 0-RTT replay acceptance; implementation-phase spike",
+   "summary": "Passive scans cannot observe acceptance (Holz et al. 2019). Spike protocol: an AEGIS listener with rustls/quinn 0-RTT enabled. Capture a ClientHello with early data (a modified client), replay it 1000x at 1 instance and at 2 instances sharing the STEK, and count acceptances and route executions. Expected: at most 1 per instance; cross-instance acceptance unless there is a shared anti-replay store. Decision: whether 0-RTT ships at all (default off) and whether fleet mode needs a shared strike register. Runs under heavy.sh, under 1 GB.",
+   "urls": [
+    "https://arxiv.org/abs/1907.12762"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": false
+  }
+ ],
+ "edges": [
+  {
+   "src": "crs-ce-tls-ticket-cross-vhost",
+   "dst": "crs-verdict-matrix",
+   "type": "supports",
+   "note": "authenticated-but-unscoped counterexample"
+  },
+  {
+   "src": "crs-ce-stek-lifecycle",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C1"
+  },
+  {
+   "src": "crs-ce-0rtt-replay",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C4"
+  },
+  {
+   "src": "crs-ce-quic-token-unauth",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C7 authority ceiling"
+  },
+  {
+   "src": "crs-ce-coalescing-authority",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C2 per-request sigma"
+  },
+  {
+   "src": "crs-ce-cache-poison-deception",
+   "dst": "crs-l5-keying-table",
+   "type": "motivates",
+   "note": "response cache key + ingress strip"
+  },
+  {
+   "src": "crs-ce-hpack-shared-context",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C8"
+  },
+  {
+   "src": "crs-ce-pool-reuse-incomplete-key",
+   "dst": "crs-l5-keying-table",
+   "type": "motivates",
+   "note": "derive-based pool key"
+  },
+  {
+   "src": "crs-ce-pool-reuse-incomplete-key",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C6 failure non-population"
+  },
+  {
+   "src": "crs-ce-idempotency-key-scope",
+   "dst": "sdg-idempotency-draft",
+   "type": "refines",
+   "note": "principal in composite key must be MUST"
+  },
+  {
+   "src": "crs-ce-idempotency-key-scope",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "constrains",
+   "note": "key=(principal,route,client key)"
+  },
+  {
+   "src": "crs-ce-jwks-unverified-kid",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C6,C7"
+  },
+  {
+   "src": "crs-ce-ratelimit-xff",
+   "dst": "crs-l5-keying-table",
+   "type": "motivates",
+   "note": "limiter key"
+  },
+  {
+   "src": "crs-ce-dns-rebinding-toctou",
+   "dst": "j-mcp-sdk-advisories",
+   "type": "related",
+   "note": "MCP SSRF cluster"
+  },
+  {
+   "src": "crs-ce-session-fixation-epoch",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C5"
+  },
+  {
+   "src": "crs-ce-hashdos",
+   "dst": "crs-l5-invariant-text",
+   "type": "motivates",
+   "note": "C7 keyed hashing"
+  },
+  {
+   "src": "crs-rustls-ticketer-policy",
+   "dst": "crs-ce-tls-ticket-cross-vhost",
+   "type": "enables",
+   "note": "unenforced sharing policy"
+  },
+  {
+   "src": "crs-ce-tls-ticket-cross-vhost",
+   "dst": "gap.nginx",
+   "type": "evidence_against",
+   "note": "CVE-2025-23419"
+  },
+  {
+   "src": "crs-ce-tls-ticket-cross-vhost",
+   "dst": "gap.caddy",
+   "type": "evidence_against",
+   "note": "single global STEK (Hebrok 2025)"
+  },
+  {
+   "src": "crs-ce-hpack-shared-context",
+   "dst": "rec60-header-accordions-qpack",
+   "type": "related",
+   "note": "same QPACK state, privacy vs DoS face"
+  },
+  {
+   "src": "crs-ce-pool-reuse-incomplete-key",
+   "dst": "crate-hyper-h2",
+   "type": "constrains",
+   "note": "hyper-util PoolKey=(Scheme,Authority)"
+  },
+  {
+   "src": "crs-l5-invariant-text",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "generalizes",
+   "note": "C6 extends to caches/pools"
+  },
+  {
+   "src": "crs-l5-test-oracles",
+   "dst": "as.dst-harness-spec",
+   "type": "implemented_by",
+   "note": ""
+  },
+  {
+   "src": "crs-l5-test-oracles",
+   "dst": "as.oracle-mutation",
+   "type": "gated_by",
+   "note": ""
+  },
+  {
+   "src": "crs-l5-test-oracles",
+   "dst": "as.fuzz-gate",
+   "type": "uses",
+   "note": "cache-key completeness fuzzer"
+  },
+  {
+   "src": "crs-l5-invariant-text",
+   "dst": "l5-structural-controls-implied",
+   "type": "refines",
+   "note": "adds CRS invariant"
+  },
+  {
+   "src": "crs-verdict-matrix",
+   "dst": "crs-l5-invariant-text",
+   "type": "yields",
+   "note": ""
+  },
+  {
+   "src": "crs-l5-invariant-text",
+   "dst": "crs-l5-keying-table",
+   "type": "instantiated_by",
+   "note": ""
+  },
+  {
+   "src": "crs-l5-invariant-text",
+   "dst": "crs-l5-test-oracles",
+   "type": "verified_by",
+   "note": ""
+  },
+  {
+   "src": "crs-gap-0rtt-acceptance",
+   "dst": "crs-ce-0rtt-replay",
+   "type": "measures",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does rustls (0.23.x) or quinn bind TLS 1.3 tickets to SNI/cert chain internally, and what are the default Ticketer rotation and lifetime? Read the source, not the docs.",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.7,
+   "reason": "decides whether C2 for tickets is a wrapper or a fork"
+  },
+  {
+   "question": "Does PQ hybrid resumption (psk_dhe_ke with ML-KEM shares) preserve PQ forward secrecy for resumed sessions in rustls/aws-lc-rs, or does psk_ke-only leave resumed traffic STEK-only?",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.65,
+   "reason": "tickets silently downgrade the PQC property"
+  },
+  {
+   "question": "Can a Kani/Verus or proptest-state-machine proof show 'lookup key covers all response-determining inputs' for a small cache, i.e. noninterference of unkeyed fields?",
+   "layer": "L4",
+   "domain": "W-PROOF",
+   "expected_info_gain": 0.6,
+   "reason": "C3 is an information-flow property, possibly provable at build time"
+  },
+  {
+   "question": "Pingora/Envoy/HAProxy upstream pool keys: which fields do they include, and which advisories came from omissions?",
+   "layer": "L3",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.5,
+   "reason": "incumbent comparison for the keying table"
+  },
+  {
+   "question": "Run the 0-RTT replay-acceptance spike (crs-gap-0rtt-acceptance) in the implementation phase",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.45,
+   "reason": "no public measurement exists"
+  }
+ ],
+ "protocol_implications": [
+  "Adopt CRS (C1-C8) as a named SPEC_INVARIANT. Each cache/ticket/pool type must declare its sigma tuple and key in code (a trait, e.g. `trait CrossRequestState { type Scope: Eq + Hash; fn scope(&self)->Self::Scope; }`). The use-site compares against the per-request scope.",
+  "Pool and cache keys are derived from the WHOLE config struct (derive Hash/Eq), with opt-out only via an annotated skip. This turns the curl-2026 omission class into a compile-time/review-visible event.",
+  "Defaults: resumption off on mTLS listeners, 0-RTT off, STEK rotation at most 24 h, ingress strips the internal header namespace, ORIGIN frame on H2/H3.",
+  "Every clause has a differential oracle in the DST suite that oracle mutation must turn red. The nginx CVE-2025-23419 replica is a permanent named regression test."
+ ],
+ "self_improvement": [
+  "The bridge-hunt format (one invariant tested against at least 10 classes with a verdict per class) produced a sharper result than single-pillar dives. Keep it one per round.",
+  "The explorer crashed mid-run. The progress-file checkpointing let it resume with no re-searching, which validates the every-5-sources rule."
+ ],
+ "sources": [
+  "RFC 8446",
+  "RFC 9000",
+  "RFC 9001",
+  "RFC 8470",
+  "RFC 9110",
+  "RFC 9111",
+  "RFC 9113",
+  "RFC 7541",
+  "Hebrok USENIX Sec 2025",
+  "Hebrok USENIX Sec 2023",
+  "Gellert&Handirk ePrint 2021/987",
+  "Delignat-Lavaud&Bhargavan WWW 2015",
+  "PortSwigger Gotta cache em all 2024",
+  "Kettle HTTP/2 Sequel 2021",
+  "HCache CCS 2024 (secondary)",
+  "Varnish VSV00007",
+  "CVE-2025-23419",
+  "CVE-2025-23048",
+  "CVE-2020-13777",
+  "CVE-2024-0853",
+  "CVE-2016-5419",
+  "CVE-2026-50052",
+  "curl vuln.json",
+  "draft-ietf-httpapi-idempotency-key-header-08",
+  "PyJWT advisories",
+  "Litestar/Lemmy/9Router advisories",
+  "GHSA-489g-7rxv-6c8q et al",
+  "OWASP session cheat sheet",
+  "rustls 0.23.46 docs",
+  "Holz arXiv 1907.12762",
+  "Rust HashMap docs / foldhash",
+  "draft-rajappa connection contamination (summary only)",
+  "CVE-2026-44572",
+  "CVE-2025-49005",
+  "contour #5240",
+  "Red Hat 4262421",
+  "hyper-util client.rs PoolKey",
+  "ePrint 2017/082",
+  "arXiv 2401.06657"
+ ],
+ "notes": "Resumed after crash from progress checkpoints 1-3; 39 sources. Verdict: the invariant is FALSE as stated (authenticated state can be cross-scope), TOO STRONG as a prohibition (QUIC tokens, counters), and correct in spirit once restated as CRS C1-C8."
+}

@@ -14,3 +14,4 @@
 - Go PR #842 (2026-03-13) default http.CrossOriginProtection + Content-Type must be application/json; REVERTED by PR #906 (2026-04-24, fixes #902) after github-mcp-server browser-client breakage -> secure default vs usability tension (contrarian).
 - Papers verified via arXiv abs: 2603.10163 (Yang,Bai,Lu, 2026-03-10, clause-compliance vulns; abstract gives NO counts; 78.5%/1265 numbers only from third-party summary -> unverified); 2606.05339 (Owotogbe et al, v1 2026-06-03, v2 2026-09-19: 833 threads, 473 repos, 11 cats/27 subcats/73 leaf, 55 devs).
 - NVD CVE-2025-6514 mcp-remote: published 2025-07-09, CVSS3.1 9.6 (JFrog secondary), alias GHSA-6xpm-ggf7-wc3p; no repo advisory list on geelen/mcp-remote (0).
+- COMPILED json (resume): Sat Oct 24 11:56:21 PM EDT 2026

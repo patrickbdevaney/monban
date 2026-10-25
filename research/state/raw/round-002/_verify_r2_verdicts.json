@@ -1,0 +1,1010 @@
+{
+"dpf-family-matrix": [
+"B",
+0.78,
+"unchanged",
+"Taxonomy is synthesis; DynamoDB LeadingKeys is key-level and Scan-bypass/global-table FGAC unconfirmed; CRDB RLS bypass list confirmed plus ON CONFLICT DO NOTHING gap; RLS GA since 25.2."
+],
+"dpf-mongodb": [
+"A",
+0.85,
+"unchanged",
+"CVE-2025-14847 (MongoBleed) confirmed, exploited ITW, ~87k exposed, no patch for 3.6/4.0/4.2; Rust driver CVE details and crate stats not re-confirmed; zlib-off is mitigation not fix."
+],
+"dpf-redis-valkey": [
+"A",
+0.85,
+"unchanged",
+"Lua CVE ids, GHSA counts and crate stats not re-verified; CVE-2025-49844 supports EVAL exclusion."
+],
+"dpf-dynamodb": [
+"B",
+0.72,
+"down",
+"Scan-bypass and global-table FGAC statements not found on the AWS conditions page; LeadingKeys ForAllValues confirmed."
+],
+"dpf-graph-neo4j": [
+"A",
+0.8,
+"down",
+"CVE-2026-35402 is in the mcp-neo4j-cypher MCP server (<0.6.0, CVSS4 2.3 Low), not Neo4j/APOC; lesson = regex read-only guards fail, EXPLAIN-based analysis fixes."
+],
+"dpf-s3": [
+"A",
+0.82,
+"unchanged",
+"MinIO CVE ids and crate stats not rechecked; presign/POST-policy guidance is established AWS behaviour."
+],
+"dpf-kafka": [
+"A",
+0.82,
+"unchanged",
+"Not rechecked in detail; PREFIXED ACL design standard."
+],
+"dpf-nats": [
+"A",
+0.85,
+"unchanged",
+"CVE-2025-30215 confirmed (CVSS 9.6) but only four JetStream endpoints lacked cross-account checks; stream contents not exposed."
+],
+"dpf-cassandra-scylla": [
+"A",
+0.88,
+"unchanged",
+"Both CVEs confirmed (MODIFY on all keyspaces -> superuser); 26467 is a misapplied 4.0.16 fix; fixed 3.0.32/3.11.19/4.0.17/4.1.8/5.0.3."
+],
+"dpf-vector": [
+"B",
+0.72,
+"down",
+"Qdrant GHSA dated 2026-10 unconfirmed; payload-authz absence documented."
+],
+"dpf-mysql-mariadb": [
+"C",
+0.55,
+"down",
+"CVE-2026-107814 and CVE-2026-90997 unresolved and suspect (possibly mis-transcribed); structural claim (no native RLS) independently true. Real 2026 MySQL CVEs: CVE-2026-60194, CVE-2026-21998."
+],
+"dpf-libsql-turso": [
+"B",
+0.7,
+"unchanged",
+"Not rechecked; explorer concedes CVE target unmet."
+],
+"dpf-sqlserver": [
+"B",
+0.72,
+"unchanged",
+"CVE-2025-49719/24999 not confirmed RLS-related; RLS side-channel docs reliable."
+],
+"dpf-foundationdb": [
+"B",
+0.75,
+"unchanged",
+"Experimental tenant authz documented; no-CVE is a hard-to-prove negative."
+],
+"dpf-distributed-sql": [
+"B",
+0.7,
+"unchanged",
+"CRDB publishes technical advisories instead of CVEs so 0 CVEs is framing; RLS GA confirmed."
+],
+"w02.size-deps-table": [
+"A",
+0.85,
+"unchanged",
+"Not re-run; hello is a trivial server, so comparisons with full proxies are lower bounds; unsafe grep is an upper bound."
+],
+"w02.idle-rss-table": [
+"A",
+0.82,
+"unchanged",
+"Contended host; hello excludes real features; HAProxy default is maxconn artifact (explorer shows it)."
+],
+"w02.throughput-h1-h2": [
+"B",
+0.65,
+"down",
+"Up to 2.8x trial variance on loadavg ~41; class-level only (hyper ~ nginx/HAProxy/Pingora, 2-5x above Caddy/Envoy)."
+],
+"w02.handshake-pq-cost": [
+"A",
+0.78,
+"unchanged",
+"Wire bytes match public OpenSSL 3.5 figures (+1088/+1176 B); CPU delta consistent with ~20% public data; no public rustls-vs-OpenSSL MLKEM benchmark, so own data is novel and uncorroborated."
+],
+"w02.pingora-tokio-panic": [
+"A",
+0.96,
+"up",
+"Issue #1059 and tokio PR #8494 verified; missed: PR #1060 open, pingora main has same code, fix 0->1 in three From impls passed 194 tests; issue suggests tokio 1.53.x."
+],
+"w02.feature-cost-unused": [
+"A",
+0.82,
+"unchanged",
+"Wasmtime doc figures are for libwasmtime.so (2024-12), not embedded crate; 698K tuned floor exists; nginx 2016 post supports signature-check/ABI fragility only."
+],
+"w02.ingress-design-verdict": [
+"C",
+0.55,
+"down",
+"Seam sources weak (trackr.live looks SEO/AI-generated); primary sources should be PortSwigger research and CVEs; normalization copy cost unmeasured."
+],
+"w02.L5-lean-budget": [
+"B",
+0.7,
+"down",
+"Budgets derived from hello-world baseline (circular); 1.3x MLKEM gate borderline on noisy trial 2."
+],
+"w02.L5-bench-plan": [
+"B",
+0.8,
+"unchanged",
+"Broader than executed set; fixes weaknesses of executed runs."
+],
+"w02.L5-feature-gate-rule": [
+"B",
+0.75,
+"unchanged",
+"Feature unification can pull crates silently; IPC cost unmeasured; supported by measured deltas."
+],
+"w02.incumbent-config-skeptic": [
+"A",
+0.82,
+"unchanged",
+"Local logs only; HAProxy 77 MB default tied to fd-limit maxconn auto-sizing."
+],
+"vfg-toolchain-pin-footprint-table": [
+"A",
+0.8,
+"unchanged",
+"Releases confirmed (lean4 v4.35.0 Latest 12 Oct, Verus 0.2026.10.18, Kani 0.68.0); sizes not re-measured; single laptop, toy workloads."
+],
+"vfg-lean-core-minimal-measured": [
+"A",
+0.85,
+"unchanged",
+"Toy file with negative control; not rerun."
+],
+"vfg-lean-multikernel-paranoid-check": [
+"A",
+0.8,
+"down",
+"#15145 merged 2026-09-14 verified; con-ron not seen on the PR page; lean4lean header error unresolved; conjunction not independent against shared-spec bugs (nanoda accepted #14807 exploit)."
+],
+"vfg-lean-kernel-soundness-bugs-2026": [
+"A",
+0.9,
+"unchanged",
+"#14807 verified exactly (found with OpenAI internal models; nanoda also accepted); #14577/#14498 not rechecked."
+],
+"vfg-native-axiom-tcb": [
+"A",
+0.93,
+"unchanged",
+"Long-standing documented mechanism; allowlist propext/Classical.choice/Quot.sound standard."
+],
+"vfg-mathlib-avoided-cost-and-aeneas-dependency": [
+"A",
+0.85,
+"unchanged",
+"Lakefiles not re-read; consistent with prior knowledge."
+],
+"vfg-verus-footprint": [
+"B",
+0.8,
+"down",
+"RAM and CI times unverified; rolling 0.2026.10.25 pre-release shows churn; pin policy needed."
+],
+"vfg-kani-footprint-and-gate-failures": [
+"A",
+0.92,
+"up",
+"#4905 and PR #4910 (merged 2026-09-30, after 0.68.0 of 2026-09-16) verified; #4910 is a general abnormal-exit fix; no release contains it."
+],
+"vfg-fstar-everparse-footprint": [
+"B",
+0.75,
+"down",
+"Not re-verified; low-risk size fact."
+],
+"vfg-tla-apalache-smt-measured": [
+"B",
+0.8,
+"down",
+"Explorer own spec; Apalache liveness support limited/unconfirmed."
+],
+"vfg-ci-walltime-toy-and-reference": [
+"C",
+0.65,
+"down",
+"Reference-project times only; 10 min golden projection is a D estimate."
+],
+"vfg-obligation-to-tool-map": [
+"C",
+0.65,
+"down",
+"Design judgement; Lean-required for attenuation overclaimed (Verus/Kani bounded could discharge); Std.Http as oracle unverified."
+],
+"vfg-extension-boundary-cves": [
+"A",
+0.85,
+"unchanged",
+"CVE-2026-47207 verified (malicious ext_proc server -> UAF/DoS, Envoy 1.34-<1.39, patched 1.35.13/1.36.9/1.37.5/1.38.3); other CVE ids (incl. 73552) not verified."
+],
+"vfg-proxywasm-abi-not-capability-safe": [
+"B",
+0.82,
+"down",
+"SHOULD limits and effective-context switching verified; global KV/queues is inference; hosts may restrict."
+],
+"vfg-wasi-default-grants": [
+"A",
+0.82,
+"unchanged",
+"v50.0.0 confirmed; docs inconsistent on default TCP/UDP policy; clocks give timing side channel."
+],
+"abuse-pillar-admission-economics": [
+"C",
+0.7,
+"unchanged",
+"Sources verified but self-reported forge anecdotes; ladder is synthesis; Forgejo swap shows making endpoints cheap works."
+],
+"abuse-incident-ledger-2025-26": [
+"C",
+0.75,
+"unchanged",
+"Figures reproduce from thelibre.news; GNOME 3% is PoW-fail share; rdnlsmith 1.10M includes Alibaba/Huawei rules and resets undercount."
+],
+"abuse-anubis": [
+"B",
+0.8,
+"unchanged",
+"v1.28.2 (2026-10-23) and ladder thresholds verified; BR/CN +10 needs commented-out GeoIP config; HTTP 200/memory-store claims not re-verified."
+],
+"abuse-anubis-bypass-evidence": [
+"B",
+0.82,
+"up",
+"#978 (maintainer: headless Chrome computed PoW) and Ormandy numbers confirmed; 11,508 is GitHub stars as proxy; Ormandy also found a double-spend bug."
+],
+"abuse-pow-economics-calc": [
+"D",
+0.65,
+"unchanged",
+"Derived; d6 ~8 s; human tail from single report."
+],
+"abuse-anubis-human-cost": [
+"C",
+0.65,
+"down",
+"Issues anecdotal; absence of WCAG evaluation reconfirmed; Duke Libraries pilot notes JS requirement."
+],
+"abuse-residential-proxy-scale": [
+"C",
+0.6,
+"down",
+"IPIDEA GTIG facts verified but page gives no device count (WSJ 9M separate); Kimwolf 100-200M latent not in cited article; Aisuru/Censys not re-verified."
+],
+"abuse-privacy-pass-rfcs": [
+"A",
+0.9,
+"unchanged",
+"WG state verified (batched-tokens-09 IESG LC to 2026-10-29; expiration-extension-00 WGLC; rate-limit-tokens-06 expired)."
+],
+"abuse-arc-act": [
+"B",
+0.72,
+"unchanged",
+"Cloudflare numbers verified; 70x is issuance only; arc-crypto expired/dead on datatracker; IETF124 adopted claim unresolved."
+],
+"abuse-rate-limit-algos-crates": [
+"A",
+0.9,
+"unchanged",
+"governor 0.10.4 and pingora-limits 0.9.0 verified to the digit."
+],
+"abuse-per-ip-limits-fail-swarm": [
+"D",
+0.7,
+"unchanged",
+"Mathematical tautology with incident cite; ignores ASN/subnet keying middle ground (Fedora used subnet/country blocks)."
+],
+"abuse-adaptive-concurrency": [
+"B",
+0.72,
+"down",
+"Envoy formula verified; no experimental marker seen; minRTT probing raises 503s and is adversarially manipulable."
+],
+"abuse-codel-lifo": [
+"B",
+0.68,
+"unchanged",
+"RFC 8289 primary; transfer to request queues untested; FB adaptive LIFO source unreachable."
+],
+"abuse-cost-weighted-budgets": [
+"A",
+0.85,
+"unchanged",
+"GitHub docs verified with corrections (cost = requests per connection /100; 5,000 pts/h per user, 10,000 EC apps, 1,000 GITHUB_TOKEN; GraphQL CPU cap 60 s of 90 s)."
+],
+"abuse-wba-interplay": [
+"C",
+0.55,
+"down",
+"Design recommendations, not sourced facts."
+],
+"ops.cra-obligation-split": [
+"B",
+0.75,
+"unchanged",
+"Art64(10) steward no-fine verified; C(2026)5252 2026-07-27 not verifiable (March 2026 consultation draft exists); draft says monetized services make it commercial activity."
+],
+"ops.cra-annex3-waf-risk": [
+"C",
+0.45,
+"down",
+"Art 7 classifies by primary function; Implementing Regulation (EU) 2025/2392 not cited; WAF-in-class-II speculative."
+],
+"ops.fips-module-boundary-pin": [
+"B",
+0.8,
+"unchanged",
+"CMVP #5298/#5314 and aws-lc-rs 1.17.1/1.18.0 notes verified; exact 0.13.11/1.15.3 byte-identity unproven (README: 3.0.x -> aws-lc-rs <1.18.0); cert #5429 (2026-07-20) unaddressed."
+],
+"ops.rustls-fipsstatus-gate": [
+"B",
+0.72,
+"unchanged",
+"FipsStatus::Certified assertion literally in rustls manual fips.rs; Certified flag cannot prove approved-mode operation."
+],
+"ops.compliance-map-800-53": [
+"B",
+0.65,
+"down",
+"FedRAMP JSON has 10 KSI groups not 11; sc-13 does map via KSI-SVC; mappings are design proposals."
+],
+"ops.ssdf-12-ci-gates": [
+"B",
+0.65,
+"down",
+"IPD dates verified; PO.6/PS.4 sub-practice text not retrieved."
+],
+"ops.audit-log-spec": [
+"B",
+0.65,
+"down",
+"Tessera/Trillian/tlog_tiles facts verified; invariants are design; no Rust impl shown passing the Go oracle."
+],
+"ops.systemd-baseline-score": [
+"A",
+0.8,
+"unchanged",
+"First-hand static+runtime measurement; weights vary by systemd version."
+],
+"ops.acme-crate-maturity": [
+"B",
+0.75,
+"unchanged",
+"instant-acme facts and fips feature verified; 8 months without release is staleness signal."
+],
+"ops.fedramp-20x-ksi-mapping": [
+"A",
+0.8,
+"unchanged",
+"Version and mappings verified; 10 groups (count corrected); Class A/B/C tiers not mentioned."
+],
+"ops.config-lang-and-creds": [
+"C",
+0.5,
+"unchanged",
+"Not verified; design preference."
+],
+"l4-transport-harness-census-2026-10": [
+"B",
+0.8,
+"unchanged",
+"Snapshot counts; absence via lossy code search."
+],
+"l4-negative-kani-memory-explosion": [
+"A",
+0.8,
+"unchanged",
+"Kani #1226 fixed upstream (stale example); async/concurrency limits documented."
+],
+"l4-firecracker-kani-token-bucket": [
+"A",
+0.93,
+"up",
+"Verified; also a fourth harness verify_token_bucket_force_replenish."
+],
+"l4-no-verified-hpack-qpack-decoder": [
+"B",
+0.72,
+"unchanged",
+"Absence claim corroborated by verifier search; Narcissus/Leapfrog adjacent."
+],
+"l4-h2-budget-mechanics-0.4.20": [
+"A",
+0.8,
+"down",
+"Pinned to 0.4.20; post-0.4.20 releases unchecked; h3 PR #377 shows class still active."
+],
+"l4-field-memory-vs-rfc-accounting": [
+"C",
+0.6,
+"unchanged",
+"Analytic only."
+],
+"l4-cve-corpus-h2-h3-2023-2026": [
+"B",
+0.7,
+"down",
+"Calif post ratios: nginx ~70:1, IIS ~68:1, Envoy ~5,700:1, Apache ~4,000:1; Pingora 62-70x and 34 B/s keepalive not in post; Envoy CVE-2026-47774 unsupported (only GHSA-22m2); CVE-2026-49975 Apache-only confirmed."
+],
+"l4-handler-bounded-designs": [
+"A",
+0.8,
+"unchanged",
+"Source snapshots not re-fetched."
+],
+"l4-quic-stack-window-defaults": [
+"B",
+0.78,
+"down",
+"Version-specific defaults drift."
+],
+"l4-temporal-stall-liveness": [
+"B",
+0.7,
+"unchanged",
+"Kurotych TLA+ is minor venue; gap not contradicted."
+],
+"l5-transport-budget-invariant-tbi": [
+"B",
+0.68,
+"down",
+"Own design; constants are choices."
+],
+"l5-tbi-tool-assignment": [
+"B",
+0.72,
+"unchanged",
+"Kani feasibility on flow_control.rs untested."
+],
+"l5-kani-harness-spec-tbi": [
+"B",
+0.7,
+"unchanged",
+"Spec only; Firecracker precedent confirmed."
+],
+"l5-fuzz-oracle-tbi": [
+"B",
+0.72,
+"unchanged",
+"Untested design filling verified gap."
+],
+"l5-config-pin-table-transport": [
+"B",
+0.75,
+"unchanged",
+"h3 #377 (opened 2026-10-22) may merge soon and change the H3-off pin."
+],
+"cranelift-default-config-escape-2026-10": [
+"A",
+0.88,
+"unchanged",
+"GHSA-897f facts match (CVSS 9.9, CVE-2026-115889, 2026-10-19); JLSEC-2026-1360 and RUSTSEC-2026-0096 are the aarch64 jhxm advisory, mis-attributed; 37-42 have no backport."
+],
+"skeptic-small-reservation-pooling-recipe": [
+"B",
+0.78,
+"unchanged",
+"GHSA-6wgr = CVE-2026-34988 (four opt-in conditions; defaults not vulnerable); GHSA-394w = CVE-2026-35195 / RUSTSEC-2026-0091 Medium 6.1; cited URL wrong."
+],
+"wasmtime-advisory-share-by-config": [
+"B",
+0.7,
+"unchanged",
+"Hand classification not reproducible externally; n=65; same-day batches not independent."
+],
+"wasmtime-minimal-config-pin": [
+"B",
+0.7,
+"unchanged",
+"Defaults verified; pin must be exactly 36.0.19+ on 36 line or >=43."
+],
+"canonical-abi-cost-measured": [
+"A",
+0.8,
+"unchanged",
+"Own measurement with noop floor; one machine, serde handler only."
+],
+"zygote-sandbox-recipe-measured": [
+"A",
+0.8,
+"down",
+"Own measurement; synthetic C zygote vs Rust pooled Store not like-for-like; Sandlock paper supports only its own row."
+],
+"seccomp-per-syscall-overhead-measured": [
+"A",
+0.78,
+"down",
+"Baseline drift same size as effect; consistent with 5.11 bitmap cache theory."
+],
+"isolation-decision-inputs-table": [
+"B",
+0.72,
+"unchanged",
+"Hyperlight 0.9 ms is warm recycled-guest vendor demo; Dandelion 27.5 ms dominated by runtime load; cross-hardware."
+],
+"cc.harness-method": [
+"A",
+0.75,
+"unchanged",
+"Logical replay model, small N; controls demonstrate sensitivity."
+],
+"cc.neg-ldpreload-rustix": [
+"A",
+0.88,
+"unchanged",
+"General methodological result; audit limited to 6 configs."
+],
+"cc.result-redb": [
+"A",
+0.82,
+"unchanged",
+"CHANGELOG matches (4.2.0, 4.3.0, 4.4.0 fixes; 5.0.0 unreleased forces 2PC); strict-regime loss is worst case."
+],
+"cc.result-heed-lmdb": [
+"A",
+0.72,
+"unchanged",
+"One seed; nometasync lag of exactly 1 commit matches lmdb.h."
+],
+"cc.result-fjall": [
+"A",
+0.75,
+"unchanged",
+"#329 confirmed (fixed 8b2bae0, 3.1.10); issue says process crashes unaffected, in tension with SIGKILL Buffer loss - recheck BufWriter replay semantics."
+],
+"cc.result-sqlite": [
+"A",
+0.8,
+"unchanged",
+"WAL+NORMAL documented; DELETE+FULL loss 12.7% (509/4010) vs ~22% of dropall wording inconsistent."
+],
+"cc.result-canopydb": [
+"A",
+0.88,
+"up",
+"Source confirms default_commit_sync=false and wal_background_sync_interval=None; nothing syncs WAL by default."
+],
+"cc.ranking-negative": [
+"A",
+0.78,
+"unchanged",
+"Mixed denominators/regimes; qualitative ranking robust."
+],
+"cc.kernel-atomic-writes": [
+"B",
+0.78,
+"unchanged",
+"RWF_ATOMIC interface landed in 6.11 (kernelnewbies); ext4 single-block 6.13; buffered atomic unmerged (LWN 2026-05-14)."
+],
+"cc.fsync-guarantees": [
+"B",
+0.65,
+"down",
+"LKML O_SYNC report is single reporter, unconfirmed, also suspects XFS."
+],
+"cc.lazyfs-tool": [
+"B",
+0.8,
+"unchanged",
+"VLDB24 eight bugs confirmed."
+],
+"cc.l5-crash-harness-spec": [
+"B",
+0.72,
+"unchanged",
+"Crash-during-recovery and EIO not yet implemented; redb 4.2.0 shows the gap is material."
+],
+"cc.l5-store-acceptance-gate": [
+"C",
+0.62,
+"unchanged",
+"Own policy; PASS rests on N=300."
+],
+"cc.l5-config-pin": [
+"A",
+0.78,
+"unchanged",
+"Pins match upstream docs/changelog; latency unmeasured."
+],
+"cc.neg-model-pessimism": [
+"C",
+0.6,
+"unchanged",
+"Artifact explanation unverified."
+],
+"adv.corpus-r2-09": [
+"A",
+0.88,
+"unchanged",
+"Spot-checked ids resolve; GHSA-xw59 published 2026-04-01 not 03-30; docker/agentgateway/ToolHive have more unanalysed advisories."
+],
+"fin.same-bug-n-sdks": [
+"A",
+0.88,
+"up",
+"Recurrence pairs verified (TS 345p->jm63, agentgateway v2x6->h7hp, rmcp c9xm->5p52, Inspector 49596->vcc9/wmjf, ToolHive 7h6f)."
+],
+"fin.stateless-not-sufficient": [
+"B",
+0.75,
+"unchanged",
+"PR #3032 merged 2026-06-30; rmcp/TS sealing defaults not confirmed; hp8w causality is interpretation."
+],
+"fin.spec-absent-origin": [
+"B",
+0.65,
+"down",
+"Spec says MUST validate Origin then 403 only for present-and-invalid: absent Origin is unspecified (gap), not permitted; docker CVE-2026-76092 mapping unverified."
+],
+"fin.conformance-gap": [
+"B",
+0.6,
+"down",
+"Conformance repo also has http-standard-headers, session-lifecycle, stateless, tasks/request-state scenarios; \"dns-rebinding only\" too strong."
+],
+"fin.rmcp-3.7.0": [
+"A",
+0.85,
+"unchanged",
+"crates.io facts verified; implements-2026-07-28 claim weakly evidenced (README says 2025-11-25)."
+],
+"fin.toolhive-policy-bypass": [
+"B",
+0.82,
+"unchanged",
+"Six GHSAs resolve; gc9p is construction fail-open, not parser differential."
+],
+"fin.sdk-default-tension": [
+"B",
+0.78,
+"unchanged",
+"PR #842/#906 dates verified; stated reason not verified (#906 fixes #902)."
+],
+"l5.invariant-list": [
+"B",
+0.72,
+"down",
+"Ranking sensitive to class assignment."
+],
+"l5.conformance-manifest": [
+"B",
+0.72,
+"unchanged",
+"Check overlap with existing conformance scenarios."
+],
+"l5.origin-audience-session-rules": [
+"B",
+0.75,
+"unchanged",
+"Absent-Origin rule interop untested."
+],
+"l5.ci-gate": [
+"C",
+0.62,
+"unchanged",
+"Process proposal."
+],
+"crs-ce-tls-ticket-cross-vhost": [
+"A",
+0.92,
+"unchanged",
+"CVEs verified; scan numbers not re-verified; paper also shows server-auth bypass across six provider clusters (Fastly, DDoS-Guard, Variti)."
+],
+"crs-ce-stek-lifecycle": [
+"A",
+0.88,
+"unchanged",
+"CVE-2020-13777 and 1.9% verified (\"AWS ecosystem\"); resumption skips ML-KEM only for psk_ke, not psk_dhe_ke."
+],
+"crs-ce-0rtt-replay": [
+"A",
+0.9,
+"up",
+"Negative CVE result supported; missed curl CURL-CVE-2026-9545 (HTTP/3 early data to impostor); RFC 9308 notes accepted 0-RTT cannot be selectively discarded."
+],
+"crs-ce-quic-token-unauth": [
+"A",
+0.87,
+"unchanged",
+"RFC text confirmed."
+],
+"crs-ce-coalescing-authority": [
+"B",
+0.8,
+"down",
+"421 confirmed; Contour/WWW2015 not re-verified; curl CVE-2026-87861/8458 support per-request recheck."
+],
+"crs-ce-cache-poison-deception": [
+"B",
+0.8,
+"down",
+"Next.js CVEs both CVSS 3.7 LOW; CVE-2025-49005 CWE-444; Varnish CVE-2021-36740 is smuggling not cache key; HCache 17% unchecked."
+],
+"crs-ce-hpack-shared-context": [
+"C",
+0.7,
+"down",
+"RFC 7541 §7.1 only; no field CVE; proxies keep per-connection contexts (but see r2e11.h3-proxy-qpack-sidechannel)."
+],
+"crs-ce-pool-reuse-incomplete-key": [
+"A",
+0.88,
+"up",
+"curl 2026 cluster broader than 16 (69 CVE-2026 entries, ~18-20 reuse/state); CVE-2026-8932/80231/2024-0853 and hyper-util PoolKey line 95 verified."
+],
+"crs-ce-idempotency-key-scope": [
+"A",
+0.85,
+"unchanged",
+"Draft -08 current."
+],
+"crs-ce-jwks-unverified-kid": [
+"C",
+0.7,
+"down",
+"PyJWT CVEs are amplification DoS (no negative cache); cache-cleared-on-error/evict-last-good sub-claim unsupported."
+],
+"crs-ce-dns-rebinding-toctou": [
+"B",
+0.78,
+"unchanged",
+"Three CVEs confirmed in niche projects; one is a fix bypass."
+],
+"crs-ce-ratelimit-xff": [
+"B",
+0.82,
+"unchanged",
+"Three CVEs confirmed across Python/Rust/JS; Lemmy root cause in actix-web ConnectionInfo."
+],
+"crs-ce-session-fixation-epoch": [
+"B",
+0.82,
+"unchanged",
+"CVE-2016-5419 is resumption-after-cert-change; curl 2026 86411/86415 add fresher evidence."
+],
+"crs-ce-hashdos": [
+"B",
+0.8,
+"down",
+"Docs-only; textbook."
+],
+"crs-rustls-ticketer-policy": [
+"C",
+0.72,
+"down",
+"API claim supported only by generic docs; design untested."
+],
+"r2e11.haproxy-cve-2026-33555": [
+"B",
+0.8,
+"unchanged",
+"Affects 2.6..<3.3.6 (not only 3.x), moderate CVSS, fixes 3.2.15/3.0.19/2.6.25; LLM-discovery claim unconfirmed."
+],
+"r2e11.cdn-tsunami": [
+"B",
+0.82,
+"unchanged",
+"arXiv 2607.26589 confirmed; 350x best case; Baidu/Tencent fixed; 42,330 H3 subdomains at risk."
+],
+"r2e11.h3-proxy-qpack-sidechannel": [
+"C",
+0.65,
+"unchanged",
+"Thesis exists as described; not peer reviewed."
+],
+"r2e11.opossum": [
+"A",
+0.92,
+"up",
+"USENIX/ePrint resolve; CVE-2025-49812 assigned; Apache deprecated opportunistic HTTP."
+],
+"r2e11.mercuriuzz-quic-logic": [
+"A",
+0.8,
+"unchanged",
+"Not re-fetched; NDSS26."
+],
+"r2e11.x402-attacks": [
+"A",
+0.85,
+"unchanged",
+"2607.19545 confirmed; \"all 15 violate\" not confirmed (press: every tested facilitator breaches >=1 rule, 31 vulns)."
+],
+"r2e11.token-time-bomb-jwt": [
+"A",
+0.85,
+"unchanged",
+"Not re-fetched; NDSS26."
+],
+"r2e11.tcp-timestamp-timing": [
+"A",
+0.85,
+"unchanged",
+"Primary sources."
+],
+"r2e11.defcon34-pqc-hndl": [
+"C",
+0.65,
+"down",
+"URL is media.defcon.org root; Clangover itself real."
+],
+"r2e11.litellm-failopen": [
+"B",
+0.85,
+"up",
+"CVE-2026-59822 real, CISA KEV 2026-09-02, active exploitation; mechanism is OAuth2 passthrough fallback."
+],
+"r2e11.waf-log-injection-agents": [
+"C",
+0.55,
+"down",
+"Root URL; speaker numbers."
+],
+"r2e11.apisix-2026-advisories": [
+"A",
+0.92,
+"unchanged",
+"26 advisories verified; 94269 is a path-normalization authz mismatch."
+],
+"r2e11.sosp26-lion-verified-async": [
+"B",
+0.6,
+"down",
+"Abstract only; repo unconfirmed."
+],
+"r2e11.cloudflare-2025-11-18": [
+"A",
+0.95,
+"unchanged",
+"Primary postmortem."
+],
+"r2e11.dbsc": [
+"A",
+0.88,
+"unchanged",
+"W3C ED 2026-09-08 verified; also Secure-Session-Skipped header and alg none allowed."
+],
+"result-memory-safety-would-not-prevent-fraction": [
+"B",
+0.65,
+"down",
+"Band 78.8-81.9% holds pooled, but 2026 memory-bug surge in C servers (httpd 20/44, nginx 19/26) makes pooled rate stale; edge KEV 74% vs 80.5%."
+],
+"io-uring-security-record": [
+"B",
+0.75,
+"unchanged",
+"NVD counts match; 0 KEV entries."
+],
+"std-rfc10024-ecdhe-mlkem": [
+"A",
+0.85,
+"down",
+"RFC fact A; \"solved\" carve-outs: rustls>=0.23.46 + aws-lc-rs + server HRR; SecP384r1MLKEM1024 absent from rustls; RUSTSEC-2026-0349 CVSS 3.7 mitigated by server HRR."
+],
+"j-mcp-2026-07-28": [
+"A",
+0.88,
+"unchanged",
+"Release 2026-07-28T16:47:49Z; RC 2026-05-29; stateless only for 2026-07-28 peers; legacy path until >=2027-07."
+],
+"fail-verifier-soundness-bugs": [
+"A",
+0.88,
+"up",
+"Verus 131 soundness issues (41 open), 81 in Oct 2026 (check for bulk/AI batch); cvc5 #12926/#12927 in Cedar SymCC path; Z3 items closed."
+],
+"cedar-lean-proofs-2026-10": [
+"A",
+0.82,
+"down",
+"3,776 declarations (not 3,912); 10 native_decide add Lean compiler to TCB; ~40 partial defs; nothing proven about Rust evaluator."
+],
+"sdg-pgbouncer": [
+"A",
+0.88,
+"unchanged",
+"12 CVEs and dates match; 7/12 logic."
+],
+"sdg-rls-plan-cache-family": [
+"A",
+0.9,
+"unchanged",
+"All 5 CVEs match; recycle pooled conns on role DDL."
+],
+"sdg-txn-pooling-session-leak": [
+"A",
+0.92,
+"unchanged",
+"Supavisor PR #1113 merged 2026-10-23 (only v2.10.0-rc.0); PgDog open."
+],
+"sdg-rls-misconfig-empirical": [
+"A",
+0.82,
+"up",
+"UpGuard upper bound; Supabase grant-default dates primary; existing tables keep grants."
+],
+"gap.insecure-defaults": [
+"A",
+0.8,
+"unchanged",
+"~23% of sampled advisories default/fail-open; smuggling co-equal."
+],
+"as.mutants-gate": [
+"A",
+0.72,
+"down",
+"Cited \"real test gap\" is an equivalent mutant; gate must fail on exit codes {2,3}."
+],
+"as.fuzz-gate": [
+"A",
+0.85,
+"unchanged",
+"Per-PR fuzz is smoke."
+],
+"as.dst-entropy-leak": [
+"A",
+0.88,
+"up",
+"aws-lc Tree-DRBG seeded by CPU jitter + RDRAND/RNDR: not interceptable; replace CryptoProvider under sim."
+],
+"fail-spec-fidelity-studies": [
+"A",
+0.85,
+"up",
+"Verus-SpecGym numbers match; IronSpec/Fonseca corroborate."
+],
+"j-openapi-arazzo": [
+"A",
+0.95,
+"unchanged",
+"Dates match (3.2.1 2026-09-10; Arazzo 1.1.0 2026-05-18)."
+],
+"threat-ledger-middle-tier-2023-2026": [
+"B",
+0.7,
+"unchanged",
+"Ranking metric-dependent: KEV favours canonicalization/authz (5-6/8), Rust OSV volume favours resource (~63%)."
+],
+"l5-authz-stack-recommendation": [
+"B",
+0.75,
+"up",
+"OpenFGA ~20 decision advisories; SpiceDB mostly fail-closed (lumping overclaimed); Biscuit last release 2025-07-16; Oso archived."
+],
+"sdg-embedded-store-selection": [
+"B",
+0.82,
+"unchanged",
+"SQLite WAL-reset bug needs >=2 writer connections (3.7.0-3.51.2, fixed 3.51.3); latest 3.54.1; redb check_integrity repair had bugs -> detect-only."
+],
+"sdg-failed-request-no-mutation": [
+"B",
+0.85,
+"unchanged",
+"Jepsen facts match."
+],
+"adv-rustls-pq-downgrade-2026-0349": [
+"A",
+0.95,
+"unchanged",
+"RUSTSEC-2026-0349 verified (2026-10-14, <0.23.46, CVSS 3.7, GHSA-w44r-93j7-qv28, PR #3355); mitigated by server HRR or disabling resumption."
+]
+}

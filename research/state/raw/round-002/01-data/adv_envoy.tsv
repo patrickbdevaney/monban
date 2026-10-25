@@ -1,0 +1,133 @@
+GHSA-3wvj-j6qm-62mr		2026-10-23	critical	Out-of-Bounds Write in Brotli Decompressor
+GHSA-47vj-9r25-wv5j		2026-10-06	medium	Crash in api_key_auth HTTP filter when hiding credentials on requests without a :path header (CONNECT)
+GHSA-8vc2-jrm4-835w		2026-10-06	high	Unauthenticated remote crash (null pointer dereference) in the OAuth2 HTTP filter via a path-less CONNECT request
+GHSA-2w8w-rfw7-8gg4	CVE-2026-73551	2026-08-26	medium	Path normalization does not handle dot and dotdot segments with parameters
+GHSA-pv9h-4fxf-7vrg	CVE-2026-73546	2026-08-26	high	Stored XSS in Admin Stats Interface (/stats?format=html)
+GHSA-m745-gh6x-349x	CVE-2026-73511	2026-08-26	medium	Potential path-matching/authentication bypass when using Envoy in combination with a backend stripping per-segment path (matrix) parameters (e.g. Apache Tomcat)
+GHSA-23xh-2qxr-3xv8	CVE-2026-73552	2026-08-26	high	HTTP RBAC safe_regex can fail open on RFC-valid obs-text header values
+GHSA-3vhp-c83q-jqc2	CVE-2026-73548	2026-08-26	high	Cross-user response poisoning via a generic (non-WebSocket) HTTP upgrade on Envoy's shared backend pool
+GHSA-p7c7-7c47-pwch		2026-06-23	high	Denial-of-Service Attack Against the HTTP/3 Stack via QPACK Blocked Decoding
+GHSA-87ph-jqwm-pg6r	CVE-2026-73547	2026-08-26	high	ext_authz: request `:path` pseudoheader dereferenced w/o null check
+GHSA-77x5-xqjg-hprq	CVE-2026-73553	2026-08-26	high	Path Parameter Canonicalization Bypasses Path-Based Security Rules
+GHSA-7q3f-gwg7-j8g4	CVE-2026-48706	2026-06-23	medium	Envoy Heap Buffer Overflow in TcpStatsdSink
+GHSA-jjmm-fw8p-crpw	CVE-2026-73513	2026-08-26	high	oghttp2 upstream trailers incorrect handling 
+GHSA-f8x4-rw5x-f3r7	CVE-2026-47778	2026-06-23	medium	 Embedded NUL in TLS DNS SAN Truncation in the Default TLS Certificate Validator. (Auth Bypass)
+GHSA-3cj2-c63f-q26f	CVE-2026-48090	2026-06-23	medium	HTTP: OAuth2 filter late async token completion after stream teardown (UAF / crash risk)
+GHSA-mvh9-767w-x47j	CVE-2026-47205	2026-06-23	medium	ext_authz Use-After-Free during Stream Teardown with Per-Route Overrides
+GHSA-3jxh-8p6x-7pf6	CVE-2026-47204	2026-06-23	medium	Envoy: grpc_stats filter segfault on Connect protocol requests to direct_response routes
+GHSA-5vff-j9p4-38j3	CVE-2026-48521	2026-08-26	medium	HTTP/3 connection pool selection null-derefs in ProdClusterManagerFactory::allocateConnPool when transport_socket_options is null
+GHSA-qgf6-qvhw-4hvh	CVE-2026-73550	2026-08-26	high	HTTP/2 Discarded Host Header 200 GB Header-Copy OOM in Envoy
+GHSA-r6j2-mrm5-72mg	CVE-2026-73512	2026-08-26	high	use-after-free in QUIC on internal redirects
+GHSA-8phg-2h2q-jgxf	CVE-2026-48743	2026-06-23	high	HTTP/3 to HTTP/1 request smuggling via headers-only request with nonzero Content-Length
+GHSA-f24p-rxw2-g6pv	CVE-2026-48042	2026-06-23	high	Stack overflow in destructor of highly nested JSON
+GHSA-m3p9-47wh-88wg	CVE-2026-48044	2026-06-23	high	Zstd Decompressor: Ratio Check at Wrong Loop Depth lead to memory explosion
+GHSA-wh36-hm39-mm3r	CVE-2026-47692	2026-06-23	medium	PROXY Protocol v2 header generator emits "skipped" TLVs, causing 65 KB attacker-controlled spillover into the upstream application stream
+GHSA-j9wh-4qfm-wf2v	CVE-2026-47220	2026-06-23	high	Segmentation fault when using %REQUESTED_SERVER_NAME% in log format
+GHSA-jp5f-qr64-c9vw	CVE-2026-73549	2026-08-26	medium	Incomplete fix for CVE-2026-26310: copyInternetAddressAndPort crashes on scoped IPv6 addresses in ORIGINAL_DST clusters
+GHSA-rcff-gw58-pjpr	CVE-2026-47221	2026-06-23	medium	Null pointer deref in internal redirects
+GHSA-22m2-hvr2-xqc8	CVE-2026-47774	2026-06-03	high	HTTP/2 memory exhaustion via cookie header size bypass and HPACK amplification
+GHSA-68cv-hq5f-g6xv	CVE-2026-47207	2026-06-23	medium	Envoy crashes if multiple unexpected ext_proc responses are packed into one gRPC message 
+GHSA-396h-jpq4-vc7p	CVE-2026-47775	2026-06-23	medium	OAuth2 Filter: Padding Oracle via AES-256-CBC Cookie Decryption
+GHSA-c23c-rp3m-vpg3	CVE-2026-26330	2026-03-10	medium	global rate limit may crash when the response phase limit is enabled and the response phase request is failed directly
+GHSA-j6g2-wf95-q66q	CVE-2026-48497	2026-06-23	medium	Abnormal process termination in DNS UDP filter
+GHSA-ghc4-35x6-crw5	CVE-2026-26308	2026-03-10	high	RBAC Header Validation Bypass via Multi-Value Header Concatenation
+GHSA-3cw6-2j68-868p	CVE-2026-26310	2026-03-10	medium	Crash for scoped ip address in Envoy during DNS
+GHSA-84xm-r438-86px	CVE-2026-26311	2026-03-10	medium	HTTP: filter chain execution on reset streams causing UAF crash
+GHSA-56cj-wgg3-x943	CVE-2026-26309	2026-03-10	medium	Off-by-one write in JsonEscaper::escapeString()
+GHSA-rwjg-c3h2-f57p	CVE-2025-66220	2025-12-03	medium	TLS certificate matcher for `match_typed_subject_alt_names` may incorrectly treat certificates containing an embedded null byte
+GHSA-rj35-4m94-77jh	CVE-2025-64763	2025-12-03	low	Forwarding of early CONNECT data in TCP proxy mode
+GHSA-mp85-7mrq-r866	CVE-2025-64527	2025-12-03	medium	Envoy crashes when JWT authentication is configured with the remote JWKS fetching
+GHSA-gcxr-6vrp-wff3	CVE-2025-62504	2025-10-16	medium	Lua modified large enough response body will cause Envoy to crash
+GHSA-pq33-4jxh-hgm3	CVE-2025-62409	2025-10-15	high	Large requests and responses can cause TCP connection pool crash
+GHSA-fg9g-pvc4-776f	CVE-2025-67514	2025-12-09	medium	Use-after-free in c-ares can crash Envoy via compromised or malfunctioning DNS
+GHSA-95j4-hw7f-v2rh	CVE-2025-55162	2025-09-02	medium	oAuth2 Filter Signout route will not clear cookies because of missing "secure;" flag
+GHSA-g9vw-6pvx-7gmw	CVE-2025-54588	2025-09-02	high	Use after free in DNS cache
+GHSA-q8wp-gf7q-m8cv	CVE-2026-50572	2026-08-26	medium	ext_authz - RawHttpClientImpl onSuccess 0x0 segfault 
+GHSA-c7cm-838g-6g67	CVE-2025-46821	2025-05-07	medium	Bypass of RBAC uri_template permission
+GHSA-cf3q-gqg7-3fm9	CVE-2025-30157	2025-03-20	medium	Envoy crashes when HTTP ext_proc processes local replies
+GHSA-mfqp-7mmj-rm53	CVE-2024-53269	2024-12-18	medium	Happy Eyeballs: Validate that additional_address are IP addresses instead of crashing when sorting.
+GHSA-q9qv-8j52-77p3	CVE-2024-53270	2024-12-18	high	HTTP/1: sending overload crashes when the request is reset beforehand
+GHSA-rmm5-h2wv-mg4f	CVE-2024-53271	2024-12-18	high	HTTP/1.1 multiple issues with envoy.reloadable_features.http1_balsa_delay_reset
+GHSA-qc52-r4x5-9w37	CVE-2024-45807	2024-09-19	high	Oghttp2 crash on `OnBeginHeadersForStream`
+GHSA-p222-xhp9-39rc	CVE-2024-45808	2024-09-19	medium	Malicious log injection via access logs
+GHSA-ffhv-fvxq-r6mf	CVE-2024-45806	2024-09-19	medium	Potential to manipulate `x-envoy` headers from external sources
+GHSA-wqr5-qmq7-3qw3	CVE-2024-45809	2024-09-19	medium	JWT filter crash in the clear route cache with remote JWKs
+GHSA-qm74-x36m-555q	CVE-2024-45810	2024-09-19	medium	Envoy crashes for `LocalReply` in HTTP async client
+GHSA-fp35-g349-h66f	CVE-2024-39305	2024-06-28	medium	Use after free when route hash policy is configured with cookie attributes
+GHSA-8mq4-c2v5-3h39	CVE-2024-38525	2024-06-26	high	datadog: datadog tracer does not handle trace headers with unicode characters
+GHSA-hww5-43gv-35jv	CVE-2024-34362	2024-06-04	medium	Crash (use-after-free) in EnvoyQuicServerStream
+GHSA-g979-ph9j-5gg4	CVE-2024-34363	2024-06-04	high	Crash due to uncaught nlohmann JSON exception
+GHSA-xcj3-h7vf-fw26	CVE-2024-34364	2024-06-04	medium	Envoy OOM vector from HTTP async client with unbounded response buffer for mirror response, and other components
+GHSA-mgxp-7hhp-8299	CVE-2024-32974	2024-06-04	medium	Crash in EnvoyQuicServerStream::OnInitialHeadersComplete()
+GHSA-g9mq-6v96-cpqc	CVE-2024-32975	2024-06-04	medium	Crash in QuicheDataReader::PeekVarInt62Length()
+GHSA-3mh5-6q8v-25wj	CVE-2024-32475	2024-04-18	high	Abnormal termination when using auto_sni with :authority header longer than 255 characters
+GHSA-j654-3ccm-vfmm	CVE-2024-30255	2024-04-04	medium	HTTP/2: CPU exhaustion due to CONTINUATION frame flood
+GHSA-gghf-vfxp-799r	CVE-2024-27919	2024-04-04	high	HTTP/2: memory exhaustion due to CONTINUATION frame flood
+GHSA-7wp5-c2vq-4f8m	CVE-2024-32976	2024-06-04	high	Endless loop while decompressing Brotli data with extra input
+GHSA-x278-4w4x-r7ch	CVE-2024-23323	2024-02-09	medium	Excessive CPU usage when URI template matcher is configured using regex
+GHSA-6p83-mfmh-qv38	CVE-2024-23322	2024-02-09	medium	Envoy crashes when idle and request per try timeout occur within the backoff interval
+GHSA-4h5x-x9vh-m29j	CVE-2024-23327	2024-02-09	high	Crash in proxy protocol when command type of LOCAL
+GHSA-5m7c-mrwr-pm26	CVE-2024-23325	2024-02-09	high	Envoy crashes when using an address type that isn’t supported by the OS
+GHSA-vcf8-7238-v74c	CVE-2024-23326	2024-06-04	medium	Envoy incorrectly accepts HTTP 200 response for entering upgrade mode
+GHSA-gq3v-vvhj-96j6	CVE-2024-23324	2024-02-09	high	Ext_authz can be bypassed when Proxy protocol filter sets invalid UTF-8 metadata
+GHSA-jhv4-f7mr-xx76	CVE-2023-44487	2023-10-10	high	HTTP/2 "Rapid Reset" DoS Vulnerability
+GHSA-7mhv-gr67-hq55	CVE-2023-35941	2023-07-25	high	OAuth2 credentials exploit with permanent validity
+GHSA-69vr-g55c-v2v4	CVE-2023-35942	2023-07-25	medium	gRPC access log crash caused by the listener draining
+GHSA-jfxv-29pc-x22r	CVE-2023-35945	2023-07-12	high	HTTP/2 memory leak in nghttp2 codec
+GHSA-pvgm-7jpg-pw5g	CVE-2023-35944	2023-07-25	high	Incorrect handling of HTTP requests and responses with mixed case schemes in Envoy
+GHSA-mc6h-6j9x-v3gq	CVE-2023-35943	2023-07-25	medium	CORS filter segfault when origin header is removed 
+GHSA-5375-pq35-hf2g	CVE-2023-27487	2023-04-04	high	Client may fake the header `x-envoy-original-path`
+GHSA-5jmv-cw9p-f9rp	CVE-2023-27491	2023-04-04	medium	Envoy forwards invalid HTTP/2 and HTTP/3 downstream headers
+GHSA-wpc2-2jp6-ppg2	CVE-2023-27492	2023-04-04	medium	Crash when a large request body is processed in Lua filter
+GHSA-w5w5-487h-qv8q	CVE-2023-27493	2023-04-04	high	Envoy doesn't escape HTTP header values
+GHSA-9g5w-hqr3-w2ph	CVE-2023-27488	2023-04-04	medium	gRPC client produces invalid protobuf when an HTTP header with non-UTF8 value is received.
+GHSA-j79q-2g66-2xv5	CVE-2023-27496	2023-04-04	medium	Crash when a redirect url without a state param is received in the oauth filter
+GHSA-75hv-2jjj-89hh	CVE-2022-29225	2022-06-09	high	Decompressors can be zip bombed
+GHSA-m4j9-86g3-8f49	CVE-2022-29224	2022-06-09	medium	Segfault in GrpcHealthCheckerImpl
+GHSA-h45c-2f94-prxh	CVE-2022-29226	2022-06-09	critical	oauth filter allows trivial bypass
+GHSA-rww6-8h7g-8jf6	CVE-2022-29228	2022-06-09	high	oauth filter calls continueDecoding() from within decodeHeaders()
+GHSA-rm2p-qvf6-pvr6	CVE-2022-29227	2022-06-09	high	Internal redirect crash for requests with body/trailers
+GHSA-9vp2-4cp7-vvxf	CVE-2022-23606	2022-02-22	medium	Crash when a cluster is deleted via Cluster Discovery Service
+GHSA-837m-wjrv-vm5g	CVE-2022-21657	2022-02-22	low	X.509 Extended Key Usage and Trust Purposes bypass
+GHSA-c9g7-xwcv-pjx2	CVE-2022-21656	2022-02-22	low	X.509 subjectAltName matching (and nameConstraints) bypass
+GHSA-7r5p-7fmh-jxpg	CVE-2022-21655	2022-02-22	high	Incorrect handling of internal redirects to routes with a direct response entry
+GHSA-5j4x-g36v-m283	CVE-2022-21654	2022-02-22	high	Incorrect configuration handling allows mTLS session re-use without re-validation after validation settings have changed
+GHSA-vj5m-rch8-5r2p	CVE-2021-43824	2022-02-22	medium	Potential null pointer dereference when using JWT filter safe_regex match
+GHSA-h69p-g6xg-mhhh	CVE-2021-43825	2022-02-22	medium	Use-after-free when response filters increase response data, and increased data exceeds downstream buffer limits.
+GHSA-cmx3-fvgf-83mf	CVE-2021-43826	2022-02-22	medium	Use-after-free when tunneling TCP over HTTP, if downstream disconnects during upstream connection establishment
+GHSA-r222-74fw-jqr9	CVE-2021-32779	2021-08-24	high	Incorrectly handling of URI '#fragment' element as part of the path element
+GHSA-3xh3-33v5-chcc	CVE-2021-32778	2021-08-24	high	Excessive CPU utilization when closing HTTP/2 streams
+GHSA-5vhv-gp9v-42qv	CVE-2021-32781	2021-08-24	high	Continued processing of requests after locally generated response
+GHSA-6g4j-5vrw-2m8h	CVE-2021-32777	2021-08-24	high	Incorrect concatenation of multiple value request headers in ext-authz extension
+GHSA-j374-mjrw-vvp8	CVE-2021-32780	2021-08-24	high	Incorrect handling of H/2 GOAWAY followed by SETTINGS frames
+GHSA-4987-27fx-x6cf	CVE-2021-29492	2021-05-11	high	Bypass of path matching rules using escaped slash characters
+GHSA-r22g-5f3x-xjgg	CVE-2021-28682	2021-04-15	high	Integer overflow in large grpc-timeout values leads to unexpected timeout calculations
+GHSA-xw4q-6pj2-5gfg	CVE-2021-28683	2021-04-15	high	Crash when peer sends a TLS Alert with an unknown code
+GHSA-rqvq-hxw5-776j	CVE-2021-29258	2021-04-15	high	Crash in HTTP2 when empty METADATA map triggers a reachable assertion.
+GHSA-4996-m8hf-hj27	CVE-2021-21378	2021-03-09	high	JWT authentication bypass with unknown issuer token
+GHSA-282m-p723-vvxf	CVE-2020-35471	2020-12-17	high	Crash in UDP proxy when datagram size is > 1500
+GHSA-c856-6wpq-9g6g	CVE-2020-35470	2020-12-17	medium	Wrong downstream address logged when using proxy-protocol with tcp-proxy
+GHSA-fwwh-fc9w-9673	CVE-2020-25018	2020-09-29	high	Crash in URL parsing
+GHSA-2v25-cjjq-5f4w	CVE-2020-25017	2020-09-29	high	Incorrect handling of duplicate HTTP headers
+GHSA-w5f5-6qhq-hhrg	CVE-2020-15104	2020-07-08	medium	TLS cert wildcard
+GHSA-pc38-4q6c-85p6	CVE-2020-12603	2020-06-30	high	Excessive CPU and/or memory usage when proxying HTTP/2 bodies
+GHSA-8hf8-8gvw-ggvx	CVE-2020-12604	2020-06-30	medium	HTTP/2: pending send data OOM/stats/timeout issues
+GHSA-fjxc-jj43-f777	CVE-2020-12605	2020-06-30	high	Inconsistent enforcement of HTTP/1.1 request/response header size limit
+GHSA-v8q7-fq78-4997	CVE-2020-8663	2020-06-30	high	Connection flood exhausts memory and file descriptors
+GHSA-c4g8-7grc-5wvx	CVE-2020-8660	2020-03-03	medium	TLS inspector bypass
+GHSA-3x9m-pgmg-xpx8	CVE-2020-8664	2020-03-03	medium	Incorrect Access Control when using SDS with Combined Validation Context
+GHSA-36cq-ww7h-p4j7	CVE-2020-8661	2020-03-03	high	Response flooding for HTTP/1.1
+GHSA-jwcm-4pwp-c2qv	CVE-2020-8659	2020-03-03	high	Excessive CPU and/or memory usage when proxying HTTP/1.1
+GHSA-f2rv-4w6x-rwhc	CVE-2019-18838	2019-12-10	high	DoS via request without the Host header
+GHSA-356m-vhw2-wcm4	CVE-2019-18802	2019-12-10	high	Missing header whitespace trimming (HTTP/1)
+GHSA-gxvv-x4p2-rppp	CVE-2019-18801	2019-12-10	critical	Heap overflow via :method header
+GHSA-mxrr-6x92-4x7v	CVE-2019-15226	2019-11-08	high	Many small HTTP/2 headers DoS
+GHSA-qj45-j25r-p2rq	CVE-2019-15225	2019-11-08	high	Routing regex DoS
+GHSA-rj7v-w93w-4cw8	CVE-2019-9518	2019-11-08	high	Empty Frames Flood
+GHSA-5m79-fj88-wc5m	CVE-2019-9515	2019-11-08	high	Settings Flood
+GHSA-q24r-4w7h-qv3p	CVE-2019-9514	2019-11-08	high	Reset Flood
+GHSA-x9p2-x3fp-7v9x	CVE-2019-9513	2019-11-08	high	Resource Loop
+GHSA-hm8q-x6qm-xxvw	CVE-2019-9512	2019-11-08	high	Ping Flood
+GHSA-3xvf-4396-cj46	CVE-2019-18836	2019-11-09	high	Listener Filter Timeout DoS
+GHSA-xcx5-93pw-jw2w	CVE-2019-9901	2019-11-08	high	Missing HTTP URL path normalization
+GHSA-x74r-f4mw-c32h	CVE-2019-9900	2019-11-08	high	NUL characters in HTTP/1 headers allow access control bypass (CVE-2019-9900)

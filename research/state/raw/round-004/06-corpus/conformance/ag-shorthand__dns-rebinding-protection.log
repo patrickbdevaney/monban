@@ -1,0 +1,35 @@
+Running client scenario 'dns-rebinding-protection' against server: http://127.0.0.1:18010/mcp
+Checks:
+[90m2026-10-25T08:17:55.787Z[0m [localhost-host-rebinding-rejected] [31mFAILURE[0m Server rejects requests with non-localhost Host/Origin headers
+[90m2026-10-25T08:17:55.787Z[0m [localhost-host-valid-accepted    ] [32mSUCCESS[0m Server accepts requests with valid localhost Host/Origin headers
+
+Test Results:
+Passed: 1/2, 1 failed, 0 warnings
+
+=== Failed Checks ===
+
+  - DNSRebindingRejected: Server rejects requests with non-localhost Host/Origin headers
+    Error: Expected HTTP 4xx for invalid Host/Origin headers, got 200
+
+Test DNS rebinding protection for localhost servers.
+
+[1mScope:[0m This test applies to localhost MCP servers running without HTTPS and without
+authentication. These servers are vulnerable to DNS rebinding attacks where a malicious
+website tricks a user's browser into making requests to the local server.
+
+[1mAttack scenario:[0m
+1. User visits malicious website (e.g., evil.com)
+2. evil.com's DNS is configured to resolve to 127.0.0.1
+3. Browser makes request to evil.com which actually goes to localhost
+4. Without Host/Origin header validation, the local MCP server processes the request
+
+[1mRequirements:[0m
+- Server [1mMUST[0m validate the Host or Origin header on incoming requests
+- Server [1mMUST[0m reject requests with non-localhost Host/Origin headers (HTTP 4xx)
+- Server [1mMUST[0m accept requests with valid localhost Host/Origin headers
+
+[1mValid localhost values:[0m [2mlocalhost[0m, [2m127.0.0.1[0m, [2m[::1][0m (with optional port)
+
+[1mNote:[0m This test requires a localhost server URL. Non-localhost URLs will fail.
+
+See: https://github.com/modelcontextprotocol/typescript-sdk/security/advisories/GHSA-w48q-cv73-mx4w

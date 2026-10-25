@@ -1,0 +1,5 @@
+[
+{"url":"https://status.ftrack.com/incidents/pmmdkj2f18ls","date":"2020-05-30","component":"TLS chain served by API/hosted sites (AddTrust cross-sign root expiry)","class":"CERT","source":"vendor-status-postmortem","mt":1,"duration_min":282,"note":"fetched 2026-10-25: 10:48-~15:30 UTC; SSL bundle from 2020-02-13 contained soon-expiring roots"},
+{"url":"https://pingoru.io/providers/sapling/incidents/382955","date":"2026-01-25","component":"Linkerd mesh proxies (trust anchor expiry)","class":"CERT","source":"status-aggregator","mt":1,"duration_min":180,"note":"search snippet only; root cause attributed to expired trust anchors; grade C, not fetched"},
+{"url":"https://www.fastly.com/blog/summary-of-june-8-outage","date":"2021-06-08","component":"Fastly edge (customer config triggered latent bug deployed 05-12)","class":"BUG","source":"vendor-postmortem","mt":1,"duration_min":177,"note":"fetched 2026-10-25: 85% of network errored; detection 1 min; mitigated 168 min; ALSO a config-triggered latent-bug; replaces danluu 202 duration"}
+]

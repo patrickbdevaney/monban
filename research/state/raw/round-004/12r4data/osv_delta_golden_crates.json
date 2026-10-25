@@ -1,0 +1,182 @@
+{
+ "aws-lc-fips-sys": {
+  "snap_n": 4,
+  "cur_n": 4,
+  "new": [],
+  "modified": []
+ },
+ "aws-lc-rs": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "aws-lc-sys": {
+  "snap_n": 10,
+  "cur_n": 10,
+  "new": [],
+  "modified": []
+ },
+ "axum": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "biscuit-auth": {
+  "snap_n": 2,
+  "cur_n": 2,
+  "new": [],
+  "modified": []
+ },
+ "cedar-policy": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "cranelift-codegen": {
+  "snap_n": 7,
+  "cur_n": 7,
+  "new": [],
+  "modified": []
+ },
+ "h2": {
+  "snap_n": 7,
+  "cur_n": 7,
+  "new": [],
+  "modified": []
+ },
+ "h3": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "httparse": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "hyper-util": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "hyper": {
+  "snap_n": 14,
+  "cur_n": 14,
+  "new": [],
+  "modified": []
+ },
+ "libcrux-ml-kem": {
+  "snap_n": 1,
+  "cur_n": 1,
+  "new": [],
+  "modified": []
+ },
+ "mio": {
+  "snap_n": 4,
+  "cur_n": 4,
+  "new": [],
+  "modified": []
+ },
+ "ml-kem": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "pingora": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "quinn-proto": {
+  "snap_n": 14,
+  "cur_n": 14,
+  "new": [],
+  "modified": []
+ },
+ "quinn-udp": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "quinn": {
+  "snap_n": 2,
+  "cur_n": 2,
+  "new": [],
+  "modified": []
+ },
+ "redb": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "rmcp": {
+  "snap_n": 6,
+  "cur_n": 6,
+  "new": [],
+  "modified": []
+ },
+ "rustls-webpki": {
+  "snap_n": 11,
+  "cur_n": 11,
+  "new": [],
+  "modified": []
+ },
+ "rustls": {
+  "snap_n": 10,
+  "cur_n": 10,
+  "new": [],
+  "modified": []
+ },
+ "sqlx": {
+  "snap_n": 2,
+  "cur_n": 2,
+  "new": [],
+  "modified": []
+ },
+ "tokio-postgres": {
+  "snap_n": 2,
+  "cur_n": 2,
+  "new": [],
+  "modified": []
+ },
+ "tokio": {
+  "snap_n": 13,
+  "cur_n": 13,
+  "new": [],
+  "modified": []
+ },
+ "tower": {
+  "snap_n": 0,
+  "cur_n": 0,
+  "new": [],
+  "modified": []
+ },
+ "wasmtime-wasi-http": {
+  "snap_n": 7,
+  "cur_n": 7,
+  "new": [],
+  "modified": []
+ },
+ "wasmtime-wasi": {
+  "snap_n": 13,
+  "cur_n": 13,
+  "new": [],
+  "modified": []
+ },
+ "wasmtime": {
+  "snap_n": 106,
+  "cur_n": 106,
+  "new": [],
+  "modified": []
+ }
+}

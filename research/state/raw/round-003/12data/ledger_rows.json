@@ -1,0 +1,761 @@
+[
+{
+"k": "RUSTSEC-2021-0079",
+"pkgs": [
+"hyper"
+],
+"first": "2021-07-07",
+"rsdate": "2021-07-07",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "Integer Overflow in Chunked Transfer-Encoding | Integer overflow in `hyper`'s parsing of the `Transfer-Encoding` header leads to data loss"
+},
+{
+"k": "RUSTSEC-2021-0020",
+"pkgs": [
+"hyper"
+],
+"first": "2021-02-05",
+"rsdate": "2021-02-05",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "HTTP Request Smuggling in hyper | Multiple Transfer-Encoding headers misinterprets request payload"
+},
+{
+"k": "RUSTSEC-2016-0002",
+"pkgs": [
+"hyper"
+],
+"first": "2016-05-09",
+"rsdate": "2016-05-09",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "HTTPS MitM vulnerability due to lack of hostname verification"
+},
+{
+"k": "RUSTSEC-2021-0078",
+"pkgs": [
+"hyper"
+],
+"first": "2021-07-07",
+"rsdate": "2021-07-07",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "Lenient Parsing of Content-Length Header When Prefixed with Plus Sign | Lenient `hyper` header parsing of `Content-Length` could allow request smuggling"
+},
+{
+"k": "RUSTSEC-2022-0022",
+"pkgs": [
+"hyper"
+],
+"first": "2022-05-10",
+"rsdate": "2022-05-10",
+"ghsa_only": false,
+"cls": "unsound/memory",
+"summ": "Parser creates invalid uninitialized value"
+},
+{
+"k": "RUSTSEC-2020-0008",
+"pkgs": [
+"hyper"
+],
+"first": "2020-03-19",
+"rsdate": "2020-03-19",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "Flaw in hyper allows request smuggling by sending a body in GET requests | HTTP Request Smuggling in hyper"
+},
+{
+"k": "RUSTSEC-2017-0002",
+"pkgs": [
+"hyper"
+],
+"first": "2017-01-23",
+"rsdate": "2017-01-23",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "Headers containing newline characters can split messages in hyper | headers containing newline characters can split messages"
+},
+{
+"k": "RUSTSEC-2024-0003",
+"pkgs": [
+"h2"
+],
+"first": "2024-01-17",
+"rsdate": "2024-01-17",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS)"
+},
+{
+"k": "RUSTSEC-2023-0034",
+"pkgs": [
+"h2"
+],
+"first": "2023-04-11",
+"rsdate": "2023-04-14",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Resource exhaustion vulnerability in h2 may lead to Denial of Service (DoS) | h2 vulnerable to denial of service"
+},
+{
+"k": "RUSTSEC-2024-0332",
+"pkgs": [
+"h2"
+],
+"first": "2024-04-03",
+"rsdate": "2024-04-03",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Degradation of service in h2 servers with CONTINUATION Flood | h2 servers vulnerable to degradation of service with CONTINUATION Flood"
+},
+{
+"k": "GHSA-q83h-524g-xf6h",
+"pkgs": [
+"h2"
+],
+"first": "2026-08-17",
+"rsdate": "2026-08-17",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "h2 unbounded empty DATA frames"
+},
+{
+"k": "RUSTSEC-2026-0185",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-06-22",
+"rsdate": "2026-06-22",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": " Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly | Quinn: Remote memory exhaustion in quinn-proto from unbounded out-of-or"
+},
+{
+"k": "RUSTSEC-2026-0037",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-03-09",
+"rsdate": "2026-03-09",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Denial of service in Quinn endpoints | Quinn affected by unauthenticated remote DoS via panic in QUIC transport parameter parsing"
+},
+{
+"k": "RUSTSEC-2023-0063",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2023-09-21",
+"rsdate": "2023-09-21",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Denial of Service issue in quinn-proto | Denial of service in Quinn servers"
+},
+{
+"k": "RUSTSEC-2024-0373",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2024-09-02",
+"rsdate": "2024-09-02",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Denial of service in quinn-proto when using `Endpoint::retry()` | `Endpoint::retry()` calls can lead to panicking"
+},
+{
+"k": "GHSA-465w-v9q3-7j98",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-09-14",
+"rsdate": "2026-09-14",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Remote peer can panic quinn-proto with zero-length STREAM frames during unordered reads"
+},
+{
+"k": "GHSA-hmxj-32vh-65vr",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-08-17",
+"rsdate": "2026-08-17",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Unbounded growth of pending connection ID retirements in quinn-proto"
+},
+{
+"k": "GHSA-3g6h-r5qx-f6hq",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-09-14",
+"rsdate": "2026-09-14",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Peer minimum ACK delay can panic quinn-proto when ACK_FREQUENCY transmission is enabled"
+},
+{
+"k": "GHSA-qfwj-vfxf-92j2",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-08-17",
+"rsdate": "2026-08-17",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Stream reassembly memory-exhaustion guard in quinn-proto can be bypassed"
+},
+{
+"k": "GHSA-2hv7-gw8g-gpq5",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-08-17",
+"rsdate": "2026-08-17",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Zero-length DATAGRAM frames bypass the receive buffer limit in quinn-proto"
+},
+{
+"k": "GHSA-ppcp-v39w-8jq2",
+"pkgs": [
+"quinn-proto"
+],
+"first": "2026-09-14",
+"rsdate": "2026-09-14",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Outgoing datagram buffer accounting can panic the sender in quinn-proto"
+},
+{
+"k": "GHSA-393w-9x6h-8gc7",
+"pkgs": [
+"pingora-core"
+],
+"first": "2025-09-17",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "Pingora update for MadeYouReset HTTP/2 vulnerability"
+},
+{
+"k": "RUSTSEC-2025-0037",
+"pkgs": [
+"pingora-core"
+],
+"first": "2025-05-22",
+"rsdate": "2025-05-22",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "Pingora Request Smuggling and Cache Poisoning | Pingora has a Request Smuggling Vulnerability"
+},
+{
+"k": "RUSTSEC-2026-0034",
+"pkgs": [
+"pingora-core"
+],
+"first": "2026-03-04",
+"rsdate": "2026-03-04",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing | Pingora has HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing"
+},
+{
+"k": "RUSTSEC-2026-0033",
+"pkgs": [
+"pingora-core"
+],
+"first": "2026-03-04",
+"rsdate": "2026-03-04",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "HTTP Request Smuggling via Premature Upgrade | Pingora vulnerable to HTTP Request Smuggling via Premature Upgrade"
+},
+{
+"k": "GHSA-mrjm-qq9m-9mjq",
+"pkgs": [
+"pingora-core"
+],
+"first": "2025-09-17",
+"rsdate": "2025-09-17",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Pingora MadeYouReset HTTP/2 vulnerability"
+},
+{
+"k": "RUSTSEC-2026-0285",
+"pkgs": [
+"rustls"
+],
+"first": "2026-09-14",
+"rsdate": "2026-09-14",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Rustls: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries | TLS 1.3 handshake messages incorrectly accepted across encryption l"
+},
+{
+"k": "RUSTSEC-2024-0336",
+"pkgs": [
+"rustls"
+],
+"first": "2024-04-19",
+"rsdate": "2024-04-19",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Denial of Service Vulnerability in Rustls Library | `rustls::ConnectionCommon::complete_io` could fall into an infinite loop based on network input"
+},
+{
+"k": "RUSTSEC-2024-0399",
+"pkgs": [
+"rustls"
+],
+"first": "2024-11-22",
+"rsdate": "2024-11-22",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "rustls network-reachable panic in `Acceptor::accept`"
+},
+{
+"k": "GHSA-c8m5-c952-6cm4",
+"pkgs": [
+"rustls"
+],
+"first": "2026-10-14",
+"rsdate": "2026-10-14",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "`Debug` impls for client session values expose TLS secrets"
+},
+{
+"k": "GHSA-vp88-798v-h67f",
+"pkgs": [
+"rustls"
+],
+"first": "2026-10-14",
+"rsdate": "2026-10-14",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Buffered application data sent to outer server after ECH rejection"
+},
+{
+"k": "GHSA-h2v8-394m-p7vv",
+"pkgs": [
+"rustls"
+],
+"first": "2026-10-14",
+"rsdate": "2026-10-14",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Brotli certificate decompression can allocate up to 1 GiB before authentication"
+},
+{
+"k": "GHSA-w44r-93j7-qv28",
+"pkgs": [
+"rustls"
+],
+"first": "2026-10-14",
+"rsdate": "2026-10-14",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Unauthenticated ServerHello can downgrade later connections to classical key exchange"
+},
+{
+"k": "RUSTSEC-2026-0104",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2026-04-22",
+"rsdate": "2026-04-22",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Reachable panic in certificate revocation list parsing | rustls-webpki: Denial of service via panic on malformed CRL BIT STRING"
+},
+{
+"k": "RUSTSEC-2026-0098",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2026-04-14",
+"rsdate": "2026-04-14",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Name constraints for URI names were incorrectly accepted | webpki: Name constraints for URI names were incorrectly accepted"
+},
+{
+"k": "RUSTSEC-2023-0053",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2023-08-22",
+"rsdate": "2023-08-22",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "rustls-webpki: CPU denial of service in certificate path building"
+},
+{
+"k": "RUSTSEC-2026-0049",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2026-03-20",
+"rsdate": "2026-03-20",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "CRLs not considered authoritative by Distribution Point due to faulty matching logic | webpki: CRLs not considered authoritative by Distribution Point due to fa"
+},
+{
+"k": "RUSTSEC-2026-0099",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2026-04-14",
+"rsdate": "2026-04-14",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Name constraints were accepted for certificates asserting a wildcard name | webpki: Name constraints were accepted for certificates asserting a wildcard name"
+},
+{
+"k": "RUSTSEC-2026-0383",
+"pkgs": [
+"rustls-webpki"
+],
+"first": "2026-10-20",
+"rsdate": "2026-10-20",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Certificate verification may accept distrusted intermediates"
+},
+{
+"k": "RUSTSEC-2020-0019",
+"pkgs": [
+"tokio-rustls"
+],
+"first": "2020-05-19",
+"rsdate": "2020-05-19",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Excessive memory usage in tokio-rustls | tokio-rustls reads may cause excessive memory usage"
+},
+{
+"k": "CVE-2024-1765",
+"pkgs": [
+"quiche"
+],
+"first": "2024-03-13",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "quiche vulnerable to unlimited resource allocation by QUIC CRYPTO frames flooding"
+},
+{
+"k": "CVE-2025-7054",
+"pkgs": [
+"quiche"
+],
+"first": "2025-08-07",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "quiche connection ID retirement can trigger an infinite loop"
+},
+{
+"k": "CVE-2026-11941",
+"pkgs": [
+"quiche"
+],
+"first": "2026-06-19",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "unsound/memory",
+"summ": "Cloudflare Quiche: Use-after-free in connection ID iterator FFI functions"
+},
+{
+"k": "CVE-2023-6193",
+"pkgs": [
+"quiche"
+],
+"first": "2023-12-13",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "Unbounded queuing of path validation messages in cloudflare-quiche"
+},
+{
+"k": "CVE-2024-1410",
+"pkgs": [
+"quiche"
+],
+"first": "2024-03-13",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "quiche vulnerable to unbounded storage of information related to connection ID retirement"
+},
+{
+"k": "RUSTSEC-2019-0034",
+"pkgs": [
+"http"
+],
+"first": "2019-11-16",
+"rsdate": "2019-11-16",
+"ghsa_only": false,
+"cls": "unsound/memory",
+"summ": "Double free in http | HeaderMap::Drain API is unsound"
+},
+{
+"k": "RUSTSEC-2019-0033",
+"pkgs": [
+"http"
+],
+"first": "2019-11-16",
+"rsdate": "2019-11-16",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Integer Overflow in HeaderMap::reserve() can cause Denial of Service | Integer Overflow/Infinite Loop in the http crate"
+},
+{
+"k": "RUSTSEC-2021-0081",
+"pkgs": [
+"actix-http"
+],
+"first": "2021-06-16",
+"rsdate": "2021-06-16",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "HTTP Request Smuggling in actix-http | Potential request smuggling capabilities due to lack of input validation"
+},
+{
+"k": "RUSTSEC-2020-0048",
+"pkgs": [
+"actix-http"
+],
+"first": "2020-01-24",
+"rsdate": "2020-01-24",
+"ghsa_only": false,
+"cls": "unsound/memory",
+"summ": "Use-after-free in BodyStream due to lack of pinning | Use-after-free in actix-http"
+},
+{
+"k": "CVE-2026-73051",
+"pkgs": [
+"actix-http"
+],
+"first": "2026-04-22",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "smuggling/parse",
+"summ": "actix-http has HTTP/1.1 CL.TE Request Smuggling "
+},
+{
+"k": "RUSTSEC-2022-0043",
+"pkgs": [
+"tower-http"
+],
+"first": "2022-01-21",
+"rsdate": "2022-01-21",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Improper validation of Windows paths could lead to directory traversal attack | tower-http's improper validation of Windows paths could lead to directory traver"
+},
+{
+"k": "GHSA-wwh2-r387-g5rm",
+"pkgs": [
+"tower-http"
+],
+"first": "2022-06-17",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "other",
+"summ": "tower-http's improper validation of Windows paths could lead to directory traversal attack"
+},
+{
+"k": "RUSTSEC-2022-0082",
+"pkgs": [
+"warp"
+],
+"first": "2022-01-14",
+"rsdate": "2022-01-14",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Improper validation of Windows paths could lead to directory traversal attack | Warp vulnerable to Path Traversal via Improper validation of Windows paths"
+},
+{
+"k": "CVE-2025-25188",
+"pkgs": [
+"hickory-proto"
+],
+"first": "2025-02-10",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "other",
+"summ": "Hickory DNS's DNSSEC validation may accept broken authentication chains"
+},
+{
+"k": "RUSTSEC-2026-0120",
+"pkgs": [
+"hickory-proto"
+],
+"first": "2026-05-01",
+"rsdate": "2026-05-01",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "NSEC3 closest-encloser proof validation enters unbounded loop on cross-zone responses | hickory-proto: NSEC3 closest-encloser proof validation enters unbounded "
+},
+{
+"k": "RUSTSEC-2026-0119",
+"pkgs": [
+"hickory-proto"
+],
+"first": "2026-05-01",
+"rsdate": "2026-05-01",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "CPU exhaustion during message encoding due to O(n\u00b2) name compression | hickory-proto vulnerable to CPU exhaustion during message encoding due to O(n\u00b2) name comp"
+},
+{
+"k": "RUSTSEC-2025-0006",
+"pkgs": [
+"hickory-proto"
+],
+"first": "2025-02-07",
+"rsdate": "2025-02-07",
+"ghsa_only": false,
+"cls": "tls/cert-logic",
+"summ": "Hickory DNS failure to verify self-signed RRSIG for DNSKEYs"
+},
+{
+"k": "RUSTSEC-2021-0072",
+"pkgs": [
+"tokio"
+],
+"first": "2021-07-07",
+"rsdate": "2021-07-07",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Race condition in tokio | Task dropped in wrong thread when aborting `LocalSet` task"
+},
+{
+"k": "RUSTSEC-2023-0005",
+"pkgs": [
+"tokio"
+],
+"first": "2023-01-11",
+"rsdate": "2023-01-11",
+"ghsa_only": false,
+"cls": "smuggling/parse",
+"summ": "`tokio::io::ReadHalf<T>::unsplit` is Unsound"
+},
+{
+"k": "RUSTSEC-2026-0384",
+"pkgs": [
+"tokio"
+],
+"first": "2026-10-21",
+"rsdate": "2026-10-21",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Race condition in `tokio::time::Interval` on Tokio v1.54.0 | Tokio: Race condition in `tokio::time::Interval`"
+},
+{
+"k": "RUSTSEC-2023-0001",
+"pkgs": [
+"tokio"
+],
+"first": "2023-01-04",
+"rsdate": "2023-01-04",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Tokio reject_remote_clients configuration may get dropped when creating a Windows named pipe | reject_remote_clients Configuration corruption"
+},
+{
+"k": "RUSTSEC-2021-0124",
+"pkgs": [
+"tokio"
+],
+"first": "2021-11-16",
+"rsdate": "2021-11-16",
+"ghsa_only": false,
+"cls": "unsound/memory",
+"summ": "Data race when sending and receiving after closing a `oneshot` channel | Race Condition in tokio"
+},
+{
+"k": "RUSTSEC-2025-0023",
+"pkgs": [
+"tokio"
+],
+"first": "2025-04-07",
+"rsdate": "2025-04-07",
+"ghsa_only": false,
+"cls": "other",
+"summ": "Broadcast channel calls clone in parallel, but does not require `Sync` | Tokio broadcast channel calls clone in parallel, but does not require `Sync`"
+},
+{
+"k": "RUSTSEC-2026-0386",
+"pkgs": [
+"tokio"
+],
+"first": "2026-10-13",
+"rsdate": "2026-10-13",
+"ghsa_only": false,
+"cls": "other",
+"summ": "`AsyncFd::new` and related constructors violate I/O safety"
+},
+{
+"k": "RUSTSEC-2023-0065",
+"pkgs": [
+"tungstenite"
+],
+"first": "2023-09-21",
+"rsdate": "2023-09-25",
+"ghsa_only": false,
+"cls": "resource/DoS",
+"summ": "Tungstenite allows remote attackers to cause a denial of service"
+},
+{
+"k": "GHSA-475v-pq2g-fp9g",
+"pkgs": [
+"s2n-quic"
+],
+"first": "2023-11-08",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "s2n-quic potential denial of service via crafted stream frames"
+},
+{
+"k": "CVE-2026-10740",
+"pkgs": [
+"s2n-quic"
+],
+"first": "2026-08-14",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "s2n-quic has excessive memory allocation"
+},
+{
+"k": "GHSA-hxq4-mx37-fqvg",
+"pkgs": [
+"s2n-quic"
+],
+"first": "2023-06-30",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "s2n-quic potential denial of service vulnerability when receiving empty UDP packets"
+},
+{
+"k": "GHSA-rfhg-rjfp-9q8q",
+"pkgs": [
+"s2n-quic"
+],
+"first": "2023-07-24",
+"rsdate": null,
+"ghsa_only": true,
+"cls": "resource/DoS",
+"summ": "Potential denial of service after connection migration"
+}
+]

@@ -1,0 +1,346 @@
+[
+ {
+  "case_id": "host-allowlist-required",
+  "basis": "SPEC MUST(Origin->403) + Host practice(421/403)",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "reject 4xx on evil Host, evil Origin, and Host+Origin rebind-shape; handler counter unchanged",
+  "status_vs_spec_2026-07-28": "KEEP (Origin MUST unchanged in 2026-07-28 streamable-http)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "reject-text-plain-post",
+  "basis": "CSRF simple-request",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "text/plain cross-site POST -> 4xx, no session minted, no handler",
+  "status_vs_spec_2026-07-28": "KEEP; under modern the required Mcp-Method/MCP-Protocol-Version headers force preflight (add N09)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "no-wildcard-cors",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "no ACAO '*' and no reflected evil origin on preflight or POST",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "ws-origin-check",
+  "basis": "ADVISORY",
+  "eras": "n/a",
+  "expected_verdict_for_AEGIS_listener": "Upgrade with evil Origin never 101",
+  "status_vs_spec_2026-07-28": "KEEP only if listener has WS; all 14 targets NA (no WS surface)",
+  "blackbox_executable": "yes (NA)"
+ },
+ {
+  "case_id": "host-allowlist-required;h2-authority",
+  "basis": "ADVISORY",
+  "eras": "legacy",
+  "expected_verdict_for_AEGIS_listener": "h2c :authority evil -> 4xx",
+  "status_vs_spec_2026-07-28": "KEEP; split into own id",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "proxy-token-required",
+  "basis": "ADVISORY inspector",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP from listener corpus (Inspector-proxy-specific); replaced by unauth-listener-refused",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "absent-origin-fail-closed",
+  "basis": "AEGIS hardening (not spec MUST)",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "no Origin + ambient cookie + Sec-Fetch-Site cross-site -> 4xx",
+  "status_vs_spec_2026-07-28": "KEEP as AEGIS-only; spec only requires rejecting PRESENT invalid Origin; 13/14 FAIL",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "token-not-to-app-origin",
+  "basis": "ADVISORY inspector UI",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP (client/UI-specific)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "session-principal-binding",
+  "basis": "ADVISORY; spec 2025-11-25 SHOULD bind",
+  "eras": "legacy only",
+  "expected_verdict_for_AEGIS_listener": "Bob presenting Alice session id -> 4xx",
+  "status_vs_spec_2026-07-28": "MODIFY -> state-handle-principal-binding: 2026-07-28 removes Mcp-Session-Id; spec 'State Handle Hijacking': MUST NOT treat possession of handle as authentication; keep legacy variant while serving <=2025-11-25",
+  "blackbox_executable": "yes (needs authN gateway)"
+ },
+ {
+  "case_id": "session-route-pin",
+  "basis": "ADVISORY GHSA-mvgg",
+  "eras": "legacy only",
+  "expected_verdict_for_AEGIS_listener": "session from route X on route Y -> 404",
+  "status_vs_spec_2026-07-28": "MODIFY -> handle-route-pin for sealed requestState/task handles",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "task-cross-principal-404",
+  "basis": "ADVISORY",
+  "eras": "ext",
+  "expected_verdict_for_AEGIS_listener": "B get/cancel A task -> 404",
+  "status_vs_spec_2026-07-28": "MODIFY: tasks moved to extension io.modelcontextprotocol/tasks (SEP-2663); tasks/list removed; tasks/get+tasks/update remain",
+  "blackbox_executable": "no (not executed)"
+ },
+ {
+  "case_id": "id-collision-two-clients",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "each client gets its own result for the same JSON-RPC id",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "token-wrong-audience-401",
+  "basis": "SPEC MUST NOT accept tokens not issued for the server",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "only aud-correct token accepted; aud-other/omitted/expired/wrong-iss/nbf/alg=none/HS256-confusion/tampered -> 401",
+  "status_vs_spec_2026-07-28": "KEEP (strengthened: security_best_practices Token Passthrough)",
+  "blackbox_executable": "yes (authN gateway only)"
+ },
+ {
+  "case_id": "oauth-issuer-pin",
+  "basis": "SPEC MUST (RFC 9207 iss, SEP-2468)",
+  "eras": "client",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "KEEP but CLIENT-side; belongs to client harness (conformance auth/iss-* client scenarios exist)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "resource-mismatch",
+  "basis": "client",
+  "eras": "client",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "KEEP client-side (conformance auth/resource-mismatch)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "ssrf-resolved-address",
+  "basis": "SPEC SHOULD",
+  "eras": "egress",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "KEEP; needs attacker-controlled target; spike",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "redirect-strip-headers",
+  "basis": "ADVISORY; SPEC SHOULD not blindly follow redirects",
+  "eras": "legacy",
+  "expected_verdict_for_AEGIS_listener": "cross-origin redirect never followed with credentials",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes (mock upstream)"
+ },
+ {
+  "case_id": "json-case-variant-reject",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "Method / TOOLS/CALL rejected, handler untouched",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "json-dup-nul-reject",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "duplicate method key / NUL key -> reject (not last-wins)",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "json-bom-reject",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "BOM body rejected or normalised before policy",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "policy-fail-closed",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "1e1000 name, non-JSON content-type -> deny",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "toolname-collision",
+  "basis": "ADVISORY",
+  "eras": "legacy",
+  "expected_verdict_for_AEGIS_listener": "duplicate/case-variant names rejected at registration",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "partial (ag manual)"
+ },
+ {
+  "case_id": "unauth-listener-refused",
+  "basis": "ADVISORY GHSA-g879; spec SHOULD authenticate",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "tools/list without credential -> 401/403 in default build",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "path-allowlist",
+  "basis": "ADVISORY docker",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP from listener corpus (container-launcher specific)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "scheme-allowlist",
+  "basis": "ADVISORY docker",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP (launcher)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "verify-default-on",
+  "basis": "ADVISORY docker",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP (launcher); read: docker-mcp v0.44.2 default true",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "argv-injection",
+  "basis": "ADVISORY docker",
+  "eras": "-",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "DROP (launcher)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "openapi-traversal",
+  "basis": "ADVISORY agentgateway",
+  "eras": "legacy",
+  "expected_verdict_for_AEGIS_listener": "traversal params -> upstream 0 requests",
+  "status_vs_spec_2026-07-28": "KEEP; not executed (needs openapi backend; spike)",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "session-table-bound",
+  "basis": "ADVISORY",
+  "eras": "legacy only",
+  "expected_verdict_for_AEGIS_listener": "N unauth initialize -> bounded, TTL reclaimed",
+  "status_vs_spec_2026-07-28": "DROP for modern (no sessions); KEEP for legacy compat window; add bounded-handle-store for MRTR/tasks",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "cache-bound",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "varied unauth requests -> bounded memory",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes (RSS proxy)"
+ },
+ {
+  "case_id": "body-cap-413",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "64MiB body -> 413 before buffering",
+  "status_vs_spec_2026-07-28": "KEEP",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "amplification-bound",
+  "basis": "ADVISORY",
+  "eras": "legacy,modern",
+  "expected_verdict_for_AEGIS_listener": "200k-deep nesting rejected, server alive",
+  "status_vs_spec_2026-07-28": "KEEP (depth proxy only)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "oauth-state-bound",
+  "basis": "ADVISORY",
+  "eras": "client",
+  "expected_verdict_for_AEGIS_listener": "-",
+  "status_vs_spec_2026-07-28": "KEEP client-side",
+  "blackbox_executable": "no"
+ },
+ {
+  "case_id": "N01-header-mismatch-protocol-version",
+  "basis": "SPEC MUST 400+-32020",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "MCP-Protocol-Version header != _meta -> 400 HeaderMismatch",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N02-missing-mcp-method-header",
+  "basis": "SPEC MUST",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "missing Mcp-Method -> 400 -32020",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N03-mcp-name-mismatch",
+  "basis": "SPEC MUST",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "Mcp-Name != params.name -> 400 -32020",
+  "status_vs_spec_2026-07-28": "ADD (gateway header/body differential: if gateway routes on header)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N04-unsupported-protocol-version",
+  "basis": "SPEC MUST",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "unknown version -> 400 -32022 listing supported",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N05-no-session-id-issued",
+  "basis": "SPEC SEP-2567",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "no Mcp-Session-Id header on any response",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N06-removed-ping",
+  "basis": "SPEC SEP-2575",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "ping -> 404 + -32601",
+  "status_vs_spec_2026-07-28": "ADD (also logging/setLevel, roots/list_changed, resources/subscribe)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N07-get-endpoint-removed",
+  "basis": "SPEC SEP-2575",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "GET -> 405/404",
+  "status_vs_spec_2026-07-28": "ADD (replaces GET SSE listener, Last-Event-ID)",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N08-initialize-under-modern",
+  "basis": "conformance server-stateless",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "initialize -> 404 -32601",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N09-simple-request-cannot-reach-modern",
+  "basis": "SPEC SEP-2243 consequence",
+  "eras": "modern",
+  "expected_verdict_for_AEGIS_listener": "text/plain w/o MCP headers -> 400/415",
+  "status_vs_spec_2026-07-28": "ADD",
+  "blackbox_executable": "yes"
+ },
+ {
+  "case_id": "N10-delete-session-legacy",
+  "basis": "SPEC 2025-11-25",
+  "eras": "legacy",
+  "expected_verdict_for_AEGIS_listener": "DELETE ends session, reuse 404",
+  "status_vs_spec_2026-07-28": "KEEP only for legacy window",
+  "blackbox_executable": "yes"
+ }
+]

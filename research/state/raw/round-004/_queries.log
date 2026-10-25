@@ -1,0 +1,334 @@
+uu-incident-dataset-outage-root-causes	danluu post-mortems README bulk parse	datasets|SRE
+safety-critical-certification-assurance-historical	DO-333 formal methods supplement what credit verification objectives	DO-178C|standards|skeptic|historical
+safety-critical-certification-assurance-historical	DO-330 tool qualification TQL formal verification tool Coq Isabelle Frama-C	DO-330|standards|skeptic
+safety-critical-certification-assurance-historical	CompCert qualification Airbus MTU DO-178C experience report	CompCert|report|
+safety-critical-certification-assurance-historical	seL4 proof cost per line of code person years Staples cost of formal verification	seL4|papers|
+safety-critical-certification-assurance-historical	Common Criteria EAL7 formal verification INTEGRITY-178B PikeOS Muen evaluation	CC|portal|
+safety-critical-certification-assurance-historical	CISA NSA memory safe languages roadmap proofs evidence 2025 2026 EASA ANSSI BSI formal proof acceptance	regulator|2025-26
+mcp-gateway-conformance-corpus-executed	gh api releases for python-sdk typescript-sdk rust-sdk agentgateway mcp-gateway conformance	offensive-web-sec|L4-L5|repo+release|attacker|last60d
+mcp-gateway-conformance-corpus-executed	MCP spec repo git log latest dated revision + 2026-07-28 changelog	standards|L4|spec-repo|last60d
+fips-golden-version-triangle-one-lock	crates.io API versions rustls/aws-lc-rs/aws-lc-fips-sys + dependencies per version	registry|build-systems|skeptic
+uu-incident-dataset-outage-root-causes	GCP status incidents.json load balancing	datasets|network-SRE
+uu-incident-dataset-outage-root-causes	VOID verica open incident database export	datasets|resilience
+switching-economics-practitioner-forums	HN algolia story: ingress-nginx retirement	forum,economics,2025-26,skeptic
+lean-check-lowering-and-token-proofs	gh api lean4 releases v4.35.0 assets + release notes body	PL-formal|repo+release|proponent|last60d
+switching-economics-practitioner-forums	HN algolia story: ingress-nginx replacement	forum,economics,2025-26,skeptic
+switching-economics-practitioner-forums	HN algolia story: migrate from ingress-nginx	forum,economics,2025-26,skeptic
+switching-economics-practitioner-forums	HN algolia story: Gateway API migration	forum,economics,2025-26,skeptic
+switching-economics-practitioner-forums	HN algolia story: ingress2gateway	forum,economics,2025-26,skeptic
+switching-economics-practitioner-forums	HN algolia story >=12c: nginx	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Caddy	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Traefik	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Envoy Gateway	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: HAProxy	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: reverse proxy	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Pingora	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: ingress controller	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Kubernetes Ingress	forum,economics,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Gateway API	forum,economics,2025-26
+bridge-canonical-identity-one-owner	rust url crate WHATWG vs http Uri parser differential authority	standards+rust;repo-issue;attacker;2017-2026
+bridge-canonical-identity-one-owner	Orange Tsai new era of SSRF URL parser follow-up 2025	offensive;talk;attacker;historical->2025
+bridge-canonical-identity-one-owner	JSON duplicate key parser interoperability policy bypass Bishop Fox	offensive;writeup;attacker;2021
+bridge-canonical-identity-one-owner	cookie __Host- prefix bypass parsing differential 2024 CVE	web-dev;CVE;attacker;2024
+bridge-canonical-identity-one-owner	IDNA UTS46 hostname confusion CVE 2025 idna crate	standards-unicode;advisory;attacker;2024-25
+bridge-canonical-identity-one-owner	path percent-encoded slash %2F authorization bypass CVE 2026 proxy	offensive;CVE;attacker;2026
+bridge-canonical-identity-one-owner	SNI Host header mismatch domain fronting authorization bypass	network-ops;writeup;attacker;historical
+bridge-canonical-identity-one-owner	Content-Type parameter parsing CSRF bypass charset differential	web-dev;writeup;attacker
+bridge-canonical-identity-one-owner	trailing dot hostname Origin CORS bypass	web-dev;writeup;attacker
+bridge-canonical-identity-one-owner	tenant id unicode case folding account takeover dotless i	unicode;incident;attacker
+uu-incident-dataset-outage-root-causes	k8s failure stories README parse ingress nginx conntrack	datasets|kubernetes ops
+uu-incident-dataset-outage-root-causes	awesome postmortem lists	datasets
+non-us-national-pqc-crypto-regimes	BSI TR-02102-1 2026-01 PQC	standards-policy,primary,de-gov
+uu-incident-dataset-outage-root-causes	cloudflare blog post-mortem tag rss	vendor blogs|CDN
+uu-incident-dataset-outage-root-causes	github availability report feed	vendor blogs|PaaS
+switching-economics-practitioner-forums	HN algolia story >=12c: MCP gateway	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: agent gateway	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: MCP proxy security	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: agentgateway	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: self-hosted reverse proxy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: homelab reverse proxy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: switched from nginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: migrated from nginx to Caddy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: nginx alternative	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: nginx vs Caddy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Traefik vs Caddy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Nginx Proxy Manager	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: ingress-nginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: F5 NGINX	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: freenginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Angie nginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Cloudflare Tunnel self-host	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Tailscale serve funnel	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Envoy proxy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Kubernetes ingress controller alternative	forum,economics,skeptic,2025-26
+safety-critical-certification-assurance-historical	Leroy Blazy Kastner Ferdinand compiler verification certification avionics CompCert	CompCert|paper
+safety-critical-certification-assurance-historical	DO-333 TQL-5 proof assistant Coq Isabelle Frama-C qualified	DO-330|skeptic
+safety-critical-certification-assurance-historical	Cofer qualification formal methods tools TQL slides	DO-330|slides
+switching-economics-practitioner-forums	HN algolia comment: switched from nginx to caddy	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: moved from ingress-nginx to	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: replace ingress-nginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: migrating off ingress-nginx	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: ingress-nginx traefik gateway api	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: we switched to envoy gateway	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: haproxy ingress	forum,economics,skeptic,2025-26
+switching-economics-practitioner-forums	HN algolia comment: nginx gateway fabric	forum,economics,skeptic,2025-26
+uu-incident-dataset-outage-root-causes	statuspage api v2 incidents.json cloudflare fastly flyio vercel netlify render github	status-page histories|PaaS
+non-us-national-pqc-crypto-regimes	ANSSI avis migration post-quantique hybridation	FR-gov,primary
+non-us-national-pqc-crypto-regimes	ANSSI feuille de route 2027 qualification PQC	FR-press,skeptic
+safety-critical-certification-assurance-historical	sel4 Verification certification page EAL7 ISO26262 DO-178C	seL4|vendor
+safety-critical-certification-assurance-historical	EAL7 products list ProvenCore Muen seL4 INTEGRITY	CC|portal
+safety-critical-certification-assurance-historical	CISA product security bad practices memory safety roadmap formal verification evidence	CISA|regulator
+safety-critical-certification-assurance-historical	Matichuk leading indicator cost formal software verification ICSE 2015	seL4|paper
+safety-critical-certification-assurance-historical	seL4 proof maintenance cost per change re-proof	seL4|skeptic
+safety-critical-certification-assurance-historical	EASA AI roadmap formal methods learning assurance acceptance	EASA|regulator
+safety-critical-certification-assurance-historical	ProvenCore ANSSI certificat EAL7 2019	CC|ANSSI
+calibration-two-sided-top-findings-r3	gh api tenuo-ai/tenuo commits path constraints.rs since 2026-10-20 + releases + security advisories	repo-source,offensive-sec,last-60d
+calibration-two-sided-top-findings-r3	gh api model-checking/kani releases + PR 4910 merged_at	PL-formal,repo-release,prediction-scoring
+calibration-two-sided-top-findings-r3	gh api launchbadge|transact-rs sqlx releases tags containing f1e94ec	web-dev,repo-release,prediction-scoring
+calibration-two-sided-top-findings-r3	crates.io pingora-core versions + cloudflare/pingora 1059/1060 state	network-ops,registry-api,prediction-scoring
+calibration-two-sided-top-findings-r3	crates.io rustls versions api max_stable 0.24	crypto,registry-api,prediction-scoring
+calibration-two-sided-top-findings-r3	OSV querybatch golden lock pins modified since 2026-10-25T02:07	advisory-db,delta,skeptic
+calibration-two-sided-top-findings-r3	CMVP Modules In Process list AWS-LC status change (MIP page, not cert search)	standards-policy,gov-list,prediction-scoring
+calibration-two-sided-top-findings-r3	gh api wasmtime security-advisories published after snapshot	systems,advisory-db,delta
+uu-incident-dataset-outage-root-causes	macintux Service-postmortems json list	datasets
+uu-incident-dataset-outage-root-causes	wikitech Incident documentation index varnish ATS pybal	datasets|Wikimedia SRE
+uu-incident-dataset-outage-root-causes	lorin major-incidents github	datasets
+switching-economics-practitioner-forums	lemmy.world api search: reverse proxy	forum,lemmy,household,skeptic
+switching-economics-practitioner-forums	lemmy.world api search: caddy	forum,lemmy,household,skeptic
+switching-economics-practitioner-forums	lemmy.world api search: traefik	forum,lemmy,household,skeptic
+switching-economics-practitioner-forums	lemmy.world api search: nginx proxy manager	forum,lemmy,household,skeptic
+switching-economics-practitioner-forums	lemmy.world api search: ingress-nginx	forum,lemmy,household,skeptic
+switching-economics-practitioner-forums	lemmy.world api search: reverse proxy switch	forum,lemmy,household,skeptic
+safety-critical-certification-assurance-historical	Kastner CompCert practical experience qualifying MTU IEC 60880	CompCert|ERTS
+safety-critical-certification-assurance-historical	Tokeneer SPARK Praxis NSA EAL5 productivity	SPARK|Praxis
+safety-critical-certification-assurance-historical	Cofer Miller DO-333 certification case studies NASA CR 2014	DO-333|NASA
+write-path-lowering-differential-oracle	PostgreSQL RLS MERGE CVE-2023-39418 row security policies not enforced	cve-hunt
+write-path-lowering-differential-oracle	nodeModifyTable.c ExecOnConflictUpdate RLS WCO_RLS_CONFLICT_CHECK	source
+write-path-lowering-differential-oracle	SQLite REPLACE conflict resolution authorizer SQLITE_DELETE not invoked	docs
+write-path-lowering-differential-oracle	Redis ACL key pattern RENAME COPY MOVE SORT BY GET bypass	redis
+write-path-lowering-differential-oracle	valkey ACL selectors read write key permissions SCAN KEYS filtering	valkey
+safety-critical-certification-assurance-historical	Mondex ITSEC E6 refinement proof effort	Mondex|history
+safety-critical-certification-assurance-historical	DO-178 cost per SLOC study	cost|skeptic
+safety-critical-certification-assurance-historical	CertiKOS Hyperkernel person-years proof effort	cost curve
+safety-critical-certification-assurance-historical	formal verification adds certification burden skeptic CC DO-333	skeptic
+safety-critical-certification-assurance-historical	CBMC Frama-C Astree Z3 qualification kit DO-330	DO-330
+safety-critical-certification-assurance-historical	NSA CISA Memory Safe Languages CSI June 2025	regulator
+switching-economics-practitioner-forums	github graphql discussions search: ingress-nginx migration sort:comments-desc	github-discussions,economics
+switching-economics-practitioner-forums	github graphql discussions search: ingress-nginx retirement sort:comments-desc	github-discussions,economics
+switching-economics-practitioner-forums	github graphql discussions search: migrate from nginx sort:comments-desc created:>2025-06-01	github-discussions,economics
+switching-economics-practitioner-forums	github graphql discussions search: ingress-nginx annotations traefik sort:comments-desc	github-discussions,economics
+safety-critical-certification-assurance-historical	Ferrocene ISO 26262 IEC 61508 qualified Rust 2025 2026	Rust|qual
+safety-critical-certification-assurance-historical	Coq critical bugs list soundness rate	contrarian
+safety-critical-certification-assurance-historical	Lean 4 kernel soundness bug 2026 advisory nanoda	contrarian|2026
+safety-critical-certification-assurance-historical	FAA AC 20-115D DO-330 DO-333 recognition	FAA|regulator
+safety-critical-certification-assurance-historical	Csmith CompCert bugs unverified parts	CompCert|contrarian
+switching-economics-practitioner-forums	github graphql discussions: repo:agentgateway/agentgateway sort:comments-desc	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:envoyproxy/gateway migrate ingress-nginx	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:traefik/traefik ingress-nginx	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:caddyserver/caddy nginx migrate	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:kubernetes-sigs/gateway-api ingress-nginx retire	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:kgateway-dev/kgateway ingress-nginx	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:nginx/nginx-gateway-fabric ingress-nginx	github-discussions
+switching-economics-practitioner-forums	github graphql discussions: repo:haproxytech/kubernetes-ingress ingress-nginx	github-discussions
+write-path-lowering-differential-oracle	PostgreSQL CREATE POLICY UPDATE new row SELECT policy check	docs
+write-path-lowering-differential-oracle	SQLite lang_conflict REPLACE triggers delete	docs
+write-path-lowering-differential-oracle	sqlite3_set_authorizer REPLACE implicit delete	docs
+write-path-lowering-differential-oracle	Redis ACL docs key permissions SCAN	docs
+write-path-lowering-differential-oracle	Postgres security advisories RLS CVE list 2023-2026	cve
+write-path-lowering-differential-oracle	Hasura update permission check vs filter	vendor-docs
+write-path-lowering-differential-oracle	Rails upsert_all acts_as_tenant cross tenant overwrite	practitioner
+write-path-lowering-differential-oracle	MySQL INSERT ON DUPLICATE KEY UPDATE REPLACE semantic tenant	docs
+write-path-lowering-differential-oracle	CockroachDB row level security UPDATE WITH CHECK	vendor
+write-path-lowering-differential-oracle	PostgREST upsert on_conflict RLS	docs
+lean-check-lowering-and-token-proofs	gh api leanprover/elan latest release + elan-init.sh	PL-formal|repo+release|proponent|last60d
+switching-economics-practitioner-forums	HN algolia story >=12c: MCP server security	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: MCP authentication	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: LLM gateway	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: AI gateway	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: post-quantum TLS	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: ML-KEM	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: X25519MLKEM768	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: formally verified	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: memory safe web server	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Rust web server	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: CVE nginx	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: request smuggling	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Let's Encrypt	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: self-hosting	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: homelab	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Cloudflare outage	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: HTTP/3	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Caddy plugin	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: Traefik v3	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+switching-economics-practitioner-forums	HN algolia story >=12c: nginx config	forum,economics,pq/formal/agent-differentiator-probe,2025-26
+fips-golden-version-triangle-one-lock	go.dev/dl latest go tarball for aws-lc-fips-sys build	build-systems|official-dl
+non-us-national-pqc-crypto-regimes	ASD ISM ML-KEM-1024 2030 cryptography guidelines	AU-gov,primary
+safety-critical-certification-assurance-historical	NIST 800-53 SA-17 formal policy model	NIST|standard
+calibration-two-sided-top-findings-r3	gh api rustsec/advisory-db commits since 2026-10-24 (crates/ paths)	advisory-db,repo-commits,delta
+calibration-two-sided-top-findings-r3	gh api /advisories?ecosystem=rust&published>=2026-10-23 (GitHub global advisory DB)	advisory-db,ghsa-global,delta
+non-us-national-pqc-crypto-regimes	NCSC next steps PQC hybrid 768 interim	UK-gov
+non-us-national-pqc-crypto-regimes	CCCS ITSM.40.001 roadmap	CA-gov
+non-us-national-pqc-crypto-regimes	ITSP.40.111 PQC algorithms	CA-gov
+uu-incident-dataset-outage-root-causes	istio root certificate expired outage postmortem	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	linkerd trust anchor expired production outage	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	nginx too many open files worker_connections outage postmortem	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	nf_conntrack table full dropping packets production outage postmortem	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	AddTrust external CA root expired May 2020 outage	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	Envoy proxy memory leak production incident postmortem	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	access log disk full nginx outage postmortem	postmortem-search|SRE
+uu-incident-dataset-outage-root-causes	NTP clock skew certificate not yet valid outage	postmortem-search|SRE
+switching-economics-practitioner-forums	discourse search community.traefik.io: ingress-nginx migration order:latest	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search community.traefik.io: nginx annotations compatibility	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search caddy.community: migrate from nginx	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search caddy.community: coming from nginx	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search community.cloudflare.com: pingora	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search forum.proxmox.com: reverse proxy caddy nginx	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search discuss.kubernetes.io: ingress-nginx retirement	forum,discourse,economics
+switching-economics-practitioner-forums	discourse search community.replicated.com: ingress-nginx	forum,discourse,economics
+non-us-national-pqc-crypto-regimes	ENISA ECCG agreed cryptographic mechanisms v3 draft public review	EU-cert,primary
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: Ingress NGINX statement steering committee	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: IngressNightmare	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: Gateway API	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: InGate	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: kgateway	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: Kubernetes ingress	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: Traefik	forum,enterprise
+calibration-two-sided-top-findings-r3	datatracker doc API states: plants-mtc, httpapi-idempotency, privacypass-batched, webtrans-http3	standards-policy,spec-RFC,prediction-scoring
+calibration-two-sided-top-findings-r3	gh api PR states rustls#3376 rust-postgres#1374 h3#377/#378 pingora#1059/#1060	repo-PR,prediction-scoring
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: k3s Traefik	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: cert-manager Gateway	forum,enterprise
+switching-economics-practitioner-forums	HN algolia story >=3c 2025-11..: AWS Load Balancer Controller	forum,enterprise
+switching-economics-practitioner-forums	HN algolia comment probe: post-quantum caddy	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: post-quantum nginx	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: X25519MLKEM768 nginx	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: ML-KEM reverse proxy	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: FIPS nginx	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: formally verified web server	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: memory safe nginx replacement	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: Rust nginx replacement	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: pingora migrate from nginx	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment probe: agent gateway MCP self-hosted nginx	forum,differentiator-absence-probe,skeptic
+non-us-national-pqc-crypto-regimes	ICCS NGCC next-generation commercial cryptographic algorithms round 1	CN-gov,primary,zh
+calibration-two-sided-top-findings-r3	gh api supavisor releases; redb master changelog 5.0; curl vuln.json since 2026-10-25; cedar-policy/rfcs PRs delegation	repo-release,vendor-feed,prediction-scoring
+calibration-two-sided-top-findings-r3	postgres/postgres mirror commits path src/test/regress rowsecurity since 2026-08-13	db-internals,repo-commits,prediction-scoring
+calibration-two-sided-top-findings-r3	csrc SP 800-218 r1 status page	standards-policy,gov-page,prediction-scoring
+switching-economics-practitioner-forums	HN algolia comment x4pages: post-quantum filter proxy-words	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment x4pages: mlkem filter proxy-words	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment x4pages: ML-KEM filter proxy-words	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment x4pages: formally verified filter proxy-words	forum,differentiator-absence-probe,skeptic
+switching-economics-practitioner-forums	HN algolia comment x4pages: memory safe filter proxy-words	forum,differentiator-absence-probe,skeptic
+non-us-national-pqc-crypto-regimes	EO 14412 PQC federal 2030	US-baseline,primary
+calibration-two-sided-top-findings-r3	NVD API 2.0 totalResults by pubStartDate windows 2026 (CVE volume)	economics/volume,vuln-db-api,prediction-scoring
+non-us-national-pqc-crypto-regimes	耐量子計算機暗号 移行 CRYPTREC 2035 ハイブリッド	JA-gov,primary,ja
+non-us-national-pqc-crypto-regimes	양자내성암호 KCMVP ML-KEM 전환 로드맵	KO-gov
+calibration-two-sided-top-findings-r3	crates.io dependency API aws-lc-rs 1.15.x-1.17.x -> aws-lc-fips-sys req; aws-lc-fips-sys 0.13.11 links/AWS-LC tag	crypto-compliance,registry-api,recompute
+non-us-national-pqc-crypto-regimes	국정원 양자내성암호 전환 2035 KCMVP	KO-press
+calibration-two-sided-top-findings-r3	crates.io existence+downloads capsec / policy-core / typesec-agent (capability-typed handler SDK prior art)	web-dev practitioner,registry-api,contrarian
+dx-capability-sdk-mutants-real-axum-async	trybuild compile-fail snapshot stderr docs.rs	Rust-testing|docs
+dx-capability-sdk-mutants-real-axum-async	axum FromRequestParts State lifetime borrowed extractor discussion	github-discussions|axum
+dx-capability-sdk-mutants-real-axum-async	generativity crate invariant lifetime brand	PL-brand|crate
+dx-capability-sdk-mutants-real-axum-async	GhostCell separating permissions from data Rust paper	PL-paper|POPL
+dx-capability-sdk-mutants-real-axum-async	tokio spawn 'static bound scoped tasks structured concurrency async scope soundness	async-Rust|negative
+dx-capability-sdk-mutants-real-axum-async	axum handler Send future error unreadable debug_handler	DX|negative
+dx-capability-sdk-mutants-real-axum-async	capsec policy-core typesec-agent crates.io source	prior-art-r3|registry
+dx-capability-sdk-mutants-real-axum-async	clippy disallowed_methods tokio::spawn limits lint bypass	lint|negative
+dx-capability-sdk-mutants-real-axum-async	async cancellation Drop guard transaction sqlx rollback on drop select! cancel safety	cancel-safety|db
+dx-capability-sdk-mutants-real-axum-async	Rust forum higher-ranked lifetime async fn Fn(&T)->Fut HRTB workaround	Rust-forum|type-system
+non-us-national-pqc-crypto-regimes	rustls kx_group SecP384r1MLKEM1024	crate-docs
+non-us-national-pqc-crypto-regimes	pure ML-KEM TLS IETF last call BSI NSA	IETF-ml,contrarian
+non-us-national-pqc-crypto-regimes	CNSA 2.0 vs hybrid europe conflict	secondary,contrarian
+dx-capability-sdk-mutants-real-axum-async	tokio-rs/tokio#3162 scoped tasks issue status	github-issue|negative
+dx-capability-sdk-mutants-real-axum-async	rust-lang users forum axum scoped routes 136484	forum
+dx-capability-sdk-mutants-real-axum-async	Oxide RFD 400 cancel safety / LWN 2025 unforgettable types	systems-ops|vendor-rfd
+bridge-canonical-identity-one-owner	Envoy path_with_escaped_slashes_action normalize_path merge_slashes security	network-ops;vendor-doc;proponent;current
+bridge-canonical-identity-one-owner	Cloudflare URL normalization rules incoming origin	hyperscaler-CDN;vendor-doc;proponent;2022-26
+bridge-canonical-identity-one-owner	Claroty Snyk exploiting URL parsing confusion 16 parsers	offensive;research-writeup;attacker;2022
+bridge-canonical-identity-one-owner	CouchDB CVE-2017-12635 duplicate roles key JSON	offensive;CVE;attacker;historical
+bridge-canonical-identity-one-owner	Traefik SNI Host mismatch mTLS TLS options bypass CVE	network-ops;CVE;attacker;2022-26
+bridge-canonical-identity-one-owner	hyper multiple Host headers 400 RFC 9112	standards-RFC9112;repo-issue;attacker
+bridge-canonical-identity-one-owner	langsec parser differential paper 2024 2025	PL-formal/langsec;paper;theory;2024-25
+bridge-canonical-identity-one-owner	SoK URL parsing inconsistencies USENIX NDSS 2024 2025	academic;paper;empirical;2024-25
+bridge-canonical-identity-one-owner	reject non-canonical requests instead of normalizing proxy design argument	contrarian;forum;skeptic
+bridge-canonical-identity-one-owner	case-insensitive email username collision account takeover CVE 2025	identity;CVE;attacker;2025
+mcp-gateway-conformance-corpus-executed	modelcontextprotocol conformance dns-rebinding-protection scenario server	offensive-web-sec|L4|mixed
+mcp-gateway-conformance-corpus-executed	MCP security best practices token passthrough MUST NOT 2026-07-28	offensive-web-sec|L4|mixed
+mcp-gateway-conformance-corpus-executed	HTTP header mismatch CSRF Mcp-Method custom headers preflight SEP-2243	offensive-web-sec|L4|mixed
+mcp-gateway-conformance-corpus-executed	agentgateway security advisory 2026 GHSA mcp	offensive-web-sec|L4|mixed
+mcp-gateway-conformance-corpus-executed	rmcp allowed_origins empty default disables Origin validation issue	offensive-web-sec|L4|mixed
+bridge-canonical-identity-one-owner	Trail of Bits Go parsers security footguns duplicate keys case-insensitive JSON	offensive;research-blog;attacker;2025
+bridge-canonical-identity-one-owner	axum Path extractor percent-decoded %2F path parameter issue	rust-web-dev;repo-issue;attacker
+bridge-canonical-identity-one-owner	Pingora path normalization request uri authorization	rust-proxy;repo-issue;skeptic
+bridge-canonical-identity-one-owner	simd-json serde_json differential fuzzing disagreement	rust;repo-issue;negative-result
+bridge-canonical-identity-one-owner	HTTP/2 :authority Host header both present mismatch CVE 2025 2026	standards-RFC9113;CVE;attacker;2025-26
+bridge-canonical-identity-one-owner	Unicode normalization NFKC username security UTS 39 skeleton identifier	unicode-standards;spec;defender
+bridge-canonical-identity-one-owner	property-based test authorization canonical form equivalence differential oracle	PL-formal;paper/repo;defender
+bridge-canonical-identity-one-owner	Cookie Crumbles USENIX Security 2023 cookie integrity parsing	academic-websec;paper;attacker;2023
+bridge-canonical-identity-one-owner	langsec parser differential formal definition semantic equivalence	PL-formal/langsec;paper;theory
+bridge-canonical-identity-one-owner	WAF bypass Unicode normalization NFKC paper 2025	offensive-unicode;paper/writeup;attacker;2025
+bridge-canonical-identity-one-owner	JSON duplicate key authorization bypass CVE 2026 GHSA	offensive;advisory-db;attacker;2026
+bridge-canonical-identity-one-owner	CORS origin validation bypass CVE 2026 suffix match regex	web-dev;CVE;attacker;2026
+bridge-canonical-identity-one-owner	content-type multipart parsing differential WAF bypass CVE 2025 2026	offensive-WAF;CVE;attacker;2025-26
+bridge-canonical-identity-one-owner	CVE-2023-24329 urlsplit leading blank blocklist bypass	python-stdlib;CVE;attacker;2023
+mcp-gateway-conformance-corpus-executed	conformance repo issues dns-rebinding http-header-validation open	offensive-web-sec|L4|repo+release
+mcp-gateway-conformance-corpus-executed	spec repo commits 2026-10 draft SEP Origin validation	offensive-web-sec|L4|repo+release
+mcp-gateway-conformance-corpus-executed	typescript-sdk v2.4.0 release notes	offensive-web-sec|L4|repo+release
+mcp-gateway-conformance-corpus-executed	rmcp 3.7.0 changelog	offensive-web-sec|L4|repo+release
+mcp-gateway-conformance-corpus-executed	python-sdk v2.3.0 release notes	offensive-web-sec|L4|repo+release
+fips-golden-version-triangle-one-lock	CMVP certificate 5298 AWS-LC FIPS 3.1 status	standards-policy|gov-db|skeptic
+fips-golden-version-triangle-one-lock	CMVP certificate 5314 AWS-LC static module	standards-policy|gov-db
+fips-golden-version-triangle-one-lock	CMVP modules in process AWS-LC FIPS 4.0 comment resolution	standards-policy|gov-db|last-60d
+fips-golden-version-triangle-one-lock	aws-lc-rs CHANGELOG fips 1.18 release notes	repo-release|contrarian
+fips-golden-version-triangle-one-lock	github aws-lc-rs issues fips-sys 0.13 pin cargo conflicts	repo-issues|skeptic
+fips-golden-version-triangle-one-lock	rustls RUSTSEC-2026-0349 ServerHello downgrade classical key exchange	advisory|last-60d
+fips-golden-version-triangle-one-lock	rustls fips feature docs manual fips	docs|crypto-eng
+isolation-crash-blast-radius-measured	PHP-FPM emergency_restart_threshold source fpm_children	vocab=sysadmin/C-source|src=repo-code|stance=baseline|era=historical
+isolation-crash-blast-radius-measured	wasmtime pooling allocator instance reuse state leak issue	vocab=systems|src=repo-issues|stance=skeptic|era=2025-26
+isolation-crash-blast-radius-measured	apport core_pattern pipe RLIMIT_CORE ignored crash latency	vocab=linux-kernel|src=kernel-docs|stance=negative-result|era=any
+isolation-crash-blast-radius-measured	kernelCTF exploits per year subsystem nf_tables io_uring unprivileged user namespaces 2025	vocab=offensive-security|src=VRP-data|stance=attacker|era=2025-26
+isolation-crash-blast-radius-measured	temporal system call specialization kernel CVEs neutralized seccomp percentage	vocab=PL/systems-academic|src=paper|stance=skeptic-of-seccomp|era=2020-24
+isolation-crash-blast-radius-measured	wasmtime serve WASIp3 max_instance_reuse_count default trap blast radius	vocab=runtime-source|src=repo-code|stance=skeptic|era=last-60d
+isolation-crash-blast-radius-measured	PHP-FPM worker segfault 502 bad gateway in-flight requests only pm.max_requests memory leak	vocab=web-ops|src=forum|stance=practitioner|era=historical
+isolation-crash-blast-radius-measured	"A fork() in the road" HotOS fork harmful performance security	vocab=OS-research|src=paper|stance=contrarian-to-fork|era=2019
+isolation-crash-blast-radius-measured	core_pattern pipe RLIMIT_CORE 1 special case kernel documentation core dump helper wait	vocab=linux-kernel|src=kernel-docs|stance=negative-result|era=any
+isolation-crash-blast-radius-measured	uWSGI harakiri reload-on-rss max-requests worker recycling semantics	vocab=python-ops|src=vendor-doc|stance=baseline|era=historical
+isolation-crash-blast-radius-measured	Hacking Blind BROP nginx worker respawn same layout crash oracle requests count	vocab=offensive-security|src=paper(S&P14)|stance=attacker|era=historical
+isolation-crash-blast-radius-measured	V8 isolate out of memory crashes whole process NearHeapLimitCallback workerd isolate OOM terminate	vocab=JS-runtime|src=repo-issues|stance=skeptic-of-isolates|era=2024-26
+isolation-crash-blast-radius-measured	wasmtime host function panic abort process catch_unwind trap handling docs signals_based_traps	vocab=runtime-docs|src=vendor-doc|stance=neutral|era=2025-26
+isolation-crash-blast-radius-measured	systemd socket activation service crash restart connections queued not lost listening socket kept	vocab=SRE/init|src=vendor-doc(0pointer)|stance=proponent|era=historical
+isolation-crash-blast-radius-measured	Erlang OTP supervisor intensity period restart storm escalation semantics	vocab=actor/FP|src=official-doc|stance=baseline|era=historical
+isolation-crash-blast-radius-measured	seccomp clone3 ENOSYS filter clone flags CLONE_NEWUSER container runtimes	vocab=container-security|src=repo-issues|stance=defender|era=2020-26
+isolation-crash-blast-radius-measured	From Zygote to Morula Android zygote ASLR weakness fork shared layout NDSS 2014	vocab=mobile-security|src=paper(NDSS)|stance=attacker|era=historical
+isolation-crash-blast-radius-measured	Cloudflare Workers security model cordons isolate eviction crash dynamic process isolation	vocab=edge-platform|src=vendor-blog|stance=proponent|era=2018-25
+isolation-crash-blast-radius-measured	GHSA-q8hx-mm92-4wvg wasmtime panic	vocab=advisory|src=GHSA|stance=skeptic|era=2024-26
+isolation-crash-blast-radius-measured	nginx ngx_process.c respawn worker exited on signal master respawns	vocab=C-server-source|src=repo-code|stance=baseline|era=historical
+isolation-crash-blast-radius-measured	Fastly Compute fresh sandbox per request instantiation microseconds Lucet isolation no state between requests	vocab=edge-platform|src=vendor-doc|stance=proponent|era=2020-25
+isolation-crash-blast-radius-measured	Apache httpd MaxConnectionsPerChild memory leak prefork mpm documentation	vocab=web-ops|src=official-doc|stance=baseline|era=historical
+isolation-crash-blast-radius-measured	firecracker SPECIFICATION.md boot time memory overhead per microVM numbers	vocab=virtualization|src=repo-spec|stance=neutral|era=2025-26
+isolation-crash-blast-radius-measured	clone3 CLONE_INTO_CGROUP per-child cgroup memory.max oom kill only child Linux 5.7	vocab=kernel-API|src=man-page|stance=defender|era=2020-26
+isolation-crash-blast-radius-measured	docs.wasmtime.dev security defense in depth recommend process sandbox embedder	vocab=runtime-docs|src=vendor-doc|stance=self-assessment|era=2025-26
+mcp-gateway-conformance-corpus-executed	npx conformance server dns-rebinding-protection http-header-validation server-stateless against local instances	conformance-suite|L5|executed
+mcp-gateway-conformance-corpus-executed	agentgateway issue 1855 dnsRebindingProtection	offensive-web-sec|L4|repo-issue
+mcp-gateway-conformance-corpus-executed	conformance issue 553 http-header-validation grades -32020	offensive-web-sec|L4|repo-issue
+mcp-gateway-conformance-corpus-executed	rust-sdk SECURITY.md allowed_origins deprecated entry without port	offensive-web-sec|L4|repo-issue
+mcp-gateway-conformance-corpus-executed	docker mcp-gateway gateway run MCP_GATEWAY_AUTH_TOKEN dns rebinding	offensive-web-sec|L4|repo-issue
+lean-check-lowering-and-token-proofs	gh api cedar-spec cedar-lean lakefile + lake-manifest + lean-toolchain (dependency footprint for building Cedar TPE proofs)	PL-formal|repo|skeptic|last60d
+lean-check-lowering-and-token-proofs	git sparse clone cedar-spec@301bdd2 cedar-lean: grep sorry/native_decide/axiom/implemented_by/extern in Cedar Lean proofs	PL-formal|repo-code|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh api lean4 release v4.35.0 body grep native_decide/axiom/kernel/lake check/module	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 repo 'native_decide' axiom (2026)	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 'soundness' label bug kernel (attacker stance)	PL-formal|repo+issue|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh api lean4 pulls 14953 14990 15145 15241 15289 15288 15005 15156 (verify PR identifiers, merge dates)	PL-formal|repo-PR|skeptic|last60d
+lean-check-lowering-and-token-proofs	gh search issues lean4 "proof of False" + labels soundness/runtime-soundness; read #15908 #14576 #15100 (attacker stance on kernel)	PL-formal|repo+issue|attacker|last60d
+lean-check-lowering-and-token-proofs	gh api leanprover/comparator repo README (prelude-integrity check for third-party exports) + leanchecker issues 15100/15101	PL-formal|repo|skeptic|last60d
+lean-check-lowering-and-token-proofs	Ubuntu AppArmor restrict unprivileged user namespaces bubblewrap uid map Permission denied profile	ops-SRE|vendor-doc|negative|2024-26
+lean-check-lowering-and-token-proofs	leanprover zulip lake check sandbox bwrap	PL-formal|forum|skeptic|last60d
+lean-check-lowering-and-token-proofs	lean4lean verified Lean kernel in Lean Carneiro paper	PL-formal|paper|proponent|2024-26
+lean-check-lowering-and-token-proofs	Lean kernel soundness bug reporting guide non-standard prelude hackmd	PL-formal|vendor-doc|attacker|last60d
+lean-check-lowering-and-token-proofs	macaroon caveat encoding ambiguity HMAC chain vulnerability	cryptography|CVE/advisory|attacker|any
+lean-check-lowering-and-token-proofs	SQL NULL three-valued logic formal semantics Guagliardo Libkin	DB-theory|paper|skeptic|historical
+lean-check-lowering-and-token-proofs	MongoDB $ne matches documents field does not exist	web-dev practitioner|vendor-doc|skeptic|current
+lean-check-lowering-and-token-proofs	gh api ammkrn/nanoda_lib + leanprover/lean4export + digama0/lean4lean repos (version, license, last push)	PL-formal|repo|proponent|last60d
+lean-check-lowering-and-token-proofs	github actions runner-images ubuntu-24.04 apparmor_restrict_unprivileged_userns bwrap/chrome sandbox issue	ops-SRE|repo+issue|negative|2024-26
+lean-check-lowering-and-token-proofs	Mathlib policy native_decide forbidden reason	PL-formal|forum/docs|skeptic|2024-26
+lean-check-lowering-and-token-proofs	LLM generated Lean 4 proofs fail to compile first attempt rate unverified drafts	ML-for-proofs|paper|negative|2025-26
+lean-check-lowering-and-token-proofs	PostgreSQL nondeterministic collation equality deterministic false documentation	DB-practitioner|vendor-doc|skeptic|current
+lean-check-lowering-and-token-proofs	gh search issues lean4 miscompilation compiler wrong result 2026 (native_decide trust base, attacker)	PL-compilers|repo+issue|attacker|last60d

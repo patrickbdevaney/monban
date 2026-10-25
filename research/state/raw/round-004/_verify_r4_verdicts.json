@@ -1,0 +1,1148 @@
+{
+ "sc.do333-credit-scope": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Fresh search found no 2024-25 project publicly claiming DO-333 test-replacement credit, so adoption evidence stays thin. Key sources are vendor-authored (AdaCore, Moy 2017). The NASA case study is explicitly not a certification. I did not re-open the FM.A-7 table. | D: A 2017 NASA/Rockwell Collins report says DO-333 lets applicants get credit for formal methods without separate alternative-method justification, which supports the credit-scope claim. The Caveat/A380 and SPARK precedents",
+  []
+ ],
+ "sc.do330-tql-verification-tools": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: The TQL mapping rests on one Rockwell Collins presentation (Cofer 2015). I did not re-read it. The NASA 2017 report simulates a qualification and is not an actual certification. | D: NASA DO-330 case-study pages (2014-16) say tool qualification is generally needed when tools produce the evidence. This matches the criterion-based TQL logic.",
+  []
+ ],
+ "sc.no-prover-qualified": [
+  "C",
+  0.6,
+  "unchanged",
+  "P: This is a negative-existence claim backed by a few searches. Qualification in industry is often private, so 'none found' is weak. Vendor kits (AbsInt) already show that qualified formal tools exist. | D: I found no contradicting public qualification of Lean, Rocq, Isabelle, Z3 or CBMC. The seL4 page says Isabelle is 'not qualified yet'. I did not re-check Frama-C or CBMC vendor offerings, so SPARK/GNATprove and similar m",
+  []
+ ],
+ "sc.compcert-qualification-evidence": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: I did not re-fetch the MTU PDF. The AbsInt 2026 ATR claim is vendor/marketing and gives no TQL, DAL or cost. | D: Both a nuclear (MTU) and an avionics (ATR MFC_NG) qualification of CompCert exist. That shows regulators accept a verified compiler with supplementary evidence.",
+  []
+ ],
+ "sc.cc-eal6-eal7-real-evals": [
+  "B",
+  0.78,
+  "up",
+  "P: The INTEGRITY-178B figures ('millions', 'nearly a decade') are from vendor and press sources. The EAL6+ versus SKPP labelling is disputed. The NIAP claim comes from vendor pages. | D: The search found no completed PikeOS EAL7. The only EAL7 mention is a ~2011 press release saying it was in progress. The search did show PikeOS BSI-DSZ-CC-1146-2022 at EAL5+, so EAL5+ is the realistic ceiling seen. The c",
+  []
+ ],
+ "sc.cc-formal-requirements": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: SA-17(3) text is unconfirmed. I did not re-verify the ISO 26262 clause. | D: The CC assurance-class structure (formal only at EAL6 design and EAL7) is long-standing and well known. The claim is conservative.",
+  []
+ ],
+ "sc.cost-per-verified-loc-curve": [
+  "B",
+  0.65,
+  "down",
+  "P: This is mixed provenance. Several figures are the explorer's own recomputations and cross-project comparisons that ignore scope differences (kernel-only versus all, one layer versus a full system). 'C' items are not primary numbers. | D: Klein's 1.4 py/kLOC matches the recomputed kernel-only figure. Heiser's $/LOC figures are primary. A curve is reasonable as a range, not a trend line.",
+  []
+ ],
+ "sc.sel4-maintenance-cost": [
+  "B",
+  0.68,
+  "unchanged",
+  "P: The quotes come from slides and a mailing list. There is no quantified cost series, as the explorer admits. I did not re-fetch them. | D: The qualitative points (proof configurations multiplying, expert bottleneck) are consistent across several independent sources.",
+  []
+ ],
+ "sc.lean-kernel-soundness-2026": [
+  "B",
+  0.88,
+  "up",
+  "P: The advisory says the fix is only in nightly-2026-07-29 and that no stable release had it at posting. The explorer's stable-release claims (4.32.1, 4.32.2, 4.34.0) come from release notes I did not verify. The exploit needs a malicious metaprogram in the Lean process (CVSS UI:R, AV:L), so it is not a remote bug. | D: I fetched the seclists advisory and it confirms the core claim. The nested-inductive projection bug plus a hash collision gives an axiom-free proof of False. Versions up to 4.31.0 are affected. Nanoda and leanchecker bot",
+  []
+ ],
+ "sc.ferrocene-qualified-rustc": [
+  "B",
+  0.88,
+  "up",
+  "P: The explorer says 'ASIL D, SIL 3, IEC 62304 C' for the toolchain. That is right. But the certified core library is only SIL 2/ASIL B, and that limit matters for any ASIL D claim about library code. | D: I confirmed on the Ferrous Systems page: T\u00dcV S\u00dcD-qualified to ASIL D, SIL 3 and IEC 62304 Class C. DO-178C is described only as supporting customer efforts toward DAL C. Price is EUR 25/month or EUR 240/year per user. Ce",
+  []
+ ],
+ "sc.regulator-2025-26-statements": [
+  "B",
+  0.75,
+  "up",
+  "P: The NSA/CISA MSL CSI full text was unread, and so was the EASA material. 'No regulator credits code proofs' is a negative claim. | D: I confirmed on the CISA page that the roadmap is due by the end of 2025, that products with end-of-support before 2030-01-01 are excluded, and that formal verification is not mentioned. This corrects the secondary 'Jan 1",
+  []
+ ],
+ "sc.implication-checker-qualification-arguments": [
+  "B",
+  0.65,
+  "down",
+  "P: The 2-4 person-week estimate is an unsupported guess, and no FM-tool qualification cost data exists. The corpus gate is only as good as the known-bug corpus, which cannot catch unknown unsoundness. The Lean case shows that 'require >=2 kernels' does not protect against a shared-spec bug. | D: The advisory-based mitigations (pin the kernel, ban untrusted metaprograms, hash-pin dependencies, sandbox the build) address exactly the real attack path in the Lean advisory.",
+  []
+ ],
+ "sc.implication-case-structure-diverse-evidence": [
+  "B",
+  0.65,
+  "unchanged",
+  "P: This is a design recommendation with no direct external test. It rests on sources that never validated it as a package. | D: Diverse evidence is standard in assurance-case practice. Proofs plus independent tests plus a listed residuals section is a defensible structure.",
+  []
+ ],
+ "sc.implication-buyer-recognition-route": [
+  "C",
+  0.55,
+  "unchanged",
+  "P: This is judgment from sparse evidence. The cost and fit of EAL4+ and EUCC for a web server are unverified. I found no evidence on NIAP's current practice. | D: No evidence of regulator acceptance of code proofs turned up in new searches. The recent kernel certs found are EAL5+ (PikeOS BSI-DSZ-CC-1146-2022) and EAL4+ (L4Re), which matches the route.",
+  []
+ ],
+ "wpo-inv-write-subset": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Design artifact with no URLs; oracle check() implements only W1/W2/W4, so W3 and W5-W7 (RETURNING subset, FK-action closure, uniform failure, Redis reply subset) are specified but not machine-checked. 'Lean-ready' is unproven because nothing was run in Lean. | D: The invariant is validated indirectly. The executed leak classes (upsert capture, row movement, trigger/CTE, MERGE) all violate W1/W2/W4 as stated. The W1 Pred clause is the only check that catches the in-tenant-outside-",
+  []
+ ],
+ "wpo-l5-write-oracle-harness": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: I could not re-run the harness. The files exist in 02-work (wporacle.py, wp_run*.py, rd_run.py, result JSONs, repro.sql). Version labels such as redis 8.10.2 and valkey 9.1.2 are unchecked against upstream. Synthetic seeded cases, so leak counts depend on the generator, which makes them corpus statistics, not prevalenc | D: Positive and negative controls plus native-control comparison are the right design. Artifacts are reproducible with a fixed seed, and the 02-work directory is on disk. The Redis ACL doc fetched today matches the Redis fi",
+  []
+ ],
+ "wpo-upsert-keyspace-capture": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: The Django ticket 34225 cited does not support the claim. It is a closed-invalid bulk_create IntegrityError about a Coalesce constraint, so drop it as a source. The 261/300 figure depends on the generator's collision rate and is not a prevalence. The core behavior (ON CONFLICT on a global unique key updates another ten | D: The MySQL doc was fetched and says verbatim that when a=1 OR b=2 matches several rows, only one row is updated, and to avoid ON DUPLICATE KEY on tables with multiple unique indexes. The SQLite and PG docs are standard. E",
+  []
+ ],
+ "wpo-set-tenant-row-movement": [
+  "A",
+  0.86,
+  "unchanged",
+  "P: The cited URL is a raw nodeModifyTable.c on master, which will drift. I did not re-verify the ExecCrossPartitionUpdate claim. The finding is close to a tautology, since a raw SET tenant is a policy-level hole by construction. | D: The finding is executed on both engines (113/300 SQLite, 110/300 PG), and RLS WITH CHECK and a static authorizer deny each block all cases. The partition-move result under RLS is a useful non-obvious negative.",
+  []
+ ],
+ "wpo-rls-with-check-masked-by-select-policy": [
+  "A",
+  0.85,
+  "unchanged",
+  "P: The Bytebase blog covers only the generic footguns (missing WITH CHECK, missing FORCE). It does not state the masking mechanism, which rests on the PG docs plus the explorer's own experiment. The 100/100 rate is from a deliberately misconfigured policy, so it shows the hazard, not a default. | D: The Bytebase blog does cover omitted WITH CHECK (footgun 9) and owner without FORCE (footgun 8), so the adjacent claims are corroborated. The column-free-write masking is a novel, executed result on two PG versions. Reco",
+  []
+ ],
+ "wpo-pg-onconflict-where-peek": [
+  "A",
+  0.86,
+  "up",
+  "P: The 19rc1 and PG17 behavior is the explorer's own execution, and I could not re-run it. The mailing-list thread is an unresolved report with replies I could not read. The title says non-leakproof function, but the PoC is a plpgsql NOTICE side channel, so 'no fix committed' status may have changed since 2026-10-06. | D: The thread was fetched and dated 2026-09-25. Viktor Holmberg's PoC (ON CONFLICT DO UPDATE WHERE not peek(t.secret) under a self policy) matches the claim, and he says it affects PG18 and probably earlier versions. The th",
+  []
+ ],
+ "wpo-trigger-cte-merge-transitive": [
+  "A",
+  0.82,
+  "unchanged",
+  "P: The only cited source is the MERGE doc page. The trigger, CTE and NOT MATCHED BY SOURCE numbers rest on one executed run. The SECURITY DEFINER trigger result is expected by design, not a vulnerability. MERGE ... WHEN NOT MATCHED BY SOURCE is a PG17+ feature, and I did not verify its 300/300 rate. | D: Executed with both leak counts and RLS-blocks controls. The in-tenant-outside-Pred finding (78-79/300), which only the W1 Pred clause catches, is a useful result because tenant-only checks would miss it.",
+  []
+ ],
+ "wpo-sqlite-replace-authorizer-gap": [
+  "A",
+  0.87,
+  "unchanged",
+  "P: The SQLite authorizer page was fetched. It confirms only the prepare-time-only behavior and says nothing about REPLACE implicit deletes, so that part rests solely on the explorer's execution and is version-specific (3.45.3). Neither conflict.html nor pragma.html was re-fetched. | D: The prepare-time-only statement is verbatim in the SQLite docs, so the mechanism is well grounded. The executed 261/300 against the plain DELETE denied control is a clean demonstration. The static deny of UPDATE t.x bloc",
+  []
+ ],
+ "wpo-redis-write-path-acl": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: PR 10122 is an internal key-spec flags PR (merged 2022-01-18), only indirectly relevant to the ACL claims. The glob-char leak rates (13-15/29) come from 29 cases only, so they are small samples. The version labels (redis 8.10.2, valkey 9.1.2) are unverified. | D: The ACL doc fetched today states verbatim that key patterns do not limit FLUSHALL, FLUSHDB and SWAPDB, and gives -flushall -flushdb -swapdb as the fix. It also says the ACL pattern is glob-style, which supports the raw-i",
+  []
+ ],
+ "wpo-l5-write-denylist": [
+  "B",
+  0.82,
+  "unchanged",
+  "P: This is a derived recommendation with no URLs. It is conservative and may over-ban safe constructs, for example MERGE with a tenant-inclusive ON clause. The uniform-error mandate trades debuggability for closing the existence oracle, which is a design choice rather than a tested result. No measurement of false-positive | D: Each denylist item traces to an executed leak or a doc-confirmed behavior: composite-PK upsert, REPLACE gap, ACL flush commands, MySQL multi-unique, RLS FORCE and WITH CHECK. The set is well supported.",
+  []
+ ],
+ "wpo-nativecontrol-matrix": [
+  "A",
+  0.82,
+  "unchanged",
+  "P: 'Catches every cross-tenant write case' is stated for the explorer's own corpus, not the world. The ON CONFLICT WHERE peek finding in this same batch shows RLS does not close the read side, so the R-DB-7 'closed iff' conclusion needs the caveat that PG is closed for writes but leaks reads through ON CONFLICT WHERE unti | D: The matrix is consistent with the Bytebase footguns and the PG docs for owner/FORCE and WITH CHECK, and it is backed by an executed pass across both PG versions. The conditions (composite arbiter, FORCE, explicit WITH CH",
+  []
+ ],
+ "uu11.outage-class-frequency-table": [
+  "C",
+  0.6,
+  "unchanged",
+  "P: Single coder, snippet-level, primary label only. Sample is skewed: Wikimedia is 62 of 160 (~39%) and Bunny status entries 22, so shares reflect those reporting cultures. Per-class medians rest on n=3-10. I recomputed from the CSV: the 172 and 160 counts and the top-8 class counts match exactly. The duration median does | D: Counts reproduce exactly from the shipped CSV, so the table is auditable. The ex-Wikimedia sensitivity check shows the ranking is stable (config 18%, bug 14%). Mixed sources lessen single-source bias.",
+  []
+ ],
+ "uu11.postmortem-selection-bias": [
+  "C",
+  0.6,
+  "unchanged",
+  "P: This is an absence-of-evidence argument built on 8 searches by one searcher. Not finding a postmortem is weak evidence, and search-engine coverage varies. The argument is reasonable as framing but is not a measured result. I did not re-run the searches. | D: The sibling claims show the same classes (ProxySQL LimitNOFILE, conntrack, workers) surfacing as contributing causes. That supports the reportability-versus-incidence point, and the recommendation to gate cheap-to-fix cl",
+  []
+ ],
+ "uu11.cfg-push-class": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: Minor nuance: the Cloudflare 2025-11-18 post gives impact start as 11:20 in the intro but 11:28 in the timeline, so 5h46m is a rounded upper bound. The 'seconds-fast propagation' point applies to Cloudflare's global config system; it is not general. Other cited incidents (GitHub 2025-01-13 and 2024-01-31, Wikimedia) we | D: I fetched both Cloudflare primaries. 200-feature limit, ~60 normal, unwrap() panic, and the 5-minute ClickHouse generation all check out. For 2025-12-05, 08:47-09:12, 28% of traffic, the FL1 Lua nil index, the killswitch",
+  []
+ ],
+ "uu11.cert-lifecycle-class": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: 'All avoidable by an age/chain gate' is an overclaim. Wrong-cert and missing-SAN cases need a SAN/chain check, not an age check, and the AddTrust root expiry is a client-trust problem a server-side gate may not catch. The Sapling item is snippet-only, and the Let's Encrypt pause item is not an outage of the middle-tier | D: The GitHub 2025-11-18 incident is confirmed in the primary: 20:30-21:34 UTC (64 min), expired internal service-to-service TLS cert, all Git ops over SSH and HTTP down. Cert incidents recur at the largest operators, so th",
+  []
+ ],
+ "uu11.worker-exhaustion-class": [
+  "B",
+  0.75,
+  "down",
+  "P: The GitHub post says 'process manager', not systemd, so the 'systemd' attribution is unverified. The 8h14m is the sum of four events (52m, 47m, 2h12m, 4h23m) and is degraded service, not total outage. Only the third incident (2h12m) involved the fd limit, so the 8h14m figure attached to LimitNOFILE is misleading. The m | D: The LimitNOFILE silent clamp from 1073741824 to 65536 (kernel nr_open 1048576) is confirmed in the primary. It is a strong, preflight-checkable example. The Wikimedia php-fpm series gives repeated independent instances.",
+  []
+ ],
+ "uu11.retry-herd-class": [
+  "B",
+  0.72,
+  "unchanged",
+  "P: The Discord, LaunchDarkly, GCP and Spotify items come from the danluu list and were not re-verified. n=4 durations make 'shortest median 6.5 min' fragile. Retry storms often extend other outages, so primary-cause coding understates their amplification role. | D: Retry amplification is well known from large provider postmortems, including GitHub 2025-08 and the AWS and GCP cascades, so under-coding is likely. The class is credible.",
+  []
+ ],
+ "uu11.dns-elb-class": [
+  "B",
+  0.72,
+  "unchanged",
+  "P: The Cloudflare 2026-01-08 item is a resolver-side (1.1.1.1) change affecting clients such as glibc and Cisco switches. It is not a middle-tier proxy outage, so it is a loose fit for this class. The ELB IP-caching cases are old (k8s.af ~2017-2019). n=3 durations. | D: The Cloudflare post is confirmed. A CNAME/A order change released 2026-01-07/08, incident declared 18:19, revert finished 19:55, with glibc getaddrinfo failures and Cisco switch reboot loops. It shows DNS-ordering assump",
+  []
+ ],
+ "uu11.lifecycle-operator-class": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: Wikimedia-dominated: the depool incidents are mostly Wikimedia-specific tooling (confctl, PyBal), so generalization to other stacks is unproven. Small n per sub-class. I did not re-fetch the individual wikitech pages. S3 2017 is not middle-tier. | D: The min-healthy-floor principle is supported by PyBal depool protection actually working in 2022-09, a real existence proof. S3 2017 and Cloudflare R2 show the same pattern at hyperscale.",
+  []
+ ],
+ "uu11.clock-regex-rare-classes": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: 'None after 2019' in the corpus reflects sampling and recall, not absence in the world. Regex ReDoS and clock incidents continue (the Cloudflare 2019 WAF regex is well known). The corpus could not be checked for 2020-2026 time bugs. The claim is a statement about the corpus, not about the world. | D: The Cloudflare 2016 leap second (negative duration into rand.Int63n) and the 2019 WAF regex are canonical, well-documented cases. The one-line rules (monotonic clock, linear-time regex) are cheap, so even low frequency j",
+  []
+ ],
+ "uu11.threat-ledger-gap-classes": [
+  "C",
+  0.65,
+  "unchanged",
+  "P: This is the explorer's own synthesis mapping classes to prevention elements, with no empirical test that those elements would have prevented the incidents. 'No element prevents latent bugs' ignores fuzzing, formal verification and differential testing, which do address some latent logic bugs. The class percentages inhe | D: The gap logic is sound. Cloudflare 2025-11 and 2025-12 both involved panics on valid-but-unexpected input, which Rust memory safety does not prevent, so the 'necessary but not sufficient' point holds.",
+  []
+ ],
+ "uu11.l5-config-lkg-canary-rule": [
+  "C",
+  0.72,
+  "unchanged",
+  "P: These are design proposals and are not validated. 'Total parse never panics' via Kani plus fuzz applies to the parser but does not cover downstream consumers: the 2025-11 failure was an unwrap in a consumer on a size-limit violation, and the 2025-12 failure was a nil index in rule evaluation. 'Never 100% in one step' c | D: The rules map directly onto the confirmed Cloudflare failure mechanisms: bounded artifact, LKG, fail-open to last-known-good, and staged rollout. Cloudflare's own remediation lists these same measures.",
+  []
+ ],
+ "uu11.l5-cert-expiry-gate": [
+  "C",
+  0.72,
+  "unchanged",
+  "P: Design proposal only, with no test evidence. The 30/14/7/3-day thresholds are arbitrary. A faketime CI test does not cover external trust-anchor expiry. The only citation is the GitHub incident, which says nothing about the design. | D: The GitHub 2025-11 incident (no alert on an internal cert) directly motivates a seconds-to-expiry gauge. Short-lived certs plus atomic swap are standard practice.",
+  []
+ ],
+ "uu11.l5-upstream-budget-retry-budget": [
+  "C",
+  0.72,
+  "unchanged",
+  "P: Proposal with no urls. The 10% retry budget is borrowed from common practice (Envoy, gRPC). It is not derived from this dataset. Preflight on conntrack headroom is host-specific and may be infeasible inside an unprivileged container. | D: The GitHub LimitNOFILE incident confirms a preflight of needed_fds versus the effective RLIMIT_NOFILE would have caught the silent clamp. Retry budgets are an established mitigation.",
+  []
+ ],
+ "uu11.l5-pool-floor-and-rule-guards": [
+  "C",
+  0.7,
+  "unchanged",
+  "P: Proposal only. A TLA+ 'always healthy>=floor' property proves a model, not the implementation. A hard refusal at a floor can block legitimate emergency drains unless an override is specified. The cargo-deny ban list is arbitrary. | D: The Wikimedia depool incidents and the PyBal protection existence proof support the min-healthy floor as a real, cheap guard.",
+  []
+ ],
+ "uu11.negative-result-ledger-completeness": [
+  "C",
+  0.58,
+  "down",
+  "P: The corpus is middle-tier outages only and public postmortems skew toward operational causes. Adversarial or memory-safety incidents are often disclosed as security advisories, not outage postmortems, so 4 of 160 undercounts them. The 'barely overlap' claim therefore partly reflects the sampling frame. Cloudbleed 2017  | D: Consistent with the Cloudflare 2025 incidents, where big outages came from logic and config, not memory safety. For a durability objective the conclusion that process gates matter more is plausible.",
+  []
+ ],
+ "econ.criteria-frequency": [
+  "C",
+  0.6,
+  "down",
+  "P: Keyword counts over non-random, enthusiast-skewed HN/Lemmy samples are not buying criteria; the 6.5k-comment coding cannot be reproduced from the cited URLs. In my spot checks, HN 50145507 is an LLM-proxy observability thread (219c) whose visible text was about subscription pricing and tracing, with no virtual keys or  | D: The direction is consistent with all the threads I could open. Ergonomics and ACME dominate household talk, and the enterprise threads I opened (Nine, RKE2, Traefik forum) are about parity and defaults. The PQ/formal zer",
+  []
+ ],
+ "econ.differentiators-absent": [
+  "C",
+  0.65,
+  "down",
+  "P: Absence of PQ in selection threads is confounded. Hybrid X25519MLKEM768 already ships by default in OpenSSL 3.5, Go and Cloudflare/GCP load balancers, so it is table stakes and not a discussed criterion. Enterprise FIPS/compliance buying happens in RFPs, not on HN. 'Zero' is a keyword count that cannot be re-verified.  | D: Absence in forums is real for the segments sampled. PQ talk exists only in CA/standards threads, which matches my search finding no proxy-selection PQ criteria. The point stands that PQ and formal assurance are not state",
+  []
+ ],
+ "econ.deal-breakers": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: The ranking by thread count is subjective. Items 1 and 2 rest on a handful of enterprise threads, and item 2 on a single vendor blog (Nine). River's death is one HN comment. NGF 'stop using' is one user. | D: The cited sources check out. Nine lists eight defaults and four incidents. NGF has the metrics paywall complaints, and the maintainer called switching 'non-trivial'. HN 45653865 does say River 'just died when funding sto",
+  []
+ ],
+ "econ.who-switches-first": [
+  "D",
+  0.4,
+  "down",
+  "P: This is a hypothesis built on thin evidence. Agent-gateway users stating criteria is not the same as switching first, and no switching data was shown. The agent-gateway evidence I could check (50145507) did not visibly support the specifics. Household users could equally switch first, since their cost is minutes. Selec | D: The forced-migration half is well supported: RKE2 promotes Traefik, and Nine chose HAProxy for parity. It is plausible that agent infra is the only segment that states hardening criteria.",
+  []
+ ],
+ "econ.ingress-nginx-migration-cost": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: Nine is a single SME host, so 'weeks' and the 4 incidents are n=1. The '>200 Ingresses/cluster' and the 'about half of environments' figure were not re-fetched by me. The bcrypt spinlock issue is specific to Alpine/non-glibc, so it is not general. | D: I verified the Nine post. It is dated 2026-10-07 and lists eight defaults and four incidents exactly as claimed (504 from 50s vs 60s, maxconn 2000, HTTP/1.0 400, bcrypt above 2 cores at 155 conns). The migration took 'th",
+  []
+ ],
+ "econ.annotation-parity-traefik": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: Most of the forum posts are single-user bug reports. I confirmed only 29653, and the only reply there was 'raise it on GitHub'. Not all of 29602, 29612, 29733 and 29704 were opened, and bugs in a fast-moving compat layer say little about adoption. | D: 29653 matches: whitelist-source-range is documented and in master but does not work in 3.6.8. RKE2 does confirm Traefik as the built-in replacement, which supports 'adoption driver'.",
+  []
+ ],
+ "econ.opencore-paywall-backlash": [
+  "B",
+  0.7,
+  "down",
+  "P: The churn threat is a single user (serdar-ngpems, 2026-06-11), and another commenter pushed back that it is 'not the kind of signal that helps'. The maintainer reply was about the Plus API generally. 'Maintainers say they hear this often' was not in what I retrieved. The Bifrost and GoModel HN claims were not checked. | D: I verified the dates and quotes. 'Bitter taste' (2026-03-16), 'stop using' (2026-06-11) and the 'push the commercial agenda' remark (2026-03-23) all appear. The paywall is a real complaint.",
+  []
+ ],
+ "econ.agent-gateway-criteria": [
+  "C",
+  0.5,
+  "down",
+  "P: The only HN thread I fetched (50145507) did not visibly contain the 'virtual keys' or 'LiteLLM vibecoded slop' quotes. It is a thread about subscriptions and observability, and the page was truncated. Claims about a same-day LiteLLM vuln and the 1.4 GiB RSS issue are unverified. Counts come from 12 threads, so n is sma | D: The thread is real: 303 points, 219 comments, and it discusses spend limits and proxy trade-offs. The credential and cost themes could sit in the unread 32k characters. The direction is plausible.",
+  []
+ ],
+ "econ.household-criteria": [
+  "C",
+  0.65,
+  "unchanged",
+  "P: Around 30 hand-coded statements is a small sample, the '10-15 minutes' switch cost is a single quote, and the sample is self-selected. It is not a criteria ranking. | D: Consistent with the other segment findings. Direction is plausible, and I saw nothing contradicting it.",
+  []
+ ],
+ "econ.governance-continuity": [
+  "C",
+  0.65,
+  "unchanged",
+  "P: One comment on River (45653865, which sits in thread 45653350, not under the claim's own thread id) and one anecdote on Traefik. The Caddy maintainership thread (45598590) was not verified. Governance is cited as a risk but there is no switching data. | D: The River quote is confirmed word for word. Combined with the vendor-risk count of 69 comments across 18 threads in the household segment, governance is a recurring concern.",
+  []
+ ],
+ "econ.security-incident-no-switch": [
+  "B",
+  0.65,
+  "down",
+  "P: The 'zero leaving' claim is overstated: in 48138268 ptx asks for a memory-safe alternative to Apache/nginx, sharperguy mentions switching to Traefik from Caddy, and owenthejumper recommends HAProxy. That is switching interest, not zero. Red Hat notes the bug needs a non-default rewrite config with unnamed PCRE captures | D: The thread is real: 'New Nginx Exploit', 101 comments, 444 points. No one explicitly says they are leaving nginx. CVE-2026-42945 is confirmed as 2026-05-13, CVSS 4.0 9.2, rewrite-module heap overflow, with public PoCs. T",
+  []
+ ],
+ "r4e10.bsi-tr02102-2026": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: Search could not surface the 2026 BSI PDF; only secondary/IETF-list context. The p~0.8 prediction for 2027-01 adopting 0x11EB/0x11ED is speculative. Blog claims 'recommends hybrid' with 2030 consistent but not primary. | D: Independent IETF-list posts corroborate that TR-02102-2 does not list X25519 and that BSI is hybrid-only; fits explorer's claim.",
+  []
+ ],
+ "r4e10.anssi-pg083-pure-nonconformant": [
+  "A",
+  0.85,
+  "down",
+  "P: My search found no independent source for 'pure ML-KEM non-conformant' in PG-083 v3.00; relies on explorer's pdftotext read only. Secondary claims (2027 qualification obligation) correctly marked C. | D: 2024 joint ANSSI/BSI/NLNCSA/Swedish paper independently supports hybrid-required stance, consistent with the claim.",
+  []
+ ],
+ "r4e10.asd-ism-2026-09": [
+  "A",
+  0.82,
+  "down",
+  "P: Not independently re-verified (GitHub OSCAL PDF not fetched); HTML never read; relies on single PDF read of dated rules. | D: No contrary evidence; strict-date stance consistent with ASD's earlier 2030 announcement.",
+  []
+ ],
+ "r4e10.eccg-acm-v3-draft": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Draft status; content may change in final v3; not re-verified by me. | D: RFC 10024 (Aug 2026) confirms all three hybrid groups are now standardized, making their inclusion as R plausible.",
+  []
+ ],
+ "r4e10.cccs-itsp40111-v5": [
+  "A",
+  0.82,
+  "down",
+  "P: Not re-verified in this pass; single-source primary reading. | D: No contrary evidence found.",
+  []
+ ],
+ "r4e10.ncsc-uk-guidance": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Summarizer-fetched; dateModified mismatch noted; possible newer 2026 revision unseen. | D: No contrary evidence.",
+  []
+ ],
+ "r4e10.eu-nis-roadmap-2025": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: Mirror PDF only; a 2026 follow-up (e.g. Part 2 or NIS2 amendments) may exist and was not found. | D: Joint ANSSI/BSI hybrid positions corroborate hybrid-whenever-feasible.",
+  []
+ ],
+ "r4e10.china-ngcc-round1": [
+  "B",
+  0.8,
+  "up",
+  "P: Counts originate from ngcc.dev (Saarinen) snapshots that move daily (48/34 on Sep 21 to 104/65 on Sep 23); 'heavy breakage' partly secondary (postquantum.com, which also carries an unverified Anthropic claim). Official NICCS site not re-checked by me. 'No national standard before ~2029' is inference. | D: 119 candidates and 34/41/9/35 split, launch 2025-02-05, and 104 findings vs 65 candidates independently confirmed via search; CAS team reports 16 candidates broken against reference implementations, supporting heavy brea",
+  []
+ ],
+ "r4e10.eo14412-us-baseline": [
+  "A",
+  0.9,
+  "down",
+  "P: Not re-fetched; relies on one PDF. | D: No contrary evidence.",
+  []
+ ],
+ "r4e10.rustls-secp384r1mlkem1024-gap": [
+  "B",
+  0.75,
+  "down",
+  "P: Version-pinned to 0.23.46; rustls may have added the group in a later release or via rustls-post-quantum; I could not confirm docs.rs content. Gap is a snapshot claim. | D: RFC 10024 only published Aug 2026, so library support lag is plausible; custom SupportedKxGroup spike is feasible.",
+  []
+ ],
+ "r4e10.curve25519-chacha-nonacceptance": [
+  "A",
+  0.83,
+  "unchanged",
+  "P: ANSSI side is an omission, not a prohibition; absence from an allowlist is weaker than exclusion. | D: IETF post independently confirms TR-02102-2 omits X25519.",
+  []
+ ],
+ "r4e10.matrix-jurisdiction-requirements": [
+  "B",
+  0.78,
+  "down",
+  "P: JP/KR/CN rows are thin and lightly sourced (no URLs); matrix aggregates claims with varying certainty. | D: Core rows (DE/FR/AU/CA/EU/US) are primary-sourced.",
+  []
+ ],
+ "r4e10.golden-tls-kex-profiles": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: Recommendation rests on BSI 'intends' (not yet binding), draft ACM v3, and unimplemented rustls support; 0x11ED universality is a forecast. Only two URLs cited. | D: RFC 10024 describes 0x11ED as targeted at high-security FIPS environments, matching the thesis.",
+  []
+ ],
+ "r4e10.golden-signature-profiles": [
+  "B",
+  0.7,
+  "unchanged",
+  "P: Composite ML-DSA+ECDSA profile relies on immature hybrid-signature standards and no TLS stack support; design inference more than fact. | D: IETF LAMPS composite drafts progressing.",
+  []
+ ],
+ "r4e10.conflicts-list": [
+  "A",
+  0.82,
+  "unchanged",
+  "P: C9 and C10 mix guidance and dated claims; C4 depends on BSI intended list becoming final. | D: Conflicts follow directly from verified primary rules.",
+  []
+ ],
+ "wasmtime-advisory-share-by-config": [
+  "C",
+  0.68,
+  "unchanged",
+  "P: The rate depends on denominator and the hand classification (14 \u2192 12 \u2192 11 hits). The 6-month-trigger probability is a Poisson back-of-envelope. I could not recompute the 81-GHSA classification in this pass. | D: GHSA-mghf-wjfp-p5xm resolves. It is critical (CVSS 9.9), aarch64 Cranelift with default settings, published 2026-10-19, patched in 36.0.19, 48.0.7 and 49.0.4, exactly as stated. The M0 definition (x86_64 only) therefore ",
+  [
+   "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-mghf-wjfp-p5xm"
+  ]
+ ],
+ "threat-ledger-middle-tier-2023-2026": [
+  "B",
+  0.72,
+  "unchanged",
+  "P: The script prints 60% and 46%, but the headline numbers need hand relabels. The sample is small (n=52 and n=28), so the intervals are wide. The 4 misfiled rows are subjective. | D: Adding the uncounted repo-only quinn HIGH advisories moves the share to about 55%, which is still the majority category. The qualitative conclusion is robust.",
+  []
+ ],
+ "w02.handshake-pq-cost": [
+  "B",
+  0.62,
+  "unchanged",
+  "P: Single-host microbenchmarks under load (loadavg ~25 seen in the neighbouring IPC logs, powersave governor). Percentages vary widely between servers (nginx +31.9 to +74.2%). I did not re-verify the logs here. | D: The correction was reproduced across all 12 logged pairs, and the direction matches published PQ handshake overhead results.",
+  []
+ ],
+ "w02.ipc-hop-cost-1core": [
+  "A",
+  0.78,
+  "unchanged",
+  "P: I saw that the logs were taken at loadavg ~25 with the powersave governor. Cores 13 and 13,17 are a shared cpuset, so absolute numbers are noisy. The 1-core versus 2-core difference is real, but n=5 for the control. | D: The 2-core control exists in the logs (cpus_allowed 13,17), confirming the cross-core caveat. The budget should use the cross-core 8.07 \u00b5s figure, since the helper is unlikely to be pinned to the caller's core in a real ",
+  []
+ ],
+ "r3e05.tenuo-cel-attenuation-bypass": [
+  "A",
+  0.8,
+  "unchanged",
+  "P: 'Unfixed on main' rests on a code comparison at one point in time. The last-commit timestamp (2026-10-24) suggests active work. A fix could land at any time, and I did not re-check. | D: The explorer's claim is specific (HEAD hash, file, function names) and consistent with no advisory being published.",
+  [
+   "https://github.com/tenuo-ai/tenuo/blob/main/tenuo-core/src/constraints.rs"
+  ]
+ ],
+ "sc3.cooldown-executed-cargo-198": [
+  "A",
+  0.93,
+  "unchanged",
+  "P: RUSTSEC-2026-0382 is for rustls-webpki. Its patched range starts at 0.103.16, so the cooldown lock at 0.103.15 is the vulnerable version. The cooldown works as designed, but it holds a version with a known advisory, which is the exact trade-off. The window closes 2026-10-27, so the result is time-limited. | D: The advisory page confirms issuance on 2026-10-20, consistent with the 0.103.16 publish on 2026-10-20T08:58Z. The single-hit result is an executed artifact, not a claim.",
+  [
+   "https://rustsec.org/advisories/RUSTSEC-2026-0382.html"
+  ]
+ ],
+ "irl-l5-differential-oracle-harness": [
+  "A",
+  0.8,
+  "down",
+  "P: The 4th seed is pre-fix only, so 'hardened 0/0 on 4 seeds' is overstated. The harness is the author's own and the query families are chosen by the author. | D: Three post-fix seeds at 0/0 and the baselines matching previous bands give moderate support.",
+  []
+ ],
+ "r3e07-L5-swarm-acceptance-criteria": [
+  "D",
+  0.6,
+  "down",
+  "P: The tuned parameters were fitted in-sample. The table label implies 10 scenarios when the C1 and C2 values are for mixed only. The failures in aged_swarm, flash_crowd and cheap_flood are material. | D: The failures are the explorer's own disclosures from the logs, which is more credible than a pass. A simulation is not an empirical result, so a lower grade would also be defensible.",
+  []
+ ],
+ "ops.fips-module-boundary-pin": [
+  "B",
+  0.75,
+  "down",
+  "P: The two advisories may be unreachable through rustls (no CCM, CRLs handled in webpki). So 'fails cargo-audit' is a tooling-gate problem rather than an exploitable one. The reachability argument is the explorer's own inference. | D: RUSTSEC-2026-0043 confirms the AES-CCM timing issue (issued 2026-03-20), patched at >=0.13.12 and affecting 0.13.0 to <0.13.12. The 0.13.11 pin is inside the affected range. A pinned version that is already two patch rel",
+  [
+   "https://rustsec.org/advisories/RUSTSEC-2026-0043.html"
+  ]
+ ],
+ "sc3.l5-ci-gate-list": [
+  "A",
+  0.75,
+  "unchanged",
+  "P: The grade change from 0.80 to 0.75 is arbitrary. Gate G10 is a design proposal, not a measured result. | D: The cedar GHSA resolves (High, 7.5, availability only, cedar-policy >=4.3,<4.13, published 2026-10-22), supporting the blind spot.",
+  [
+   "https://github.com/cedar-policy/cedar/security/advisories/GHSA-m84h-6f26-p3p7"
+  ]
+ ],
+ "sdg-rls-plan-cache-family": [
+  "A",
+  0.78,
+  "unchanged",
+  "P: The issue is master-only and was never released. The commit hashes could not be verified in this pass. | D: It is a useful design lesson for the oracle, and the recommendation to add the query family is cheap.",
+  []
+ ],
+ "isolation-decision-inputs-table": [
+  "C",
+  0.65,
+  "unchanged",
+  "P: The re-tag is a bookkeeping change. The classification is a hand-labelled set. | D: The newly confirmed aarch64 critical strengthens the direction even though the rate input is C.",
+  []
+ ],
+ "r4c12.repo-ghsa-osv-blindspot": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: A 7-of-133 sample across 15 repos is a convenience sample. OSV ingestion lags and may catch up within days, especially for the newest cedar advisory (published 3 days earlier). The GHSA is High, availability only, 7.5. | D: The cedar GHSA exists with the stated range and date. The cedar LOW advisory from June being invisible for 4 months shows the blind spot is persistent, not just lag.",
+  [
+   "https://github.com/cedar-policy/cedar/security/advisories/GHSA-m84h-6f26-p3p7"
+  ]
+ ],
+ "r4c12.prediction-scorecard-2026-10-25": [
+  "A",
+  0.8,
+  "unchanged",
+  "P: Repricing numbers are subjective. I did not re-verify the individual items (Kani, sqlx, Pingora, privacypass). | D: The scorecard is a transparent ledger with dated evidence, and downward repricing of the explorer's own predictions is good calibration practice.",
+  []
+ ],
+ "dx.r4-real-axum-mutant-scores": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: Single self-authored corpus (32 mutants), authored by the same agent that built the shapes, so rejection counts are not independent evidence. Mutants were chosen to fit lifetimes, which favors B2. Result is one toolchain (rustc 1.88.0), not a general claim. B1 shows 5 neutralized versus the 4 neutral the summary names. | D: I re-tallied results.json. Counts match: A 3 rejected and 29 compiled-violating, B1 16 rejected, B2 25 rejected, B2nd 28 rejected. Lint-tier residuals match too (A 17, B1 and B2 each {M15,M16}). The corpus includes adver",
+  [
+   "file:///home/patrickd/aegis/research/state/raw/round-004/05-work/results.json"
+  ]
+ ],
+ "dx.r4-owned-extractor-static-escape": [
+  "B",
+  0.88,
+  "up",
+  "P: The forum thread only shows Tokio and axum need 'static state, and its answers say safe scoped tasks are impossible. It does not mention owned extractors or any escape mutants. The b1ns result (a !Send handle breaks the Handler bound) is a local measurement. A fix such as non-'static extractors or an axum-internal chan | D: The forum thread (Nov 2025) exists, and its reasoning supports the claim. Extractors return owned values and tokio::spawn needs 'static + Send, so any owned handle can be moved into a spawn. Local results show B1 compile",
+  [
+   "https://users.rust-lang.org/t/axum-and-lifetimes-scoped-routes/136484",
+   "https://github.com/tokio-rs/tokio/issues/3162"
+  ]
+ ],
+ "dx.r4-scoped-adapter-hrtb": [
+  "B",
+  0.75,
+  "down",
+  "P: The cited HRTB thread (Dec 2025) is about async-graphql, MongoDB and closure inference. It supports 'closures hit HRTB inference limits' but says nothing about axum or ScopedHandler. docs.rs/scoped-futures was not verified as supporting this design. The explorer admits the adapter takes only a Ctx argument, with no bod | D: The HRTB thread exists and confirms the closure-coercion workaround and the unstable closure_lifetime_binder feature. That matches the stated gap. Local measurement shows 25/32 rejected on real axum, with named E0521 err",
+  [
+   "https://users.rust-lang.org/t/lifetime-inference-issue-around-async-and-hrtb/136722",
+   "https://docs.rs/scoped-futures"
+  ]
+ ],
+ "dx.r4-async-cancel-neutralization": [
+  "B",
+  0.8,
+  "up",
+  "P: The Drop-guard neutralization depends on the guard's rollback being synchronous and infallible. Real Tx rollback usually needs async I/O, which Drop can't await. The mutants may not model that, so 'neutral' may overstate safety in production. mem::forget and abort-style leaks are noted as defeating it. | D: RFD 400 (Oxide) exists and documents the cancel-bug classes (select! data loss, timeouts leaving partial work). LWN (Sep 24, 2025, Daroc Alden) confirms async drop and unforgettable types are only proposals. Both back th",
+  [
+   "https://rfd.shared.oxide.computer/rfd/400",
+   "https://lwn.net/Articles/1036924"
+  ]
+ ],
+ "dx.r4-lint-tier": [
+  "B",
+  0.72,
+  "down",
+  "P: Zero false positives was measured on one small baseline, which is weak evidence. Macro-expansion coverage of disallowed_methods is unverified, and so is dylint. The ban list is a deny-list: any aliasing or re-export, or a path not on the list, evades it. Agents can add #[allow] unless that is forbidden at crate level.  | D: Local results show the lint tier cut residuals to 2 for B1 and B2, and the numbers reconcile with results.json. disallowed_methods and the mem_forget lint are documented clippy features. B2nd at 28/32 shows a dependency ",
+  [
+   "https://doc.rust-lang.org/clippy/lint_configuration.html",
+   "https://trailofbits.com/tools/dylint/"
+  ]
+ ],
+ "dx.r4-l5-sdk-api-changes": [
+  "B",
+  0.65,
+  "down",
+  "P: This is a design recommendation, not a measured result. Body extraction, streaming/WS/SSE and the Detached capability are all open, and those are the cases where a request-scoped model breaks. GhostCell and generativity were cited without testing against axum. Sealing ScopedHandler is untested. | D: The measured pieces (Routes-only registration, non-Clone Ctx, dependency ban) each have local evidence. The tokio#3162 and trilemma sources are confirmed. Open items are stated honestly as open.",
+  [
+   "https://github.com/tokio-rs/tokio/issues/3162",
+   "https://without.boats/blog/the-scoped-task-trilemma/",
+   "https://docs.rs/generativity/latest/generativity/",
+   "https://plv.mpi-sws.org/rustbelt/ghostcell/"
+  ]
+ ],
+ "dx.r4-l5-ci-gate-trybuild": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: The timings (18.8 s cold, 3.2 s warm) are from one machine. trybuild snapshots are tied to the rustc version, so a toolchain bump rewrites them. The acceptance criterion 'residual exactly {M15,M16,N9,N14}' is tied to this corpus and can't show coverage of unknown escape classes. I didn't re-run trybuild. | D: trybuild is a standard and well-documented tool for compile-fail testing, and the toolchain-pinning advice addresses snapshot drift. The residual set matches results.json (M15 and M16 compiled-violating on B2).",
+  [
+   "https://docs.rs/trybuild/latest/trybuild/"
+  ]
+ ],
+ "dx.r4-l5-decision-update": [
+  "B",
+  0.65,
+  "down",
+  "P: The decision rests on a synthetic corpus and a narrow handler shape. A reversal trigger the explorer lists, streaming handlers, may be common in the real server. The claim that capsec marks tokens !Send is only partly right: the README says only the runtime wrappers (RuntimeCap, TimedCap, LoggedCap, DualKeyCap) are !Se | D: The B2-over-B1 ordering is robust: a structural 'static escape for B1 plus 25 versus 16 rejections. Both repos exist (capsec 16 stars, typesec 12 stars), so no fabricated sources.",
+  [
+   "https://github.com/auths-dev/capsec",
+   "https://github.com/querygraph/typesec"
+  ]
+ ],
+ "dx.r4-tokio-scoped-impossible": [
+  "A",
+  0.92,
+  "up",
+  "P: The 'impossible' in the id is stronger than the source. Darksonn wrote 'We can reopen if the Rust language ever gets a feature that makes it possible', so this is conditional, not permanent. The issue is about tokio spawn, not scoped concurrency in general (async-scoped exists, with caveats). Minor mismatch: a comment  | D: Verified: closed Not planned on 2024-05-28 by Darksonn. Feb 9, 2026 'situation has not changed', and Sep 15, 2026 a maintainer comment explaining tokio_scoped blocks a thread. The trilemma post is dated 2023-04-08 and ar",
+  [
+   "https://github.com/tokio-rs/tokio/issues/3162",
+   "https://without.boats/blog/the-scoped-task-trilemma/"
+  ]
+ ],
+ "r4tri.no-co-resolvable-lock": [
+  "A",
+  0.95,
+  "up",
+  "P: Resolver result was not re-run (no cargo here). Claim depends on cargo 1.98.0 behavior, and an unpublished-yet bound could change (rustls 0.24 dev line exists). The 'security floor' choice (0.23.44) is the explorer's framing; 0349 patch is >=0.23.46 per RustSec, so the floor is arguably 0.23.46, not 0.23.44. | D: Fresh crates.io metadata confirms the conflict: rustls 0.23.44 and 0.23.46 require aws-lc-rs ^1.18 and rustls-webpki 0.103.16 requires ^1.18; aws-lc-rs 1.15.3 and 1.17.1 accept aws-lc-fips-sys ^0.13.1, while 1.17.4 needs",
+  []
+ ],
+ "r4tri.fips-sys-decoy-lock": [
+  "A",
+  0.92,
+  "unchanged",
+  "P: Not independently re-executed; relies on cargo links semantics (links key per semver-incompatible version allows 0.13.x and 0.14.x together). Plausible and consistent with crates.io metadata showing 1.18.2 requires ^0.14.2. | D: The mechanism is consistent with metadata: a direct =0.13.11 pin plus rustls 0.23.46 pulls aws-lc-rs 1.18.x which needs 0.14.x, so two fips-sys nodes is the only possible resolution. Sound gate recommendation.",
+  []
+ ],
+ "r4tri.try-fips-mode-blind": [
+  "A",
+  0.88,
+  "unchanged",
+  "P: Single probe, cannot be re-run here; the 'identical' result is an absence-of-difference claim over 10 verdicts, so it only shows these probes do not discriminate. | D: Crates.io shows distinct fips-sys versions with different module versions, and the string-based gate is the correct remedy. Plausible that the runtime API does not expose module version.",
+  []
+ ],
+ "r4tri.fips-handshake-verdicts": [
+  "A",
+  0.85,
+  "unchanged",
+  "P: Verdicts come from one local executed probe; I could not rerun. Behavior may shift with aws-lc-rs patch versions. The X25519MLKEM768-not-refused claim in FIPS mode is surprising but plausible, since the hybrid combiner is outside the module boundary. | D: Executed evidence with probe source and output files beats prose. The point that kx_groups must be set explicitly for a FIPS listener is a durable and useful finding.",
+  []
+ ],
+ "r4tri.tested-env-only-al2023": [
+  "A",
+  0.85,
+  "unchanged",
+  "P: NIST page fetch returned module name 'AWS-LC 3 Cryptographic Module (dynamic)', validation 6/3/2026, sunset 6/2/2031, Active, but did not show version or tested OEs (extraction limit). The 'only AL2023, no vendor-affirmed OEs' claim, the Graviton4/Xeon 8375C detail and #5314 were not independently confirmed here. Also  | D: Dates and sunset match. MIP list confirmed live: AWS-LC 4 (dynamic and static) in Comment Resolution - Lab 10/22/2026, AWS-LC 5 (dynamic and static) Pending Review 10/5/2026, exactly as claimed.",
+  []
+ ],
+ "r4tri.cmvp-pin-carries-advisories": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: RUSTSEC-2026-0043 confirmed: patched in 0.13.12, CVSS 5.9, AES-CCM timing. The 0042 details (CRL IDP, 7.4, fixed 0.13.13) were not re-fetched. 'Reachability nil' is a grep-based argument, which is weak; AWS-LC FIPS modules expose AES-CCM at module level and downstream code could reach it. The claim that fixes ship only | D: Patched versions are consistent with the crates.io release dates (0.13.12 on 2026-03-02, 0.13.13 on 2026-03-19). Also, the cmvp lock additionally inherits rustls <0.23.46 RUSTSEC-2026-0349, a PQ downgrade, which makes th",
+  []
+ ],
+ "r4tri.yanked-1.17.2": [
+  "A",
+  0.95,
+  "up",
+  "P: Release-note wording was not re-read here, but yank status is confirmed. | D: crates.io confirms 1.17.2 yanked=True (2026-07-17), 1.17.3 released the same day, and 1.17.4 requires fips-sys ^0.13.17 and sits outside the 0.13.11 window. 1.15.3 is a real, unyanked release; 1.15.4 (2026-01-23) also ex",
+  []
+ ],
+ "r4tri.golden-lock-no-pq-feature": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: Depends on the local golden lock, which I did not re-run. Resolves only as of the current lock contents. | D: The local work file supports it, and the fix (enable prefer-post-quantum on the direct rustls dependency) is mechanically simple.",
+  []
+ ],
+ "r4tri.separate-fips-lock-decision": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Strongly a decision rather than a fact, and the cmvp profile carries known unpatched issues (0043, 0042, 0349 PQ downgrade, 0285/0346/0348 per explorer). Shipping that profile as 'compliant' trades one risk for another; the decision could instead be to ship floor-only and claim no CMVP. The 'one lock' collapse trigger  | D: With the triangle provably empty and AWS-LC 4 in Comment Resolution (10/22/2026, likely certificate within months), two profiles with an explicit reversal trigger is the minimal defensible position.",
+  []
+ ],
+ "r4e07.invariant-canon-one-owner": [
+  "E",
+  0.75,
+  "unchanged",
+  "P: A design invariant, not an empirical finding. Its eight clauses depend on the ledger and the executed corpus, and some CVE ids were not independently re-fetched (Quarkus, Traefik, Jetty, Netty). Reject-don't-repair is a policy choice that Cloudflare, lighttpd and DISA contradict, and the report itself grades that contr | D: The cited instances check out where I sampled them. grpc-go CVE-2026-33186 is a missing-leading-slash :path that bypasses deny rules, fixed in 1.79.3 by rejecting rather than repairing. That is a direct existence proof f",
+  []
+ ],
+ "r4e07.owner-table": [
+  "E",
+  0.7,
+  "unchanged",
+  "P: The table is a proposal. The pinned crate versions (http 1.5.0, serde_json 1.0.154) were not re-verified. Rejecting non-ASCII and the other rules are untested against real client traffic. U-label clients, noted as the reversal condition, are common in IDN markets. | D: WHATWG PR #914 supports the choice to avoid WHATWG host parsing on ingress. The Pingora fix also rejects userinfo in the authority, which the table should list explicitly.",
+  []
+ ],
+ "r4e07.diff-corpus-executed": [
+  "A",
+  0.85,
+  "unchanged",
+  "P: I could not re-run it. The corpus is author-built, so the counts depend on how the inputs were chosen. The 'admin count 7 to 25' figure measures the corpus, not the real world. The WPT URLs were not fetched here. The reported tool versions are plausible, but the numbers carry only internal validity. | D: The files exist in 07-work (diffh, analyze.py, results.json, canon_ref.py, corpus). The WPT and rust-url facts I could check agree with the claim. A pinned commit makes this reproducible.",
+  []
+ ],
+ "r4e07.canon-ref-zero-disagreement": [
+  "A",
+  0.78,
+  "down",
+  "P: Zero disagreement is partly by construction: a strict whitelist that accepts only 10 of 49 paths will agree trivially. The test measures only the accepted set. There is no measure of legitimate traffic that gets rejected, and the same author wrote the corpus, the reference and the fix. | D: The first-version bug (0x7f.0.0.1 read as 127.0.0.1) is a real catch in the style of CVE-2024-12224. It shows the differential method works. The result files are present on disk.",
+  []
+ ],
+ "r4e07.instance-ledger": [
+  "B",
+  0.85,
+  "unchanged",
+  "P: I verified only a sample: grpc-go (2026-03-20, matches), Pingora (2026-10-20, matches), Hono (2026-04-08, matches), Snipe-IT (2026-09-09, matches). About 20 ids were not re-fetched. libsoup is acknowledged as a patch-only source. 'One mechanism' lumps unlike bugs: for example, the Snipe-IT bug is a DB collation issue a | D: Every sampled id resolves with a matching date and class. There are 24 instances in 2026 alone, which shows the class is still active. The Pingora CVE (Oct 2026) shows the pattern is still producing new bugs this month.",
+  []
+ ],
+ "r4e07.whatwg-914-rust-url-divergence": [
+  "A",
+  0.92,
+  "up",
+  "P: The 758/2,674 and 8-row counts were not re-run. 'Fails closed' is true, but it is a compatibility issue only, with low security weight. | D: All three facts are confirmed. PR #914 was merged 2026-06-25 by annevk. rust-url #1135 is open since 2026-06-24 and mentions the Henri Sivonen design concern, plus a Deno fork already patching it. The PR also admits Bidi",
+  []
+ ],
+ "r4e07.json-parser-dup-key-matrix": [
+  "A",
+  0.92,
+  "up",
+  "P: The matrix was not re-run. Upstream confirms only the lone-surrogate bug, not the whole duplicate-key matrix. The impact depends on someone actually using simd-json for a policy parse. | D: Issue #481 is confirmed open, opened 2026-09-22. The explorer's root cause (the get_unicode_codepoint leftover 0 return) matches the issue text, and fix PR #482 is open. It adds that the bug appeared after commit 29d9998",
+  []
+ ],
+ "r4e07.cookie-rs-nbsp-trim": [
+  "B",
+  0.8,
+  "up",
+  "P: This is a low-severity, theoretical bug until a real consumer is shown to rely on __Host- prefix checks via this crate's parse. The 'unreported' status is unverifiable by web search. The RFC draft URL was not fetched. Browsers do keep NBSP in names, but not every browser version was tested. | D: Confirmed from master: parse_inner calls str::trim on the key (key_value[..i].trim()), which removes U+00A0. Hono CVE-2026-39410 is the identical class (NBSP prefix bypass in getCookie, fixed in 4.12.12). One more point:",
+  []
+ ],
+ "r4e07.hyper-h2-authority-host-unchecked": [
+  "A",
+  0.8,
+  "down",
+  "P: Based on a source read of the master branch. A claim that something is never checked is hard to prove, and I did not re-read the hyper and h2 source. A middleware or a hyper-util layer may do the check. | D: The Pingora advisory describes the same class (Host vs :authority, filters and cache keying on one while the upstream gets the other). That makes the class real in Rust proxies. Note the Pingora CVE also covers userinfo ",
+  []
+ ],
+ "r4e07.mime-dup-param-first": [
+  "A",
+  0.82,
+  "down",
+  "P: Not re-run. The mime crate is old and unmaintained (0.3.17), so its relevance to a modern stack is limited. The Rack CVE-2026-26961 was not re-fetched. | D: The test is reproducible and the rule is cheap. The 13/25 rejection rate also matters for compatibility.",
+  []
+ ],
+ "r4e07.sni-authority-cluster-2026": [
+  "B",
+  0.85,
+  "unchanged",
+  "P: Of the five CVEs, only Pingora was verified here. The cluster mixes SNI cases (Traefik) with Host dedup cases (Netty), so 'the same bug' is looser than claimed. Fix versions and dates for the others are unconfirmed. | D: Pingora CVE-2026-105298 is confirmed in detail (CVSS 4.0 6.3, fixed in 0.9.0 with 400 on mismatch). It is the exact pattern claimed, and it was published five days ago.",
+  []
+ ],
+ "r4e07.reject-vs-normalize-contrarian": [
+  "C",
+  0.7,
+  "unchanged",
+  "P: The lighttpd, Cloudflare and DISA sources were not re-fetched. The paivana commit and its claim are unverified. The 'both camps agree on CANON-4' conclusion is an interpretation. | D: PR #914 is evidence from a major standards body that strict rejection hurts compatibility (blogspot and famitei hosts), which supports the contrarian position at least for hosts.",
+  []
+ ],
+ "r4e07.ingress-host-exact-match": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: Reasoned decision on a single corpus. Rejecting non-A-label hosts will break clients that send raw U-labels, and the report does not quantify that. The exact-match approach also has to treat 'xn--' labels that PR #914 now passes through, which browsers will send. | D: The approach sidesteps the PR #914 drift entirely and matches the lesson of CVE-2024-12224. Pingora's fix (reject mismatch plus userinfo) is compatible with it.",
+  []
+ ],
+ "r4e07.ci-gate-canon-property": [
+  "E",
+  0.7,
+  "unchanged",
+  "P: A proposal with no implementation of G1, G3 or G4. The 100k proptest figure is arbitrary. The G5 Verus proof is aspirational. The grade E is right. | D: G2 was measured at under 1 s for about 3,900 inputs, and the harness already exists, so the gate is feasible.",
+  []
+ ],
+ "r4e07.ring1-canon-verdict": [
+  "B",
+  0.72,
+  "down",
+  "P: The upgrade from C to B rests on a count of 27/34 instances that were classified by the explorer. 'Zero per-front-end code' is untested against gRPC, GraphQL, MCP and WebSocket, where identity can be set by frame-level fields. The flip test depends on an unsolved question, upstream folding profiles. | D: The sampled ledger entries are real and dated. The grpc-go bug (:path without a leading slash) was fixed at the single point of path handling, which supports the one-owner model.",
+  []
+ ],
+ "l5.mcp-lc-corpus-runnable": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: No URLs, so nothing external to verify; only local files, which I did not re-execute. Toy echo servers and no upstream handler counter for the docker gateway weaken the 'rejected' oracle there. Only 19 of the original 33 cases executed; the '43-case corpus' label overstates what actually runs. | D: A runnable, loopback-guarded harness that surfaces defects the official conformance suite passes is strong, reproducible evidence. The explorer itself says it underclaims. All tested builds exist and are current (rmcp 3.",
+  [
+   "https://crates.io/api/v1/crates/rmcp",
+   "https://registry.npmjs.org/@modelcontextprotocol/server",
+   "https://pypi.org/pypi/mcp/json",
+   "https://github.com/agentgateway/agentgateway/releases"
+  ]
+ ],
+ "l5.mcp-lc-passrate-matrix": [
+  "B",
+  0.7,
+  "down",
+  "P: Rates mix spec MUSTs, advisory-derived cases and AEGIS-specific hardening, so they are not a product ranking. The denominator is executed cases only and differs per target (legacy vs modern), so numbers are not comparable. Single run on one date. docker-mcp 0.44.2 is a GitHub pre-release, and the 0.90 score comes from  | D: Targets are real and current as of the run date. The matrix gives per-config deltas, such as agentgateway 0.62 to 0.80 with dnsRebindingProtection, that show how much configuration matters. Raw jsonl exists, so it is aud",
+  []
+ ],
+ "l5.listener-gate-delta-2026-07-28": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: The cited security_best_practices page resolves, but it only supports part of the claim. It supports stateless MCP with no protocol-level sessions, the state-handle hijacking MUST NOT-treat-possession-as-authentication, and the token-passthrough and audience rules. The -32020 and -32022 codes and the 400 mandate are no | D: Core delta is confirmed. The spec says MCP is stateless with no protocol-level sessions. It says servers must not treat a handle as authentication, and should bind handles server-side to the authenticated user. It keeps ",
+  [
+   "https://modelcontextprotocol.io/specification/2026-07-28/basic/security_best_practices",
+   "https://github.com/modelcontextprotocol/conformance/issues/553"
+  ]
+ ],
+ "l4.mcp-spec-latest-revision-2026-10-25": [
+  "A",
+  0.92,
+  "unchanged",
+  "P: Absence of evidence at one instant. The directory listing was truncated ('View all files'), and I did not check the draft changelog or the Removed registry. Web search could not name a successor but also did not rule one out. | D: The spec directory listing shows 2024-11-05, 2025-03-26, 2025-06-18, 2025-11-25, 2026-07-28 and draft only. Press and the official blog all treat 2026-07-28 as the latest. The npm tags independently match the explorer: c",
+  [
+   "https://github.com/modelcontextprotocol/modelcontextprotocol/tree/main/docs/specification",
+   "https://registry.npmjs.org/@modelcontextprotocol/conformance",
+   "https://blog.modelcontextprotocol.io/tags/protocol/"
+  ]
+ ],
+ "l4.defaults-vs-configurable-matrix": [
+  "B",
+  0.78,
+  "unchanged",
+  "P: Issue 1855 resolves and confirms the opt-in, off-by-default DNS rebinding protection (closed 2026-08-14 via PR 3022; the issue text does not name the setting dnsRebindingProtection). It does not support the other claims: audiences unset, the session not bound to the principal, token passthrough, the docker 64 MiB body, | D: The maintainer's stance in 1855 that rejecting by default is unsafe or incompatible, with opt-in only, confirms the default-off design as deliberate. Related ecosystem CVEs show the same pattern: mcp-toolbox CVE-2026-116",
+  [
+   "https://github.com/agentgateway/agentgateway/issues/1855",
+   "https://www.wiz.io/vulnerability-database/cve/cve-2026-35568",
+   "https://www.sentinelone.com/vulnerability-database/cve-2026-11624/"
+  ]
+ ],
+ "l4.conformance-suite-gap-origin-only": [
+  "C",
+  0.55,
+  "down",
+  "P: Both cited URLs fail to support the claim. Issue 570 is 'Two untested SEP-2243 server requirements' (opened 2026-10-21) and says nothing about DNS rebinding or Origin. Issue 553 is about -32020 being graded as WARNING instead of FAILURE for standard headers. It is about http-header-validation severity, not dns-rebindin | D: The substantive point, that conformance passes while Origin validation is absent, is plausible. Two open issues show the suite is still immature and under active gap-filling, with untested SEP-2243 rows and lenient gradi",
+  [
+   "https://github.com/modelcontextprotocol/conformance/issues/570",
+   "https://github.com/modelcontextprotocol/conformance/issues/553"
+  ]
+ ],
+ "l4.ts-modern-vs-legacy-transport-gap": [
+  "B",
+  0.75,
+  "down",
+  "P: No URLs. I could not confirm that createMcpHandler exists in @modelcontextprotocol/server 2.4.0 (the registry page did not mention it), nor that the Express adapter is the only place with host/origin middleware. It is a design claim ('by design') that the maintainers may consider documented, and later releases may add  | D: Version 2.4.0 is confirmed as latest on npm (2026-10-23). The spec's statelessness change and the 'Origin MUST remains' point make a handler-level gap a real migration hazard. The explorer measured it directly (bare hand",
+  [
+   "https://registry.npmjs.org/@modelcontextprotocol/server"
+  ]
+ ],
+ "r4e01.lowering-r3-draft-failed-check": [
+  "A",
+  0.95,
+  "unchanged",
+  "P: Local-execution claim; cannot be re-run from the web. The cited URL is only the generic v4.35.0 release notes, which do not show the failures. It shows these two drafts failed, not that LLM-drafted Lean generally fails. | D: The explorer kept an as-is copy and the timings. This is exactly the failure class a checker run is expected to catch. The explorer already flags the overclaim risk itself.",
+  []
+ ],
+ "r4e01.lower-sound-full-proved": [
+  "A",
+  0.95,
+  "unchanged",
+  "P: It proves a mini model (single row, no joins or casts) and assumes Exact, which real engines violate. The 'no sorry' claim rests on local axiom output I could not re-verify. The statement is only as strong as the model's fidelity to the Rust renderer. | D: The pair-invariant proof under an explicit Exact hypothesis is the correct strengthening. The axiom set is the standard three, and multiple checkers accepted it.",
+  []
+ ],
+ "r4e01.exact-vs-refines-not-witness": [
+  "A",
+  0.92,
+  "unchanged",
+  "P: The PG bug is real: BUG #19645, PG 18.6, logged 2026-08-29. With pruning on, WHERE c='b' returns 2 instead of 1,2, and UPDATE/DELETE are affected. The cause is a partition key with a text_pattern_ops opclass against a nondeterministic ICU collation. That makes it a completeness failure, as claimed. The cited thread has | D: The failure class is real and recent. The bug also shows that planner-level incompleteness turns into a policy leak under negation, which strengthens the case for a two-sided contract. The report's message title says 'by",
+  []
+ ],
+ "r4e01.not-absent-permits-spec-gap": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: The MongoDB docs say $ne 'includes documents that do not contain the field' (confirmed). The Lean theorem is a consequence of the chosen two-valued reference, so it is a design choice rather than a discovered defect. The proposed fix was not applied. | D: The spec gap is real and it is fail-open. The same absent-field-matches-negation behaviour exists in other document stores, and the SQL UNKNOWN divergence is exactly where reference and engine can disagree.",
+  []
+ ],
+ "r4e01.token-T1-T6-checked": [
+  "A",
+  0.93,
+  "unchanged",
+  "P: HMAC is a parameter, so nothing is proved about real MAC security. T6 depends on an assumed roundtrip, and verify does not check the mint shape. The transcribed spec is a model of the Rust code, not the code. | D: The explorer states these limits itself. 16 theorems with axioms limited to propext, and none for the codec, is a clean result. The bounded caveat-count result (D3) is a real sharpening.",
+  []
+ ],
+ "r4e01.token-spec-sharpenings": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: These are design decisions, not facts about the world, so there is nothing external to falsify. The Rust obligations (canonical segments, fixed-length kid and nonce) are unverified. 'Forced' is a framing choice. | D: The D1 prefix witness (/t1 admitting /t10) is a classic real-world authorization bug class. D3 is correct: an HMAC chain cannot enforce a limit at append time, because the holder can append freely. So verify-time enforce",
+  []
+ ],
+ "r4e01.combine-failclosed-first-check": [
+  "A",
+  0.93,
+  "unchanged",
+  "P: The four theorems are trivial list lemmas. The claim that r2 'overclaimed' depends on the r2 text, which I did not inspect, as blind rules require. The crash-to-error mapping is unproved and left as a host obligation. | D: Correcting a 'proven in Lean' grade that had no file behind it is a valuable epistemic fix. It is cheap and closes the gap.",
+  []
+ ],
+ "r4e01.lakefile-toml-init-only": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: Sizes and the Init-only carve are local measurements I could not re-verify. The Lean release tag URL exists, but the carve is unsupported by maintainers and fragile across pins. The 'Std and Batteries not needed' claim holds only because the package uses core alone. | D: A 712 MB subset against a 3.4 GB tarball is a real, actionable correction. Re-verifying on every pin is the correct mitigation.",
+  []
+ ],
+ "r4e01.lean-build-footprint-measured": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: Single host (i9-14900HX, 32 threads), run at loadavg around 10. Timings will vary on CI runners, and a 4-core runner will be slower. The paranoid gate is a fixed cost that depends on Init size. | D: Measured numbers with raw timings are better than the earlier projection. The correction that paranoid is about 230 s is honest and actionable.",
+  []
+ ],
+ "r4e01.lake-check-paranoid-six-kernels": [
+  "B",
+  0.88,
+  "down",
+  "P: PR #14990 (merged 2026-09-07) adds lake check, builds the default targets, exports, replays through the kernel, and fails on any axiom beyond the three standard ones. The page I fetched does not mention 'paranoid', and #15145 was not fetched, so the six-checker claim rests on later PRs. 'Six checkers accept' means 'no  | D: Having five or six distinct implementations accept is real defence in depth. #15908 shows the ensemble catching a bug that a single kernel missed.",
+  []
+ ],
+ "r4e01.native-decide-aux-axiom-naming": [
+  "A",
+  0.9,
+  "unchanged",
+  "P: PR #14953 (merged 2026-08-28) removes ofReduceBool, ofReduceNat, trustCompiler and the kernel's reduceBool support. It does not itself introduce or rename the per-theorem axiom. The 4.35 ValidatingProofs page says dedicated per-computation axioms exist since 4.29 and that '_native' in the name signals native evaluation | D: The substance is correct: ofReduceBool was removed, so a denylist on that name fails open, and an allowlist of the three standard axioms is the safe form. The doc also notes that lean4checker and comparator cannot check ",
+  []
+ ],
+ "r4e01.bwrap-apparmor-blocks-lake-check": [
+  "B",
+  0.85,
+  "down",
+  "P: PR #15156 is about --inadvisably-no-sandbox for comparator, not lake check, and it does not mention bwrap. The claim that lake check ran with that flag, and the exit-code-1 ambiguity, rest on local observation. The CI-runner behaviour is untested, which the explorer admits. | D: The Ubuntu 24.04 restriction on unprivileged user namespaces (apparmor_restrict_unprivileged_userns=1) is well documented, so the failure mode is plausible. Flagging that the failure is indistinguishable from a proof rej",
+  []
+ ],
+ "r4e01.from-export-prelude-trust-hole": [
+  "B",
+  0.82,
+  "down",
+  "P: Issue #15908 (opened 2026-10-24, one day ago) is real and was closed. It was first closed 'not planned' and then 'completed'. The maintainer says it is not a soundness bug because the export replaces the standard prelude. The issue says comparator rejects the exploit. But it also says lean4lean, con-leche and con-ron r | D: The policy is sound: lake check --from-export should only run on exports we built ourselves, and third-party artifacts should go through comparator. The explorer's description of the Lean paranoid kernel and leanchecker ",
+  []
+ ],
+ "r4e01.lean-kernel-soundness-2026-record": [
+  "B",
+  0.8,
+  "down",
+  "P: #14576 (wrong-structure projections, closed 2026-07-28 via #14577) and #14484 (kernel checks opaque values for fvars, closed 2026-07-22 via #14498) are real axiom-free False proofs. Both issues cite an affected build of 4.34.0-nightly. The pages name no release, so 'fixed in 4.32.1 and 4.32.2' is not supported by what  | D: The record is real and recent, with at least two independent axiom-free False proofs in one summer plus a kernel memory-safety fix. That strongly supports pinning the latest version and using multiple checkers. The PR no",
+  []
+ ],
+ "r4e01.cedar-tpe-closure-native-decide": [
+  "B",
+  0.8,
+  "unchanged",
+  "P: The cited repo page I fetched confirms the repo exists, but says nothing about native_decide, CI, the Lean version, or TPE. The closure size (159 modules, 41,282 LOC), the 26 native_decide uses and the CI behaviour all rest on the explorer's local clone at 301bdd2 and were not independently verifiable. The explorer its | D: Counting native_decide uses and locating Int64 in the import closure is concrete, checkable work. It correctly turns a vague worry into a specific build-and-print-axioms task.",
+  []
+ ],
+ "r4i04.blast-radius-table": [
+  "B",
+  0.75,
+  "down",
+  "P: Own single-machine experiment (one i9 laptop, 1 core pinned, synthetic faults), so not independently replicated. Fault injection at 1% is a toy workload; the native control is a deliberately naive in-process server, so native=bad is partly a design artifact. I could not re-run the 740 cells. The 'PHP parity' framing is | D: The harness has 5 interleaved trials, a client-side oracle and 0 driver errors. The directional results match known mechanics: fork and Wasm trap isolation, catch_unwind for panics, and native abort killing in-flight req",
+  []
+ ],
+ "r4i04.php-fpm-measured-control": [
+  "B",
+  0.75,
+  "unchanged",
+  "P: The cited php-src URLs were not individually re-verified for the specific claims. The PHP workload is a synthetic script. The 4-worker static pool with request_terminate_timeout is a tuned config. 3 trials is thin. | D: PHP-FPM's per-request process model with master respawn is well documented. fpm_process_ctl.c does exist and contains execvp in the reload path. The 0 healthy failures result is mechanically expected.",
+  [
+   "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_process_ctl.c"
+  ]
+ ],
+ "r4i04.coredump-pipe-hang": [
+  "A",
+  0.8,
+  "unchanged",
+  "P: The man page confirms RLIMIT_CORE is not enforced for piped dumps and that the kernel waits for the helper. But it says core_pipe_limit=0, the default, means no waiting. So the ~100 ms hang depends on a non-default setting or on apport's own behavior, so it is distro-specific (Ubuntu apport). The man page does not stat | D: man7 core(5) fetched and matches both the not-enforced and wait-for-helper statements. The PR_SET_DUMPABLE=0 fix is mechanically sound and the 104 ms to 2.4 ms effect was measured. The finding is practically important on",
+  [
+   "https://man7.org/linux/man-pages/man5/core.5.html"
+  ]
+ ],
+ "r4i04.socket-activation-crash-blast": [
+  "B",
+  0.75,
+  "down",
+  "P: The 2-2.6x ratio depends entirely on the explorer's toy native server and the accept backlog behavior. The 0pointer blog is only background and says nothing about this number. Restart p50 depends on binary size. | D: The mechanism (listener survives and the kernel queues connections) is standard and the remaining failures being in-flight requests is plausible. The effect was measured at two fault rates, consistent in direction.",
+  [
+   "https://0pointer.de/blog/projects/socket-activation.html"
+  ]
+ ],
+ "r4i04.gray-failure-fdleak": [
+  "B",
+  0.75,
+  "down",
+  "P: The fd-leak outcome depends on RLIMIT_NOFILE and how the server handles EMFILE, which is an implementation choice. The httpd and uwsgi links support only that max-requests recycling exists, not the numbers. | D: Recycling via MaxConnectionsPerChild and uwsgi max-requests is a long-standing industry fix. The cordon recycle result (47 to 0.02) is a clear measured demonstration.",
+  [
+   "https://httpd.apache.org/docs/2.4/mod/mpm_common.html",
+   "https://uwsgi-docs.readthedocs.io/en/latest/Options.html"
+  ]
+ ],
+ "r4i04.state-leak-c8-measured": [
+  "A",
+  0.85,
+  "unchanged",
+  "P: The poison test is a purpose-built global-state bug, so 'leaks to nearly all later requests' is by construction. Wasm reuse of 93 vs 383 vs 820 are workload-specific. GHSA-6wgr is a Low-severity (CVSS 4.0 2.3) pooling allocator linear-memory leak affecting specific configurations, so it is weaker support than 'pooling  | D: Verified: Fastly docs say reuse is opt-in and state like global variables may persist. serve.rs defaults confirmed. GHSA-6wgr-89rj-399p (CVE-2026-34988, 2026-04-09) says linear memory contents can leak from one instance ",
+  [
+   "https://www.fastly.com/documentation/guides/compute/developer-guides/sandbox-lifecycle/",
+   "https://github.com/bytecodealliance/wasmtime/issues/14313",
+   "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-6wgr-89rj-399p"
+  ]
+ ],
+ "r4i04.runaway-cpu-tax-1vcpu": [
+  "B",
+  0.7,
+  "down",
+  "P: The results depend on the chosen timeouts and pool sizes, and on 1 core pinning. The wasm p99 x35 depends on pool/queue design, not on Wasm itself. The docs.rs link is generic. | D: Directionally unavoidable on a single core: each runaway burns its full budget. Fuel and epoch interruption are documented Wasmtime features that would cut the tax.",
+  [
+   "https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html"
+  ]
+ ],
+ "r4i04.crash-oracle-respawn": [
+  "B",
+  0.7,
+  "down",
+  "P: The BROP page confirms nginx and MySQL and a 4,000-request figure, but that is for the tests overall, not nginx specifically, and the claim is against a 2014 nginx 1.4.0 with a stack-reading bug. The HotOS'19 page abstract does not mention ASLR, so that sub-claim is not supported by the cited URL; it appears in the pap | D: BROP (S&P 2014) is a real, heavily cited attack, and its need for respawn without re-randomization is a well-established mechanism. The conclusion that exec-spawn workers mitigate this is sound, and fork_server hardening",
+  [
+   "https://www.scs.stanford.edu/brop/",
+   "https://www.microsoft.com/en-us/research/publication/a-fork-in-the-road",
+   "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_process_ctl.c"
+  ]
+ ],
+ "r4i04.wasmtime-guest-host-abort-rate": [
+  "B",
+  0.65,
+  "down",
+  "P: Counts of 2 and 11 advisories over 2.8 years give wide CIs, which the explorer reports. Classification as guest-triggerable is the explorer's judgment. The two advisories I checked fit: q8hx is a Moderate-severity CVE-2024-47763 tail-call panic or abort (2024-10-09) and 75hq is a Low-severity panic (2024-04-02). Panic  | D: Both cited advisories verified and are guest-triggerable. The rate estimate is honest about the CI, and bug rate is likely understated because undisclosed or unadvised panic bugs are fixed silently.",
+  [
+   "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-q8hx-mm92-4wvg",
+   "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-75hq-h6g9-h4q5"
+  ]
+ ],
+ "r4i04.m0-escape-rate-denominators": [
+  "B",
+  0.7,
+  "unchanged",
+  "P: Counting 12 escapes depends on the explorer's classification. Window choice swings the rate 6x (0.36 vs 2.21), so the planning figure is sensitive. GHSA-897f is dated 2026-10-19, only 6 days before today, and is rated Critical (CVSS 9.9, a Cranelift index-overflow miscompile, escape from default config). A fresh critic | D: GHSA-897f verified as a real sandbox escape in default settings, which supports taking the higher planning rate (2.21/yr) rather than the 0.36 optimistic bound. The explorer presented both honestly.",
+  [
+   "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-897f-g5gm-fmxm"
+  ]
+ ],
+ "r4i04.kernelctf-reachability-under-allowlist": [
+  "C",
+  0.55,
+  "down",
+  "P: The mapping from each CVE to the needed capability is the explorer's own manual judgment. The kernelctf directory listing I fetched shows ~100 entries ending at CVE-2025-21756, so '111 unique CVEs 2023-26' could not be reproduced from it (the listing is also not a complete record of CVEs). 'All 111 blocked by allowlist | D: The repository resolves and contains the PoCs. The directional point (most kernelCTF LPEs need userns or exotic socket families that seccomp denies) is consistent with the edera article and general hardening experience.",
+  [
+   "https://github.com/google/security-research/tree/master/pocs/linux/kernelctf",
+   "https://edera.dev/stories/user-namespaces-are-not-a-security-boundary"
+  ]
+ ],
+ "r4i04.expected-loss-ranking-p2": [
+  "E",
+  0.5,
+  "unchanged",
+  "P: Pure model with no external validation. Ranges span an order of magnitude (30-89% vs 16-59%), so the ranking Wasm alone ~ fork-native is not distinguishable. Inputs inherit the uncertain rates above, including a stale escape rate (new critical on 2026-10-19). The chained-attack multiplication assumes independence of Wa | D: The model shows its work and the sign of the effect (an extra layer cuts exposure by about 10x or more) is robust under any independence-ish assumption.",
+  []
+ ],
+ "r4i04.provenance-substrate-decision-table": [
+  "B",
+  0.65,
+  "down",
+  "P: This is a design recommendation built on the modelled rates and a single toy benchmark. Density numbers (19.9k Wasm instances, ~1000 cordon workers) are the explorer's own. I did not verify the Firecracker SPECIFICATION and Cloudflare blog links individually. | D: The reversal conditions R1-R5 are explicit and falsifiable, and the table follows from the measured inputs. The Cloudflare and Firecracker references are well-known real documents.",
+  [
+   "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/SPECIFICATION.md",
+   "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/"
+  ]
+ ],
+ "r4i04.isolation-fault-ci-gate": [
+  "B",
+  0.7,
+  "down",
+  "P: The thresholds (0.05, 1.5x, 5x, 5 ms) are the explorer's choices, not standards, and the claim that the reference results 'pass' is about the same toy substrates. The man page for clone is generic support only. The 5 ms recovery gate would be environment-sensitive (core pattern, CPU). | D: A concrete executable harness with a seeded selector, oracle client, and negative syscall tests is a real, reusable artifact, and the acceptance numbers are anchored in the measured tables.",
+  [
+   "https://man7.org/linux/man-pages/man2/clone.2.html"
+  ]
+ ],
+ "r4i04.wasmtime-serve-reuse-defaults": [
+  "A",
+  0.88,
+  "up",
+  "P: The PR page was truncated, so I did not confirm the exact quote context. The explorer's own date (merged 2025-10-20) matches the PR page. The 2.5-5.5x figure in issue 14313 is a single contributor's benchmark that maintainers questioned, and shrinks to ~1.05x at 4 MiB and to parity at 16 MiB; the issue was closed by th | D: Verified against serve.rs: P2 defaults to 1 and P3 to 128 for reuse and 16 for concurrent reuse. The PR quote 'a trap can affect unrelated requests, and a security flaw could leak state across requests' is confirmed, and",
+  [
+   "https://github.com/bytecodealliance/wasmtime/blob/main/src/commands/serve.rs",
+   "https://github.com/bytecodealliance/wasmtime/pull/11807",
+   "https://github.com/bytecodealliance/wasmtime/issues/14313"
+  ]
+ ]
+}

@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>GitHub Availability Report Archives - Page 2 of 8 - The GitHub Blog</title>
+	<atom:link href="https://github.blog/tag/github-availability-report/feed/?paged=2" rel="self" type="application/rss+xml" />
+	<link>https://github.blog/tag/github-availability-report/page/2/</link>
+	<description>Updates, ideas, and inspiration from GitHub to help developers build and design software.</description>
+	<lastBuildDate>Thu, 11 Dec 2025 16:03:56 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.3</generator>
+
+<image>
+	<url>https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32</url>
+	<title>GitHub Availability Report Archives - Page 2 of 8 - The GitHub Blog</title>
+	<link>https://github.blog/tag/github-availability-report/page/2/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">153214340</site>	<item>
+		<title>GitHub Availability Report: November 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-november-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 11 Dec 2025 16:03:53 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=92796</guid>
+
+					<description><![CDATA[<p>In November, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-november-2025/">GitHub Availability Report: November 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In November, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>November 17 16:52 UTC (lasting 2 hours and 16 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On November 17, 2025, from 16:52 to 19:08 UTC, Dependabot was hitting a rate limit in GitHub Container Registry (GHCR) and was unable to complete about 57% of jobs within SLO. </p>
+
+
+
+<p class="wp-block-paragraph">To mitigate the issue, we lowered the rate at which Dependabot started jobs and increased the GHCR rate limit. This mitigated the circumstances and led to the resolution of the incident.</p>
+
+
+
+<p class="wp-block-paragraph">Longer term, we’re adding new monitors and alerts to help prevent this in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>November 18 20:30 UTC (lasting 1 hour and 4 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On November 18, 2025, from 20:30 to 21:34 UTC, we experienced failures on all Git operations, including both SSH and HTTP Git client interactions, as well as raw file access. These failures also impacted products that rely on Git operations.</p>
+
+
+
+<p class="wp-block-paragraph">The root cause was an expired TLS certificate used for internal service-to-service communication. We mitigated the incident by replacing the expired certificate and restarting impacted services. Once those services were restarted we saw a full recovery.</p>
+
+
+
+<p class="wp-block-paragraph">We have updated our alerting to cover the expired certificate, and we are performing an audit of other certificates in this area to ensure they also have the proper alerting and automation before expiration. In parallel, we are accelerating efforts to eliminate our remaining manually managed certificates, ensuring all service-to-service communication is fully automated.</p>
+
+
+
+<p class="wp-block-paragraph" id="h-november-28-05-59-utc-lasting-2-hour-and-24-minutes"><strong>November 28 05:59 UTC (lasting 2 hours and 24 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On November 28, 2025, between approximately 05:59 and 08:24 UTC, Copilot experienced an outage affecting the Claude Sonnet 4.5 model. Users attempting to use this model received an HTTP 400 error indicating no model was available until an alternative model was selected. Other models were not impacted.<br><br>The issue was caused by a misconfiguration deployed to an internal service, which made Claude Sonnet 4.5 erroneously listed as unavailable. The problem was identified and mitigated by reverting the configuration change. We are working to improve cross-service deploy safeguards to prevent similar incidents in the future.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-november-2025/">GitHub Availability Report: November 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">92796</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: October 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-october-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 13 Nov 2025 17:28:48 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=92318</guid>
+
+					<description><![CDATA[<p>In October, we experienced four incidents that resulted in degraded performance across GitHub services. </p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-october-2025/">GitHub Availability Report: October 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In October, we experienced four incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>October 09 14:45 UTC (lasting 1 hour and 55 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On October 9, 2025, between 14:35 UTC and 15:21 UTC, a network device in maintenance mode that was undergoing repairs was brought back into production before repairs were fully completed. Network traffic traversing this device experienced significant packet loss.<br><br>Authenticated users of the github.com UI experienced increased latency during the first 5 minutes of the incident. API users experienced up to 7.3% error rates, after which it stabilized to about 0.05% until mitigated. Actions service experienced 24% of runs being delayed for an average of 13 minutes. Large File Storage (LFS) requests experienced minimally increased error rate, with 0.038% of requests erroring.<br><br>To prevent similar issues, we are enhancing the validation process for device repairs of this category.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>October 17 13:11 UTC (lasting 1 hour and 1 minute)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On October 17, 2025, between 12:51 UTC and 14:01 UTC, mobile push notifications failed to be delivered for a total duration of 70 minutes. This affected github.com and GitHub Enterprise Cloud in all regions. The disruption was related to an erroneous configuration change to cloud resources used for mobile push notification delivery.<br><br>We are reviewing our procedures and management of these cloud resources to prevent such an incident in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>October 20 08:56 UTC (lasting 2 hours and 5 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On October 20, 2025, between 08:05 UTC and 10:50 UTC the Codespaces service was degraded, with users experiencing failures creating new codespaces and resuming existing ones. On average, the error rate for codespace creation was 39.5% and peaked at 71% of requests to the service during the incident window. Resume operations averaged 23.4% error rate with a peak of 46%. This was due to a cascading failure triggered by an outage in a third-party dependency required to build devcontainer images.<br><br>The impact was mitigated when the third-party dependency recovered.<br><br>We are evaluating options to ensure&nbsp; this dependency is no longer a critical path in our container build process and improving our monitoring and alerting to reduce the detection time of similar issues in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>October 29 16:17 UTC (lasting 6 hours and 58 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On October 29, 2025, between 14:07 UTC and 23:15 UTC, GitHub experienced service degradation due to a widespread outage at a third-party provider. Codespaces users faced severe connection issues, with error rates averaging 90% and peaking at 100% across all regions during the incident. GitHub Actions larger hosted runners were also impacted, with 0.5% of workflows and nearly 10% of large runner jobs failing or delayed beyond five minutes. Actions impact recovered by 20:40 UTC. The GitHub Enterprise Importer service was impacted as well, causing migration failures during git push operations and significant delays in processing migrations. Additionally, new trials for GitHub Enterprise Cloud with Data Residency were delayed, and Copilot Metrics API downloads were unavailable, resulting in approximately 100 failed requests until recovery began around 20:25 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">Mitigations were applied throughout the incident to reduce impact, but full recovery was only achieved once the service provider resolved its outage. GitHub is now focused on reducing critical path dependencies on external providers and implementing strategies to gracefully degrade services during similar events, aiming to improve resilience against future outages.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-october-2025/">GitHub Availability Report: October 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">92318</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: September 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-september-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 09 Oct 2025 02:19:28 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=91382</guid>
+
+					<description><![CDATA[<p>In September, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2025/">GitHub Availability Report: September 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In September, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>September 15 17:55 UTC (lasting 25 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On September 15, 2025, between 17:55 and 18:20 UTC, Copilot experienced degraded availability for the majority of the features. This was due a partial deployment of a feature flag to a global rate limiter. The flag triggered behavior that unintentionally limited 100% of requests, returning 403 errors. The issue was resolved by reverting the feature flag which resulted in immediate recovery.</p>
+
+
+
+<p class="wp-block-paragraph">The root cause of the incident was from an undetected edge case in our rate limiting logic. The flag was meant to scale down rate limiting for a subset of users, but unintentionally put our rate limiting configuration into an invalid state.</p>
+
+
+
+<p class="wp-block-paragraph">The issue has been resolved, and we are enhancing system resilience by adding traffic anomaly monitors for early issue detection and increasing coverage of rate limit scaling tests to strengthen pre-production validation.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>September 24 14:02 UTC (lasting 50 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On September 23, 2025, between 15:29 UTC and 17:38 UTC, and also on September 24, 2025, between 14:02 UTC and 15:12 UTC, email deliveries were delayed, resulting in significant delays for most types of email notifications. While the overall incident impact from the two incidents totaled ~130 minutes, the peak delays experienced by customers was ~50 minutes. This occurred due to an unusually high volume of traffic, which caused resource contention on some of our outbound email servers.</p>
+
+
+
+<p class="wp-block-paragraph">We have updated the configuration to better allocate capacity when there is a high volume of traffic and are also updating our monitors to improve our detection capabilities.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>September 29 16:26 UTC (lasting 67 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On September 29, 2025, between 16:26 UTC and 17:33 UTC, the Copilot API experienced a partial degradation, causing intermittent erroneous 404 responses for an average of 0.2% of GitHub MCP server requests, peaking at times around 2% of requests. The issue stemmed from an upgrade of an internal dependency, which exposed a misconfiguration in the service.</p>
+
+
+
+<p class="wp-block-paragraph">We resolved the incident by rolling back the upgrade to address the misconfiguration. We fixed the configuration issue and will improve documentation and rollout process to prevent similar issues.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2025/">GitHub Availability Report: September 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">91382</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: August 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-august-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 11 Sep 2025 19:53:44 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=90760</guid>
+
+					<description><![CDATA[<p>In August, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2025/">GitHub Availability Report: August 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In August, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>August 5 15:42 UTC (lasting 32 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">At 15:33 UTC on August 5, 2025, we initiated a production database migration to drop a column from a table backing pull request functionality. While the column was no longer in direct use, our ORM continued to reference the dropped column in a subset of pull request queries. As a result, there were elevated error rates across pushes, webhooks, notifications, and pull requests with impact peaking at approximately 4% of all web and REST API traffic.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the issue by deploying a change that instructed the ORM to ignore the removed column. Most affected services recovered by 16:13 UTC. However, that fix was applied only to our largest production environment. An update to some of our custom and canary environments did not pick up the fix and this triggered a secondary incident affecting ~0.1% of pull request traffic, which was fully resolved by 19:45 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">While migrations have protections, such as progressive roll-out first targeting validation environments and acknowledge gates, this incident identified an application monitoring gap that would have prevented continued rollout when impact was observed. We will add additional automation and safeguards to prevent future incidents without requiring human intervention. We are also already working on a way to streamline some types of changes across environments, which would have prevented the second incident from occurring.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>August 12 13:30 UTC (lasting 3 hours and 44 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On August 12, 2025, between 13:30 UTC and 17:14 UTC, GitHub search was in a degraded state. Users experienced inaccurate or incomplete results, failures to load certain pages (like issues, pull requests, projects, and deployments) and broken components (like actions workflow and label filters).</p>
+
+
+
+<p class="wp-block-paragraph">Most user impact occurred between 14:00 UTC and 15:30 UTC, when up to 75% of search queries failed, and updates to search results were delayed by up to 100 minutes.</p>
+
+
+
+<p class="wp-block-paragraph">The incident was triggered by intermittent connectivity issues between our load balancers and search hosts. While retry logic initially masked these problems, retry queues eventually overwhelmed the load balancers, causing failure. The query failures were mitigated at 15:30 UTC after throttling our search indexing pipeline to reduce load and stabilize retries. The connectivity failures were resolved at 17:14 UTC after the automated reboot of a search host, causing the rest of the system to recover.</p>
+
+
+
+<p class="wp-block-paragraph">We have improved internal monitors and playbooks, and tuned our search cluster load balancer to further mitigate the recurrence of this failure mode. We&#8217;ve identified and resolved a configuration issue in our load balancing tier that was triggering these issues.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>August 27 20:35 UTC (lasting 46 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On August 27, 2025, between 20:35 and 21:17 UTC, Copilot, web, and REST API traffic experienced degraded performance. Copilot saw an average of 36% of requests fail with a peak failure rate of 77%. Approximately 2% of all non-Copilot web and REST API traffic requests failed.</p>
+
+
+
+<p class="wp-block-paragraph">This incident occurred after we initiated a production database migration to drop a column from a table backing copilot functionality. While the column was no longer in direct use, our ORM continued to reference the dropped column. This led to a large number of 5xx responses and was similar to the incident on August 5. At 21:15 UTC, we applied a fix to the production schema, and by 21:17 UTC, all services had fully recovered.</p>
+
+
+
+<p class="wp-block-paragraph">While repairs were in progress to avoid this situation, they were not completed quickly enough to prevent a second incident. We have now implemented a temporary block for all drop column operations as an immediate solution while we add more safeguards to prevent similar issues from occurring in the future. We are also implementing graceful degradation so that Copilot issues will not impact other features of our product.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2025/">GitHub Availability Report: August 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">90760</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: July 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-july-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 13 Aug 2025 21:00:00 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=90166</guid>
+
+					<description><![CDATA[<p>In July, we experienced one incident that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2025/">GitHub Availability Report: July 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p class="wp-block-paragraph">In July, we experienced one incident that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 28 21:41 UTC (lasting 5 hours and 34 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">Between approximately 21:41 UTC on July 28, 2025, and 03:15 UTC on July 29, 2025, GitHub Enterprise Importer (GEI) operated in a degraded state where migrations could not be processed. Our investigation found that a component of the GEI infrastructure had been improperly taken out of service during implementation of routine internal improvements, and it could not be restored to its previous configuration.&nbsp;This necessitated the provisioning of new resources to resolve the incident. We have identified and implemented improvements around enabling the recovery of infrastructure, unit testing, and better validation using test data.</p>
+
+
+
+<p class="wp-block-paragraph">As a result, customers will need to add our new IP range to the following IP allow lists, if enabled:</p>
+
+
+
+<ul class="wp-block-list">
+<li>The IP allow list on your destination github.com organization or enterprise</li>
+
+
+
+<li>If you&rsquo;re running migrations from github.com, the IP allow list on your source github.com organization or enterprise</li>
+
+
+
+<li>If you&rsquo;re running migrations from a GitHub Enterprise Server, Bitbucket Server or Bitbucket Data Center instance, the allow list on your configured Azure Blob Storage or Amazon S3 storage account</li>
+
+
+
+<li>If you&rsquo;re running migrations from Azure DevOps, the allow list on your Azure DevOps organization</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">The new GEI IP ranges for inclusion in applicable IP allow lists are:</p>
+
+
+
+<ul class="wp-block-list">
+<li>20.99.172.64/28</li>
+
+
+
+<li>135.234.59.224/28</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">The following IP ranges are no longer used by GEI and can be removed from all applicable IP allow lists:</p>
+
+
+
+<ul class="wp-block-list">
+<li>40.71.233.224/28</li>
+
+
+
+<li>20.125.12.8/29</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Users who have run migrations using GitHub Enterprise Importer in the past 90 days have received email alerts about this change. Please contact Customer Support for any migration related issues.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity">
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we&rsquo;re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+</body></html>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2025/">GitHub Availability Report: July 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">90166</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: June 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-june-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 16 Jul 2025 21:06:17 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=89594</guid>
+
+					<description><![CDATA[<p>In June, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2025/">GitHub Availability Report: June 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In June, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 5 17:47 UTC (lasting 1 hour and 33 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 5, 2025, between 17:47 UTC and 19:20 UTC, the Actions service was degraded, leading to run start delays and intermittent job failures. During this period, 47.2% of runs had delayed starts of 14 minutes on average, and 21.0% of runs failed. The impact extended beyond Actions itself; 60% of Copilot Coding Agent sessions were cancelled, and all Pages sites using branch-based builds failed to deploy (though Pages serving remained unaffected). The issue was caused by a spike in load between internal Actions services exposing a misconfiguration that caused throttling of requests in the critical path of run starts. We mitigated the incident by correcting the service configuration to prevent throttling and have updated our deployment process to ensure the correct configuration is preserved moving forward.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 12 17:55 UTC (lasting 3 hours and 12 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 12, 2025, between 17:55 UTC and 21:07 UTC, the GitHub Copilot service was degraded and experienced unavailability for Gemini models and reduced availability for Claude models. Users experienced significantly elevated error rates for chat completions, slow response times, timeouts, and chat functionality interruptions across VS Code, JetBrains IDEs, and GitHub Copilot Chat. This was due to an outage affecting one of our model providers.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by temporarily disabling the affected provider endpoints to reduce user impact.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to update our incident response playbooks for infrastructure provider outages and improve our monitoring and alerting systems to reduce our time to detection and mitigation of issues like this one in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 17 19:32 UTC (lasting 31 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 17, 2025, between 19:32 UTC and 20:03 UTC, an internal routing policy deployment to a subset of network devices caused reachability issues for certain network address blocks within our datacenters. Authenticated users of the github.com UI experienced 3-4% error rates for the duration of the incident. Authenticated callers of the API experienced 40% error rates. Unauthenticated requests to the UI and API experienced nearly 100% error rates. Actions experienced 2.5% of runs being delayed for an average of 8 minutes and 3% of runs failing. Large File Storage (LFS) requests experienced 1% errors. At 19:54 UTC, the deployment was rolled back, and network availability for the affected systems was restored. At 20:03 UTC, we fully restored normal operations. To prevent similar issues, we are expanding our validation process for routing policy changes.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2025/">GitHub Availability Report: June 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">89594</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: May 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-may-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 11 Jun 2025 23:24:41 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=88665</guid>
+
+					<description><![CDATA[<p>In May, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2025/">GitHub Availability Report: May 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In May, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 1 22:09 UTC (lasting 1 hour and 4 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 1, 2025, from 22:09 UTC to 23:13 UTC, the Issues service was degraded and users weren&#8217;t able to upload attachments. The root cause was identified to be a new feature which added a custom header to all client-side HTTP requests, causing CORS errors when uploading attachments to our provider. We estimate that ~130k users were impacted by the incident for ~45min.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by rolling back the feature flag that added the new header at 22:56 UTC. In order to prevent this from happening again, we are adding new metrics to monitor and ensure the safe rollout of changes to client-side requests. We have since deployed an augmented version of the feature based on learnings from this incident that is performing well in production.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 28 09:45 UTC (lasting 5 hours)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 28, 2025, from approximately 09:45 UTC to 14:45 UTC, GitHub Actions experienced delayed job starts for workflows in public repos using Ubuntu-24 standard hosted runners. This was caused by a misconfiguration in backend caching behavior after a failover, which led to duplicate job assignments reducing overall capacity in the impacted hosted runner pools. Approximately 19.7% of Ubuntu-24 hosted runner jobs on public repos were delayed. Other hosted runners, self-hosted runners, and private repo workflows were unaffected.</p>
+
+
+
+<p class="wp-block-paragraph">By 12:45 UTC, the configuration issue was fixed through updates to the backend cache. The pools were also scaled up to more quickly work through the backlog of queued jobs until queuing impact was fully mitigated at 14:45 UTC. We are improving failover resiliency and validation to reduce the likelihood of similar issues in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 30 08:10 UTC (lasting 7 hours and 50 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 30, 2025, between 08:10 UTC and 16:00 UTC, the Microsoft Teams GitHub integration service experienced a complete service outage.</p>
+
+
+
+<p class="wp-block-paragraph">During this period, the integration was unable to process user requests or deliver notifications, resulting in a 100% error rate across all functionality, with the exception of link previews. This outage was caused by an authentication issue with our downstream authentication provider.</p>
+
+
+
+<p class="wp-block-paragraph">While the appropriate monitoring was in place, the alerting thresholds were not sufficiently sensitive to trigger a timely response, resulting in a delay in incident detection and engagement. Once engaged, our team worked closely with the downstream provider to diagnose and resolve the authentication failure. However, longer-than-expected response times from the provider contributed to the extended duration of the outage.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by working with our provider to restore service functionality and are working to migrate to more durable authentication methods to reduce the risk of similar issues in the future.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2025/">GitHub Availability Report: May 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">88665</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: April 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-april-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 14 May 2025 21:00:00 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=87881</guid>
+
+					<description><![CDATA[<p>In April, we experienced three incidents that resulted in degraded performance across GitHub services. </p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2025/">GitHub Availability Report: April 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In April, we experienced three incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 11 03:05 UTC (lasting 39 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 11, 2025, from 03:05 UTC to 03:44 UTC, approximately 75% of Codespaces users faced create and start failures. These were caused by manual configuration changes to an internal dependency that escaped our test coverage. Our monitors and detection mechanism triggered, which helped us triage, revert the changes, and restore service health.</p>
+
+
+
+<p class="wp-block-paragraph">We are working on building additional gates, safer mechanisms for testing, and rolling out such configuration changes. We expect no further disruptions. </p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 23 07:00 UTC (lasting 20 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 23, 2025, between 07:00 UTC and 07:20 UTC, multiple GitHub services experienced degradation caused by resource contention on database hosts. The resulting error rates, which ranged from 2–5% of total requests, led to intermittent service disruption for users. The issue was triggered by an interaction between query load and ongoing schema change that led to connection saturation. The incident recovered after the schema migration was completed.</p>
+
+
+
+<p class="wp-block-paragraph">Our prior investments in monitoring and improved playbooks helped us effectively organize our first responder teams, leading to faster triaging of the incident. We have also identified a regression in our schema change tooling that led to increased resource utilization during schema and reverted to a previous stable version.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">To prevent similar issues in the future, we are reviewing the capacity of the database, improving monitoring and alerting systems, and implementing safeguards to reduce time to detection and mitigation.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 23 19:13 UTC (lasting 42 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 23, 2025, between 19:13:50 UTC and 22:11:00 UTC, GitHub’s Migration service experienced elevated failures caused by a configuration change that removed access for repository migration workers. During this time, 837 migrations across 57 organizations were affected. Impacted migrations required a retry after the log message &#8220;Git source migration failed. Error message: An error occurred. Please contact support for further assistance.&#8221; was displayed. Once access was restored, normal operations resumed without further interruption.</p>
+
+
+
+<p class="wp-block-paragraph">As a result of this incident, we have implemented enhanced test coverage and refined monitoring thresholds to help prevent similar disruptions in the future.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+
+
+
+<p class="wp-block-paragraph"></p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2025/">GitHub Availability Report: April 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">87881</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: March 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-march-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 16 Apr 2025 21:02:57 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=86491</guid>
+
+					<description><![CDATA[<p>In March, we experienced one incident that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2025/">GitHub Availability Report: March 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p><!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"><br />
+<html><body></p>
+<p>In March, we experienced one incident that resulted in degraded performance across GitHub services.</p>
+<p><strong>March 29 7:00 UTC (lasting 58 hours)</strong></p>
+<p>Between March 29 7:00 UTC and March 31 17:00 UTC, GitHub experienced service degradation due to two separate, but related incidents. On March 29, users were unable to unsubscribe from GitHub marketing email subscriptions due to a service outage. Additionally, on March 31, 2025 from 7:00 UTC to 16:40 UTC users were unable to submit ebook and event registration forms on resources.github.com, also due to a service outage.</p>
+<p>The March 29 incident occurred due to expired credentials used for an internal service, preventing customers from being able to unsubscribe directly from marketing/sales topics through <a href="http://github.com/settings/emails">github.com/settings/emails</a> UI and from performing the double opt-in step required by some countries. A similar credential expiry on March 31 resulted in users experiencing degradation accessing resources.github.com.</p>
+<p>The cause of the incident was traced to an issue in the automated alerting for monitoring upcoming credential expirations. The bug in alerting resulted in the invalid credentials being discovered after they had expired. This resulted in two incidents before we could deploy a durable fix. We mitigated it by renewing the credentials and redeploying the affected services.</p>
+<p>To improve future response times and prevent similar issues, we have enhanced our credential expiry detection, alerting, and rotation processes, and are working on improving on-call observability.</p>
+<hr>
+<p>Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we&rsquo;re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</body></html></p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2025/">GitHub Availability Report: March 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">86491</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: February 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-february-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 12 Mar 2025 19:59:17 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=83209</guid>
+
+					<description><![CDATA[<p>In February, we experienced two incidents that resulted in degraded performance across GitHub services. </p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2025/">GitHub Availability Report: February 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In February, we experienced two incidents that resulted in degraded performance across GitHub services.</p>
+<p><strong>February 25 14:25 UTC (lasting 2 hours and 19 minutes)</strong></p>
+<p>On February 25, 2025, between 14:25 UTC and 16:44 UTC, email and web notifications experienced delivery delays. At the peak of the incident, the delay resulted in ~10% of all notifications taking over 10 minutes to be delivered, with the remaining ~90% being delivered within 5-10 minutes. This incident was caused by worker pools running too close to capacity at peak times, resulting in a delay in queue processing.</p>
+<p>We mitigated the incident by scaling out the service to meet the demand. We’ve since established a higher baseline capacity to ensure no further delays occur, and we are improving our capacity planning to proactively manage our pool going forward.</p>
+<p><strong>February 3 18:01 UTC (lasting 30 minutes)</strong></p>
+<p>On February 3, 2025, at 18:01 UTC, an incident was declared due to failures in our Migration Tools. The root cause was traced to a deployment of a system component, which led to missing Docker images, causing a 100% outage for all users attempting migrations in this window. The issue was mitigated by rolling back to the previous stable version, restoring service within approximately 30 min.</p>
+<p>We have enhanced our test coverage and our workflows to ensure validation of critical dependencies.</p>
+<hr />
+<p>Please follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2025/">GitHub Availability Report: February 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">83209</post-id>	</item>
+	</channel>
+</rss>

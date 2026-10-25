@@ -1,0 +1,330 @@
+{
+ "nodes": [
+  {
+   "id": "w02.size-deps-table",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "Own-measured binary size, dep count, unsafe lines: hyper+rustls hello vs nginx/HAProxy/Caddy/Envoy/Pingora (Oct 2026)",
+   "summary": "Stripped sizes: hello (hyper 1.12.0, hyper-util 0.1.21, tokio-rustls 0.26.6, rustls 0.23.46, aws-lc-rs 1.18.2/aws-lc-sys 0.46.0, rustc 1.98.0, fat LTO, panic=abort) 4.21 MB, 40 crates in graph (39 deps). Pingora 0.9.0 (proxy+rustls features, static+proxy service) 7.24 MB, 174 crates. nginx 1.30.6 alpine-slim 1.33 MB + dynamic libssl 0.84 + libcrypto 4.99 + pcre2 0.78 + zlib 0.11 = ~8.05 MB (built with mail, stream, dav, flv, mp4, v3 etc even in 'slim'). HAProxy 3.4.7 stripped 5.97 MB (shipped binary unstripped 32.4 MB) + libs ~6.8 MB. Caddy 2.11.7 go1.26.8 CGO off 51.95 MB, 147 Go module deps, 135 standard modules. Envoy 1.40.1 stripped static BoringSSL 106.9 MB. Unsafe (grep of lines containing 'unsafe', non-comment, over whole crate src, upper bound; excludes tests/benches/examples/proc-macro/build-deps): hello 14,963 total of which aws-lc-sys bindings 11,271, excluding aws-lc-* 3,325 over 327.8k Rust LOC; aws-lc-sys bundles 1.50 M C/asm LOC (upper bound, mostly unlinked); Pingora 10,754 unsafe lines / 1.17 M Rust LOC / 174 crates / 115.6k C LOC in -sys crates. Rust hello is 12-25x smaller than Caddy/Envoy and 1.9x smaller than nginx+libs.",
+   "urls": [
+    "state/raw/round-002/w02/count.py",
+    "state/raw/round-002/w02/hello.unsafe.json",
+    "state/raw/round-002/w02/pingora.unsafe.json",
+    "state/raw/round-002/w02/caddy.buildinfo.txt",
+    "state/raw/round-002/w02/nginx.configure.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "unsafe-line grep counts keyword lines in whole crates, not reachable/compiled code; C LOC is bundled source not linked code; sizes are glibc dynamic (musl static not measured)",
+   "underclaim_risk": "hello serves a constant body only; a real router/logging/limits core will add; Rust LTO size is real linked size",
+   "specifics": "cargo tree -e no-build,no-dev,no-proc-macro --prefix none; docker cp of binaries; go: caddy build-info"
+  },
+  {
+   "id": "w02.idle-rss-table",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "Idle RSS and RSS at 1k idle conns (plain and TLS 1.3), 1 pinned core, 512 MB cgroup",
+   "summary": "Method: docker --cpuset-cpus=5 --memory=512m --network host; RSS/PSS summed from /proc/*/smaps_rollup of all processes in the container (helper container --pid=container:srv); 1000 held conns from own tokio client (TLS conns do full handshake X25519, ECDSA P-256 cert). Idle RSS kB (trial1/trial2): hello 4728-4788 (plain), 3432-5864 (tls); Pingora 0.9.0 6.7-7.1 MB; nginx 1.30.6 worker_processes 1: 12.5-12.9 MB; Caddy 44.8-46.3 MB; Envoy 63.2-63.5 MB (14 MB anon, 57 MB file-backed binary pages); HAProxy 3.4.7 default 77.5-77.9 MB (maxconn defaults from 1M nofile) vs maxconn 4096: 45.2 MB. RSS at 1k idle plain conns: hello 9.0 MB (+4.2), Pingora 37.1 (+30, ~30 KB/conn), nginx 13.4 (+0.9), Caddy 53.7 (+7.3), Envoy 71.1 (+7.8), HAProxy 79.4 (+1.5). At 1k idle TLS conns: hello-tls 17.2 MB (+13.8), nginx 39.6 (+27), Envoy 78.7 (+15.5), Caddy 84.8 (+38.5), HAProxy 106.9 (+29; 75.9 with maxconn 4096). Skeptic reading: nginx wins plain-conn memory by 4-30x because of its tiny per-conn state; rustls hello wins TLS conn memory; HAProxy default and Envoy/Caddy cannot fit comfortably alongside an app on a 512 MB VPS without tuning (Caddy GOMEMLIMIT auto-set to 483 MB).",
+   "urls": [
+    "state/raw/round-002/w02/run.sh",
+    "state/raw/round-002/w02/out/",
+    "state/raw/round-002/w02/out2/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "n=2 trials; RSS includes file-backed binary pages (Envoy/Caddy); client holds conns so kernel socket memory excluded",
+   "underclaim_risk": "hello is a toy; per-conn state of a full server (headers, buffers, limiters) will be larger",
+   "specifics": ""
+  },
+  {
+   "id": "w02.throughput-h1-h2",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "Static response req/s and p99 at 1 pinned core: microbench-grade, contended host",
+   "summary": "oha 1.16.0, c=64, 10 s, keep-alive, 12-byte body, loopback; load generator on 3 other cores; host load average ~41 from sibling jobs, so absolute numbers vary up to 2.8x between trials (e.g. hello h1 141.9k vs 207.1k; Pingora 160.3k vs 74.6k; hellotls h2 95.5k vs 53.0k). h1 plain req/s trial1/trial2: nginx 189.9k/156.6k, hello 141.9k/207.1k, HAProxy 161.4k/157.5k, Pingora 160.3k/74.6k, Envoy 49.4k/69.8k, Caddy 64.8k/65.7k; p99 0.6-0.9 ms for nginx/HAProxy/hello, 2.1 ms Envoy, 3.8 ms Caddy. h2+TLS: HAProxy 108.4k/106.2k, nginx 72.0k/60.0k, hello 95.5k/53.0k, Envoy 50.3k/62.6k, Caddy 31.2k/31.5k. Conclusion that survives noise: hyper+rustls is in the same class as nginx/HAProxy/Pingora (within ~2x, ordering unstable) and 2-5x ahead of Caddy/Envoy on this static workload; no single-digit-percent ranking is supportable. Vendor 'x% faster' claims are not reproducible from this setup and the TechEmpower archive removed the cross-framework baseline.",
+   "urls": [
+    "state/raw/round-002/w02/out/",
+    "state/raw/round-002/w02/out2/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Do not quote any ranking inside 2x; static-body microbench, not system load (no upstream, no logging, no auth)",
+   "underclaim_risk": "Contention hurts all equally only on average; ordering within class may differ on quiet hardware",
+   "specifics": "CPU-seconds per request from cgroup cpu.stat is the robust metric: every server saturated its core (cpu_us ~ 9.5-10.0 s per 10 s)"
+  },
+  {
+   "id": "w02.handshake-pq-cost",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "TLS 1.3 handshake at 1 core: X25519 vs X25519MLKEM768 server CPU and wire bytes across 5 servers",
+   "summary": "Own client (rustls 0.23.46 aws-lc-rs, single offered group, no resumption, ECDSA P-256 cert, 16 concurrent, 8 s, loopback); server CPU = cgroup cpu.stat usage_usec / handshakes. Server CPU per handshake X25519 -> MLKEM (us), best trial: hyper+rustls 123.4 -> 145.0 (+21.6, +17.5%; trial 2 on a noisier host 254.8 -> 292.9); Envoy 1.40.1 BoringSSL 121.1 -> 151.7 (+25%) (trial1 170.8 -> 211.9); Caddy go1.26.8 177.6 -> 247.6 (+39%); nginx 1.30.6 OpenSSL 3.5.8/3.5.9 246.2 -> 324.7 (+32%) (trial2 338.3 -> 589.3 under load); HAProxy 3.4.7 OpenSSL 3.5.9 257.4 -> 331.7 (+29%). Max handshakes/s at one core: rustls ~8.0k (x25519) vs 6.9k (mlkem) trial1; nginx 4.0k -> 3.1k. Wire bytes server->client / client->server: rustls 731 -> 1819 / 351 -> 1535 (+1088/+1184 B); Envoy 727 -> 1815 / 351 -> 1535; OpenSSL servers 819 -> 1885 / 351 -> 1535; Caddy 925 -> 2013 / 335 -> 1519. Hybrid PQ key exchange costs ~+20-40% server CPU and ~+2.3 KB per handshake at household scale (0.1-1 handshake/s: negligible; 1 core saturates at 3-8k new TLS conns/s), and the rustls/aws-lc stack is the cheapest in both CPU (about 2x lower than OpenSSL servers at X25519) and bytes. All five servers negotiated X25519MLKEM768 by default stack in Oct 2026.",
+   "urls": [
+    "state/raw/round-002/w02/tools/src/main.rs",
+    "state/raw/round-002/w02/out/",
+    "state/raw/round-002/w02/out2/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Trial-to-trial variance up to 2x under host contention; report ranges; client verify disabled so cert-verify cost on server not included",
+   "underclaim_risk": "Loopback hides RTT/MTU effects: +1.2 KB ClientHello crosses initial cwnd/MTU boundaries on real links (not measured)",
+   "specifics": ""
+  },
+  {
+   "id": "w02.pingora-tokio-panic",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "negative-result",
+   "title": "Pingora 0.9.0 + tokio >= 1.54 panics on first accepted TCP connection; Cargo semver resolution breaks a fresh Pingora build",
+   "summary": "Reproduced: pingora-core 0.9.0 src/protocols/l4/stream.rs:549 From<TcpStream> calls BufStream::with_capacity(0,0,..); tokio 1.54.0 (2026-10-19) enforces non-zero capacity (PR tokio-rs/tokio#8494 merged 2026-09-22). A cargo build of pingora 0.9.0 without a lockfile resolves tokio 1.54.1 and the server thread panics 'capacity must be greater than zero' on any connection (service stays up, serves nothing). Workaround cargo update -p tokio --precise 1.52.3 (verified: serves 160k req/s). Upstream issue cloudflare/pingora#1059 open since 2026-10-20; maintainer reply: 'We will sync our internal commit that addresses this'; latest release still 0.9.0 (2026-09-09). Lesson for the plan: framework dependencies are not stable under semver minor bumps; lockfile + vendored/cargo-vet + CI that runs a smoke request on every dependency bump are mandatory; an unreleased internal-to-public sync model means external users wait.",
+   "urls": [
+    "https://github.com/cloudflare/pingora/issues/1059",
+    "https://github.com/tokio-rs/tokio/pull/8494"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "One bug; does not say Pingora is unmaintained",
+   "underclaim_risk": "Shows a CI smoke test after dependency bumps is worth more than any size/speed metric",
+   "specifics": ""
+  },
+  {
+   "id": "w02.feature-cost-unused",
+   "layer": "L4",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "Cost of optional capability by mechanism when linked vs not: cargo feature, in-process Wasm (wasmtime 48.0.7), HTTP/3 stack, dlopen",
+   "summary": "Baseline hello (features off) 4,208,560 B, 40 crates, 14,963 unsafe lines. +feature h3 (h3 0.0.8, h3-quinn 0.0.10, quinn 0.11 rustls/aws-lc): 4,223,792 B (only referenced, so lower bound), 63 crates (+23), unsafe lines +825. +feature wasm runtime-only (wasmtime 48.0.7, no compiler): 4,601,344 B (+393 KB), 76 crates (+36), unsafe 26,389 (+11.4k). +feature wasmjit (cranelift): 13,149,216 B (+8.94 MB, +212%), 97 crates (+57), unsafe 27,027 (+12.1k; excluding aws-lc 3.3k -> 15.4k, 4.6x). +feature dlopen (libloading 0.8): +664 B, +2 crates, +49 unsafe lines, BUT the loaded .so is unaudited native code in-process, so its TCB is unbounded and not visible to cargo tree. Features-off means zero added crates/bytes/unsafe by construction (cargo resolves optional deps only when enabled; checked by cargo tree). Sibling 07-bench measured host with wasmtime 48.0.7 cranelift+component 15.6 MB. Wasmtime docs (Dec 2024): C API 19 MB release, 2.1 MB with no-default-features and no compiler. Rejection of dlopen is therefore about TCB opacity, not size: Rust has no stable ABI (abi_stable/savefile-abi work-arounds; dyn pointers need identical compiler), nginx dynamic modules need a build-signature match with configure args (Dounin: mismatch -> segfault later; --with-compat is the escape), Envoy removes extensions at build time via bazel flags not runtime loading.",
+   "urls": [
+    "https://docs.wasmtime.dev/examples-minimal.html",
+    "https://mailman.nginx.org/pipermail/nginx-devel/2016-June/008421.html",
+    "https://github.com/envoyproxy/envoy/blob/main/bazel/README.md",
+    "https://docs.rs/abi_stable/^0.10.2"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Only referenced code is linked for h3/wasm (no real server loop), so sizes are lower bounds except wasmjit (which instantiates Engine); unsafe lines count whole crates",
+   "underclaim_risk": "Out-of-process capability IPC adds 0 bytes/crates to the core but IPC latency/complexity cost is NOT measured here",
+   "specifics": "features in w02/hello/Cargo.toml; count.py with FE=<feature>"
+  },
+  {
+   "id": "w02.ingress-design-verdict",
+   "layer": "L3",
+   "domain": "W-PERF/W-GAP",
+   "type": "design-decision",
+   "title": "Ingress: one protocol-normalization core with feature-gated front ends beats per-protocol stacks; evidence is indirect",
+   "summary": "Direct evidence: (1) the measured fixed cost of the h1+h2+TLS+PQ core is 4.21 MB/39 deps/3.3k non-crypto unsafe lines, so each additional per-protocol stack that re-links TLS/HTTP parsing multiplies that, while a shared core adds only the codec crate (+23 crates for QUIC/h3). (2) Envoy HCM filter chain, Pingora ProxyHttp phases and hyper Service all converge on one normalized http::Request model over multiple codecs (existing in-tree design, not measured). (3) Practitioner/industry reporting (PortSwigger-derived summaries Aug-Sep 2025; trackr.live 2026 opinion) locates the smuggling bug class at the seam where an h2/h3 edge translates to h1 for a backend, which a single typed normalized model with no re-serialization to text removes by construction (D-grade, secondary). (4) hyperium/h3 has no release since h3 0.0.8 on 2025-05-06 although commits continue (2026-09-20), so front-end crates evolve at different cadence; pluggability limits blast radius. Recommended structure: normalized core = http crate types + one admission/limits layer; front ends: h1, h2, h3 (QUIC), WS/SSE/WebTransport as upgrade/stream modes on the same request; gRPC/Connect/GraphQL/MCP/webhooks are request-handler layers over normalized HTTP not stacks; TCP/UDP proxy is a separate L4 path sharing only admission control and metrics. Not measured: cost of normalization copy vs zero-copy streaming; no existing project runs the whole matrix.",
+   "urls": [
+    "https://www.trackr.live/?p=679",
+    "https://nhimg.org/articles/http11-request-smuggling-is-still-breaking-modern-web-stacks/",
+    "https://ece.iastate.edu/?p=18300"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Seam-bug claim rests on secondary and opinion sources; no measurement here compares per-protocol stacks",
+   "underclaim_risk": "Design may have extra benefits (single fuzz target, single limits budget) not captured",
+   "specifics": ""
+  },
+  {
+   "id": "w02.L5-lean-budget",
+   "layer": "L5",
+   "domain": "W-PERF/W-GAP",
+   "type": "artifact",
+   "title": "L5 lean budget table for the core (default features: h1+h2+TLS1.3 rustls/aws-lc-rs with X25519MLKEM768)",
+   "summary": "Measured baseline -> budget (fail CI when exceeded): stripped binary 4.21 MB -> max 6.0 MB (nginx+libs 8.05 MB, Pingora 7.24 MB are the ceilings to beat); full-feature build without in-process Wasm JIT max 9 MB, with wasmtime cranelift in-process explicitly out of the core (+8.9 MB); crates in graph (cargo tree -e no-build,no-dev,no-proc-macro, unique name+version) 40 -> max 60; non-crypto unsafe lines (grep method above, excluding aws-lc-*) 3,325 -> max 5,000, own crates #![forbid(unsafe_code)]; aws-lc-sys treated as separately-audited TCB (1.5 M bundled C/asm LOC); idle RSS 3.4-5.9 MB -> max 8 MB; RSS at 1k idle TLS conns 17.2 MB -> max 25 MB (<=14 KB/conn above idle); X25519MLKEM768 server handshake <= 1.3x X25519 CPU and <= 2.4 KB extra wire; static h1 plain at 1 core within 0.5x of nginx on same host/run (relative, same-run gate, because absolute numbers varied 2.8x); lockfile with smoke request on every dependency bump (Pingora/tokio lesson).",
+   "urls": [
+    "state/raw/round-002/w02/run.sh"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Budget derived from a toy; add headroom review at spec freeze",
+   "underclaim_risk": "Targets could be tighter after musl static build",
+   "specifics": ""
+  },
+  {
+   "id": "w02.L5-bench-plan",
+   "layer": "L5",
+   "domain": "W-PERF/W-GAP",
+   "type": "artifact",
+   "title": "L5 BENCH_PLAN: workload/protocol spec for repeatable lean-footprint measurement",
+   "summary": "Env: container --cpuset-cpus=<1 isolated core> (also a --cpus=1 quota run: Go and nginx 'auto' workers see host cores only under quota; Caddy log showed 'CPU quota undefined'), --memory=512m, --network host unique ports (>=18000; sibling jobs squat 8080), loadgen on disjoint cores, record host loadavg and repeat >=3 trials, report min/median and use cgroup cpu.stat usage_usec per request as primary metric. Metrics: stripped size and ldd/shared libs; crate count; unsafe grep; idle RSS/PSS via helper container --pid=container:srv reading smaps_rollup; RSS at 1k and 10k idle plain and TLS conns; oha c=64 -z 10s h1 plain, h2+TLS, plus p99; TLS handshake X25519 vs X25519MLKEM768 with resumption off, 16 conns, wire bytes by counting stream wrapper; add 10 MB body streaming, 1k-conn slowloris, h2 rapid-reset and h3 connect storms for admission control, upstream proxy mode with 1 ms backend, and 64-core contrast with SC=0-31 pinned workers. Required reporting: exact versions, commands, raw logs (w02/out*), microbench vs system label. Scripts: w02/run.sh, w02/tools (hold, hs), w02/count.py.",
+   "urls": [
+    "state/raw/round-002/w02/run.sh",
+    "state/raw/round-002/w02/tools/src/main.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "w02.L5-feature-gate-rule",
+   "layer": "L5",
+   "domain": "W-PERF/W-GAP",
+   "type": "artifact",
+   "title": "L5 feature-gate rule for modularity",
+   "summary": "Rule: (1) every protocol front end and capability is a cargo feature of its own crate; default features = h1,h2,tls,pq only; (2) no dlopen/runtime plugin loading of native code: reasons: no stable Rust ABI, nginx-style signature checks only guard layout mismatch not safety, loaded code is invisible to cargo tree/audit; (3) heavy untrusted or compiler-bearing modules (wasmtime with Cranelift: +8.9 MB, +57 crates, +12k unsafe lines in-process) run out-of-process behind a capability IPC or as separate binary so the front binary TCB excludes them, or load precompiled .cwasm via a no-compiler runtime (2.1 MB class per wasmtime docs, our runtime-only +393 KB); (4) CI gate for every feature set: stripped-size delta, crate delta, unsafe delta table must be committed and each feature has a stated budget; features-off build must contain none of the feature's crates (cargo tree -i check); resolver 2, cargo hack --each-feature, no feature that changes security semantics (additive only); (5) lockfile pinned, cargo vet/deny, smoke request after bump; (6) C-ABI-only boundaries for the QUIC/TLS crypto provider (aws-lc-rs) recorded as separate TCB line.",
+   "urls": [
+    "state/raw/round-002/w02/hello/Cargo.toml"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Out-of-process IPC overhead unmeasured",
+   "underclaim_risk": "",
+   "specifics": ""
+  },
+  {
+   "id": "w02.incumbent-config-skeptic",
+   "layer": "L3",
+   "domain": "W-PERF/W-GAP",
+   "type": "measurement",
+   "title": "Incumbent footprint depends on build and defaults, not product: HAProxy maxconn, Envoy file pages, nginx 'slim' still ships mail/stream/dav/mp4/v3",
+   "summary": "HAProxy 3.4.7 idle RSS 77.5 MB default vs 45.2 MB with maxconn 4096 (saves 32 MB); binary unstripped 32.4 MB vs 5.97 MB stripped; nginx 'stable-alpine-slim' 1.30.6 configure includes --with-mail --with-stream --with-http_dav/flv/mp4/v3 modules (see nginx.configure.txt) even though slim; Envoy 1.40.1 107 MB with 14 MB anon at idle; Caddy auto-sets GOMEMLIMIT to ~94% of cgroup limit (483 MB) which allows large heap before GC, so RSS grows toward limit under load. Implication: lean claims need build-config specificity; AEGIS lean budget should be build-time enforced, not tuning-doc enforced.",
+   "urls": [
+    "state/raw/round-002/w02/nginx.configure.txt",
+    "state/raw/round-002/w02/out/haproxy_mc4096.log"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "specifics": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "w02.size-deps-table",
+   "dst": "gap.pingora",
+   "type": "measures"
+  },
+  {
+   "src": "w02.size-deps-table",
+   "dst": "gap.nginx",
+   "type": "measures"
+  },
+  {
+   "src": "w02.size-deps-table",
+   "dst": "gap.caddy",
+   "type": "measures"
+  },
+  {
+   "src": "w02.size-deps-table",
+   "dst": "gap.envoy",
+   "type": "measures"
+  },
+  {
+   "src": "w02.size-deps-table",
+   "dst": "gap.haproxy",
+   "type": "measures"
+  },
+  {
+   "src": "w02.pingora-tokio-panic",
+   "dst": "gap.pingora",
+   "type": "negative-evidence"
+  },
+  {
+   "src": "w02.handshake-pq-cost",
+   "dst": "gap.pq-status",
+   "type": "quantifies"
+  },
+  {
+   "src": "w02.feature-cost-unused",
+   "dst": "gap.wasmtime-adv",
+   "type": "cost-of"
+  },
+  {
+   "src": "w02.feature-cost-unused",
+   "dst": "w02.L5-feature-gate-rule",
+   "type": "implies"
+  },
+  {
+   "src": "w02.size-deps-table",
+   "dst": "w02.L5-lean-budget",
+   "type": "implies"
+  },
+  {
+   "src": "w02.idle-rss-table",
+   "dst": "w02.L5-lean-budget",
+   "type": "implies"
+  },
+  {
+   "src": "w02.handshake-pq-cost",
+   "dst": "w02.L5-lean-budget",
+   "type": "implies"
+  },
+  {
+   "src": "w02.throughput-h1-h2",
+   "dst": "w02.L5-bench-plan",
+   "type": "motivates-noise-control"
+  },
+  {
+   "src": "w02.ingress-design-verdict",
+   "dst": "w02.feature-cost-unused",
+   "type": "supported-by"
+  },
+  {
+   "src": "w02.incumbent-config-skeptic",
+   "dst": "w02.L5-lean-budget",
+   "type": "implies"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Out-of-process capability IPC cost: latency/throughput/RSS of unix-socket/memfd IPC from the hyper core to a wasmtime helper vs in-process, at 1 core",
+   "layer": "L4",
+   "expected_info_gain": 0.8
+  },
+  {
+   "question": "musl-static and opt-level=z/s variants of hello: size, handshake CPU, req/s deltas",
+   "layer": "L4",
+   "expected_info_gain": 0.5
+  },
+  {
+   "question": "Repeat handshake/throughput at n>=10 on quiet hardware or with --cpus=1 quota; compute CI",
+   "layer": "L4",
+   "expected_info_gain": 0.6
+  },
+  {
+   "question": "Real h3 server cost: quinn+h3 server loop size, RSS, UDP handshake CPU with MLKEM, vs nginx/HAProxy/Envoy QUIC",
+   "layer": "L4",
+   "expected_info_gain": 0.7
+  },
+  {
+   "question": "Normalization-core copy cost: zero-copy streaming through normalized http::Request vs per-protocol codec for 10 MB body",
+   "layer": "L4",
+   "expected_info_gain": 0.6
+  }
+ ],
+ "protocol_implications": [
+  "Pin Cargo.lock for any benchmark build; fresh resolution broke Pingora 0.9.0 (tokio 1.54)",
+  "Use cgroup cpu.stat usec per request, not req/s, on contended hosts",
+  "Use unique high ports; sibling jobs hold 8080",
+  "smaps_rollup of container processes needs helper container --pid=container:<name>"
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-002/02-lean-footprint-measured-vs-incumbents.json"
+}

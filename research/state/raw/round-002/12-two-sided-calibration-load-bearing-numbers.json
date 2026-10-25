@@ -1,0 +1,947 @@
+{
+ "explorer": 12,
+ "round": 2,
+ "label": "two-sided-calibration-load-bearing-numbers",
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "result-memory-safety-would-not-prevent-fraction",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Recomputed: non-memory share of exploited/advised server vulns (band, per-year)",
+   "summary": "KEV 2023-01-01..2026-10-23 adds=890; non-memory share 78.8-81.9% depending on CWE set (claim 80.3% inside band; 7.2% of adds lack CWE). nginx 8/35 non-memory MATCH; httpd 2023+ 77 CVEs, non-memory 50-55 (65-71%) vs claim 62%. Edge-gateway KEV recompute 57/77=74% non-memory vs claim 99/123=80.5% (definition-sensitive). REGIME SHIFT: 2026 C servers yield memory bugs at 3-8x earlier rate (httpd 2026: 20/44 memory vs 2/33 in 2023-25; nginx 2026: 19/26 memory, 26 advisories vs 9 in 2024-25; AI-agent discovery e.g. nginx CVE-2026-42945). Edge KEV memory share 12-15% (2023-24) -> 32-36% (2025-26). Report as per-year bands, not a pooled point.",
+   "urls": [
+    "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    "https://nginx.org/en/security_advisories.html",
+    "https://httpd.apache.org/security/vulnerabilities_24.html",
+    "https://www.csoonline.com/article/4171437/ai-agent-finds-18-year-old-remote-code-execution-flaw-in-nginx.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.72,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Pooled 2023-26 figure hides a 2026 memory-bug surge in C servers; keyword CWE classification +-3.6pp.",
+   "underclaim_risk": "For a Rust stack the non-memory share is even higher (OSV Rust HTTP stack: memory/unsound <=10%, FFI-confined).",
+   "numbers_checked": [
+    {
+     "claim": "KEV adds 2023-2026 = 890",
+     "source_value": "890 (catalog 2026.10.23)",
+     "match": "match"
+    },
+    {
+     "claim": "80.3% non-memory (715/890)",
+     "source_value": "78.8-81.9% band",
+     "match": "match(band)"
+    },
+    {
+     "claim": "edge-gateway 80.5% (99/123)",
+     "source_value": "74.0% (57/77, own filter)",
+     "match": "partial"
+    },
+    {
+     "claim": "OSS middle-tier KEV = 5, 100% non-memory",
+     "source_value": ">=8, all non-memory",
+     "match": "count understated"
+    },
+    {
+     "claim": "nginx 8/35 logic",
+     "source_value": "8/35",
+     "match": "match"
+    },
+    {
+     "claim": "httpd 48/77 logic",
+     "source_value": "50-55/77",
+     "match": "match(conservative)"
+    }
+   ],
+   "verdict": "hold (direction) / down (pooled C-server rate as stable)",
+   "strongest_counter_evidence": "2026 memory-bug surge: httpd 45%, nginx 73% memory among 2026 advisories; edge KEV memory share doubled 2025-26.",
+   "specifics": "KEV adds 2023-2026 = 890 -> 890 (catalog 2026.10.23) [match]; 80.3% non-memory (715/890) -> 78.8-81.9% band [match(band)]; edge-gateway 80.5% (99/123) -> 74.0% (57/77, own filter) [partial]; OSS middle-tier KEV = 5, 100% non-memory -> >=8, all non-memory [count understated]; nginx 8/35 logic -> 8/35 [match]; httpd 48/77 logic -> 50-55/77 [match(conservative)]"
+  },
+  {
+   "id": "io-uring-security-record",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "io_uring CVE counts recomputed (NVD) + KEV absence",
+   "summary": "NVD keywordSearch counts match exactly (total 161; 2024/25/26 = 38/40/54; >=7.0 2025+2026 = 44; epoll/kTLS/XDP match). But kernel CNA files CVEs for most fixes (~1,663 kernel CVEs Jan-Apr 2025): io_uring ~0.8% of kernel CVEs. Zero io_uring entries in CISA KEV ever; kTLS CVE-2025-39682 IS in KEV (added 2026-09-18).",
+   "urls": [
+    "https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=io_uring",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-39682"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "'io_uring uniquely dangerous' is a local-LPE/kCTF claim, not ITW.",
+   "underclaim_risk": "kTLS has an ITW-exploited entry, io_uring does not \u2014 kTLS choice deserves equal scrutiny.",
+   "numbers_checked": [
+    {
+     "claim": "io_uring total 161",
+     "source_value": "161",
+     "match": "match"
+    },
+    {
+     "claim": "2024/2025/2026 = 38/40/54",
+     "source_value": "38/40/54",
+     "match": "match"
+    },
+    {
+     "claim": "high/crit 2025+2026 = 44",
+     "source_value": "44",
+     "match": "match"
+    },
+    {
+     "claim": "io_uring in KEV",
+     "source_value": "0",
+     "match": "new"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "kernel CNA inflation; kTLS-in-KEV.",
+   "specifics": "io_uring total 161 -> 161 [match]; 2024/2025/2026 = 38/40/54 -> 38/40/54 [match]; high/crit 2025+2026 = 44 -> 44 [match]; io_uring in KEV -> 0 [new]"
+  },
+  {
+   "id": "std-rfc10024-ecdhe-mlkem",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "standard",
+   "title": "RFC 10024 ECDHE-MLKEM: is PQ key agreement 'solved' for our stack?",
+   "summary": "RFC 10024 Proposed Standard Aug 2026 (X25519MLKEM768, SecP256r1MLKEM768, SecP384r1MLKEM1024) MATCH. rustls 0.23.46 aws-lc-rs: X25519MLKEM768 default; SecP384r1MLKEM1024 ABSENT (also on main 0.24.0-dev.2); ring provider no ML-KEM. RUSTSEC-2026-0349 (2026-10-14): rustls clients <0.23.46 could be downgraded to classical via unauthenticated ServerHello group caching, succeeding when the server accepts an X25519-only share instead of HelloRetryRequest. Cloudflare: ~52% of human HTTPS traffic PQ (since Oct 2025) -> ~half of clients still classical. Ubuntu LXD middlebox rollback Mar 2025, restored 2026-07-03.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc10024",
+    "https://osv.dev/vulnerability/RUSTSEC-2026-0349",
+    "https://discourse.ubuntu.com/t/84803",
+    "https://blog.cloudflare.com/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "'Solved' over-states: requires rustls>=0.23.46, aws-lc-rs, server HRR-to-hybrid policy; no CNSA P-384/ML-KEM-1024 hybrid in rustls; PQ auth unsolved.",
+   "underclaim_risk": "Server side commodity hybrid works and >50% clients already offer it.",
+   "numbers_checked": [
+    {
+     "claim": "RFC10024 PS Aug 2026",
+     "source_value": "PROPOSED STANDARD, Aug 2026",
+     "match": "match"
+    },
+    {
+     "claim": "rustls supports all 3 RFC groups",
+     "source_value": "2 of 3 (no SecP384r1MLKEM1024)",
+     "match": "mismatch"
+    },
+    {
+     "claim": "PQ downgrade-free",
+     "source_value": "RUSTSEC-2026-0349 fixed only 0.23.46",
+     "match": "new counter"
+    }
+   ],
+   "verdict": "down (derived 'solved' claim to B with carve-outs); RFC fact A",
+   "strongest_counter_evidence": "RUSTSEC-2026-0349 silent classical downgrade.",
+   "specifics": "RFC10024 PS Aug 2026 -> PROPOSED STANDARD, Aug 2026 [match]; rustls supports all 3 RFC groups -> 2 of 3 (no SecP384r1MLKEM1024) [mismatch]; PQ downgrade-free -> RUSTSEC-2026-0349 fixed only 0.23.46 [new counter]"
+  },
+  {
+   "id": "j-mcp-2026-07-28",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "standard",
+   "title": "MCP 2026-07-28 revision: date and statelessness",
+   "summary": "Release 2026-07-28 published 2026-07-28T16:47:49Z; RC 2026-05-29 (not May 21); no later release as of 2026-10-24. Sessions/Mcp-Session-Id removed (SEP-2567), initialize removed (SEP-2575). State moved, not removed: subscriptions/listen stream, tasks, requestState, server-minted handles. TS SDK LATEST_PROTOCOL_VERSION still '2025-11-25'; rmcp 3.7.0 LATEST=2026-07-28 but keeps initialize path; >=12-month deprecation window (SEP-2596).",
+   "urls": [
+    "https://github.com/modelcontextprotocol/modelcontextprotocol/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "'Stateless' true only at protocol layer for 2026-07-28 peers.",
+   "underclaim_risk": "Gateway must implement legacy session semantics until >=2027-07.",
+   "numbers_checked": [
+    {
+     "claim": "release 2026-07-28",
+     "source_value": "2026-07-28T16:47:49Z",
+     "match": "match"
+    },
+    {
+     "claim": "RC date",
+     "source_value": "2026-05-29T12:51Z",
+     "match": "match (May-21 variant wrong)"
+    },
+    {
+     "claim": "latest revision",
+     "source_value": "2026-07-28 (none later)",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold + carve-out",
+   "strongest_counter_evidence": "Dual-era SDKs keep sessions.",
+   "specifics": "release 2026-07-28 -> 2026-07-28T16:47:49Z [match]; RC date -> 2026-05-29T12:51Z [match (May-21 variant wrong)]; latest revision -> 2026-07-28 (none later) [match]"
+  },
+  {
+   "id": "fail-verifier-soundness-bugs",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Verifier soundness-bug rate recomputed (Verus/Z3/cvc5)",
+   "summary": "Verus label:soundness is:issue = 131 total / 41 open MATCH (154/43 without is:issue counts 23 PRs: trap). 94/131 filed in 2026, 81 in Oct 2026 alone (vs 8 in 2025) \u2014 audit campaign, many via vstd specs (TCB). Z3 #11295, #10963 now closed (node status stale). cvc5 #12926/#12927 Coverings-solver unsoundness (2026-09-07, closed) \u2014 solver Cedar SymCC trusts.",
+   "urls": [
+    "https://github.com/verus-lang/verus/issues?q=label%3Asoundness",
+    "https://github.com/cvc5/cvc5/issues/12926"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Label counts include duplicates/minor spec issues.",
+   "underclaim_risk": "Rate is ~10x higher than node implies; vstd is in the TCB.",
+   "numbers_checked": [
+    {
+     "claim": "131/41",
+     "source_value": "131/41",
+     "match": "match"
+    },
+    {
+     "claim": "Z3 #10963 still open",
+     "source_value": "closed",
+     "match": "stale"
+    }
+   ],
+   "verdict": "up",
+   "strongest_counter_evidence": "81 soundness issues in one month.",
+   "specifics": "131/41 -> 131/41 [match]; Z3 #10963 still open -> closed [stale]"
+  },
+  {
+   "id": "cedar-lean-proofs-2026-10",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Cedar Lean proofs recount: what is proven vs the Rust evaluator",
+   "summary": "cedar-spec @301bdd2: 387 .lean / 125,621 LOC MATCH; Cedar/Thm 226 files / 96,228 LOC MATCH; theorem declarations 3,776 (claim 3,912 ~ raw token count incl comments, +3.6%); 0 sorry MATCH; 1 partial def in Cedar/ but ~40 in CedarProto/ (DRT/FFI decode path); 10 native_decide uses (TCB adds Lean compiler + Lean.ofReduceBool). Nothing proven about cedar-policy Rust; equivalence via DRT; public CI only builds/tests DRT harness, no public fuzz campaign.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "'Verified evaluator' wording is wrong: verified model + DRT-tested Rust.",
+   "underclaim_risk": "Named soundness theorems all exist at stated files.",
+   "numbers_checked": [
+    {
+     "claim": "3,912 theorems",
+     "source_value": "3,776 declarations",
+     "match": "minor overclaim"
+    },
+    {
+     "claim": "0 sorry",
+     "source_value": "0",
+     "match": "match"
+    },
+    {
+     "claim": "no native_decide/extern",
+     "source_value": "10 native_decide",
+     "match": "missed"
+    }
+   ],
+   "verdict": "down (interpretation)",
+   "strongest_counter_evidence": "native_decide + unproven CedarProto partial defs on DRT path.",
+   "specifics": "3,912 theorems -> 3,776 declarations [minor overclaim]; 0 sorry -> 0 [match]; no native_decide/extern -> 10 native_decide [missed]"
+  },
+  {
+   "id": "sdg-pgbouncer",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "PgBouncer CVE record recount",
+   "summary": "NEWS.md: 12 CVEs since 2025-04 MATCH, release dates MATCH. 5/12 memory-class (int overflow, stack overflow, null deref); 7/12 logic incl. CVSS>=8 (2025-2291, 2025-12819, 2026-107350 SCRAM impersonation). CVE-2026-6669 is malicious-server not pre-auth client. 1.26.0 makes search_path tracked by default on PG18 \u2014 the former non-default precondition of CVE-2025-12819 \u2014 and 1.26.1 says search_path-tracking bugs remain.",
+   "urls": [
+    "https://raw.githubusercontent.com/pgbouncer/pgbouncer/master/NEWS.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Small description errors only.",
+   "underclaim_risk": "Default-config drift strengthens own-the-pool.",
+   "numbers_checked": [
+    {
+     "claim": "12 CVEs since 2025-04",
+     "source_value": "12",
+     "match": "match"
+    },
+    {
+     "claim": "max_prepared_statements default 200",
+     "source_value": "200 since 1.24.0",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "12 CVEs since 2025-04 -> 12 [match]; max_prepared_statements default 200 -> 200 since 1.24.0 [match]"
+  },
+  {
+   "id": "sdg-rls-plan-cache-family",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "threat",
+   "title": "PG RLS plan-cache CVE family re-verified",
+   "summary": "All 5 CVEs, dates, fixed versions MATCH (cveawg). CNA CVSS 4.2 for 2024-10976 and 2026-14666 (5.4 only NVD secondary). CVE-2026-14666 trigger is role membership/attribute/ownership change during a live session -> long-lived pooled backends widen the stale window; gateway must recycle connections on role DDL.",
+   "urls": [
+    "https://cveawg.mitre.org/api/cve/CVE-2026-14666",
+    "https://cveawg.mitre.org/api/cve/CVE-2024-10976"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Low CVSS; AC:H.",
+   "underclaim_risk": "Recurring every ~2-3 years since 2016.",
+   "numbers_checked": [
+    {
+     "claim": "CVE-2026-14666 fixed 18.6/17.11/16.15/15.19/14.24",
+     "source_value": "same",
+     "match": "match"
+    },
+    {
+     "claim": "CVSS 4.2-5.4",
+     "source_value": "CNA 4.2",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "CVE-2026-14666 fixed 18.6/17.11/16.15/15.19/14.24 -> same [match]; CVSS 4.2-5.4 -> CNA 4.2 [match]"
+  },
+  {
+   "id": "sdg-txn-pooling-session-leak",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "threat",
+   "title": "Txn-pooling session leak: pooler issue states re-verified",
+   "summary": "PgDog #1850, #1341, #1407 open MATCH; fix PR #1444 still unmerged (since 2026-08-27) -> SET ROLE leak unfixed in v0.1.62. Supavisor PR #1113 was CREATED 2026-07-22, MERGED 2026-10-23, only in v2.10.0-rc.0 (2026-10-24); default 'ignore'.",
+   "urls": [
+    "https://github.com/pgdogdev/pgdog/issues/1341",
+    "https://github.com/supabase/supavisor/pull/1113"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "\u2014",
+   "underclaim_risk": "All three poolers have open/just-landed leak issues.",
+   "numbers_checked": [
+    {
+     "claim": "Supavisor #1113 merged 2026-07-22",
+     "source_value": "merged 2026-10-23",
+     "match": "mismatch (date)"
+    },
+    {
+     "claim": "PgDog issues open",
+     "source_value": "open",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold (class up, date corrected)",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "Supavisor #1113 merged 2026-07-22 -> merged 2026-10-23 [mismatch (date)]; PgDog issues open -> open [match]"
+  },
+  {
+   "id": "sdg-rls-misconfig-empirical",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Supabase RLS exposure numbers + grant-default dates (primary)",
+   "summary": "UpGuard 2026-10-14: 16,326 DBs publicly readable among ~300k domains MATCH; methodology probes 'users' table/hints, PII from schemas -> upper bound, domain denominator. Supabase changelog #45329 (primary): opt-in 2026-04-28, new-project default 2026-05-30, existing projects 2026-10-30 MATCH; existing tables keep grants -> exposures not remediated. CVE-2025-48757 CVSS 9.3 disputed MATCH.",
+   "urls": [
+    "https://www.upguard.com/blog/everything-everywhere-systemic-data-exposure-in-supabase-apps",
+    "https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "16,326 counts readable not sensitive.",
+   "underclaim_risk": "Grant change does not touch RLS nor existing tables.",
+   "numbers_checked": [
+    {
+     "claim": "16,326 / ~300k",
+     "source_value": "16,326 / ~300k",
+     "match": "match"
+    },
+    {
+     "claim": "2026-05-30 / 2026-10-30",
+     "source_value": "same (primary)",
+     "match": "match"
+    }
+   ],
+   "verdict": "up (secondary->primary)",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "16,326 / ~300k -> 16,326 / ~300k [match]; 2026-05-30 / 2026-10-30 -> same (primary) [match]"
+  },
+  {
+   "id": "gap.insecure-defaults",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "gap",
+   "title": "Insecure-defaults evidence re-verified (GHSA)",
+   "summary": "All cited advisories exist (ferron auth_to fail-open critical 2026-09-25; docker/mcp-gateway CVE-2026-76092/76094 2026-07-09; pingora CVE-2026-2836 2026-03-05 and CVE-2026-105297 2026-10-20; agentgateway GHSA-mvgg-jvj2-4frq). Share: ~7/30 (~23%) of these repos' advisories are default/fail-open; parser/smuggling/canonicalization co-equal (pingora CVE-2026-105298 :authority/Host mismatch).",
+   "urls": [
+    "https://github.com/cloudflare/pingora/security/advisories",
+    "https://github.com/ferronweb/ferron/security/advisories",
+    "https://github.com/docker/mcp-gateway/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Not dominant class.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "cited GHSAs exist",
+     "source_value": "all exist",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "Canonicalization/smuggling equally frequent.",
+   "specifics": "cited GHSAs exist -> all exist [match]"
+  },
+  {
+   "id": "as.mutants-gate",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "cargo-mutants httparse numbers re-verified; equivalent-mutant misread",
+   "summary": "v27.1.0 (2026-06-02), httparse a0fa552e (2026-06-30), exit codes, 88/261=33.7%, 58/231=25.1% all MATCH. The cited 'real test gap' (delete b'A'..=b'Z' arm of is_method_token) is an EQUIVALENT mutant: fallthrough TOKEN_MAP returns true for A-Z. Exit code 3 masked misses (run had both) -> gate must fail on {2,3} or parse mutants.out.",
+   "urls": [
+    "https://github.com/sourcefrog/cargo-mutants/blob/main/book/src/exit-codes.md",
+    "https://github.com/seanmonstar/httparse/blob/a0fa552e4e0fa9a5914a736ef3a556748fef709b/src/lib.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "25.1% is an upper bound until equivalents triaged.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "33.7% / 25.1%",
+     "source_value": "33.7% / 25.1%",
+     "match": "match"
+    },
+    {
+     "claim": "is_method_token arm deletion = test gap",
+     "source_value": "equivalent mutant",
+     "match": "mismatch"
+    }
+   ],
+   "verdict": "down (interpretation)",
+   "strongest_counter_evidence": "Equivalent mutant labeled as gap.",
+   "specifics": "33.7% / 25.1% -> 33.7% / 25.1% [match]; is_method_token arm deletion = test gap -> equivalent mutant [mismatch]"
+  },
+  {
+   "id": "as.fuzz-gate",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Fuzz gate facts re-verified; per-PR fuzz is a smoke test",
+   "summary": "rustls 'Smoke-test fuzzing targets' 10s/target and CIFuzz 150s on PR MATCH; OSS-Fuzz present rustls/httparse/tokio/wasmtime/ring/quiche, absent hyper/h2/quinn/pingora/http/s2n-quic/rustls-webpki/aws-lc MATCH (gh contents API truncates at 1000 entries \u2014 probe per project). Crate versions MATCH.",
+   "urls": [
+    "https://github.com/rustls/rustls/blob/main/.github/workflows/build.yml",
+    "https://github.com/google/oss-fuzz/tree/master/projects"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "10s/target is not assurance.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "OSS-Fuzz coverage list",
+     "source_value": "same",
+     "match": "match"
+    },
+    {
+     "claim": "cargo-fuzz 0.13.2",
+     "source_value": "0.13.2 2026-06-09",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "OSS-Fuzz coverage list -> same [match]; cargo-fuzz 0.13.2 -> 0.13.2 2026-06-09 [match]"
+  },
+  {
+   "id": "as.dst-entropy-leak",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "aws-lc entropy cannot be made deterministic by interposition",
+   "summary": "Raw syscall paths MATCH (aws-lc-sys 0.46.0 urandom.c:189; getrandom 0.2.17 SYS_getrandom; 0.3.4 dlsym/static). NEW: aws-lc default entropy = Tree-DRBG seeded by CPU Jitter entropy + RDRAND/RNDR prediction resistance (entropy_sources.c) -> not interceptable by libc override, seccomp or ptrace. Only sound DST path: deterministic test CryptoProvider under sim + canary.",
+   "urls": [
+    "https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/rand/entropy/entropy_sources.c"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Static inspection only.",
+   "underclaim_risk": "Strictly stronger than node claim.",
+   "numbers_checked": [
+    {
+     "claim": "aws-lc raw getrandom syscall",
+     "source_value": "urandom.c:189",
+     "match": "match"
+    },
+    {
+     "claim": "interposable",
+     "source_value": "no (jitter+rdrand)",
+     "match": "stronger"
+    }
+   ],
+   "verdict": "up",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "aws-lc raw getrandom syscall -> urandom.c:189 [match]; interposable -> no (jitter+rdrand) [stronger]"
+  },
+  {
+   "id": "fail-spec-fidelity-studies",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Spec-fidelity numbers re-verified",
+   "summary": "arXiv 2605.26457 title is 'Verus-SpecGym' (benchmark Verus-SpecBench): Gemini 3.1 Pro 77.8%, frontier 51.1-57.8%, OSS 21.5-25.5%, LLM-judge misses 26% MATCH. Tasks are Codeforces problems -> transfer to systems specs unproven. IronSpec 10 spec bugs / 6 systems MATCH; Fonseca 16 bugs, none in verified protocols MATCH.",
+   "urls": [
+    "https://arxiv.org/abs/2605.26457",
+    "https://www.usenix.org/conference/osdi24/presentation/goldweber"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "77.8% upper bound for our specs.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "77.8% best",
+     "source_value": "77.8%",
+     "match": "match"
+    },
+    {
+     "claim": "26% judge miss",
+     "source_value": "26%",
+     "match": "match"
+    },
+    {
+     "claim": "IronSpec 10 bugs",
+     "source_value": "10",
+     "match": "match"
+    }
+   ],
+   "verdict": "up (B->A numbers)",
+   "strongest_counter_evidence": "Benchmark domain mismatch.",
+   "specifics": "77.8% best -> 77.8% [match]; 26% judge miss -> 26% [match]; IronSpec 10 bugs -> 10 [match]"
+  },
+  {
+   "id": "j-openapi-arazzo",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "standard",
+   "title": "OAS/Arazzo release dates re-verified",
+   "summary": "All dates MATCH via gh releases (3.2.1 2026-09-10; Arazzo 1.1.0 2026-05-18).",
+   "urls": [
+    "https://github.com/OAI/OpenAPI-Specification/releases",
+    "https://github.com/OAI/Arazzo-Specification/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "3.2.1 is a patch.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "3.2.1 2026-09-10",
+     "source_value": "2026-09-10",
+     "match": "match"
+    },
+    {
+     "claim": "Arazzo 1.1.0 2026-05-18",
+     "source_value": "2026-05-18",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "3.2.1 2026-09-10 -> 2026-09-10 [match]; Arazzo 1.1.0 2026-05-18 -> 2026-05-18 [match]"
+  },
+  {
+   "id": "threat-ledger-middle-tier-2023-2026",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Threat ranking: metric-dependent (ITW vs volume)",
+   "summary": "KEV OSS middle-tier 2023+: 5-6 of 8 canonicalization/smuggling/authz (Starlette CVE-2026-48710 Host->path bypass, httpd CVE-2024-38475, Tomcat CVE-2025-24813, PHP CVE-2024-4577, nhttpd), 1 resource (Rapid Reset). Rust HTTP stack OSV 2023+ (~51 incidents): resource ~63%, TLS/cert logic ~18%, smuggling ~10%, unsound/FFI ~10%. Rank (1) wins on volume, rank (2) on ITW exploitation -> tie/swap with stated metric.",
+   "urls": [
+    "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+    "https://api.osv.dev/v1/querybatch"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Single ordering hides metric choice.",
+   "underclaim_risk": "TLS validation logic (rank 6) is 18% of Rust-stack incidents incl. PQ downgrade -> under-ranked.",
+   "numbers_checked": [
+    {
+     "claim": "rank1 H2/H3 exhaustion",
+     "source_value": "1/8 KEV; 63% Rust volume",
+     "match": "partial"
+    },
+    {
+     "claim": "rank2 dominates KEV",
+     "source_value": "5-6/8",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold, reorder by metric",
+   "strongest_counter_evidence": "rustls 2026 wave (0285, 0347, 0349, 0382) lifts TLS logic.",
+   "specifics": "rank1 H2/H3 exhaustion -> 1/8 KEV; 63% Rust volume [partial]; rank2 dominates KEV -> 5-6/8 [match]"
+  },
+  {
+   "id": "l5-authz-stack-recommendation",
+   "layer": "L5",
+   "domain": "K-CALIBRATION",
+   "type": "recommendation",
+   "title": "Authz alternatives facts re-verified",
+   "summary": "OpenFGA ~20 decision-correctness advisories 2023-26 (8 in 2026) MATCH 'repeated fail-open'. SpiceDB decision bugs mostly FAIL-CLOSED/low (fail-open ~3-4: CVE-2026-55866, -46668, 2022-21646, 2024-27101) -> lumping overclaims. Biscuit last release 6.0.0 2025-07-16 (repo active). Oso archived. No Cedar delegation/token RFC. Cedar 4.14.0 2026-10-17.",
+   "urls": [
+    "https://github.com/openfga/openfga/security/advisories",
+    "https://github.com/authzed/spicedb/security/advisories",
+    "https://github.com/cedar-policy/rfcs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Cedar 'verified' = model + DRT.",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "OpenFGA repeated fail-open",
+     "source_value": "~20 advisories",
+     "match": "match"
+    },
+    {
+     "claim": "SpiceDB repeated fail-open",
+     "source_value": "mostly fail-closed",
+     "match": "overclaim"
+    },
+    {
+     "claim": "Oso archived",
+     "source_value": "archived=true",
+     "match": "match"
+    }
+   ],
+   "verdict": "up (C->B)",
+   "strongest_counter_evidence": "SpiceDB record mostly fail-closed.",
+   "specifics": "OpenFGA repeated fail-open -> ~20 advisories [match]; SpiceDB repeated fail-open -> mostly fail-closed [overclaim]; Oso archived -> archived=true [match]"
+  },
+  {
+   "id": "sdg-embedded-store-selection",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "finding",
+   "title": "Embedded store selection re-verified; redb repair path inverted",
+   "summary": "SQLite WAL-reset bug: found 2026-03-03, present 3.7.0 (2010-07-21)-3.51.2 (~15.6y, not 14), fixed 3.51.3/3.44.6/3.50.7; trigger needs >=2 connections writing/checkpointing simultaneously (concurrency, avoidable with single writer). Latest SQLite 3.54.1 (2026-10-16). redb 4.3.0 (2026-09-15) and 4.4.0 (2026-10-13) fixed bugs IN check_integrity repair path -> use detect-only, not auto-repair. fjall #329 MATCH; heed 0.23.0 UB fix MATCH; sled alpha MATCH.",
+   "urls": [
+    "https://www.sqlite.org/wal.html",
+    "https://github.com/cberner/redb/releases",
+    "https://github.com/fjall-rs/fjall/issues/329",
+    "https://github.com/meilisearch/heed/releases/tag/v0.23.0"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "SQLite risk overstated for single-writer design.",
+   "underclaim_risk": "redb mitigation itself buggy.",
+   "numbers_checked": [
+    {
+     "claim": "14-year bug",
+     "source_value": "15.6 years",
+     "match": "minor"
+    },
+    {
+     "claim": "redb check_integrity on open as mitigation",
+     "source_value": "repair path buggy twice",
+     "match": "inverted"
+    }
+   ],
+   "verdict": "hold (fact) / down (SQLite severity, redb mitigation)",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "14-year bug -> 15.6 years [minor]; redb check_integrity on open as mitigation -> repair path buggy twice [inverted]"
+  },
+  {
+   "id": "sdg-failed-request-no-mutation",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "type": "invariant",
+   "title": "No-mutation-on-failure invariant: Jepsen facts re-verified",
+   "summary": "Jepsen PG 12.3 G2-item under SERIALIZABLE since SSI 2011, fix scheduled 2020-08-13 MATCH; RDS 17.4 Long Fork via Multi-AZ read secondaries, not single-node MATCH.",
+   "urls": [
+    "https://jepsen.io/analyses/postgresql-12.3",
+    "https://jepsen.io/analyses/amazon-rds-for-postgresql-17.4"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "\u2014",
+   "underclaim_risk": "\u2014",
+   "numbers_checked": [
+    {
+     "claim": "G2-item since 2011",
+     "source_value": "since SSI 2011 (9.1)",
+     "match": "match"
+    },
+    {
+     "claim": "RDS 17.4 Long Fork",
+     "source_value": "Long Fork, secondaries",
+     "match": "match"
+    }
+   ],
+   "verdict": "hold",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "G2-item since 2011 -> since SSI 2011 (9.1) [match]; RDS 17.4 Long Fork -> Long Fork, secondaries [match]"
+  },
+  {
+   "id": "adv-rustls-pq-downgrade-2026-0349",
+   "layer": "L4",
+   "domain": "C-CRYPTO",
+   "type": "advisory",
+   "title": "RUSTSEC-2026-0349: rustls client PQ downgrade via cached kx group",
+   "summary": "rustls < 0.23.46 clients recorded server-selected group from unauthenticated ServerHello; attacker forces X25519-only shares; classical handshake if server accepts share instead of HRR. Server acceptance test: client lists X25519MLKEM768 but sends only X25519 share -> server MUST HRR to hybrid.",
+   "urls": [
+    "https://osv.dev/vulnerability/RUSTSEC-2026-0349"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Client-side bug; server can only mitigate.",
+   "underclaim_risk": "Our server policy decides whether downgrade succeeds.",
+   "numbers_checked": [
+    {
+     "claim": "fixed in 0.23.46",
+     "source_value": "0.23.46 (2026-10-14)",
+     "match": "match"
+    }
+   ],
+   "verdict": "new",
+   "strongest_counter_evidence": "\u2014",
+   "specifics": "fixed in 0.23.46 -> 0.23.46 (2026-10-14) [match]"
+  }
+ ],
+ "edges": [
+  {
+   "src": "adv-rustls-pq-downgrade-2026-0349",
+   "dst": "std-rfc10024-ecdhe-mlkem",
+   "type": "contradicts",
+   "note": "'solved' needs rustls>=0.23.46 + HRR policy"
+  },
+  {
+   "src": "adv-rustls-pq-downgrade-2026-0349",
+   "dst": "crate-rustls-pq",
+   "type": "refines"
+  },
+  {
+   "src": "adv-rustls-pq-downgrade-2026-0349",
+   "dst": "adv-rustls-2026-wave",
+   "type": "member_of"
+  },
+  {
+   "src": "adv-rustls-pq-downgrade-2026-0349",
+   "dst": "threat-tls-validation-logic",
+   "type": "supports"
+  },
+  {
+   "src": "result-memory-safety-would-not-prevent-fraction",
+   "dst": "threat-memory-corruption-c-servers",
+   "type": "refines",
+   "note": "2026 surge"
+  },
+  {
+   "src": "threat-ledger-middle-tier-2023-2026",
+   "dst": "threat-path-canonicalization-authz-bypass",
+   "type": "reranks",
+   "note": "top by KEV"
+  },
+  {
+   "src": "threat-ledger-middle-tier-2023-2026",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "reranks",
+   "note": "top by Rust volume"
+  },
+  {
+   "src": "as.dst-entropy-leak",
+   "dst": "as.dst-harness-spec",
+   "type": "requires",
+   "note": "deterministic CryptoProvider"
+  },
+  {
+   "src": "as.mutants-gate",
+   "dst": "as.oracle-mutation",
+   "type": "refines"
+  },
+  {
+   "src": "as.fuzz-gate",
+   "dst": "ossfuzz-coverage-transport",
+   "type": "corroborates"
+  },
+  {
+   "src": "cedar-lean-proofs-2026-10",
+   "dst": "cedar-drt-harness",
+   "type": "depends_on"
+  },
+  {
+   "src": "fail-verifier-soundness-bugs",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "weakens",
+   "note": "cvc5 in SymCC TCB"
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-txn-pooling-session-leak",
+   "dst": "sdg-pgdog-supavisor-pgcat",
+   "type": "corrects"
+  },
+  {
+   "src": "sdg-pgbouncer",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "supports"
+  },
+  {
+   "src": "sdg-rls-plan-cache-family",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "compounds"
+  },
+  {
+   "src": "sdg-embedded-store-selection",
+   "dst": "sdg-redb",
+   "type": "corrects",
+   "note": "check_integrity repair buggy"
+  },
+  {
+   "src": "sdg-embedded-store-selection",
+   "dst": "sdg-sqlite-wal",
+   "type": "refines"
+  },
+  {
+   "src": "io-uring-security-record",
+   "dst": "io-uring-perf-reality",
+   "type": "context"
+  },
+  {
+   "src": "j-mcp-2026-07-28",
+   "dst": "j-mcp-stateless-no-sessions",
+   "type": "qualifies"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does rustls server (0.23.46/0.24-dev) send HRR to X25519MLKEM768 when client lists it but sends only X25519 share? Build the acceptance test.",
+   "layer": "L5",
+   "domain": "C-CRYPTO",
+   "expected_info_gain": 0.8,
+   "reason": "Decides whether RUSTSEC-2026-0349-class downgrades succeed against us"
+  },
+  {
+   "question": "Per-year (2024/2025/2026) memory vs logic share across Envoy/HAProxy/Traefik/Caddy advisories \u2014 is the 2026 memory surge C-only?",
+   "layer": "L4",
+   "domain": "K-CALIBRATION",
+   "expected_info_gain": 0.6,
+   "reason": "Pooled rates hide regime shift"
+  },
+  {
+   "question": "Equivalent-mutant triage rate in cargo-mutants on httparse/h2: what fraction of 'missed' are equivalent?",
+   "layer": "L4",
+   "domain": "O",
+   "expected_info_gain": 0.5,
+   "reason": "Threshold for mutants CI gate"
+  },
+  {
+   "question": "Minimal deterministic rustls CryptoProvider for DST (seeded SecureRandom, pure-Rust primitives) \u2014 does one exist?",
+   "layer": "L5",
+   "domain": "O",
+   "expected_info_gain": 0.6,
+   "reason": "aws-lc jitter/rdrand defeats interposition"
+  }
+ ],
+ "protocol_implications": [
+  "Report numeric claims as per-year bands with the classifier stated; pooled 2023-26 memory-safety shares hide a 2026 regime shift.",
+  "PQ KA acceptance criterion: rustls>=0.23.46 with aws-lc-rs; server HRR-to-hybrid when the client offers hybrid in supported_groups without a key share; record negotiated group per connection.",
+  "Mutation gate fails on cargo-mutants exit codes {2,3}; triage equivalent mutants before setting a threshold.",
+  "DST: replace the CryptoProvider under simulation; do not rely on getrandom interposition (aws-lc uses jitter+RDRAND).",
+  "Gateway-owned pool: recycle backend connections on role DDL (CVE-2026-14666); ban session-level SET (PgDog SET ROLE fix still unmerged; Supavisor detection only in RC).",
+  "redb (if chosen): check_integrity detect-only, fail closed; never auto-repair. SQLite: single writer connection avoids WAL-reset trigger; pin >=3.51.3, current 3.54.1.",
+  "Cedar claims must say 'verified Lean model + DRT-tested Rust; TCB includes Lean compiler (native_decide) and cvc5 for SymCC'."
+ ],
+ "self_improvement": [
+  "Recount traps: gh search label counts include PRs unless is:issue; gh contents API truncates directories at 1000 entries (OSS-Fuzz projects); KEV lags disclosure by months.",
+  "Calibration targets should require per-year breakdowns for any pooled rate.",
+  "Node examples ('real test gap') need a semantic check, not just existence checks."
+ ],
+ "sources": [
+  "CISA KEV JSON 2026.10.23",
+  "NVD API keywordSearch",
+  "rfc-editor RFC10024",
+  "rustls crate source 0.23.46",
+  "discourse.ubuntu.com/t/84803",
+  "gh api modelcontextprotocol releases",
+  "TS SDK constants.ts",
+  "rmcp 3.7.0",
+  "gh api verus-lang soundness",
+  "Z3 #11295/#10963",
+  "cvc5 #12926",
+  "cedar-spec @301bdd2",
+  "pgbouncer NEWS.md",
+  "cveawg CVE-2016-2193/2023-2455/2024-10976/2026-14666/2023-39418/2025-48757/2026-48710/2026-34486/2025-39682",
+  "PgDog #1850/#1341/#1407/#1444",
+  "Supavisor PR #1113 + releases",
+  "UpGuard Supabase report",
+  "Supabase changelog #45329",
+  "GHSA ferron/docker-mcp-gateway/pingora/agentgateway",
+  "cargo-mutants releases+exit-codes",
+  "httparse lib.rs @a0fa552e",
+  "OSS-Fuzz project.yaml probes",
+  "rustls build.yml/cifuzz.yml",
+  "crates.io API fuzz crates",
+  "aws-lc-sys 0.46 entropy_sources.c/urandom.c",
+  "getrandom 0.2.17/0.3.4 source",
+  "arXiv 2605.26457",
+  "IronSpec OSDI24",
+  "Fonseca EuroSys17 (abstract/mailing list)",
+  "nginx security_advisories",
+  "httpd vulnerabilities_24",
+  "CSO/CSA nginx CVE-2026-42945",
+  "Cloudflare PQ share reports",
+  "OAI releases",
+  "sqlite wal.html + chronology",
+  "redb/fjall/heed/sled releases",
+  "Jepsen PG 12.3 + RDS 17.4",
+  "GHSA openfga/spicedb",
+  "biscuit/oso/cedar repos + cedar rfcs",
+  "OSV querybatch 19 Rust crates",
+  "OSV RUSTSEC-2026-0349/0285/0348"
+ ],
+ "progress_file": "/home/patrickd/aegis/research/state/raw/round-002/12-two-sided-calibration-load-bearing-numbers.progress.md",
+ "data_dir": "/home/patrickd/aegis/research/state/raw/round-002/12data"
+}

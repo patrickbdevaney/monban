@@ -1,0 +1,56 @@
+[
+ {
+  "name": "docker-mcp-gateway-v0.44.2/token-auth(default,no --host)",
+  "url": "http://127.0.0.1:18021/mcp",
+  "eras": [
+   "legacy"
+  ],
+  "bearer": "lc-test-token-0123456789abcdef",
+  "tool": [
+   "mcp-find",
+   "query"
+  ],
+  "pid_port": 18021,
+  "flood_n": 3000,
+  "skip_flood": false,
+  "only_cases": [
+   "host-allowlist-required",
+   "reject-text-plain-post",
+   "no-wildcard-cors",
+   "ws-origin-check",
+   "absent-origin-fail-closed",
+   "id-collision-two-clients",
+   "body-cap-413",
+   "amplification-bound",
+   "unauth-listener-refused",
+   "N10-delete-session-legacy",
+   "session-table-bound"
+  ]
+ },
+ {
+  "name": "docker-mcp-gateway-v0.44.2/--allow-unauthenticated",
+  "url": "http://127.0.0.1:18022/mcp",
+  "eras": [
+   "legacy"
+  ],
+  "tool": [
+   "mcp-find",
+   "query"
+  ],
+  "pid_port": 18022,
+  "flood_n": 3000,
+  "only_cases": [
+   "host-allowlist-required",
+   "reject-text-plain-post",
+   "no-wildcard-cors",
+   "ws-origin-check",
+   "absent-origin-fail-closed",
+   "id-collision-two-clients",
+   "body-cap-413",
+   "amplification-bound",
+   "unauth-listener-refused",
+   "N10-delete-session-legacy",
+   "session-table-bound"
+  ]
+ }
+]

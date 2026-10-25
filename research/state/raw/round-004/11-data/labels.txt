@@ -1,0 +1,343 @@
+0|DROP||0
+1|NET|appserver|0
+2|BUG|appserver(php)|1
+3|DISK|reverse-proxy(tools-proxy)|1
+4|DROP||0
+5|RETRY|api-service|0
+6|BUG|api-service|0
+7|RETRY|appserver(uwsgi)|1
+8|DROP||0
+9|DROP||0
+10|HW|nginx-fileserver|0
+11|CFG|haproxy|1
+12|CFG|forward-proxy|1
+13|DROP||0
+14|DEP|app|0
+15|DROP||0
+16|DROP||0
+17|DROP||0
+18|DROP||0
+19|RELOAD|php-opcache-appserver|1
+20|BUG|appserver(php)|1
+21|HC|pybal-LB|1
+22|CFG|api|0
+23|DEP|eventstreams|0
+24|CAP|tileserver|0
+25|NET|edge|0
+26|CAP|api-appserver|1
+27|DEP|db|0
+28|NET|edge|0
+29|CFG|k8s-api|0
+30|CAP|caching-layer|1
+31|NET|edge|0
+32|NET|edge-caches|0
+33|CFG|varnish+ats-tls|1
+34|BUG|appserver|1
+35|RETRY|appserver|1
+36|FD|appserver|1
+37|HUM|cdn-edge-cache|1
+38|CAP|api-appserver|1
+39|ABUSE|api-appserver|1
+40|CFG|app|0
+41|RETRY|appserver|1
+42|DEP|appserver|0
+43|NET|edge|0
+44|NET|edge|0
+45|ABUSE|thumbor-service|0
+46|CACHE|varnish|1
+47|BUG|wdqs-blazegraph|0
+48|BUG|nginx->blazegraph(lockup)|0
+49|CFG|service-proxy-middleware|1
+50|MEM|appservers|1
+51|DEP|LVS-swift-frontend|1
+52|RELOAD|appserver(restart-script/poolcounter)|1
+53|CERT|cloud-vps-web-proxies|1
+54|FD|php-fpm(api-appserver)|1
+55|CAP|jobrunner|0
+56|HW|thumbor->swift(nic-crash)|0
+57|HW|switch|0
+58|ABUSE|api-webserver|1
+59|BUG|memcached-layer|0
+60|DEP|appservers|1
+61|DNS|edge-cluster-depool|1
+62|RELOAD|eventgate(node)|0
+63|NET|switch|0
+64|DROP||0
+65|CAP|appserver(slow-queries)|1
+66|DEP|wikifeeds-healthcheck|0
+67|RELOAD|elasticsearch|0
+68|FD|varnish(upload-lb)|1
+69|FD|php-fpm(appserver)|1
+70|FD|php-fpm(appserver)|1
+71|FD|php-fpm(appserver)|1
+72|NET|datacenter-return-path|0
+73|DROP||0
+74|BUG|swift-upload(libs)|0
+75|NET|ipv6|0
+76|NET|cloud-vps|0
+77|CFG|edge-router-acl(BFD)|0
+78|CAP|wdqs|0
+79|FD|appserver(worker-exhaustion)|1
+80|BUG|wdqs-deadlock|0
+81|FD|api/appserver-workers|1
+82|CAP|esams-edge(varnish)|1
+83|CERT|etcd/conftool|0
+84|HUM|confctl->LB-depool-all(codfw)|1
+85|FD|appserver-worker-threads|1
+86|RETRY|varnish-caching-layer(API flood)|1
+87|RELOAD|apache|1
+88|RETRY|varnish->haproxy(429 retries overload)|1
+89|DROP||0
+90|DROP||0
+91|DROP||0
+92|HW|switch-power|0
+93|DROP||0
+94|DROP||0
+95|BUG|thumbor+haproxy(firejail upstream bug restart loop)|1
+96|NET|switch|0
+97|DROP||0
+98|HC|pybal-depool+etcdmirror|1
+99|DROP||0
+100|NET|switch|0
+101|DEP|swift|0
+102|BUG|ATS(cookie ctx bug)|1
+103|FD|api-appserver workers starvation|1
+104|DROP||0
+105|CAP|shellbox|0
+106|CAP|api-appserver|1
+107|RETRY|api-appserver/parsoid recovery surge|1
+108|RELOAD|php-fpm restart/opcache vs extension.json|1
+109|HUM|ATS text cache (depool all)|1
+110|BUG|switchover script|0
+111|HUM|LVS reimage during deploy|1
+112|CAP|jobrunner|0
+113|HUM|LVS taken down during deploy|1
+114|CFG|TLS termination (mw-on-k8s wrong cert)|1
+115|CFG|dhcp clients|0
+116|BUG|etcd-mirror|0
+117|CFG|mw-on-k8s mcrouter sidecar|1
+118|DEP|appserver/db|0
+119|CFG|nginx (puppet removed nameserver)|1
+120|CACHE|ATS|1
+121|CFG|TLS cert SAN missing (k8s svc)|1
+122|CFG|CDN redirect loop|1
+123|CAP|edge|1
+124|DEP|tools-proxy/ceph|1
+125|BUG|LVS+wdqs deadlock|1
+126|CFG|WAF global rate-limit|1
+127|RELOAD|Istio ingress upgrade|1
+128|CFG|DNS resolver fleet min-healthy|0
+129|CFG|WAF/CloudFront drift|1
+130|CFG|edge routers|1
+131|CFG|backbone typo|0
+132|CFG|BGP prefix order|0
+133|CFG|tiered cache|1
+134|BUG|service tokens / CDN control plane|1
+135|DNS|DNS resolver internal software error|1
+136|CFG|bot mgmt feature file -> proxy panic|1
+137|CFG|WAF ruleset Lua exception|1
+138|BUG|BYOIP addressing api|0
+139|HUM|R2 gateway|0
+140|HUM|R2 gateway creds|0
+141|BUG|rate-limiter infinite loop (DDoS rule exposed)|1
+142|CFG|deployment tool staging version|1
+143|RETRY|dashboard/API (excess calls)|0
+144|CFG|BGP policy leak|0
+145|NET|switch multicast|0
+146|DROP||0
+147|CFG|BGP|0
+148|CFG|google|0
+149|DEP|quota service|0
+150|CFG|safe-browsing blacklist|0
+151|CFG|google LB config roll-out|1
+152|RETRY|blob storage|0
+153|CFG|GCP network|0
+154|BUG|GFE/internal LB|1
+155|BUG|GCLB network config service|1
+156|RELOAD|GCP networking|0
+157|CFG|heroku router/dyno config|1
+158|CFG|heroku|0
+159|CFG|azure storage|0
+160|CFG|Fastly VCL (restart resets backend)|1
+161|DNS|k8s cluster dns config|0
+162|CERT|crates.io cert+DNS recreate|1
+163|DROP||0
+164|HW|power|0
+165|HW|power|0
+166|HW|power|0
+167|HW|power|0
+168|HW|cooling (ALB/WAF customers affected)|0
+169|NET|switch|0
+170|HW|power|0
+171|HW|power|0
+172|HW|power|0
+173|HW|cooling|0
+174|DNS|DNS management race|0
+175|BUG|Google LB addressing slow path|1
+176|NET|backbone|0
+177|CLOCK|leap-day cert creation (Azure)|1
+178|CLOCK|CF RRDNS leap second|1
+179|CERT|Firefox addon cert|0
+180|BUG|heroku db int overflow|0
+181|HUM|S3|0
+182|BUG|S3 request fleet|0
+183|HUM|AWS network|0
+184|MEM|EBS agent|0
+185|HUM|ELB state data|1
+186|RETRY|EBS metadata|0
+187|FD|Kinesis frontend cache fleet thread limit|1
+188|RETRY|AWS internal network|0
+189|DEP|SimpleDB|0
+190|BUG|Direct Connect network OS|0
+191|BUG|Lambda frontend fleet|1
+192|RETRY|Kinesis|0
+193|RELOAD|kube-proxy iptables upgrade|1
+194|BUG|CF edge parser memory leak (Cloudbleed)|1
+195|REGEX|CF WAF|1
+196|CAP|CF peering|1
+197|DEP|Workers KV|0
+198|DROP||0
+199|DROP||0
+200|RELOAD|dropbox|0
+201|BUG|etsy|0
+202|BUG|Fastly edge (config triggered bug)|1
+203|BUG|mail|0
+204|CAP|filestore|0
+205|DROP||0
+206|BUG|BigQuery|0
+207|BUG|GCP Service Control (null ptr + thundering herd)|1
+208|HUM|heroku router|1
+209|RELOAD|heroku|0
+210|DEP|heroku|0
+211|DROP||0
+212|DEP|heroku|0
+213|RETRY|LaunchDarkly LB (retry storm)|1
+214|NET|pagerduty|0
+215|DEP|sms|0
+216|DEP|postgres|0
+217|RETRY|slack ws gateway reconnect storm|1
+218|NET|aws gateways|0
+219|RETRY|cache nodes|0
+220|RETRY|microservice no backoff|0
+221|RETRY|auth svc|0
+222|CAP|load balancers (feature enabled)|1
+223|HUM|stripe|0
+224|DEP|redis|0
+225|DROP||0
+226|FD|HAProxy/conntrack (k8s)|1
+227|RETRY|sidecars|1
+228|DROP||0
+229|DROP||0
+230|RELOAD|ingress graceful shutdown 502 (endpoint removal race)|1
+231|FD|nginx-ingress conntrack|1
+232|MEM|skipper-ingress OOMKill|1
+233|MEM|skipper-ingress OOMKill+CPU throttling|1
+234|CFG|nginx ConfigMap change|1
+235|CFG|haproxy-ingress template|1
+236|RELOAD|GCP ingress GKE upgrade|1
+237|DNS|ELB dynamic IPs|1
+238|CFG|GCP LB externalTrafficPolicy drain|1
+239|DROP||0
+240|CAP|ingress|1
+241|DNS|ELB dynamic IPs cached by kube|1
+242|FD|haproxy too many open files|1
+243|BUG|linkerd NPE|1
+244|CERT|k8s TLS cert refresh|0
+245|DNS|ELB dynamic IPs|1
+246|BUG|linkerd NPE|1
+247|HC|ingress unhealthy nodes|1
+248|DNS|ELB|1
+249|DNS|ELB dynamic IP|1
+250|DROP||0
+251|CAP|datacenter load balancers (GitHub)|1
+252|ABUSE|unauth web tier|1
+253|CFG|api auth|0
+254|CFG|ingress path removed|1
+255|CAP|LB tier saturation (search)|1
+256|CFG|redis config|0
+257|DROP||0
+258|CERT|internal service TLS (git)|1
+259|RETRY|LB->search retry queues|1
+260|CFG|internal LB config|1
+261|CAP|web servers overloaded after maintenance|1
+262|CFG|DB load balancer change|1
+263|BUG|DB proxy incompat syntax|1
+264|CFG|LB IPv4-mapped IPv6 change at edge|1
+265|RELOAD|copilot nodes upgrade|0
+266|FD|DB proxy connection pool exhaustion|1
+267|DEP|db|0
+268|CERT|CDN unexpected cert (provider config)|1
+269|DROP||0
+270|CAP|DB proxy excessive load|1
+271|DEP|db|0
+272|CERT|*.githubassets.com expiry|1
+273|DROP||0
+274|CFG|BYOIP|0
+275|CFG|route leak|0
+276|BUG|1.1.1.1 record ordering|1
+277|DROP||0
+278|BUG|CF WAF body parsing change|1
+279|CFG|CF bot feature file proxy|1
+280|DROP||0
+281|RETRY|CF dashboard/API (useEffect)|0
+282|DROP||0
+283|CAP|CF peering|1
+284|DEP|Workers KV|0
+285|DEP|Workers KV|0
+286|HUM|R2 gateway creds|0
+287|HUM|R2 gateway|0
+288|NET|CF backbone|1
+289|HW|CF power|1
+290|HW|CF control plane power|0
+291|CFG|CF Workers KV deploy tool|1
+292|DROP||0
+293|UNK|netlify edge|1
+294|DNS|netlify edge DNS resolution|1
+295|UNK|image CDN|1
+296|CAP|HP edge FRA|1
+297|UNK|CDN|1
+298|UNK|CDN purge/primary LB|1
+299|DNS|edge DNS|1
+300|DEP|CDN (AWS upstream)|1
+301|UNK|image CDN|1
+302|UNK|image CDN|1
+303|CERT|sprites.app hosting cert error|1
+304|DROP||0
+305|NET|DO regional network|0
+306|HW|DO region|0
+307|CERT|mTLS verification failed (control panel)|0
+308|DROP||0
+309|DEP|DNS API|0
+310|DEP|DO DNS/certs (Lets Encrypt)|1
+311|DEP|Lets Encrypt upstream outage (LB certs)|1
+312|DROP||0
+313|BUG|GitHub LB defect triggered by config change|1
+314|CERT|GitHub backend auth cert expired|0
+315|CERT|GitHub backend auth cert expired (dup)|0
+316|UNK|vercel CDN|1
+317|DROP||0
+318|DEP|Lets Encrypt wildcard|1
+319|DEP|Lets Encrypt wildcard|1
+320|DEP|Lets Encrypt paused|1
+321|UNK|bunny CDN|1
+322|NET|bunny CDN provider|1
+323|CAP|bunny log pipeline|0
+324|HW|bunny optimizer disk|0
+325|UNK|bunny CDN sync|1
+326|NET|bunny CDN fiber cut|1
+327|DEP|Lets Encrypt|1
+328|UNK|bunny config propagation|1
+329|DEP|Lets Encrypt|1
+330|CFG|bunny CDN config sync nodes|1
+331|UNK|bunny magic containers 502|1
+332|DNS|bunny CDN accel DNS 502|1
+333|CFG|bunny DNS config|1
+334|NET|bunny SG|1
+335|UNK|bunny stats|0
+336|UNK|bunny stats|0
+337|CAP|bunny logs|0
+338|HW|bunny storage disk|1
+339|UNK|bunny config updates|1
+340|CAP|bunny logs|0
+341|NET|bunny upstream network|1
+342|NET|bunny SG|1

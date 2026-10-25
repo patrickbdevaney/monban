@@ -1,0 +1,698 @@
+{
+ "explorer": "06",
+ "round": 2,
+ "target": "h2-h3-budget-invariant-and-harness",
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "l4-transport-harness-census-2026-10",
+   "layer": "L4",
+   "domain": "W-TRANSPORT x W-FORMAL",
+   "type": "measurement",
+   "title": "Proof/harness census of Rust transport crates (Oct 2026): only s2n-quic has Kani, and none on resource budgets",
+   "summary": "Local clones grep: s2n-quic d20f8fa has 102 kani::proof hits in 31 files (codec/varint/packet-number/checksum/interval-set) run in CI via kani-github-action; 121 bolero::check harnesses doubling as Kani proofs. h2 0.4.20: 3 crash-only fuzz targets + 1 quickcheck file, no Kani/Verus/proptest. hyper 1.12.0: no fuzz dir, no proofs. h3 43745ad: 1 proptest, 1 fuzz target. quinn 12fe809: 4 fuzz targets. quiche 0.30.0: 5. rustls: 7. pingora 0.9.0: none. GitHub code search (kani::proof + hpack/WINDOW_UPDATE/flow_control; verus! + http2) and issue search (kani/'formal verification' in h2, hyper, quinn, h3, quiche) found no transport-library budget harness.",
+   "specifics": "s2n-quic CI: .github/workflows/ci.yml:947 matrix common/s2n-codec, quic/s2n-quic-core, quic/s2n-quic-platform. Zero proofs on flow control, stream limits or memory budgets in any crate. Existing fuzz targets check only for crashes; none has a resource oracle (out/in ratio, peak memory, live handlers).",
+   "urls": [
+    "https://github.com/aws/s2n-quic/blob/main/.github/workflows/ci.yml",
+    "https://github.com/hyperium/h2/tree/master/fuzz/fuzz_targets",
+    "https://github.com/hyperium/h3",
+    "https://github.com/quinn-rs/quinn",
+    "https://github.com/cloudflare/quiche"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Code search coverage is partial; private or fork harnesses may exist.",
+   "underclaim_risk": "s2n-quic proves its codecs are panic-free and correct, which is real assurance for the packet layer even without budget proofs."
+  },
+  {
+   "id": "l4-negative-kani-memory-explosion",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "negative-result",
+   "title": "Evidence that bounded model checking of stateful buffers runs out of memory",
+   "summary": "s2n-quic buffer/deque/tests.rs:160: 'even with the minimal amount of parameter bounds, this proof's memory consumption explodes', so it is gated behind cfg(kani_slow) and not run in CI. Kani issue #1226: flattening a Vec<Vec<i32>> at unwind 6 took 65 min and 12.6 GB (a later CBMC simplification cut it to about 2 s). The Firecracker docs say 'many harnesses require significant memory, and might result in OOM'. Kani does not model concurrency (it compiles concurrent code as sequential), await, asm or unwinding, and trait objects only partly.",
+   "specifics": "Implication for the 6 GB heavy.sh cap: Kani harnesses must target pure counter/window structs with small symbolic bounds (Firecracker uses MAX_BUCKET_SIZE 15). They cannot target h2's Streams/Store/async IO.",
+   "urls": [
+    "https://github.com/aws/s2n-quic/blob/main/quic/s2n-quic-core/src/buffer/deque/tests.rs",
+    "https://github.com/model-checking/kani/issues/1226",
+    "https://github.com/firecracker-microvm/firecracker/blob/main/docs/formal-verification.md",
+    "https://raw.githubusercontent.com/model-checking/kani/main/docs/src/rust-feature-support.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "CBMC improves; #1226 was later fixed, so the blowups are not permanent.",
+   "underclaim_risk": "Small-bound Kani proofs of pure arithmetic still close overflow/underflow classes, which have caused real h2 bugs."
+  },
+  {
+   "id": "l4-firecracker-kani-token-bucket",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "existence-proof",
+   "title": "Firecracker proves its token-bucket rate limiter with Kani on every PR (existence proof for the reset-window clause)",
+   "summary": "src/vmm/src/rate_limiter/mod.rs has the harnesses verify_token_bucket_new, verify_token_bucket_auto_replenish and verify_token_bucket_reduce. They use #[kani::stub(std::time::Instant::now)], #[kani::stub_verified(gcd)] with a proof_for_contract, the cadical solver and bounds MAX_BUCKET_SIZE=15 / MAX_REFILL_TIME=15. They prove is_valid() is preserved and that the burst is used before the budget.",
+   "specifics": "Pattern to copy for AEGIS reset/glitch token buckets: stub the clock, prove the bucket invariant is preserved by every op under symbolic inputs, and contract-verify the helpers.",
+   "urls": [
+    "https://github.com/firecracker-microvm/firecracker/blob/main/src/vmm/src/rate_limiter/mod.rs",
+    "https://github.com/firecracker-microvm/firecracker/blob/main/docs/formal-verification.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "The bounds are tiny (15), so the proof covers small buckets only unless the arithmetic is shown to be width-independent.",
+   "underclaim_risk": "This is production precedent in a hyperscaler VMM, not a toy."
+  },
+  {
+   "id": "l4-no-verified-hpack-qpack-decoder",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "negative-existence",
+   "title": "No formally verified HPACK/QPACK or HTTP/2 frame decoder exists in Rust or C (Oct 2026), and the verified parser generators cannot express the dynamic table",
+   "summary": "Searches across Coq, Isabelle, F*, SPARK, Lean, Verus and Dafny found no verified HPACK/QPACK implementation. Vest (USENIX Sec'25; crates vest 0.1.4 / vest_lib) covers stateless formats: TLS 1.3 handshake, Bitcoin, Wasm. Its paper says 'Vest does not have a concept of a stack counter', so Wasm needed a preprocessor. EverParse/3D (Hyper-V vSwitch) proves only non-malleability plus double-fetch freedom, again for stateless formats. everquic (S&P'21) verified the QUIC record layer (draft-30, F*/Low*, about 2 GB/s), not frames or QPACK.",
+   "specifics": "The HPACK/QPACK dynamic table is cross-frame state, so it falls outside the stateless parser-generator model. A verified frame-header layer (9-byte H2 frame header, QUIC varints and frame types) is feasible with Vest. The table and the budget accounting need hand-written Verus or Kani proofs.",
+   "urls": [
+    "https://www.usenix.org/conference/usenixsecurity25/presentation/cai-yi",
+    "https://www.andrew.cmu.edu/user/bparno/papers/vest.pdf",
+    "https://docs.rs/vest_lib",
+    "https://www.microsoft.com/en-us/research/publication/everparse/",
+    "https://eprint.iacr.org/2020/114",
+    "https://github.com/project-everest/everquic-crypto"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Absence of evidence from web search; an unpublished or academic artifact could exist.",
+   "underclaim_risk": "A Vest-based HTTP/2 frame-header parser is roughly a weeks-scale artifact and would remove one parser class from the TCB."
+  },
+  {
+   "id": "l4-h2-budget-mechanics-0.4.20",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "code-inspection",
+   "title": "h2 0.4.20 / hyper 1.12.0 budget mechanics as written (exact constants and gaps)",
+   "summary": "h2 proto/mod.rs:33-47: REMOTE_RESET_STREAM_MAX 20, LOCAL_RESET_COUNT_MAX 1024 (connection lifetime), RESET_STREAM_MAX 50 kept for 1 s, DATA_FRAME_BUDGET 25,600 (256 B overhead x 100), MAX_RECV_EMPTY_DATA_FRAMES 100, MAX_SEND_BUFFER 400 KiB. framed_read.rs:22: crate default MHLS 16 MiB. The CONTINUATION cap is max(5, 1.25*MHLS/max_frame) (framed_read.rs:106-113). An oversize block keeps decoding until 4x MHLS (headers.rs:17, 873-889) and then sends GOAWAY COMPRESSION_ERROR. hpack decoded size = 32+name+value (header.rs:38-40). h2 server Builder sets max_concurrent_streams to unlimited by default. hyper 1.12.0 (proto/h2/server.rs:36-80) defaults: max_concurrent_streams 200, MHLS 16 KiB, windows 1 MiB, max_frame 16 KiB, keep_alive_timeout 20 s, interval None.",
+   "specifics": "GAPS (grep-verified): (1) no header field-COUNT cap in h2 or hyper's H2 path (hyper h1 has max_headers 100); (2) no stall/idle/send-progress timeout anywhere in h2/src or hyper/src/proto/h2 (grep stall|idle_timeout|send_timeout = 0 hits); (3) counts.rs has a pure Budget{spent,max} with checked_add (lines 1-40) and Counts::inc_* guarded by assert!, so a logic slip is a panic, which is a DoS; (4) hyper spawns each accepted stream with exec.execute_h2stream (server.rs:316), and the handler is dropped only when poll_reset fires while the service is Pending (server.rs:452-458). Fix history: #909 (2026-06-09, try_append; >24,576 unique headers panicked HeaderMap, v0.4.15), #915 (2026-06-13, 4x MHLS close), #935 (2026-08-17 small-DATA budget, GHSA-q83h), #858 (2025-08-06 expiring reset limits, MadeYouReset).",
+   "urls": [
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/mod.rs",
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/codec/framed_read.rs",
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/frame/headers.rs",
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/streams/counts.rs",
+    "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs",
+    "https://github.com/hyperium/h2/pull/909",
+    "https://github.com/hyperium/h2/pull/915",
+    "https://github.com/hyperium/h2/pull/858"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Line numbers are from the shallow clones (h2 e64c166, hyper b073378) and may drift.",
+   "underclaim_risk": "h2 already enforces implicit field-count via RFC-unit MHLS (each field >= 33 B), which is a provable bound once MHLS is small."
+  },
+  {
+   "id": "l4-field-memory-vs-rfc-accounting",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "analysis",
+   "title": "Per-field memory is 3-7x the RFC 32-byte accounting: the root of HTTP/2 Bomb and Header Accordions",
+   "summary": "RFC 7541 4.1 counts each field as 32+|name|+|value|. Measured server allocations per field: nginx 59 B (ngx_table_elt_t 56+2+1), and Calif reports about 70 to 4,000 B per entry across servers. In the Rust stack (http 1.4.0 map.rs:305), Bucket{hash u16, HeaderName 32 B, HeaderValue 40 B, Option<Links> 24 B} is about 104 B, plus a 4 B Pos index, plus Vec doubling slack (up to 2x). Repeated names go to ExtraValue at about 72 B. HeaderMap MAX_SIZE is 1<<15 = 32,768. Analytic estimate: 104-224 B per 1-byte field against an accounted 33-34 B.",
+   "specifics": "Bound derivation for hyper defaults: fields per block <= floor(16384/33) = 496. Memory per block <= 496 x 224 + 16384 = about 127 KB. Times 200 streams = about 25 MB per connection pinned under a zero window. With raw h2 defaults (MHLS 16 MiB, unlimited streams) per-connection memory has no bound. The measurement spike was refused by heavy.sh (9 GB free < 10 GB), so this is an implementation-phase spike: a counting global allocator over HeaderMap with N in {496, 1k, 4k, 16k}, same-name and distinct-name cases.",
+   "urls": [
+    "https://github.com/hyperium/http/blob/v1.4.0/src/header/map.rs",
+    "https://lilting.ch/en/articles/http2-bomb-hpack-flow-control-dos",
+    "https://blog.calif.io/p/codex-discovered-a-hidden-http2-bomb"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "The Rust numbers are analytic layout estimates, not measured. Allocator size classes could add 10-30%.",
+   "underclaim_risk": "Even the pessimistic Rust figure is far below Envoy and httpd amplification, so hyper with a small MHLS is structurally safer than the incumbents."
+  },
+  {
+   "id": "l4-cve-corpus-h2-h3-2023-2026",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "cve-set",
+   "title": "Regression corpus identifiers: Rapid Reset, CONTINUATION, MadeYouReset, HTTP/2 Bomb, Header Accordions",
+   "summary": "Rapid Reset CVE-2023-44487 (2023-10-10). CONTINUATION flood CERT VU#421644 (2024-04-03): CVE-2023-45288 Go (CPU), CVE-2024-27316 httpd, CVE-2024-28182 nghttp2, CVE-2024-30255 Envoy (about 1 core per 300 Mbit/s), CVE-2024-27919 Envoy oghttp, CVE-2024-2653 amphp, CVE-2024-27983 Node, CVE-2024-31309 ATS, CVE-2024-2758 Tempesta. MadeYouReset VU#767506 (2025-08-13, rev 2026-03-17) CVE-2025-8671 (+CVE-2025-48989 Tomcat). HTTP/2 Bomb (Calif, 2026-06-02): CVE-2026-49975 is the Apache mod_h2 2.0.41 fix (cookie merges count toward LimitRequestFields); CVE-2026-47774 / GHSA-22m2-hvr2-xqc8 is Envoy (fixed 1.35.11/1.36.7/1.37.3/1.38.1); nginx 1.29.8 adds max_headers=1000; IIS and Pingora unpatched at disclosure. Amplification: Envoy about 5,700x, httpd about 4,000x, nginx about 70x, IIS about 68x, Pingora 0.8.0 about 62x. Keepalive costs about 34 B/s (1-byte WINDOW_UPDATE). Header Accordions (FoxIO 2026-10-20) target QPACK; hyperium/h3 PRs #366/#377/#378 are still OPEN on 2026-10-25.",
+   "specifics": "Correction to the existing map: CVE-2026-49975 is httpd-specific, not the umbrella id for HTTP/2 Bomb. PoC: github.com/califio/publications/tree/main/MADBugs/http2-bomb.",
+   "urls": [
+    "https://kb.cert.org/vuls/id/421644",
+    "https://kb.cert.org/vuls/id/767506",
+    "https://blog.calif.io/p/codex-discovered-a-hidden-http2-bomb",
+    "https://github.com/califio/publications/tree/main/MADBugs/http2-bomb",
+    "https://lilting.ch/en/articles/http2-bomb-hpack-flow-control-dos",
+    "https://github.com/hyperium/h3/pull/366",
+    "https://github.com/hyperium/h3/pull/377",
+    "https://github.com/hyperium/h3/pull/378"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Amplification ratios come from secondary reporting and measure different things.",
+   "underclaim_risk": "Each disclosure produced a fix-of-fix within months, so the corpus must keep growing."
+  },
+  {
+   "id": "l4-handler-bounded-designs",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "design-comparison",
+   "title": "Designs that survived MadeYouReset bound live handlers, not protocol-open streams",
+   "summary": "Go x/net http2 scheduleHandler: run while curHandlers < advMaxStreams, otherwise queue; if len(unstartedHandlers) > 4*advMaxStreams, send GOAWAY ENHANCE_YOUR_CALM ('too_many_early_resets'); queued entries for already-reset streams are dropped. Other Go limits: maxQueuedControlFrames 10,000; >100 SETTINGS is an error; defaultMaxStreams 250. HAProxy counts allocated streams and uses a glitch counter (fe glitches-threshold 1000 kills a short-CONTINUATION flood instantly; be default 0 = off) and max-total-streams then GOAWAY. lighttpd closes the per-request backend socket on reset. nghttp2 1.57.0 uses an RST token bucket (burst 1000, 33/s) then GOAWAY.",
+   "specifics": "hyper+h2 as written: h2 Counts decrements on reset, but the hyper task spawned by execute_h2stream lives until it is next polled and observes poll_reset. Live handlers are executor state, invisible to h2.",
+   "urls": [
+    "https://raw.githubusercontent.com/golang/net/master/http2/server.go",
+    "https://kb.cert.org/vuls/id/767506",
+    "https://git01.mediatek.com/plugins/gitiles/haproxy/+/92f287bbbee1537372f6b0c2d58d83dcb3629cf1%5E%21",
+    "https://git01.mediatek.com/plugins/gitiles/haproxy/+/4869ed5658603d8749266c2905aeedf92b909aef",
+    "https://nghttp2.org/documentation/nghttp2_option_set_stream_reset_rate_limit.html",
+    "https://nghttp2.org/blog/2023/10/10/nghttp2-v1-57-0/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Vendor 'not affected' statements in the CERT note are self-reported.",
+   "underclaim_risk": "Go's 4x-queue rule is a simple, checkable inductive invariant that AEGIS can adopt directly."
+  },
+  {
+   "id": "l4-quic-stack-window-defaults",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "config-facts",
+   "title": "QUIC/H3 default windows: s2n-quic caps the connection at 3.75 MB; quinn has no connection cap; h3 has no field-section cap",
+   "summary": "s2n-quic d20f8fa: InitialMaxData = compute_data_window(150 Mbps, 100 ms, 2) = 3,750,000 B (transport/parameters/mod.rs:619-634), stream windows the same, 100 bidi / 100 uni, idle 30 s. quinn-proto (0.11.19, 2026-09-30) transport.rs:375-406: receive_window VarInt::MAX (no connection cap), stream_receive_window 1.25 MB, 100 bidi / 100 uni, so the flow-control ceiling is about 250 MB per connection. quiche 0.30.0: MAX_CONNECTION_WINDOW 24 MiB, MAX_STREAM_WINDOW 16 MiB, H3 max field section 32,768, QPACK dynamic table 0. hyperium h3 0.0.8: max_field_section_size VarInt::MAX (config.rs:140), static-only QPACK; open PR #366 notes FrameDecoder buffers the whole declared payload outside flow control. RFC 9204 s5 defaults: QPACK table capacity 0 and blocked streams 0; s7.3 calls the blocked-stream limit 'only a proxy' for memory.",
+   "urls": [
+    "https://github.com/aws/s2n-quic/blob/main/quic/s2n-quic-core/src/transport/parameters/mod.rs",
+    "https://github.com/quinn-rs/quinn/blob/main/quinn-proto/src/config/transport.rs",
+    "https://github.com/cloudflare/quiche",
+    "https://github.com/hyperium/h3/blob/master/h3/src/config.rs",
+    "https://www.rfc-editor.org/rfc/rfc9204.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "quinn main may differ from the 0.11.19 release.",
+   "underclaim_risk": "Setting quinn's receive_window to 4 MiB closes its largest gap with a single line."
+  },
+  {
+   "id": "l4-temporal-stall-liveness",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "spec-evidence",
+   "title": "Zero-window stalls are a liveness property: nothing in h2/hyper bounds them, and TLA+ shows the deadlock",
+   "summary": "RFC 9113 4.3: receivers 'MUST perform decompression even if the frames are to be discarded', and SETTINGS_MAX_HEADER_LIST_SIZE is advisory (6.5.2). Calif's fix: 'stalled streams should have a bounded lifetime regardless of WINDOW_UPDATE activity'. A TLA+/TLC model of HTTP/2 flow control (Kurotych 2026, repo kurotych/conf_communication_deadlock, curl #16955) checks no-deadlock, byte conservation and liveness, and shows the deadlock is inevitable when data exceeds the window. Ivy NSCT (arXiv 2503.04810) and JADE (IFIP Networking 2026) test time-dependent QUIC behavior and found a picoquic idle-timeout bug.",
+   "specifics": "Pinned bytes x time is unbounded at the library level today. It needs an AEGIS-level progress deadline, verified in DST with a simulated clock.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc9113.html",
+    "https://apcssm.vnu.edu.ua/index.php/conf/article/view/295",
+    "https://arxiv.org/abs/2503.04810v1",
+    "https://dl.ifip.org/db/conf/networking/networking2026/1571262391.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "The TLA+ paper is a single regional-conference source.",
+   "underclaim_risk": "Liveness cannot be checked by Kani at all, so without this clause every safety proof misses the HTTP/2 Bomb."
+  },
+  {
+   "id": "l5-transport-budget-invariant-tbi",
+   "layer": "L5",
+   "domain": "W-TRANSPORT x W-FORMAL",
+   "type": "invariant",
+   "title": "SPEC_INVARIANTS: Transport Budget Invariant (TBI-1..TBI-9) for H2/H3 ingress",
+   "summary": "Per connection c, at every reachable state (inductive) and across time windows:",
+   "specifics": "TBI-1 field block: decoded_rfc(c,s) = sum(32+|n|+|v|) <= MHLS=16384 AND fields(c,s) <= F=128, counting cookie crumbs. Every field is counted at decode time, before any merge. TBI-2 decode work: decoded_rfc bytes processed per field block before abort <= 4*MHLS, and work(frame) <= K1*|wire| + K2*decoded, so CPU is linear in input plus a bounded expansion. TBI-3 tables: HPACK dynamic table <= SETTINGS_HEADER_TABLE_SIZE=4096. QPACK capacity = 0 and blocked_streams = 0 in the golden. TBI-4 live handlers: H_live(c) <= S=100 AND queued(c) <= 4*S, else GOAWAY ENHANCE_YOUR_CALM. A permit is acquired before spawn and released on task drop, independent of protocol stream state. Global: sum over c of H_live(c) <= H_global. TBI-5 resets: peer RST_STREAM consumes a token bucket (burst 100, refill 33/s). Server-initiated error resets <= 256 per connection lifetime. Total streams per connection <= 10,000. Exhaustion sends GOAWAY. TBI-6 buffered bytes: unacknowledged received body bytes(c) <= conn_window (H2 1 MiB; QUIC 4 MiB) AND small-frame overhead budget <= 25,600 B. TBI-7 memory: live_alloc(c) <= M_conn = S*(F*C_FIELD + MHLS) + conn_window + send_buf, with C_FIELD measured, budgeted at 256 B. With the golden pins that is about 100*(128*256+16384) + 1 MiB + 400 KiB, about 6.3 MiB. TBI-8 liveness: a stream with no response-byte progress for T_stall=10 s is reset, regardless of WINDOW_UPDATE or PING. A connection with no stream progress for T_conn=30 s is closed. So pinned bytes x time <= M_conn x T_conn. TBI-9 no panic: no network input reaches panic!/assert!/HeaderMap overflow. Follows from TBI-1 (F < 32,768) and checked arithmetic.",
+   "urls": [
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/frame/headers.rs",
+    "https://raw.githubusercontent.com/golang/net/master/http2/server.go",
+    "https://blog.calif.io/p/codex-discovered-a-hidden-http2-bomb"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The constants (F=128, T_stall=10 s, bucket 100/33) are engineering choices that need load-test validation. Legitimate gRPC/long-poll clients may stall for more than 10 s, so TBI-8 needs per-route overrides.",
+   "underclaim_risk": "Every 2023-2026 H2/H3 DoS in the corpus violates at least one clause, so the invariant set is complete for the known lineage."
+  },
+  {
+   "id": "l5-tbi-tool-assignment",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "decision",
+   "title": "Tool per TBI clause (Kani vs Verus vs proptest/fuzz/DST), plus the clauses that cannot be proven over h2 as written",
+   "summary": "Kani for pure arithmetic structs that exist in h2 or are ours: TBI-5 token bucket (Firecracker pattern), TBI-6 h2 FlowControl/Window (flow_control.rs, 269 LOC, pure i32 window arithmetic) and Budget (counts.rs), TBI-9 overflow-freedom. Verus for AEGIS's own admission/ledger module, which is new code we write: TBI-4 handler permits via a ghost multiset (permits_out + available == S, queued <= 4S) and TBI-1/TBI-7 ledger arithmetic as an inductive invariant over a sequence of decode events. Verus is chosen over Kani here because the property is unbounded-inductive (any number of streams) and Kani would need unwinding. Lean 4 (no Mathlib) for the small composition theorem: per-connection clause bounds sum to M_conn, and N connections sum to the global budget. Proptest + fuzz oracle for TBI-2 (Kani and Verus have no cost semantics) and for TBI-1 as realized inside h2's decoder. DST (tokio::time::pause / turmoil) for TBI-8, a liveness property Kani cannot express.",
+   "specifics": "NOT provable over h2 as written: (a) TBI-4. Live handlers are tokio tasks spawned by hyper (server.rs:316), and h2's Counts tracks protocol-open streams, which drop on reset; this is exactly the MadeYouReset gap. It must be enforced and proven in an AEGIS wrapper (a Service layer holding a semaphore permit, or a custom Http2ServerConnExec). (b) TBI-8. Neither h2 nor hyper has any stall or progress timer, so the wrapper must own the deadline. (c) TBI-7's C_FIELD depends on http::HeaderMap layout and the allocator, so it can only be measured, not proven. (d) TBI-1's field count: h2 has no count cap, only MHLS in RFC units. F <= MHLS/33 = 496 is implied and provable, but F=128 needs a wrapper check, or a pre-decode pass over our own frame layer. Kani is infeasible on h2's Streams/Store (slab + Arc<Mutex> + async) per the Kani concurrency/await limits and the memory-blowup evidence.",
+   "urls": [
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/streams/flow_control.rs",
+    "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/streams/counts.rs",
+    "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs",
+    "https://raw.githubusercontent.com/model-checking/kani/main/docs/src/rust-feature-support.md"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Proving a wrapper's ledger does not prove h2 actually reports decode events truthfully. The trusted boundary is the h2 public API.",
+   "underclaim_risk": "The split keeps every proof within the 6 GB / CI budget and needs no prover LLM."
+  },
+  {
+   "id": "l5-kani-harness-spec-tbi",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "harness-spec",
+   "title": "Kani harness spec: aegis-transport-budget crate (+ optional upstream #[cfg(kani)] PRs to h2)",
+   "summary": "Crate crates/aegis-transport-budget (no_std-ish, no async): TokenBucket, HandlerLedger, BlockLedger, ConnLedger. Harnesses live in #[cfg(kani)] mod verification and run on every PR in CI.",
+   "specifics": "H1 bucket_preserves_invariant: any bucket with is_valid(), any op in {consume(n), refill(dt)} with Instant stubbed and dt symbolic; assert is_valid() and tokens <= burst. H2 block_ledger_bound: symbolic sequence of <= 8 add_field(n_len, v_len) with lens <= u16::MAX; assert that Ok implies decoded <= MHLS and fields <= F, that Err is returned exactly when a bound would be crossed, and that there is no overflow. Unwind 9. H3 handler_ledger_permits: <= 6 symbolic ops in {acquire, release, queue, dequeue_reset}; assert live <= S, queued <= 4S, live + available == S. Unwind 7. H4 h2_flow_control_window (upstream PR to h2 src/proto/streams/flow_control.rs): symbolic FlowControl with window in [i32::MIN, MAX_WINDOW_SIZE] and ops inc_window/send_data/dec_recv_window; assert no panic and window <= MAX_WINDOW_SIZE, and that inc_window errors with FLOW_CONTROL_ERROR exactly on overflow. H5 h2_counts_budget: Budget::consume/replenish/set_max sequences; assert spent <= max or Err with spent unchanged. Solver cadical. Memory ceiling: every harness must pass under the heavy.sh 6 GB cap, with CI failure if any harness exceeds 300 s. Acceptance: cargo kani reports 0 failures on H1-H5. The Verus twin of H2/H3 (unbounded) lives in verus/ and is checked in CI with a pinned Verus + Z3 4.16.0.",
+   "urls": [
+    "https://github.com/firecracker-microvm/firecracker/blob/main/src/vmm/src/rate_limiter/mod.rs",
+    "https://github.com/aws/s2n-quic/blob/main/.github/workflows/ci.yml"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The bounded harnesses (8 ops) prove small traces only. The unbounded claim rests on the Verus twin.",
+   "underclaim_risk": "The pure-struct design mirrors s2n-quic and Firecracker CI patterns that already run in production."
+  },
+  {
+   "id": "l5-fuzz-oracle-tbi",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "type": "fuzz-harness",
+   "title": "Fuzz oracle and corpus: resource-ratio oracle over an in-memory h2 server with the AEGIS wrapper",
+   "summary": "Target fuzz/fuzz_targets/h2_budget.rs: a tokio current-thread runtime with paused time, tokio::io::duplex, and hyper 1.12.0 server + AEGIS wrapper with golden config. The service never responds (worst case). A counting #[global_allocator] tracks live bytes. Input is a structured frame script (arbitrary-derived enum: HEADERS/CONTINUATION/DATA/RST/WINDOW_UPDATE/SETTINGS/PING/PRIORITY/advance_time(ms)).",
+   "specifics": "Oracles (abort = finding): O1 peak_live_alloc <= M_conn (6.3 MiB) + baseline. O2 for each field block, decoded_rfc_bytes_processed / wire_bytes <= 4*MHLS / max(wire, 1), and process CPU (instruction counter or poll-iteration count) <= K * total_input_bytes with K fixed from a baseline run. O3 live_handlers <= 100 and queued <= 400 at every step. O4 after 101 RST without refill time, a GOAWAY is observed within 1 frame. O5 under INITIAL_WINDOW_SIZE=0 plus 1-byte WINDOW_UPDATEs, every stream is reset by virtual t = 10 s + epsilon and the connection is closed by 30 s. O6 no panic. Corpus seeds: Rapid Reset (CVE-2023-44487, HEADERS+RST x10k); MadeYouReset (CVE-2025-8671: HEADERS, then WINDOW_UPDATE increment 0 on the stream / overflow to 2^31, forcing a server RST, x10k); CONTINUATION flood (VU#421644: HEADERS without END_HEADERS + 100k 1-byte CONTINUATION, Huffman and raw variants); HTTP/2 Bomb (insert 1 entry, 16k 1-byte indexed refs + cookie crumbs, INITIAL_WINDOW_SIZE=0, WINDOW_UPDATE(1) every 5 s; califio PoC); h2 #909 (25k unique literal headers); GHSA-q83h small/empty DATA floods; SETTINGS flood (>100 entries) and PING/empty-frame floods (CVE-2019-9512/9518 lineage); Header Accordions for the h3 path (QPACK refs, FoxIO 2026-10-20). CI: cargo-fuzz 60 s smoke per PR, 1 h nightly, corpus committed under fuzz/corpus/h2_budget.",
+   "urls": [
+    "https://github.com/califio/publications/tree/main/MADBugs/http2-bomb",
+    "https://kb.cert.org/vuls/id/421644",
+    "https://kb.cert.org/vuls/id/767506",
+    "https://github.com/hyperium/h2/pull/909"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "CPU-ratio oracles are noisy, which is why instruction/poll counters are used instead of wall time. Fuzzing cannot show the bound holds for all inputs.",
+   "underclaim_risk": "No existing Rust transport fuzzer has any resource oracle, so this harness would be first of its kind and catches the whole DoS lineage."
+  },
+  {
+   "id": "l5-config-pin-table-transport",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "type": "config-pin",
+   "title": "Config-pin table for the golden ingress (H2 via hyper/h2; H3 gated)",
+   "summary": "hyper =1.12.0, h2 >=0.4.20 (=0.4.20 in the lock).",
+   "specifics": "hyper http2 Builder: max_concurrent_streams(100) [default 200]; max_header_list_size(16384) [16 KiB]; header_table_size(4096); max_pending_accept_reset_streams(Some(20)); max_local_error_reset_streams(Some(256)) [default 1024]; initial_stream_window_size(256 KiB); initial_connection_window_size(1 MiB); max_frame_size(16384); max_send_buf_size(400 KiB); keep_alive_interval(Some(20 s)); keep_alive_timeout(20 s). AEGIS wrapper (not in hyper/h2): field_count<=128 incl cookie crumbs; handler semaphore 100/conn + 4x queue; global handler cap; RST bucket 100/33 s^-1; max_total_streams 10,000; T_stall 10 s; T_conn 30 s; control-frame queue <= 10,000. Never use raw h2 defaults (MHLS 16 MiB, unlimited streams). quinn-proto 0.11.19 (if H3 is enabled): receive_window(4 MiB) [default VarInt::MAX]; stream_receive_window(256 KiB) [1.25 MB]; max_concurrent_bidi_streams(100); max_concurrent_uni_streams(8) (H3 needs >= 3); max_idle_timeout(30 s). hyperium h3 0.0.8: max_field_section_size(16384) [default VarInt::MAX]. The golden keeps H3 OFF until h3 #366/#377/#378 land, or uses quiche 0.30.0 (32 KiB field section, QPACK dynamic table 0, 24 MiB conn window, which must be lowered). s2n-quic 1.91.0 defaults (3.75 MB conn window, 100/100 streams, 30 s idle) are acceptable as-is.",
+   "urls": [
+    "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs",
+    "https://github.com/hyperium/hyper/blob/v1.12.0/src/server/conn/http2.rs",
+    "https://github.com/quinn-rs/quinn/blob/main/quinn-proto/src/config/transport.rs",
+    "https://github.com/hyperium/h3/blob/master/h3/src/config.rs",
+    "https://github.com/aws/s2n-quic/blob/main/quic/s2n-quic-core/src/transport/parameters/mod.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "A 256 KiB stream window may throttle bulk uploads on high-BDP links. Tune it per route.",
+   "underclaim_risk": "Each pin closes a documented gap (#909-class panics, the h3 unbounded section, the quinn connection window)."
+  },
+  {
+   "id": "l5-ci-gate-tbi",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "ci-gate",
+   "title": "CI gate and acceptance criteria for the TBI",
+   "summary": "The gate passes only if all of these hold: (1) cargo kani H1-H5 report 0 failures, each under 300 s and 6 GB. (2) The Verus twin of the ledger and handler invariants verifies with a pinned Verus + Z3. (3) The Lean composition lemma checks with Lean 4 core, no Mathlib. (4) The h2_budget fuzz smoke runs 60 s with 0 oracle violations, and every corpus seed replays clean. (5) A DST test replays HTTP/2 Bomb with paused time and asserts O5. (6) A config-pin test: a unit test instantiates the golden Builder and asserts each pinned value. (7) An implementation-phase spike measures C_FIELD (counting allocator over http 1.4.0 HeaderMap) and fails if C_FIELD > 256 B.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": false,
+   "overclaim_risk": "Gate (2) depends on Verus soundness (131 known soundness issues per the existing map).",
+   "underclaim_risk": "All seven gates are machine-checkable and laptop-safe."
+  }
+ ],
+ "edges": [
+  {
+   "src": "l4-transport-harness-census-2026-10",
+   "dst": "crate-s2n-quic",
+   "type": "extends",
+   "note": "per-file Kani counts; no budget proofs"
+  },
+  {
+   "src": "l4-transport-harness-census-2026-10",
+   "dst": "crate-hyper-h2",
+   "type": "extends",
+   "note": "no proofs; crash-only fuzz"
+  },
+  {
+   "src": "l4-transport-harness-census-2026-10",
+   "dst": "crate-quinn",
+   "type": "extends",
+   "note": "4 fuzz targets, no proofs"
+  },
+  {
+   "src": "l4-transport-harness-census-2026-10",
+   "dst": "crate-h3",
+   "type": "extends",
+   "note": "1 proptest, 1 fuzz"
+  },
+  {
+   "src": "l4-negative-kani-memory-explosion",
+   "dst": "proof-kani-verify-rust-std",
+   "type": "extends",
+   "note": "limits of Kani at scale"
+  },
+  {
+   "src": "l4-firecracker-kani-token-bucket",
+   "dst": "l5-kani-harness-spec-tbi",
+   "type": "supports",
+   "note": "pattern for H1"
+  },
+  {
+   "src": "l4-no-verified-hpack-qpack-decoder",
+   "dst": "proof-vest-verdict",
+   "type": "extends",
+   "note": "Vest has no stateful/compression formats"
+  },
+  {
+   "src": "l4-no-verified-hpack-qpack-decoder",
+   "dst": "everparse-for-front",
+   "type": "extends",
+   "note": "3D = non-malleability only, stateless"
+  },
+  {
+   "src": "l4-h2-budget-mechanics-0.4.20",
+   "dst": "crate-hyper-h2",
+   "type": "extends",
+   "note": "exact constants, gaps: no field-count cap, no stall timer"
+  },
+  {
+   "src": "l4-h2-budget-mechanics-0.4.20",
+   "dst": "rec60-h2-hyper-releases",
+   "type": "extends",
+   "note": "fix history #909/#915/#935/#858"
+  },
+  {
+   "src": "l4-field-memory-vs-rfc-accounting",
+   "dst": "v.http2-bomb-cve-2026-49975",
+   "type": "extends",
+   "note": "root cause = per-field memory vs 32 B accounting"
+  },
+  {
+   "src": "l4-field-memory-vs-rfc-accounting",
+   "dst": "rec60-header-accordions-qpack",
+   "type": "extends",
+   "note": "same mechanism in QPACK"
+  },
+  {
+   "src": "l4-cve-corpus-h2-h3-2023-2026",
+   "dst": "v.http2-bomb-cve-2026-49975",
+   "type": "conflicts_with",
+   "note": "CVE-2026-49975 is Apache mod_h2 only; Envoy = CVE-2026-47774"
+  },
+  {
+   "src": "l4-cve-corpus-h2-h3-2023-2026",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "extends",
+   "note": "full identifier list"
+  },
+  {
+   "src": "l4-handler-bounded-designs",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "mitigates",
+   "note": "handler-level bound"
+  },
+  {
+   "src": "l4-handler-bounded-designs",
+   "dst": "l5-structural-controls-implied",
+   "type": "supports",
+   "note": "'bound concurrent handlers, not open streams'"
+  },
+  {
+   "src": "l4-quic-stack-window-defaults",
+   "dst": "crate-quinn",
+   "type": "extends",
+   "note": "receive_window VarInt::MAX"
+  },
+  {
+   "src": "l4-quic-stack-window-defaults",
+   "dst": "crate-s2n-quic",
+   "type": "extends",
+   "note": "3.75 MB conn window"
+  },
+  {
+   "src": "l4-quic-stack-window-defaults",
+   "dst": "crate-quiche",
+   "type": "extends",
+   "note": "24 MiB conn window, QPACK 0"
+  },
+  {
+   "src": "l4-quic-stack-window-defaults",
+   "dst": "crate-h3",
+   "type": "extends",
+   "note": "max_field_section_size VarInt::MAX"
+  },
+  {
+   "src": "l4-temporal-stall-liveness",
+   "dst": "v.http2-bomb-cve-2026-49975",
+   "type": "extends",
+   "note": "stall clause"
+  },
+  {
+   "src": "l5-transport-budget-invariant-tbi",
+   "dst": "l5-structural-controls-implied",
+   "type": "extends",
+   "note": "refines I1/I5 into TBI-1..9"
+  },
+  {
+   "src": "l5-transport-budget-invariant-tbi",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "mitigates",
+   "note": ""
+  },
+  {
+   "src": "l5-transport-budget-invariant-tbi",
+   "dst": "threat-decompression-parser-complexity",
+   "type": "mitigates",
+   "note": "TBI-2"
+  },
+  {
+   "src": "l5-tbi-tool-assignment",
+   "dst": "l5-transport-budget-invariant-tbi",
+   "type": "proves",
+   "note": "per-clause tool, tcb = Kani/CBMC, Verus/Z3, Lean kernel"
+  },
+  {
+   "src": "l5-tbi-tool-assignment",
+   "dst": "fail-verifier-soundness-bugs",
+   "type": "trusts",
+   "note": "Verus soundness"
+  },
+  {
+   "src": "l5-kani-harness-spec-tbi",
+   "dst": "l5-tbi-tool-assignment",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "l5-fuzz-oracle-tbi",
+   "dst": "as.fuzz-gate",
+   "type": "extends",
+   "note": "adds resource oracle"
+  },
+  {
+   "src": "l5-fuzz-oracle-tbi",
+   "dst": "as.dst-harness-spec",
+   "type": "depends_on",
+   "note": "paused-time DST for O5"
+  },
+  {
+   "src": "l5-fuzz-oracle-tbi",
+   "dst": "l4-cve-corpus-h2-h3-2023-2026",
+   "type": "depends_on",
+   "note": "corpus"
+  },
+  {
+   "src": "l5-config-pin-table-transport",
+   "dst": "crate-hyper-h2",
+   "type": "extends",
+   "note": "tighter pins + wrapper"
+  },
+  {
+   "src": "l5-config-pin-table-transport",
+   "dst": "crate-quinn",
+   "type": "extends",
+   "note": "receive_window pin"
+  },
+  {
+   "src": "l5-ci-gate-tbi",
+   "dst": "l5-kani-harness-spec-tbi",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "l5-ci-gate-tbi",
+   "dst": "l5-fuzz-oracle-tbi",
+   "type": "depends_on",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Measure C_FIELD: live bytes per decoded field in http 1.4.0 HeaderMap via h2 decode path (same-name vs distinct, N=496..16k) and per-connection RSS under HTTP/2 Bomb against hyper 1.12.0 golden config",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.6,
+   "reason": "heavy.sh refused (disk); TBI-7 constant is analytic"
+  },
+  {
+   "question": "Can a hyper Http2ServerConnExec / tower layer enforce TBI-4 (permit before spawn, release on drop) without forking h2, and does dropping on local reset happen promptly?",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.55,
+   "reason": "the clause not provable over h2 as written"
+  },
+  {
+   "question": "Vest-generated verified HTTP/2 9-byte frame header + QUIC varint/frame-type parser: effort and performance vs h2 framed_read",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.45,
+   "reason": "removes one parser class from TCB; no existing artifact"
+  },
+  {
+   "question": "Is Pingora (h2-based) now patched for HTTP/2 Bomb, and what did it add (field count? stall timer?) - check commits after 2026-06-04",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.35,
+   "reason": "Rust-stack precedent for TBI-1/TBI-8"
+  },
+  {
+   "question": "Disk/RAM footprint of Kani (CBMC+kissat/cadical) toolchain install vs Verus+Z3 on this laptop",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.3,
+   "reason": "\u00a70c footprint requirement"
+  }
+ ],
+ "protocol_implications": [
+  "Bound live handlers (executor permits), never protocol-open streams; this is the MadeYouReset lesson and cannot be delegated to h2.",
+  "Count header fields (incl cookie crumbs) and actual per-field memory, not just RFC 32+n+v octets; HTTP/2 Bomb and Header Accordions both exploit the gap.",
+  "Liveness (stall deadline independent of WINDOW_UPDATE/PING) is a first-class invariant; h2/hyper have no stall timer, so AEGIS owns it and verifies by DST.",
+  "Kani only on pure counter/window structs within 6 GB; Verus for our unbounded ledger; Lean for the composition lemma; fuzz+DST for CPU and time clauses.",
+  "Golden keeps HTTP/3 off until hyperium/h3 #366/#377/#378 land or uses a stack with finite defaults; quinn requires receive_window pin.",
+  "Correct map: CVE-2026-49975 is Apache mod_h2-specific; Envoy CVE-2026-47774."
+ ],
+ "self_improvement": [
+  "heavy.sh MIN_FREE_GB=10 with only 13 GB total free and a 5.7 GB shared scratchpad means sibling explorers block each other's measurements; planner should allocate disk or GC scratchpad clones between rounds.",
+  "Shared scratchpad across sessions accumulates clones (src/, repos/ duplicate h2/h3/quinn/quiche/rustls); a common read-only clone cache would cut disk use."
+ ],
+ "notes": {
+  "queries_logged": 32,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 1,
+  "near_dup_detail": "MadeYouReset h2 fix -> CERT vendor not-affected reasons (contrarian/advisory)",
+  "sources_total": 50,
+  "new_nodes": 16,
+  "reused_ids_extended": [
+   "l5-structural-controls-implied",
+   "v.http2-bomb-cve-2026-49975",
+   "crate-hyper-h2",
+   "crate-quinn",
+   "crate-s2n-quic",
+   "crate-quiche",
+   "crate-h3",
+   "proof-vest-verdict",
+   "everparse-for-front",
+   "threat-h2-h3-resource-exhaustion",
+   "rec60-header-accordions-qpack",
+   "rec60-h2-hyper-releases",
+   "as.fuzz-gate",
+   "as.dst-harness-spec",
+   "proof-kani-verify-rust-std",
+   "fail-verifier-soundness-bugs"
+  ],
+  "vocabularies": [
+   "PL-formal",
+   "systems",
+   "offensive-security",
+   "standards",
+   "network-ops"
+  ],
+  "source_types": [
+   "repo-code",
+   "PR/issue",
+   "advisory/CVE",
+   "paper",
+   "RFC",
+   "incident write-up",
+   "tool-doc"
+  ],
+  "contrarian": "negative existence of verified HPACK; Kani memory explosions; vendors not affected by MadeYouReset",
+  "experiment_refused": "heavy.sh refused C_FIELD measurement: 9G free < 10G; recorded as spike in l4-field-memory-vs-rfc-accounting / seeds[0]",
+  "clones": "h2 e64c166 (v0.4.20), hyper b073378 (v1.12.0), h3 43745ad, quinn 12fe809, s2n-quic d20f8fa, quiche acf560f, rustls 28ee6c6, pingora 84f21ee"
+ },
+ "sources": [
+  "https://apcssm.vnu.edu.ua/index.php/conf/article/view/295",
+  "https://arxiv.org/abs/2503.04810v1",
+  "https://blog.calif.io/p/codex-discovered-a-hidden-http2-bomb",
+  "https://dl.ifip.org/db/conf/networking/networking2026/1571262391.pdf",
+  "https://docs.rs/vest_lib",
+  "https://eprint.iacr.org/2020/114",
+  "https://git01.mediatek.com/plugins/gitiles/haproxy/+/4869ed5658603d8749266c2905aeedf92b909aef",
+  "https://git01.mediatek.com/plugins/gitiles/haproxy/+/92f287bbbee1537372f6b0c2d58d83dcb3629cf1%5E%21",
+  "https://github.com/aws/s2n-quic/blob/main/.github/workflows/ci.yml",
+  "https://github.com/aws/s2n-quic/blob/main/quic/s2n-quic-core/src/buffer/deque/tests.rs",
+  "https://github.com/aws/s2n-quic/blob/main/quic/s2n-quic-core/src/transport/parameters/mod.rs",
+  "https://github.com/califio/publications/tree/main/MADBugs/http2-bomb",
+  "https://github.com/cloudflare/quiche",
+  "https://github.com/firecracker-microvm/firecracker/blob/main/docs/formal-verification.md",
+  "https://github.com/firecracker-microvm/firecracker/blob/main/src/vmm/src/rate_limiter/mod.rs",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/codec/framed_read.rs",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/frame/headers.rs",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/mod.rs",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/streams/counts.rs",
+  "https://github.com/hyperium/h2/blob/v0.4.20/src/proto/streams/flow_control.rs",
+  "https://github.com/hyperium/h2/pull/858",
+  "https://github.com/hyperium/h2/pull/909",
+  "https://github.com/hyperium/h2/pull/915",
+  "https://github.com/hyperium/h2/pull/935",
+  "https://github.com/hyperium/h2/tree/master/fuzz/fuzz_targets",
+  "https://github.com/hyperium/h3",
+  "https://github.com/hyperium/h3/blob/master/h3/src/config.rs",
+  "https://github.com/hyperium/h3/pull/366",
+  "https://github.com/hyperium/h3/pull/377",
+  "https://github.com/hyperium/h3/pull/378",
+  "https://github.com/hyperium/http/blob/v1.4.0/src/header/map.rs",
+  "https://github.com/hyperium/hyper/blob/v1.12.0/src/proto/h2/server.rs",
+  "https://github.com/hyperium/hyper/blob/v1.12.0/src/server/conn/http2.rs",
+  "https://github.com/kurotych/conf_communication_deadlock",
+  "https://github.com/model-checking/kani/issues/1226",
+  "https://github.com/project-everest/everquic-crypto",
+  "https://github.com/quinn-rs/quinn",
+  "https://github.com/quinn-rs/quinn/blob/main/quinn-proto/src/config/transport.rs",
+  "https://kb.cert.org/vuls/id/421644",
+  "https://kb.cert.org/vuls/id/767506",
+  "https://lilting.ch/en/articles/http2-bomb-hpack-flow-control-dos",
+  "https://nghttp2.org/blog/2023/10/10/nghttp2-v1-57-0/",
+  "https://nghttp2.org/documentation/nghttp2_option_set_stream_reset_rate_limit.html",
+  "https://raw.githubusercontent.com/golang/net/master/http2/server.go",
+  "https://raw.githubusercontent.com/model-checking/kani/main/docs/src/rust-feature-support.md",
+  "https://www.andrew.cmu.edu/user/bparno/papers/vest.pdf",
+  "https://www.microsoft.com/en-us/research/publication/everparse/",
+  "https://www.rfc-editor.org/rfc/rfc9113.html",
+  "https://www.rfc-editor.org/rfc/rfc9204.html",
+  "https://www.usenix.org/conference/usenixsecurity25/presentation/cai-yi"
+ ]
+}

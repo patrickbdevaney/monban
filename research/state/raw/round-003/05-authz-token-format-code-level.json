@@ -1,0 +1,768 @@
+{
+ "explorer": "05-authz-token-format-code-level",
+ "round": 3,
+ "target": "W-AUTHZ L3->L5 token/credential format, code-level",
+ "date": "2026-10-25",
+ "nodes": [
+  {
+   "id": "r3e05.draft-niyikiza-aat-01",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "standard",
+   "title": "draft-niyikiza-oauth-attenuating-agent-tokens-01 (Attenuating Agent Tokens), 2026-06-15",
+   "summary": "Individual I-D (OAuth header, Standards Track intent, not WG-adopted), expires 2026-12-17. Offline-derivable JWT chain: child signed by parent's cnf key, par_hash = SHA-256 of parent JWS signing input, invariants I1-I6, RAR authorization_details mapping tool -> argument constraints. Authorization uses the LEAF token's constraints only, so safety rests on a correct subsumption checker (I4).",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-niyikiza-oauth-attenuating-agent-tokens/",
+    "https://www.ietf.org/archive/id/draft-niyikiza-oauth-attenuating-agent-tokens-00.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "Rev -00 (Mar 2026), -01 2026-06-15. Ed25519 MUST; alg allowlist, reject none. Claims jti, iss (JWK thumbprint URI of parent holder key), iat, exp, cnf, del_depth, del_max_depth, par_hash; no sub. Constraint types exact, range, one_of, not_one_of, contains, subset, wildcard, all, any; unknown type -> deny; closed-world maps must keep same keys. PoP = custom JWT (not DPoP RFC 9449) carrying aat_id, aat_tool, OPTIONAL aat_aud, hta = JCS(args); +/-30 s window; stateless PoP must not be used for side-effecting calls (needs jti store, backend undefined). MAX_IAT_SKEW 30 s; MAX_TOKEN_LIFETIME <= 90 days; MAX_TOKEN_SIZE 64 KiB; MAX_CONSTRAINT_DEPTH 32. Revocation (s8.9) out of scope: short TTL + root rotation. CWT/COSE profile deferred (App. D) though the reference impl (Tenuo) uses CBOR/COSE. Alloy model: no counterexample up to 8 constraints x 8 values (bounded, not a proof). No PQ alg named; cnf.jwk not hardcoded so RFC 9964 AKP keys are possible.",
+   "overclaim_risk": "It is an individual draft by the vendor of its reference implementation; no WG adoption; 'Standards Track' is the intent only.",
+   "underclaim_risk": "Its I1-I6 invariant list and par_hash anti-splicing binding are directly reusable in our wire format whatever we choose.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.draft-asor-wimse-dt-02",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "standard",
+   "title": "draft-asor-wimse-agent-delegation-chain-02 (Verifiable Attenuated Delegation for AI Agent Chains), 2026-10-15",
+   "summary": "Individual I-D (WIMSE header), sole author R. Asor (Attenu), expires 2027-04-18. JWT (at+jwt) delegation tokens with mandatory JCS, mandatory aud, sub invariance, par_hash, DPoP holder binding, Token Status List revocation (unknown status denies), and cumulative constraints. Argues RFC 8693 nested act is audit-only per RFC 8693 s4.1.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-asor-wimse-agent-delegation-chain/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "Revisions -00, -01, -02 (2026-10-15). Algs: Ed25519 REQUIRED, ES256 OPTIONAL, ML-DSA (RFC 9964) OPTIONAL; verifier takes alg from its own key config and denies a mismatch even if the signature verifies (algorithm-confusion defense). JCS rejects duplicate members, non-finite numbers, lone surrogates, ints > 2^53-1. del_depth == position; del_max_depth non-increasing; exp non-increasing; only DT_n aud checked. Verification: sigs -> par_hash (constant time) -> depth/principal -> subsumption -> time -> DPoP -> status list -> aud + authorize incl. cumulative constraints (running total from a separate channel). Denial names: signature_invalid, par_hash_mismatch, not_narrower.",
+   "overclaim_risk": "One-author individual draft; WIMSE has not adopted it.",
+   "underclaim_risk": "It is the only agent-chain draft found that combines mandatory aud, DPoP, revocation and an ML-DSA alg; it is the closest standards candidate for our cross-domain Tier X wire format.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.rfc9964-mldsa-jose-cose",
+   "layer": "L3",
+   "domain": "W-PQC",
+   "type": "standard",
+   "title": "RFC 9964: ML-DSA for JOSE and COSE (Prorock, Steele, 2026, Proposed Standard)",
+   "summary": "Registers ML-DSA-44/65/87 for JOSE ('ML-DSA-44' etc.) and COSE (-48/-49/-50), new key type AKP (COSE kty 7), seed-only 32-byte private keys. This gives any JWT/CWT capability chain a standard PQ algorithm id.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc9964"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Sizes (FIPS 204): ML-DSA-44 pk 1312 / sig 2420 B; ML-DSA-65 pk 1952 / sig 3309 B; ML-DSA-87 pk 2592 / sig 4627 B. JWS base64url adds ~33%: one ML-DSA-65 hop (sig + inline cnf pk) ~ 7.0 KB encoded, already near nginx's 8 KB default single-header buffer; a 3-hop chain cannot travel in one header.",
+   "overclaim_risk": "RFC existence does not mean JOSE libraries ship it: jsonwebtoken 11.1 only mentions ML-DSA in jwk.rs; biscuit, rs-ucan, tenuo-core, superfly/macaroon, cedar have no PQ code (grep 2026-10-25).",
+   "underclaim_risk": "It removes 'no PQ alg id exists' as a reason to invent our own; Tier X can use COSE alg -49.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.txn-tokens-11",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "standard",
+   "title": "draft-ietf-oauth-transaction-tokens-11 (2026-07-30): WG consensus, waiting for write-up",
+   "summary": "Internal call-chain JWT (txntoken+jwt) minted by a Transaction Token Service; a replacement may only narrow scope and must keep txn/sub/aud; the call-chain mechanism is out of scope; no algorithm mandated. It is the WG-track format for intra-domain propagation, not for offline attenuation.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Required claims: iat, aud (trust domain), exp, txn, sub, scope, req_wl; recommended rctx, tctx. Lifetime minutes or less. IESG submission milestone Dec 2026.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.rfc8693-act-informational",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "standard",
+   "title": "RFC 8693 token exchange: nested act is informational; online AS round-trip per hop; splicing concern",
+   "summary": "Under RFC 8693 s4.1 only the top-level claims and the current actor matter for access control, so prior actors are history, not enforced authority. Two independent 2026 drafts (asor-02, sweeney-00) and the AAT draft all build on this. sweeney-00 also cites an OAuth-list disclosure (2026-02-26) of 'delegation chain splicing': mismatched subject_token/actor_token via a compromised intermediary.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc8693",
+    "https://www.ietf.org/archive/id/draft-sweeney-wimse-credential-delegation-00.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "Splicing disclosure not fetched (mailarchive returned 403), so the splicing claim is C. Cross-issuer confusion in back-channel token exchange: WorkOS write-up of CVE-2026-59208 (n8n), where the RFC 9207 iss check does not cover token exchange (search snippet only, E).",
+   "overclaim_risk": "RFC 8693 is not 'broken'; it was never designed to enforce depth-2 attenuation.",
+   "underclaim_risk": "Many agent gateways ship TE+act as 'delegation'; at depth >= 2 that is unenforced authority.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.sweeney-wimse-cred-deleg-00",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "standard",
+   "title": "draft-sweeney-wimse-credential-delegation-00 (2026-07-28): online Delegation Server attenuation and revocation cascade",
+   "summary": "Delegation Server checks the strict subset, signs prf receipts, and wraps credentials (agents call /exercise and never hold raw credentials). Revocation targets: 1 s for the token, 5 s cascading to descendants. Max depth 5, TTL <= 1 h. This is the online alternative, closest to our opaque-handle design.",
+   "urls": [
+    "https://www.ietf.org/archive/id/draft-sweeney-wimse-credential-delegation-00.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.cedar-no-delegation-rfc",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "result",
+   "title": "Cedar has no delegation, attenuation or token RFC (cedar-policy/rfcs, 104 PRs, checked 2026-10-25)",
+   "summary": "There is no RFC text or PR on delegation, attenuation or capability tokens. The nearest is open PR #114 'RFC 0111: Decision attestation fields (decision_id, policy_set_hash)', 2026-04-21. Closes q1-044 negatively: Cedar stays the PDP and the token format must come from elsewhere.",
+   "urls": [
+    "https://github.com/cedar-policy/rfcs",
+    "https://github.com/cedar-policy/rfcs/pull/114"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "Absence in the RFC repo does not rule out internal AWS work (e.g. AVP).",
+   "underclaim_risk": "A decision_id + policy_set_hash attestation would plug straight into our audit log; track #114.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.code-level-token-verifier-table",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "measurement",
+   "title": "Code-level comparison of 11 token/credential libraries at pinned tags (LOC, unsafe, deps, fuzz, GHSA, release, PQ)",
+   "summary": "Shallow-cloned at tags and counted non-blank, non-comment src lines (inline cfg(test) included; tests/benches/examples/fuzz excluded) and unsafe block/fn sites. Biscuit is 18k LOC, 0 unsafe, protobuf (prost 0.10), no fuzz dir, last release 2025-07-16. HMAC-chain macaroon libs are 1.9k (Rust, dead since 2023) and 7.3k (Go, Fly.io). The UCAN Rust crate on crates.io is pre-1.0 (0.4.0, 2023). Tenuo is 50.5k LOC with 4 unsafe sites. Cedar core is 99k LOC with 0 unsafe. None of the token libraries ships a PQ algorithm.",
+   "urls": [
+    "https://github.com/eclipse-biscuit/biscuit-rust",
+    "https://github.com/macaroon-rs/macaroon",
+    "https://github.com/superfly/macaroon",
+    "https://github.com/ucan-wg/rs-ucan",
+    "https://github.com/tenuo-ai/tenuo",
+    "https://github.com/cedar-policy/cedar",
+    "https://github.com/google/coset",
+    "https://github.com/Keats/jsonwebtoken",
+    "https://github.com/brycx/pasetors",
+    "https://github.com/digitalbazaar/zcap"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "tag | src LOC | unsafe | direct deps | fuzz/ | GHSA (fix on main) | last release | PQ:\nbiscuit-auth 6.0.0 | 15,052 + parser 2,949 | 0 | 20 | no | CVE-2022-31053 critical sig forgery Biscuit 1.0 (fixed 2.0; main OK), CVE-2024-41949/-42350 low 3rd-party key confusion (fixed 5.0.0; main OK) | 2025-07-16 (15 mo; Sep-Oct 2026 commits are dep bumps), 29 contributors, 12.5M dl | none (Ed25519, P-256 enum only)\nmacaroon-rs v0.3.0 | 1,854 | 0 | 4 | no | none | 2022-10 (repo push 2023-01) | n/a (HMAC)\nsuperfly/macaroon v0.3.2 (Go) | 7,285 | n/a | - | - | none | 2026 active | n/a (HMAC + ChaCha20-Poly1305 3rd-party tickets, MessagePack)\nrs-ucan main (0.5.0 unreleased) | ucan 5,967 + varsig 988 | 0 | 17 | no | none | crates.io ucan 0.4.0 2023-06-28 (pre-1.0 spec) | none\ntenuo v0.3.3 | 50,531 | 4 (libc getrusage, fcntl, getgid: heartbeat/sdk/bin, not verify path) | 35 | yes (wire_decode, signed_envelopes) | none published; see r3e05.tenuo-cel-attenuation-bypass | 2026-10-22, 17 contributors, 2,047 dl | none (Ed25519)\ncedar-policy(-core) v4.14.0 | 98,949 + 20,887 | 0 | 23 | via cedar-spec DRT | GHSA-m84h-6f26-p3p7 high (fixed 4.13; main OK), GHSA-c33x low (fixed 4.11.1) | 2026-10-17 | n/a (PDP)\ncoset v0.4.2 | 8,933 | 0 | 2 | yes | none | 2026-03 | ML-DSA ids present in iana\njsonwebtoken v11.1.0 | 3,453 | 0 | 9 | no | CVE-2026-25537 medium nbf/exp type-confusion skip (fixed 10.3.0; main OK) | 2026 | mentions ML-DSA in jwk.rs\npasetors 0.8.1 | 5,252 | forbid(unsafe_code) | 0 required | yes | none | 2026-08-30 | none\n@digitalbazaar/zcap v9.0.3 (JS) | 1,140 (+ jsonld-signatures/RDF canonicalization deps) | n/a | - | - | CVE-2024-31995 medium: expires unchecked at chain depth 2 (fixed 9.0.1; main OK) | 2026-09 push | none\nEverParse cborrs (v2026.10.07, in-repo, not on crates.io) | 5,551 | 0 | 0 | proofs | none | 2026-10-07 | n/a",
+   "overclaim_risk": "LOC includes inline unit tests and generated code (biscuit schema.rs, cborrs extracted code), so treat it as relative size, not audited TCB. 'No GHSA' for tiny or young projects means few eyes, not safety.",
+   "underclaim_risk": "Three of the five classic capability formats (Biscuit, ZCAP, JWT) have had at least one auth-bypass-class advisory that a 'conjunction of all caveats + required exp' invariant would have prevented (zcap depth-2 expiry, jsonwebtoken type-skipped exp/nbf).",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.token-verify-microbench",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "measurement",
+   "title": "Microbench: per-token verify cost, Biscuit vs HMAC-chain vs opaque handle vs signature floors (measured 2026-10-25)",
+   "summary": "Single thread on one laptop. Biscuit 6.0.0 full parse+verify+authorize: 64.7 us for 1 block (213 B), 158 us for 3 blocks (466 B). Signature verification is about 90% of that (143 us for 3 blocks). A 5-caveat HMAC-SHA256 chain verifies in 1.23 us (112 B). An opaque 256-bit handle with SHA-256 and a 1e6-entry HashMap lookup takes 83 ns. ML-DSA-65 verify is 114 us vs Ed25519's 33 us, so a PQ Biscuit-style per-block-signature design costs at least about 114 us per block.",
+   "urls": [
+    "https://crates.io/crates/biscuit-auth",
+    "https://crates.io/crates/fips204",
+    "https://crates.io/crates/hmac"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "i9-14900HX laptop, 1 thread, nice 15, cgroup MemoryMax 6G, rustc 1.98.0 --release, 5 trials median, 2026-10-25. Crates: biscuit-auth =6.0.0, hmac =0.12.1, sha2 =0.10.9, fips204 =0.5.0, ed25519-dalek 2.2.0. Results (median ns/op): biscuit 1 blk 64,655; 3 blk 157,983; 3 blk parse+sig only 143,208; hmac chain 1 caveat 423, 5 caveats 1,229; opaque handle 83; ed25519 verify 32,925; ML-DSA-65 verify 113,918; ML-DSA-44 verify 69,122. Ratios: Biscuit-3 / HMAC-5 = 129x; Biscuit-3 / handle = 1,900x. Projected PQ Biscuit (ML-DSA-65 per block, 3 blocks) >= 3 x 114 us + Datalog ~15 us ~= 360 us and ~16 KB raw. Bench source: scratchpad tokbench/src/main.rs (re-creatable from the spike protocol). ",
+   "overclaim_risk": "Microbenchmark, not system throughput; ed25519-dalek at 33 us is slower than typical published figures (~15-25 us) because of nice 15, CPU scaling and no explicit SIMD backend, so absolute numbers are pessimistic. The ratios are the finding.",
+   "underclaim_risk": "Even 158 us is fine for many APIs. The cost matters at agent-swarm request rates and on a $5 VPS (1 vCPU: ~6k Biscuit verifies/s vs ~800k HMAC verifies/s).",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.biscuit-wallclock-limit-observed",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "failure-mode",
+   "title": "Biscuit default RunLimits max_time = 1 ms wall clock: an authorize() returned Err(RunLimit(Timeout)) locally on a trivial token",
+   "summary": "Across 3 runs: run 0 panicked on a single RunLimit(Timeout); a contended run (load average ~60-70 from sibling builds) produced 5 Timeout denials in 40,800 authorize() calls on trivially valid tokens (0.012%), with 0 when max_time = 1 s; a quiet run produced 0/40,800. The check is Instant::now() >= start + max_time inside run_with_limits (datalog/mod.rs:619-663), so decisions depend on scheduler load. It fails closed (deny), so it is a liveness and determinism defect, not a bypass. It breaks deterministic-replay and DST oracles.",
+   "urls": [
+    "https://github.com/eclipse-biscuit/biscuit-rust/blob/main/biscuit-auth/src/datalog/mod.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "RunLimits::default() = {max_facts:1000, max_iterations:100, max_time:1ms} (6.0.0 datalog/mod.rs:750-756). Mitigation if Biscuit were used: set_limits(max_time = large) and rely on max_facts/max_iterations (deterministic) plus an outer fuel budget. Neil Madden (2022) notes Datalog's PTIME guarantee is data complexity; program complexity is exponential, and Biscuit lets token holders add rules, which is why a wall-clock guard exists at all.",
+   "overclaim_risk": "Rate measured only on one loaded laptop (0.012% under heavy contention, 0% quiet); production frequency is unmeasured.",
+   "underclaim_risk": "Under agent-swarm load (the exact time authz matters most), wall-clock limits turn CPU contention into authorization denials and nondeterministic audit logs.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.tenuo-cel-attenuation-bypass",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "vulnerability",
+   "title": "Tenuo 0.3.3 (feature 'cel'): CEL attenuation check is syntactic and strips whitespace inside string literals, so a child can widen authority. Confirmed locally; unfixed on main 2026-10-24",
+   "summary": "CelConstraint::validate_attenuation (tenuo-core/src/constraints.rs:3899) accepts a child if normalize(child) starts with '(' + normalize(parent) + ')&&' and the remainder has balanced outer parens. normalize = split_whitespace().join(\"\") also removes spaces inside string literals, and the paren check ignores literals. Chain verification (planes.rs verify_chain_link) reuses this check and authorization evaluates only the LEAF (planes.rs:1426 leaf.authorize), so an accepted child is real amplification.",
+   "urls": [
+    "https://github.com/tenuo-ai/tenuo/blob/v0.3.3/tenuo-core/src/constraints.rs",
+    "https://github.com/tenuo-ai/tenuo/blob/main/SECURITY.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Local test against v0.3.3 (cel feature): (a) parent `value == \"a b\"`, child `(value == \"ab\") && (true)`: validate_attenuation = Ok; parent.matches(\"ab\") = false, child.matches(\"ab\") = true. (b) child `(value == \"a b\") && (\"(\") || true || (\")\")`: validate_attenuation = Ok; child.matches(\"zzz\") = true (CEL || absorbs the && type error), so the child is unconstrained. Default features exclude cel, so default builds are unaffected. Tenuo's own SECURITY.md rates 'Monotonicity violation' as High. DISCLOSURE: report privately to security@tenuo.ai before any public use of these details; this repo must not publish the PoC strings.",
+   "overclaim_risk": "Affects only deployments that enable 'cel' and accept CEL constraints from token holders. Not a signature forgery.",
+   "underclaim_risk": "It is an existence proof of the general hazard: any design where the verifier checks a subsumption relation and then evaluates only the leaf inherits every bug in the subsumption checker. Macaroon/Biscuit-style 'evaluate every caveat in the chain' is immune by construction.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.everparse-cborrs-2026-10",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "crate",
+   "title": "EverParse v2026.10.07 ships verified Rust deterministic-CBOR (cborrs) and COSE_Sign1 (evercosign) crates in-repo",
+   "summary": "src/cbor/pulse/det/rust (package cborrs 0.1.0): 5,551 LOC extracted safe Rust, 0 unsafe, 0 dependencies, API cbor_det_parse/serialize/map_get, etc. src/cose/rust (evercosign 0.1.0) does COSE_Sign1 with ed25519-dalek. Neither is on crates.io. Backed by arXiv 2505.17335 (EverCBOR/EverCDDL, PulseParse). Closes q1-034: a verified parser for a CBOR capability token exists if vendored at a pinned tag.",
+   "urls": [
+    "https://github.com/project-everest/everparse/tree/v2026.10.07/src/cbor/pulse/det/rust",
+    "https://github.com/project-everest/everparse/tree/v2026.10.07/src/cose/rust",
+    "https://arxiv.org/abs/2505.17335"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Releases v2026.08.21, v2026.10.06, v2026.10.07; repo pushed 2026-10-23; 345 stars. Files: cbordet.rs 449 lines, cbordetver.rs 579, cbordetveraux.rs 4,886. no_std not declared (no deps, so likely adaptable). evercosign coseformat.rs is 900 KB generated. TCB: F*/Pulse + Karamel/Rust extraction + rustc.",
+   "overclaim_risk": "The proofs cover the parser and serializer (correctness, determinism), not our caveat semantics. Not packaged; vendoring means owning updates.",
+   "underclaim_risk": "It removes the largest token parse-surface risk, which JWT/JSON (Token Time Bomb: 31 vulns in 43 libs) and protobuf (Biscuit) carry.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.alt-space-token-formats",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "survey",
+   "title": "Alternative space for agent delegation credentials, enumerated before the decision (15 candidates)",
+   "summary": "Offline-attenuable signed: Biscuit, UCAN 1.0, ZCAP-LD, Meadowcap (Willow, Final 2025-11-21), AAT draft/Tenuo, Asor DT draft, Vouchsafe (arXiv 2601.02254). Offline-attenuable symmetric: macaroons (NDSS'14; Fly.io production; CAPMAS 2609.06500). Online/stateful: opaque handle + server table, Sweeney DS draft, OAuth TE (RFC 8693) + act, Txn-Tokens -11. Plain signed claims: JWT/RFC 9068, PASETO v4, CWT/COSE (RFC 8392 + RFC 9964). PDP-not-token: Cedar entities.",
+   "urls": [
+    "https://willowprotocol.org/specs/meadowcap/index.html",
+    "https://arxiv.org/abs/2609.06500",
+    "https://arxiv.org/abs/2601.02254",
+    "https://fly.io/blog/macaroons-escalated-quickly/",
+    "https://neilmadden.blog/2022/02/19/is-datalog-a-good-language-for-authorization/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Parse surface: Biscuit protobuf + Datalog text in authorizer; UCAN DAG-CBOR + Varsig; ZCAP JSON-LD + RDF canonicalization (largest); AAT/DT JSON + JCS; macaroons libmacaroons v1/v2 binary (Fly: MessagePack); handle 32 bytes; CWT deterministic CBOR (cborrs verified). Attenuation formalized: Macaroons (paper authorization logic + NYU TR2013-962 pen-and-paper proofs), AAT (bounded Alloy), Meadowcap (precise spec, no proofs), others none. Revocation: Biscuit revocation_id per block; macaroons nonce lists (Fly tkdb); UCAN revocation records; DT Token Status List; handle = row delete (instant, cascading); AAT none. Offline: all except handle/DS/TE. PQ agility: macaroons inherent; COSE/JOSE via RFC 9964; Biscuit needs a spec enum change; UCAN Varsig 'off spec'; Meadowcap generic parameters.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.attack-matrix-token-candidates",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "threat-analysis",
+   "title": "Attacker-on-each-candidate matrix: confused deputy, replay, audience confusion, attenuation bypass, clock skew",
+   "summary": "Each candidate attacked from spec text and code. The opaque handle and the HMAC chain with key-separated audience and required exp have the fewest open cells. Biscuit's weak cells are its rule/check interplay (needs correct origin scoping, unproven) and the lack of built-in PoP. AAT/Tenuo depends on a subsumption checker (bug confirmed). TE+act has unenforced depth >= 2 and splicing. ZCAP had a depth-2 expiry bug.",
+   "urls": [
+    "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md",
+    "https://github.com/digitalbazaar/zcap/security/advisories/GHSA-hp8h-7x69-4wmv",
+    "https://github.com/Keats/jsonwebtoken/security/advisories/GHSA-h395-gr6q-cpjc"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Confused deputy: bearer formats (Biscuit, macaroon, JWT) need PoP (DPoP RFC 9449 / cnf caveat) or a sender-bound handle; UCAN and ZCAP have signed invocations built in; AAT has a custom PoP. Replay: all need jti/nonce state for side effects (AAT says so explicitly); the handle can be single-use atomically. Audience: plain macaroons have none unless the root key is per audience (derive K_aud = HKDF(K, aud)); Biscuit has none unless a check is added (no mandatory field); AAT aat_aud OPTIONAL; DT aud REQUIRED (leaf only). Attenuation bypass: Biscuit, if a block or authorizer uses trusting previous / a 3rd-party key (CVE-2024-41949 class) or authority rules derive from authorizer facts; AAT/Tenuo via the subsumption checker (r3e05.tenuo-cel-attenuation-bypass); TE via splicing and informational act; ZCAP via the per-depth expiry check (CVE-2024-31995); JWT libs via type confusion (CVE-2026-25537). Clock skew: AAT 30 s iat skew + 30 s PoP window; Biscuit time is an authorizer-supplied fact (the authorizer controls the clock, plus the wall-clock run limit); same-host issuer=verifier (handle, Tier L) needs no skew allowance.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.l5-token-decision",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "decision",
+   "title": "Token decision for the golden: Tier 0 opaque handle + server-side capability table (default); Tier L macaroon-style HMAC-SHA256 chain in verified deterministic CBOR for offline holder attenuation; Tier X COSE_Sign1 ML-DSA-65 (RFC 9964) root only at trust-domain crossings. External OAuth/AAT/DT tokens are accepted only at ingress and exchanged into Tier 0/L. Biscuit, UCAN and ZCAP are rejected for the golden.",
+   "summary": "This descends l5-authz-stack-recommendation with a code-level instrument and makes the r1 'own two-tier format' concrete: (1) the issuer and the verifier are the same server in the golden, so asymmetric offline verification buys nothing there. (2) Cost: handle 83 ns, HMAC-5 1.2 us, Biscuit-3 158 us, PQ per signed block >= 114 us. (3) Every caveat in the chain is evaluated (conjunction), so monotonicity holds by construction and does not depend on a subsumption checker (Tenuo bug). (4) The parse surface is a verified CBOR parser. (5) Revocation is instant via the table or a nonce row. Cedar 4.14 stays the PDP: token caveats become Cedar context/entities, and Cedar decides.",
+   "urls": [
+    "https://github.com/project-everest/everparse/tree/v2026.10.07/src/cbor/pulse/det/rust",
+    "https://www.rfc-editor.org/rfc/rfc9964",
+    "https://datatracker.ietf.org/doc/draft-asor-wimse-agent-delegation-chain/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.72,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "Pins: cborrs vendored from everparse tag v2026.10.07 (sha256 of the tree recorded in vendor/README); hmac =0.12.1 + sha2 =0.10.9 (or aws-lc-rs HMAC in FIPS mode); fips204 0.5.0 or aws-lc-rs ML-DSA for Tier X; cedar-policy =4.14.0. Rejected: Biscuit (no PQ enum, 15-month-old release, wall-clock limits, holder-supplied Datalog = exponential program complexity, 129x the HMAC verify cost; reversal below); UCAN (no released 1.0 Rust crate, no PQ); ZCAP (JSON-LD canonicalization surface, JS ecosystem, CVE-2024-31995); TE+act as internal authority (informational act, AS round-trip per hop); AAT/Tenuo as internal format (leaf-only evaluation needs a subsumption proof; no revocation). REVERSAL CONDITIONS: (R1) a golden deployment needs third parties to verify our tokens offline without a shared secret: promote Tier X to the full chain format, and prefer draft-asor DT if it gains a CWT profile; (R2) the AAT or DT draft is adopted by OAuth/WIMSE with a COSE profile and ML-DSA: adopt it as the Tier X wire format; (R3) Biscuit ships a PQ algorithm + deterministic fuel limits + a formal scoping model: reconsider it for Tier X; (R4) Tier 0 table lookup with ancestor walk exceeds p99 5 us at depth 8 or the table cannot be replicated for multi-node: move the default to Tier L; (R5) Cedar lands a delegation RFC (watch rfcs PR stream; #114 is attestation only).",
+   "overclaim_risk": "The golden's issuer=verifier assumption is a design choice. Multi-node deployments need the table replicated or the HMAC key shared (KMS/HKDF), which adds a key-distribution TCB.",
+   "underclaim_risk": "Rejecting Biscuit forgoes its rich Datalog caveats; our closed caveat set must cover real agent needs (tool, argument constraints, resource prefix, op mask, tenant, exp, aud, cnf), or users will smuggle logic into Cedar context.",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.l5-token-wire-format-lean",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "spec",
+   "title": "Tier L wire format + Lean-ready invariants: deterministic-CBOR HMAC chain with closed caveat set, required aud/exp, cnf binding",
+   "summary": "The wire format is a CBOR array of version, kid, nonce, caveats and tag. Caveats come from a closed tagged set. The denotation is the conjunction of every caveat, and the tag is an HMAC chain keyed from K_aud = HKDF(K_master, 'aegis-cap-v1' || aud || kid). The Lean statements are given so that monotonicity, audience binding, expiry and depth bounds are theorems over a pure model. The Rust verifier is then DRT-checked against the Lean executable model.",
+   "urls": [
+    "https://github.com/project-everest/everparse",
+    "https://www.ndss-symposium.org/ndss2014/programme/macaroons-cookies-contextual-caveats-decentralized-authorization-cloud/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "CDDL: token = [1, kid: bstr .size 8, nonce: bstr .size 16, caveats: [1*64 caveat], tag: bstr .size 32]; caveat = [1, aud: tstr .size (1..253)] / [2, exp: uint] / [3, nbf: uint] / [4, ops: uint] (bitmask) / [5, res_prefix: tstr] (canonical path, no '..', NFC) / [6, cnf_jkt: bstr .size 32] / [7, tenant: bstr .size 16] / [8, tool: tstr, argc: {* tstr => argcon}] / [9, depth_left: uint .le 8]; argcon is exact / range / one_of only (no regex, no CEL). Deterministic encoding per RFC 8949 s4.2.1; any non-canonical or unknown tag is rejected at parse (cborrs). Max encoded size 4 KiB. MAC: t0 = HMAC(K_aud, kid||nonce); t_i = HMAC(t_{i-1}, enc(caveat_i)); tag = t_n; compare in constant time. Mint rules: >=1 aud caveat equal to the minting audience, exactly one exp at mint with exp - now <= MAX_TTL (default 900 s), depth_left present.\nLean 4 (core only, no Mathlib): structure Req := (aud : String) (op : Nat) (res : String) (tenant : ByteArray) (holder : ByteArray) (tool : String) (args : ...) (now : Nat). def sat : Caveat -> Req -> Bool. def denote (cs : List Caveat) (r : Req) : Bool := cs.all (sat . r). Theorems: (T1 attenuation_mono) forall cs c r, denote (cs ++ [c]) r = true -> denote cs r = true. (T2 aud_bound) wellMinted cs -> denote cs r = true -> r.aud = mintAud cs. (T3 expiry) wellMinted cs -> denote cs r = true -> r.now < mintExp cs, and appended exp caveats only lower the effective expiry: effExp (cs ++ [exp e]) = min (effExp cs) e. (T4 depth) appending is allowed only if depth_left > 0, and the effective depth_left is non-increasing. (T5 verify_iff) verify K t r = true <-> (macChain K t = t.tag /\\ denote t.caveats r), with HMAC as an opaque function (EUF-CMA is an explicit assumption, not proven). (T6 parse_canonical) taken from cborrs (EverParse proof) and cited, not re-proven. Clock: issuer and verifier share a host clock, so the skew allowance is 0 for exp and nbf. Multi-node: <= 2 s skew bound, stated as an assumption.",
+   "overclaim_risk": "T5 proves the model, not the Rust; Rust refinement rests on DRT plus optional Verus. HMAC security is assumed.",
+   "underclaim_risk": "T1-T4 are near one-line proofs (List.all_append), cheap enough that no proof-synthesis LLM is needed (\u00a70c).",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.l5-token-verifier-fuzz-harness",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "type": "harness",
+   "title": "Verifier fuzz-harness spec for the Tier L/0 token verifier (cargo-fuzz + DRT + mutation gate)",
+   "summary": "Nine targets with acceptance criteria. They cover the bug classes found in this round's advisory and code survey: signature forgery, type-confused exp/nbf, depth-specific expiry skip, subsumption-checker amplification, third-party key confusion, wall-clock nondeterminism and parser differentials.",
+   "urls": [
+    "https://github.com/rust-fuzz/cargo-fuzz",
+    "https://www.ndss-symposium.org/ndss-paper/token-time-bomb-evaluating-jwt-implementations-for-vulnerability-discovery/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "F1 parse_canonical: arbitrary bytes -> parse; if Ok then serialize(parse(b)) == b (round-trip) else reject; zero panics. F2 bitflip_reject: valid token + 1 random bit flip/insert/delete -> verify = false (except in unused padding; there is none). F3 mono_prop: arbitrary (token, caveat, req) -> verify(append(t,c), r) implies verify(t, r). F4 drt_lean: generate (t, r) from a structured Arbitrary -> Rust verify == Lean-compiled denote/verify executable (with HMAC replaced by a deterministic test PRF on both sides), 0 divergences over 1e8 cases per release. F5 type_confusion: exp/nbf/aud encoded with the wrong CBOR major type, negative ints, floats, bignums, duplicate map keys, indefinite lengths -> reject (JWTFuzz-inspired). F6 depth_matrix: every caveat type at chain positions 0..8 -> identical semantics at every depth (zcap CVE-2024-31995 class). F7 audience_keysep: a token minted for aud A presented to B -> reject; also kid rollover. F8 time_boundary: now in {exp-1, exp, exp+1} and {nbf-1, nbf} -> exact outcomes; the verifier takes now as a parameter (no ambient clock) so DST is deterministic. F9 resource_bounds: 64 caveats / 4 KiB max -> verify time O(n) with p99 <= 5 us for 8 caveats on the 2-vCPU reference VPS, and no allocation > 8 KiB. CI gates: 1e8 execs per target per release with 0 crashes; cargo-mutants kill rate >= 90% on verifier.rs; F4 0 divergences; F9 perf regression <= 10%. Also run the same F2/F5/F7 corpus against any Tier X and ingress JWT verifier (jsonwebtoken >= 10.3.0 pinned; required_spec_claims = [exp, aud]).",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r3e05.spike-cedar-lean-vs-rust",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "spike",
+   "title": "Implementation-phase spike: Cedar 4.14 Rust vs Lean-compiled evaluator latency (q1-022). Not run, over the \u00a70e disk budget",
+   "summary": "cedar-lean needs only batteries (no Mathlib; lake-manifest checked), but the full Lean v4.35.0 toolchain is about 3.4 GB and cedar-lean-ffi marshals through protobuf, both over the 1.5 GB per-explorer budget. The protocol is recorded for the implementation phase.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec/tree/main/cedar-lean-ffi",
+    "https://github.com/cedar-policy/cedar-spec/tree/main/cedar-benchmarking"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.6,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "Setup: elan + leanprover/lean4:v4.35.0; cedar-spec at 301bdd2 or later; protoc 29.3; build_lean_lib.sh; cedar-benchmarking corpus/tasks.json (oopsla gdrive/github/tinytodo). Measure: per-request isAuthorized latency (a) Rust cedar-policy 4.14.0, (b) Lean FFI end-to-end including protobuf encode/decode, (c) Lean time excluding marshalling, via a Lean-side timer. Decision: if (b) <= 10x (a) and p99 <= 500 us, offer Lean-evaluator mode as a paranoid option (removes the Rust evaluator from the TCB, adds the Lean runtime + FFI). Else keep Rust + DRT. Expected: the marshalling-dominated (b) is 10-100x (a); unmeasured guess, E.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "explorer": "05-authz-token-format-code-level",
+   "pillar": "W-AUTHZ",
+   "first_seen_round": 3,
+   "last_verified": "2026-10-25"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "l5-authz-stack-recommendation",
+   "type": "extends",
+   "note": "descends the token half with code-level LOC/GHSA/microbench; keeps the Cedar PDP"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "pqc-capability-token-design",
+   "type": "extends",
+   "note": "adds Tier 0 opaque handle default; measured costs"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "fills_gap",
+   "note": "Lean model + verified CBOR parser + RFC 9964 alg"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "r3e05.token-verify-microbench",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "r3e05.code-level-token-verifier-table",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "r3e05.attack-matrix-token-candidates",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "r3e05.everparse-cborrs-2026-10",
+   "type": "depends_on",
+   "note": "parser for Tier L"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "depends_on",
+   "note": "PDP stays"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "biscuit-auth-6.0",
+   "type": "alternative_to",
+   "note": "rejected; reversal R3"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "ucan-1.0-spec",
+   "type": "alternative_to",
+   "note": "rejected"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "zcap-ccg-status",
+   "type": "alternative_to",
+   "note": "rejected"
+  },
+  {
+   "src": "r3e05.l5-token-decision",
+   "dst": "macaroons-ndss2014",
+   "type": "depends_on",
+   "note": "Tier L construction"
+  },
+  {
+   "src": "r3e05.l5-token-wire-format-lean",
+   "dst": "inv-attenuation-monotonicity",
+   "type": "extends",
+   "note": "concrete CDDL + T1-T6"
+  },
+  {
+   "src": "r3e05.l5-token-wire-format-lean",
+   "dst": "r3e05.l5-token-decision",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.l5-token-verifier-fuzz-harness",
+   "dst": "r3e05.l5-token-wire-format-lean",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.l5-token-verifier-fuzz-harness",
+   "dst": "r2e11.token-time-bomb-jwt",
+   "type": "extends",
+   "note": "F5 type-confusion target"
+  },
+  {
+   "src": "r3e05.l5-token-verifier-fuzz-harness",
+   "dst": "cedar-drt-harness",
+   "type": "extends",
+   "note": "F4 DRT pattern"
+  },
+  {
+   "src": "r3e05.tenuo-cel-attenuation-bypass",
+   "dst": "inv-attenuation-monotonicity",
+   "type": "contradicts",
+   "note": "counterexample for leaf-only + subsumption designs"
+  },
+  {
+   "src": "r3e05.tenuo-cel-attenuation-bypass",
+   "dst": "r3e05.draft-niyikiza-aat-01",
+   "type": "cve(unassigned)",
+   "note": "reference impl of the draft"
+  },
+  {
+   "src": "r3e05.biscuit-wallclock-limit-observed",
+   "dst": "biscuit-auth-6.0",
+   "type": "extends",
+   "note": "reproduces the r1 wall-clock concern"
+  },
+  {
+   "src": "r3e05.draft-niyikiza-aat-01",
+   "dst": "v.ietf-agent-attenuation-drafts",
+   "type": "extends",
+   "note": "existence confirmed; graded A"
+  },
+  {
+   "src": "r3e05.draft-asor-wimse-dt-02",
+   "dst": "v.ietf-agent-attenuation-drafts",
+   "type": "extends",
+   "note": "now at -02, 2026-10-15"
+  },
+  {
+   "src": "r3e05.draft-asor-wimse-dt-02",
+   "dst": "r3e05.rfc9964-mldsa-jose-cose",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.rfc8693-act-informational",
+   "dst": "r3e05.draft-asor-wimse-dt-02",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "r3e05.cedar-no-delegation-rfc",
+   "dst": "l5-authz-stack-recommendation",
+   "type": "supports",
+   "note": "reversal 'Cedar token RFC' not triggered"
+  },
+  {
+   "src": "r3e05.everparse-cborrs-2026-10",
+   "dst": "everparse-for-front",
+   "type": "extends",
+   "note": "Rust CBOR/COSE artifacts at tag"
+  },
+  {
+   "src": "r3e05.code-level-token-verifier-table",
+   "dst": "authz-formal-pdp-comparison",
+   "type": "extends",
+   "note": "code-level instrument"
+  },
+  {
+   "src": "r3e05.spike-cedar-lean-vs-rust",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r3e05.spike-cedar-lean-vs-rust",
+   "dst": "vfg-lean-core-minimal-measured",
+   "type": "depends_on",
+   "note": "3.4 GB toolchain figure"
+  },
+  {
+   "src": "r3e05.token-verify-microbench",
+   "dst": "r3e05.rfc9964-mldsa-jose-cose",
+   "type": "supports",
+   "note": "ML-DSA verify cost"
+  },
+  {
+   "src": "r3e05.alt-space-token-formats",
+   "dst": "r3e05.l5-token-decision",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "r3e05.txn-tokens-11",
+   "dst": "r3e05.l5-token-decision",
+   "type": "alternative_to",
+   "note": "intra-domain propagation; could carry Tier 0 handle reference"
+  },
+  {
+   "src": "r3e05.sweeney-wimse-cred-deleg-00",
+   "dst": "r3e05.l5-token-decision",
+   "type": "supports",
+   "note": "online DS = Tier 0 pattern"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Measure Tier 0 capability-table verify with ancestor walk (depth 1..8) and revocation cascade, in-memory vs redb/SQLite-backed, single node and 3-node replicated; does p99 stay <= 5 us?",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.6,
+   "reason": "Reversal R4 of the token decision"
+  },
+  {
+   "question": "Does the published draft-niyikiza AAT -02 (Tenuo's Alloy model already references -02) add CWT/COSE and ML-DSA? Track datatracker; same for draft-asor -03 and WIMSE adoption calls",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.45,
+   "reason": "Reversal R2"
+  },
+  {
+   "question": "Can cborrs (EverParse) build no_std and fit our toolchain pin; what is its parse throughput vs ciborium/minicbor for 200-byte tokens?",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.5,
+   "reason": "Tier L parser choice; vendoring cost"
+  },
+  {
+   "question": "Fetch and verify the OAuth WG list disclosure 'Delegation Chain Splicing in RFC 8693 Token Exchange' (2026-02-26) and any errata or BCP text it produced",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.35,
+   "reason": "Grade C claim used in the attack matrix"
+  },
+  {
+   "question": "Closed caveat set sufficiency: survey MCP tool-call argument shapes (top 100 MCP servers) to check that exact/range/one_of + resource prefix cover >= 95% of real constraints without regex/CEL",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "expected_info_gain": 0.5,
+   "reason": "Underclaim risk of rejecting Datalog/CEL"
+  },
+  {
+   "question": "aws-lc-rs ML-DSA verify vs fips204 0.5 on the same host, and FIPS 140-3 module status for ML-DSA in aws-lc (for Tier X under FIPS mode)",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.4,
+   "reason": "Tier X pin"
+  }
+ ],
+ "protocol_implications": [
+  "Token authorization must evaluate the conjunction of every caveat in the chain at verify time. Never rely on a parent/child subsumption check plus leaf-only evaluation (Tenuo CEL counterexample).",
+  "Verifier functions take 'now' as an explicit parameter; no wall-clock run limits in authorization paths (Biscuit RunLimit timeout observed). Use deterministic fuel/step bounds so DST and audit replay are deterministic.",
+  "Audience binding by key separation (K_aud = HKDF(K, aud||kid)) plus a required aud caveat; exp is required at mint with MAX_TTL. Both are closed-schema requirements the parser enforces, so type-confused or absent exp/aud is a parse failure (jsonwebtoken CVE-2026-25537, zcap CVE-2024-31995 classes).",
+  "External tokens (OAuth RFC 9068/DPoP, AAT, DT) terminate at ingress and are exchanged for internal Tier 0/L credentials; JWT parsing stays out of the inner TCB.",
+  "Vendor EverParse cborrs at a pinned tag for the token parser; record the tree hash; F1 round-trip fuzz in CI.",
+  "Do not publish Tenuo PoC strings from this repo until the vendor fixes it; operator to report privately to security@tenuo.ai."
+ ],
+ "self_improvement": [
+  "The scratchpad 'repos' dir is shared across explorers in a session (other explorers' clones present); define per-explorer clone dirs and delete them after measurement to stay within the \u00a70e 1.5 GB budget.",
+  "heavy.sh queueing made a 2-run bench wait more than 10 minutes behind other explorers' builds; the planner should stagger compile-heavy targets or give explorers a pre-built shared bench crate cache.",
+  "System rustc is 1.88 while crates (uuid 1.29) need 1.89+; document 'cargo +1.98.0' as the research toolchain in tools/README.",
+  "mailarchive.ietf.org search returns 403 to WebFetch; use the IMAP/Atom export or the datatracker API for list-post verification."
+ ],
+ "numbers_checked": [
+  "Biscuit RunLimits default 1000/100/1ms read from biscuit-auth 6.0.0 source (matches r1 node)",
+  "ML-DSA sizes from RFC 9964 table = FIPS 204 (sig 2420/3309/4627, pk 1312/1952/2592); fips204 crate output pk 1952 / sig 3309 B matches",
+  "Biscuit token sizes measured: 213 B (1 block), 466 B (3 blocks)",
+  "Cedar GHSA-m84h patched >=4.13 per gh api (4.14.0 main unaffected)",
+  "biscuit-auth last release 2025-07-16 via gh releases API (matches r1 node)",
+  "Tenuo MAX_WARRANT_SIZE 64 KiB / MAX_STACK_SIZE 256 KiB in wire.rs = draft MAX_TOKEN_SIZE/MAX_STACK_SIZE"
+ ],
+ "queue_closed": {
+  "q1-022": "spike recorded (over budget); not measured",
+  "q1-034": "answered: EverParse cborrs/evercosign Rust in-repo at v2026.10.07",
+  "q1-044": "closed negative: no Cedar delegation RFC",
+  "q1-060": "both drafts fetched and graded A (asor now -02)",
+  "q1-064": "no mechanized proof of a macaroon/HMAC-chain verifier found (search + NYU TR2013-962 pen-and-paper only); our T1-T5 would be the first"
+ },
+ "notes": {
+  "queries_run": 24,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 0,
+  "new_urls": "~30",
+  "seen_urls_reread": [
+   "SPECIFICATIONS.md (biscuit) to verify scoping"
+  ],
+  "new_nodes": 18,
+  "reused_ids": [
+   "l5-authz-stack-recommendation",
+   "pqc-capability-token-design",
+   "gap-verified-attenuable-pq-token",
+   "inv-attenuation-monotonicity",
+   "biscuit-auth-6.0",
+   "ucan-1.0-spec",
+   "zcap-ccg-status",
+   "macaroons-ndss2014",
+   "cedar-policy-crate-4.14",
+   "cedar-drt-harness",
+   "everparse-for-front",
+   "authz-formal-pdp-comparison",
+   "cedar-lean-proofs-2026-10",
+   "vfg-lean-core-minimal-measured",
+   "r2e11.token-time-bomb-jwt",
+   "v.ietf-agent-attenuation-drafts"
+  ],
+  "novelty_gate": "all pre-run queries NOVEL (max 0.40)",
+  "disk": "clones ~45 MB (own) + tokbench target removed after run",
+  "bench_run2": "Contended run (load avg ~60-70 from sibling explorer builds): default limits 1-block 4 denials / 25,500 calls (median 190.8 us), 3-block 1 / 15,300 (median 349.9 us) -> 5 / 40,800 = 0.012% RunLimit(Timeout) denials on trivially valid tokens; max_time=1s: 0 denials. Quiet run (load ~29): 0 / 40,800 denials; 1-block 63.1 us, 3-block 152.5-155.6 us (consistent with run 0: 64.7 / 158.0 us). Plus run 0 (first ever run) panicked on a single Timeout.\n"
+ },
+ "sources": [
+  "https://datatracker.ietf.org/doc/draft-niyikiza-oauth-attenuating-agent-tokens/",
+  "https://datatracker.ietf.org/doc/draft-asor-wimse-agent-delegation-chain/",
+  "https://www.rfc-editor.org/rfc/rfc9964",
+  "https://datatracker.ietf.org/doc/draft-ietf-oauth-transaction-tokens/",
+  "https://www.ietf.org/archive/id/draft-sweeney-wimse-credential-delegation-00.html",
+  "https://datatracker.ietf.org/wg/oauth/about/",
+  "https://github.com/Keats/jsonwebtoken/security/advisories/GHSA-h395-gr6q-cpjc",
+  "https://github.com/digitalbazaar/zcap/security/advisories/GHSA-hp8h-7x69-4wmv",
+  "https://github.com/eclipse-biscuit/biscuit-rust (tag biscuit-auth-6.0.0, code)",
+  "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md",
+  "https://github.com/eclipse-biscuit/biscuit/security/advisories (CVE-2022-31053, CVE-2024-42350)",
+  "https://github.com/macaroon-rs/macaroon (v0.3.0, code)",
+  "https://github.com/superfly/macaroon (v0.3.2, code)",
+  "https://fly.io/blog/macaroons-escalated-quickly/",
+  "https://github.com/ucan-wg/rs-ucan (main, code)",
+  "https://github.com/tenuo-ai/tenuo (v0.3.3, code + docs/formal_verification + SECURITY.md)",
+  "https://github.com/cedar-policy/cedar (v4.14.0, code + GHSA)",
+  "https://github.com/cedar-policy/rfcs (text + 104 PRs)",
+  "https://github.com/cedar-policy/cedar-spec (lake-manifest, cedar-lean-ffi, cedar-benchmarking)",
+  "https://github.com/google/coset (v0.4.2)",
+  "https://github.com/brycx/pasetors (0.8.1)",
+  "https://github.com/digitalbazaar/zcap (v9.0.3)",
+  "https://github.com/project-everest/everparse (v2026.10.07 cborrs, evercosign)",
+  "https://arxiv.org/abs/2505.17335",
+  "https://willowprotocol.org/specs/meadowcap/index.html",
+  "https://arxiv.org/abs/2609.06500",
+  "https://neilmadden.blog/2022/02/19/is-datalog-a-good-language-for-authorization/",
+  "https://crates.io/api/v1/crates/{biscuit-auth,fips204,ml-dsa,ucan,macaroon,meadowcap,keyhive_core,ssi-zcap-ld,tenuo,chio-kernel-core}",
+  "https://docs.rs/crate/tenuo/0.2.3 (search)",
+  "https://www.rfc-editor.org/rfc/rfc8693"
+ ]
+}

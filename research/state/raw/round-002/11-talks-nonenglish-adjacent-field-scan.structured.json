@@ -1,0 +1,532 @@
+{
+ "explorer": "11",
+ "round": 2,
+ "target": "talks-nonenglish-adjacent-field-scan",
+ "source": "integrator transcription of the explorer's structured return (raw file held only a note after crash recovery); r2e11.litellm-failopen and dbsc carry verifier corrections",
+ "nodes": [
+  {
+   "id": "r2e11.haproxy-cve-2026-33555",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "cve",
+   "title": "HAProxy CVE-2026-33555 H3->H1 desync via standalone QUIC FIN",
+   "summary": "Standalone QUIC FIN drives H3->H1 request desync in HAProxy (USE_QUIC=1); reportedly found by an LLM (Claude Code Opus 4.6) reading an ~8k-line mux. Pillar: H3 frontend to H1 backend translation.",
+   "urls": [
+    "https://floatingpoint.sorint.com/blog/post/haproxy-cve-2026-33555/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Blog 2026-04-17. Invariant: stream FIN/length consistency checked before downgrade to H1 framing.",
+   "overclaim_risk": "single vendor blog",
+   "underclaim_risk": "generalizes to any H3->H1 translator"
+  },
+  {
+   "id": "r2e11.cdn-tsunami",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "paper",
+   "title": "CDN Tsunami: H3->H1.1 conversion amplification (HBA/HCA)",
+   "summary": "arXiv 2607.26589 (blog 2026-08-20). HBA: QPACK expansion up to 350x at Alibaba/Baidu/Tencent CDNs, 36-66x others; HCA: backend connection per HEADERS, all but Cloudflare (buffers). <500Kbps in -> >100Mbps to origin. No CVE.",
+   "urls": [
+    "https://www.rescana.com/post/cdn-tsunami-critical-http-3-to-http-1-1-protocol-translation-vulnerability-triggers-up-to-350x-dos-amplification-across",
+    "https://arxiv.org/abs/2607.26589"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Invariant: decoded-header-bytes budget per stream pre-translation; do not open backend conn until request complete.",
+   "overclaim_risk": "secondary summary; PDF not fully verified",
+   "underclaim_risk": "extends rec60-header-accordions-qpack to translation tier"
+  },
+  {
+   "id": "r2e11.h3-proxy-qpack-sidechannel",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "thesis",
+   "title": "Cross-client QPACK dynamic table leakage on reused backend QUIC conn",
+   "summary": "Dartmouth senior thesis 2026-06-05 (J. Parfrey): shared QPACK table across clients on pooled backend H3 conn gives RTT timing side channel.",
+   "urls": [
+    "https://digitalcommons.dartmouth.edu/cs_senior_theses/59"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Rule: no cross-tenant sharing of QPACK dynamic table / backend conn.",
+   "overclaim_risk": "undergrad thesis, not peer reviewed",
+   "underclaim_risk": "real design constraint for pooled upstream"
+  },
+  {
+   "id": "r2e11.cve-2026-44436-quicly",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "cve",
+   "title": "quicly (H2O) CVE-2026-44436 connection state corruption DoS",
+   "summary": "quicly conn state corruption; fix commit 8b178e6.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "details thin",
+   "underclaim_risk": "low"
+  },
+  {
+   "id": "r2e11.opossum",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "paper",
+   "title": "Opossum Attack (USENIX Sec 2026): opportunistic TLS desync",
+   "summary": "Implicit+opportunistic TLS coexistence breaks auth via MitM; HTTP RFC 2817 Upgrade: TLS/1.0 has 4 exploit directions; >3M servers support both; 20,121 HTTP servers opportunistic; 539 same-domain exploitable; Apache 2.4.62 PoC; Apache removed RFC2817.",
+   "urls": [
+    "https://www.usenix.org/conference/usenixsecurity26/presentation/merget",
+    "https://eprint.iacr.org/2025/1260"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Invariant: never implement Upgrade: TLS (RFC 2817)/STARTTLS; one TLS mode per port; test: reject Upgrade: TLS header.",
+   "overclaim_risk": "low",
+   "underclaim_risk": "cheap invariant with strong evidence"
+  },
+  {
+   "id": "r2e11.mercuriuzz-quic-logic",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "paper",
+   "title": "NDSS26 MerCuriuzz: logical vulns in QUIC implementations",
+   "summary": "Black-box fuzzing 16 impls, 14 new logic vulns (quiche, xquic, aioquic named), 6 categories, 11 vendor-confirmed. Companion draft-chen-quic-logical-vuln-mitigations-00 (2026-03-13).",
+   "urls": [
+    "https://www.ndss-symposium.org/ndss-paper/identifying-logical-vulnerabilities-in-quic-implementations/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "Use the draft's categories as QUIC state-machine test checklist.",
+   "overclaim_risk": "vulns in other impls, not necessarily Rust pins",
+   "underclaim_risk": "USENIX26 QUIC-Attacker paper unread"
+  },
+  {
+   "id": "r2e11.x402-attacks",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "paper",
+   "title": "x402 payment attack literature (3 papers)",
+   "summary": "arXiv 2607.19545 'When HTTP 402 Meets the Blockchain': 8 facilitator rules, 4 attacks (Free Shopping, Asset Theft, Service Denial, Gas Abuse), 15 facilitators tested, 119M tx measured; arXiv 2605.11781 Five Attacks on x402; arXiv 2605.30998 Free-Riding the Agentic Web.",
+   "urls": [
+    "https://arxiv.org/abs/2607.19545",
+    "https://arxiv.org/abs/2605.11781",
+    "https://arxiv.org/abs/2605.30998"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Attack side of 402: binding, replay, gas abuse.",
+   "overclaim_risk": "venue USENIX Sec26 unconfirmed",
+   "underclaim_risk": "maps to HTTP 402 tier"
+  },
+  {
+   "id": "r2e11.token-time-bomb-jwt",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "paper",
+   "title": "NDSS26 Token Time Bomb: JWT implementation vulns",
+   "summary": "43 JWT impls/10 languages, 31 new vulns, 20 CVEs, k8s auth bypass; JWTeemo/JWTFuzz.",
+   "urls": [
+    "https://www.ndss-symposium.org/ndss-paper/token-time-bomb-evaluating-jwt-implementations-for-vulnerability-discovery/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Run JWTFuzz against any JWT/capability verifier; prefer non-JWT capability tokens.",
+   "overclaim_risk": "low",
+   "underclaim_risk": "low"
+  },
+  {
+   "id": "r2e11.looma-pqtls",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "paper",
+   "title": "NDSS26 Looma: low-latency PQ-TLS auth",
+   "summary": "On/off-path precompute, one-time sig over transcript; -44% handshake latency vs Dilithium2; draft-ma-cfrg-looma-00 (Mar 2026).",
+   "urls": [
+    "https://www.ndss-symposium.org/ndss-paper/looma-a-low-latency-pqtls-authentication-architecture-for-cloud-applications"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "Research-stage; not a deployable pin.",
+   "overclaim_risk": "non-standard; one-time-sig state risk",
+   "underclaim_risk": "ML-DSA handshake cost is attackable by design"
+  },
+  {
+   "id": "r2e11.tcp-timestamp-timing",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "talk",
+   "title": "Time for ACKrobatics (BH USA26) / Time and Time Again (NDSS26)",
+   "summary": "TCP timestamps reveal server processing time: jitter-immune remote timing attacks, several x more efficient than RTT; any TCP protocol; disabling ts breaks RTTM/PAWS.",
+   "urls": [
+    "https://i.blackhat.com/BH-USA-26/Presentations/USA-26-Vanderlinden-Time-for-ACKrobatics.pdf",
+    "https://papers.mathyvanhoef.com/ndss2026-timestamps.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "Constant-time claims must hold at TCP-timestamp resolution; timing harness using the ts side channel.",
+   "overclaim_risk": "resolution limited by OS ts granularity",
+   "underclaim_risk": "undermines network-noise argument for non-constant-time code"
+  },
+  {
+   "id": "r2e11.defcon34-pqc-hndl",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "type": "talk",
+   "title": "DEF CON 34 Krasnov: PQC impl attack vectors",
+   "summary": "Parser memory corruption at key_share deserialization, compiler-induced timing (Clangover CVE-2024-37880, Clang 15-18), ML-DSA ExpandMask loop-abort fault; hybrid does not help vs parser RCE.",
+   "urls": [
+    "https://media.defcon.org/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "CI gate: dudect/ctgrind on ML-KEM decaps with pinned compiler; fuzz key_share parser.",
+   "overclaim_risk": "slides only; URL is media root",
+   "underclaim_risk": "compiler-version pin is cheap"
+  },
+  {
+   "id": "r2e11.litellm-failopen",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "cve",
+   "title": "LiteLLM CVE-2026-59822 MCP auth bypass (fail-open to empty principal), in CISA KEV",
+   "summary": "CVE-2026-59821 guardrail sandbox RCE; CVE-2026-59822 MCP auth bypass: failed key check replaced by an empty UserAPIKeyAuth() via OAuth2 passthrough fallback (fixed 1.84.0), added to CISA KEV 2026-09-02 with active exploitation; second bypass via substring public-route match; default key sk-1234.",
+   "urls": [
+    "https://research.averlon.ai/vulnerability-intelligence/cve/CVE-2026-59822",
+    "https://www.wiz.io/vulnerability-database/cve/cve-2026-59822",
+    "https://aiweekly.co/alerts/cisa-adds-litellm-mcp-auth-bypass-and-six-flaws-to-kev"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Invariant: auth errors never map to default-principal; Principal cannot be default-constructed.",
+   "overclaim_risk": "DEF CON slide source replaced by CVE records",
+   "underclaim_risk": "classic fail-open, exploited ITW"
+  },
+  {
+   "id": "r2e11.waf-log-injection-agents",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL",
+   "type": "talk",
+   "title": "DEF CON 34: WAF 403 logs / Sentry DSN as prompt-injection channels",
+   "summary": "WAF block logs, public Sentry DSN, Datadog tokens inject into debugging agents; claimed 90% success vs a coding agent editing DNS; ~15k orgs; desktop-agent egress JWT reuse escape (patched, no CVE).",
+   "urls": [
+    "https://media.defcon.org/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Server error/log text containing attacker bytes is untrusted agent input; escape in logs.",
+   "overclaim_risk": "speaker numbers, root URL",
+   "underclaim_risk": "server logs as attack surface for agent operators"
+  },
+  {
+   "id": "r2e11.apisix-2026-advisories",
+   "layer": "L3",
+   "domain": "W-THREAT",
+   "type": "advisory",
+   "title": "Apache APISIX 26 CVE-2026 advisories (auth plugin logic)",
+   "summary": "jwt-auth CVE-2026-39999 alg confusion, jwe-decrypt CVE-2026-49230, hmac-auth replay 47341, cas-auth x5, opa 49231 identity spoof, openid-connect x4, forward-auth x2, route/upstream authz mismatch from servlet-style path normalization CVE-2026-94269 (fixed 3.19.0).",
+   "urls": [
+    "https://security.apache.org/projects/apisix/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Plugin-per-auth-scheme multiplies logic bugs; supports single auth path.",
+   "overclaim_risk": "count as of 2026-10-24; AI-driven discovery inflates",
+   "underclaim_risk": "quantifies fail-open authz class"
+  },
+  {
+   "id": "r2e11.nginx-cve-2026-42055",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "cve",
+   "title": "nginx CVE-2026-42055 proxy_v2/grpc module",
+   "summary": "ngx_http_proxy_v2_module + grpc; companion to CVE-2026-42530 (June 2026, 1.31.0-1.31.1).",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "via aggregator only",
+   "underclaim_risk": "low"
+  },
+  {
+   "id": "r2e11.sosp26-lion-verified-async",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "paper",
+   "title": "SOSP26 Lion: modular verification of async runtime liveness",
+   "summary": "Tokio-compatible Rust runtime with Verus-verified liveness contract, >=95% of unverified throughput on 9 workloads, evaluated with rumqtt, Pingora, Axum. Related UBC Jackdaw.",
+   "urls": [
+    "https://sigops.org/s/conferences/sosp/2026/accepted.html",
+    "https://www.cs.ubc.ca/~alexsumm/lib/exe/fetch.php?media=lietal27.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "PDF not fetched (ACM 403). Candidate for runtime-liveness gate.",
+   "overclaim_risk": "abstract-level only; licence unknown",
+   "underclaim_risk": "first Verus liveness contract for a Tokio-API runtime"
+  },
+  {
+   "id": "r2e11.osdi26-ote-policy",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "type": "paper",
+   "title": "OSDI26 Ote: extracting DB access-control policies from web apps",
+   "summary": "Concolic execution of Rails apps to SQL view policies; found errors in handwritten policies.",
+   "urls": [
+    "https://www.usenix.org/conference/osdi26/presentation/zhang-wen"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.6,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "Peripheral; also OSDI26 Aletheia, Rakaia kTLS RPC.",
+   "overclaim_risk": "Rails-specific",
+   "underclaim_risk": "low"
+  },
+  {
+   "id": "r2e11.kpqc-korea-japan",
+   "layer": "L2",
+   "domain": "W-PQC",
+   "type": "policy",
+   "title": "Korean KpqC winners and Japanese NCO PQC timeline (non-English gov sources)",
+   "summary": "KpqC: NTRU+, SMAUG-T (KEM), HAETAE, AIMer (sig). eprint 2026/2342 Rust KpqC provider with rustls TLS1.3 group; SMAUG-T 1280/1344 B vs ML-KEM-768 2272 B; eprint 2025/1245 KpqC certs 11.5-48x ECC; NTRU+ CFRG I-D (June 2026). Japan NCO interim report Nov 2025: gov PQC by 2035, hybrid + crypto-agility.",
+   "urls": [
+    "https://eprint.iacr.org/2026/2342",
+    "https://eprint.iacr.org/2025/1245",
+    "https://byline.network/2026/06/25-567"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Keep KEM group pluggable for Korean gov market.",
+   "overclaim_risk": "preprint numbers",
+   "underclaim_risk": "national deployment axis missing from map"
+  },
+  {
+   "id": "r2e11.5g-sbi-cluster",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "advisory",
+   "title": "5G core SBI (HTTP/2) 2026 advisory cluster: NRF as confused-deputy hub",
+   "summary": "Open5GS CVE-2026-8746 (NRF discovery UAF), 8744, 14618, 82589; free5GC CVE-2026-33062, CVE-2026-55068 (NF registration endpoint poisoning), GHSA-f8qv-7x5w-qr48 (/oauth2/token type confusion). Drishti arXiv 2608.30112; FivGeeFuzz arXiv 2509.08992.",
+   "urls": [
+    "https://arxiv.org/abs/2608.30112",
+    "https://arxiv.org/abs/2509.08992"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Registry/discovery poisoning analogous to MCP registry/agent card.",
+   "overclaim_risk": "aggregator sourcing",
+   "underclaim_risk": "adjacent-field evidence of registry poisoning"
+  },
+  {
+   "id": "r2e11.cloudflare-2025-11-18",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "type": "incident",
+   "title": "Cloudflare 2025-11-18 outage: oversized generated config -> Rust unwrap panic",
+   "summary": "ClickHouse permission change duplicated rows; Bot Mgmt feature file 2x; limit 200 vs ~60 used; FL2 Rust proxy unwrap() panic -> 5xx; core restored 14:30 UTC, all 17:06.",
+   "urls": [
+    "https://blog.cloudflare.com/18-november-2025-outage/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Gate: clippy unwrap_used/expect_used deny in proxy core; generated config validated, limit exceed fails soft to last-known-good; global kill switch.",
+   "overclaim_risk": "low",
+   "underclaim_risk": "directly a Rust-proxy lesson"
+  },
+  {
+   "id": "r2e11.dbsc",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "type": "spec",
+   "title": "Device Bound Session Credentials (W3C ED 2026-09-08)",
+   "summary": "Server exposes registration + refresh endpoints; Secure-Session-Registration/-Challenge/-Response/-Skipped, Sec-Secure-Session-Id; proof JWT typ dbsc+jwt RS256/ES256/none; no PQ signature in spec.",
+   "urls": [
+    "https://w3c.github.io/webappsec-dbsc/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Session primitive vs cookie theft; PQ gap; reject alg none.",
+   "overclaim_risk": "Editor's Draft",
+   "underclaim_risk": "browser-security vocabulary absent from map"
+  },
+  {
+   "id": "r2e11.h2-stalled-flowcontrol",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "type": "advisory",
+   "title": "CERT/CC VU#885548 / JVN JVNVU90338324: HTTP/2 stalled flow-control DoS",
+   "summary": "SETTINGS_INITIAL_WINDOW_SIZE=0 or withheld WINDOW_UPDATE makes server buffer response bodies; CVE-2026-44909, 59173, 59762; ATS fixed 9.2.14/10.1.3, NetScaler timeout default 0; not affected Cloudflare, Fastly, GitHub, HAProxy, Go, gRPC, nghttp2; 118 vendors, most no statement.",
+   "urls": [
+    "https://kb.cert.org/vuls/id/885548",
+    "https://jvn.jp/vu/JVNVU90338324/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Per-stream outbound buffer cap, stall timer, no body generation ahead of window; JVN source 2026-07-22. Harness: client sets window 0 and measures RSS.",
+   "overclaim_risk": "Rust h2/hyper status unverified",
+   "underclaim_risk": "direct test case for hyper/h2 pins"
+  },
+  {
+   "id": "r2e11.runwasi-cve-2026-47218",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "type": "cve",
+   "title": "runwasi CVE-2026-47218: untrusted precompiled Wasmtime bytes deserialized as native code",
+   "summary": "containerd-shim-wasmtime <0.6.1 treated precompiled bytes in an OCI layer as trusted cache, skipping Wasm validation (CWE-502, CVSS4 9.3, 2026-10-15); fix 0.6.1.",
+   "urls": [
+    "https://github.com/containerd/runwasi/security/advisories/GHSA-cc25-vq59-rcjx"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Rule: never Module::deserialize untrusted bytes; precompile cache keyed and MACed locally; test: feed precompiled artifact, expect reject.",
+   "overclaim_risk": "does not alone escape container",
+   "underclaim_risk": "wasm-host class distinct from wasmtime GHSA record"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r2e11.cdn-tsunami",
+   "dst": "rec60-header-accordions-qpack",
+   "type": "extends"
+  },
+  {
+   "src": "r2e11.cdn-tsunami",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "instance_of"
+  },
+  {
+   "src": "r2e11.h2-stalled-flowcontrol",
+   "dst": "v.http2-bomb-cve-2026-49975",
+   "type": "related"
+  },
+  {
+   "src": "r2e11.h2-stalled-flowcontrol",
+   "dst": "threat-h2-h3-resource-exhaustion",
+   "type": "instance_of"
+  },
+  {
+   "src": "r2e11.x402-attacks",
+   "dst": "j-x402-spec",
+   "type": "extends"
+  },
+  {
+   "src": "r2e11.x402-attacks",
+   "dst": "cal-x402-volume",
+   "type": "extends"
+  },
+  {
+   "src": "r2e11.runwasi-cve-2026-47218",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "related"
+  },
+  {
+   "src": "r2e11.mercuriuzz-quic-logic",
+   "dst": "crate-quiche",
+   "type": "affects"
+  },
+  {
+   "src": "r2e11.apisix-2026-advisories",
+   "dst": "threat-ledger-middle-tier-2023-2026",
+   "type": "supports"
+  },
+  {
+   "src": "r2e11.litellm-failopen",
+   "dst": "threat-ledger-middle-tier-2023-2026",
+   "type": "supports"
+  },
+  {
+   "src": "r2e11.token-time-bomb-jwt",
+   "dst": "pqc-capability-token-design",
+   "type": "motivates"
+  },
+  {
+   "src": "r2e11.haproxy-cve-2026-33555",
+   "dst": "rec60-pingora-envoy-haproxy-nginx-h2h3",
+   "type": "extends"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Fetch USENIX Sec26 QUIC-Attacker (frame-packet interactions) and Kintsugi, and OffensiveCon/Hexacon 2026 HTTP/QUIC talks; extract per-implementation findings for quinn/s2n-quic/quiche",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.6,
+   "reason": "unread candidates from venue lists"
+  },
+  {
+   "question": "Do Rust h2/hyper/Pingora/Envoy respond to VU#885548 stalled flow-control? Build a window-0 harness and measure RSS",
+   "layer": "L5",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.7,
+   "reason": "vendor status unknown for Rust stacks"
+  },
+  {
+   "question": "Chinese sources (FreeBuf, CNVD, Alibaba/Tencent labs) on HTTP/3 and gateway vulns 2026; patents on QPACK/H3 admission",
+   "layer": "L3",
+   "domain": "W-UNKNOWN",
+   "expected_info_gain": 0.5,
+   "reason": "non-English/patent cells still thin"
+  },
+  {
+   "question": "Fetch Lion (SOSP26) repo/PDF: licence, Verus version, applicability to Pingora-like server",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.5,
+   "reason": "PDF 403"
+  }
+ ],
+ "protocol_implications": [
+  "Adjacent-field vocabularies (CDN protocol translation, 5G SBI, payment gateway, browser DBSC) surfaced classes not in pillar sweeps: translation-tier amplification, registry poisoning, config-plane panic.",
+  "Talk slides (BH/DEF CON) are grade C: verify CVE IDs against NVD before promoting.",
+  "Non-English sources mostly mirror English primaries (JVN, Qianxin); unique non-English value is policy (KpqC, Japan NCO)."
+ ],
+ "self_improvement": [
+  "Persist full node JSON incrementally, not only markdown progress, to survive crashes.",
+  "Run novelty_gate per item automatically against graph.jsonl ids before logging.",
+  "Several grade-C items rely on secondary aggregators; add a fetch-primary-or-downgrade step."
+ ]
+}

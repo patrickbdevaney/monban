@@ -1,0 +1,14 @@
+[package]
+name="fipsprobe"
+version="0.0.0"
+edition="2021"
+publish=false
+[dependencies]
+rustls = { version = "=0.23.43", default-features = false, features = ["aws-lc-rs","fips","std","tls12","prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.15.3", features = ["fips"] }
+aws-lc-fips-sys = "=0.13.11"
+hyper = { version = "=1.12.0", features = ["server","http1","http2"] }
+h2 = "=0.4.20"
+rustls-pki-types = { version = "1", features = ["std"] }
+[profile.release]
+debug = 0

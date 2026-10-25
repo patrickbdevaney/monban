@@ -1,0 +1,275 @@
+{
+ "nodes": [
+  {
+   "id": "r4tri.no-co-resolvable-lock",
+   "layer": "L5",
+   "domain": "W-PQC/W-SUPPLY",
+   "type": "result",
+   "title": "Proof-by-resolver: no lock has rustls>=0.23.44 AND the CMVP-listed aws-lc-fips-sys 0.13.11 (R-PQC-2 triangle is empty at the security floor)",
+   "summary": "cargo 1.98.0 on the requested pin set (hyper =1.12.0, h2 =0.4.20, rustls>=0.23.46 [fips,prefer-post-quantum], aws-lc-rs>=1.15.2,<=1.17.2 [fips], aws-lc-fips-sys =0.13.11) fails: 'all possible versions conflict with previously selected package aws-lc-rs v1.18.0 ... rustls v0.23.46 requires ^1.18'. Minimal conflict set: rustls>=0.23.44 (req aws-lc-rs ^1.18) x aws-lc-rs<1.18 (the only line accepting fips-sys ^0.13.1; 1.17.3 needs ^0.13.16, 1.17.4 ^0.13.17). hyper/h2 are not involved. rustls-webpki>=0.103.14 also needs ^1.18, so the webpki floor (0.103.16, RUSTSEC-2026-0382) is 1.18-only too. A [patch] relaxing the bound to ^1.15.2 resolves but does not compile: webpki aws_lc_rs_algs.rs E0425 signature::ML_DSA_44/65/87 (ML-DSA API stabilized in aws-lc-rs 1.18.0), so the bound is a real API dependency.",
+   "specifics": "Newest rustls compatible with fips-sys 0.13.11 = 0.23.43 (2026-07-29, aws-lc-rs ^1.14). Executed co-resolvable set (c6, 82 pkgs): rustls =0.23.43, aws-lc-rs =1.15.3 [fips], aws-lc-fips-sys =0.13.11, hyper =1.12.0, h2 =0.4.20, rustls-webpki 0.103.13. Window for 0.13.11 is aws-lc-rs 1.15.2..1.17.1. Cargo.toml: rustls={version=\"=0.23.43\",default-features=false,features=[\"aws-lc-rs\",\"fips\",\"std\",\"tls12\",\"prefer-post-quantum\"]}; aws-lc-rs={version=\"=1.15.3\",features=[\"fips\"]}; aws-lc-fips-sys=\"=0.13.11\". Exposure of that set: RUSTSEC-2026-0285 (5.3, either side, fixed .45), -0346 (client Debug secrets), -0348 (optional brotli), -0349 (client-side PQ downgrade, 3.7), webpki -0382 (distrusted emSign intermediates, fixed 0.103.16), and 0.13.11 itself RUSTSEC-2026-0042/0043. read+executed 2026-10-25.",
+   "urls": [
+    "https://crates.io/api/v1/crates/rustls/0.23.46/dependencies",
+    "https://crates.io/api/v1/crates/aws-lc-rs/1.17.3/dependencies",
+    "https://crates.io/api/v1/crates/rustls-webpki/0.103.16/dependencies",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0349.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Resolver result is for crates.io on 2026-10-25; a future rustls 0.23.x backport lowering the bound, or aws-lc-fips-sys 0.13.x relabeled, would reopen it. Only a patched fork escapes it and was not built.",
+   "underclaim_risk": "Pinning is not hopeless: a working lock exists today at rustls 0.23.43; for a listener-only server most exposure is client-side or Medium."
+  },
+  {
+   "id": "r4tri.fips-sys-decoy-lock",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "failure",
+   "title": "Trap (executed): rustls 0.23.46 + direct aws-lc-fips-sys =0.13.11 resolves silently with TWO fips-sys; the linked one is 0.14.3 (AWS-LC FIPS 4.2.0, not validated)",
+   "summary": "links keys are per-version (aws_lc_fips_0_13_11 vs aws_lc_fips_0_14_3) so cargo permits both. c1: lock holds 0.13.11 (decoy, direct dep, never linked by aws-lc-rs) and 0.14.3 via aws-lc-rs 1.18.2. c2 (rustls =0.23.43 without aws-lc-rs pin) same because rustls 0.23.43 allows ^1.14 so cargo picks 1.18.2. `cargo tree -i aws-lc-fips-sys` errors 'specification is ambiguous'. A grep for 0.13.11 in Cargo.lock passes while the binary links FIPS 4.2.0.",
+   "specifics": "Gate G2a/G2b in fips_lock_gate.py: exactly one fips-sys node and it must be the one reachable from aws-lc-rs. Always pin aws-lc-rs exactly alongside fips-sys.",
+   "urls": [
+    "state/raw/round-004/03-work/resolver_cases.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Applies to cargo resolver v2/v3 as of 1.98.0.",
+   "underclaim_risk": "Cheap to detect."
+  },
+  {
+   "id": "r4tri.try-fips-mode-blind",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "result",
+   "title": "aws_lc_rs::try_fips_mode()==Ok and all 10 handshake/HRR verdicts are identical on certified-lineage 3.1.0 and uncertified 4.2.0 builds",
+   "summary": "Built and ran the same probe against (srv) rustls 0.23.43/aws-lc-rs 1.15.3/fips-sys 0.13.11 and (p2) rustls 0.23.46/aws-lc-rs 1.18.2/fips-sys 0.14.3. Both: try_fips_mode()=Ok(()), default_provider().fips()=true, same group table and verdicts. Module identity is only visible as the string 'AWS-LC FIPS 3.1.0' vs 'AWS-LC FIPS 4.2.0' in the binary (also AWSLC_API_VERSION 30 vs 35).",
+   "specifics": "Release gate G6: strings -a bin | grep 'AWS-LC FIPS' must equal exactly {3.1.0}. Per-crate module versions (base.h): 0.13.11=3.1.0 validated, .12=3.2.0, .13=3.3.0, .15/.16=3.4.0, .17=3.6.0, 0.14.0=4.1.0, 0.14.3=4.2.0. Build 40 s, 302 MB target, go1.27.3.",
+   "urls": [
+    "https://github.com/aws/aws-lc-rs/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Strings identify source version, not that bcm.o is byte-identical to the certified build or that the env is a tested one.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4tri.fips-handshake-verdicts",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "result",
+   "title": "FIPS-mode handshake verdict table (executed, rustls 0.23.43 + FIPS 3.1.0 and 0.23.46 + 4.2.0 identical)",
+   "summary": "SecP256r1MLKEM768 (0x11eb) is negotiated Full when server kx_groups=[P256MLKEM768,P256,P384] and client offers it; X25519MLKEM768 is NOT refused by the FIPS provider: ALL_KX_GROUPS reports X25519MLKEM768 fips=true (ML-KEM-first layout; X25519 alone false) and a default-order server negotiates it (server_cfg.fips=false only because X25519 is in the list). It is refused only by omitting it from provider.kx_groups: client [X25519MLKEM768] -> NoKxGroupsInCommon / alert 40. DEFAULT_KX_GROUPS lacks SECP256R1MLKEM768 even with prefer-post-quantum, so a FIPS listener must set kx_groups explicitly. HRR verdicts on pq-required (0x11eb): classical-first/classical-share -> HRR(0x11eb); classical-only -> alert 40; pq-first with only classical share -> HRR; pq share -> ServerHello(0x11eb); [11ec,11eb] with only 11ec share -> HRR(0x11eb); both shares -> ServerHello(0x11eb). Documented gap persists: non-required profile with client listing P-256 first -> ServerHello(secp256r1) (client order). Harness lesson: dummy 0x42 P-256 shares give illegal_parameter(47); need a real point.",
+   "specifics": "Invariant FIPS-KX-1: provider.kx_groups == [SECP256R1MLKEM768, SECP256R1, SECP384R1] (or MLKEM1024 gov); assert config.fips(). Probe file: 03-work/fips_probe_main.rs; outputs probe_fips_*.txt. X25519MLKEM768 fips=true is rustls' reading of SP800-56C (comment cites FIPS-pending ML-KEM in module 3.0); validated cert lists ML-KEM-512/768/1024 and ECDH P-256 but no X25519 and the hybrid combiner is outside the module.",
+   "urls": [
+    "state/raw/round-004/03-work/probe_fips_0.13.11.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "In-memory handshakes only, one host, not Amazon Linux 2023 (non-tested environment so not 'approved mode' per CMVP).",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4tri.tested-env-only-al2023",
+   "layer": "L4",
+   "domain": "W-OPS",
+   "type": "result",
+   "title": "CMVP #5298/#5314 validate AWS-LC FIPS 3.1.0 only on Amazon Linux 2023 (Graviton4, Xeon 8375C); no vendor-affirmed environments",
+   "summary": "Security Policy 140sp5298 v1.3: bcm.o 'AWS-LC FIPS 3.1.0', tested OE table lists only Amazon Linux 2023 on r8g.metal-24xl and c6i.metal; Vendor-Affirmed: N/A; CMVP makes no statement outside listed OEs. Certs: #5298 dynamic validated 2026-06-03 sunset 2031-06-02; #5314 static validated 2026-06-05 sunset 2031-06-04; Active. ML-KEM-512/768/1024 listed, ML-DSA not. MIP (updated 2026-10-24): AWS-LC 4 dynamic and static in Comment Resolution - Lab (2026-10-22); AWS-LC 5 Pending Review (2026-10-05).",
+   "specifics": "A household Debian/Ubuntu or musl static build cannot claim approved mode on this cert; gov profile must deploy on AL2023 on those CPU families or wait for v4.",
+   "urls": [
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5298",
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314",
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Reading of OE table via pdftotext.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4tri.cmvp-pin-carries-advisories",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "type": "result",
+   "title": "The CMVP-listed source (FIPS 3.1.0 = fips-sys 0.13.11) is inside RUSTSEC-2026-0043 (AES-CCM timing, CVSS 5.9) and -0042 (CRL IDP, 7.4); fixes ship only as non-validated 3.2.0/3.3.0",
+   "summary": "Advisory ranges: 0043 fixed fips-sys 0.13.12 (module 3.2.0), 0042 fixed 0.13.13 (3.3.0); neither advisory states whether 3.1.0 is affected, but ranges include 0.13.0-0.13.11. Reachability via rustls modelled as nil: grep of rustls 0.23.43, webpki, aws-lc-rs 1.15.3 shows no AES-CCM suite and no X509_V_FLAG_CRL_CHECK use.",
+   "specifics": "cargo-audit will flag the cmvp lock; carry an ignore with the reachability argument, expiry on v4 certificate issue.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0043.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0042.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Reachability is grep-level, not proven.",
+   "underclaim_risk": "Advisories are unreachable via rustls so practical risk small."
+  },
+  {
+   "id": "r4tri.yanked-1.17.2",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "result",
+   "title": "Correction to v3.aws-lc-rs-fips-sys-range: aws-lc-rs 1.17.2 is yanked and fails to compile with fips-sys <=0.13.15; window for 0.13.11 is 1.15.2..1.17.1",
+   "summary": "Release notes: 1.17.2 'failed to compile with fips when fips-sys resolved to v0.13.15 or earlier'; 1.17.3 is same code requiring ^0.13.16. crates.io shows 1.17.2 yanked 2026-07-17. README: FIPS 3.0.x <-> aws-lc-rs <1.18.0.",
+   "specifics": "Gate G3 range [1.15.2,1.17.1]. Safest pin is aws-lc-rs =1.15.3 (same date 2026-01-14 as fips-sys 0.13.11).",
+   "urls": [
+    "https://github.com/aws/aws-lc-rs/releases",
+    "https://crates.io/api/v1/crates/aws-lc-rs/versions"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4tri.golden-lock-no-pq-feature",
+   "layer": "L5",
+   "domain": "W-SUPPLY",
+   "type": "result",
+   "title": "q3-017 answered: the golden lock has one rustls (0.23.46) with features aws-lc-rs,std,tls12 and no prefer-post-quantum; the offender is the golden's own direct dependency",
+   "summary": "cargo tree --locked -e features -i rustls: consumers are golden-lock and tokio-rustls 0.26.6 (adds no features); grep count of prefer-post-quantum = 0; no hyper-rustls/reqwest/sqlx. ring 0.17.14 locked but not in normal tree. So the measured classical-ClientHello pitfall (319 B vs 1539 B) applies to the golden as written; one-line fix: add prefer-post-quantum to the rustls dependency.",
+   "specifics": "Gate G1 in fips_lock_gate.py (via cargo metadata resolve node features, covers all rustls nodes).",
+   "urls": [
+    "state/raw/round-004/03-work/gold_tree_rustls_features.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "One lock, one date.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "r4tri.separate-fips-lock-decision",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "type": "decision",
+   "title": "Decision evidence: two lock profiles are necessary today (floor lock on rustls 0.23.46+aws-lc-rs 1.18.x/FIPS 4.2.0; cmvp lock on rustls 0.23.43+aws-lc-rs 1.15.3/fips-sys 0.13.11)",
+   "summary": "Same source, two Cargo.lock files, selected by profile and gated by fips_lock_gate.py --profile floor|cmvp. The cmvp lock is expected to fail G4 (floor) until a v4 certificate issues (AWS-LC 4 in Comment Resolution 2026-10-22) at which time the cmvp pin becomes fips-sys 0.14.x and the triangle collapses to one lock. Reversal condition: CMVP #AWS-LC 4 certificate issued with a module version matching a fips-sys 0.14.x string.",
+   "specifics": "R-PQC-2: keep separate lock, add reversal trigger. Revisit after first cert issuance listing.",
+   "urls": [
+    "https://csrc.nist.gov/projects/cryptographic-module-validation-program/modules-in-process/modules-in-process-list"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Prediction about v4 timing is modelled not read.",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "r4tri.no-co-resolvable-lock",
+   "dst": "r3pq.prefer-pq-feature-pitfall",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.no-co-resolvable-lock",
+   "dst": "v3.aws-lc-rs-fips-sys-range",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.yanked-1.17.2",
+   "dst": "v3.aws-lc-rs-fips-sys-range",
+   "type": "contradicts"
+  },
+  {
+   "src": "r4tri.no-co-resolvable-lock",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.fips-sys-decoy-lock",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.golden-lock-no-pq-feature",
+   "dst": "r3pq.prefer-pq-feature-pitfall",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.golden-lock-no-pq-feature",
+   "dst": "sc3.golden-lock-gate-run",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.cmvp-pin-carries-advisories",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "contradicts"
+  },
+  {
+   "src": "r4tri.separate-fips-lock-decision",
+   "dst": "r4tri.no-co-resolvable-lock",
+   "type": "depends_on"
+  },
+  {
+   "src": "r4tri.try-fips-mode-blind",
+   "dst": "r4tri.fips-sys-decoy-lock",
+   "type": "motivates"
+  },
+  {
+   "src": "r4tri.tested-env-only-al2023",
+   "dst": "ops.fips-module-boundary-pin",
+   "type": "extends"
+  },
+  {
+   "src": "r4tri.fips-handshake-verdicts",
+   "dst": "r3pq.prefer-pq-feature-pitfall",
+   "type": "extends"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Spike: fork rustls 0.23.46+webpki 0.103.16 with ML-DSA stripped against aws-lc-rs 1.15.3/fips-sys 0.13.11 (~30 edits); does it pass rustls' test suite and fix 0285/0349/0382?",
+   "layer": "L5",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "only path to floor+CMVP in one lock"
+  },
+  {
+   "question": "Is AES-CCM / CRL code in module 3.1.0 reachable by any aws-lc-rs API the golden uses (symbol-level check)?",
+   "layer": "L4",
+   "domain": "W-SUPPLY",
+   "expected_info_gain": 0.35,
+   "reason": "cmvp lock carries advisories"
+  },
+  {
+   "question": "Does CMVP require X25519MLKEM768 to be treated as non-approved in approved mode (SP 800-227 final)?",
+   "layer": "L3",
+   "domain": "W-OPS",
+   "expected_info_gain": 0.45,
+   "reason": "rustls marks fips=true"
+  }
+ ],
+ "protocol_implications": [
+  "Add fips_lock_gate.py to CI for both profiles",
+  "R-PQC-2: keep separate FIPS lock; add reversal trigger on AWS-LC 4 cert",
+  "Correct v3 range to 1.15.2-1.17.1",
+  "Add prefer-post-quantum to golden Cargo.toml"
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-004/03-fips-golden-version-triangle-one-lock.json",
+ "notes": {
+  "queries_logged": 8,
+  "sources": "crates.io API (rustls/aws-lc-rs/fips-sys versions+deps), csrc CMVP #5298 #5314 pages, 140sp5298.pdf, MIP list, aws-lc-rs releases+README, RUSTSEC-2026-0349/0285/0382/0043/0042, rustls v0.23.46 release, go.dev dl, OSV snapshot, fips-sys base.h x7; ~20 distinct, below 25 floor",
+  "tags": "numbers read/executed except reachability modelled",
+  "artifacts": "state/raw/round-004/03-work/"
+ },
+ "self_improvement": [
+  "heavy.sh lock waits can exceed 120s tool timeout; use run_in_background",
+  "cargo tree -i with two crate versions errors ambiguous; use cargo metadata in gates"
+ ]
+}

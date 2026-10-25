@@ -1,0 +1,375 @@
+[
+ {
+  "shape": "a",
+  "id": "M1",
+  "cls": "missing tenant filter",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "leak"
+  ],
+  "oracle": "leak=1 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M2",
+  "cls": "default principal",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "unauth"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=1 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M3",
+  "cls": "cross-tenant cache key",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "leak"
+  ],
+  "oracle": "leak=1 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M4",
+  "cls": "unescaped HTML",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "xss"
+  ],
+  "oracle": "leak=0 xss=1 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M5",
+  "cls": "effect before commit",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "effect_order"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=1"
+ },
+ {
+  "shape": "a",
+  "id": "M6",
+  "cls": "write in read-only (GET) handler",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "readwrite"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=1 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M7",
+  "cls": "forge principal from request header",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "unauth"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=1 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M8",
+  "cls": "tenant from request path (IDOR)",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "leak"
+  ],
+  "oracle": "leak=1 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M9",
+  "cls": "SQL string concatenation of user input",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "sqli"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=1 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M10",
+  "cls": "missing authz check on delete",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "authz_delete"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=1 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M11",
+  "cls": "DB handle escapes request (stashed in static)",
+  "status": "COMPILED_VIOLATION",
+  "violations": [],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M12",
+  "cls": "SSRF: unvalidated URL fetched",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "ssrf"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=1 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M13",
+  "cls": "bearer token written to log",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "tokenlog"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=1 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M14",
+  "cls": "use transaction after commit",
+  "status": "REJECTED",
+  "codes": [
+   "[E0382]"
+  ],
+  "first": "borrow of moved value: `tx`",
+  "n_errors": 2,
+  "stderr_lines": 21,
+  "stderr_chars": 1123,
+  "help_lines": 0
+ },
+ {
+  "shape": "a",
+  "id": "M15",
+  "cls": "semantic: skip same-tenant ownership check on delete",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "owner_delete"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=1 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "a",
+  "id": "M16",
+  "cls": "semantic: archived rows leaked into listing",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "archived"
+  ],
+  "oracle": "leak=0 xss=0 archived=1 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "b",
+  "id": "M1",
+  "cls": "missing tenant filter",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no method named `all_notes` found for struct `TenantDb` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 21,
+  "stderr_chars": 854,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M2",
+  "cls": "default principal",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no function or associated item named `default` found for struct `sdk::Principal` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 19,
+  "stderr_chars": 984,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M3",
+  "cls": "cross-tenant cache key",
+  "status": "COMPILED_NEUTRALIZED",
+  "violations": [],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "b",
+  "id": "M4",
+  "cls": "unescaped HTML",
+  "status": "REJECTED",
+  "codes": [
+   "[E0308]"
+  ],
+  "first": "mismatched types",
+  "n_errors": 2,
+  "stderr_lines": 12,
+  "stderr_chars": 730,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M5",
+  "cls": "effect before commit",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no method named `send_email` found for struct `Tx` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 15,
+  "stderr_chars": 780,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M6",
+  "cls": "write in read-only (GET) handler",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no method named `begin` found for struct `sdk::Ctx<'_, sdk::Read>` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 18,
+  "stderr_chars": 961,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M7",
+  "cls": "forge principal from request header",
+  "status": "REJECTED",
+  "codes": [
+   "[E0423]"
+  ],
+  "first": "cannot initialize a tuple struct which contains private fields",
+  "n_errors": 1,
+  "stderr_lines": 21,
+  "stderr_chars": 1104,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M8",
+  "cls": "tenant from request path (IDOR)",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no method named `notes_for` found for struct `TenantDb` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 21,
+  "stderr_chars": 1031,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M9",
+  "cls": "SQL string concatenation of user input",
+  "status": "REJECTED",
+  "codes": [
+   "[E0599]"
+  ],
+  "first": "no method named `query` found for struct `TenantDb` in the current scope",
+  "n_errors": 2,
+  "stderr_lines": 15,
+  "stderr_chars": 872,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M10",
+  "cls": "missing authz check on delete",
+  "status": "REJECTED",
+  "codes": [
+   "[E0425]"
+  ],
+  "first": "cannot find value `g` in this scope",
+  "n_errors": 2,
+  "stderr_lines": 10,
+  "stderr_chars": 457,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M11",
+  "cls": "DB handle escapes request (stashed in static)",
+  "status": "REJECTED",
+  "codes": [
+   "[E0382]",
+   "[E0521]"
+  ],
+  "first": "borrowed data escapes outside of function",
+  "n_errors": 3,
+  "stderr_lines": 34,
+  "stderr_chars": 1568,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M12",
+  "cls": "SSRF: unvalidated URL fetched",
+  "status": "REJECTED",
+  "codes": [
+   "[E0308]"
+  ],
+  "first": "mismatched types",
+  "n_errors": 2,
+  "stderr_lines": 20,
+  "stderr_chars": 878,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M13",
+  "cls": "bearer token written to log",
+  "status": "REJECTED",
+  "codes": [
+   "[E0277]"
+  ],
+  "first": "`Secret` doesn't implement `std::fmt::Display`",
+  "n_errors": 2,
+  "stderr_lines": 14,
+  "stderr_chars": 989,
+  "help_lines": 1
+ },
+ {
+  "shape": "b",
+  "id": "M14",
+  "cls": "use transaction after commit",
+  "status": "REJECTED",
+  "codes": [
+   "[E0382]"
+  ],
+  "first": "borrow of moved value: `tx`",
+  "n_errors": 2,
+  "stderr_lines": 21,
+  "stderr_chars": 1140,
+  "help_lines": 0
+ },
+ {
+  "shape": "b",
+  "id": "M15",
+  "cls": "semantic: skip same-tenant ownership check on delete",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "owner_delete"
+  ],
+  "oracle": "leak=0 xss=0 archived=0 readwrite=0 unauth=0 authz_delete=0 owner_delete=1 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ },
+ {
+  "shape": "b",
+  "id": "M16",
+  "cls": "semantic: archived rows leaked into listing",
+  "status": "COMPILED_VIOLATION",
+  "violations": [
+   "archived"
+  ],
+  "oracle": "leak=0 xss=0 archived=1 readwrite=0 unauth=0 authz_delete=0 owner_delete=0 ssrf=0 sqli=0 tokenlog=0 effect_order=0"
+ }
+]

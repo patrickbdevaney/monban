@@ -1,0 +1,19 @@
+Running client scenario 'http-header-validation' against server: http://127.0.0.1:18006/mcp
+Checks:
+[90m2026-10-25T08:17:15.754Z[0m [sep-2243-server-reject-invalid-headers         ] [32mSUCCESS[0m Server rejects requests where Mcp-Method header does not match body method
+[90m2026-10-25T08:17:15.754Z[0m [sep-2243-server-reject-error-code              ] [32mSUCCESS[0m Server rejects requests where Mcp-Method header does not match body method — uses JSON-RPC error code -32020 (HeaderMismatch)
+[90m2026-10-25T08:17:15.755Z[0m [sep-2243-server-reject-invalid-headers         ] [32mSUCCESS[0m Server rejects requests with missing Mcp-Method header
+[90m2026-10-25T08:17:15.755Z[0m [sep-2243-server-reject-error-code              ] [32mSUCCESS[0m Server rejects requests with missing Mcp-Method header — uses JSON-RPC error code -32020 (HeaderMismatch)
+[90m2026-10-25T08:17:15.755Z[0m [sep-2243-server-reject-invalid-headers         ] [32mSUCCESS[0m Server rejects tools/call where Mcp-Name does not match body params.name
+[90m2026-10-25T08:17:15.755Z[0m [sep-2243-server-reject-error-code              ] [32mSUCCESS[0m Server rejects tools/call where Mcp-Name does not match body params.name — uses JSON-RPC error code -32020 (HeaderMismatch)
+[90m2026-10-25T08:17:15.756Z[0m [sep-2243-server-accepts-whitespace-header-value] [32mSUCCESS[0m Server MUST accept leading/trailing whitespace in Mcp-Name value (RFC 9110 §5.5: field parsing MUST exclude OWS before evaluating)
+[90m2026-10-25T08:17:15.756Z[0m [sep-2243-server-reject-invalid-headers         ] [32mSUCCESS[0m Server MUST reject tools/call with missing Mcp-Name header when body has params.name
+[90m2026-10-25T08:17:15.756Z[0m [sep-2243-server-reject-error-code              ] [32mSUCCESS[0m Server MUST reject tools/call with missing Mcp-Name header when body has params.name — uses JSON-RPC error code -32020 (HeaderMismatch)
+[90m2026-10-25T08:17:15.798Z[0m [sep-2243-header-name-case-insensitive          ] [32mSUCCESS[0m Server MUST accept lowercase header name (mcp-method)
+[90m2026-10-25T08:17:15.840Z[0m [sep-2243-header-name-case-insensitive          ] [32mSUCCESS[0m Server MUST accept uppercase header name (MCP-METHOD)
+[90m2026-10-25T08:17:15.841Z[0m [sep-2243-server-reject-invalid-headers         ] [32mSUCCESS[0m Server MUST reject uppercase method value (TOOLS/LIST) since values are case-sensitive
+[90m2026-10-25T08:17:15.841Z[0m [sep-2243-server-reject-error-code              ] [32mSUCCESS[0m Server MUST reject uppercase method value (TOOLS/LIST) since values are case-sensitive — uses JSON-RPC error code -32020 (HeaderMismatch)
+[90m2026-10-25T08:17:15.841Z[0m [wire-schema-valid                              ] [32mSUCCESS[0m Every JSON-RPC message the implementation sent is valid per the spec JSON schema for the negotiated spec version
+
+Test Results:
+Passed: 14/14, 0 failed, 0 warnings

@@ -1,0 +1,302 @@
+url,date,source,component,class,mt_direct,duration_min,title
+https://wikitech.wikimedia.org/wiki/Incidents/2017-01-26_API_Slowdown,2017-01-26,wikimedia-wikitech,appserver,network-routing-bgp,0,,2017-01-26 API Slowdown
+https://wikitech.wikimedia.org/wiki/Incidents/2017-03-23_wikibase,2017-03-23,wikimedia-wikitech,appserver(php),code-bug-regression-latent,1,,2017-03-23 wikibase
+https://wikitech.wikimedia.org/wiki/Incidents/2017-04-19_ToolsProxy,2017-04-19,wikimedia-wikitech,reverse-proxy(tools-proxy),disk-log-fill,1,,2017-04-19 ToolsProxy
+https://wikitech.wikimedia.org/wiki/Incidents/2017-10-18_wdqs,2017-10-18,wikimedia-wikitech,api-service,retry-storm-herd-cascade,0,,2017-10-18 wdqs
+https://wikitech.wikimedia.org/wiki/Incidents/2017-11-20_Ext:ORES,2017-11-20,wikimedia-wikitech,api-service,code-bug-regression-latent,0,,2017-11-20 Ext:ORES
+https://wikitech.wikimedia.org/wiki/Incidents/2017-11-28_ORES,2017-11-28,wikimedia-wikitech,appserver(uwsgi),retry-storm-herd-cascade,1,,2017-11-28 ORES
+https://wikitech.wikimedia.org/wiki/Incidents/2018-06-28_dumps,2018-06-28,wikimedia-wikitech,nginx-fileserver,kernel-firmware-hardware-power,0,,2018-06-28 dumps
+https://wikitech.wikimedia.org/wiki/Incidents/2018-07-31_Phabricator,2018-07-31,wikimedia-wikitech,haproxy,config-push-validation,1,,2018-07-31 Phabricator
+https://wikitech.wikimedia.org/wiki/Incidents/2018-10-02_maps,2018-10-02,wikimedia-wikitech,forward-proxy,config-push-validation,1,,2018-10-02 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2019-02-13_PAWS,2019-02-13,wikimedia-wikitech,app,dependency-upstream,0,,2019-02-13 PAWS
+https://wikitech.wikimedia.org/wiki/Incidents/2019-05-07_opcache,2019-05-07,wikimedia-wikitech,php-opcache-appserver,reload-restart-upgrade-deploy-lifecycle,1,,2019-05-07 opcache
+https://wikitech.wikimedia.org/wiki/Incidents/2019-06-06_wikibase,2019-06-06,wikimedia-wikitech,appserver(php),code-bug-regression-latent,1,,2019-06-06 wikibase
+https://wikitech.wikimedia.org/wiki/Incidents/2019-06-11_maps,2019-06-11,wikimedia-wikitech,pybal-LB,healthcheck-depool-logic,1,,2019-06-11 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2019-06-16_AQS,2019-06-16,wikimedia-wikitech,api,config-push-validation,0,,2019-06-16 AQS
+https://wikitech.wikimedia.org/wiki/Incidents/2019-06-28_EventStreams,2019-06-28,wikimedia-wikitech,eventstreams,dependency-upstream,0,,2019-06-28 EventStreams
+https://wikitech.wikimedia.org/wiki/Incidents/2019-07-15_maps,2019-07-15,wikimedia-wikitech,tileserver,capacity-saturation-nonmalicious,0,,2019-07-15 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2019-07-23_network_eqiad,2019-07-23,wikimedia-wikitech,edge,network-routing-bgp,0,,2019-07-23 network eqiad
+https://wikitech.wikimedia.org/wiki/Incidents/2019-08-02_api-overload-parsoid,2019-08-02,wikimedia-wikitech,api-appserver,capacity-saturation-nonmalicious,1,,2019-08-02 api-overload-parsoid
+https://wikitech.wikimedia.org/wiki/Incidents/2019-08-07_s8-cawiki-errors,2019-08-07,wikimedia-wikitech,db,dependency-upstream,0,,2019-08-07 s8-cawiki-errors
+https://wikitech.wikimedia.org/wiki/Incidents/2019-08-23_network_codfw,2019-08-23,wikimedia-wikitech,edge,network-routing-bgp,0,,2019-08-23 network codfw
+https://wikitech.wikimedia.org/wiki/Incidents/2019-09-10_toolforge-kubernetes,2019-09-10,wikimedia-wikitech,k8s-api,config-push-validation,0,,2019-09-10 toolforge-kubernetes
+https://wikitech.wikimedia.org/wiki/Incidents/2019-09-13_maps,2019-09-13,wikimedia-wikitech,caching-layer,capacity-saturation-nonmalicious,1,,2019-09-13 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2019-09-20_d2_switch_failure,2019-09-20,wikimedia-wikitech,edge,network-routing-bgp,0,,2019-09-20 d2 switch failure
+https://wikitech.wikimedia.org/wiki/Incidents/2019-10-16_network_eqsin,2019-10-16,wikimedia-wikitech,edge-caches,network-routing-bgp,0,,2019-10-16 network eqsin
+https://wikitech.wikimedia.org/wiki/Incidents/2020-01-08_mw-api,2020-01-08,wikimedia-wikitech,varnish+ats-tls,config-push-validation,1,,2020-01-08 mw-api
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-06_mediawiki,2020-02-06,wikimedia-wikitech,appserver,code-bug-regression-latent,1,,2020-02-06 mediawiki
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-04_app_server_latency,2020-02-04,wikimedia-wikitech,appserver,retry-storm-herd-cascade,1,,2020-02-04 app server latency
+https://wikitech.wikimedia.org/wiki/Incidents/2020-01-26_app_server_latency,2020-01-26,wikimedia-wikitech,appserver,fd-port-conntrack-worker-exhaustion,1,,2020-01-26 app server latency
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-11_caching-proxies,2020-02-11,wikimedia-wikitech,cdn-edge-cache,operator-error-tooling,1,,2020-02-11 caching-proxies
+https://wikitech.wikimedia.org/wiki/Incidents/2020-01-27_app_server_latency,2020-01-27,wikimedia-wikitech,api-appserver,capacity-saturation-nonmalicious,1,,2020-01-27 app server latency
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-07_mediawiki_API_down,2020-02-07,wikimedia-wikitech,api-appserver,abusive-traffic,1,,2020-02-07 mediawiki API down
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-25_mediawiki_interface_language,2020-02-25,wikimedia-wikitech,app,config-push-validation,0,,2020-02-25 mediawiki interface language
+https://wikitech.wikimedia.org/wiki/Incidents/2020-02-04_maps,2020-02-04,wikimedia-wikitech,appserver,retry-storm-herd-cascade,1,,2020-02-04 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2020-03-19_parsercache,2020-03-19,wikimedia-wikitech,appserver,dependency-upstream,0,,2020-03-19 parsercache
+https://wikitech.wikimedia.org/wiki/Incidents/2020-03-25_codfw-network,2020-03-25,wikimedia-wikitech,edge,network-routing-bgp,0,,2020-03-25 codfw-network
+https://wikitech.wikimedia.org/wiki/Incidents/2020-05-01_vc-link-failure,2020-05-01,wikimedia-wikitech,edge,network-routing-bgp,0,,2020-05-01 vc-link-failure
+https://wikitech.wikimedia.org/wiki/Incidents/2020-05-11_thumbor,2020-05-11,wikimedia-wikitech,thumbor-service,abusive-traffic,0,,2020-05-11 thumbor
+https://wikitech.wikimedia.org/wiki/Incidents/2020-06-25_caching-sessions,2020-06-25,wikimedia-wikitech,varnish,cache-poisoning-staleness,1,,2020-06-25 caching-sessions
+https://wikitech.wikimedia.org/wiki/Incidents/2020-07-23_wdqs-outage,2020-07-23,wikimedia-wikitech,wdqs-blazegraph,code-bug-regression-latent,0,,2020-07-23 wdqs-outage
+https://wikitech.wikimedia.org/wiki/Incidents/2020-09-02_wdqs-outage,2020-09-02,wikimedia-wikitech,nginx->blazegraph(lockup),code-bug-regression-latent,0,,2020-09-02 wdqs-outage
+https://wikitech.wikimedia.org/wiki/Incidents/2020-09-09_mobileapps_config_change,2020-09-09,wikimedia-wikitech,service-proxy-middleware,config-push-validation,1,,2020-09-09 mobileapps config change
+https://wikitech.wikimedia.org/wiki/Incidents/2020-08-12_appservers_oom,2020-08-12,wikimedia-wikitech,appservers,memory-leak-oom,1,,2020-08-12 appservers oom
+https://wikitech.wikimedia.org/wiki/Incidents/2021-02-01_swift-codfw,2021-02-01,wikimedia-wikitech,LVS-swift-frontend,dependency-upstream,1,,2021-02-01 swift-codfw
+https://wikitech.wikimedia.org/wiki/Incidents/2021-01-16_appserver_latency,2021-01-16,wikimedia-wikitech,appserver(restart-script/poolcounter),reload-restart-upgrade-deploy-lifecycle,1,,2021-01-16 appserver latency
+https://wikitech.wikimedia.org/wiki/Incidents/2021-02-05_wmflabs_certs_expired,2021-02-05,wikimedia-wikitech,cloud-vps-web-proxies,cert-key-expiry,1,,2021-02-05 wmflabs certs expired
+https://wikitech.wikimedia.org/wiki/Incidents/2021-03-14_MediaWiki_API,2021-03-14,wikimedia-wikitech,php-fpm(api-appserver),fd-port-conntrack-worker-exhaustion,1,,2021-03-14 MediaWiki API
+https://wikitech.wikimedia.org/wiki/Incidents/2021-03-30_Jobqueue_overload,2021-03-30,wikimedia-wikitech,jobrunner,capacity-saturation-nonmalicious,0,,2021-03-30 Jobqueue overload
+https://wikitech.wikimedia.org/wiki/Incidents/2021-04-26_thumbor,2021-04-26,wikimedia-wikitech,thumbor->swift(nic-crash),kernel-firmware-hardware-power,0,,2021-04-26 thumbor
+https://wikitech.wikimedia.org/wiki/Incidents/2021-04-06_partial_rack_codfw,2021-04-06,wikimedia-wikitech,switch,kernel-firmware-hardware-power,0,,2021-04-06 partial rack codfw
+https://wikitech.wikimedia.org/wiki/Incidents/2021-04-15_appserver_latency,2021-04-15,wikimedia-wikitech,api-webserver,abusive-traffic,1,,2021-04-15 appserver latency
+https://wikitech.wikimedia.org/wiki/Incidents/2021-04-29_db_and_memc_load,2021-04-29,wikimedia-wikitech,memcached-layer,code-bug-regression-latent,0,,2021-04-29 db and memc load
+https://wikitech.wikimedia.org/wiki/Incidents/2021-06-29_trwikivoyage_primary_db,2021-06-29,wikimedia-wikitech,appservers,dependency-upstream,1,,2021-06-29 trwikivoyage primary db
+https://wikitech.wikimedia.org/wiki/Incidents/2021-06-15_Eqsin_network,2021-06-15,wikimedia-wikitech,edge-cluster-depool,dns-incl-elb-ip-caching,1,,2021-06-15 Eqsin network
+https://wikitech.wikimedia.org/wiki/Incidents/2021-07-14_eventgate-analytics_latency_spike_caused_MW_app_server_overload,2021-07-14,wikimedia-wikitech,eventgate(node),reload-restart-upgrade-deploy-lifecycle,0,,2021-07-14 eventgate-analytics latency spike caused MW app server overload
+https://wikitech.wikimedia.org/wiki/Incidents/2021-07-16_asw-a2-codfw_network,2021-07-16,wikimedia-wikitech,switch,network-routing-bgp,0,,2021-07-16 asw-a2-codfw network
+https://wikitech.wikimedia.org/wiki/Incidents/2021-07-26_ruwikinews_DynamicPageList,2021-07-26,wikimedia-wikitech,appserver(slow-queries),capacity-saturation-nonmalicious,1,,2021-07-26 ruwikinews DynamicPageList
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-06_Wikifeeds,2021-09-06,wikimedia-wikitech,wikifeeds-healthcheck,dependency-upstream,0,,2021-09-06 Wikifeeds
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-13_cirrussearch_restart,2021-09-13,wikimedia-wikitech,elasticsearch,reload-restart-upgrade-deploy-lifecycle,0,,2021-09-13 cirrussearch restart
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-12_Esams_upload,2021-09-12,wikimedia-wikitech,varnish(upload-lb),fd-port-conntrack-worker-exhaustion,1,,2021-09-12 Esams upload
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-04_appserver_latency,2021-09-04,wikimedia-wikitech,php-fpm(appserver),fd-port-conntrack-worker-exhaustion,1,,2021-09-04 appserver latency
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-18_appserver_latency,2021-09-18,wikimedia-wikitech,php-fpm(appserver),fd-port-conntrack-worker-exhaustion,1,,2021-09-18 appserver latency
+https://wikitech.wikimedia.org/wiki/Incidents/2021-09-26_appserver_latency,2021-09-26,wikimedia-wikitech,php-fpm(appserver),fd-port-conntrack-worker-exhaustion,1,,2021-09-26 appserver latency
+https://wikitech.wikimedia.org/wiki/Incidents/2021-10-22_eqiad_return_path_timeouts,2021-10-22,wikimedia-wikitech,datacenter-return-path,network-routing-bgp,0,,2021-10-22 eqiad return path timeouts
+https://wikitech.wikimedia.org/wiki/Incidents/2021-11-04_large_file_upload_timeouts,2021-11-04,wikimedia-wikitech,swift-upload(libs),code-bug-regression-latent,0,,2021-11-04 large file upload timeouts
+https://wikitech.wikimedia.org/wiki/Incidents/2021-11-18_codfw_ipv6_network,2021-11-18,wikimedia-wikitech,ipv6,network-routing-bgp,0,,2021-11-18 codfw ipv6 network
+https://wikitech.wikimedia.org/wiki/Incidents/2021-11-02_Cloud_VPS_networking,2021-11-02,wikimedia-wikitech,cloud-vps,network-routing-bgp,0,,2021-11-02 Cloud VPS networking
+https://wikitech.wikimedia.org/wiki/Incidents/2022-02-01_ulsfo_network,2022-02-01,wikimedia-wikitech,edge-router-acl(BFD),config-push-validation,0,3.0,2022-02-01 ulsfo network
+https://wikitech.wikimedia.org/wiki/Incidents/2022-03-06_wdqs-categories,2022-03-06,wikimedia-wikitech,wdqs,capacity-saturation-nonmalicious,0,214.0,2022-03-06 wdqs-categories
+https://wikitech.wikimedia.org/wiki/Incidents/2022-03-10_MediaWiki_availability,2022-03-10,wikimedia-wikitech,appserver(worker-exhaustion),fd-port-conntrack-worker-exhaustion,1,19.866666666666667,2022-03-10 MediaWiki availability
+https://wikitech.wikimedia.org/wiki/Incidents/2022-03-27_wdqs_outage,2022-03-27,wikimedia-wikitech,wdqs-deadlock,code-bug-regression-latent,0,33.0,2022-03-27 wdqs outage
+https://wikitech.wikimedia.org/wiki/Incidents/2022-03-31_api_errors,2022-03-31,wikimedia-wikitech,api/appserver-workers,fd-port-conntrack-worker-exhaustion,1,22.0,2022-03-31 api errors
+https://wikitech.wikimedia.org/wiki/Incidents/2022-03-04_esams_availability_banner_sampling,2022-03-04,wikimedia-wikitech,esams-edge(varnish),capacity-saturation-nonmalicious,1,89.88333333333334,2022-03-04 esams availability banner sampling
+https://wikitech.wikimedia.org/wiki/Incidents/2022-05-01_etcd,2022-05-01,wikimedia-wikitech,etcd/conftool,cert-key-expiry,0,,2022-05-01 etcd
+https://wikitech.wikimedia.org/wiki/Incidents/2022-05-09_confctl,2022-05-09,wikimedia-wikitech,confctl->LB-depool-all(codfw),operator-error-tooling,1,7.0,2022-05-09 confctl
+https://wikitech.wikimedia.org/wiki/Incidents/2022-05-20_Database_slow,2022-05-20,wikimedia-wikitech,appserver-worker-threads,fd-port-conntrack-worker-exhaustion,1,0.0,2022-05-20 Database slow
+https://wikitech.wikimedia.org/wiki/Incidents/2022-05-21_varnish_cache_busting,2022-05-21,wikimedia-wikitech,varnish-caching-layer(API flood),retry-storm-herd-cascade,1,2.0,2022-05-21 varnish cache busting
+https://wikitech.wikimedia.org/wiki/Incidents/2022-05-24_Failed_Apache_restart,2022-05-24,wikimedia-wikitech,apache,reload-restart-upgrade-deploy-lifecycle,1,,2022-05-24 Failed Apache restart
+https://wikitech.wikimedia.org/wiki/Incidents/2022-06-10_overload_varnish_haproxy,2022-06-10,wikimedia-wikitech,varnish->haproxy(429 retries overload),retry-storm-herd-cascade,1,3.0,2022-06-10 overload varnish haproxy
+https://wikitech.wikimedia.org/wiki/Incidents/2022-06-21_asw-a2-codfw_accidental_power_cycle,2022-06-21,wikimedia-wikitech,switch-power,kernel-firmware-hardware-power,0,11.0,2022-06-21 asw-a2-codfw accidental power cycle
+https://wikitech.wikimedia.org/wiki/Incidents/2022-07-10_thumbor,2022-07-10,wikimedia-wikitech,thumbor+haproxy(firejail upstream bug restart loop),code-bug-regression-latent,1,,2022-07-10 thumbor
+https://wikitech.wikimedia.org/wiki/Incidents/2022-07-20_network_interruption,2022-07-20,wikimedia-wikitech,switch,network-routing-bgp,0,9.0,2022-07-20 network interruption
+https://wikitech.wikimedia.org/wiki/Incidents/2022-09-08_codfw_appservers_degradation,2022-09-08,wikimedia-wikitech,pybal-depool+etcdmirror,healthcheck-depool-logic,1,33.0,2022-09-08 codfw appservers degradation
+https://wikitech.wikimedia.org/wiki/Incidents/2022-10-06_eqiad_row_D_networking,2022-10-06,wikimedia-wikitech,switch,network-routing-bgp,0,2.0,2022-10-06 eqiad row D networking
+https://wikitech.wikimedia.org/wiki/Incidents/2022-11-04_Swift_issues,2022-11-04,wikimedia-wikitech,swift,dependency-upstream,0,49.0,2022-11-04 Swift issues
+https://wikitech.wikimedia.org/wiki/Incidents/2022-08-26_Phabricator_login_issues,2022-08-26,wikimedia-wikitech,ATS(cookie ctx bug),code-bug-regression-latent,1,17.0,2022-08-26 Phabricator login issues
+https://wikitech.wikimedia.org/wiki/Incidents/2022-12-09_api_appserver_worker_starvation,2022-12-09,wikimedia-wikitech,api-appserver workers starvation,fd-port-conntrack-worker-exhaustion,1,92.06666666666666,2022-12-09 api appserver worker starvation
+https://wikitech.wikimedia.org/wiki/Incidents/2022-12-21_shellbox-syntaxhighlight,2022-12-21,wikimedia-wikitech,shellbox,capacity-saturation-nonmalicious,0,10.0,2022-12-21 shellbox-syntaxhighlight
+https://wikitech.wikimedia.org/wiki/Incidents/2022-12-18_World_Cup,2022-12-18,wikimedia-wikitech,api-appserver,capacity-saturation-nonmalicious,1,24.0,2022-12-18 World Cup
+https://wikitech.wikimedia.org/wiki/Incidents/2023-01-09_API_errors_-_db1143,2023-01-09,wikimedia-wikitech,api-appserver/parsoid recovery surge,retry-storm-herd-cascade,1,10.0,2023-01-09 API errors - db1143
+https://wikitech.wikimedia.org/wiki/Incidents/2023-01-17_MediaWiki,2023-01-17,wikimedia-wikitech,php-fpm restart/opcache vs extension.json,reload-restart-upgrade-deploy-lifecycle,1,13.2,2023-01-17 MediaWiki
+https://wikitech.wikimedia.org/wiki/Incidents/2023-02-22_wiki_outage,2023-02-22,wikimedia-wikitech,ATS text cache (depool all),operator-error-tooling,1,,2023-02-22 wiki outage
+https://wikitech.wikimedia.org/wiki/Incidents/2023-02-22_read_only,2023-02-22,wikimedia-wikitech,switchover script,code-bug-regression-latent,0,75.38333333333334,2023-02-22 read only
+https://wikitech.wikimedia.org/wiki/Incidents/2023-04-17_eqiad/LVS,2023-04-17,wikimedia-wikitech,LVS reimage during deploy,operator-error-tooling,1,11.0,2023-04-17 eqiad/LVS
+https://wikitech.wikimedia.org/wiki/Incidents/2023-05-19_videoscaler/jobrunner,2023-05-19,wikimedia-wikitech,jobrunner,capacity-saturation-nonmalicious,0,45.0,2023-05-19 videoscaler/jobrunner
+https://wikitech.wikimedia.org/wiki/Incidents/2023-05-25_eqiad/LVS,2023-05-25,wikimedia-wikitech,LVS taken down during deploy,operator-error-tooling,1,21.0,2023-05-25 eqiad/LVS
+https://wikitech.wikimedia.org/wiki/Incidents/2023-08-09_mw-on-k8s_outage_due_to_wrong_tls_cert,2023-08-09,wikimedia-wikitech,TLS termination (mw-on-k8s wrong cert),config-push-validation,1,35.0,2023-08-09 mw-on-k8s outage due to wrong tls cert
+https://wikitech.wikimedia.org/wiki/Incidents/2023-09-29_CloudVPS_vms_losing_network_connectivity,2023-09-29,wikimedia-wikitech,dhcp clients,config-push-validation,0,,2023-09-29 CloudVPS vms losing network connectivity
+https://wikitech.wikimedia.org/wiki/Incidents/2024-02-28_etcd-mirror,2024-02-28,wikimedia-wikitech,etcd-mirror,code-bug-regression-latent,0,73.0,2024-02-28 etcd-mirror
+https://wikitech.wikimedia.org/wiki/Incidents/2024-04-17_mw-on-k8s_eqiad_outage,2024-04-17,wikimedia-wikitech,mw-on-k8s mcrouter sidecar,config-push-validation,1,,2024-04-17 mw-on-k8s eqiad outage
+https://wikitech.wikimedia.org/wiki/Incidents/2024-07-21_s4_and_x1_write_overload,2024-07-21,wikimedia-wikitech,appserver/db,dependency-upstream,0,10.0,2024-07-21 s4 and x1 write overload
+https://wikitech.wikimedia.org/wiki/Incidents/2024-11-25_WMCS_proxy_nginx_failure,2024-11-25,wikimedia-wikitech,nginx (puppet removed nameserver),config-push-validation,1,,2024-11-25 WMCS proxy nginx failure
+https://wikitech.wikimedia.org/wiki/Incidents/2024-12-03_Port_saturation_from_cached_Varnish_HEAD-GET_upgrades,2024-12-03,wikimedia-wikitech,ATS,cache-poisoning-staleness,1,8069.0,2024-12-03 Port saturation from cached Varnish HEAD-GET upgrades
+https://wikitech.wikimedia.org/wiki/Incidents/2025-02-19_maps,2025-02-19,wikimedia-wikitech,TLS cert SAN missing (k8s svc),config-push-validation,1,315.0,2025-02-19 maps
+https://wikitech.wikimedia.org/wiki/Incidents/2025-02-28_www.wikipedia.org_redirect,2025-02-28,wikimedia-wikitech,CDN redirect loop,config-push-validation,1,1865.55,2025-02-28 www.wikipedia.org redirect
+https://wikitech.wikimedia.org/wiki/Incidents/2025-05-08_Papal_announcement_traffic_surge,2025-05-08,wikimedia-wikitech,edge,capacity-saturation-nonmalicious,1,14.0,2025-05-08 Papal announcement traffic surge
+https://wikitech.wikimedia.org/wiki/Incidents/2025-07-11_WMCS_Ceph_issues_causing_Toolforge_and_Cloud_VPS_failures,2025-07-11,wikimedia-wikitech,tools-proxy/ceph,dependency-upstream,1,680.0,2025-07-11 WMCS Ceph issues causing Toolforge and Cloud VPS failures
+https://wikitech.wikimedia.org/wiki/Incidents/2025-09-25_wdqs,2025-09-25,wikimedia-wikitech,LVS+wdqs deadlock,code-bug-regression-latent,1,113.0,2025-09-25 wdqs
+https://wikitech.wikimedia.org/wiki/Incidents/2025-11-06_WAF,2025-11-06,wikimedia-wikitech,WAF global rate-limit,config-push-validation,1,4.0,2025-11-06 WAF
+https://wikitech.wikimedia.org/wiki/Incidents/2026-02-23_ml-serve,2026-02-23,wikimedia-wikitech,Istio ingress upgrade,reload-restart-upgrade-deploy-lifecycle,1,1170.0,2026-02-23 ml-serve
+https://aws.amazon.com/message/74876-2/,,danluu-post-mortems,DNS resolver fleet min-healthy,config-push-validation,0,,Amazon
+https://discuss.circleci.com/t/post-incident-report-april-4-2025-circleci-ui-loading-build-triggering-issues/53208,2025,danluu-post-mortems,WAF/CloudFront drift,config-push-validation,1,,CircleCI
+https://web.archive.org/web/20211006135542/https://blog.cloudflare.com/todays-outage-post-mortem-82515/,2021,danluu-post-mortems,edge routers,config-push-validation,1,,Cloudflare
+https://web.archive.org/web/20211016040522/https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/,2021,danluu-post-mortems,backbone typo,config-push-validation,0,,Cloudflare
+https://web.archive.org/web/20220621124002/https://blog.cloudflare.com/cloudflare-outage-on-june-21-2022/,2022,danluu-post-mortems,BGP prefix order,config-push-validation,0,,Cloudflare
+https://web.archive.org/web/20221112015610/https://blog.cloudflare.com/partial-cloudflare-outage-on-october-25-2022/,2022,danluu-post-mortems,tiered cache,config-push-validation,1,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-january-24th-2023/,2023,danluu-post-mortems,service tokens / CDN control plane,code-bug-regression-latent,1,,Cloudflare
+https://blog.cloudflare.com/1-1-1-1-lookup-failures-on-october-4th-2023/,2023,danluu-post-mortems,DNS resolver internal software error,dns-incl-elb-ip-caching,1,,Cloudflare
+https://blog.cloudflare.com/18-november-2025-outage/,2025,danluu-post-mortems,bot mgmt feature file -> proxy panic,config-push-validation,1,,Cloudflare
+https://blog.cloudflare.com/5-december-2025-outage/,2025,danluu-post-mortems,WAF ruleset Lua exception,config-push-validation,1,,Cloudflare
+https://blog.cloudflare.com/cloudflare-outage-february-20-2026/,2026,danluu-post-mortems,BYOIP addressing api,code-bug-regression-latent,0,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-february-6-2025/,2025,danluu-post-mortems,R2 gateway,operator-error-tooling,0,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-march-21-2025/,2025,danluu-post-mortems,R2 gateway creds,operator-error-tooling,0,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-june-20-2024/,2024,danluu-post-mortems,rate-limiter infinite loop (DDoS rule exposed),code-bug-regression-latent,1,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-october-30-2023/,2023,danluu-post-mortems,deployment tool staging version,config-push-validation,1,,Cloudflare
+https://blog.cloudflare.com/deep-dive-into-cloudflares-sept-12-dashboard-and-api-outage/,,danluu-post-mortems,dashboard/API (excess calls),retry-storm-herd-cascade,0,,Cloudflare
+https://blog.cloudflare.com/route-leak-incident-january-22-2026/,2026,danluu-post-mortems,BGP policy leak,config-push-validation,0,,Cloudflare
+https://web.archive.org/web/20211201033341/https://codeascraft.com/2012/01/23/solr-bittorrent-index-replication/,2012,danluu-post-mortems,switch multicast,network-routing-bgp,0,,Etsy
+https://status.cloud.google.com/incident/compute/16007,,danluu-post-mortems,BGP,config-push-validation,0,,Google
+https://googleblog.blogspot.com/2014/01/todays-outage-for-several-google.html,2014,danluu-post-mortems,google,config-push-validation,0,,Google
+https://web.archive.org/web/20151008061104/http://code.google.com/p/chromium/issues/detail?id=165171,2015,danluu-post-mortems,quota service,dependency-upstream,0,,Google
+https://googleblog.blogspot.com/2009/01/this-site-may-harm-your-computer-on.html,2009,danluu-post-mortems,safe-browsing blacklist,config-push-validation,0,,Google
+https://status.cloud.google.com/incident/compute/17007#5659118702428160,,danluu-post-mortems,google LB config roll-out,config-push-validation,1,,Google
+https://status.cloud.google.com/incident/storage/19002,,danluu-post-mortems,blob storage,retry-storm-herd-cascade,0,,Google
+https://status.cloud.google.com/incident/cloud-networking/19009,,danluu-post-mortems,GCP network,config-push-validation,0,,Google
+https://status.cloud.google.com/incidents/1xkAB1KmLrh5g3v9ZEZ7,,danluu-post-mortems,GFE/internal LB,code-bug-regression-latent,1,,Google
+https://status.cloud.google.com/incidents/6PM5mNd43NbMqjCZ5REh,,danluu-post-mortems,GCLB network config service,code-bug-regression-latent,1,,Google
+https://status.cloud.google.com/incidents/vLsxuKoRvykNHW3nnhsJ,2022,danluu-post-mortems,GCP networking,reload-restart-upgrade-deploy-lifecycle,0,,Google
+https://status.heroku.com/incidents/1091,,danluu-post-mortems,heroku router/dyno config,config-push-validation,1,,Heroku
+https://blog.heroku.com/how-i-broke-git-push-heroku-main,,danluu-post-mortems,heroku,config-push-validation,0,,Heroku
+https://azure.microsoft.com/en-us/blog/update-on-azure-storage-service-interruption/,,danluu-post-mortems,azure storage,config-push-validation,0,,Microsoft
+https://blog.npmjs.org/post/74949623024/2014-01-28-outage-postmortem.html,2014,danluu-post-mortems,Fastly VCL (restart resets backend),config-push-validation,1,,NPM
+https://status.pagerduty.com/incidents/vbp7ht2647l8,2021,danluu-post-mortems,k8s cluster dns config,dns-incl-elb-ip-caching,0,,PagerDuty
+https://blog.rust-lang.org/inside-rust/2023/02/08/dns-outage-portmortem.html,2023,danluu-post-mortems,crates.io cert+DNS recreate,cert-key-expiry,1,,rust-lang
+https://aws.amazon.com/message/2329B7/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Amazon
+https://aws.amazon.com/message/67457/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Amazon
+https://aws.amazon.com/message/4372T8/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Amazon
+https://aws.amazon.com/message/656481/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Amazon
+https://aws.amazon.com/message/56489/,,danluu-post-mortems,cooling (ALB/WAF customers affected),kernel-firmware-hardware-power,0,,Amazon
+https://web.archive.org/web/20211015231917/https://blog.cloudflare.com/a-byzantine-failure-in-the-real-world/,2021,danluu-post-mortems,switch,network-routing-bgp,0,,Cloudflare
+https://blog.cloudflare.com/post-mortem-on-cloudflare-control-plane-and-analytics-outage/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Cloudflare
+https://blog.cloudflare.com/major-data-center-power-failure-again-cloudflare-code-orange-tested/,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Cloudflare
+https://status.cloud.google.com/incident/compute/15056#5719570367119360,,danluu-post-mortems,power,kernel-firmware-hardware-power,0,,Google
+https://status.cloud.google.com/incidents/fmEL9i2fArADKawkZAa2,2022,danluu-post-mortems,cooling,kernel-firmware-hardware-power,0,,Google
+https://aws.amazon.com/message/101925/,,danluu-post-mortems,DNS management race,dns-incl-elb-ip-caching,0,,Amazon
+https://status.cloud.google.com/incident/compute/17003#5660850647990272,,danluu-post-mortems,Google LB addressing slow path,code-bug-regression-latent,1,,Google
+https://status.cloud.google.com/incidents/eo76pxZiDgWVz4z3kmUv,,danluu-post-mortems,backbone,network-routing-bgp,0,,Google
+https://azure.microsoft.com/en-us/blog/summary-of-windows-azure-service-disruption-on-feb-29th-2012/,2012,danluu-post-mortems,leap-day cert creation (Azure),clock-leapsecond-time,1,,Azure
+https://web.archive.org/web/20211104160742/https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/,2021,danluu-post-mortems,CF RRDNS leap second,clock-leapsecond-time,1,,Cloudflare
+https://web.archive.org/web/20250303152906/https://hacks.mozilla.org/2019/07/add-ons-outage-post-mortem-result/,2019,danluu-post-mortems,Firefox addon cert,cert-key-expiry,0,,Mozilla
+https://status.heroku.com/incidents/2558,2023,danluu-post-mortems,heroku db int overflow,code-bug-regression-latent,0,,Heroku
+https://aws.amazon.com/message/41926/,2017,danluu-post-mortems,S3,operator-error-tooling,0,,Amazon
+https://web.archive.org/web/20220403060108/https://status.aws.amazon.com/s3-20080720.html,2022,danluu-post-mortems,S3 request fleet,code-bug-regression-latent,0,,Amazon
+https://aws.amazon.com/message/65648/,,danluu-post-mortems,AWS network,operator-error-tooling,0,,Amazon
+https://aws.amazon.com/message/680342/,,danluu-post-mortems,EBS agent,memory-leak-oom,0,,Amazon
+https://aws.amazon.com/message/680587/,,danluu-post-mortems,ELB state data,operator-error-tooling,1,,Amazon
+https://aws.amazon.com/message/5467D2/,,danluu-post-mortems,EBS metadata,retry-storm-herd-cascade,0,,Amazon
+https://aws.amazon.com/message/11201/,,danluu-post-mortems,Kinesis frontend cache fleet thread limit,fd-port-conntrack-worker-exhaustion,1,,Amazon
+https://aws.amazon.com/message/12721/,,danluu-post-mortems,AWS internal network,retry-storm-herd-cascade,0,,Amazon
+https://aws.amazon.com/message/65649/,,danluu-post-mortems,SimpleDB,dependency-upstream,0,,Amazon
+https://aws.amazon.com/message/17908/,,danluu-post-mortems,Direct Connect network OS,code-bug-regression-latent,0,,Amazon
+https://aws.amazon.com/message/061323/,,danluu-post-mortems,Lambda frontend fleet,code-bug-regression-latent,1,,Amazon
+https://aws.amazon.com/message/073024/,,danluu-post-mortems,Kinesis,retry-storm-herd-cascade,0,,Amazon
+https://status.circleci.com/incidents/dcqb3fykhgvg,,danluu-post-mortems,kube-proxy iptables upgrade,reload-restart-upgrade-deploy-lifecycle,1,,CircleCI
+https://web.archive.org/web/20211029020126/https://blog.cloudflare.com/incident-report-on-memory-leak-caused-by-cloudflare-parser-bug/,2021,danluu-post-mortems,CF edge parser memory leak (Cloudbleed),code-bug-regression-latent,1,,Cloudflare
+https://web.archive.org/web/20211006055154/https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/,2021,danluu-post-mortems,CF WAF,regex-catastrophic-backtracking,1,,Cloudflare
+https://blog.cloudflare.com/cloudflare-incident-on-august-21-2025/,2025,danluu-post-mortems,CF peering,capacity-saturation-nonmalicious,1,,Cloudflare
+https://blog.cloudflare.com/cloudflare-service-outage-june-12-2025/,2025,danluu-post-mortems,Workers KV,dependency-upstream,0,,Cloudflare
+https://blogs.dropbox.com/tech/2014/01/outage-post-mortem/,2014,danluu-post-mortems,dropbox,reload-restart-upgrade-deploy-lifecycle,0,,Dropbox
+https://blog.etsy.com/news/2012/demystifying-site-outages/,2012,danluu-post-mortems,etsy,code-bug-regression-latent,0,,Etsy
+https://gist.github.com/jomo/2bae3821acb433d0446d,,danluu-post-mortems,mail,code-bug-regression-latent,0,,Google
+https://status.cloud.google.com/incidents/X8SNkK2BPyCrc1sveeiu,,danluu-post-mortems,filestore,capacity-saturation-nonmalicious,0,,Google
+https://status.cloud.google.com/incidents/mREMLwZFe3FuLLn3zfTw,2022,danluu-post-mortems,BigQuery,code-bug-regression-latent,0,,Google
+https://status.cloud.google.com/incidents/ow5i3PPK96RduMcb1SsW,,danluu-post-mortems,GCP Service Control (null ptr + thundering herd),code-bug-regression-latent,1,,Google
+https://status.heroku.com/incidents/642?postmortem,,danluu-post-mortems,heroku router,operator-error-tooling,1,,Heroku
+https://engineering.heroku.com/blogs/2017-02-15-filesystem-corruption-on-heroku-dynos/,2017,danluu-post-mortems,heroku,reload-restart-upgrade-deploy-lifecycle,0,,Heroku
+https://status.heroku.com/incidents/1042,,danluu-post-mortems,heroku,dependency-upstream,0,,Heroku
+https://status.heroku.com/incidents/2451,,danluu-post-mortems,heroku,dependency-upstream,0,,Heroku
+https://launchdarkly.com/blog/what-happened-what-we-learned-and-how-were-improving/,,danluu-post-mortems,LaunchDarkly LB (retry storm),retry-storm-herd-cascade,1,,Launchdarkly
+https://web.archive.org/web/20211019062735/https://www.pagerduty.com/blog/outage-post-mortem-april-13-2013/,2021,danluu-post-mortems,pagerduty,network-routing-bgp,0,,PagerDuty
+https://status.pagerduty.com/incidents/70m30bh7qfmx,,danluu-post-mortems,sms,dependency-upstream,0,,PagerDuty
+https://blog.sentry.io/2015/07/23/transaction-id-wraparound-in-postgres,2015,danluu-post-mortems,postgres,dependency-upstream,0,,Sentry
+https://web.archive.org/web/20181208123409/https://slackhq.com/this-was-not-normal-really,2018,danluu-post-mortems,slack ws gateway reconnect storm,retry-storm-herd-cascade,1,,Slack
+https://slack.engineering/slacks-outage-on-january-4th-2021/,2021,danluu-post-mortems,aws gateways,network-routing-bgp,0,,Slack
+https://slack.engineering/slacks-incident-on-2-22-22/,,danluu-post-mortems,cache nodes,retry-storm-herd-cascade,0,,Slack
+https://labs.spotify.com/2013/06/04/incident-management-at-spotify/,2013,danluu-post-mortems,microservice no backoff,retry-storm-herd-cascade,0,,Spotify
+https://web.archive.org/web/20210818034431/https://medium.com/square-corner-blog/incident-summary-2017-03-16-2f65be39297,2021,danluu-post-mortems,auth svc,retry-storm-herd-cascade,0,,Square
+http://web.archive.org/web/20150404235419/https://stackstatus.net/post/115305251014/outage-postmortem-march-31-2015,2015,danluu-post-mortems,load balancers (feature enabled),capacity-saturation-nonmalicious,1,,Stack Exchange
+https://support.stripe.com/questions/outage-postmortem-2015-10-08-utc,2015,danluu-post-mortems,stripe,operator-error-tooling,0,,Stripe
+https://www.twilio.com/blog/2013/07/billing-incident-post-mortem-breakdown-analysis-and-root-cause.html,2013,danluu-post-mortems,redis,dependency-upstream,0,,Twilio
+https://deploy.live/blog/kubernetes-networking-problems-due-to-the-conntrack/,2020,k8s.af,HAProxy/conntrack (k8s),fd-port-conntrack-worker-exhaustion,1,,Kubernetes Networking Problems Due to the Conntrack - loveholidays - blog post 2020
+https://www.youtube.com/watch?v=FrQ8Lwm9_j8,2019,k8s.af,sidecars,retry-storm-herd-cascade,1,,10 Weird Ways to Blow Up Your Kubernetes - Airbnb - KubeCon NA 2019
+https://philpearl.github.io/post/k8s_ingress/,2019,k8s.af,ingress graceful shutdown 502 (endpoint removal race),reload-restart-upgrade-deploy-lifecycle,1,,Kubernetes’ dirty endpoint secret and Ingress - Ravelin - blog post 2019
+https://www.youtube.com/watch?v=MoIdU0J0f0E,2019,k8s.af,nginx-ingress conntrack,fd-port-conntrack-worker-exhaustion,1,,Moving to Kubernetes: the Bad and the Ugly - Xing - ContainerDays EU 2019
+https://www.youtube.com/watch?v=LpFApeaGv7A,2019,k8s.af,skipper-ingress OOMKill,memory-leak-oom,1,,"Kubernetes Failure Stories, or: How to Crash Your Cluster - Zalando - ContainerDays EU 201"
+https://www.youtube.com/watch?v=6sDTB4eV4F8,2019,k8s.af,skipper-ingress OOMKill+CPU throttling,memory-leak-oom,1,,Kubernetes Failure Stories - Zalando - KubeCon Barcelona 2019
+https://www.youtube.com/watch?v=8P7-C44Gjj8,2019,k8s.af,nginx ConfigMap change,config-push-validation,1,,Oh Sh\*t! The Config Changed! - Pusher - KubeCon Barcelona 2019
+https://medium.com/@SkyscannerEng/misunderstanding-the-behaviour-of-one-templating-line-and-the-pain-it-caused-our-k8s-clusters-a420f30a99f1,2019,k8s.af,haproxy-ingress template,config-push-validation,1,,Misunderstanding the behaviour of one templating line - Skyscanner - blog post 2019
+https://deploy.live/blog/the-shipwreck-of-gke-cluster-upgrade/,2019,k8s.af,GCP ingress GKE upgrade,reload-restart-upgrade-deploy-lifecycle,1,,The shipwreck of GKE Cluster Upgrade - loveholidays - blog post 2019
+https://www.slideshare.net/try_except_/lets-talk-about-failures-with-kubernetes-hamburg-meetup,2019,k8s.af,ELB dynamic IPs,dns-incl-elb-ip-caching,1,,Let's talk about Failures with Kubernetes - Zalando - Hamburg meetup 2019
+https://www.devops-hof.de/kubernetes-load-balancer-konfiguration-beware-when-draining-nodes/,2019,k8s.af,GCP LB externalTrafficPolicy drain,config-push-validation,1,,Kubernetes Load Balancer Configuration - Beware when draining nodes - DevOps Hof - blog po
+https://www.slideshare.net/try_except_/running-kubernetes-in-production-a-million-ways-to-crash-your-cluster-devopscon-munich-2018,2018,k8s.af,ingress,capacity-saturation-nonmalicious,1,,Running Kubernetes in Production: A Million Ways to Crash Your Cluster - Zalando - DevOpsC
+https://itnext.io/kubernetes-and-the-menace-elb-the-tale-of-an-outage-c00bef678fc0,2018,k8s.af,ELB dynamic IPs cached by kube,dns-incl-elb-ip-caching,1,,"Kubernetes and the Menace ELB, the tale of an outage - Turnitin - blog post 2018"
+https://www.youtube.com/watch?v=tA8Sr3Nsx1I,2018,k8s.af,haproxy too many open files,fd-port-conntrack-worker-exhaustion,1,,Moving the Entire Stack to K8s Within a Year – Lessons Learned - ThredUP - DevOpsStage 201
+https://www.youtube.com/watch?v=OUYTNywPk-s,2018,k8s.af,linkerd NPE,code-bug-regression-latent,1,,Anatomy of a Production Kubernetes Outage - Monzo - KubeCon Europe 2018
+https://www.youtube.com/watch?v=likHm-KHGWQ,2018,k8s.af,k8s TLS cert refresh,cert-key-expiry,0,,"101 Ways to ""Break and Recover"" Kubernetes Cluster - Oath/Yahoo - KubeCon Europe 2018"
+https://www.youtube.com/watch?v=xZO9nx6GBu0,2017,k8s.af,ELB dynamic IPs,dns-incl-elb-ip-caching,1,,101 Ways to Crash Your Cluster - Nordstrom - KubeCon North America 2017
+https://community.monzo.com/t/resolved-current-account-payments-may-fail-major-outage-27-10-2017/26296/95,2017,k8s.af,linkerd NPE,code-bug-regression-latent,1,,Major Outage: Current account payments may fail - Monzo - Monzo Community post 2017
+https://www.slideshare.net/RaffaeleDiFazio/fallacies-of-distributed-computing-with-kubernetes-on-aws,2017,k8s.af,ingress unhealthy nodes,healthcheck-depool-logic,1,,Fallacies of Distributed Computing with Kubernetes on AWS - Zalando - AWS User Group Hambu
+https://engineering.saltside.se/our-failure-migrating-to-kubernetes-25c28e6dd604,2017,k8s.af,ELB,dns-incl-elb-ip-caching,1,,Our Failure Migrating to Kubernetes - Saltside - blog post 2017
+https://status.salemove.com/incidents/xf6cr710yrzn,2017,k8s.af,ELB dynamic IP,dns-incl-elb-ip-caching,1,,SaleMove US System Issue - SaleMove - incident report 2017
+https://github.blog/news-insights/company-news/github-availability-report-august-2026/#August17,2026 August 17,github-availability-reports,datacenter load balancers (GitHub),capacity-saturation-nonmalicious,1,455,August 17 13:40 UTC (lasting 7 hours and 35 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-june-2026/#June08,2026 June 08,github-availability-reports,unauth web tier,abusive-traffic,1,126,June 08 06:30 UTC (lasting 2 hour and 06 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-june-2026/#June10,2026 June 10,github-availability-reports,api auth,config-push-validation,0,80,June 10 15:05 UTC (lasting 1 hour and 20 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-may-2026/#May06,2026 May 06,github-availability-reports,ingress path removed,config-push-validation,1,38,May 06 11:21 UTC (lasting 38 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-april-2026/#April27,2026 April 27,github-availability-reports,LB tier saturation (search),capacity-saturation-nonmalicious,1,375,April 27 16:31 UTC (lasting 6 hours and 15 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-march-2026/#March05,2026 March 05,github-availability-reports,redis config,config-push-validation,0,175,March 05 16:35 UTC (lasting 2 hours and 55 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-november-2025/#November18,2025 November 18,github-availability-reports,internal service TLS (git),cert-key-expiry,1,64,November 18 20:30 UTC (lasting 1 hour and 4 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-august-2025/#August12,2025 August 12,github-availability-reports,LB->search retry queues,retry-storm-herd-cascade,1,224,August 12 13:30 UTC (lasting 3 hours and 44 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-january-2025/#January13,2025 January 13,github-availability-reports,internal LB config,config-push-validation,1,49,January 13 23:35 UTC (lasting 49 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-december-2024/#December17,2024 December 17,github-availability-reports,web servers overloaded after maintenance,capacity-saturation-nonmalicious,1,17,December 17 14:17 UTC (lasting 17 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-april-2024/#April05,2024 April 05,github-availability-reports,DB load balancer change,config-push-validation,1,47,April 05 08:11 UTC (lasting 47 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-march-2024/#March15,2024 March 15,github-availability-reports,DB proxy incompat syntax,code-bug-regression-latent,1,42,March 15 19:42 UTC (lasting 42 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-january-2024/#January31,2024 January 31,github-availability-reports,LB IPv4-mapped IPv6 change at edge,config-push-validation,1,147,January 31 12:30 UTC (lasting 147 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-october-2023/#October25,2023 October 25,github-availability-reports,copilot nodes upgrade,reload-restart-upgrade-deploy-lifecycle,0,207,October 25 09:13 UTC (lasting 3 hours and 27 minutes cumulatively)
+https://github.blog/news-insights/company-news/github-availability-report-may-2023/#April28,2023 April 28,github-availability-reports,DB proxy connection pool exhaustion,fd-port-conntrack-worker-exhaustion,1,19,April 28 12:26 UTC (lasting 19 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-april-2023/#March29,2023 March 29,github-availability-reports,db,dependency-upstream,0,297,March 29 14:21 UTC (lasting 4 hour and 57 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-march-2023/#March02,2023 March 02,github-availability-reports,CDN unexpected cert (provider config),cert-key-expiry,1,138,March 02 23:37 UTC (lasting 2 hour and 18 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-june-2022/#June1,2022 June 1,github-availability-reports,DB proxy excessive load,capacity-saturation-nonmalicious,1,48,June 1 09:40 UTC (lasting 48 minutes)
+https://github.blog/news-insights/company-news/github-availability-report-may-2022/#May20,2022 May 20,github-availability-reports,db,dependency-upstream,0,49,May 20 09:44 UTC (lasting 49 minutes)
+https://github.blog/news-insights/company-news/availability-report-november-2020/#November2,2020 November 2,github-availability-reports,*.githubassets.com expiry,cert-key-expiry,1,32,November 2 12:00 UTC (lasting 32 minutes)
+https://blog.cloudflare.com/cname-a-record-order-dns-standards/,2026-01-14,cloudflare-blog-postmortems,1.1.1.1 record ordering,code-bug-regression-latent,1,,What came first: the CNAME or the A record?
+https://blog.cloudflare.com/rearchitecting-workers-kv-for-redundancy/,2025-08-08,cloudflare-blog-postmortems,Workers KV,dependency-upstream,0,,Redesigning Workers KV for increased availability and faster performance
+https://stspg.io/gb2sndlzy1rd,2026-10-05,statuspage:www.netlifystatus.com,netlify edge,unknown-cause-status-page,1,50.05,Error accessing Netlify-hosted sites
+https://stspg.io/lrltj7htm9wl,2026-09-23,statuspage:www.netlifystatus.com,netlify edge DNS resolution,dns-incl-elb-ip-caching,1,34.21666666666667,Elevated CDN Errors
+https://stspg.io/11w0spqncr4r,2026-09-16,statuspage:www.netlifystatus.com,image CDN,unknown-cause-status-page,1,50.63333333333333,Elevated Image CDN Errors
+https://stspg.io/jfh7xkzb7xcm,2026-09-04,statuspage:www.netlifystatus.com,HP edge FRA,capacity-saturation-nonmalicious,1,-27.616666666666667,Increased errors on High Performance Edge Network - FRA Region
+https://stspg.io/6p908gpcw05d,2026-08-31,statuspage:www.netlifystatus.com,CDN,unknown-cause-status-page,1,80.11666666666666,Increased Latency in IAD Region on Global Network
+https://stspg.io/4cqpxhqrfmdv,2026-05-15,statuspage:www.netlifystatus.com,CDN purge/primary LB,unknown-cause-status-page,1,155.51666666666668,Purges are Delayed on Primary Load Balancer
+https://stspg.io/23yztn7gpvz1,2026-05-10,statuspage:www.netlifystatus.com,edge DNS,dns-incl-elb-ip-caching,1,48.75,Increase in DNS Resolution Errors
+https://stspg.io/d6c8szv50fs3,2026-05-08,statuspage:www.netlifystatus.com,CDN (AWS upstream),dependency-upstream,1,66.75,Elevated Errors in IAD region
+https://stspg.io/l0d2xxdv9j5w,2026-04-26,statuspage:www.netlifystatus.com,image CDN,unknown-cause-status-page,1,-70.41666666666667,Increased errors on Image CDN
+https://stspg.io/fgts29hbk7fb,2026-04-24,statuspage:www.netlifystatus.com,image CDN,unknown-cause-status-page,1,46.95,Increased Errors on Image CDN
+https://status.fly.io/incidents/01M4PS8CZW07R4EMEJK22H23NY,2026-10-12,statuspage:status.fly.io,sprites.app hosting cert error,cert-key-expiry,1,-77.48333333333333,Sprite hosting outage
+https://stspg.io/kj9rd8tnd1wt,2026-10-03,statuspage:status.digitalocean.com,DO regional network,network-routing-bgp,0,0.0,A Network Disruption in BLR1 Region Impacted Multiple Products (Resolved)
+https://stspg.io/gdzqj0v18x0r,2026-08-19,statuspage:status.digitalocean.com,DO region,kernel-firmware-hardware-power,0,504.8,Major Service Interruption in MKC1
+https://stspg.io/045lx5xqfdns,2026-08-03,statuspage:status.digitalocean.com,mTLS verification failed (control panel),cert-key-expiry,0,241.63333333333333,Cloud Control Panel Access
+https://stspg.io/c9tgc3txntpg,2026-06-04,statuspage:status.digitalocean.com,DNS API,dependency-upstream,0,94.91666666666667,DNS API Service
+https://stspg.io/r6dtr7gc9pch,2026-05-14,statuspage:status.digitalocean.com,DO DNS/certs (Lets Encrypt),dependency-upstream,1,409.03333333333336,"DNS service, Certificates and Managed MongoDB"
+https://stspg.io/rw9m9n69q6tg,2026-05-08,statuspage:status.digitalocean.com,Lets Encrypt upstream outage (LB certs),dependency-upstream,1,68.36666666666666,Let's Encrypt Outage Affecting Certificate Issuance and Managed Databases Operations
+https://stspg.io/9nls6g9ln8p4,2026-08-24,statuspage:www.githubstatus.com,GitHub LB defect triggered by config change,code-bug-regression-latent,1,-3919.366666666667,Degraded Git Operations over SSH
+https://stspg.io/98zqb1k9jh0x,2026-08-18,statuspage:www.githubstatus.com,GitHub backend auth cert expired,cert-key-expiry,0,242.4,Intermittent failures in runner group and runner-related permissions pages
+https://stspg.io/q3ck88mqw08z,2026-08-18,statuspage:www.githubstatus.com,GitHub backend auth cert expired (dup),cert-key-expiry,0,46.71666666666667,Incident with Actions
+https://stspg.io/k50rhwbpqxwq,2026-07-02,statuspage:www.vercel-status.com,vercel CDN,unknown-cause-status-page,1,14.633333333333333,"Degraded performance on CDN, Dashboard, Functions in Washington, Cleveland (iad1, cle1)"
+https://stspg.io/9r5zm303307g,2026-07-02,statuspage:status.render.com,Lets Encrypt wildcard,dependency-upstream,1,50.483333333333334,Delayed wildcard issuance or renewal
+https://stspg.io/xmcw9ynhr8k5,2026-06-18,statuspage:status.render.com,Lets Encrypt wildcard,dependency-upstream,1,191.48333333333332,Slow/failing wildcard certificates related to LetsEncrypt incident
+https://stspg.io/5dxgkm5p8dc9,2026-05-08,statuspage:status.render.com,Lets Encrypt paused,dependency-upstream,1,44.4,Certificate issuance paused for Let's Encrypt
+https://stspg.io/d46hwvd9hl2k,2026-10-24,statuspage:status.bunny.net,bunny CDN,unknown-cause-status-page,1,117.85,Performance degradation in DE
+https://stspg.io/xz93h6b68ztt,2026-10-15,statuspage:status.bunny.net,bunny CDN provider,network-routing-bgp,1,630.85,Network issues in Frankfurt
+https://stspg.io/8hv11cx3g2ds,2026-10-05,statuspage:status.bunny.net,bunny log pipeline,capacity-saturation-nonmalicious,0,596.5333333333333,CDN Log forwarding performance degradation
+https://stspg.io/jbczc7smlc6q,2026-09-25,statuspage:status.bunny.net,bunny optimizer disk,kernel-firmware-hardware-power,0,145.28333333333333,Degraded Optimizer Response times
+https://stspg.io/4fl9s76kd7vp,2026-09-21,statuspage:status.bunny.net,bunny CDN sync,unknown-cause-status-page,1,199.25,CDN Synchronization Delays
+https://stspg.io/7bynx1wqwc98,2026-09-03,statuspage:status.bunny.net,bunny CDN fiber cut,network-routing-bgp,1,257.6166666666667,Network issues in Los Angeles
+https://stspg.io/7v31krkvk5cb,2026-06-18,statuspage:status.bunny.net,Lets Encrypt,dependency-upstream,1,759.15,Free certificate issuance with degraded performance
+https://stspg.io/0j4d1lbh5h72,2026-06-15,statuspage:status.bunny.net,bunny config propagation,unknown-cause-status-page,1,59.166666666666664,Synchronization and Configuration Propagation Delays
+https://stspg.io/3pnzszsh7d68,2026-06-03,statuspage:status.bunny.net,Lets Encrypt,dependency-upstream,1,215.8,Lets Encrypt SSL API Errors
+https://stspg.io/rnnlnpc3f9lp,2026-05-26,statuspage:status.bunny.net,bunny CDN config sync nodes,config-push-validation,1,1708.2666666666667,CDN configuration sync delays
+https://stspg.io/2dvsbxdh2t76,2026-04-30,statuspage:status.bunny.net,bunny magic containers 502,unknown-cause-status-page,1,37331.01666666667,Isolated 502s for Magic Containers
+https://stspg.io/vqgxt80nrzwg,2026-05-22,statuspage:status.bunny.net,bunny CDN accel DNS 502,dns-incl-elb-ip-caching,1,1593.0833333333333,CDN Acceleration 502s on DNS Records
+https://stspg.io/3d7dtwh26kfy,2026-05-21,statuspage:status.bunny.net,bunny DNS config,config-push-validation,1,101.31666666666666,DNS issues with bunny.net
+https://stspg.io/1jmp3n6qhf8z,2026-05-14,statuspage:status.bunny.net,bunny SG,network-routing-bgp,1,77.66666666666667,Degraded Performance in Singapore
+https://stspg.io/rs59nm0kxgz3,2026-03-30,statuspage:status.bunny.net,bunny stats,unknown-cause-status-page,0,766.2,Increased Response Times for Statistics Reporting
+https://stspg.io/gm14d8h7rdwn,2026-03-26,statuspage:status.bunny.net,bunny stats,unknown-cause-status-page,0,185.96666666666667,Increased Response Times for Statistics Reporting
+https://stspg.io/kyqthqw57rr9,2026-03-03,statuspage:status.bunny.net,bunny logs,capacity-saturation-nonmalicious,0,1700.45,CDN Log Delivery Delay
+https://stspg.io/mwfzfzbbxq6m,2026-02-20,statuspage:status.bunny.net,bunny storage disk,kernel-firmware-hardware-power,1,3057.516666666667,Disk Failure in Frankfurt
+https://stspg.io/99hb2vqsc7j8,2026-02-06,statuspage:status.bunny.net,bunny config updates,unknown-cause-status-page,1,245.25,Delayed Zone Configuration Updates
+https://stspg.io/c84n75lml4gy,2026-02-04,statuspage:status.bunny.net,bunny logs,capacity-saturation-nonmalicious,0,99.36666666666666,CDN Log Delivery Delay
+https://stspg.io/89np1cvsjmwt,2026-01-28,statuspage:status.bunny.net,bunny upstream network,network-routing-bgp,1,55.28333333333333,"Stream API/Upload, Storage and CDN Partial Outage"
+https://stspg.io/pg4k0r67ch5k,2026-01-15,statuspage:status.bunny.net,bunny SG,network-routing-bgp,1,30.566666666666666,Singapore CDN & Storage Network Outage
+https://github.blog/news-insights/the-library/dns-outage-post-mortem/,,danluu-post-mortems,authoritative nameserver puppet restart,dns-incl-elb-ip-caching,0,,GitHub
+https://web.archive.org/web/20220427012208/https://lkml.org/lkml/2009/1/2/373,2009,danluu-post-mortems,linux kernel leap-second deadlock (xtime_lock/printk),clock-leapsecond-time,1,,Linux
+https://web.archive.org/web/20220320100036/https://lkml.org/lkml/2012/7/1/203,2012,danluu-post-mortems,linux kernel leap-second 2012 hrtimer spin (web services down),clock-leapsecond-time,1,,Linux
+https://github.blog/news-insights/company-news/february-service-disruptions-post-incident-analysis/,,danluu-post-mortems,ProxySQL (systemd LimitNOFILE capped),fd-port-conntrack-worker-exhaustion,1,,GitHub
+https://github.blog/2022-03-23-an-update-on-recent-service-disruptions/,2022,danluu-post-mortems,ProxySQL connection exhaustion,fd-port-conntrack-worker-exhaustion,1,,GitHub
+https://status.discordapp.com/incidents/dj3l6lw926kl,,danluu-post-mortems,discord frontend thundering herd/OOM,retry-storm-herd-cascade,1,,Discord
+https://github.blog/news-insights/the-library/denial-of-service-attacks/,,danluu-post-mortems,github SSL connection exhaustion attack,abusive-traffic,1,,GitHub
+http://web.archive.org/web/20160720200842/https://stackstatus.net/post/147710624694/outage-postmortem-july-20-2016,2016,danluu-post-mortems,stack exchange web tier regex backtracking,regex-catastrophic-backtracking,1,,Stack Exchange
+https://mail.tarsnap.com/tarsnap-announce/msg00035.html,,danluu-post-mortems,tarsnap log fill,disk-log-fill,0,,Tarsnap
+https://web.archive.org/web/20251230063242/https://blog.skyliner.io/post-mortem-outages-on-1-19-17-and-1-23-17-3f65cc6f693e,2025,danluu-post-mortems,skyliner third-party lib,memory-leak-oom,0,,Skyliner
+https://status.ftrack.com/incidents/pmmdkj2f18ls,2020-05-30,vendor-status-postmortem,TLS chain served by API/hosted sites (AddTrust cross-sign root expiry),cert-key-expiry,1,282,fetched 2026-10-25: 10:48-~15:30 UTC; SSL bundle from 2020-02-13 contained soon-expiring r
+https://pingoru.io/providers/sapling/incidents/382955,2026-01-25,status-aggregator,Linkerd mesh proxies (trust anchor expiry),cert-key-expiry,1,180,"search snippet only; root cause attributed to expired trust anchors; grade C, not fetched"
+https://www.fastly.com/blog/summary-of-june-8-outage,2021-06-08,vendor-postmortem,Fastly edge (customer config triggered latent bug deployed 05-12),code-bug-regression-latent,1,177,fetched 2026-10-25: 85% of network errored; detection 1 min; mitigated 168 min; ALSO a con

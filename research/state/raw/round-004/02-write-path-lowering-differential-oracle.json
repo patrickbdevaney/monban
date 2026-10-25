@@ -1,0 +1,333 @@
+{
+ "nodes": [
+  {
+   "id": "wpo-inv-write-subset",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "invariant",
+   "title": "L5: INV-WRITE-SUBSET (W1-W7) pre/post-image invariant for write-path lowering, Lean-ready",
+   "summary": "Delta(D,D') over whole table: every changed key's pre-image has tenant t and (Update/Delete) satisfies Pred; every post-image has tenant t; arbiter key for upsert/merge is (t,key); RETURNING subset; transitive closure over triggers/CTEs/FK actions; uniform failure for foreign keys (existence oracle); Redis reply subset. Text at /home/patrickd/aegis/research/state/raw/round-004/02-work/INV_WRITE_SUBSET.md; oracle check() implements W1/W2/W4.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "cross_tenant violations map to W1/W2 tenant clause; in_tenant_outside_pred to W1 Pred clause",
+   "overclaim_risk": "invariant checked on 300 random cases/variant x 3 engines, not proven; reference Pred semantics is the strict r3 one",
+   "underclaim_risk": "W6 existence-oracle closure is stricter than most gates need"
+  },
+  {
+   "id": "wpo-l5-write-oracle-harness",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "test-harness",
+   "title": "L5: write-path differential oracle (wporacle.py, wp_run*.py, rd_run.py) + seed corpus with leak counts",
+   "summary": "Whole-table pre/post image diff per case in a rolled-back txn; engines sqlite 3.45.3, postgres 17.11 + 19rc1, valkey 9.1.2, redis 8.10.2; positive controls (naive lowerings) leak, negative controls (hardened) 0; native controls RLS / sqlite authorizer / Redis ACL. Files in /home/patrickd/aegis/research/state/raw/round-004/02-work/ (results wp_results*.json, rd_results_*.json, repro.sql).",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "N=300 per variant seed 20261025, 60 rows, 8 tenants incl ACME/Acme/'acme '/a%; numbers recomputed (executed). extends irl-l5-differential-oracle-harness",
+   "overclaim_risk": "random corpus; schema/trigger shapes chosen by me; 100-300 cases small",
+   "underclaim_risk": "leak counts are lower bounds"
+  },
+  {
+   "id": "wpo-upsert-keyspace-capture",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Upsert/REPLACE/MERGE on a globally unique key mutates the other tenant's row: 261/300 (PG 17.11, 19rc1, SQLite 3.45.3)",
+   "summary": "ON CONFLICT (id) DO UPDATE (even SET x only), INSERT OR REPLACE / REPLACE INTO, MERGE ON t.id=s.id all leak 261/300 with global PK; UPDATE OR REPLACE SET id=collide 112/300 (SQLite). Hardened: composite PK (tenant,id) 0, DO UPDATE .. WHERE t.tenant=excluded.tenant 0 (silent no-op), MERGE ON also tenant 0 leaks but 261 unique-violation errors (existence oracle, bytebase footgun #12). MySQL docs: ON DUPLICATE KEY updates one row when several unique indexes match.",
+   "urls": [
+    "https://www.sqlite.org/lang_upsert.html",
+    "https://www.sqlite.org/lang_conflict.html",
+    "https://www.postgresql.org/docs/current/sql-merge.html",
+    "https://dev.mysql.com/doc/refman/8.4/en/insert-on-duplicate.html",
+    "https://code.djangoproject.com/ticket/34225"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "repro in repro.sql; ops op_upsert_global_all/x/guarded/composite in wp_run.py",
+   "overclaim_risk": "real schemas with composite PK are immune; risk is schema-dependent",
+   "underclaim_risk": "MySQL/MariaDB/CockroachDB not executed (docs only)"
+  },
+  {
+   "id": "wpo-set-tenant-row-movement",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "UPDATE that sets the tenant column: 113/300 sqlite, 110/300 PG leak; hardened SET tenant=handle 0; RLS good policy blocks 110/110",
+   "summary": "Row leaves scope (post-image W2). Native: RLS WITH CHECK, sqlite authorizer deny SQLITE_UPDATE t.tenant (blocks all 300, static). Partitioned (hash) parent row movement under RLS still blocked (ExecCrossPartitionUpdate deletes then reinserts via root, re-checking).",
+   "urls": [
+    "https://raw.githubusercontent.com/postgres/postgres/master/src/backend/executor/nodeModifyTable.c"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "wpo-rls-with-check-masked-by-select-policy",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "RLS WITH CHECK(true) / UPDATE USING(true) misconfig is masked when WHERE/RETURNING references a column; `UPDATE t SET tenant=$1` or WHERE true leaks 100/100 (17.11 and 19rc1)",
+   "summary": "PG applies SELECT policy to the new row when the UPDATE reads columns, acting as implicit WITH CHECK; policy-free statements (no column refs) lose that. Any lowering that always emits `tenant = $1` conjunct hides the misconfig in tests. Good policy (USING=WITH CHECK) 0 leaks; split policies without WITH CHECK default to USING 0 leaks; owner without FORCE 110/300 leak, FORCE 0.",
+   "urls": [
+    "https://www.postgresql.org/docs/current/sql-createpolicy.html",
+    "https://www.postgresql.org/docs/current/ddl-rowsecurity.html",
+    "https://www.bytebase.com/blog/postgres-row-level-security-footguns/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "dbg2.sql, wp_results3.json; docs say 'check new row [a]' only if read access required; consistent but easy to miss",
+   "overclaim_risk": "misconfig scenario, not an engine bug",
+   "underclaim_risk": "CI must test RLS policies with column-free writes"
+  },
+  {
+   "id": "wpo-pg-onconflict-where-peek",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "ON CONFLICT DO UPDATE ... WHERE f(t.col) runs a non-leakproof function on another tenant's row before RLS USING errors (17.11 and 19rc1 executed); DO SELECT via views leaks rows (19rc1)",
+   "summary": "Executed: peek() NOTICE 'saw secretB' for tenant a under good RLS in ExecOnConflictUpdate (master source: lock row, visibility, evaluate ON CONFLICT WHERE, then WCO_RLS_CONFLICT_CHECK). Plain UPDATE/DELETE/MERGE WHERE peek see only own rows. Contradicts docs claim that policy exprs run before user quals except leakproof. pgsql-hackers 2026-09-25 thread (shihao zhong; Viktor Holmberg reports same WHERE-bypass for PG18) open; PG19rc1 DO SELECT on security_barrier view returned the hidden row (executed), plain view too (Kirill Reshke); RLS itself safe for DO SELECT (ERROR).",
+   "urls": [
+    "https://www.postgresql.org/message-id/14794b1e-fa38-4aaf-b9b4-22f9ef5e20d1%40Spark",
+    "https://www.postgresql.org/message-id/CALdSSPgG8V8ETKLyYzugqvpELYsBsZxK02Ur-rYDDMvNRPK%2BXQ%40mail.gmail.com",
+    "https://neon.com/postgresql/postgresql-19/on-conflict-do-select"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "fix state on main: not confirmed; no CVE found; peek.sql, dosel.sql",
+   "overclaim_risk": "no CVE assigned; function-in-WHERE requires attacker-supplied SQL function, not reachable if IR forbids user expressions",
+   "underclaim_risk": "a gate allowing arbitrary expressions in upsert WHERE is read-leaking"
+  },
+  {
+   "id": "wpo-trigger-cte-merge-transitive",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Transitive writes: trigger propagate-by-grp 127-129/300, data-modifying CTE 110-127/300, MERGE NOT MATCHED BY SOURCE DELETE 300/300; RLS invoker blocks, SECURITY DEFINER trigger 127/300",
+   "summary": "Tenant-scoped trigger/CTE: 0 cross-tenant but 78-79/300 in-tenant-outside-Pred, caught only by the W1 Pred clause. Generated columns cannot read/write other rows (PG: 'cannot use subquery in column generation expression') negative result. PG19rc1 adds ON CONFLICT DO SELECT (17: syntax error). BEFORE trigger rewriting NEW.tenant under RLS: cross 0.",
+   "urls": [
+    "https://www.postgresql.org/docs/current/sql-merge.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "triggers are schema-side, not IR-emitted; relevant to adapter schema vetting",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "wpo-sqlite-replace-authorizer-gap",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "SQLite: authorizer deny SQLITE_DELETE does not stop REPLACE's implicit deletes (261/300 leaks; control: plain DELETE denied); update_hook not called, change counter not incremented",
+   "summary": "Authorizer is prepare-time only per docs; REPLACE deletes pre-existing rows, delete triggers only with recursive_triggers (default off). Authorizer deny UPDATE t.x does block DO UPDATE but statically (all 300 incl legit). Hardening: refuse REPLACE/OR REPLACE/UPDATE OR REPLACE in adapter; composite PK; also note SQLite has no RLS, so PEP in server is the only gate.",
+   "urls": [
+    "https://www.sqlite.org/c3ref/set_authorizer.html",
+    "https://www.sqlite.org/lang_conflict.html",
+    "https://www.sqlite.org/pragma.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "python sqlite3 + SQLite 3.45.3",
+   "overclaim_risk": "only 3.45.3 tested",
+   "underclaim_risk": "docs say behavior may change in future release"
+  },
+  {
+   "id": "wpo-redis-write-path-acl",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "failure",
+   "title": "Redis/Valkey write path: hex-id prefix + ACL ~t:{A}:* gives 0/29 mutation leaks; raw ids with glob metachars give 13-15/29 (a*, a?), 5/29 (a[b-c], backslash); +@all FLUSHDB/SWAPDB leak; SCAN/RANDOMKEY leak foreign key names",
+   "summary": "valkey 9.1.2 (redis_version 7.2.4 compat) and redis 8.10.2 identical. ACL checks both keys of RENAME/COPY/SMOVE/LMOVE (NOPERM); SORT BY/GET denied for key-restricted users; EVAL undeclared key blocked by script ACL; MOVE own key to db1 allowed. Docs now state key patterns do not limit FLUSHALL/FLUSHDB/SWAPDB. Read-leak: SCAN without MATCH returns foreign key names on both; RANDOMKEY sometimes; KEYS * unless denied.",
+   "urls": [
+    "https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/",
+    "https://valkey.io/topics/acl/",
+    "https://github.com/redis/redis/pull/10122",
+    "https://redis.io/docs/latest/develop/reference/key-specs/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.88,
+   "load_bearing": true,
+   "specifics": "rd_run.py 29 commands x 10 ACL configs; rd_results_55513/55514.json",
+   "overclaim_risk": "command corpus 29; modules, cluster, functions untested",
+   "underclaim_risk": "SCAN key-name leak is by design (side channel ignored per docs)"
+  },
+  {
+   "id": "wpo-l5-write-denylist",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "ci-gate",
+   "title": "L5: write-path unsound-construct denylist + mandated hardened forms",
+   "summary": "Never lower to: (1) INSERT..ON CONFLICT/REPLACE/MERGE on a key lacking tenant in arbiter; mandated: composite (tenant,id) or DO UPDATE WHERE t.tenant=excluded.tenant, no user expr in that WHERE; (2) INSERT OR REPLACE/REPLACE INTO/UPDATE OR REPLACE (SQLite) and ON DUPLICATE KEY on multi-unique tables; (3) SET lists containing tenant col or PK; (4) data-modifying CTEs, MERGE NOT MATCHED BY SOURCE, ON CONFLICT DO SELECT; (5) UPDATE/DELETE without literal tenant conjunct relying on RLS alone; (6) schemas with non tenant-scoped or SECURITY DEFINER triggers/FK actions; (7) RLS policies lacking explicit WITH CHECK or without FORCE for owner roles; CI test must run column-free writes; (8) Redis: raw tenant ids in key/ACL patterns, +@all without -flushall -flushdb -swapdb -keys -scan-without-match, RENAME/COPY/MOVE cross-prefix, EVAL/FUNCTION/SORT; (9) uniform error for unique violation on foreign key.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.92,
+   "load_bearing": true,
+   "specifics": "extends irl-l5-unsound-lowering-denylist",
+   "overclaim_risk": "denylist from tested engines/versions",
+   "underclaim_risk": "MySQL/Cockroach/Mongo write paths not executed"
+  },
+  {
+   "id": "wpo-nativecontrol-matrix",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "result",
+   "title": "Native enforcement catch matrix: PG RLS (good ALL policy) catches every cross-tenant write case; sqlite authorizer partial; Redis ACL catches key-bearing commands but not keyspace-wide ones",
+   "summary": "RLS good: 0 leaks over U2, UP1/2, C1/C2, M1, P2, T1 invoker; fails: owner no FORCE (110/300), SECURITY DEFINER trigger (127/300), CHECK(true)+column-free write (100/100), ON CONFLICT WHERE peek. Answers R-DB-7: write path is closed for PG iff composite arbiter + RLS FORCE + explicit WITH CHECK + vetted triggers; open for SQLite without custom PEP.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "wpo-l5-write-oracle-harness",
+   "dst": "irl-l5-differential-oracle-harness",
+   "type": "extends",
+   "note": "read->write scope"
+  },
+  {
+   "src": "wpo-l5-write-denylist",
+   "dst": "irl-l5-unsound-lowering-denylist",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wpo-inv-write-subset",
+   "dst": "irl-l5-backend-refinement-contract",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "wpo-inv-write-subset",
+   "dst": "dpf-l5-op-capability-ir",
+   "type": "refines",
+   "note": ""
+  },
+  {
+   "src": "wpo-redis-write-path-acl",
+   "dst": "irl-redis-glob-key-prefix-cex",
+   "type": "extends",
+   "note": "write path"
+  },
+  {
+   "src": "wpo-redis-write-path-acl",
+   "dst": "dpf-redis-valkey",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wpo-set-tenant-row-movement",
+   "dst": "sdg-pgdoc-rls-caveats",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wpo-rls-with-check-masked-by-select-policy",
+   "dst": "sdg-rls-misconfig-empirical",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wpo-pg-onconflict-where-peek",
+   "dst": "sdg-pgdoc-rls-caveats",
+   "type": "conflicts_with",
+   "note": "docs claim policy before user quals"
+  },
+  {
+   "src": "wpo-pg-onconflict-where-peek",
+   "dst": "v2.crdb-rls-on-conflict-gap",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "wpo-sqlite-replace-authorizer-gap",
+   "dst": "irl-sqlite-affinity-collation-cex",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wpo-upsert-keyspace-capture",
+   "dst": "wpo-l5-write-denylist",
+   "type": "mitigates",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Fix state of ON CONFLICT WHERE-qual-before-RLS and DO SELECT view leak in PG19 final / master (commit or 'feature not supported' rejection)?",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.5,
+   "reason": "decides whether adapter must forbid user exprs in upsert WHERE on 19"
+  },
+  {
+   "question": "Execute the same write oracle on MySQL 8.4/MariaDB (ON DUPLICATE KEY multi-unique, REPLACE) and CockroachDB RLS ON CONFLICT",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.6,
+   "reason": "third relational family; docs only so far"
+  },
+  {
+   "question": "MongoDB/DynamoDB conditional-write semantics (update filter + upsert:true, ConditionExpression) differential write oracle",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.55,
+   "reason": "document/KV families unexecuted for writes"
+  },
+  {
+   "question": "Lean: formalise W1-W6 and prove hardened lowerings (composite arbiter, SET tenant=handle) sound against abstract engine model",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.5,
+   "reason": "closes R-DB-2 refinement for writes"
+  },
+  {
+   "question": "Concurrency write-skew: READ COMMITTED EvalPlanQual re-check under RLS with concurrent tenant-column updates",
+   "layer": "L4",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.45,
+   "reason": "oracle is single-session"
+  }
+ ],
+ "protocol_implications": [
+  "Every write lowering must be diffed on the whole table, not only RETURNING",
+  "CI: test RLS policies with column-free writes and as non-owner and with FORCE",
+  "Adapter must refuse REPLACE-family and unscoped-arbiter upserts; tenant ids in Redis must be hex"
+ ],
+ "self_improvement": [
+  "oracle.py strify/ref reuse worked; add MySQL container (pull size >50MB limits) next",
+  "Progress file did not exist after crash; checkpoint earlier"
+ ],
+ "notes": [
+  "Sources fetched/read: ~30 (PG createpolicy, ddl-rowsecurity, merge docs, security page, CVE-2023-39418, nodeModifyTable.c, pgsql-hackers x2, neon DO SELECT, SQLite lang_conflict/upsert/set_authorizer/pragma, MySQL insert-on-duplicate, Redis ACL+key-specs+PR10122, Valkey ACL + advisories, Hasura, bytebase, Django 34225, SQLancer++ arXiv 2503.21424, searches). Queries logged in _queries.log (~15). Attacker-stance executed cases >30%.",
+  "Contrarian: RLS is not sufficient AND not always masked; the lowering's own tenant conjunct masks RLS misconfig in tests.",
+  "Hasura doc fetched says nothing on post-update check default; MySQL multi-tenant paragraph in fetch was model inference, only doc quote used."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-004/02-write-path-lowering-differential-oracle.json"
+}

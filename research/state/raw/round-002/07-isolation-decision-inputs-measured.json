@@ -1,0 +1,313 @@
+{
+ "nodes": [
+  {
+   "id": "wasmtime-advisory-share-by-config",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "analysis",
+   "title": "Wasmtime advisories classified by feature precondition: share hitting a minimal config",
+   "summary": "Snapshot gh api 2026-10-25: 81 published GHSAs (81 unique), 65 in 2024-2026, 57 in 2026. Own classification by required feature preconditions. M0 (x86_64, Cranelift, core wasm only, no component/WASI/async/GC/memory64/threads): 6/65 (9%) guest-triggerable, of which exactly 1 exploitable sandbox escape (GHSA-897f-g5gm-fmxm, SSA bit-packing, default config any arch, fixed 36.0.19 / v43). M1 (+sync P2 components + non-fs WASI + wasi-http): 25/65 (38%); adds 2 string-transcoding OOB (GHSA-394w, GHSA-hx6p) that abort/DoS under default 4GiB reservation. M2 (+wasi-fs): 31/65 (48%), adds 2026 cap-std/fs escapes. Disabling cm-async/WASIp3 removes 14/65, gc+exceptions 6, winch 4, aarch64-only 2, memory64 1, wasi-fs 7, embedder-only 5.",
+   "specifics": "Files: 07-data/adv.json, classify.py, classified.json. Hand-tagged from advisory text, tags are 'required preconditions'; embedder-only advisories excluded from guest-triggerable counts. Counter-evidence: cm-async and gc are Tier 1 and wasm_gc defaults true in Config, so M0 requires explicit disabling. 'Minimal config' shrinks but never zeroes: the one default-config critical hit M0.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories",
+    "https://docs.wasmtime.dev/stability-tiers.html",
+    "https://docs.rs/wasmtime/48.0.7/wasmtime/struct.Config.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Classification is mine from prose; tags may be wrong for 3-5 advisories (+-8pp). n=65 small; share of advisories is not share of exploitable risk, and unknown future bugs correlate with code volume in Cranelift, which M0 cannot shed.",
+   "underclaim_risk": "Shares are of published advisories only; unreported/silently fixed bugs and the April 2026 LLM audit sprint mean the true M0 bug rate is probably higher than 6/65 suggests."
+  },
+  {
+   "id": "wasmtime-minimal-config-pin",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "config",
+   "title": "Minimal Wasmtime Config pin: flags and residual advisory share",
+   "summary": "Pin wasmtime >= 43.0.x (or 36.0.19+ on the 36 LTS line), default-features=false, features cranelift, pooling-allocator, runtime, std, plus component-model only if P2 components needed; NO component-model-async, gc, threads, winch, profiling, wasi-fs preopens. Config: strategy(Cranelift); wasm_memory64(false); wasm_gc(false); wasm_threads(false); wasm_exceptions off; wasm_component_model_async(false); signals_based_traps left TRUE (disabling also disables Spectre mitigations and re-opens GHSA-jhxm); keep default memory_reservation (4GiB) and memory_guard_size (32MiB 64-bit default; do NOT set guard 0); epoch_interruption(true) with ResourceLimiter on memory/tables since bulk memory ops check epoch only once; fresh Store per request, drop on any trap; pooling with sizes computed per component (a P2 component consumed >1 core instance each: pool of 64 failed at 60 components, so size total_core_instances ~ 8x concurrent). Residual share on the 65-advisory base: M0 9% (1 sandbox escape, fixed), M1 38% (adds transcoding OOB/DoS and wasi-http), vs 100% unfiltered. Acceptance gate: cargo deny + CI test that asserts Config fields and fails on any added feature; patch SLO <72h because the one M0 escape was in default Cranelift.",
+   "specifics": "Defaults observed in docs.rs 48.0.7: memory_reservation 4GiB, guard 32MiB, memory_may_move true, wasm_gc true, wasm_memory64 false, wasm_threads follows crate feature (default on), pooling defaults 1000 slots each, max_memory_size 4GiB, decommit_batch_size 1, MPK off, ~4GiB VA/slot (cap ~32k slots). My bench used =48.0.7 with features cranelift,pooling-allocator,component-model,runtime,std,parallel-compilation,memory-protection-keys.",
+   "urls": [
+    "https://docs.rs/wasmtime/48.0.7/wasmtime/struct.Config.html",
+    "https://docs.rs/wasmtime/48.0.7/wasmtime/struct.PoolingAllocationConfig.html",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-897f-g5gm-fmxm",
+    "https://security.julialang.org/advisories/JLSEC-2026-1360/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Does not prove safety: GHSA-897f shows default Cranelift on any arch can be escaped by a crafted large function; pin is necessary not sufficient, and still needs an OS sandbox around it. Version numbers drift (v43/48 current at snapshot).",
+   "underclaim_risk": "Share numbers are conservative-to-wrong in both directions; M1 38% is an upper bound because many of those need rarely used wasi-http paths."
+  },
+  {
+   "id": "skeptic-small-reservation-pooling-recipe",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "negative-result",
+   "title": "Skeptic: 'hardened pooling with small max_memory_size / reduced reservation' re-opens advisories",
+   "summary": "The common hardening advice to shrink per-slot virtual reservation and guards for density can re-enable GHSA-6wgr (pooling leak needs guard_size=0 and reservation == max_memory_size < 4GiB) and widens impact of GHSA-394w string-transcoding OOB (reduced reservation + no guards => host memory corruption rather than abort). Also CVE-2026-34971 (GHSA-jhxm-h53p-jm7w, aarch64 Cranelift, critical, fixed 36.0.7/42.0.2/43.0.1) needs memory64 AND (spectre mitigations off OR signals_based_traps off). Hardened != dense: keep default guard/reservation, pay the ~4GiB VA/slot (cap ~32k slots) and use MPK only for density.",
+   "specifics": "Source: advisory texts in adv.json; wasmtime pooling docs say steady-state no-VM-tricks config disables guard and memory_init_cow as a perf option without discussing security.",
+   "urls": [
+    "https://security.julialang.org/advisories/JLSEC-2026-1360/",
+    "https://docs.rs/wasmtime/48.0.7/wasmtime/struct.PoolingAllocationConfig.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Each preconditioned bug is only reachable with unusual config; the point is the interaction, not that default is broken.",
+   "underclaim_risk": "Might also interact with other bugs not yet classified."
+  },
+  {
+   "id": "canonical-abi-cost-measured",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "benchmark",
+   "title": "LOCAL: component canonical-ABI cost per call and per KB, serde_json handler, wasmtime 48.0.7 vs native Rust",
+   "summary": "i9-14900HX, pinned core, rustc 1.98, Cranelift, epoch on, parse+double qty+reserialize. Native: 105B 0.38us; 756B 3.3us; 12.2KB 41.7us; 198KB 860us. Core wasm incl host alloc/copy: 1.06 / 6.1 / 84 / 1310 us. Component handle-bytes: 1.24 / 6.78 / 90.8 / 1397 us; handle-str within 1%. Call floor: core noop 11 ns, component noop 97 ns => ~85 ns canonical-ABI fixed cost; marginal component vs core = +0.2us fixed, ~ +0.03-0.4 ns/B (copy+utf8 validation), i.e. 2-7% of core cost. Dominant overhead is wasm vs native serde (about 2.0x at all sizes, ~6.6 vs 4.3 ns/B), not ABI. Fresh Store+instantiate per request (pooling, WASI p2 linked): setup p50 4.2us/p99 8.6us, first call 11.7us, total with drop p50 20.3us/p99 30us, RSS 52KB per live instance after one request.",
+   "specifics": "Code 07-bench/{host,logic,guest-comp,guest-core}; outputs run5.txt. Pitfalls found: pooling total_core_instances must exceed component count x core-instances-per-component (64 failed at 60); ulimit -v breaks pooling (needs ~258GB VA for 64 slots); missing epoch deadline on new Stores traps immediately.",
+   "urls": [
+    "file:///home/patrickd/aegis/research/state/raw/round-002/07-bench/run5.txt",
+    "https://bytecodealliance.org/articles/the-road-to-component-model-1-0"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Single machine, single workload (JSON-heavy, large per-byte compute) so ABI share is small; with trivial handlers ABI + instantiate (about 20us) dominates. Linking cost of async-enabled components (roadmap says ~3.5x on sync cross-component calls) not measured since async is off.",
+   "underclaim_risk": "Per-KB ABI cost may be even lower than measured; resolution is limited by compute noise."
+  },
+  {
+   "id": "zygote-sandbox-recipe-measured",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "recipe",
+   "title": "Zygote sandbox recipe with measured latency: fork from pre-warmed zygote + Landlock + seccomp-bpf",
+   "summary": "Recipe: zygote process loads engine + precompiled component, sets no_new_privs, opens listening/log fds, applies Landlock ruleset (1 rule) and seccomp allowlist BEFORE any request, then per request fork(); child handles one request and _exit. If per-request policy differs, apply Landlock (12us) in child; avoid compiling seccomp BPF in child (~120-130us). Measured (kernel 6.17.0-14, Landlock on): fork latency by zygote RSS 8MB p50 124us (p99 400), 64MB 677us, 256MB 1466us (~70us fixed + ~5.5-10us/MB); fork+exit+wait 400us / 1.7ms / 3.7ms; vfork baseline 17us. seccomp install of 60-syscall allowlist p50 123-131us; Landlock create+rule+restrict p50 11-13us (p99 17-27). CoW: child dirtying 4MB inherited heap adds ~2.0ms (~2us/page), 256KB adds ~0.18ms. Idle sibling PSS = zygote_heap/(n+1)+~60KB (187KB/child at 8MB, 1.3MB at 64MB, 5.2MB at 256MB for 50 children); Private_Dirty 16.4MB after touching 16MB. Comparison: in-process pooled instance 20us / 52KB, i.e. fork is 6x (8MB zygote) to 80x (256MB) more latency and 3.6x-100x more memory than a Wasmtime Store; hence use process sandbox per worker/tenant-tier (long-lived), not per request, unless request is untrusted-native code.",
+   "specifics": "Code 07-bench/sb/sb.c; outputs sb8.txt sb64.txt sb256.txt. Landlock must be applied before seccomp (seccomp allowlist otherwise kills landlock syscalls). Landlock ABI up to 11 per docs: TSYNC (ABI 8) for threaded servers; scoped signal/abstract-socket (ABI 6); 16 stacked layers max; stat/chdir/chmod not restrictable.",
+   "urls": [
+    "https://docs.kernel.org/userspace-api/landlock.html",
+    "https://www.kernel.org/doc/html/latest/userspace-api/seccomp_filter.html",
+    "https://chromium.googlesource.com/chromium/src/+/cff8ad5/docs/linux/zygote.md",
+    "https://arxiv.org/abs/2605.26298"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Zygote here is a bare C process with dirtied anonymous heap; a real zygote with mapped wasmtime code (file-backed, shared) forks cheaper per MB than anon heap; THP/hugepages and 4K-page assumptions affect numbers. Not tested under memory pressure or with many threads (fork in multithreaded process is unsafe).",
+   "underclaim_risk": "fork cost scales with mapped anon RSS only, so a lean zygote (<10MB private) is ~100us, close to the best a process can get; vfork+exec (17us) path not evaluated with exec cost."
+  },
+  {
+   "id": "seccomp-per-syscall-overhead-measured",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "benchmark",
+   "title": "LOCAL: seccomp-bpf per-syscall overhead: cacheable allowlist ~+20-30 ns, arg-checks ~1 ns/insn",
+   "summary": "getppid loop, kernel 6.17: unfiltered 84-116 ns (varies by run; compare within a run). Cacheable allowlist (syscall-number-only) of 16/60/200 rules: +18 to +30 ns (~+20-25%) independent of list length, confirming 5.11 constant-action bitmap cache. Non-cacheable (filter loads args) worst-case position: 60 rules +41 ns, 200 rules +108 ns, 500 rules +290 to +450 ns, about 0.5-0.8 ns per BPF instruction. Filter stacking adds evaluation time (kernel doc). Rule: keep hot syscalls (read/write/futex/clock_gettime/epoll) arg-free to stay on the bitmap; put arg checks only on cold syscalls (openat, mmap flags, clone3).",
+   "specifics": "Code 07-bench/sb/sb.c. Single syscall type, CPU frequency noise between runs (baseline 84 vs 116 ns), n=3 rule config anomaly (135 vs 102 at n=16) unexplained; treat +/-10 ns.",
+   "urls": [
+    "https://www.phoronix.com/news/Linux-5.11-SECCOMP-Performance",
+    "https://lwn.net/Articles/834785",
+    "file:///home/patrickd/aegis/research/state/raw/round-002/07-bench/sb/sb64.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Mitigations (Spectre SSBD) interacting with seccomp not controlled; per-syscall ns is tiny vs the ~1us+ of real I/O syscalls.",
+   "underclaim_risk": "Overhead on I/O-heavy server is likely unmeasurable (Sandlock paper reports Redis within noise)."
+  },
+  {
+   "id": "isolation-decision-inputs-table",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Updated isolation decision-input table (numbers only, own measurements + cited)",
+   "summary": "Per-request cost / memory / residual advisory exposure: (a) native in-process Rust handler: 0.38us for 105B JSON, 0 extra RSS, no wasm bug class. (b) Wasmtime core module, warm instance: call 11ns, handler 1.06us (2.8x native at 105B, 1.5x at 198KB incl copies). (c) Wasmtime P2 component warm: 97ns noop, 1.24us handler; (d) fresh pooled Store+component instance with WASI linked: 20us p50/30us p99, 52KB RSS/instance (earlier module-only: 6.9us, 7.1KB). (e) fork from lean 8MB zygote with policy pre-installed: ~124us + exit/wait 400us, PSS ~190KB/child; 64MB zygote: 0.7ms; 256MB: 1.5ms. (f) fork + in-child seccomp compile + Landlock: +135us. (g) Hyperlight microVM per call ~0.9ms claimed (KubeCon demo), VM creation 1-2ms; independent Dandelion paper measured Hyperlight-Wasm unloaded 27.5ms avg on matmul. (h) Sandlock (arXiv 2605.26298) ~5ms startup, Redis within noise. Advisory exposure: M0 6/65 (1 escape), M1 25/65, M2 31/65 of 2024-26 Wasmtime advisories. seccomp tax +20-30ns/syscall cacheable.",
+   "specifics": "No prior picks recorded here per brief; decision rule left to synthesis. All A rows are from this machine (i9-14900HX, Linux 6.17, 2 pinned cores). Hyperlight/Sandlock rows are secondary-reported (B/C).",
+   "urls": [
+    "https://opensource.microsoft.com/blog/2025/02/11/hyperlight-creating-a-0-0009-second-micro-vm-execution-time/",
+    "https://arxiv.org/pdf/2505.01603",
+    "https://arxiv.org/abs/2605.26298"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Mixing own-hardware and vendor numbers; microVM numbers different hardware/workload.",
+   "underclaim_risk": "Per-request wasm overhead is small vs typical handler I/O; ratios shown are worst-case for tiny handlers."
+  },
+  {
+   "id": "cranelift-default-config-escape-2026-10",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "incident",
+   "title": "GHSA-897f-g5gm-fmxm (CVE id as published CVE-2026-115889): Cranelift SSA bit-packing overflow, critical, default config any arch",
+   "summary": "Published 2026-10-19; Wasmtime <36.0.19 and 37.0.0-<43.0.0; a large or SSA-heavy function body forces silent index overflow and arbitrary miscompilation => type confusion and sandbox escape. Fixed by full u32 index with limit checks in v43, backport 36.0.19; no workaround listed; reporter credited with AI-assisted submission. Only advisory in the 65 that is an exploitable escape on the minimal M0 config. Companion: CVE-2026-34971 / GHSA-jhxm (aarch64, memory64 + spectre/signals off) and CVE-2026-34987 Winch.",
+   "specifics": "Advisory page states no mitigation via function-size limits; do not assume max function size mitigates.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-897f-g5gm-fmxm",
+    "https://security.julialang.org/advisories/JLSEC-2026-1360/",
+    "https://osv.dev/vulnerability/RUSTSEC-2026-0096"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "One incident; does not generalize to a rate.",
+   "underclaim_risk": "Cranelift compiler bugs remain the central residual risk for wasm-as-sole-boundary, supporting an OS layer."
+  }
+ ],
+ "edges": [
+  {
+   "src": "wasmtime-advisory-share-by-config",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "wasmtime-minimal-config-pin",
+   "dst": "wasmtime-memory64-spectre-config",
+   "type": "extends",
+   "note": "adds residual share and pooling sizing rules"
+  },
+  {
+   "src": "skeptic-small-reservation-pooling-recipe",
+   "dst": "wasmtime-memory64-spectre-config",
+   "type": "contradicts-in-part",
+   "note": "small reservation recipe re-opens GHSA-6wgr/394w"
+  },
+  {
+   "src": "canonical-abi-cost-measured",
+   "dst": "wasmtime-pooling-local-bench",
+   "type": "extends",
+   "note": "adds component+WASI+serde numbers excluded earlier"
+  },
+  {
+   "src": "zygote-sandbox-recipe-measured",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "informs",
+   "note": ""
+  },
+  {
+   "src": "seccomp-per-syscall-overhead-measured",
+   "dst": "zygote-sandbox-recipe-measured",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "isolation-decision-inputs-table",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "extends",
+   "note": "numbers only"
+  },
+  {
+   "src": "isolation-decision-inputs-table",
+   "dst": "hyperlight-microvm",
+   "type": "cites",
+   "note": ""
+  },
+  {
+   "src": "isolation-decision-inputs-table",
+   "dst": "gvisor-record-and-overhead",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "cranelift-default-config-escape-2026-10",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "instance-of",
+   "note": ""
+  },
+  {
+   "src": "cranelift-default-config-escape-2026-10",
+   "dst": "iso-glue-not-boundary-pattern",
+   "type": "counterexample",
+   "note": "escape in compiler core, not glue"
+  },
+  {
+   "src": "wasmtime-advisory-share-by-config",
+   "dst": "iso-glue-not-boundary-pattern",
+   "type": "supports",
+   "note": "M0 shrinks glue; core remains"
+  },
+  {
+   "src": "canonical-abi-cost-measured",
+   "dst": "fuel-not-a-security-bound",
+   "type": "related",
+   "note": "epoch used"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Does the string-transcoding OOB (GHSA-394w/hx6p) corrupt memory under default pooling slot layout, and can a fuzz harness reproduce on 43.x?",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.5,
+   "reason": "residual M1 share rests on abort-only claim"
+  },
+  {
+   "question": "Measure fork cost of a real zygote with mapped wasmtime Engine and precompiled component (file-backed) vs anon heap, plus THP effects",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.45,
+   "reason": "B2 used anon heap"
+  },
+  {
+   "question": "Per-syscall seccomp overhead for a real Wasmtime worker under epoll workload (perf stat) and Landlock fs_bench path-depth cost",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.35,
+   "reason": "microbench only"
+  },
+  {
+   "question": "Which Cranelift bugs would an SSA-size limit (max function body bytes) have blocked? test GHSA-897f boundary",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.4,
+   "reason": "advisory gives no workaround"
+  }
+ ],
+ "protocol_implications": [
+  "R-ISO-1 stays open but narrowed: on minimal config, 1 of 65 advisories is an escape, and it hit default Cranelift, so wasm-only isolation for hostile code is not supported; measured process-sandbox cost is 6-80x an in-process pooled Store.",
+  "Do not recommend small-reservation pooling for density; hardened means default guard/reservation.",
+  "Landlock+seccomp should be installed in the zygote/worker once, not per request (saves ~135us); Landlock first, seccomp second.",
+  "Canonical ABI is not the cost driver for serde-class handlers (2-7%); wasm codegen is (2x).",
+  "Keep hot-path syscalls arg-free in the filter to stay on the 5.11+ bitmap cache."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-002/07-isolation-decision-inputs-measured.json",
+ "self_improvement": [
+  "Prior-round local bench excluded component model; this round fixed it. Progress file should record toolchain pins (rustc 1.98 needed for wasmtime 48) at start.",
+  "Never use pkill -f with a pattern that appears in own shell command line (killed shell, exit 144).",
+  "Backgrounded tee pipes hide output; write to file with stdbuf -oL. Close pipe write ends in parent to avoid deadlocks in microbenchmarks.",
+  "WebSearch is weak for numeric benchmarks; own measurement was faster than searching (A grade in minutes)."
+ ],
+ "sources": [
+  "docs.wasmtime.dev/security.html",
+  "docs.wasmtime.dev/stability-tiers.html",
+  "docs.rs wasmtime 48.0.7 Config",
+  "docs.rs PoolingAllocationConfig",
+  "GHSA-897f-g5gm-fmxm",
+  "GHSA-jhxm-h53p-jm7w / JLSEC-2026-1360 / RUSTSEC-2026-0096",
+  "CVE-2026-34987",
+  "kernel seccomp_filter doc",
+  "kernel landlock doc",
+  "phoronix seccomp 5.11",
+  "lwn 834785",
+  "lkml seccomp v5.11 pull",
+  "kernsec fs_bench patches 2026",
+  "arXiv 2605.26298 Sandlock",
+  "arXiv 2505.01603 Dandelion",
+  "Microsoft Hyperlight blog",
+  "Chromium zygote docs",
+  "arXiv 2301.12102",
+  "bytecodealliance component-model 1.0 roadmap",
+  "gh api security-advisories snapshot",
+  "own: 07-bench/run5.txt",
+  "own: 07-bench/sb/sb{8,64,256}.txt",
+  "own: 07-data/classified.json"
+ ]
+}

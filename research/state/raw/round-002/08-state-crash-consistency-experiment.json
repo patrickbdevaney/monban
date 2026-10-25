@@ -1,0 +1,510 @@
+{
+ "nodes": [
+  {
+   "id": "cc.harness-method",
+   "layer": "L4",
+   "domain": "W-STATE",
+   "type": "experiment",
+   "title": "Own crash-state replay harness (ALICE-style) with positive/negative controls, 7 stores, 36 config x seed cells, ~132k crash images",
+   "summary": "LD_PRELOAD op-trace shim + python replay: at ~400 random cut points per run, builds crash images under 4 data policies (dropall, all=SIGKILL, subset=per-4KiB-page random survival with reorder, prefix=issue-order prefix with last write torn at 512B) x 3 namespace regimes (journal=ext4-ordered-like, fsfile, strict=POSIX-literal: ns op durable only after parent-dir fsync); oracle = counter in two tables+full-state equality+integrity_check; acked = marker after commit returns. Positive control (no-fsync log) loses acked data in ~99% of dropall cuts and tears records under subset; negative control (len|crc|fdatasync|dir-fsync log) 0/8020 violations. Oracle can fail and can pass.",
+   "urls": [
+    "https://www.usenix.org/system/files/osdi18-mohan.pdf",
+    "https://github.com/dsrhaslab/lazyfs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "N=300 txns/run (2 keys-tables, counter+payload), 400 cuts, seeds 1-3 (fjall, canopydb, wal controls 2-3 seeds; redb 2; heed/sqlite 1). Versions: redb 4.4.0 (vcs 7061f7e6), fjall 3.1.12 (d43b66b9; lsm-tree 3.1.10 9812163a), heed 0.23.0 (407de3c3; lmdb-master-sys 0.2.6 57025ff0), rusqlite 0.41.0 (a60e76b5; libsqlite3-sys 0.39.0 bundled SQLite 3.54.0), canopydb 0.2.5 (cb52555f); rustc 1.98.0 (+ rustix_use_libc). Kernel 6.17.0-14, ext4 nvme. Artifacts: raw/round-002/08-...harness/ (crashsim.py, main.rs, shim.c), ...results.jsonl, ...final_table.json.",
+   "overclaim_risk": "Replay is a logical model not a real power cut: no sub-512B tearing, no misdirected/lost-flush device behaviour, mmap stores not modelled (redb/heed/sqlite use pwrite here, MMAPW logged but flagged), fsync-error semantics untouched, and 'strict'/'fsfile' ns regimes are adversarial POSIX readings not ext4 behaviour. Zero violations means 'none found in ~1e4 states', not proof.",
+   "underclaim_risk": "Controls prove sensitivity; cut sampling (400/run) can still miss rare windows; N=300 txns is small relative to checkpoint/compaction thresholds (SQLite 1000-page checkpoint, redb growth) so checkpoint-boundary bugs are under-sampled."
+  },
+  {
+   "id": "cc.neg-ldpreload-rustix",
+   "layer": "L4",
+   "domain": "W-STATE",
+   "type": "failure",
+   "title": "NEGATIVE: LD_PRELOAD write tracing is blind to rustix/tempfile raw syscalls - first fjall run was 100% false positives",
+   "summary": "fjall persists keyspaces/N/current via tempfile 3.27.0 -> rustix 1.1.5 whose default linux_raw backend issues raw syscalls (strace: renameat; shim saw 0 rename ops), so replayed images kept .tmp files and an empty 'current' and 391/401 all/full (SIGKILL) states 'lost' acked writes. Also materializing images dropped empty directories. Fixed by building with RUSTFLAGS='--cfg rustix_use_libc' and recreating dirs; after fix fjall SyncAll shows 0 acked loss. Any interposer-based Rust crash harness must be coverage-audited against strace per store; FUSE (LazyFS), dm-log-writes/dm-flakey or ptrace/seccomp-unotify are interposer-independent. io_uring would bypass too.",
+   "urls": [
+    "https://github.com/bytecodealliance/rustix",
+    "https://github.com/dsrhaslab/lazyfs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Audit command: strace -f -e trace=%file,write,pwrite64,fsync,fdatasync,renameat... per store vs shim hook list. Only tempfile (fjall) used rustix in this dependency set; redb/heed/sqlite/canopydb syscalls (pwrite64, writev, fdatasync, fsync, fallocate, ftruncate, rename, mkdir) were all hooked.",
+   "overclaim_risk": "Only audited 6 store configs with N=3 txns; a path taken only at larger N (e.g. compaction, WAL rotation) could still bypass the shim.",
+   "underclaim_risk": "The libc-backend rebuild is not what production runs (production uses linux_raw); behavior difference should be nil but is unmeasured."
+  },
+  {
+   "id": "cc.result-redb",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "config-pin",
+   "title": "redb 4.4.0: 0 violations when the file's creation is durable; 1PC+C vs 2PC indistinguishable in 16k states; loses ALL acked data in POSIX-strict regime because parent dir never fsynced; Durability::None loses everything on SIGKILL",
+   "summary": "imm (1PC+C default, 1 fsync): journal/fsfile/SIGKILL regimes 0/801 violations per policy; strict: 383/801 dropall, 393/801 subset, 401/801 prefix lost_ack with c=0 (the db file itself vanishes: redb creates+fsyncs the file but never fsyncs the parent directory). imm2pc (set_two_phase_commit(true), 2 fsync): identical (380/802 strict), no corruption either way, check_integrity true on all survivors. Durability::None: 6000/6160 lost_ack incl. SIGKILL (acks are not durable even against process death) + 43 init_open_fail. Upstream CHANGELOG shows 1PC+C recovery-path durability bugs fixed in the last 3 months: 4.2.0 (2026-08-17) 'A crash during recovery from an earlier crash could roll back or corrupt durable transactions (not those using two-phase commit)'; 4.3.0 (2026-09-14) 'crash shortly after a commit could silently roll it back during recovery'; 5.0.0 (unreleased) makes SingleWriter commits always two-phase and refuses Durability::None. design.md: 1PC+C relies on XXH3 (non-crypto) checksum + txn id; assumes single-byte atomic write and powersafe-overwrite, states no ordering guarantee.",
+   "urls": [
+    "https://raw.githubusercontent.com/cberner/redb/master/CHANGELOG.md",
+    "https://github.com/cberner/redb/blob/master/docs/design.md",
+    "https://docs.rs/redb"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "PIN: redb =4.4.0 (or newer 4.x), set_two_phase_commit(true) on every write txn, Durability::Immediate only, never None for acked state; at bootstrap create the file via Database::create then fsync the file and its parent directory before serving (our harness shows the missing dir fsync is the only acked-loss path). Unmeasured: 2PC latency cost on target VPS (2 fsyncs/commit).",
+   "overclaim_risk": "'No corruption' is for the model above, not a proof; the 4.2.0/4.3.0 recovery bugs show the crash-during-recovery path (double fault) is where redb 1PC+C has actually failed, and my single-crash harness does NOT exercise it (no crash-in-recovery stage).",
+   "underclaim_risk": "The strict-regime loss is a one-time creation window: on ext4/xfs in practice a later fsync of anything usually commits the journal, so real-world exposure is the first seconds after db creation. Harness 'journal' regime shows 0."
+  },
+  {
+   "id": "cc.result-heed-lmdb",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "config-pin",
+   "title": "heed 0.23.0 / LMDB (lmdb-master-sys 0.2.6): default flags safe except the same create-time dir fsync gap; NO_META_SYNC loses 1 commit (documented) but up to all in strict; NO_SYNC corrupts (395 open failures + 110 SIGSEGV/SIGBUS in 4010 states)",
+   "summary": "default (full sync): 0 violations under journal/fsfile/SIGKILL; strict dropall 194/401 lost_ack (file vanishes, LMDB never fsyncs parent dir). nometasync: 2225/4010 lost_ack of which lag=1 commit in 1613 (matches lmdb.h: 'system crash may undo the last committed transaction ... preserves ACI but not D') but 585 states lost >=9 acked commits (strict ns, file vanish); no corruption. nosync: acked loss in 3057/4010, MDB_INVALID 'not an LMDB file' open failures 395, MDB_CORRUPTED read failures 23, atomicity break 2 (A/B tables diverge), 110 process crashes (SIGSEGV 55, SIGBUS 55) when opening/reading torn maps - i.e. a poisoned DB can crash the reader process, not just error. Matches lmdb.h text: NOSYNC may corrupt unless fs preserves write order; Howard Chu 2019: 'all bets are off' otherwise. ATC20 (Rebello) lists LMDB among apps studied for fsync-failure handling.",
+   "urls": [
+    "https://lists.openldap.org/hyperkitty/list/openldap-technical@openldap.org/thread/QKTPORS7C745OEF6TIILJTNGSKW37WCA",
+    "https://www.usenix.org/conference/atc20/presentation/rebello",
+    "https://git.openldap.org/jklowden/openldap/-/commit/7fdf6720416d5eaadf5fd811c4513c87a2899a0f.patch"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "PIN: heed 0.23.0 with EnvOpenOptions default flags only (no NO_SYNC/NO_META_SYNC/WRITE_MAP/MAP_ASYNC), fsync parent dir after first create. Single seed only for heed (4010 states per config).",
+   "overclaim_risk": "One seed; mmap-based WRITE_MAP mode not tested (stores via pwrite in default); LMDB's reliance on single-sector meta-page atomic write is untestable below 512B in this model.",
+   "underclaim_risk": "NO_META_SYNC may still be acceptable for a cache-class store with a documented one-commit window; sampled loss there is the documented one."
+  },
+  {
+   "id": "cc.result-fjall",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "config-pin",
+   "title": "fjall 3.1.12: SyncAll/SyncData batches show 0 acked loss in 12030 states each; default (Buffer) loses acked writes even on SIGKILL and can refuse to open (JournalRecovery(ChecksumMismatch)); creation-time kill bricks the directory",
+   "summary": "syncall: 0 lost_ack, 0 corruption in 12030 states (3 seeds); only 78 init_open_fail = process/OS killed during first-time creation (before any ack) leaves keyspace dir that open() rejects (InvalidVersion(None) / AlreadyExists 'File exists') and cannot recreate -> needs manual rm; reproduces under SIGKILL regime too (8/1203). syncdata: 0 lost, 71 init_open_fail. default (PersistMode::Buffer): lost_ack 6658/12030 states, 1 in 3 SIGKILL (all/full) cuts lose acked writes (acks mean only 'in userspace buffer'), commits lost in runs of >=9; plus 5 open_fail JournalRecovery(ChecksumMismatch) when a torn/partial middle journal write survives (subset policy) - DB unavailable until repaired. Upstream issue #329 (fjall/lsm-tree 3.1.10, opened 2026-10-01, fixed in main 8b2bae0): memtable flush did not sync journal first; Buffer commits lost on power loss; cross-keyspace batch recovered partially; get() and range() returned different values (5 vs 126) silently; maintainer 'blind-fix' since no fault injection existed. Not reproduced by my harness because only 300 txns with 64KiB memtable and SyncAll tested (bug needs Buffer mode + flush).",
+   "urls": [
+    "https://github.com/fjall-rs/fjall/issues/329",
+    "https://github.com/fjall-rs/fjall"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "PIN: fjall =3.1.12 (and lsm-tree verify >= fix of #329), every batch .durability(Some(PersistMode::SyncAll)); never rely on Buffer for acked state; application bootstrap must rm -r a keyspace dir that has no 'version' marker. fjall does fsync directories (file.rs fsync_directory), explaining 0 strict-regime loss unlike redb/LMDB.",
+   "overclaim_risk": "SyncAll 0/12030 is bounded by N=300 and small memtables: flush/compaction/journal rotation (64MB) windows where #329 lived are not reached; do not read it as 'fjall is crash-safe'.",
+   "underclaim_risk": "Open-fail on creation crash is a sharp edge but loses no acked data."
+  },
+  {
+   "id": "cc.result-sqlite",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "config-pin",
+   "title": "SQLite 3.54.0 (rusqlite 0.41.0): WAL+FULL and WAL+EXTRA and TRUNCATE+FULL: 0 violations in 4010 states each; WAL+NORMAL loses acked commits in 85% of cuts (unbounded to last checkpoint); DELETE journal FULL loses last commit ~12% (journal unlink not dir-synced)",
+   "summary": "wal-full/wal-extra/trunc-full: 4010/4010 ok under all regimes incl. strict. wal-normal: lost_ack 3391/4010; lag histogram: 107 states lost 1 commit, 2770 states lost >=9 commits => NORMAL durability gap is not 'last transaction' but everything since last WAL sync (checkpoint) - consistent with wal.html ('checkpoint is the only operation to issue a sync ... transactions are no longer durable'); no corruption in NORMAL (WAL stays consistent). del-full (rollback journal, synchronous=FULL): journal/strict regimes lost_ack ~87/401 (~22%) because the journal unlink is not directory-synced so the hot journal is replayed and rolls back a committed txn (SQLite doc: EXTRA adds the dir sync); under the adversarial fsfile regime (out-of-order ns persistence) del-full ALSO shows corruption (integrity_fail 21, atomicity 32, open_fail 24, state_mismatch 39 of 4010) but 0 in the ext4-like journal regime, and I attribute that to the model allowing an older unlink to be applied after a newer journal create (unverified hypothesis) - treat as a POSIX-literal risk, not an observed ext4 bug. SQLite's own forum: commit survives process crash but not OS crash under NORMAL.",
+   "urls": [
+    "https://www.sqlite.org/wal.html",
+    "https://sqlite.org/forum/forumpost/5c45279353bc7b7d?raw",
+    "https://avi.im/blag/2025/sqlite-fsync/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "PIN: journal_mode=WAL, synchronous=FULL (EXTRA if the unlink/rename window matters), wal_autocheckpoint default; never NORMAL for acked state. Needs a multi-writer story? SQLite is single-writer; WAL needs shared-memory, same host.",
+   "overclaim_risk": "wal-full passes 4010 states with 1 seed and N=300 (< 1000-page auto-checkpoint, so checkpoint crash windows - the place SQLite docs say syncs matter - were barely exercised).",
+   "underclaim_risk": "SQLite is the most battle-tested here (billions of deployments); my harness tests only one workload shape."
+  },
+  {
+   "id": "cc.result-canopydb",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "failure",
+   "title": "canopydb 0.2.5: plain commit() is NOT durable (default_commit_sync=false) - 10600/12030 states lose acked commits; commit_with(true) passes 12030/12030; doc says background WAL sync default 1s but source default is None",
+   "summary": "EnvOptions.wal_background_sync_interval doc: 'Default: 1 second' but Default impl sets None; DbOptions.default_commit_sync default false, so WriteTransaction::commit() acks before fsync. sync config (commit_with(true)): 0 violations in all regimes incl. strict (it fsyncs dirs; includes mkdir/rename/fallocate paths). async = default in outcome. Early-stage: lib.rs listed single 0.1.0 (Oct 2024) but 0.2.5 resolved locally.",
+   "urls": [
+    "https://docs.rs/canopydb",
+    "https://lib.rs/crates/canopydb"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "This was the 'one more candidate found independently' (alternatives enumerated before reading prior treatments: sled alpha, libmdbx, Turso/limbo, Fjall, redb, canopydb, SQLite, LMDB). sled =1.0.0-alpha.124 compiled in the workload but not swept (alpha).",
+   "overclaim_risk": "Only a 'default is unsafe' finding; the engine is young, so absence of other findings is weak evidence."
+  },
+  {
+   "id": "cc.ranking-negative",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "type": "result",
+   "title": "Which store loses acknowledged writes (measured table): ranking by configuration",
+   "summary": "Violations of acked-durability (acked count > recovered) over all images, per store/config (states): wal-naive control 6679/8000; redb Durability::None 6000/6160; canopydb commit() 10600/12030; fjall Buffer 6658/12030; heed NO_SYNC 3057/4010 (+corruption 395 open fail, 110 crashes); sqlite WAL+NORMAL 3391/4010; heed NO_META_SYNC 2225/4010; sqlite DELETE+FULL 509/4010 (+corruption only under adversarial ns model); redb 1PC+C 1177/8010 and 2PC 1176/8020 (all in strict-ns create window); heed default 587/4010 (same window); PASS (0 acked loss, 0 corruption): sqlite WAL+FULL/EXTRA, sqlite TRUNCATE+FULL, canopydb sync, fjall SyncAll/SyncData (only create-time open failures), walcrc control. Interpretation: the dominant failure across stores is not torn writes but (a) acks issued before fsync by default/opt-in flags and (b) parent-directory fsync missing at creation (redb, LMDB).",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Source: 08-...final_table.json. SIGKILL (process death, page cache intact) loses acked writes only for redb None, fjall Buffer, canopydb/async? (canopy all/full OK). Torn-write corruption found only in LMDB NO_SYNC and (adversarial model) SQLite DELETE mode."
+  },
+  {
+   "id": "cc.kernel-atomic-writes",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "type": "kernel-feature",
+   "title": "RWF_ATOMIC / untorn writes: Linux 6.13 (not 6.11) merged DIO-only single-block atomic writes on ext4/XFS; 6.16 added XFS multi-block; buffered atomic not merged as of May 2026; this host does not advertise it",
+   "summary": "LWN 1009298 + docs.kernel.org: RWF_ATOMIC direct I/O only, ext4 single fs-block (bigalloc for multi-block), no software fallback, requires device support, statx STATX_WRITE_ATOMIC reports unit min/max. kernelnewbies: 6.13 'atomic writes in XFS, Ext4's Direct I/O, md RAID'; 6.16 'large atomic writes for xfs (multi-block, all or none)'. LWN Mar/May 2026: atomic buffered I/O still absent; RWF_WRITETHROUGH proposal 2026-04; PostgreSQL full_page_writes off = 1.7x TPS and 14x less TPS variance (session claim, setup not given). Own probe on this machine (kernel 6.17.0-14, ext4 on nvme0n1p9): statx mask lacks STATX_WRITE_ATOMIC (0x10000) -> RWF_ATOMIC is unusable here. None of redb/fjall/LMDB/SQLite use RWF_ATOMIC. => For a household VPS the practical answer is checksums (WAL CRC, redb XXH3, fjall) not atomic writes.",
+   "urls": [
+    "https://lwn.net/Articles/1009298",
+    "https://docs.kernel.org/filesystems/ext4/atomic_writes.html",
+    "https://lwn.net/Articles/1072019/",
+    "https://lwn.net/Articles/1060063/",
+    "https://kernelnewbies.org/Linux_6.13",
+    "https://kernelnewbies.org/Linux_6.16"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "VPS virtio-blk disks do not forward atomic-write limits unless the hypervisor does; unmeasured on a VPS.",
+   "overclaim_risk": "kernelnewbies pages truncated at 100k chars; 6.16 multi-block XFS requires forcealign/ big blocks details not verified from patch text.",
+   "underclaim_risk": "Hardware-level (NVMe AWUPF) atomicity may be present on many drives without being exposed."
+  },
+  {
+   "id": "cc.fsync-guarantees",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "type": "finding",
+   "title": "fsync/O_SYNC guarantees are weaker than man pages in practice: ext4 6.19.2 O_SYNC size bug, fsync-failure studies, virtio flush contract, CrashMonkey",
+   "summary": "LKML 2026-02-18 (Kovalevsky): Linux 6.19.2 ext4 default (XFS reportedly too): file created+synced with 5000 B, reopened O_SYNC, 10 B write, QEMU system_reset -> file size 4096 not 5000 (O_SYNC not equivalent to fsync after each write); no fix noted in the thread page I fetched. My shim treated O_SYNC/O_DSYNC writes as durable, so the harness would miss this class -> specify fsync()/fdatasync() explicitly, avoid O_SYNC for append. ATC20 'Can Applications Recover from fsync Failures?': PostgreSQL, LMDB, LevelDB, SQLite, Redis; failures cause data loss/corruption; ext4/XFS/btrfs mark pages clean. CrashMonkey/ACE (OSDI18): 26 historical bugs studied, 10 new bugs in ext4/btrfs/F2FS (rename atomicity, files lost after fsync), most need <=3 ops and crash after fsync. virtio: device MUST commit completed writes on flush when flush negotiated; writeback hypervisors that ack flushes without honoring them defeat every store above (provider-specific, unmeasured). dm-flakey drop_writes/dm-log-writes (xfstests generic/482,500) are the in-kernel crash replay alternatives (discard caveat on XFS).",
+   "urls": [
+    "https://lkml.iu.edu/2602.2/03173.html",
+    "https://www.usenix.org/conference/atc20/presentation/rebello",
+    "https://www.usenix.org/system/files/osdi18-mohan.pdf",
+    "https://xml.org/archives/original/virtio/201507/msg00038.html",
+    "https://listman.redhat.com/archives/dm-devel/2015-March/023250.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "LKML page showed no maintainer reply; do not assert it is unfixed.",
+   "underclaim_risk": "Many kernel crash bugs never reach LKML summaries."
+  },
+  {
+   "id": "cc.lazyfs-tool",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "type": "tool",
+   "title": "LazyFS (dsrhaslab): FUSE3 fault-injection FS (torn-seq, torn-op, clear-cache); VLDB'24 found 8 new bugs in PG/etcd/ZK/Redis/LevelDB/PebblesDB/LN but tested none of redb/fjall/LMDB/SQLite; not runnable here (needs libfuse3-dev)",
+   "summary": "Repo: 234 stars, 299 commits, BSD-3 (badge says MIT), C++17+CMake, tested ext4 default on Debian 11/Ubuntu 20.04, 'simple' cache most tested, post-crash mount may need fusermount -uz. 'When Amnesia Strikes' (VLDB 2024, p3017-ramos): 20 scenarios. Gap = our experiment. Reorder fault not documented on the README page.",
+   "urls": [
+    "https://github.com/dsrhaslab/lazyfs",
+    "https://www.vldb.org/pvldb/vol17/p3017-ramos.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "CI use needs libfuse3 and user_allow_other.",
+   "underclaim_risk": "Maintenance recency unverified (last commit date not shown)."
+  },
+  {
+   "id": "cc.l5-crash-harness-spec",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "harness-spec",
+   "title": "L5: storage crash-harness spec for CI (fault model, oracle, pass criteria, interposer-independence)",
+   "summary": "FAULT MODEL (all must be run): (1) SIGKILL at random syscall boundaries, page cache intact; (2) power-cut drop-all-unsynced; (3) per-4KiB-page random survival with reorder of unsynced writes; (4) issue-order prefix with last write torn at 512B; (5) namespace regimes ext4-ordered and POSIX-strict (ns op durable only after parent-dir fsync); (6) crash-during-recovery (second crash while reopening) - NOT yet implemented, required because redb 4.2.0/4.3.0 bugs were double-fault; (7) injected fsync EIO (fsyncgate: no retry may be treated as success). ORACLE: workload of N txns each updating >=2 tables with a monotone counter + payload; after every commit return write an ack marker out-of-band; after recovery require (a) open succeeds, (b) counter A==B (atomicity), (c) counter >= last ack (durability) and <= issued, (d) full-state equality with the model at that counter, (e) engine integrity check. Mutation gate: ship a no-fsync control that MUST fail and a len|crc|fdatasync|dir-fsync control that MUST pass in every CI run, else the harness is broken (as.oracle-mutation). INTERPOSER: coverage-audit by strace diff per store each run (rustix raw syscalls bypass LD_PRELOAD; build with --cfg rustix_use_libc or use FUSE/dm-log-writes/ptrace). PASS: zero violations over >=10k images per (store,config) on 3 seeds incl. one run with N above checkpoint/rotation thresholds (>=2000 txns, >64MB journal for fjall, >1000 WAL pages for SQLite). Reference impl: raw/round-002/08-...harness/{crashsim.py,main.rs,shim.c}; ~4-12 min per config on a loaded 32-core host (images verified in 8 threads).",
+   "urls": [
+    "https://www.usenix.org/system/files/osdi18-mohan.pdf",
+    "https://github.com/dsrhaslab/lazyfs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Extends sdg-l5-crash-harness (ALICE-style) with measured instrument, controls, two regimes and the rustix lesson.",
+   "underclaim_risk": "Spec is stronger than needed for a cache-only tier."
+  },
+  {
+   "id": "cc.l5-store-acceptance-gate",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "ci-gate",
+   "title": "L5: store-of-record acceptance gate (what a store must show before holding acknowledged state)",
+   "summary": "A store/config is admitted only if: G1 harness (cc.l5-crash-harness-spec) zero acked-loss and zero corruption on ext4-ordered regime for 3 seeds; G2 strict-regime result is either zero or the only failures are class 'file vanishes at creation' AND bootstrap does file+parent-dir fsync (verified by a bootstrap test that re-runs the strict regime after bootstrap = 0); G3 default-config footgun scan: grep options for durability defaults (canopydb default_commit_sync=false, fjall Buffer, redb None, SQLite synchronous NORMAL, LMDB NO_*) and require explicit pin in code + test that asserts the pinned value; G4 upstream CHANGELOG/issue scan for 'crash|recovery|corrupt|fsync|data loss' in last 12 months with each item mapped to a regression test (redb has 4 such in 2026); G5 acked-loss under SIGKILL must be 0 (process death must never lose acked data); G6 unavailability budget: after any single crash the store must open without manual action (fjall creation-time brick fails G6 unless bootstrap wrapper cleans); G7 pinned versions + vcs sha recorded. Result with current evidence: PASS = SQLite WAL+FULL, canopydb sync (young), fjall SyncAll (with bootstrap wrapper, N-limited), redb 2PC (with dir-fsync bootstrap); FAIL = LMDB NO_SYNC, heed NO_META_SYNC for acked state, redb None, fjall Buffer, canopydb commit(), SQLite WAL+NORMAL.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Criteria G1-G7 are our proposal; thresholds (3 seeds, >=10k images) are judgment, not from literature.",
+   "underclaim_risk": "Gate may exclude stores that are fine on a single-node household box with UPS; tune G5/G6 to risk."
+  },
+  {
+   "id": "cc.l5-config-pin",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "type": "config-pin",
+   "title": "L5: per-store config pin with measured result (copy into Cargo.toml / bootstrap code)",
+   "summary": "sqlite: rusqlite =0.41.0 (bundled SQLite 3.54.0) PRAGMA journal_mode=WAL; synchronous=FULL (EXTRA optional) -> 0/4010 violations. redb: =4.4.0, Database::create then fsync file + parent dir; every WriteTransaction set_durability(Immediate) + set_two_phase_commit(true) -> 0 violations outside create window (0/16k), 1PC+C default also 0 but had 2 recovery-path durability bugs fixed in 4.2/4.3. fjall: =3.1.12 with batch.durability(Some(PersistMode::SyncAll)) -> 0/12030 acked loss; wrap open with cleanup of dir lacking 'version'. heed: =0.23.0 default flags only -> 0 outside create window; ban NO_SYNC/NO_META_SYNC/MAP_ASYNC via clippy-style grep in CI. canopydb: =0.2.5 only with commit_with(true) -> 0/12030; set wal_background_sync_interval explicitly. Not recommended for acked state: redb Durability::None, fjall Buffer, canopydb commit(), SQLite NORMAL, LMDB NO_SYNC. Bootstrap rule (all stores): create dir, create db file, fsync file, fsync parent directory, then serve; redb and LMDB lose the whole database in 15-50% of POSIX-strict creation-window images without it.",
+   "urls": [
+    "https://github.com/cberner/redb/blob/master/docs/design.md",
+    "https://github.com/fjall-rs/fjall/issues/329",
+    "https://www.sqlite.org/wal.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 1.0,
+   "load_bearing": true,
+   "specifics": "Measured on ext4/nvme, kernel 6.17, rustc 1.98.0.",
+   "overclaim_risk": "Pins hold for the modelled faults and N=300 only.",
+   "underclaim_risk": "Latency cost of FULL/2PC unmeasured here (needs separate benchmark on VPS fsync latency)."
+  },
+  {
+   "id": "cc.neg-model-pessimism",
+   "layer": "L4",
+   "domain": "W-STATE",
+   "type": "negative",
+   "title": "NEGATIVE: POSIX-literal namespace model (fsfile) reports SQLite DELETE-journal corruption that the ext4-like model does not - regime choice changes verdicts",
+   "summary": "Same traces, three ns regimes: SQLite del-full corruption classes (atomicity 32, integrity_fail 21, open_fail 24, read_fail 37) appear only in 'fsfile' (create durable at fsync(file), unlink/rename durable only after dir fsync, ops persisted independently and out of order); 0 corruption in 'journal' and 'strict'. redb/LMDB loss appears only in 'strict'. So a harness verdict must name its regime; reporting one number conflates real bugs with model pessimism. Cannot verify against real ext4 here (no root/loop device, no LazyFS build); a dm-log-writes or LazyFS replay on a real fs would arbitrate.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Hypothesis for cause (older unlink applied after newer create) unverified.",
+   "underclaim_risk": "Real filesystems may be this adversarial on btrfs/F2FS (CrashMonkey found rename/fsync bugs there)."
+  }
+ ],
+ "edges": [
+  {
+   "src": "cc.harness-method",
+   "dst": "sdg-embedded-store-selection",
+   "type": "extends",
+   "note": "measured evidence that flips/forces config choices"
+  },
+  {
+   "src": "cc.harness-method",
+   "dst": "sdg-l5-crash-harness",
+   "type": "extends",
+   "note": "implements and extends"
+  },
+  {
+   "src": "cc.harness-method",
+   "dst": "as.dst-harness-spec",
+   "type": "extends",
+   "note": "storage-fault layer for DST"
+  },
+  {
+   "src": "cc.harness-method",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "extends",
+   "note": "crash atomicity oracle (counter A==B)"
+  },
+  {
+   "src": "cc.result-redb",
+   "dst": "sdg-redb",
+   "type": "extends",
+   "note": "adds measured result and CHANGELOG recovery bugs"
+  },
+  {
+   "src": "cc.result-fjall",
+   "dst": "sdg-fjall",
+   "type": "extends",
+   "note": "SyncAll measured clean; Buffer unsafe; creation brick"
+  },
+  {
+   "src": "cc.result-heed-lmdb",
+   "dst": "sdg-lmdb-heed",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "cc.result-sqlite",
+   "dst": "sdg-embedded-store-selection",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "cc.result-canopydb",
+   "dst": "sdg-embedded-store-selection",
+   "type": "supports",
+   "note": "default-unsafe candidate"
+  },
+  {
+   "src": "cc.ranking-negative",
+   "dst": "sdg-embedded-store-selection",
+   "type": "supports",
+   "note": "R-STATE-4 can stay on SQLite WAL+FULL or redb 2PC; no flip to a different store"
+  },
+  {
+   "src": "cc.neg-ldpreload-rustix",
+   "dst": "cc.harness-method",
+   "type": "qualifies",
+   "note": ""
+  },
+  {
+   "src": "cc.neg-model-pessimism",
+   "dst": "cc.harness-method",
+   "type": "qualifies",
+   "note": ""
+  },
+  {
+   "src": "cc.l5-crash-harness-spec",
+   "dst": "cc.harness-method",
+   "type": "implemented-by",
+   "note": ""
+  },
+  {
+   "src": "cc.l5-store-acceptance-gate",
+   "dst": "cc.l5-crash-harness-spec",
+   "type": "depends-on",
+   "note": ""
+  },
+  {
+   "src": "cc.l5-config-pin",
+   "dst": "cc.l5-store-acceptance-gate",
+   "type": "instantiates",
+   "note": ""
+  },
+  {
+   "src": "cc.fsync-guarantees",
+   "dst": "sdg-fsyncgate",
+   "type": "extends",
+   "note": ""
+  },
+  {
+   "src": "cc.harness-method",
+   "dst": "sdg-alice-osdi14",
+   "type": "reimplements",
+   "note": "ALICE-style logical replay"
+  },
+  {
+   "src": "cc.lazyfs-tool",
+   "dst": "cc.harness-method",
+   "type": "alternative-to",
+   "note": ""
+  },
+  {
+   "src": "cc.kernel-atomic-writes",
+   "dst": "cc.result-sqlite",
+   "type": "explains",
+   "note": "no store uses untorn writes; checksums instead"
+  },
+  {
+   "src": "cc.result-redb",
+   "dst": "cc.l5-config-pin",
+   "type": "feeds",
+   "note": ""
+  },
+  {
+   "src": "cc.result-fjall",
+   "dst": "cc.l5-config-pin",
+   "type": "feeds",
+   "note": ""
+  },
+  {
+   "src": "cc.result-sqlite",
+   "dst": "cc.l5-config-pin",
+   "type": "feeds",
+   "note": ""
+  },
+  {
+   "src": "cc.result-heed-lmdb",
+   "dst": "cc.l5-config-pin",
+   "type": "feeds",
+   "note": ""
+  },
+  {
+   "src": "cc.result-canopydb",
+   "dst": "cc.l5-config-pin",
+   "type": "feeds",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Add crash-during-recovery (double fault) and fsync-EIO stages to the harness and rerun redb 1PC+C vs 2PC; do 4.2.0/4.3.0 bugs reproduce on 4.1.0?",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.7,
+   "reason": "Only double faults have actually broken redb 1PC+C; single-crash harness cannot see them"
+  },
+  {
+   "question": "Run the same traces through real ext4 with dm-log-writes or LazyFS (needs root/libfuse3-dev) to arbitrate fsfile vs journal ns models",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.6,
+   "reason": "Resolves whether SQLite DELETE-mode corruption is model artifact"
+  },
+  {
+   "question": "Benchmark fsync latency and commit throughput of SQLite WAL+FULL vs redb 2PC vs fjall SyncAll on the target VPS class",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.6,
+   "reason": "Pins cost of the safe configs"
+  },
+  {
+   "question": "Do hypervisor/VPS providers honor virtio flush (cache=none/writethrough)? Test via host-visible fsync latency distribution",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.5,
+   "reason": "All results assume flush is honored"
+  },
+  {
+   "question": "Long-run N>=5000 sweeps crossing SQLite 1000-page checkpoint, fjall journal rotation and compaction, redb file growth",
+   "layer": "L5",
+   "domain": "W-STATE",
+   "expected_info_gain": 0.5,
+   "reason": "Checkpoint windows under-sampled at N=300"
+  }
+ ],
+ "protocol_implications": [
+  "Always run a no-fsync positive control and a CRC+fdatasync+dir-fsync negative control in the same sweep; only then count store verdicts.",
+  "Name the namespace-durability regime with every verdict; regime choice changed SQLite DELETE-mode from clean to corrupt.",
+  "LD_PRELOAD interposition is unsound for Rust: audit with strace; prefer interposer-independent tools.",
+  "Check dependency defaults for durability footguns (canopydb commit(), fjall Buffer) before benchmarking; the first sweep wasted compute on config/harness errors.",
+  "Each sweep cell takes 4-12 minutes on the loaded host; budget accordingly and checkpoint after each results.jsonl line."
+ ],
+ "self_improvement": [
+  "Interposer blind spots (rustix) produced a 100% false-positive verdict that would have been reported as a negative result about fjall; add a per-store strace-coverage self-check to the harness itself.",
+  "pkill -f patterns match the invoking shell: kill pipelines via pidfile or bracketed pattern.",
+  "Unrelated sibling load (loadavg 40-50) made sweeps 5-10x slower; schedule the experiment early or reserve cores.",
+  "Memory crash earlier likely from parallel 8-thread verifier fans x 5 jobs plus sibling explorers; cap -P4."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-002/08-state-crash-consistency-experiment.json",
+ "sources": [
+  "https://lwn.net/Articles/1009298",
+  "https://docs.kernel.org/filesystems/ext4/atomic_writes.html",
+  "https://www.vldb.org/pvldb/vol17/p3017-ramos.pdf",
+  "https://github.com/fjall-rs/fjall/issues/329",
+  "https://github.com/cberner/redb/blob/master/docs/design.md",
+  "https://raw.githubusercontent.com/cberner/redb/master/CHANGELOG.md",
+  "https://www.sqlite.org/wal.html",
+  "https://sqlite.org/forum/forumpost/5c45279353bc7b7d?raw",
+  "https://avi.im/blag/2025/sqlite-fsync/",
+  "https://git.openldap.org/jklowden/openldap/-/commit/7fdf6720416d5eaadf5fd811c4513c87a2899a0f.patch",
+  "https://lists.openldap.org/hyperkitty/list/openldap-technical@openldap.org/thread/QKTPORS7C745OEF6TIILJTNGSKW37WCA",
+  "https://lkml.iu.edu/2602.2/03173.html",
+  "https://github.com/dsrhaslab/lazyfs",
+  "https://www.usenix.org/conference/atc20/presentation/rebello",
+  "https://kernelnewbies.org/Linux_6.13",
+  "https://kernelnewbies.org/Linux_6.16",
+  "https://www.usenix.org/system/files/osdi18-mohan.pdf",
+  "https://lwn.net/Articles/1072019/",
+  "https://lwn.net/Articles/1060063/",
+  "https://listman.redhat.com/archives/dm-devel/2015-March/023250.html",
+  "https://xml.org/archives/original/virtio/201507/msg00038.html",
+  "https://docs.rs/canopydb",
+  "https://lib.rs/crates/canopydb",
+  "https://turso.tech/blog/the-final-boss-of-reliability-formal-verification",
+  "https://github.com/bytecodealliance/rustix",
+  "https://www.cs.utexas.edu/~isil/chipmunk.pdf",
+  "https://lwn.net/Articles/1016406"
+ ],
+ "experiment_table_file": "/home/patrickd/aegis/research/state/raw/round-002/08-state-crash-consistency-experiment.final_table.json"
+}

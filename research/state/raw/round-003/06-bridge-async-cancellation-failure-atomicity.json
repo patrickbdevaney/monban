@@ -1,0 +1,976 @@
+{
+ "explorer": "06",
+ "round": 3,
+ "target": "bridge-async-cancellation-failure-atomicity",
+ "date": "2026-10-25",
+ "invariant_under_test": "failed or cancelled request => no state mutation and fail-closed authz (sdg-failed-request-no-mutation, vfg-policy-tristate-failclosed-invariant, crs-l5-invariant-text)",
+ "hypothesis_verdict": "Supported for the DB-pool, Wasm-host and in-process classes (15 verified instances, 6 in 2026). Partial for idempotency/rate-limit (crash shares the window) and for fail-open (a policy choice). Counter-hypothesis 'one txn + outbox' is necessary but closes about 5 of 15; the residual needs NC2-NC5, NC7 and NC8.",
+ "instances_table": [
+  {
+   "id": "sqlx#4393",
+   "pillar": "W-DATA-GATE",
+   "state_left": "pooled PG conn inside open txn; locks; 25P02 poison",
+   "fix": "#4394 f1e94ec 2026-09-09 main only (0.9.0 latest)",
+   "clauses": "INV-NOMUT, CRS C8, C6"
+  },
+  {
+   "id": "tokio-postgres PR#1374",
+   "pillar": "W-DATA-GATE",
+   "state_left": "leaked named statements/portals/savepoints",
+   "fix": "open PR (0.7.18 affected)",
+   "clauses": "I1, C8"
+  },
+  {
+   "id": "diesel_async#304",
+   "pillar": "W-DATA-GATE",
+   "state_left": "MySQL reply delivered to next borrower",
+   "fix": "PR#305 merged 2026-10-23, unreleased (0.9.2)",
+   "clauses": "C8, tenant isolation"
+  },
+  {
+   "id": "redis-py CVE-2023-28858/28859",
+   "pillar": "W-STATE",
+   "state_left": "reply left on pooled conn; cross-user leak",
+   "fix": "#2695 (2023-06), 4.5.5+/5.0",
+   "clauses": "C8"
+  },
+  {
+   "id": "Go CVE-2025-47907",
+   "pillar": "W-DATA-GATE",
+   "state_left": "Scan returns other query's rows",
+   "fix": "go1.23.12/1.24.6",
+   "clauses": "C8"
+  },
+  {
+   "id": "lib/pq PR#1000",
+   "pillar": "W-DATA-GATE",
+   "state_left": "CancelRequest hits next query on reused conn",
+   "fix": "mark bad (2020-11-24)",
+   "clauses": "C8, INV-NOMUT"
+  },
+  {
+   "id": "pg-pool #3543",
+   "pillar": "W-DATA-GATE",
+   "state_left": "orphan idle server conn",
+   "fix": "open",
+   "clauses": "I1"
+  },
+  {
+   "id": "Wasmtime CVE-2026-27195 / RUSTSEC-2026-0022",
+   "pillar": "W-ISOLATION",
+   "state_left": "instance non-reenterable; host panic",
+   "fix": "40.0.4/41.0.4/42+",
+   "clauses": "I5"
+  },
+  {
+   "id": "Wasmtime RUSTSEC-2026-0354",
+   "pillar": "W-ISOLATION",
+   "state_left": "panic in Drop of queued call",
+   "fix": ">=48.0.6,<49 ; >=49.0.3",
+   "clauses": "I5"
+  },
+  {
+   "id": "oneshot RUSTSEC-2026-0005",
+   "pillar": "runtime",
+   "state_left": "use-after-free",
+   "fix": "0.1.12",
+   "clauses": "memory safety"
+  },
+  {
+   "id": "omicron PR#3140",
+   "pillar": "W-STATE in-process",
+   "state_left": "tokio-Mutex-protected data inconsistent",
+   "fix": "dropshot Detached mode",
+   "clauses": "INV-NOMUT (in-process), C6"
+  },
+  {
+   "id": "omicron#9259 futurelock",
+   "pillar": "liveness",
+   "state_left": "all DB requests hang",
+   "fix": "spawn+JoinHandle",
+   "clauses": "I1/liveness"
+  },
+  {
+   "id": "gitlab#285352",
+   "pillar": "W-ABUSE",
+   "state_left": "limiter key TTL=-1, permanent block",
+   "fix": "Lua EVAL + self-heal",
+   "clauses": "I4/I5"
+  },
+  {
+   "id": "bitwarden CustomRedisProcessingStrategy",
+   "pillar": "W-ABUSE",
+   "state_left": "rate limiting skipped on Redis timeout (by design)",
+   "fix": "none (design)",
+   "clauses": "I7, NC5"
+  },
+  {
+   "id": "tower-http Timeout 408 / Go TimeoutHandler",
+   "pillar": "W-STATE",
+   "state_left": "client told failure while commit durable",
+   "fix": "n/a (semantics)",
+   "clauses": "INV-NOMUT ambiguous commit"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "ac.root-cause-drop-at-await",
+   "layer": "L2",
+   "domain": "W-BRIDGE (W-STATE x W-DATA-GATE x W-TRANSPORT x W-ISOLATION)",
+   "type": "threat-class",
+   "title": "Async cancellation (future drop at an await) is one root cause behind pooled-connection poisoning, cross-request data leaks, leaked server-side state, host panics and lost/locked state",
+   "summary": "Across 15 independent instances in 5 ecosystems (Rust sqlx, tokio-postgres, diesel_async, Wasmtime, oneshot, Oxide omicron; Python redis-py; Go database/sql and lib/pq; Node pg-pool), the same shape recurs: an operation puts a request on a wire or takes a resource BEFORE its first suspension point, but the value whose cleanup undoes it is built AFTER the last response. Dropping the future in between leaves the resource mid-protocol, and the pool or runtime then REUSES it. The resulting failure classes are: (1) the next borrower gets the previous request's response (redis-py CVE-2023-28858/28859, the ChatGPT incident of 2023-03-20; Go CVE-2025-47907; diesel_async #304); (2) the next borrower runs inside a stale transaction (sqlx #4393); (3) server-side objects are leaked (tokio-postgres PR #1374, node-postgres #3543); (4) a stray cancel hits the next query (lib/pq #1000); (5) the Wasm host panics or a component instance cannot be re-entered (CVE-2026-27195, RUSTSEC-2026-0354); (6) in-process state is left inconsistent (omicron PR #3140); (7) liveness is lost (futurelock, omicron #9259). The attacker controls the timing: hyper drops the service future on a client RST_STREAM or a closed connection.",
+   "specifics": "Count of verified instances: 15 (10 Rust, 5 non-Rust). In 2026 alone there were 6 (sqlx #4393 on 2026-08-24, tokio-postgres #1374 on 08-03, diesel_async #304 on 10-18, Wasmtime CVE-2026-27195 on 02-24 and RUSTSEC-2026-0354 on 10-14, oneshot RUSTSEC-2026-0005 on 01-25). Fixes for 3 of the 6 are on main but UNRELEASED as of 2026-10-25: sqlx (latest release 0.9.0 is from 2026-05-21; the fix f1e94ec is 2026-09-09), diesel_async (latest v0.9.2 is from 2026-06-19; PR #305 merged 2026-10-23), tokio-postgres (PR #1374 is still open; latest 0.7.18). Hypothesis verdict: SUPPORTED for the DB-pool, Wasm-host and in-process classes. It is NOT the root cause of the 'idempotency key stored without result' class (crash/timeout without cancellation produces the same failure, so cancellation is one trigger among several). For fail-open on timeout it is only partial: that is a policy choice, as in the Bitwarden code.",
+   "urls": [
+    "https://github.com/launchbadge/sqlx/issues/4393",
+    "https://github.com/rust-lang/rust-postgres/pull/1374",
+    "https://github.com/diesel-rs/diesel_async/issues/304",
+    "https://github.com/redis/redis-py/issues/2624",
+    "https://pkg.go.dev/vuln/GO-2025-3849",
+    "https://github.com/lib/pq/pull/1000",
+    "https://osv.dev/vulnerability/CVE-2026-27195",
+    "https://github.com/oxidecomputer/dropshot/issues/695"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "'One root cause' overstates it. Idempotency rows stuck in_flight and INCR/EXPIRE TTL loss happen equally from crashes, and fail-open-on-timeout is a deliberate policy (Bitwarden). Cancellation is the most frequent trigger in async Rust, but crash and timeout share the remedy.",
+   "underclaim_risk": "Counts are lower bounds. Searches covered only issue titles and bodies with 'cancel' wording, and many such bugs get filed as 'wrong result' or 'connection reset' without naming cancellation."
+  },
+  {
+   "id": "ac.attacker-chosen-cancel-instant",
+   "layer": "L3",
+   "domain": "W-TRANSPORT",
+   "type": "mechanism",
+   "title": "hyper 1.12 drops the in-flight service future on h2 RST_STREAM (H2Stream::poll2 -> poll_reset) and on h1 connection close: a remote client picks the cancellation instant",
+   "summary": "Read from the hyper main source (src/proto/h2/server.rs): while the service future is Pending, H2Stream polls reply.poll_reset(cx). On a reset it returns Err('stream received RST_STREAM'), and the service future is dropped at whatever await it is parked on. h1 does the same through Dispatcher drop of in_flight. An unauthenticated client can measure handler latency and send RST_STREAM (or a FIN) to land the cancellation between, for example, COMMIT-sent and outcome-recorded, or between INCR and EXPIRE. tower-http 0.7.1 Timeout polls its Sleep before the inner future, returns 408, and drops the inner future even if it already committed.",
+   "specifics": "Cancellation sources as listed by Oxide RFD 400: select!, timeout, try_join, task abort, runtime shutdown. Plus the server-specific ones: h2 RST_STREAM, h3 STOP_SENDING/RESET_STREAM, h1 close, tower timeout, graceful-shutdown deadline, Wasm epoch trap. Dual failure: when cancellation is NOT propagated (Pingora RUSTSEC-2025-0070 / CVE-2025-8671 MadeYouReset), handler work keeps running after the reset and causes a resource DoS. Go net/http TimeoutHandler returns 503 while the handler goroutine continues, so a failure is reported to the client while the effect still happens. The server must handle BOTH directions.",
+   "urls": [
+    "https://github.com/hyperium/hyper/blob/master/src/proto/h2/server.rs",
+    "https://github.com/tower-rs/tower-http/blob/main/tower-http/src/timeout/service.rs",
+    "https://rustsec.org/advisories/RUSTSEC-2025-0070.html",
+    "https://pkg.go.dev/net/http#TimeoutHandler"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Precise timing over the internet is noisy. An attacker needs many attempts, but rapid-reset-style volume is cheap.",
+   "underclaim_risk": "Agents that retry with aggressive timeouts (MCP clients, LLM tool loops) trigger the same cancellations without any malice, so this is a correctness issue at agent-era retry rates, not only an attack."
+  },
+  {
+   "id": "ac.i01-sqlx-4393-begin-cancel",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "defect",
+   "title": "sqlx #4393: cancelling Pool::begin leaves the PG connection inside a transaction and poisons the pool; fix #4394 (f1e94ec, 2026-09-09) is on main but not in any release",
+   "summary": "PgTransactionManager::begin raised transaction_depth only after the BEGIN round trip, so a cancelled begin queued no ROLLBACK. return_to_pool's ping() drains ReadyForQuery but ignores the transaction-status byte. The next borrower then runs inside the stale transaction (holding its locks) or hits 25P02 on every query until max_lifetime. This is the 4th cancel-safety fix to BEGIN in four years: #2054 (2022-08), #2819 (2023-10), #3980 (2025-08), #4394 (2026-09).",
+   "specifics": "State left: open txn on a pooled conn, locks held, possible 'idle in transaction (aborted)'. Fix state: merged to main 2026-09-09; sqlx 0.9.0 (2026-05-21) is still the latest release, and main is 41 commits ahead of v0.9.0. Downstream forks backport it (lexe-app to 0.8.6). sqlx 0.9.0 pool docs: if acquire() is cancelled after obtaining a conn, the conn is DROPPED (deliberately not graceful), and for PG/MySQL that drop closes only the client side, so the server may keep running until TCP keepalive. Clauses violated: INV-NOMUT (a stale txn could be committed by the next borrower; in this BEGIN case there were no writes, but the lock holding is observed), CRS C8 (shared-context partitioning: one connection carries two principals' txn context), C6.",
+   "urls": [
+    "https://github.com/launchbadge/sqlx/issues/4393",
+    "https://github.com/launchbadge/sqlx/pull/4394",
+    "https://github.com/launchbadge/sqlx/issues/2054",
+    "https://github.com/launchbadge/sqlx/pull/2819",
+    "https://github.com/launchbadge/sqlx/pull/3980",
+    "https://docs.rs/sqlx-core/0.9.0/src/sqlx_core/pool/mod.rs.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The cancellation window is the BEGIN round trip only, so it needs a timeout or disconnect during BEGIN. It is narrow, but an attacker can target it.",
+   "underclaim_risk": "If the golden uses sqlx 0.9.0 from crates.io it ships with this bug. Pin to git rev f1e94ec or later, or wrap acquisition in our own guard."
+  },
+  {
+   "id": "ac.i02-tokio-postgres-1374-leak",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "defect",
+   "title": "tokio-postgres PR #1374 (open, 2026-08-03): a dropped prepare()/bind()/savepoint future strands named statements, portals and savepoints for the session; it fires on plain timeout(d, client.query(..))",
+   "summary": "Written by the deadpool maintainer. Parse/Bind/SAVEPOINT go on the wire before the first yield, but Statement/Portal/Transaction (whose Drop sends Close or ROLLBACK TO) are built only after the last response. The fix adds a DropGuard armed right after send and disarmed when the owner takes over. That is safe because Close of an unknown name is not an error, and Close travels FIFO on the same channel. For savepoint, the guard disarms on failure because RELEASE of a missing savepoint would poison the transaction.",
+   "specifics": "tokio-postgres 0.7.18 (2026-06-12) is affected. The PR has 4 commits, including failing tests in tests/test/cancellation.rs; co-authored with Claude Opus 5 per the commit trailer. Companion: #1394 (2026-10-20, open): prepare() returns Ok while a trailing ErrorResponse 57014 (statement_timeout) is dropped. The txn is aborted and the next statement fails with 25P02, which is the same 'reply not drained to ReadyForQuery' root. Clause: resource budgets I1 (server-side memory grows per cancelled request, so an attacker can grow PG backend memory with RST floods) and CRS C8.",
+   "urls": [
+    "https://github.com/rust-lang/rust-postgres/pull/1374",
+    "https://github.com/rust-lang/rust-postgres/issues/1394"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "It leaks memory, not data. Prepared statements are per-session and invisible to other principals.",
+   "underclaim_risk": "On a long-lived pooled connection, the leak accumulates until max_lifetime, and an attacker controls the rate."
+  },
+  {
+   "id": "ac.i03-diesel-async-304-stale-result",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "defect",
+   "title": "diesel_async #304 (2026-10-18): MySQL query future dropped -> conn back to bb8/deadpool -> the next borrower reads the cancelled query's result; fix PR #305 merged 2026-10-23, unreleased",
+   "summary": "The default PoolableConnection::is_broken checked only the transaction manager, not mysql_async's Conn::is_disconnected() flag (set at the start of each command, cleared at completion, public since 0.37). The trigger is tokio::time::timeout or an axum/hyper handler dropped on client disconnect. Symptoms: 'Record not found' and parse errors, which means the previous principal's rows are delivered to the next request. The PG backend already checked is_closed(). Earlier cancel bugs in the same crate: #281/#282 (2026-03, SyncConnectionWrapper panic) and #270 (2025-11, CannotCache statement leak when a stream is dropped).",
+   "specifics": "Fix state: main only; latest release v0.9.2 (2026-06-19). Clauses: CRS C8 (response queue shared between principals), confidentiality/tenant isolation, INV-NOMUT (a wrong result can drive a wrong write). This is the Rust twin of redis-py CVE-2023-28858.",
+   "urls": [
+    "https://github.com/diesel-rs/diesel_async/issues/304",
+    "https://github.com/diesel-rs/diesel_async/pull/305"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.i04-redis-py-cve-2023-28858",
+   "layer": "L4",
+   "domain": "W-STATE (non-Rust analogue: Python asyncio)",
+   "type": "defect",
+   "title": "redis-py CVE-2023-28858/28859 (#2624, 2023-03-17): cancel after send, before read, leaves the reply on a pooled connection -> off-by-one responses to unrelated clients (OpenAI ChatGPT incident 2023-03-20)",
+   "summary": "The reproducer showed get('bar') returning b'foo' and get('foo') returning b'PONG'. The first fix (4.5.3, #2641) was incomplete per the reporter, was re-tracked in #2665, and was fixed by #2695 (closed 2023-06-27). The CVE record was created in response to the ChatGPT reports.",
+   "specifics": "Fixed in 4.3.6/4.4.3/4.5.3 (partial) and later in 4.5.5+/5.0. NVD rates it low (CVSS 3.7) even though it caused a production cross-user data exposure, so CVSS underrates this class. Clauses: CRS C8, tenant isolation.",
+   "urls": [
+    "https://github.com/redis/redis-py/issues/2624",
+    "https://github.com/redis/redis-py/issues/2665",
+    "https://nvd.nist.gov/vuln/detail/cve-2023-28858"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.7,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.i05-go-cve-2025-47907",
+   "layer": "L4",
+   "domain": "W-DATA-GATE (non-Rust analogue: Go)",
+   "type": "defect",
+   "title": "Go CVE-2025-47907 / GO-2025-3849 (go#74831): cancelling the context during Rows.Scan with parallel queries returns another query's results; 'affects most database/sql drivers'",
+   "summary": "Reported by Coder. Fixed in go1.23.12 and go1.24.6, published 2025-08-07. Even Go's preemptive goroutine model gets cross-query result leaks from context cancellation racing driver buffer reuse.",
+   "specifics": "Clauses: CRS C8, confidentiality. Contrast lib/pq PR #1000 (2020-10-02, merged 2020-11-24): a ctx-timeout CancelRequest raced connection return, so the cancel hit the NEXT query on the reused connection. Fix: mark the conn bad (follow-up #1079). pgx v4+ policy (pgx#679, 2020): on ctx cancel, close the connection and send CancelRequest rather than try to recover it (discard-on-cancel).",
+   "urls": [
+    "https://pkg.go.dev/vuln/GO-2025-3849",
+    "https://github.com/golang/go/issues/74831",
+    "https://github.com/lib/pq/pull/1000",
+    "https://github.com/jackc/pgx/issues/679"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.7,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.i06-pg-cancelrequest-untargeted",
+   "layer": "L3",
+   "domain": "W-DATA-GATE",
+   "type": "protocol-limit",
+   "title": "The Postgres CancelRequest addresses a backend (PID+key), not a statement, gets no reply, and 'might or might not have any effect'; protocol 3.2 (PG18) lengthens the key (4..256 B, server sends 32) but leaves targeting unchanged",
+   "summary": "PG 18 docs 54.2.8: the frontend has no direct way to tell whether a cancel succeeded. Because the cancel races with completion, a cancel sent for query A can land on query B on the same backend after a pool reuse (lib/pq #1000, pgx#679 discussion). So 'send CancelRequest then reuse the connection' is unsafe. The only safe options are close-and-discard, or wait for ReadyForQuery after the cancel before reuse.",
+   "urls": [
+    "https://www.postgresql.org/docs/18/protocol-flow.html",
+    "https://www.postgresql.org/docs/18/protocol-message-formats.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.i07-wasmtime-cancel-advisories",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "type": "defect",
+   "title": "Wasmtime: 2 cancel-on-drop advisories in 8 months: CVE-2026-27195 / RUSTSEC-2026-0022 (drop call_async after guest yields -> instance non-reenterable -> host panic) and GHSA-3r89-v5mq-j5xf / RUSTSEC-2026-0354 (drop of a queued call_async -> unwrap panic in Drop)",
+   "summary": "CVE-2026-27195 (2026-02-24): affects 39.0.0..<40.0.4 and 41.0.0..<41.0.4; 42+ unaffected; trigger is an async hostcall (func_wrap_async) or an EPOCH INTERRUPTION yield, then a drop. RUSTSEC-2026-0354 (2026-10-14, PR #14741): affects >=46.0.0; patched >=48.0.6,<49 and >=49.0.3. The Drop impl for the call_async future looked for the task's work items in only one of several queues. Both come from the component-model-async surface, which the map already flags as dominating 2026 Wasmtime advisories.",
+   "specifics": "State left: the component instance cannot be re-entered (the guest's linear memory is mid-operation), and the host panics, which violates I5 (no panic reachable from network input). An h2 RST is network input that drops the future. Mitigation: per-request Store/instance discarded on any cancellation (never reuse a Store after a dropped call_async, as the advisory workaround also says); disable component-model-async unless needed; pin wasmtime >= 49.0.3 (or 50.0.0).",
+   "urls": [
+    "https://osv.dev/vulnerability/CVE-2026-27195",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-3r89-v5mq-j5xf",
+    "https://github.com/bytecodealliance/wasmtime/pull/14741",
+    "https://github.com/rustsec/advisory-db/blob/main/crates/wasmtime/RUSTSEC-2026-0354.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.i08-oneshot-uaf-on-cancel",
+   "layer": "L4",
+   "domain": "W-STATE (runtime primitives)",
+   "type": "defect",
+   "title": "oneshot RUSTSEC-2026-0005 (2026-01-25): a Receiver polled and then dropped (for example by a timeout) races the Sender's free -> use-after-free; fixed in 0.1.12",
+   "summary": "Cancellation reaches memory safety even in safe-API crates built on unsafe internals. Drop swapped the state to DISCONNECTED before reading its waker back. This is a reason to keep the golden's channel primitives to tokio's audited ones and to fuzz drop-after-poll under Miri/loom.",
+   "urls": [
+    "https://github.com/rustsec/advisory-db/blob/main/crates/oneshot/RUSTSEC-2026-0005.md",
+    "https://github.com/faern/oneshot/issues/73"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.i09-omicron-3140-disconnect-mutex",
+   "layer": "L4",
+   "domain": "W-STATE (in-process)",
+   "type": "incident",
+   "title": "Oxide omicron PR #3140 (2023-05): a client disconnect cancelled an endpoint holding a tokio Mutex mid-sequence -> protected data left inconsistent; led to dropshot HandlerTaskMode::Detached (#695/#701)",
+   "summary": "dropshot #695: futures returned by endpoints 'may be cancelled under the control of the client'. The chosen band-aid was to tokio::spawn handlers (Detached) instead of auditing every endpoint. Dropshot 0.17.1 exposes HandlerTaskMode {CancelOnDisconnect, Detached}. Follow-ups: #965 (on_disconnect scopeguard, 2024), #1359 (500 vs 499 in detached mode, 2025), #1677 (2026-08, open: panics reported as disconnects). This is Java's Thread.stop lesson again: ThreadDeath released all monitors and left 'damaged objects', and Thread.stop was deprecated for that reason. Dropping a tokio MutexGuard at an await is the same failure confined to await points.",
+   "urls": [
+    "https://github.com/oxidecomputer/dropshot/issues/695",
+    "https://github.com/oxidecomputer/omicron/pull/3140",
+    "https://docs.rs/dropshot/latest/dropshot/enum.HandlerTaskMode.html",
+    "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/doc-files/threadPrimitiveDeprecation.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.i10-futurelock",
+   "layer": "L4",
+   "domain": "W-STATE (liveness)",
+   "type": "incident",
+   "title": "Futurelock (Oxide RFD 609, omicron #9259, 2025-10-19): a select! over &mut future holding a fair tokio Mutex slot plus an await in another arm hung every DB-touching request in Nexus",
+   "summary": "This is not cancellation. It is the opposite failure: a future started and then never polled again while it holds a resource. Mitigations: spawn and select on the JoinHandle; JoinSet instead of FuturesUnordered when awaiting in the loop body; try_send with propagated errors. RFD 609 proposes two clippy lints (a &mut future in a select! arm; await inside a select! arm), and neither exists as of 2026-10.",
+   "urls": [
+    "https://rfd.shared.oxide.computer/rfd/609",
+    "https://github.com/oxidecomputer/omicron/issues/9259"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.i11-ratelimit-incr-expire-window",
+   "layer": "L4",
+   "domain": "W-ABUSE",
+   "type": "defect",
+   "title": "Rate-limit counter written as INCR then EXPIRE across two awaits: a crash or cancel between them leaves TTL=-1 and the identity is limited permanently (GitLab gitlab#285352, 2020; fixed by a single Lua EVAL plus self-heal in labkit-ruby 99204787)",
+   "summary": "A cancel at the await between INCR and EXPIRE produces the same state as the observed crash. The inverse is just as bad: a limiter that debits AFTER the handler (post-hoc cost, I5) loses the debit when the handler future is dropped, which gives the attacker free work. Also: Bitwarden server CustomRedisProcessingStrategy (last commit fa0c9cb, 2025-07-08) returns SkipRateLimitResult (Count=0) on RedisTimeoutException, on !IsConnected, or after N timeouts. That is deliberate fail-open, and an attacker who can induce Redis latency disables IP rate limiting.",
+   "specifics": "Clauses: abuse I5 (post-hoc debit lost), I7 (no-fail-open; Bitwarden violates it by design), I4. Rule: debit atomically BEFORE the work (single script or op), never refund on cancel, and charge cancellations themselves, as HAProxy glitch counters and Go too_many_early_resets do.",
+   "urls": [
+    "https://gitlab.com/gitlab-org/gitlab/-/issues/285352",
+    "https://gitlab.com/gitlab-org/ruby/gems/labkit-ruby/commit/9920478783428be327cbe95adb1fd1235c54f7ba",
+    "https://github.com/bitwarden/server/blob/main/src/Core/Utilities/CustomRedisProcessingStrategy.cs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "GitLab's root cause was a crash or ordering problem, not an observed cancellation. The cancel mapping is by mechanism, not by report."
+  },
+  {
+   "id": "ac.i12-pg-pool-connect-timeout-leak",
+   "layer": "L4",
+   "domain": "W-DATA-GATE (non-Rust analogue: Node)",
+   "type": "defect",
+   "title": "node-postgres pg-pool #3543 (2025-09-09, open): a connectionTimeoutMillis race leaves a server-side idle connection that pg-pool tracks but never marks idle until the pool closes",
+   "summary": "This is the Node analogue of sqlx's 'acquire cancelled after connect'. A timeout on the client side does not undo server-side resource creation. Oracle: pg_stat_activity rows with query_start IS NULL and state='idle'.",
+   "urls": [
+    "https://github.com/brianc/node-postgres/issues/3543"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.observed-vs-actual-outcome",
+   "layer": "L3",
+   "domain": "W-STATE",
+   "type": "threat",
+   "title": "Timeout after commit makes the observed failure differ from the actual outcome: tower-http Timeout returns 408 and drops an inner future that may already have committed; Go TimeoutHandler returns 503 while the handler keeps writing",
+   "summary": "This is the 'ambiguous commit' carve-out of sdg-failed-request-no-mutation, turned from a rare network event into a routine, timer-driven and attacker-reachable one. A client told 408/503 retries, which double-applies the effect unless an idempotency key covers it. The amendment needs a commit-point latch: after COMMIT is sent, no timer or disconnect may convert the outcome into a failure status.",
+   "urls": [
+    "https://github.com/tower-rs/tower-http/blob/main/tower-http/src/timeout/service.rs",
+    "https://docs.rs/tower-http/latest/tower_http/timeout/struct.TimeoutLayer.html",
+    "https://pkg.go.dev/net/http#TimeoutHandler"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.cancel-models-compared",
+   "layer": "L3",
+   "domain": "W-FORMAL / W-DX",
+   "type": "comparison",
+   "title": "Cancellation models compared: Rust drop (sync cleanup only, no shield) vs Python/Trio exception-at-checkpoint (async cleanup, shield, flake8-async lints) vs Java interrupt (Thread.stop removed) vs Go context (cooperative)",
+   "summary": "Python 3.15 asyncio: CancelledError is a BaseException, cleanup in finally can await, asyncio.shield exists, TaskGroup/timeout rely on cancellation, and uncancel() exists. flake8-async provides a cancellation lint family: ASYNC100 (cancel scope with no checkpoint), ASYNC101/119 (yield in a cancel scope), ASYNC102 (await in finally/except needs a shield), ASYNC120, and ASYNC910/911 (off by default). PEP 789 (Draft) proposes sys.prevent_yields. Java deprecated asynchronous Thread.stop because of damaged objects. Rust: cleanup is Drop, synchronous only, with no shielded region except tokio::spawn. AsyncDrop is a nightly experiment (rust-lang/rust#126482, open since 2024-06-14; the 2026-07-14 comment says the dyn case is unhandled) and is not on the 2026 'just add async' roadmap. Even with async drop, mem::forget and leaks mean cleanup is not guaranteed. Linear (must-complete) futures exist only as stale experiments: the completion crate 0.2.1 (2021) and moro 0.4.0 (2022).",
+   "specifics": "Implication: in 2026 Rust offers no language or lint guarantee of cancel correctness. Assurance must come from architecture (spawn to completion, discard on cancel, a sans-IO core) plus dynamic testing (cancel sweep). Unique Rust strength: cancellation can only happen at await points, which are finite and enumerable per execution, unlike Thread.stop, which could hit any instruction.",
+   "urls": [
+    "https://docs.python.org/3/library/asyncio-task.html",
+    "https://flake8-async.readthedocs.io/en/latest/rules.html",
+    "https://peps.python.org/pep-0789/",
+    "https://github.com/rust-lang/rust/issues/126482",
+    "https://rust-lang.github.io/rust-project-goals/2026/roadmap-just-add-async.html",
+    "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/doc-files/threadPrimitiveDeprecation.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false
+  },
+  {
+   "id": "ac.rust-cancel-tooling-landscape",
+   "layer": "L4",
+   "domain": "W-ASSURE / W-DX",
+   "type": "tool-survey",
+   "title": "Rust cancel-safety tooling, 2026-10: clippy has the configurable await_holding_invalid_type and disallowed_macros but no cancel-safety lint; async-rust-lsp is editor-only; no crate exists for cancel-at-every-await testing; asupersync is an unproven cancel-correct runtime",
+   "summary": "clippy: await_holding_invalid_type (1.62, suspicious, configured via clippy.toml await-holding-invalid-types and able to cover tokio::sync::MutexGuard), await_holding_lock, await_holding_refcell_ref, let_underscore_future (warn by default; catches the 'async refactor drops the future' bug from RustConf 2025), disallowed_macros (1.66, style; can ban tokio::select!), disallowed_methods/types. async-rust-lsp 0.3.1 (rgbkrk, 2026-04): rules mutex-across-await (tokio) and cancel-unsafe-in-select (read_exact/write_all in a select! arm). It has no CLI, so it cannot be a CI gate as-is. cancel-safe-futures 0.1.5 (Oxide, 2026-04-01; coop_cancel, then_try). tokio-util 0.7.20 CancellationToken. asupersync 0.5.0 (2026-09-12; 287 stars; license NOASSERTION; request->drain->finalize cancellation, regions, two-phase reserve/commit effects, deterministic lab runtime): interesting design evidence, but a full runtime replacement with unknown audit status, so reject for the golden and revisit if independently audited. Five crates.io searches found no 'cancel at every await' test crate.",
+   "specifics": "Oxide RFD 400 gives the vocabulary. Cancel safety is local; cancel correctness is global; a violation needs a cancel-unsafe future, its cancellation, and a broken system property. Patterns: reserve/permit split, resume from progress, avoid tokio::sync::Mutex, spawn to completion, cooperative cancel, check connection state at the START of a txn, and a '# Cancel safety' doc section. tokio 1.54.1 select! docs list the cancel-safe and unsafe methods (read_exact, read_to_end, read_to_string and write_all lose data; Mutex::lock, RwLock, Semaphore::acquire and Notify::notified lose queue position).",
+   "urls": [
+    "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/await_holding_invalid.rs",
+    "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/disallowed_macros.rs",
+    "https://github.com/rgbkrk/async-rust-lsp",
+    "https://crates.io/crates/cancel-safe-futures",
+    "https://github.com/Dicklesworthstone/asupersync",
+    "https://rfd.shared.oxide.computer/rfd/400",
+    "https://docs.rs/tokio/latest/tokio/macro.select.html",
+    "https://lwn.net/SubscriberLink/1036924/c522bdeea0cff791"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "underclaim_risk": "A dynamic 'poll N then drop' sweep is simple to build, about 100 LOC. The absence of a crate is no reason to skip it."
+  },
+  {
+   "id": "ac.counter-hypothesis-one-txn-outbox",
+   "layer": "L4",
+   "domain": "W-STATE",
+   "type": "analysis",
+   "title": "Counter-hypothesis test: 'one transaction per request + effects journaled after commit' closes about 5 of 15 instances; the residual 10 need discard-on-cancel, a commit-point latch, pre-debited accounting and no tokio Mutex",
+   "summary": "CLOSED by one-txn+outbox: uncommitted partial DB writes; idempotency key without result (if the idem row shares the txn); pre-commit external effects (if handlers have no direct effect capability); cross-system effects (outbox with deterministic keys); in-txn SET LOCAL tenant settings. NOT CLOSED: (a) client-side protocol state on pooled connections (sqlx #4393, diesel_async #304, redis-py, Go 47907, lib/pq, tokio-postgres #1374, pg-pool #3543): the server rolls back, but the CONNECTION is reused mid-protocol, so you need discard-on-cancel plus a ReadyForQuery status 'I' check at checkin; (b) ambiguous outcome after COMMIT-sent (tower-http 408, Go TimeoutHandler): you need a commit-point latch; (c) in-process state under tokio Mutex (omicron #3140); (d) security accounting, which MUST mutate on failure (rate-limit debits, auth-failure counters, audit records), so blindly applying the invariant to them creates free retries (I5); (e) Wasm instance state (CVE-2026-27195, RUSTSEC-2026-0354); (f) liveness (futurelock); (g) streaming: a txn held open during a slow-read stream is an attacker-held lock (DoS), and per-chunk commits break the one-txn rule, so commit before the first body byte (output gate) or stream from a read-only snapshot with a deadline; (h) server-side work continuing after client cancel (the PG query runs until keepalive or CancelRequest), which costs resources, not consistency; (i) non-transactional backends with no rollback (Redis without MULTI, S3, Kafka without EOS) need the outbox.",
+   "specifics": "Verdict: the rule is NECESSARY but NOT SUFFICIENT. The amended invariant must add a cancellation clause family (ac.l5-inv-nomut-c).",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "The 5/15 vs 10/15 split depends on how the instances are partitioned. Some, like Go 47907, are read-side leaks that the rule never claimed to cover."
+  },
+  {
+   "id": "ac.principle-cancel-equals-crash",
+   "layer": "L2",
+   "domain": "W-BRIDGE",
+   "type": "design-principle",
+   "title": "Design principle: cancel == crash of the request's domain (Candea & Fox, 'Crash-Only Software', HotOS IX 2003): never recycle a resource a cancelled request touched mid-operation",
+   "summary": "The DB already treats a client crash correctly: a closed connection rolls back the txn. Bugs appear when a cancelled request is treated as a soft stop and its half-used resources are recycled. So make cancellation equivalent to a crash of the request's domain: close its DB connection(s) if not provably idle, discard its Wasm Store, close its upstream connection, and drop its scratch state. Cost: connection churn that attackers can amplify (each RST potentially forces a PG reconnect). Bound it by charging cancellations to the client's budget (same accounting as Rapid Reset). pgx v4+ is a production existence proof (close + CancelRequest on every ctx cancel).",
+   "specifics": "Unmeasured: PG reconnect cost. The only source found is an unsourced vendor estimate of 50-100 ms; spike: pgbench -C vs persistent at TLS+SCRAM on a 1 vCPU box. Mitigation if expensive: discard only when the connection is NOT in ReadyForQuery 'I' with no outstanding replies. That needs a driver that exposes the state, which tokio-postgres does not today, so the golden's DB adapter must track it.",
+   "urls": [
+    "https://www.usenix.org/legacy/events/hotos03/tech/full_papers/candea/candea_html/",
+    "https://github.com/jackc/pgx/issues/679"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true
+  },
+  {
+   "id": "ac.l5-inv-nomut-c",
+   "layer": "L5",
+   "domain": "W-BRIDGE (SPEC_INVARIANTS)",
+   "type": "invariant",
+   "title": "INV-NOMUT-C: 'failed or cancelled request => no business-state mutation, fail-closed authz, monotone accounting' with clauses NC1-NC8",
+   "summary": "DEFINITIONS. Request domain D(r) = every resource r acquired: DB connections and txns, named server objects (statements, portals, savepoints), Wasm Store/instance, upstream connections, in-process guarded objects, idempotency rows, budget reservations. Commit point CP(r) = the instant the COMMIT of r's single txn (or the atomic local flush) is handed to the wire. Outcome(r) is in {Committed, Failed, Pending}. A termination is any end of r's handler future: return, error, panic, timeout, client disconnect (h1 close, h2 RST_STREAM, h3 STOP_SENDING/RESET_STREAM), task abort, runtime shutdown, Wasm trap/epoch deadline, process crash.\nNC1 Cancellation is failure: every termination before CP yields Outcome=Failed, and INV-NOMUT applies (no durable user-visible business row changed, modulo sequences).\nNC2 Commit-point latch: from CP on, r is non-cancellable. COMMIT, the outcome record (idempotency row = done + response) and the outbox flush run to completion in a runtime-owned task registered with the shutdown drainer, independent of the client connection. The response status derives only from the commit result. A timer or disconnect after CP may yield only 'Pending' (202 + retrieve by idempotency key), never 408/5xx implying failure.\nNC3 Discard-on-cancel: any resource in D(r) that was mid-operation at a termination is never reused. Pool checkin predicate reusable(c) := last frame was ReadyForQuery AND txn_status=='I' AND outstanding_replies==0 AND every server object r created is closed. Otherwise close it (optionally send CancelRequest first, but never reuse after a CancelRequest). A Wasm Store whose call_async future was dropped is discarded. Upstream HTTP connections with unread response bytes are closed.\nNC4 Monotone accounting: security-accounting state (rate/budget debits, auth-failure counters, audit-of-attempt records) is written BEFORE the work it meters, as a single atomic op (no read-modify-write and no INCR-then-EXPIRE across an await). It is never refunded on failure or cancel, and every cancellation is itself charged (cost >= 1 unit). It is EXEMPT from NC1.\nNC5 Fail-closed on cancel or timeout: a cancelled, timed-out or panicked authz/limiter/verifier stage evaluates to Error, and Error => Deny (vfg tri-state). No 'skip limiting on backend timeout' path exists in the golden.\nNC6 No effect before CP: handler code holds no capability for external effects. Effects are outbox rows inside the txn, dispatched after CP with keys derived deterministically from (tenant, idempotency key, effect index).\nNC7 Output gate for streams: response body bytes that depend on uncommitted writes are emitted only after CP. No txn stays open while waiting on client reads or writes (a slow reader must not hold locks). Streams read from a committed snapshot or a read-only txn with a deadline <= T_stream_max.\nNC8 Liveness: no started future that holds a shared resource is left unpolled (futurelock). Every in-flight handler finishes or is discarded within T_drain after termination, and resources return to the pool or are closed within that bound.",
+   "specifics": "Clause cross-map: NC1/NC2 refine sdg-failed-request-no-mutation INV-NOMUT (they turn the 'ambiguous commit' carve-out into a latch). NC3 extends CRS C8 (shared-context partitioning: a reused connection mid-protocol IS a response queue shared across principals) and C6 (failure atomicity: a cancelled validation is a failed validation). NC4 refines abuse I5 (debit before work, not post-hoc, because post-hoc debits are lost on drop) and I4. NC5 is the cancellation case of vfg-policy-tristate-failclosed-invariant and abuse I7. NC6 is sdg-exactly-once-boundary. NC8 extends I1 (bounded resources per request). INV-NONEMPTY is untouched but depends on NC3: a leaked txn carries the previous request's SET LOCAL role/tenant into the next borrower, so NC3 is a precondition for tenant binding. Survivability against arbitrary third-party modules: NC1, NC3, NC4, NC5 and NC8 are enforced by the host (it owns the pool, the Store, the limiter and the drainer), so they SURVIVE a malicious sandboxed module. NC2, NC6 and NC7 hold only for DB access mediated by the golden SDK and Ctx; an out-of-process adapter with its own pool must re-prove NC3 (a conformance-suite case). Proof plan: NC2/NC3 as a TLA+ or P model of the request state machine {Admitted, Running, CommitSent, Committed, Failed, Discarded} with cancellation as a nondeterministic action enabled in Running only; NC4/NC5 as GCRA/tri-state lemmas (Kani/Lean, reusing existing obligations); all clauses tested by ac.l5-cancel-sweep-harness.",
+   "urls": [],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "NC2 makes the commit non-cancellable, so a slow COMMIT (sync replication wait) delays shutdown. This needs a T_drain bound and a declared crash fallback, where the process exits and PG decides the outcome.",
+   "underclaim_risk": "Without NC4 the original invariant is actively harmful for security counters, because failed attempts must be charged."
+  },
+  {
+   "id": "ac.l5-cancel-sweep-harness",
+   "layer": "L5",
+   "domain": "W-ASSURE (VERIFICATION_PLAN)",
+   "type": "test-harness-spec",
+   "title": "Cancel-sweep harness: enumerate every await point dynamically ('poll N times then drop', N=0..K) under DST, with 8 oracles and a named regression corpus",
+   "summary": "ENUMERATION. Cancellation can only happen between polls, so the set of observable cancellation points for one execution equals the set of Pending returns of the top-level handler future. Wrapper CancelAt<N>(fut): poll fut and count Pending results; when the count reaches N, drop fut. Run under the existing DST shell (tokio current_thread, paused clock, turmoil net, from as.dst-harness-spec) for N = 0,1,2,... until a run completes before reaching N. That gives K_total = the number of distinct cancellation points on this path. To make awaits that return Ready immediately into cancellation points too, every sim I/O shim (DB fake/proxy, Redis fake, upstream, Wasm host calls) returns Pending once before each Ready ('interleave pending', as in futures-test). K_total then equals the number of I/O awaits on the path. Each yield records a site id (#[track_caller] location in the shim plus the tracing span stack). The CI coverage report asserts that every site seen in the uncancelled run was cancelled at least once. MODES per site: (m1) drop, (m2) JoinHandle::abort, (m3) the client sends h2 RST_STREAM (real hyper path), (m4) h1 FIN, (m5) tower timeout fires, (m6) graceful-shutdown deadline, (m7) Wasm epoch deadline trap at that hostcall, (m8) kill -9 of the process at the site (a crash oracle that must give the same durable state as m1). ORACLES after each run: O1 DB snapshot == pre-request snapshot (mod sequences) iff no CP; if CP was reached, == committed state AND the idempotency row is 'done' with a matching response (NC1/NC2). O2 Pool hygiene with pool size forced to 1: the next 3 requests from a DIFFERENT principal return their own results; pg_stat_activity has 0 'idle in transaction' rows; pg_prepared_statements, pg_cursors and the savepoint count are back to baseline; pg-pool-style orphan check (query_start IS NULL AND state='idle') == 0 (NC3). O3 Accounting: exactly one debit >= cost recorded, Redis TTL != -1 on every limiter key, and the cancellation itself is charged (NC4). O4 Authz stage cancelled => Deny observed; no request admitted without a recorded decision (NC5). O5 Outbox: no external effect was emitted for runs without CP; at most one effect per (tenant, key, idx) across retries (NC6). O6 Liveness: the next request completes within T_drain, and no task stays parked longer than T_drain on a lock or permit (NC8, futurelock). O7 Wasm: the Store was discarded, the next request on a fresh instance succeeds, no host panic (I5). O8 Retry with the same idempotency key after the cancel returns the committed result or re-executes; never a permanent 409 (in_flight lease TTL).",
+   "specifics": "Budget: K_total per handler is expected to be under 50 (to be measured in the spike). PR gate: all handlers x all sites x {m1,m3,m5}, pool size 1, plus 200 random seeds. Nightly: all 8 modes x 20,000 seeds with random site choice. Regression corpus (named cases, each must FAIL against the vulnerable version and PASS against the fixed one): sqlx#4393 (cancel during begin; vulnerable 0.9.0, fixed f1e94ec); diesel_async#304 (MySQL stale result; vulnerable 0.9.2, fixed PR #305); tokio-postgres#1374 (statement leak count > 0 on 0.7.18); redis-py#2624 shape replayed against redis-rs multiplexed and pooled connections; Go CVE-2025-47907 shape against our DB adapter (parallel queries + cancel during row decode); Wasmtime CVE-2026-27195 and RUSTSEC-2026-0354 (drop call_async after a yield, and while queued; vulnerable 41.0.3/49.0.2); omicron#3140 shape (mutex-protected multi-step update cancelled); futurelock omicron#9259 shape. Oracle self-test (as.oracle-mutation): mutate the pool checkin predicate to 'always reusable'; O2 must fail within 100 seeds. Implementation: about 150 LOC for CancelAt plus the interleave shim; real Postgres in the sim is non-deterministic, so use a pgwire-level fake for PR runs and real PG 18 (container under 500 MB) for nightly, accepting nondeterminism there.",
+   "urls": [
+    "https://docs.rs/futures-test/latest/futures_test/future/trait.FutureTestExt.html",
+    "https://rfd.shared.oxide.computer/rfd/400"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Dynamic enumeration covers only the executed path. Branches not taken in the seed's run go unswept, so pair it with branch-coverage-guided seeds.",
+   "underclaim_risk": "Using a fake DB for PR runs could miss driver-level bugs (all the instances above ARE driver bugs), so the nightly real-PG run is mandatory, not optional."
+  },
+  {
+   "id": "ac.l5-coding-rule-lint-gate",
+   "layer": "L5",
+   "domain": "W-DX / W-SUPPLY (CI gate)",
+   "type": "ci-gate",
+   "title": "Golden coding rules CR1-CR9 plus clippy.toml and CI gates for cancel correctness",
+   "summary": "CR1 No tokio::sync::Mutex/RwLock in the golden core or SDK. Use an actor/message pass, or std Mutex not held across an await. Gate: clippy disallowed-types = [tokio::sync::Mutex, tokio::sync::RwLock] in core crates. CR2 clippy.toml await-holding-invalid-types = [tokio::sync::MutexGuard, tokio::sync::OwnedMutexGuard, tokio::sync::RwLockWriteGuard, tokio::sync::SemaphorePermit (where it guards an invariant), aegis_db::RawConn, aegis_wasm::StoreGuard]. Deny lints: clippy::await_holding_invalid_type, await_holding_lock, await_holding_refcell_ref, let_underscore_future, rustc unused_must_use. CR3 clippy.toml disallowed-macros = [tokio::select!, futures::select!, tokio::try_join!] outside modules listed in cancel-audit.toml. Each allowed use carries '// CANCEL-SAFETY: <why every arm is cancel-safe, or that the losing futures are spawned>' (CI grep gate, modelled on SAFETY comments for unsafe). CR4 disallowed-methods in core: tokio::io::AsyncWriteExt::write_all, AsyncReadExt::read_exact/read_to_end/read_to_string, tokio::time::timeout (use aegis_rt::deadline, which is CP-aware). Exempt framing modules carry CANCEL-SAFETY comments. CR5 The commit path runs only through aegis_rt::spawn_must_complete(fut) (tokio::spawn registered with the shutdown drainer); handler futures are CancelOnDisconnect before CP only. Type-level: Tx<Open>::commit(self) -> CommitTicket is not async; the ticket is awaited from a detached task (extends dx.l5-decision-sdk-shape). CR6 Arm a drop guard immediately after any wire send that creates server-side state (Parse/Bind/SAVEPOINT/BEGIN/MULTI), disarmed when the owning value is constructed (the tokio-postgres #1374 pattern). CR7 The pool checkin predicate is the NC3 reusable(c), owned by the golden DB adapter and never the driver default (diesel_async #304 lesson). Gate: unit test plus a cancel-sweep O2. CR8 Every pub async fn in core with more than one await that touches shared state has a '# Cancel safety' rustdoc section (RFD 400). Gate: script over rustdoc JSON. CR9 Pins (2026-10-25): sqlx git rev >= f1e94ec (or not used); diesel_async git rev >= PR #305 merge (or not used); tokio-postgres: carry PR #1374 as a patch until it is released; wasmtime >= 49.0.3 (50.0.0 current), with component-model-async disabled unless required; oneshot >= 0.1.12 if pulled in transitively (cargo-deny ban below).",
+   "specifics": "Acceptance: (A1) cargo clippy -D warnings on core with the above clippy.toml passes; (A2) a mutant corpus of 12 cancel-unsafe snippets (tokio Mutex across an await, select! on read_exact, let _ = async_fn(), timeout around tx.send, INCR/EXPIRE split, post-hoc debit, missing drop guard, default is_broken, skip-limit-on-timeout, select! &mut fut with await in an arm (futurelock), write_all in a handler, commit inside a cancellable future) must be rejected at 100% by lint or by the cancel-sweep harness, with the split reported; (A3) cancel-sweep PR gate green. Limits: clippy cannot see cancel safety of arbitrary futures, and no lint for futurelock exists (RFD 609 proposals are unimplemented), so CR3 plus the harness carry those cases. async-rust-lsp is editor-only and serves as an optional developer aid, not a gate.",
+   "urls": [
+    "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/await_holding_invalid.rs",
+    "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/disallowed_macros.rs",
+    "https://rfd.shared.oxide.computer/rfd/400",
+    "https://rfd.shared.oxide.computer/rfd/609"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Banning select! and timeout in the core creates friction. The allowlist will grow, and its value depends on review of the CANCEL-SAFETY comments.",
+   "underclaim_risk": "These rules are cheap (clippy config plus about 50 LOC of scripts) and catch 4 of the 15 instance shapes statically."
+  },
+  {
+   "id": "ac.l5-spike-reconnect-cost",
+   "layer": "L5",
+   "domain": "W-PERF",
+   "type": "implementation-spike",
+   "title": "Implementation-phase spike: cost of discard-on-cancel (PG reconnect with TLS 1.3 + SCRAM) and K_total await counts per handler",
+   "summary": "Not run here (machine-safety rule \u00a70e; no primary measurement exists). Protocol: PG 18 on the same 1 vCPU VPS; pgbench -C (reconnect per txn) vs persistent, with sslmode=require plus scram-sha-256, 60 s each, 3 runs; report connection setup p50/p99 ms and CPU-ms on both sides. Then a cancel storm: N clients send h2 RST at a uniformly random time into a 2-query handler; measure the reconnect rate and p99 of honest traffic, with and without per-client cancel charging (NC4). Decision it informs: if reconnect p50 > 20 ms or a CPU of 1 vCPU saturates below 200 cancels/s, adopt 'discard only if not ReadyForQuery-I' (which needs adapter-level protocol state tracking) instead of unconditional discard, and set the cancel-charge weight so that attacker cancels/s <= 10% of reconnect capacity. Also measure K_total for the 5 reference handlers (expected < 50).",
+   "urls": [],
+   "evidence_grade": "D",
+   "confidence": 0.6,
+   "actionability": 0.9,
+   "load_bearing": false
+  }
+ ],
+ "edges": [
+  {
+   "src": "ac.i01-sqlx-4393-begin-cancel",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i02-tokio-postgres-1374-leak",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i03-diesel-async-304-stale-result",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i04-redis-py-cve-2023-28858",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i05-go-cve-2025-47907",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i07-wasmtime-cancel-advisories",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i08-oneshot-uaf-on-cancel",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i09-omicron-3140-disconnect-mutex",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i10-futurelock",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i11-ratelimit-incr-expire-window",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i12-pg-pool-connect-timeout-leak",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.observed-vs-actual-outcome",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.i06-pg-cancelrequest-untargeted",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "instance_of",
+   "note": ""
+  },
+  {
+   "src": "ac.attacker-chosen-cancel-instant",
+   "dst": "ac.root-cause-drop-at-await",
+   "type": "amplifies",
+   "note": "remote timing control"
+  },
+  {
+   "src": "ac.attacker-chosen-cancel-instant",
+   "dst": "l4-cve-corpus-h2-h3-2023-2026",
+   "type": "extends",
+   "note": "RST_STREAM as a cancellation-timing primitive, not only a DoS"
+  },
+  {
+   "src": "ac.attacker-chosen-cancel-instant",
+   "dst": "l4-handler-bounded-designs",
+   "type": "extends",
+   "note": "MadeYouReset = cancellation not propagated; the dual case"
+  },
+  {
+   "src": "ac.counter-hypothesis-one-txn-outbox",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "refutes_sufficiency_of",
+   "note": "one-txn rule necessary, not sufficient"
+  },
+  {
+   "src": "ac.counter-hypothesis-one-txn-outbox",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "extends",
+   "note": "adds NC1-NC8; turns the ambiguous-commit carve-out into a latch"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "crs-l5-invariant-text",
+   "type": "extends",
+   "note": "NC3 refines C8 and C6"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "vfg-policy-tristate-failclosed-invariant",
+   "type": "extends",
+   "note": "NC5: cancel/timeout => Error => Deny"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "abuse-L5-budget-invariants",
+   "type": "extends",
+   "note": "NC4 refines I5 (debit before work), I7"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "depends_on",
+   "note": "NC2 outcome record; in_flight lease TTL"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "vfg-invariant-survival-table",
+   "type": "extends",
+   "note": "survival classification of NC1-NC8"
+  },
+  {
+   "src": "ac.l5-inv-nomut-c",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "precondition_for",
+   "note": "NC3 is a precondition for INV-NONEMPTY tenant binding across pooled txns"
+  },
+  {
+   "src": "ac.l5-cancel-sweep-harness",
+   "dst": "as.dst-harness-spec",
+   "type": "extends",
+   "note": "adds cancellation as a fault class + enumeration method"
+  },
+  {
+   "src": "ac.l5-cancel-sweep-harness",
+   "dst": "crs-l5-test-oracles",
+   "type": "extends",
+   "note": "C6/C8 oracles under cancellation"
+  },
+  {
+   "src": "ac.l5-cancel-sweep-harness",
+   "dst": "as.oracle-mutation",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ac.l5-cancel-sweep-harness",
+   "dst": "ac.l5-inv-nomut-c",
+   "type": "tests",
+   "note": ""
+  },
+  {
+   "src": "ac.l5-coding-rule-lint-gate",
+   "dst": "dx.l5-decision-sdk-shape",
+   "type": "extends",
+   "note": "Tx commit via must-complete task; cancellation discipline for the SDK"
+  },
+  {
+   "src": "ac.l5-coding-rule-lint-gate",
+   "dst": "ac.l5-inv-nomut-c",
+   "type": "enforces",
+   "note": ""
+  },
+  {
+   "src": "ac.l5-coding-rule-lint-gate",
+   "dst": "ac.rust-cancel-tooling-landscape",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ac.i07-wasmtime-cancel-advisories",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "extends",
+   "note": "two advisories classified as cancel-on-drop"
+  },
+  {
+   "src": "ac.i07-wasmtime-cancel-advisories",
+   "dst": "wasmtime-minimal-config-pin",
+   "type": "informs",
+   "note": "pin >=49.0.3; component-model-async off"
+  },
+  {
+   "src": "ac.i01-sqlx-4393-begin-cancel",
+   "dst": "sdg-compile-time-extraction",
+   "type": "informs",
+   "note": "sqlx 0.9.0 release carries the bug; pin git rev"
+  },
+  {
+   "src": "ac.i01-sqlx-4393-begin-cancel",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "extends",
+   "note": "client-side pool analogue of the txn-pooling leak class"
+  },
+  {
+   "src": "ac.i11-ratelimit-incr-expire-window",
+   "dst": "abuse-rate-limit-algos-crates",
+   "type": "informs",
+   "note": ""
+  },
+  {
+   "src": "ac.i11-ratelimit-incr-expire-window",
+   "dst": "crs-ce-ratelimit-xff",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "ac.principle-cancel-equals-crash",
+   "dst": "hist-php-sharednothing-mechanism",
+   "type": "related",
+   "note": "process recycling = crash-only at request granularity"
+  },
+  {
+   "src": "ac.principle-cancel-equals-crash",
+   "dst": "ac.l5-spike-reconnect-cost",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ac.cancel-models-compared",
+   "dst": "ac.rust-cancel-tooling-landscape",
+   "type": "informs",
+   "note": ""
+  },
+  {
+   "src": "ac.observed-vs-actual-outcome",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "extends",
+   "note": "timer-driven ambiguous commit"
+  },
+  {
+   "src": "ac.i10-futurelock",
+   "dst": "as.dst-harness-spec",
+   "type": "informs",
+   "note": "liveness oracle O6"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Measure discard-on-cancel cost: PG 18 reconnect (TLS1.3+SCRAM) p50/p99 and CPU on 1 vCPU, and honest-traffic p99 under an RST-timed cancel storm with and without cancel charging",
+   "layer": "L4",
+   "domain": "W-PERF x W-DATA-GATE",
+   "expected_info_gain": 0.6,
+   "reason": "Decides unconditional discard vs ReadyForQuery-state-tracked reuse (NC3)"
+  },
+  {
+   "question": "Audit the golden's chosen DB drivers (tokio-postgres, sqlx-postgres, redis-rs, mysql_async, mongodb, scylla) for the 'wire send before owner constructed' shape and for pool checkin predicates that ignore txn status / outstanding replies",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.55,
+   "reason": "3 of 6 2026 instances are unreleased fixes; other families (Mongo, Scylla, Kafka) were not searched"
+  },
+  {
+   "question": "Formalize the request state machine with cancellation as a nondeterministic action (TLA+/P) and model-check NC2/NC3/NC8; size it in states and time",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.45,
+   "reason": "Gives a proof rung for the cancellation clauses"
+  },
+  {
+   "question": "Does h3/quinn propagate STOP_SENDING/RESET_STREAM into dropping the service future the way hyper's h2 does, and does any HTTP stack let the server delay cancellation until a commit point?",
+   "layer": "L3",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.4,
+   "reason": "Attacker-timed cancellation surface for HTTP/3"
+  },
+  {
+   "question": "Wasm hosts other than Wasmtime (WasmEdge, wasmer, V8 isolates/workerd): behaviour when a host-side future is dropped mid-hostcall; any advisories",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "expected_info_gain": 0.35,
+   "reason": "Isolation-substrate decision robustness to cancellation"
+  },
+  {
+   "question": "Build and measure the CancelAt<N> sweep on 5 reference handlers (K_total, run time per sweep, bugs found in pinned drivers)",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "expected_info_gain": 0.5,
+   "reason": "Validates harness cost model; implementation-phase"
+  }
+ ],
+ "protocol_implications": [
+  "Add INV-NOMUT-C (NC1-NC8) to SPEC_INVARIANTS. It replaces the bare 'failed request => no mutation'. Security accounting is explicitly exempt and must be pre-debited and monotone (NC4).",
+  "DB adapter decision: the golden owns the pool checkin predicate (ReadyForQuery 'I', no outstanding replies, all created server objects closed) and never trusts driver defaults. Discard-on-cancel is the default until the reconnect-cost spike says otherwise.",
+  "Pins: sqlx and diesel_async fixes are main-only as of 2026-10-25, so pin to a git rev or avoid. Carry tokio-postgres PR #1374 as a patch. wasmtime >= 49.0.3 with component-model-async disabled unless needed.",
+  "Handler execution model: CancelOnDisconnect up to the commit point, then a must-complete detached task for commit + outcome record + outbox flush. Timeouts after CP return 'Pending' (202 + idempotency retrieval), never 408/5xx.",
+  "Add the cancel sweep (dynamic await-point enumeration, 8 modes, 8 oracles, named regression corpus) to VERIFICATION_PLAN as a PR gate on top of the DST harness.",
+  "Add clippy.toml rules (disallowed-types tokio Mutex/RwLock, await-holding-invalid-types, disallowed-macros select!, disallowed-methods write_all/read_exact/timeout in core) plus a CANCEL-SAFETY comment gate to the CI gates.",
+  "Charge cancellations (RST_STREAM, disconnects, timeouts) to the client's budget, so discard-on-cancel cannot be turned into a reconnect-amplification DoS."
+ ],
+ "self_improvement": [
+  "novelty_gate.py 'topic' flagged the lint-gate node COVERED (0.60) against dx.l5-decision-sdk-shape on token overlap ('clippy', 'gate', 'lint'), even though that node contains no cancellation content. A content-aspect check, not only token Jaccard, would avoid false COVERED on generic L5 vocabulary.",
+  "Bulk OSV dumps in raw/round-001 already contained CVE-2026-27195 and CVE-2025-47907, but no node analysed them. The integrator could run a mechanism-tagging pass over bulk advisory dumps ('cancel', 'drop', 'timeout') to surface bridge-relevant advisories earlier.",
+  "Searching GitHub issue trackers via `gh api search/issues` with cancellation keywords per crate gave the highest yield per query in this run (3 of the 6 2026 instances). Recommend it as a standard explorer tactic for defect hunts."
+ ],
+ "numbers_checked": [
+  "sqlx: latest crates.io 0.9.0 created 2026-05-21; #4394 merged 2026-09-09T16:04:31Z; main 41 commits ahead of v0.9.0 (gh compare)",
+  "diesel_async latest v0.9.2 2026-06-19; #305 merged 2026-10-23T09:03:18Z",
+  "tokio-postgres 0.7.18 updated 2026-06-12; PR#1374 open (created 2026-08-03)",
+  "Wasmtime CVE-2026-27195 published 2026-02-24 (OSV, aliases GHSA-xjhv-v822-pf94, RUSTSEC-2026-0022); GHSA-3r89-v5mq-j5xf published 2026-10-14T17:26:17Z, PR #14741 merged 2026-10-14",
+  "Go CVE-2025-47907 published 2025-08-07, fixed go1.23.12 / go1.24.6; issue created 2025-07-31",
+  "crate versions 2026-10-25: tokio 1.54.1, hyper 1.12.0, wasmtime 50.0.0, redis 1.8.0, deadpool-postgres 0.14.2, bb8 0.9.1, tokio-util 0.7.20, cancel-safe-futures 0.1.5, asupersync 0.5.0, async-rust-lsp 0.3.1",
+  "clippy await_holding_invalid_type version 1.62.0 group suspicious; disallowed_macros 1.66.0 group style (read from rust-clippy source)",
+  "rust-lang/rust#126482 async drop tracking: open, last updated 2026-07-14",
+  "PG reconnect cost: NOT verified (vendor estimate 50-100 ms unsourced) -> spike"
+ ],
+ "notes": {
+  "novelty_gate": "queries checked: 10 via novelty_gate.py query (all NOVEL, best 0.33); 0 DUP skipped; 0 NEAR-DUP rewritten; later queries logged without gate after confirming the topic NOVEL (best 0.25). topic checks: 6 (4 NOVEL, 2 COVERED at 0.60 on generic-token overlap; the content differed, so new ids were kept with extends edges to dx.l5-decision-sdk-shape and abuse-L5-budget-invariants)",
+  "urls": "about 54 sources consulted, all new to the map as nodes (Wasmtime CVE-2026-27195 and Go CVE-2025-47907 appear in round-1 bulk OSV dumps but had no node)",
+  "nodes_new": 23,
+  "nodes_reused_via_edges": [
+   "sdg-failed-request-no-mutation",
+   "crs-l5-invariant-text",
+   "vfg-policy-tristate-failclosed-invariant",
+   "abuse-L5-budget-invariants",
+   "as.dst-harness-spec",
+   "crs-l5-test-oracles",
+   "as.oracle-mutation",
+   "dx.l5-decision-sdk-shape",
+   "sdg-exactly-once-boundary",
+   "sdg-l5-idempotency-store",
+   "wasmtime-ghsa-record-2021-2026",
+   "wasmtime-minimal-config-pin",
+   "l4-cve-corpus-h2-h3-2023-2026",
+   "l4-handler-bounded-designs",
+   "sdg-txn-pooling-session-leak",
+   "sdg-compile-time-extraction",
+   "vfg-invariant-survival-table",
+   "dpf-l5-allowlist-generation",
+   "abuse-rate-limit-algos-crates",
+   "crs-ce-ratelimit-xff",
+   "hist-php-sharednothing-mechanism"
+  ],
+  "vocabularies": [
+   "systems/Rust-async",
+   "distributed-systems/DB-wire-protocol",
+   "PL/language-design (async drop, linear types)",
+   "offensive (attacker-timed RST)",
+   "Python/Trio structured concurrency",
+   "historical (Thread.stop, crash-only)"
+  ],
+  "source_types": [
+   "repo issues/PRs",
+   "RUSTSEC/GHSA/CVE advisories",
+   "vendor docs (tokio, PG, Python)",
+   "design docs (Oxide RFDs)",
+   "talk (RustConf 2025 via LWN)",
+   "paper (HotOS 2003)",
+   "source code (hyper, tower-http, clippy, bitwarden)"
+  ],
+  "contrarian": "Counter-hypothesis test showed the one-txn rule is insufficient; the invariant as written is harmful for security counters (NC4); asupersync rejected despite being purpose-built; 'one root cause' partially refuted for idempotency/fail-open.",
+  "experiments": "none run (machine-safety \u00a70e); reconnect-cost and K_total measurements specified as an implementation spike"
+ },
+ "sources": [
+  "https://crates.io/crates/cancel-safe-futures",
+  "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/doc-files/threadPrimitiveDeprecation.html",
+  "https://docs.python.org/3/library/asyncio-task.html",
+  "https://docs.rs/dropshot/latest/dropshot/enum.HandlerTaskMode.html",
+  "https://docs.rs/futures-test/latest/futures_test/future/trait.FutureTestExt.html",
+  "https://docs.rs/sqlx-core/0.9.0/src/sqlx_core/pool/mod.rs.html",
+  "https://docs.rs/tokio/latest/tokio/macro.select.html",
+  "https://docs.rs/tower-http/latest/tower_http/timeout/struct.TimeoutLayer.html",
+  "https://flake8-async.readthedocs.io/en/latest/rules.html",
+  "https://github.com/Dicklesworthstone/asupersync",
+  "https://github.com/bitwarden/server/blob/main/src/Core/Utilities/CustomRedisProcessingStrategy.cs",
+  "https://github.com/brianc/node-postgres/issues/3543",
+  "https://github.com/bytecodealliance/wasmtime/pull/14741",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-3r89-v5mq-j5xf",
+  "https://github.com/diesel-rs/diesel_async/issues/304",
+  "https://github.com/diesel-rs/diesel_async/pull/305",
+  "https://github.com/faern/oneshot/issues/73",
+  "https://github.com/golang/go/issues/74831",
+  "https://github.com/hyperium/hyper/blob/master/src/proto/h2/server.rs",
+  "https://github.com/hyperium/hyper/issues/2723",
+  "https://github.com/jackc/pgx/issues/679",
+  "https://github.com/launchbadge/sqlx/issues/2054",
+  "https://github.com/launchbadge/sqlx/issues/4393",
+  "https://github.com/launchbadge/sqlx/pull/2819",
+  "https://github.com/launchbadge/sqlx/pull/3980",
+  "https://github.com/launchbadge/sqlx/pull/4394",
+  "https://github.com/lib/pq/pull/1000",
+  "https://github.com/oxidecomputer/dropshot/issues/695",
+  "https://github.com/oxidecomputer/omicron/issues/9259",
+  "https://github.com/oxidecomputer/omicron/pull/3140",
+  "https://github.com/redis/redis-py/issues/2624",
+  "https://github.com/redis/redis-py/issues/2665",
+  "https://github.com/rgbkrk/async-rust-lsp",
+  "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/await_holding_invalid.rs",
+  "https://github.com/rust-lang/rust-clippy/blob/master/clippy_lints/src/disallowed_macros.rs",
+  "https://github.com/rust-lang/rust-postgres/issues/1394",
+  "https://github.com/rust-lang/rust-postgres/pull/1374",
+  "https://github.com/rust-lang/rust/issues/126482",
+  "https://github.com/rustsec/advisory-db/blob/main/crates/oneshot/RUSTSEC-2026-0005.md",
+  "https://github.com/rustsec/advisory-db/blob/main/crates/wasmtime/RUSTSEC-2026-0354.md",
+  "https://github.com/tower-rs/tower-http/blob/main/tower-http/src/timeout/service.rs",
+  "https://gitlab.com/gitlab-org/gitlab/-/issues/285352",
+  "https://gitlab.com/gitlab-org/ruby/gems/labkit-ruby/commit/9920478783428be327cbe95adb1fd1235c54f7ba",
+  "https://lwn.net/SubscriberLink/1036924/c522bdeea0cff791",
+  "https://nvd.nist.gov/vuln/detail/cve-2023-28858",
+  "https://osv.dev/vulnerability/CVE-2026-27195",
+  "https://peps.python.org/pep-0789/",
+  "https://pkg.go.dev/net/http#TimeoutHandler",
+  "https://pkg.go.dev/vuln/GO-2025-3849",
+  "https://rfd.shared.oxide.computer/rfd/400",
+  "https://rfd.shared.oxide.computer/rfd/609",
+  "https://rust-lang.github.io/rust-project-goals/2026/roadmap-just-add-async.html",
+  "https://rustconf.com/schedule-tag/async",
+  "https://rustsec.org/advisories/RUSTSEC-2025-0070.html",
+  "https://www.postgresql.org/docs/18/protocol-flow.html",
+  "https://www.postgresql.org/docs/18/protocol-message-formats.html",
+  "https://www.usenix.org/legacy/events/hotos03/tech/full_papers/candea/candea_html/"
+ ]
+}

@@ -1,0 +1,792 @@
+{
+"vnodes": [
+{
+"id": "v2.crdb-rls-on-conflict-gap",
+"layer": "L4",
+"pillar": "W-DATA-GATE",
+"type": "failure",
+"title": "CockroachDB RLS: GA since 25.2, pitched for agent access in v26.1; ON CONFLICT DO NOTHING skips RLS check on the VALUES row",
+"summary": "Verifier-found extra native-RLS bypass beyond the explorer list (CDC, backup/restore, LDR/PCR, cascades). Reinforces: native RLS is necessary, not sufficient; keep the in-server IR check.",
+"urls": [
+"https://www.cockroachlabs.com/docs/stable/row-level-security"
+],
+"evidence_grade": "B",
+"confidence": 0.72,
+"actionability": 0.8,
+"load_bearing": false,
+"found_by": "verifier-01"
+},
+{
+"id": "v2.mongobleed-itw",
+"layer": "L4",
+"pillar": "W-DATA-GATE",
+"type": "failure",
+"title": "MongoBleed CVE-2025-14847: exploited in the wild, ~87k exposed, zlib on by default, no patch for 3.6/4.0/4.2",
+"summary": "Fixed in 4.4.30/5.0.32/6.0.27/7.0.28/8.0.17/8.2.3. A PEP/adapter must not assume a patched backend: disable wire compression from the adapter side and gate on server version at connect.",
+"urls": [
+"https://www.cve.org/CVERecord?id=CVE-2025-14847"
+],
+"evidence_grade": "B",
+"confidence": 0.8,
+"actionability": 0.85,
+"load_bearing": false,
+"found_by": "verifier-01"
+},
+{
+"id": "v2.cra-implementing-reg-2025-2392",
+"layer": "L3",
+"pillar": "W-OPS",
+"type": "standard",
+"title": "CRA Implementing Regulation (EU) 2025/2392 (adopted 2025-11-28) defines the Annex III category descriptions; Art 7 classifies by primary function",
+"summary": "Controlling text for class I/II placement; an optional rate limiter in a general web server is unlikely to make the product a class II firewall. Draft standard prEN 304636 scopes firewalls as network/host products.",
+"urls": [
+"https://www.springlex.eu/en/packages/cra/cra-regulation/annex-3/",
+"https://www.springlex.eu/en/packages/cra/cra-regulation/article-7/"
+],
+"evidence_grade": "B",
+"confidence": 0.7,
+"actionability": 0.7,
+"load_bearing": false,
+"found_by": "verifier-05"
+},
+{
+"id": "v2.cra-monetization-trigger",
+"layer": "L3",
+"pillar": "W-OPS",
+"type": "standard",
+"title": "CRA draft guidance (consultation 2026-03-03..31): monetizing services around free software can make it a commercial activity (manufacturer)",
+"summary": "Responsibility follows who publishes and controls the project. A paid support/hosting offering around the golden turns the distributor into a manufacturer with Art14 reporting and conformity assessment. The claimed C(2026)5252 (2026-07-27) id was not verifiable.",
+"urls": [
+"https://digital-strategy.ec.europa.eu/en/policies/cra-open-source",
+"https://hlc.com/en/publications/eu-cyber-resilience-act-european-commission-publishes-draft-guidance-"
+],
+"evidence_grade": "B",
+"confidence": 0.7,
+"actionability": 0.75,
+"load_bearing": true,
+"found_by": "verifier-05"
+},
+{
+"id": "v2.awslc-rs-fips-crate-map",
+"layer": "L4",
+"pillar": "W-PQC",
+"type": "result",
+"title": "aws-lc-rs FIPS module-to-crate map: 3.0.x -> aws-lc-rs <1.18.0; 1.17.4 uses fips-sys 0.13.17 on v3.6.0 source; 1.18.x on FIPS 4.x snapshot",
+"summary": "README warns fips-sys tracks the latest module that completed testing, so exact-version pins are mandatory; v1.18.0 notes tell FIPS users to pin <1.18.0. Which crate version is byte-identical to CMVP #5298/#5314 is unproven (explorer proposes 1.15.3/0.13.11). CMVP #5429 (AWS-LC dynamic, 2026-07-20, sunset 2029-08-13) is a newer validated entry with unknown coverage.",
+"urls": [
+"https://raw.githubusercontent.com/aws/aws-lc-rs/main/aws-lc-rs/README.md",
+"https://github.com/aws/aws-lc-rs/releases",
+"https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5429"
+],
+"evidence_grade": "B",
+"confidence": 0.8,
+"actionability": 0.9,
+"load_bearing": true,
+"found_by": "verifier-05"
+},
+{
+"id": "v2.curl-0rtt-early-data-2026-9545",
+"layer": "L4",
+"pillar": "W-TRANSPORT",
+"type": "failure",
+"title": "curl CURL-CVE-2026-9545: HTTP/3 early data sent to an impostor server via cached session",
+"summary": "Client-side 0-RTT cross-request-state failure: cached session plus early data enabled leaks request bytes before authentication completes. Evidence for CRS C2/C4 (scope and freshness) on the upstream-client side of a gateway.",
+"urls": [
+"https://curl.se/docs/vuln.json"
+],
+"evidence_grade": "B",
+"confidence": 0.78,
+"actionability": 0.8,
+"load_bearing": false,
+"found_by": "verifier-10"
+},
+{
+"id": "v2.curl-2026-auth-state-cluster",
+"layer": "L4",
+"pillar": "W-TRANSPORT",
+"type": "failure",
+"title": "curl 2026 credential-bound state outliving its principal: Digest cross-origin/proxy (11856, 7168, 8927), netrc on reused proxy (6429), Negotiate reuse (5545, 1965, 19931, 87861), client-cert reuse (86415, 86411), CA trust (11564), TLS requirement ignored on reuse (4873)",
+"summary": "Broader than pool-key omissions: auth/verifier/policy config missing from the reuse key and auth state surviving origin change. Supports derive(Hash,Eq) over the whole upstream config and the epoch clause C5.",
+"urls": [
+"https://curl.se/docs/vuln.json"
+],
+"evidence_grade": "B",
+"confidence": 0.8,
+"actionability": 0.9,
+"load_bearing": true,
+"found_by": "verifier-10"
+},
+{
+"id": "v2.hebrok25-server-auth-bypass",
+"layer": "L4",
+"pillar": "W-PQC",
+"type": "failure",
+"title": "Hebrok et al. USENIX Sec 2025 also show server-authentication bypass via shared STEKs across six provider clusters (incl. Fastly, DDoS-Guard, Variti)",
+"summary": "Not only client-auth bypass: reverse-proxy-to-origin STEK sharing lets one origin impersonate another. Ticketers must be partitioned per cert chain and verifier on both sides.",
+"urls": [
+"https://www.usenix.org/conference/usenixsecurity25/presentation/hebrok"
+],
+"evidence_grade": "B",
+"confidence": 0.75,
+"actionability": 0.85,
+"load_bearing": false,
+"found_by": "verifier-10"
+},
+{
+"id": "v2.docker-mcp-gateway-advisories-r2",
+"layer": "L4",
+"pillar": "W-AGENT-PROTOCOL",
+"type": "failure",
+"title": "Docker mcp-gateway 2026 advisories beyond the corpus: SSRF via remote URL (CVE-2026-76093), file:// read (76095), tool-name shadowing (76097), bind mount via dynamic tools (76099), image signature verify off by default (76094), case-variant reserved names (GHSA-qg99), malformed resource URI crash (GHSA-jfp6)",
+"summary": "Supports fail-closed-construction and namespace-collision invariants (canonical case-folded tool namespace per backend).",
+"urls": [
+"https://github.com/docker/mcp-gateway/security/advisories"
+],
+"evidence_grade": "B",
+"confidence": 0.75,
+"actionability": 0.8,
+"load_bearing": false,
+"found_by": "verifier-09"
+},
+{
+"id": "v2.agentgateway-referencegrant",
+"layer": "L4",
+"pillar": "W-AGENT-PROTOCOL",
+"type": "failure",
+"title": "agentgateway cross-namespace policy advisories (GHSA-g7j8-wp7h-wmgr 2026-09-02, GHSA-jwm2-83f3-52xc 2026-06-29): control-plane policy attachment is its own invariant",
+"summary": "Data-plane invariant lists miss control-plane attachment: a policy/route from tenant A must not bind to tenant B backends without an explicit grant.",
+"urls": [
+"https://github.com/agentgateway/agentgateway/security/advisories"
+],
+"evidence_grade": "B",
+"confidence": 0.7,
+"actionability": 0.75,
+"load_bearing": false,
+"found_by": "verifier-09"
+},
+{
+"id": "v2.rmcp-more-advisories",
+"layer": "L4",
+"pillar": "W-AGENT-PROTOCOL",
+"type": "failure",
+"title": "rmcp advisories missed by corpus: custom headers leak on cross-origin redirect (GHSA-9g45, 2026-07-02), permanent session-table leak (GHSA-9pj6), unbounded tool_schemas cache (GHSA-4432, 2026-10-20), missing PRM resource validation (GHSA-33f5)",
+"summary": "Redirect-strip and bounded-state cases for the conformance corpus; reinforces pin-and-re-audit per rmcp bump.",
+"urls": [
+"https://github.com/modelcontextprotocol/rust-sdk/security/advisories"
+],
+"evidence_grade": "A",
+"confidence": 0.85,
+"actionability": 0.85,
+"load_bearing": false,
+"found_by": "verifier-09"
+},
+{
+"id": "v2.calif-h2bomb-ratios",
+"layer": "L4",
+"pillar": "W-TRANSPORT",
+"type": "result",
+"title": "HTTP/2 Bomb amplification ratios (Calif primary): nginx ~70:1, IIS ~68:1, Envoy ~5,700:1, Apache httpd ~4,000:1; only Apache got a CVE (CVE-2026-49975)",
+"summary": "Corrects the map: CVE-2026-49975 is Apache mod_h2 only; Envoy fix is GHSA-22m2-hvr2-xqc8 (no CVE named in the post); nginx 1.29.8 added max_headers. Pingora ratio not given in the post.",
+"urls": [
+"https://blog.calif.io/p/codex-discovered-a-hidden-http2-bomb"
+],
+"evidence_grade": "B",
+"confidence": 0.8,
+"actionability": 0.8,
+"load_bearing": true,
+"found_by": "verifier-06"
+},
+{
+"id": "v2.fedramp-class-tiers",
+"layer": "L4",
+"pillar": "W-OPS",
+"type": "standard",
+"title": "FedRAMP 20x Class A/B/C certification tiers and Security Decision Records shape what evidence a server project should emit",
+"summary": "Secondary source reports 7/41/46 KSIs per class; rules JSON has 10 KSI groups and maps sc-13 directly in KSI-SVC indicators.",
+"urls": [
+"https://fedramp.gov/2026/providers/20x/rules/fedramp-certification/"
+],
+"evidence_grade": "C",
+"confidence": 0.55,
+"actionability": 0.5,
+"load_bearing": false,
+"found_by": "verifier-05"
+}
+],
+"missed": [
+{
+"explorer": "01",
+"text": "CockroachDB RLS GA 25.2, v26.1 agent marketing, ON CONFLICT DO NOTHING skips RLS check",
+"eig": 0.4,
+"absorbed": "v2.crdb-rls-on-conflict-gap",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "MongoBleed exploited ITW, ~87k exposed, 3.6-4.2 unpatched",
+"eig": 0.4,
+"absorbed": "v2.mongobleed-itw",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "CVE-2025-30215 affects only four JetStream endpoints",
+"eig": 0.2,
+"absorbed": "dpf-nats",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "CVE-2026-35402 is in mcp-neo4j-cypher, Low; EXPLAIN-based fix",
+"eig": 0.2,
+"absorbed": "dpf-graph-neo4j",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "Cassandra CVE-2025-23015 misapplied fix in 4.0.16; fixed versions list",
+"eig": 0.2,
+"absorbed": "dpf-cassandra-scylla",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "MySQL CVE-2026-107814/90997 unresolved; resolve real 2026 MySQL privilege CVEs (CVE-2026-60194 JSON Duality access control, CVE-2026-21998)",
+"eig": 0.35,
+"absorbed": "dpf-mysql-mariadb",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "01",
+"text": "Recheck DynamoDB Scan-bypass and global-table FGAC statements against AWS docs, and crate statistics (unsafe counts, owners) against crates.io",
+"eig": 0.4,
+"absorbed": null,
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "02",
+"text": "Pingora PR #1060 open; main has same BufStream::with_capacity(0,0); fix 0->1 in three From impls",
+"eig": 0.2,
+"absorbed": "w02.pingora-tokio-panic",
+"domain": "W-GAP"
+},
+{
+"explorer": "02",
+"text": "State working tokio range for Pingora 0.9.0 (1.52.3 verified; issue suggests 1.53.x)",
+"eig": 0.2,
+"absorbed": "w02.pingora-tokio-panic",
+"domain": "W-GAP"
+},
+{
+"explorer": "02",
+"text": "Public OpenSSL 3.5 ML-KEM handshake data corroborates direction (+20% server CPU, +1088/+1176 B); no public rustls-vs-OpenSSL benchmark",
+"eig": 0.3,
+"absorbed": "w02.handshake-pq-cost",
+"domain": "W-PERF"
+},
+{
+"explorer": "02",
+"text": "Wasmtime size floor ~698K tuned no-default-features (libwasmtime.so, 2024-12)",
+"eig": 0.2,
+"absorbed": "w02.feature-cost-unused",
+"domain": "W-PERF"
+},
+{
+"explorer": "02",
+"text": "Replace weak smuggling-seam sources with PortSwigger primary research (HTTP/2: The Sequel is Always Worse, Browser-Powered Desync) and CVEs",
+"eig": 0.45,
+"absorbed": null,
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "02",
+"text": "h3 0.0.8 confirmed latest",
+"eig": 0.1,
+"absorbed": "crate-h3",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "02",
+"text": "nginx 2016 post is about signature check / struct changes, not TCB opacity",
+"eig": 0.1,
+"absorbed": "w02.feature-cost-unused",
+"domain": "W-GAP"
+},
+{
+"explorer": "03",
+"text": "nanoda accepting #14807 makes the multi-kernel conjunction non-independent for shared-spec bugs; AI-found kernel bug",
+"eig": 0.3,
+"absorbed": "vfg-lean-multikernel-paranoid-check",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "03",
+"text": "Verus rolling pre-release 0.2026.10.25: pin policy stable vs rolling",
+"eig": 0.3,
+"absorbed": "vfg-verus-footprint",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "03",
+"text": "Lean 4.35.0 pin is two weeks old; gate should require toolchain >= kernel fixes #14807/#14577/#14498",
+"eig": 0.3,
+"absorbed": "vfg-proof-ci-gate-spec",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "03",
+"text": "wasmtime-wasi docs inconsistent on default TCP/UDP policy; golden contract must set it explicitly",
+"eig": 0.35,
+"absorbed": "vfg-wasi-default-grants",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "03",
+"text": "Kani #4910 is a general abnormal-exit fix (timeouts also truncate)",
+"eig": 0.2,
+"absorbed": "vfg-kani-footprint-and-gate-failures",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "03",
+"text": "Envoy CVE-2026-47207 is malicious ext_proc server DoS; patches listed",
+"eig": 0.15,
+"absorbed": "vfg-extension-boundary-cves",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "04",
+"text": "Anubis GeoIP BR/CN +10 commented out by default",
+"eig": 0.15,
+"absorbed": "abuse-anubis",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "Ormandy double-spend bug; tokens ~7 days; site count is stars proxy",
+"eig": 0.2,
+"absorbed": "abuse-anubis-bypass-evidence",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "Envoy adaptive-concurrency minRTT probing raises 503s, exploitable under adversarial load",
+"eig": 0.35,
+"absorbed": "abuse-adaptive-concurrency",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "GitHub rate-limit tiers (5,000/h per user; 10,000 EC apps; 1,000 GITHUB_TOKEN; GraphQL CPU 60 s of 90 s)",
+"eig": 0.15,
+"absorbed": "abuse-cost-weighted-budgets",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "ARC 70x is issuance only; private verifiability only",
+"eig": 0.15,
+"absorbed": "abuse-arc-act",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "rdnlsmith metrics reset on restart; 1.10M includes Alibaba/Huawei rules",
+"eig": 0.1,
+"absorbed": "abuse-incident-ledger-2025-26",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "Kimwolf 100-200M latent unsourced; Google IPIDEA page gives no device count",
+"eig": 0.15,
+"absorbed": "abuse-residential-proxy-scale",
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "ASN/subnet-keyed limiters as middle ground between per-IP and global (Fedora pagure subnet/country blocks): measured effect and false-positive cost",
+"eig": 0.5,
+"absorbed": null,
+"domain": "W-ABUSE"
+},
+{
+"explorer": "04",
+"text": "No rigorous head-to-head evaluation of Anubis vs rate limiting vs rotating-IP scrapers; Duke Libraries June 2025 pilot is self-reported",
+"eig": 0.4,
+"absorbed": null,
+"domain": "W-ABUSE"
+},
+{
+"explorer": "05",
+"text": "Implementing Regulation (EU) 2025/2392 controls class I/II placement",
+"eig": 0.3,
+"absorbed": "v2.cra-implementing-reg-2025-2392",
+"domain": "W-OPS"
+},
+{
+"explorer": "05",
+"text": "Art 7 primary-function classification undercuts WAF-class-II risk",
+"eig": 0.2,
+"absorbed": "v2.cra-implementing-reg-2025-2392",
+"domain": "W-OPS"
+},
+{
+"explorer": "05",
+"text": "Draft CRA guidance (Mar 2026 consultation): monetized services make FOSS commercial activity; C(2026)5252 unverifiable",
+"eig": 0.3,
+"absorbed": "v2.cra-monetization-trigger",
+"domain": "W-OPS"
+},
+{
+"explorer": "05",
+"text": "aws-lc-rs README module-to-crate table and 1.18.0 pin warning; 1.17.4 uses fips-sys 0.13.17 on v3.6.0 source",
+"eig": 0.4,
+"absorbed": "v2.awslc-rs-fips-crate-map",
+"domain": "W-PQC"
+},
+{
+"explorer": "05",
+"text": "CMVP #5429 AWS-LC dynamic (2026-07-20, sunset 2029-08-13): which module/version/algorithms does it cover?",
+"eig": 0.45,
+"absorbed": "v2.awslc-rs-fips-crate-map",
+"domain": "W-PQC"
+},
+{
+"explorer": "05",
+"text": "FedRAMP rules JSON has 10 KSI groups; sc-13 mapped in SVC",
+"eig": 0.1,
+"absorbed": "ops.fedramp-20x-ksi-mapping",
+"domain": "W-OPS"
+},
+{
+"explorer": "05",
+"text": "FedRAMP Class A/B/C tiers and Security Decision Records",
+"eig": 0.3,
+"absorbed": "v2.fedramp-class-tiers",
+"domain": "W-OPS"
+},
+{
+"explorer": "05",
+"text": "rustls manual fips.rs documents the FipsStatus::Certified assertion verbatim",
+"eig": 0.1,
+"absorbed": "ops.rustls-fipsstatus-gate",
+"domain": "W-OPS"
+},
+{
+"explorer": "06",
+"text": "Calif ratios nginx 70:1, IIS 68:1, Envoy 5,700:1, Apache 4,000:1; Pingora ratio and 34 B/s not in post",
+"eig": 0.3,
+"absorbed": "v2.calif-h2bomb-ratios",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "06",
+"text": "No CVE named for Envoy in Calif post (only GHSA-22m2)",
+"eig": 0.15,
+"absorbed": "v2.calif-h2bomb-ratios",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "06",
+"text": "h3 PR #377 Bound decoded header memory opened 2026-10-22; may change H3-off pin",
+"eig": 0.35,
+"absorbed": "l5-config-pin-table-transport",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "06",
+"text": "Firecracker fourth harness verify_token_bucket_force_replenish",
+"eig": 0.05,
+"absorbed": "l4-firecracker-kani-token-bucket",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "06",
+"text": "Vendor-specific MadeYouReset CVEs (e.g. Tomcat CVE-2025-48989) belong in the regression corpus",
+"eig": 0.2,
+"absorbed": "l4-cve-corpus-h2-h3-2023-2026",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "06",
+"text": "Check h2/hyper releases after 0.4.20/1.12.0 for header-count caps or default changes",
+"eig": 0.4,
+"absorbed": null,
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "06",
+"text": "Narcissus (Coq) and Leapfrog are existence proofs for verified binary-format decoders (not HPACK)",
+"eig": 0.2,
+"absorbed": "l4-no-verified-hpack-qpack-decoder",
+"domain": "W-FORMAL"
+},
+{
+"explorer": "07",
+"text": "Citation fix: CVE-2026-34988 (GHSA-6wgr) and RUSTSEC-2026-0091/CVE-2026-35195 (GHSA-394w) are the correct sources; JLSEC-2026-1360/RUSTSEC-2026-0096 are jhxm",
+"eig": 0.2,
+"absorbed": "skeptic-small-reservation-pooling-recipe",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "GHSA-6wgr requires four simultaneous opt-in conditions; defaults not vulnerable",
+"eig": 0.15,
+"absorbed": "skeptic-small-reservation-pooling-recipe",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "jhxm: memory64 default-on in Wasmtime 39..<45.0.1, so version pin matters for M0",
+"eig": 0.3,
+"absorbed": "wasmtime-minimal-config-pin",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "GHSA-897f range 37.0.0-<43.0.0 has no backport for 37-42; CVSS 9.9",
+"eig": 0.2,
+"absorbed": "cranelift-default-config-escape-2026-10",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "Companion CVE-2026-34941 UTF-16 transcoding OOB read (M1 row)",
+"eig": 0.2,
+"absorbed": "wasmtime-advisory-share-by-config",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "Hyperlight 0.9 ms warm demo and Dandelion 27.5 ms breakdown are not like-for-like cold starts",
+"eig": 0.15,
+"absorbed": "isolation-decision-inputs-table",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "07",
+"text": "Sandlock arXiv 2605.26298 does not support the zygote fork numbers",
+"eig": 0.1,
+"absorbed": "zygote-sandbox-recipe-measured",
+"domain": "W-ISOLATION"
+},
+{
+"explorer": "08",
+"text": "canopydb defaults confirmed from source",
+"eig": 0.05,
+"absorbed": "cc.result-canopydb",
+"domain": "W-STATE"
+},
+{
+"explorer": "08",
+"text": "redb 4.4.0 fixes Durability::None loss after caught panic; 4.2.0 fixes growth/resizing crash; check_integrity makes None durable",
+"eig": 0.3,
+"absorbed": "cc.result-redb",
+"domain": "W-STATE"
+},
+{
+"explorer": "08",
+"text": "fjall #329 says process crashes unaffected: recheck replay SIGKILL/BufWriter semantics for Buffer mode",
+"eig": 0.5,
+"absorbed": null,
+"domain": "W-STATE"
+},
+{
+"explorer": "08",
+"text": "RWF_ATOMIC interface landed 6.11; ext4 single-block 6.13; RWF_WRITETHROUGH not a durability guarantee",
+"eig": 0.15,
+"absorbed": "cc.kernel-atomic-writes",
+"domain": "W-STATE"
+},
+{
+"explorer": "08",
+"text": "LKML O_SYNC report also suspects XFS; no fix or confirmation",
+"eig": 0.2,
+"absorbed": "cc.fsync-guarantees",
+"domain": "W-STATE"
+},
+{
+"explorer": "09",
+"text": "Docker mcp-gateway advisories beyond corpus",
+"eig": 0.3,
+"absorbed": "v2.docker-mcp-gateway-advisories-r2",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "09",
+"text": "agentgateway ReferenceGrant cross-namespace advisories -> control-plane invariant",
+"eig": 0.4,
+"absorbed": "v2.agentgateway-referencegrant",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "09",
+"text": "rmcp advisories 9g45/9pj6/4432/33f5",
+"eig": 0.25,
+"absorbed": "v2.rmcp-more-advisories",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "09",
+"text": "Cite primary spec files streamable-http.mdx and mrtr.mdx (2026-07-28)",
+"eig": 0.1,
+"absorbed": "fin.spec-absent-origin",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "09",
+"text": "Inspector GHSA-wmjf lists <=2.5.0 vulnerable (latest), fix status unknown: treat as open",
+"eig": 0.2,
+"absorbed": "adv.corpus-r2-09",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "09",
+"text": "Recheck 58-row corpus dates for off-by-days drift (GHSA-xw59 2026-04-01)",
+"eig": 0.2,
+"absorbed": "adv.corpus-r2-09",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "10",
+"text": "CURL-CVE-2026-9545 HTTP/3 early data to impostor",
+"eig": 0.3,
+"absorbed": "v2.curl-0rtt-early-data-2026-9545",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "10",
+"text": "curl 2026 auth-state leaks (Digest, netrc, Negotiate)",
+"eig": 0.3,
+"absorbed": "v2.curl-2026-auth-state-cluster",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "10",
+"text": "curl client-cert state surviving reuse (86415, 86411)",
+"eig": 0.2,
+"absorbed": "v2.curl-2026-auth-state-cluster",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "10",
+"text": "curl native CA trust persisting and TLS requirement ignored on reuse",
+"eig": 0.2,
+"absorbed": "v2.curl-2026-auth-state-cluster",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "10",
+"text": "Hebrok 2025 server-authentication bypass in six provider clusters",
+"eig": 0.3,
+"absorbed": "v2.hebrok25-server-auth-bypass",
+"domain": "W-PQC"
+},
+{
+"explorer": "10",
+"text": "Resumption skips ML-KEM only under psk_ke; psk_dhe_ke does fresh key exchange: verify rustls/aws-lc-rs PQ resumption mode",
+"eig": 0.5,
+"absorbed": null,
+"domain": "W-PQC"
+},
+{
+"explorer": "10",
+"text": "RFC 9308: accepted 0-RTT cannot be selectively discarded",
+"eig": 0.1,
+"absorbed": "crs-ce-0rtt-replay",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "10",
+"text": "Verify USENIX scan numbers (59.75M/176), Contour #5240, WWW 2015 paper, GHSA-489g link",
+"eig": 0.25,
+"absorbed": null,
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "11",
+"text": "Opossum CVE-2025-49812; Apache deprecated opportunistic HTTP",
+"eig": 0.1,
+"absorbed": "r2e11.opossum",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "11",
+"text": "HAProxy CVE-2026-33555 affects 2.6..<3.3.6; root cause: H3 parser does not compare body length to content-length on empty-payload close",
+"eig": 0.15,
+"absorbed": "r2e11.haproxy-cve-2026-33555",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "11",
+"text": "LiteLLM CVE-2026-59822 in CISA KEV 2026-09-02; substring public-route bypass",
+"eig": 0.15,
+"absorbed": "r2e11.litellm-failopen",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "11",
+"text": "CDN Tsunami: 151,685 subdomains on vulnerable CDNs, 42,330 H3-enabled; CDN-side mitigations",
+"eig": 0.1,
+"absorbed": "r2e11.cdn-tsunami",
+"domain": "W-TRANSPORT"
+},
+{
+"explorer": "11",
+"text": "x402 paper authors/attacks; possible second related study (x402Scope, 31 vulns, 49 rule violations)",
+"eig": 0.25,
+"absorbed": "r2e11.x402-attacks",
+"domain": "W-AGENT-PROTOCOL"
+},
+{
+"explorer": "11",
+"text": "APISIX CVE-2026-94269 route normalization differential",
+"eig": 0.15,
+"absorbed": "r2e11.apisix-2026-advisories",
+"domain": "W-THREAT"
+},
+{
+"explorer": "11",
+"text": "DBSC Secure-Session-Skipped header and alg none",
+"eig": 0.1,
+"absorbed": "r2e11.dbsc",
+"domain": "W-AUTHZ"
+},
+{
+"explorer": "11",
+"text": "Replace DEF CON root URLs with specific talk links or CVE records",
+"eig": 0.25,
+"absorbed": null,
+"domain": "W-UNKNOWN"
+},
+{
+"explorer": "12",
+"text": "Confirm RFC 10024 publication date from the RFC index",
+"eig": 0.15,
+"absorbed": null,
+"domain": "K-CALIBRATION"
+},
+{
+"explorer": "12",
+"text": "RUSTSEC-2026-0349 low severity; mitigated by server HRR or disabling resumption",
+"eig": 0.1,
+"absorbed": "adv-rustls-pq-downgrade-2026-0349",
+"domain": "W-PQC"
+},
+{
+"explorer": "12",
+"text": "Supavisor fix only in v2.10.0-rc.0",
+"eig": 0.1,
+"absorbed": "sdg-txn-pooling-session-leak",
+"domain": "W-DATA-GATE"
+},
+{
+"explorer": "12",
+"text": "Check whether the October 2026 spike of 81 Verus soundness issues is a bulk audit or AI batch before using it as a rate",
+"eig": 0.35,
+"absorbed": null,
+"domain": "W-FORMAL"
+}
+]
+}

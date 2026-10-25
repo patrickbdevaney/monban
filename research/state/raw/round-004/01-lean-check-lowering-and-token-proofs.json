@@ -1,0 +1,894 @@
+{
+ "explorer": "01-lean-check-lowering-and-token-proofs",
+ "round": 4,
+ "date": "2026-10-25",
+ "target": "W-FORMAL L4->L5: execute Lean checks on lowering + token + combine drafts",
+ "nodes": [
+  {
+   "id": "r4e01.lowering-r3-draft-failed-check",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "negative-result",
+   "title": "r3 AegisIR/Lowering.lean as written does NOT check under Lean 4.35.0: 3 elaboration errors + 1 sorry (r3 claimed only the sorry remained)",
+   "summary": "First execution of the r3 lowering draft. `lean AegisIR/Lowering.lean` (4.35.0@eb6cafb) fails: anyEq_sound `simp [List.contains]` hits maxRecDepth twice (lines 154/155); lower_sound_pos isIn case type mismatch because simp normalises `vs.contains x = true` to `x ∈ vs` (line 210); lower_sound_full is sorry (246). Also the r3 lakefile.lean cannot even be parsed on an Init-only toolchain (`unknown namespace Lake`).",
+   "specifics": "Executed (read=compiler output): wall 1.05 s, peak RSS 519,552 KB. Error class = simp-normal-form drift and recursive unfolding of a core def; both typical of proofs written without a checker. Fix was proof-only (definitions byte-identical): use default simp set (List.elem/contains_cons lemmas) instead of unfolding List.contains, and close isIn via the anyEq_sound result. Original copy kept at /home/patrickd/aegis/research/state/raw/round-004/01-work/lean-r3-asis/.",
+   "urls": [
+    "https://lean-lang.org/doc/reference/latest/releases/v4.35.0/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Only shows these drafts failed; does not show LLM-drafted Lean generally fails at this rate.",
+   "underclaim_risk": "Do not read 'fixable in minutes' as 'the drafts were fine': every Lean claim graded on an unexecuted draft was wrong in detail.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs",
+   "property": "lowering soundness (draft)",
+   "tool": "Lean 4.35.0 core",
+   "tcb": "Lean kernel"
+  },
+  {
+   "id": "r4e01.lower-sound-full-proved",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "proof",
+   "title": "lower_sound_full (lowering soundness WITH NOT, under Backend.Exact) is now machine-checked in core Lean; also lowerQ_sound_full with the tenant conjunct",
+   "summary": "The r3 sorry is closed. Statement unchanged: ∀ B, B.Exact → ∀ r p b, sql3 B r (lower p) = some b → eval r p = b (pair invariant: a definite three-valued SQL answer equals the two-valued reference). Helper lemmas: anyEq_exact, beq_exact, brange_exact, bpfx_exact, k3and_some, k3or_some. Corollary lowerQ_sound_full: keeps B r (lowerQ tf t p) → refQ tf t r p for ALL p (no positivity side condition).",
+   "specifics": "File /home/patrickd/aegis/research/state/raw/round-004/01-work/lean-golden/AegisIR/Lowering.lean (proof-only changes vs r3, semantics byte-identical). Added ~95 LOC of proof. Axioms of lower_sound_full / lowerQ_sound_full: {propext, Classical.choice, Quot.sound}; k3and_some/k3or_some: {propext, Quot.sound}. Checked by Lean default kernel AND lake check --paranoid (leanchecker-paranoid, lean4lean, nanoda 0.4.19, con-leche, con-ron). Kleene lemmas proved by exhaustive `rcases a with _|⟨_|_⟩ <;> rcases c ... <;> cases b <;> simp_all` (27 cases).",
+   "urls": [
+    "https://lean-lang.org/doc/reference/latest/releases/v4.35.0/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Proves a MODEL of the lowering (mini SQL WHERE, single row, no joins/casts) — not the Rust renderer or the real engine; Exact is a hypothesis real engines violate (see r4e01.exact-vs-refines-not-witness).",
+   "underclaim_risk": "The NOT fragment is fully discharged; the remaining risk is entirely in the adapter contract + rendering, which is where DRT must aim.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs",
+   "property": "filter lowering soundness incl. NOT/NULL/empty IN",
+   "tool": "Lean 4.35.0 core",
+   "tcb": "Lean kernel + 5 external checkers (any one correct)",
+   "effort": "~95 LOC proof, <1 h with checker",
+   "llm_synthesizable": "yes (written by an LLM agent in this run, 3 check iterations)"
+  },
+  {
+   "id": "r4e01.exact-vs-refines-not-witness",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "proof",
+   "title": "Machine-checked counterexample: Backend.Refines alone is INSUFFICIENT once NOT is in the IR; the R-DB-7 adapter contract must be two-sided (no leaks AND no misses) or NOT must be banned on that adapter",
+   "summary": "Vacuity.refines_insufficient_for_not: a backend whose equality never matches (neverEq) satisfies Refines, yet lower (.not (.eq 1 (int 5))) keeps row1 while the policy eval is false. So completeness failures (backend says 'no' where reference says 'yes') become LEAKS under negation. Real instance of a completeness failure: PostgreSQL BUG #19645 (18.6, reported 2026-08-29): partition pruning on a text_pattern_ops key with a nondeterministic ICU collation drops matching rows (`WHERE c='b'` returns {2} not {1,2}; UPDATE/DELETE affect 1 row instead of 2).",
+   "specifics": "Contract change for R-DB-7: (1) if the golden IR exposes Not (or any negative operator: ne, not-in, not-prefix), the adapter must ship Backend.Exact, i.e. the differential oracle reports leak_cases = 0 AND miss_cases = 0; (2) else the IR front end must statically reject Not for that adapter (lower_sound_pos covers the positive fragment under Refines only). Schema gate must also refuse partitioned tables whose partition-key opclass/collation differs from the column's (PG #19645/#19646 class).",
+   "urls": [
+    "https://www.postgresql.org/message-id/19645-60a963f2e91478e0@postgresql.org"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "neverEq is a toy; the PG bug is in pruning, not in the comparison operator, and needs an unusual schema.",
+   "underclaim_risk": "Any optimizer-level wrong-result bug is an Exact violation; the PG bug list has a steady supply, so treating Refines as sufficient would silently admit NOT-based leaks.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs",
+   "property": "necessity of two-sided atom contract under negation",
+   "tool": "Lean 4.35.0 core",
+   "tcb": "Lean kernel"
+  },
+  {
+   "id": "r4e01.not-absent-permits-spec-gap",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "spec-gap",
+   "title": "Spec gap: the reference policy semantics is two-valued with absent⇒atom-false, so NOT over an absent/NULL field PERMITS; SQL hides it (UNKNOWN drops the row) but document stores implement it literally (MongoDB $ne matches documents lacking the field)",
+   "summary": "Lowering.not_absent_permits: r f = none → eval r (.not (.eq f v)) = true. The SQL lowering stays sound (stricter), but the REFERENCE grants rows a policy author would read as 'owner ≠ alice' = only rows with a different owner. MongoDB docs: $ne 'selects documents where the value of the field is not equal to the specified value. This includes documents that do not contain the field.' A Mongo adapter that is Exact w.r.t. this reference is therefore exactly as permissive as the reference.",
+   "specifics": "Decision needed (flagged, NOT applied — would be a spec change): either (a) make the reference three-valued (eval : Row → Pred → Option Bool, permit iff some true, matching SQL and Cedar's error⇒deny), re-proving lower_sound_full as equality of Option Bool; or (b) forbid Not over nullable/optional fields at IR type-check time; for Mongo additionally require {$exists:true} guards on every negated field. Recommendation: (a) — it aligns all adapters with SQL and Cedar semantics and removes the asymmetry.",
+   "urls": [
+    "https://mongodb.com/docs/manual/reference/operator/query/ne"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Whether it is a bug depends on intended policy semantics; some authors want 'not owned by alice' to include unowned rows.",
+   "underclaim_risk": "Silent widening on optional attributes is the classic authz bug class (Cedar made missing-attribute an error for this reason).",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.token-T1-T6-checked",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "proof",
+   "title": "Token T1-T6 transcribed into core Lean and CHECKED: 16 theorems (attenuation monotonicity, audience binding, expiry incl. effective-min, depth non-increase + verify-time bound, verify_iff, holder attenuation MAC correctness, enc injectivity from canonical codec)",
+   "summary": "AegisIR/Token.lean. T1 attenuation_mono / attenuation_mono_append; T2 aud_bound; T3 expiry_minted, effExp_append, effExp_append_exp, expiry_effective; T4 effDepth_append, effDepth_append_le, depthOk_bound; T5 verify_iff, attenuate_mac, attenuate_narrows; T6 Codec structure + enc_injective, parse_canonical. HMAC is a universally-quantified parameter H (not an axiom/opaque), so nothing enters the TCB; EUF-CMA is an explicit external assumption.",
+   "specifics": "Axioms: T1/T4/T5 propext only; T2/T3/attenuate_mac {propext, Quot.sound}; enc_injective, parse_canonical: none. Build 1.25 s / 498 MB (single file). SKEPTIC NOTES: verify_iff is definitional (unfold+simp) — security content is zero without EUF-CMA; T6 proves only 'roundtrip ⇒ injective', the roundtrip itself is cborrs/EverParse's (cited, not re-proven, not linked to Lean); `verify` does NOT check WellMinted, so T2/T3 apply only if the issuer is the sole origin of chain heads (true under EUF-CMA) — defense-in-depth fix: add a mint-shape check to verify and prove `verify → r.aud = a ∧ r.now < e` directly (next obligation, ~20 LOC).",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Checks a model of the token; the Rust verifier, CBOR codec, constant-time compare and HMAC are outside the proof.",
+   "underclaim_risk": "T1/T5' (attenuation never widens even with adversarial appends) is the core macaroon property and is now kernel-checked with zero custom axioms.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs",
+   "property": "capability token attenuation/audience/expiry/depth",
+   "tool": "Lean 4.35.0 core",
+   "tcb": "Lean kernel; EUF-CMA(HMAC-SHA256) assumed; cborrs codec (EverParse) cited"
+  },
+  {
+   "id": "r4e01.token-spec-sharpenings",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "spec-decision",
+   "title": "Transcription forced 4 token spec decisions the r3 prose left ambiguous: segment-prefix resources (D1), op bitmask subset (D2), depth enforced at VERIFY time not append time (D3), absent tool argument denies (D4)",
+   "summary": "D1: res_prefix must be a path-SEGMENT prefix (List String), checked witness segment_prefix_blocks_t10 (['t1'] does not admit ['t10','doc']); a string prefix would admit /t1 → /t10. D3: r3 said 'appending is allowed only if depth_left > 0' — unenforceable in an HMAC chain because holders append offline; the verifier enforces caveats_after_mint ≤ minted depth (depthOk: length ≤ 3 + effDepth, min over appended depth caveats); witness depth_enforced. D4 fail-closed on missing argument keys. D2 r.ops &&& mask = r.ops.",
+   "specifics": "Rust obligations derived: verifier splits canonical path into segments exactly like the model (no trailing-slash/empty-segment ambiguity: canonicaliser rejects '//' and trailing '/'); kid fixed 8 B and nonce fixed 16 B so kid||nonce concatenation is unambiguous; F6 depth_matrix fuzz target must include 'append beyond depth' (expect reject).",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "D1-D4 are choices; ratification belongs to the spec freeze.",
+   "underclaim_risk": "D1 is a real cross-tenant bug class if left as string prefix.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.combine-failclosed-first-check",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "proof",
+   "title": "combine_failclosed was graded A 'proven in Lean' in r2 but no Lean text existed anywhere in state/raw; now written and checked (4 theorems), correcting the overclaim",
+   "summary": "AegisIR/Combine.lean: Decision = allow|deny|error; combine [] = deny; any error ⇒ deny; allow iff non-empty and unanimous allow. Theorems combine_failclosed (allow ⇒ ∀ d ∈ ds, d ≠ error), combine_allow_iff, combine_empty, combine_ne_error. Axioms: {propext, Quot.sound} / none.",
+   "specifics": "Corrects graph node vfg-policy-tristate-failclosed-invariant: its 'proven in Lean' claim was E (statement only) until this run. Host obligation (not provable here): timeout/crash/panic of a module is mapped to `error` BEFORE combine — must be a DST/fault-injection test.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Trivial theorem; the hard part is the host mapping of crashes to error.",
+   "underclaim_risk": "The empty-list ⇒ deny decision is now explicit and checked; r2 text left it implicit.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.lakefile-toml-init-only",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "A golden proof package needs only an Init-only Lean subset (712 MB) if the lakefile is TOML; a lakefile.lean forces Lean+Lake .olean trees (+1.46 GB) because it must `import Lake`",
+   "summary": "Measured on the v4.35.0 linux tarball (594,481,375 B, 18,571 files, 3.4 GB unpacked): lib/lean/Lean 1,340.8 MB, Init 405.6 MB, Std 346.7 MB, libleanshared.so 231.1 MB, Lake 116.1 MB, libLean.a 312.3 MB. Carved subset = bin/* (76 MB incl. 5 external checkers) + lib/lean/Init + libleanshared{,_1,_2}.so + libInit_shared.so + libLake_shared.so + runtime .so = 712 MB; elan 4.2.4 = 13 MB; `elan toolchain link leanprover/lean4:v4.35.0 <dir>` makes the pin resolve to it. With lakefile.toml: lake build, lake check, lake check --paranoid all work on this subset; Std NOT needed.",
+   "specifics": "Corrects R-FORMAL-2's 'Init+Std 1.0 GB, Batteries at most' to: golden needs Init only (712 MB) and NO dependency at all; Cedar's Lean (batteries + lakefile.lean) cannot use the subset. Init file mix: .olean.private 258 MB, .olean 96 MB, .ilean 21 MB, .ir 18 MB (module-system split). Carving is unsupported by Lean FRO (supported = full 3.4 GB toolchain).",
+   "urls": [
+    "https://github.com/leanprover/lean4/releases/tag/v4.35.0"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Subset is hand-carved; a future toolchain may need more files (re-carve per pin, verify by running the gate).",
+   "underclaim_risk": "CI image for the proof gate drops from ~3.4 GB to ~0.73 GB, laptop-feasible.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.lean-build-footprint-measured",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "measurement",
+   "title": "Golden Lean package (4 files, 45 theorems) measured: cold lake build median 2.23 s / 546 MB peak RSS; no-op 0.16 s; lake check 72.6 s / 1.0 GB; lake check --paranoid 228-245 s / ~1.0 GB over 58,609 declarations",
+   "summary": "Hardware i9-14900HX (32 threads), Ubuntu 24.04.4, under heavy.sh (nice 15, MemoryMax 6G), loadavg 9.6-10.4 (other jobs running). Cold runs 2.23/1.03/2.25 s (peak 541-546 MB); no-op 0.16/0.16/0.21 s (~106 MB); touch-only does not rebuild (content hashing). Per-file: Lowering 1.32 s/525 MB, Token 1.25 s/498 MB. lake check (default kernel): 72.55 s, 1,007,964 KB; --paranoid (6 checkers): 227.87 s / 995,876 KB, and 245.14 s / 998,876 KB inside the full gate. .lake build dir 3.7 MB.",
+   "specifics": "The checking cost is dominated by re-exporting and re-checking ALL of Init (58,609 decls), not by our 45 theorems: paranoid cost is ~fixed per toolchain. R-FORMAL-2 projection '<5 s, <0.7 GB' holds for build; NOT for the paranoid gate (≈4 min, 1.0 GB). Numbers tagged recomputed (own runs).",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Single machine; medians of 3 for build only (paranoid run twice).",
+   "underclaim_risk": "All within $5-VPS-class RAM? No: 1.0 GB peak means a 1 GB VPS cannot run the paranoid gate — CI runner only (consistent with build-time-only proofs).",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.lake-check-paranoid-six-kernels",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "tool",
+   "title": "lake check --paranoid (Lean 4.35.0) runs six independent checkers on an export and all accepted the golden package; lean4lean works through this path (r2's 'incompatible header' came from invoking lean4lean directly on .olean files)",
+   "summary": "Observed: Lean paranoid kernel accepts; lean4lean 'checked 58609 declarations'; nanoda accepts ('Skipped exported but unpermitted axioms [sorryAx]' — Init declares sorryAx; not used); con-leche and con-ron 'accepted 58612 declarations (--verified)'; Lean default kernel accepts; 'Uses axioms: Classical.choice, propext, Quot.sound'. Exit code 0. Negative control (sorry + native_decide + custom axiom) → exit 1 with one line per unpermitted axiom and the theorem using it. Features from PRs #14990 (lake check, merged 2026-09-07), #15145 (--paranoid, 2026-09-14), #15055 (external leanchecker process), #14884 (leanchecker-paranoid hardened allocator).",
+   "specifics": "Running lean4lean directly on Init .olean still prints 'incompatible header' for every module (reproduced) — use export path only. Comparator-style statement matching (challenge vs solution) is a separate command (lake comparator) — needed only for third-party proof contributions.",
+   "urls": [
+    "https://lean-lang.org/doc/reference/latest/releases/v4.35.0/",
+    "https://github.com/leanprover/lean4/pull/14990",
+    "https://github.com/leanprover/lean4/pull/15145",
+    "https://github.com/leanprover/lean4/pull/15055"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Multi-kernel acceptance reduces but does not remove kernel risk (shared export format, shared prelude assumptions).",
+   "underclaim_risk": "Resolves an r2 open question; the 'any one checker correct' TCB is now available in a stock toolchain.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.native-decide-aux-axiom-naming",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure-mode",
+   "title": "Since Lean 4.29 native_decide asserts a per-theorem axiom named `<thm>._native.native_decide.ax_N_M`; 4.35.0 removed Lean.ofReduceBool/trustCompiler entirely — so axiom gates that DENYLIST ofReduceBool silently pass native_decide; only an ALLOWLIST is correct",
+   "summary": "Observed in the negative control: `#print axioms AegisIR.Bad.uses_native` → 'AegisIR.Bad.uses_native._native.native_decide.ax_1_1' (no ofReduceBool). PR #14953 (merged 2026-08-28) 'removes Lean.reduceBool, Lean.reduceNat, Lean.ofReduceBool, Lean.ofReduceNat and Lean.trustCompiler'; Lean reference ValidatingProofs: 'Since Lean 4.29.0, each native computation gets its own axiom'. Prior gate specs in this map (vfg-proof-ci-gate-spec grep list) and external project policies (CompPoly AGENTS.md: 'must not depend on Lean.ofReduceBool') are stale for ≥4.29.",
+   "specifics": "Gate rule: allowlist {propext, Classical.choice, Quot.sound}; fail on anything else, including any name containing '_native'. Note Classical.choice cannot be dropped: even `rfl` theorems over our definitions (orN_nil) report Classical.choice via Init definitions (String/List decidability).",
+   "urls": [
+    "https://lean-lang.org/doc/reference/latest/releases/v4.35.0/",
+    "https://github.com/leanprover/lean4/pull/14953",
+    "https://lean-lang.org/doc/reference/4.35.0/ValidatingProofs/",
+    "https://raw.githubusercontent.com/Verified-zkEVM/CompPoly/main/AGENTS.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Source-level grep for native_decide still catches direct uses; the hole is for gates relying on axiom names alone.",
+   "underclaim_risk": "A silent false-PASS in the proof gate is the worst failure mode named in R-FORMAL-3.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.bwrap-apparmor-blocks-lake-check",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure-mode",
+   "title": "lake check's bwrap sandbox fails out of the box on Ubuntu 24.04 (AppArmor restricts unprivileged user namespaces): 'bwrap: setting up uid map: Permission denied'",
+   "summary": "Observed on this laptop: Ubuntu 24.04.4, kernel.apparmor_restrict_unprivileged_userns = 1, no bwrap profile in /etc/apparmor.d → lake check exits before building. Workarounds: an AppArmor profile granting `userns` to /usr/bin/bwrap (needs root, forbidden here), the sysctl (weakens host), or --inadvisably-no-sandbox (PR #15156, 2026-09-14), which is acceptable ONLY for first-party sources we wrote. lake check exit code 2 is 'could not start'; here bwrap's failure surfaced as 'error: Child exited with 1' (exit 1) — a CI wrapper must not conflate it with a proof rejection.",
+   "specifics": "Golden CI: run the paranoid gate on a runner where bwrap works (GitHub-hosted runner status for ubuntu-24.04 not verified — spike), or in a VM and use `lake check --from-export` ONLY on exports we generated. For third-party contributions: sandbox mandatory, never --inadvisably-no-sandbox.",
+   "urls": [
+    "https://etbe.coker.com.au/2024/04/24/ubuntu-24-04-bubblewrap/",
+    "https://github.com/leanprover/lean4/pull/15005",
+    "https://github.com/leanprover/lean4/pull/15156"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Host-specific; other distros/runners may allow userns.",
+   "underclaim_risk": "The most common developer distro breaks the 'gold-standard' check by default; teams will reach for the no-sandbox flag.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.from-export-prelude-trust-hole",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "failure-mode",
+   "title": "Kernel trusts built-in prelude declarations by NAME (Nat.add etc.): an export that redefines them proves False axiom-free and passes both Lean kernels — Lean FRO classifies it as adversarial input, not a bug; only comparator-style prelude comparison catches it",
+   "summary": "lean4 issue #15908 (2026-10-24, closed same day): export with a non-canonical Nat.add yields axiom-free `contra : False`; 'both Lean default and Lean paranoid accept'. Maintainer: 'not a kernel soundness bug... Your export replaces the official prelude's Nat.add'; comparator rejects ('Const does not match between challenge and target Nat.add'). Soundness-report guide (hackmd, targets v4.35.0): 'We treat an alternative prelude as an adversarial input'.",
+   "specifics": "Gate policy: `lake check --from-export` is allowed only on exports built by our own pinned toolchain from our sources; any externally produced proof/export (agent marketplace, contractor, cloud prover) goes through `lake comparator` with our challenge file (statement + prelude matching) and the sandbox. Note this hole is in the export trust model, not in lake build of source.",
+   "urls": [
+    "https://github.com/leanprover/lean4/issues/15908",
+    "https://hackmd.io/Tu2Z97xHSQilI7b91HQfAw",
+    "https://github.com/leanprover/comparator"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Requires an attacker who controls the export file; irrelevant for first-party builds.",
+   "underclaim_risk": "Exactly the setting of cloud-agent-written proofs accepted as artifacts (§0c) if artifacts rather than sources are accepted.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.lean-kernel-soundness-2026-record",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "type": "incident-record",
+   "title": "Lean kernel/checker soundness record 2026: two axiom-free proofs of False fixed in July (4.32.1, 4.32.2), two kernel use-after-free fixes in 4.35.0, two leanchecker acceptance bugs (Sep) — pin ≥4.35.0 and keep multi-kernel checking",
+   "summary": "#14484 'Missing check apparently allows proof of False after adversarial metaprogram' (closed 2026-07-22, fix #14498 'kernel to check opaque values for fvars', downstreams migrated to v4.32.1 as a 'kernel soundness fix'); #14576 'Kernel accepts wrong-structure projections, allowing an axiom-free proof of False' (closed 2026-07-28, fix #14577, toolchain v4.32.2; found reviewing a claimed 300-line Collatz proof); #15241/#15289 kernel use-after-free on extreme inputs (merged 2026-09-23/24, in 4.35.0); #15288 UB on overflowed refcounts shared across threads; leanchecker #15100/#15101 accepted malformed export entries (closed 2026-09-09). New compiler miscompilation #10925 (2025-10) is the native_decide risk class. Labels 'soundness' and 'runtime-soundness' exist on lean4.",
+   "specifics": "Rate ≈ 2 kernel-level False proofs in H2 2026 + 2 checker bugs, all found by adversarial review in the AI-proof era. Implication: golden pins toolchain ≥4.35.0, subscribes to security@lean-fro.org advisories, and requires all six checkers (independent implementations: C++, Lean, Rust nanoda, con-leche, con-ron) to accept.",
+   "urls": [
+    "https://github.com/leanprover/lean4/issues/14484",
+    "https://github.com/leanprover/lean4/issues/14576",
+    "https://github.com/leanprover/lean4/pull/15241",
+    "https://github.com/leanprover/lean4/pull/15289",
+    "https://github.com/leanprover/lean4/pull/15288",
+    "https://github.com/leanprover/lean4/issues/15100",
+    "https://github.com/leanprover/lean4/issues/15101",
+    "https://github.com/leanprover/lean4/issues/10925"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "overclaim_risk": "Both False proofs need adversarial declarations (metaprograms/odd inductives); honest first-party proofs are very unlikely to hit them.",
+   "underclaim_risk": "'The kernel is small so it is correct' is falsified twice this year; multi-kernel is justified, not paranoia.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.cedar-tpe-closure-native-decide",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "type": "code-audit",
+   "title": "Cedar TPE soundness (reauthorize_is_sound) import closure = 159 modules / 41,282 LOC and includes Cedar.Data.Int64 (2 native_decide in library code); Cedar CI runs `lake build` only, with no axiom audit or external checker; building it exceeds the 1.5 GB budget (batteries + lakefile.lean ⇒ full toolchain)",
+   "summary": "cedar-spec @301bdd2 (2026-10-23) cedar-lean: 387 .lean files, 125,621 LOC; grep (comment lines excluded): sorry 0, axiom 0, native_decide 26 (UnitTest 16, Cedar/Thm/SymCC/Data/Ext.lean 8, Cedar/Data/Int64.lean 2), implemented_by 2 (CedarFFI only). r3's cedar/Soundness.lean and cedar/TPE.lean are byte-identical to upstream. Int64 native_decide lemmas (toInt_nonneg_of_ge_zero, toInt_neg_of_not_ge_zero) are referenced only from SymCC/Data/Ext by grep, so TPE soundness PROBABLY does not depend on them, but only `#print axioms Cedar.Thm.reauthorize_is_sound` after a build decides it. .github/workflows/ci.yml: `lake build Cedar SymCC` and static facets; no lake check.",
+   "specifics": "Extends R-FORMAL-3 (r3: '10 native_decide in SymCC path'): Int64 is in the AUTHORIZER-side import closure too. Golden policy: before relying on any Cedar Lean theorem, run lake check --paranoid on cedar-lean and record its axiom set; upstream PR replacing the 10 library native_decide by `decide`/norm_num-free core lemmas is cheap (closed literals).",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec",
+    "https://github.com/cedar-policy/cedar-spec/blob/main/.github/workflows/ci.yml"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Import ≠ dependency; the authorizer theorem may be native-free.",
+   "underclaim_risk": "AWS's flagship Lean proof is not axiom-audited in its own CI; a dependency on native_decide would put the Lean compiler into Cedar's TCB unnoticed.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.l5-pinned-toolchain-lakefile",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "artifact",
+   "title": "L5: pinned golden proof package — lean-toolchain leanprover/lean4:v4.35.0 (commit eb6cafb, tarball sha256 7289597a…268f6d), lakefile.toml with zero `require`, autoImplicit=false, 4 roots",
+   "summary": "Files: /home/patrickd/aegis/research/state/raw/round-004/01-work/lean-golden/lean-toolchain, lakefile.toml, lake-manifest.json (packages: []), AegisIR/{Lowering,Token,Combine,Vacuity}.lean. Install recipe (laptop-feasible): elan 4.2.4 (13 MB) + download lean-4.35.0-linux.tar.zst (594,481,375 B; sha256 7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d — recomputed locally, compare against GitHub asset digest in CI) + extract carved subset (712 MB) + `elan toolchain link leanprover/lean4:v4.35.0 <dir>`.",
+   "specifics": "Acceptance: `lake build` green with zero 'declaration uses sorry' warnings; manifest packages == []; no lakefile.lean.",
+   "urls": [
+    "https://github.com/leanprover/lean4/releases/tag/v4.35.0",
+    "https://github.com/leanprover/elan/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.l5-proof-ci-gate",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "type": "artifact",
+   "title": "L5: proof CI gate (ci/gate.sh + ci/axiom_audit.py) with observed PASS on the golden package (245 s, 1.0 GB) and observed FAIL on the negative control",
+   "summary": "gate.sh: (1) toolchain pin + exact `lean --version` commit check, no lakefile.lean; (2) lake build, fail on any sorry warning; (3) axiom_audit.py: source denylist (sorry, admit, native_decide, ofReduceBool, implemented_by, @[extern, axiom, unsafe, debug.skipKernelTC, bv_decide, opaque, maxRecDepth overrides) + generated `#print axioms` for EVERY theorem in the roots vs ALLOWLIST {propext, Classical.choice, Quot.sound} (works on Init-only toolchain: no `import Lean`); (4) lake check --paranoid (6 checkers). Observed outputs saved: /home/patrickd/aegis/research/state/raw/round-004/01-work/gate-observed-output.txt (PASS, 45 theorems), /home/patrickd/aegis/research/state/raw/round-004/01-work/gate-negative-control-output.txt (FAIL at step 2: sorry), axiom-stage negative output in progress notes (3 unpermitted axioms caught), lake-check-paranoid.log.",
+   "specifics": "CI budget: ≈4 min, ≈1.0 GB RSS, ≈0.73 GB toolchain. Env AEGIS_NO_SANDBOX=1 only for first-party code on AppArmor-restricted hosts. Release attestation records toolchain sha256 + gate log.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Gate proves the Lean model; spec-to-Rust linkage still needs DRT (F4 drt_lean).",
+   "underclaim_risk": "A ready, executed gate replaces two 'projected' spikes (SPK-LEAN-IR-1, q3-020).",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.l5-theorem-status-table",
+   "layer": "L5",
+   "domain": "W-FORMAL",
+   "type": "artifact",
+   "title": "L5: checked/unchecked status per theorem after r4 (all CHECKED by Lean default + 5 external kernels unless noted)",
+   "summary": "LOWERING: lower_sound_pos (r3 T1) CHECKED after proof fix; lowerQ_sound (T2) CHECKED; refines_necessary (T3) CHECKED; lower_sound_full (T4) CHECKED (was sorry); orN_nil/andN_nil (T5) CHECKED; NEW lowerQ_sound_full, not_absent_permits CHECKED. REFINES (Backend.Refines/Exact) = HYPOTHESES, satisfiable (refBackend_exact) and necessary (refines_necessary) — per-adapter truth is NOT provable in Lean, only DRT-tested. TOKEN: T1 attenuation_mono CHECKED; T2 aud_bound CHECKED; T3 expiry_minted/expiry_effective/effExp_append_exp CHECKED; T4 effDepth_append_le/depthOk_bound CHECKED (re-specified D3); T5 verify_iff CHECKED (definitional) + attenuate_mac/attenuate_narrows CHECKED; T6 parse_canonical CHECKED only as consequence of an assumed Codec roundtrip (cborrs EverParse proof NOT linked) ; EUF-CMA UNPROVEN (assumption). COMBINE: combine_failclosed, combine_allow_iff, combine_empty, combine_ne_error CHECKED (first Lean text ever). CEDAR reauthorize_is_sound / partial_evaluate_is_sound: UNCHECKED here (build >1.5 GB budget; spike).",
+   "specifics": "45 theorems total, 0 sorry, max axiom set {propext, Classical.choice, Quot.sound}. Grade moves proposed: R-DB-7 'E theorem' → A (model) / spec-gaps flagged; R-AUTHZ-6 token T1-T6 E → A (model); vfg-policy-tristate-failclosed-invariant 'proven in Lean' E → A now.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.spec-fidelity-audit",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "type": "audit",
+   "title": "Spec-fidelity audit: every hypothesis of every theorem, whether the Rust implementation could violate it, and the vacuity check (concrete models satisfy all hypotheses, so False is not derivable from them)",
+   "summary": "VACUITY: Vacuity.lean exhibits models: refBackend satisfies Exact (hence Refines); keeps_nonvacuous (lowerQ keeps a real row with a NOT filter); token_nonvacuous (WellMinted ∧ denote ∧ depthOk all true); combine_nonvacuous. A satisfying model is a semantic consistency proof of the hypothesis set — no theorem is vacuously true. LOWERING hypotheses: (h : B.Refines/Exact) — VIOLABLE by every real engine config (collation, affinity, PAD SPACE, LIKE wildcards, optimizer wrong-results like PG #19645) → per-adapter DRT two-sided + schema gate; (p.positive) — violable if the IR front end lets Not through on a Refines-only adapter → make it a type-level restriction; MODEL ASSUMPTIONS not stated as hypotheses but equally load-bearing: Rust `lower` = Lean `lower` (renderer could mis-parenthesise, render IN [] as invalid SQL, or bind NULL) → DRT Lean-compiled lower vs Rust AST (structural, not strings); Value has no NULL literal → Rust IR must not admit NULL literals; single-row WHERE only (no joins/subqueries/casts/aggregates) → IR must not express them on this path; tenant value t is 'host-minted' — the theorem holds for ANY t, binding t to the authenticated principal is a separate capability obligation. TOKEN hypotheses: WellMinted — issuer obligation; Lean `verify` does not check it, so a mis-minting issuer voids T2/T3 → add mint-shape check to Rust verify and to the Lean verify; H parameter — EUF-CMA assumed; Codec roundtrip — cborrs; kid/nonce fixed lengths — Rust must enforce or kid||nonce is ambiguous. COMBINE: host maps crash/timeout to error before combine — DST obligation.",
+   "specifics": "Net: no hypothesis is contradictory; 3 are violable by the Rust side in practice (Refines/Exact per adapter, mint shape, renderer=model) and each has a named test oracle.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "The audit is by inspection plus Lean witnesses; it can miss model assumptions nobody wrote down.",
+   "underclaim_risk": "Spec-fidelity is where verified systems actually fail; listing implicit model assumptions is the main value.",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  },
+  {
+   "id": "r4e01.spike-cedar-lean-build-axioms",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "type": "spike",
+   "title": "Implementation-phase spike: build cedar-lean @≥301bdd2 and run `lake check --paranoid` + `#print axioms Cedar.Thm.reauthorize_is_sound` / partial_evaluate_is_sound",
+   "summary": "Not run: over the §0e 1.5 GB disk budget (full toolchain 3.4 GB because cedar's lakefile.lean imports Lake; batteries v4.35.0 rev 66e4691; Cedar build tree estimated multi-GB). Protocol: heavy.sh; elan + full v4.35.0; git clone cedar-spec; `lake build Cedar` (record wall/RSS/disk); generate Audit.lean with #print axioms for the two TPE theorems and isAuthorized soundness; `lake check --paranoid --inadvisably-no-sandbox` (first-party-equivalent trust only if source pinned by commit). Decision: if axioms ⊆ allowlist → Cedar Lean theorems can be cited at grade A in the golden assurance case; if any _native axiom → either upstream PR replacing the 10 library native_decide or list Lean compiler in TCB for that theorem.",
+   "specifics": "Expected (unmeasured, E): full build 10-30 min on 32 threads, 3-6 GB RSS, 4-8 GB disk.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.6,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "last_verified": "2026-10-25",
+   "explorer": "01-lean-check-lowering-and-token-proofs"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r4e01.lowering-r3-draft-failed-check",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "contradicts",
+   "note": "r3 'only 1 sorry remains; projected to check' — 3 errors found on execution"
+  },
+  {
+   "src": "r4e01.lower-sound-full-proved",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "extends",
+   "note": "closes the T4 sorry; instrument read→executed kernel check"
+  },
+  {
+   "src": "r4e01.exact-vs-refines-not-witness",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "extends",
+   "note": "R-DB-7 contract must be two-sided under NOT"
+  },
+  {
+   "src": "r4e01.not-absent-permits-spec-gap",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "conflicts_with",
+   "note": "reference semantics widens on NOT over absent fields"
+  },
+  {
+   "src": "r4e01.token-T1-T6-checked",
+   "dst": "r3e05.l5-token-wire-format-lean",
+   "type": "extends",
+   "note": "T1-T6 transcribed and kernel-checked"
+  },
+  {
+   "src": "r4e01.token-T1-T6-checked",
+   "dst": "r3e05.l5-token-decision",
+   "type": "proves",
+   "note": "attenuation/aud/exp/depth on Tier L model; tcb=Lean kernel + EUF-CMA assumption"
+  },
+  {
+   "src": "r4e01.token-spec-sharpenings",
+   "dst": "r3e05.l5-token-wire-format-lean",
+   "type": "refines",
+   "note": "D1-D4 spec decisions"
+  },
+  {
+   "src": "r4e01.token-spec-sharpenings",
+   "dst": "r3e05.l5-token-verifier-fuzz-harness",
+   "type": "extends",
+   "note": "F6 depth matrix must test append-beyond-depth; path segment canonicalisation"
+  },
+  {
+   "src": "r4e01.combine-failclosed-first-check",
+   "dst": "vfg-policy-tristate-failclosed-invariant",
+   "type": "contradicts",
+   "note": "r2 claimed 'proven in Lean' with no Lean file; now actually proven"
+  },
+  {
+   "src": "r4e01.lakefile-toml-init-only",
+   "dst": "vfg-lean-core-minimal-measured",
+   "type": "extends",
+   "note": "Init-only subset sufficient for build + paranoid check when lakefile is TOML"
+  },
+  {
+   "src": "r4e01.lakefile-toml-init-only",
+   "dst": "vfg-toolchain-pin-footprint-table",
+   "type": "refines",
+   "note": "golden needs no Std/Batteries; 712 MB"
+  },
+  {
+   "src": "r4e01.lean-build-footprint-measured",
+   "dst": "vfg-toolchain-pin-footprint-table",
+   "type": "extends",
+   "note": "real package timings and paranoid gate cost"
+  },
+  {
+   "src": "r4e01.lake-check-paranoid-six-kernels",
+   "dst": "vfg-lean-multikernel-paranoid-check",
+   "type": "extends",
+   "note": "resolves lean4lean 'incompatible header' open question (export path works)"
+  },
+  {
+   "src": "r4e01.native-decide-aux-axiom-naming",
+   "dst": "vfg-proof-ci-gate-spec",
+   "type": "contradicts",
+   "note": "grep/denylist for ofReduceBool is stale since 4.29/4.35; allowlist required"
+  },
+  {
+   "src": "r4e01.bwrap-apparmor-blocks-lake-check",
+   "dst": "vfg-proof-ci-gate-spec",
+   "type": "extends",
+   "note": "sandbox prerequisite fails on Ubuntu 24.04 default"
+  },
+  {
+   "src": "r4e01.from-export-prelude-trust-hole",
+   "dst": "vfg-lean-multikernel-paranoid-check",
+   "type": "extends",
+   "note": "multi-kernel does not catch non-standard prelude exports; comparator needed for third-party artifacts"
+  },
+  {
+   "src": "r4e01.lean-kernel-soundness-2026-record",
+   "dst": "vfg-lean-multikernel-paranoid-check",
+   "type": "supports",
+   "note": "2026 kernel False proofs justify multi-kernel"
+  },
+  {
+   "src": "r4e01.cedar-tpe-closure-native-decide",
+   "dst": "r3e05.spike-cedar-lean-vs-rust",
+   "type": "extends",
+   "note": "axiom status of Cedar TPE theorems unknown until built"
+  },
+  {
+   "src": "r4e01.l5-proof-ci-gate",
+   "dst": "vfg-proof-ci-gate-spec",
+   "type": "extends",
+   "note": "executed implementation with observed PASS/FAIL"
+  },
+  {
+   "src": "r4e01.l5-pinned-toolchain-lakefile",
+   "dst": "vfg-toolchain-pin-footprint-table",
+   "type": "extends",
+   "note": "pin + checksum + carved install recipe"
+  },
+  {
+   "src": "r4e01.l5-theorem-status-table",
+   "dst": "irl-l5-lean-lowering-theorems",
+   "type": "extends",
+   "note": "status E→A for model theorems"
+  },
+  {
+   "src": "r4e01.spec-fidelity-audit",
+   "dst": "r4e01.l5-theorem-status-table",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4e01.spike-cedar-lean-build-axioms",
+   "dst": "r4e01.cedar-tpe-closure-native-decide",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4e01.exact-vs-refines-not-witness",
+   "dst": "r4e01.not-absent-permits-spec-gap",
+   "type": "alternative_to",
+   "note": "both resolved by moving to a three-valued reference or banning NOT per adapter"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Re-specify the IR reference semantics as three-valued (eval : Row → Pred → Option Bool, permit iff some true) and re-prove lower_sound_full as Option-Bool equality; does the Mongo/Redis lowering then become Exact-provable against a model of $ne+$exists?",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.6,
+   "reason": "closes r4e01.not-absent-permits-spec-gap; aligns adapters with SQL and Cedar"
+  },
+  {
+   "question": "Add a mint-shape check to Lean+Rust verify and prove verify → r.aud = a ∧ r.now < e without WellMinted as hypothesis; DRT Lean-compiled verify vs Rust verifier (F4)",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.45,
+   "reason": "removes the one token hypothesis the Rust side can violate"
+  },
+  {
+   "question": "Run the Cedar spike: lake check --paranoid on cedar-lean and #print axioms for reauthorize_is_sound / isAuthorized soundness on a CI runner (not the laptop)",
+   "layer": "L4",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.5,
+   "reason": "decides whether Cedar Lean theorems can be cited at A without Lean compiler in TCB"
+  },
+  {
+   "question": "Does lake check's bwrap sandbox work on GitHub-hosted ubuntu-24.04 runners (apparmor_restrict_unprivileged_userns)? If not, what minimal runner config (VM + from-export of self-built export) keeps the sandbox guarantee?",
+   "layer": "L4",
+   "domain": "W-ASSURE",
+   "expected_info_gain": 0.35,
+   "reason": "r4e01.bwrap-apparmor-blocks-lake-check"
+  },
+  {
+   "question": "Link cborrs/EverParse canonical-CBOR proof to the Lean Codec structure: is there an F*→Lean or shared-test bridge, or must T6 stay a cited assumption?",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.3,
+   "reason": "T6 currently unlinked"
+  },
+  {
+   "question": "Lean-compiled `lower` vs Rust renderer structural DRT: design the AST-level oracle (not SQL strings) and measure divergences over 1e7 random Preds incl. empty IN, nested NOT, NULL rows",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.45,
+   "reason": "renderer=model is the main implicit hypothesis"
+  }
+ ],
+ "protocol_implications": [
+  "No Lean claim may be graded above E until a gate log (lake build + axiom allowlist + lake check) is attached; r3's unexecuted Lowering draft had 3 errors besides the declared sorry, and r2's 'proven in Lean' combine_failclosed had no Lean text at all.",
+  "Proof gate must use an axiom ALLOWLIST {propext, Classical.choice, Quot.sound}; since Lean 4.29 native_decide shows up as `<thm>._native.native_decide.ax_*`, and 4.35 deleted ofReduceBool, so denylist gates false-PASS.",
+  "Golden Lean package uses lakefile.toml with zero dependencies; the CI toolchain can be an Init-only 712 MB subset; paranoid gate costs ~4 min / 1.0 GB per run (fixed, dominated by re-checking Init).",
+  "Third-party/agent-produced proof ARTIFACTS (exports, oleans) are accepted only via lake comparator with our challenge file and a working sandbox; lake check --from-export only on exports we built (lean4 #15908 prelude-by-name hole).",
+  "R-DB-7 adapter contract becomes two-sided (leak_cases=0 AND miss_cases=0) for any adapter exposing negation; otherwise the IR type checker rejects Not for that adapter.",
+  "Spec freeze must ratify token decisions D1 (segment prefix), D3 (verify-time depth), D4 (missing arg denies) and the three-valued-reference question for NOT over absent fields."
+ ],
+ "self_improvement": [
+  "Briefs said 'first time Lean has been executed in 4 rounds' but r2 executed toy obligations (vfg-lean-core-minimal-measured); planner should grep graph for 'measured' before claiming instrument novelty.",
+  "Graph allowed grade A on a 'proven in Lean' claim with no proof file (vfg-policy-tristate-failclosed-invariant). Add an integrator check: proof nodes need a file path + gate log path, else cap at C.",
+  "heavy.sh refuses only on /home free space; Lean installs into the scratchpad live on / (tmpfs/root); add a second df check for the target filesystem.",
+  "Laptop crash recovery: no progress file existed for this explorer, so all work restarted; explorers should write the progress file before the first heavy command (this one now does)."
+ ],
+ "numbers_checked": [
+  "tarball 594,481,375 B (read: GH API) sha256 7289597a…268f6d (recomputed)",
+  "carved subset 712 MB, elan 13 MB (recomputed du)",
+  "r3 draft: 3 errors + 1 sorry, 1.05 s, 519,552 KB (recomputed)",
+  "cold build median 2.23 s (2.23/1.03/2.25), peak 546 MB; no-op 0.16 s; loadavg ~10 (recomputed)",
+  "lake check 72.55 s / 1,007,964 KB; paranoid 227.87 s / 995,876 KB and 245.14 s / 998,876 KB; 58,609 decls (lean4lean), 58,612 (con-leche/con-ron) (recomputed)",
+  "cedar-lean 387 files / 125,621 LOC; TPE closure 159 modules / 41,282 LOC; native_decide 26 (recomputed grep)",
+  "PG BUG #19645: c='b' expected {1,2} actual {2} (read)"
+ ],
+ "queue_closed": [
+  "SPK-LEAN-IR-1 (executed)",
+  "q3-020 token Lean check (executed)"
+ ],
+ "notes": {
+  "queries_run": 24,
+  "dup_skipped": 0,
+  "near_dup_rewritten": 2,
+  "new_urls": 35,
+  "seen_urls": 1,
+  "new_nodes": 20,
+  "reused_node_ids_extended": 8,
+  "vocabularies": [
+   "PL-formal",
+   "ops-SRE",
+   "cryptography",
+   "DB-theory",
+   "web-dev practitioner",
+   "ML-for-proofs",
+   "PL-compilers"
+  ],
+  "source_types": [
+   "own execution",
+   "release notes/PRs",
+   "issues",
+   "docs",
+   "papers",
+   "vendor docs",
+   "bug reports",
+   "code read",
+   "blog"
+  ],
+  "contrarian": [
+   "kernel False-proof record",
+   "native_decide trust",
+   "bwrap/AppArmor negative",
+   "Refines insufficiency counterexample",
+   "Cedar CI no axiom audit"
+  ],
+  "spec_changes": "NONE to Lowering semantics (proof-only edits). Token.lean is a fresh transcription; D1-D4 flagged as spec decisions. Three-valued reference proposed but NOT applied.",
+  "cleanup": "all .lake dirs, toolchain (scratchpad), tarball and cedar clone deleted after recording; 01-work is 208 KB of sources/logs",
+  "sandbox": "lake check ran with --inadvisably-no-sandbox because bwrap userns is blocked by AppArmor on this host; acceptable for first-party sources only"
+ },
+ "sources": [
+  {
+   "url": "https://github.com/leanprover/lean4/releases/tag/v4.35.0",
+   "type": "release",
+   "status": "new"
+  },
+  {
+   "url": "https://lean-lang.org/doc/reference/latest/releases/v4.35.0/",
+   "type": "release notes",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/14953",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/14990",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15145",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15241",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15289",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15288",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15005",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15156",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/15055",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/pull/8309",
+   "type": "PR",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/15908",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/14576",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/14484",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/15100",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/15101",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4/issues/10925",
+   "type": "issue",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/comparator",
+   "type": "repo",
+   "status": "new"
+  },
+  {
+   "url": "https://lean-lang.org/doc/reference/4.35.0/ValidatingProofs/",
+   "type": "docs",
+   "status": "new"
+  },
+  {
+   "url": "https://hackmd.io/Tu2Z97xHSQilI7b91HQfAw",
+   "type": "guide",
+   "status": "new"
+  },
+  {
+   "url": "https://arxiv.org/abs/2403.14064",
+   "type": "paper (Lean4Lean, TYPES 2025)",
+   "status": "new"
+  },
+  {
+   "url": "https://etbe.coker.com.au/2024/04/24/ubuntu-24-04-bubblewrap/",
+   "type": "blog",
+   "status": "new"
+  },
+  {
+   "url": "https://mongodb.com/docs/manual/reference/operator/query/ne",
+   "type": "vendor doc",
+   "status": "new"
+  },
+  {
+   "url": "https://www.vldb.org/pvldb/volumes/11/paper/A%20Formal%20Semantics%20of%20SQL%20Queries%2C%20Its%20Validation%2C%20and%20Applications",
+   "type": "paper",
+   "status": "new"
+  },
+  {
+   "url": "https://arxiv.org/pdf/2003.11331",
+   "type": "paper",
+   "status": "new"
+  },
+  {
+   "url": "https://arxiv.org/abs/2609.06500",
+   "type": "paper (CAPMAS)",
+   "status": "new"
+  },
+  {
+   "url": "https://www.postgresql.org/message-id/19645-60a963f2e91478e0@postgresql.org",
+   "type": "bug report",
+   "status": "new"
+  },
+  {
+   "url": "https://arxiv.org/abs/2609.25011",
+   "type": "paper",
+   "status": "new"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/Verified-zkEVM/CompPoly/main/AGENTS.md",
+   "type": "repo policy",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/cedar-policy/cedar-spec",
+   "type": "repo (code read @301bdd2)",
+   "status": "seen"
+  },
+  {
+   "url": "https://github.com/ammkrn/nanoda_lib",
+   "type": "repo",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/lean4export",
+   "type": "repo",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/digama0/lean4lean",
+   "type": "repo",
+   "status": "new"
+  },
+  {
+   "url": "https://github.com/leanprover/elan/releases",
+   "type": "release",
+   "status": "new"
+  },
+  {
+   "url": "https://arxiv.org/pdf/2602.02990",
+   "type": "paper (Lean repair from compiler feedback)",
+   "status": "new"
+  }
+ ],
+ "artifacts": {
+  "golden": "/home/patrickd/aegis/research/state/raw/round-004/01-work/lean-golden",
+  "gate_pass_log": "/home/patrickd/aegis/research/state/raw/round-004/01-work/gate-observed-output.txt",
+  "gate_fail_log": "/home/patrickd/aegis/research/state/raw/round-004/01-work/gate-negative-control-output.txt",
+  "paranoid_log": "/home/patrickd/aegis/research/state/raw/round-004/01-work/lake-check-paranoid.log",
+  "timings": "/home/patrickd/aegis/research/state/raw/round-004/01-work/timings.txt",
+  "negative_control": "/home/patrickd/aegis/research/state/raw/round-004/01-work/neg",
+  "r3_asis": "/home/patrickd/aegis/research/state/raw/round-004/01-work/lean-r3-asis"
+ }
+}

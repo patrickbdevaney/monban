@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>GitHub Availability Report Archives - Page 7 of 8 - The GitHub Blog</title>
+	<atom:link href="https://github.blog/tag/github-availability-report/feed/?paged=7" rel="self" type="application/rss+xml" />
+	<link>https://github.blog/tag/github-availability-report/page/7/</link>
+	<description>Updates, ideas, and inspiration from GitHub to help developers build and design software.</description>
+	<lastBuildDate>Tue, 23 Jul 2024 15:58:03 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.3</generator>
+
+<image>
+	<url>https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32</url>
+	<title>GitHub Availability Report Archives - Page 7 of 8 - The GitHub Blog</title>
+	<link>https://github.blog/tag/github-availability-report/page/7/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">153214340</site>	<item>
+		<title>GitHub Availability Report: October 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-october-2021/</link>
+		
+		<dc:creator><![CDATA[Scott Sanders]]></dc:creator>
+		<pubDate>Thu, 04 Nov 2021 20:37:09 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=61187</guid>
+
+					<description><![CDATA[<p>In October, we experienced one incident resulting in significant impact and degraded state of availability for the GitHub Codespaces service.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-october-2021/">GitHub Availability Report: October 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In October, we experienced one incident resulting in significant impact and degraded state of availability for the GitHub Codespaces service.</p>
+<h2 id="october-8-1716-utc-lasting-1-hour-and-36-minutes"><a class="heading-link" href="#october-8-1716-utc-lasting-1-hour-and-36-minutes">October 8 17:16 UTC (lasting 1 hour and 36 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>A core Codespaces API response was inadvertently restructured as part of our Codespaces public API launch, impacting existing API clients dependent on a stable schema.</p>
+<p>For the duration of the incident, new Codespaces could not be initiated from the Visual Studio Code Desktop client. Connections to the web editor and pre-existing desktop sessions were not impacted, but degraded, with the extension displaying an error message while omitting Codespaces metadata from the Remote Explorer view.</p>
+<p>The incident was mitigated once we rolled back the regression, at which point all clients could connect again, including with new Codespaces created during the incident. As our monitoring systems did not initially detect the impact of the regression, a subsequent and unrelated deployment was initiated, delaying our ability to revert the change. To ensure similar breaking changes are not introduced in the future, we are investing in tooling to support more rigorous end-to-end testing with the extension’s use of our API. Additionally, we are expanding our monitoring to better align with the user experience across the relevant internal service boundaries.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>We will continue to keep you updated on the progress and investments we’re making to ensure the reliability of our services. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-october-2021/">GitHub Availability Report: October 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">61187</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: September 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-september-2021/</link>
+		
+		<dc:creator><![CDATA[Scott Sanders]]></dc:creator>
+		<pubDate>Wed, 06 Oct 2021 16:18:14 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=60566</guid>
+
+					<description><![CDATA[<p>In September, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2021/">GitHub Availability Report: September 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In September, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>Please follow our <a href="https://www.githubstatus.com/">status page</a> for real time updates. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2021/">GitHub Availability Report: September 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">60566</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: August 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-august-2021/</link>
+		
+		<dc:creator><![CDATA[Scott Sanders]]></dc:creator>
+		<pubDate>Wed, 01 Sep 2021 17:30:56 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=59900</guid>
+
+					<description><![CDATA[<p>In August, we experienced two distinct incidents resulting in significant impact and degraded state of availability for Git operations, API requests, webhooks, issues, pull requests, GitHub Pages, GitHub Packages, and GitHub Actions services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2021/">GitHub Availability Report: August 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In August, we experienced two distinct incidents resulting in significant impact and degraded state of availability for Git operations, API requests, webhooks, issues, pull requests, GitHub Pages, GitHub Packages, and GitHub Actions services.</p>
+<h2 id="august-10-1516-utc-lasting-one-hour-and-17-minutes"><a class="heading-link" href="#august-10-1516-utc-lasting-one-hour-and-17-minutes">August 10 15:16 UTC (lasting one hour and 17 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>This incident was caused when one of our MySQL database primaries entered a degraded state, affecting a number of internal services. This caused an impact to GitHub.com services requiring write access to this particular database cluster, which resulted in some users being unable to perform operations.</p>
+<p>Investigation had identified an edge case in one of our most active applications, which caused the generation of a poorly performing query capable of impacting overall database capacity. This combined with application retry and queueing logic meant that the MySQL primary was placed into a state where the cluster was unable to automatically recover.</p>
+<p>We have been able to address this query, as well as some of the application retry logic, to reduce the chance of recurrence in the future.</p>
+<p>One of the novel elements to this incident was the breadth of impact across multiple services. This led to a discussion about the overall service status as we were reporting it within the incident, and, so we&#8217;d like to take this opportunity to discuss the approach we took at the time, as well as the way we look to increase our learning potential after the incident.</p>
+<p>When we first introduced the <a href="https://github.blog/2020-07-08-introducing-the-github-availability-report/" rel="noopener" target="_blank">monthly availability report</a>, we aimed to provide post-incident reviews for major incidents that impact service availability, in addition to background on how we&#8217;re continuing to evolve the process. As part of our standard post-incident analysis process, we are using this incident as a valuable source of data to evaluate the responsiveness of our internal metrics and alerting. These systems guide our responders during incidents on both when to status and what degree of impact to status for. As a result, we’re continuing to tune and optimize these activities to ensure we are able to status—both quickly and accurately—so that we continue to earn the trust our users place in us everyday.</p>
+<h2 id="august-10-1957-utc-lasting-3-hours-and-6-minutes"><a class="heading-link" href="#august-10-1957-utc-lasting-3-hours-and-6-minutes">August 10 19:57 UTC (lasting 3 hours and 6 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Following ongoing maintenance of the Actions service, our service monitors detected a high error rate on workflow runs for new and in progress jobs, which affected the Actions service. This incident resulted in the failure of all queued jobs for a period of time. This was a new incident, unrelated to the earlier issue on August 10. We immediately reverted recent Actions deployments and started to investigate the issue.</p>
+<p>The incident was caused by work to set up a new Actions Premium Runner microservice in the Actions service. The impacting portion of this work involved alterations to the service discovery process within the Actions microservices architecture. A bad service record pushed to this system resulted in many of the microservices being unable to make Service-to-Service calls.</p>
+<p>Ultimately, the mitigation for this incident was to remove the bad record from the service discovery infrastructure. After investigating whether this mitigation would address the incident, we were able to confidently confirm that the bad record was the root cause of the issue, and removing it would restore the Actions service with no unintended side effects.</p>
+<p>We have prioritized several changes as a result of this incident, including fixing this part of the Actions microservice discovery process to properly handle potential bad records. We’ve also added a broader scope of visibility into what’s changed recently across all of the Actions microservices, so we can quickly focus investigations in the correct place.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In Summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>We will continue to keep you updated on the progress and investments we’re making to ensure the reliability of our services. Please follow our <a href="https://www.githubstatus.com/" rel="noopener" target="_blank">status page</a> for real time updates and watch our blog for next month’s availability report. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub Engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2021/">GitHub Availability Report: August 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">59900</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: July 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-july-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Wed, 04 Aug 2021 16:00:45 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=59207</guid>
+
+					<description><![CDATA[<p>In July, GitHub experienced no incidents resulting in service downtime to our core services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2021/">GitHub Availability Report: July 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In July, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>Please follow our <a href="https://www.githubstatus.com/" rel="noopener" target="_blank">status page</a> for real time updates. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2021/">GitHub Availability Report: July 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">59207</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: June 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-june-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Wed, 07 Jul 2021 16:00:30 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=59019</guid>
+
+					<description><![CDATA[<p>In June, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2021/">GitHub Availability Report: June 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In June, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>Please follow our <a href="https://www.githubstatus.com/" rel="noopener" target="_blank">status page</a> for real time updates and watch our blog for next month’s availability report. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2021/">GitHub Availability Report: June 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">59019</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: May 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-may-2021/</link>
+		
+		<dc:creator><![CDATA[Scott Sanders]]></dc:creator>
+		<pubDate>Thu, 03 Jun 2021 00:00:00 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=58527</guid>
+
+					<description><![CDATA[<p>In May, we experienced two incidents resulting in significant impact to multiple GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2021/">GitHub Availability Report: May 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h2 id="introduction"><a class="heading-link" href="#introduction">Introduction<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>In May, we experienced two incidents resulting in significant impact and degraded state of availability for API requests, GitHub Pages, GitHub Actions and the GitHub Packages service, specifically the GitHub Packages Container registry service.</p>
+<h2 id="may-8-0646-utc-46-minutes"><a class="heading-link" href="#may-8-0646-utc-46-minutes">May 8 06:46 UTC (46 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>This <a href="https://www.githubstatus.com/incidents/pppl6dpqs00y">incident</a> was caused by failures in an underlying MySQL database, which caused some operations to time out for the GitHub Container registry service. During this incident, some customers viewing packages in the UI or interacting with the registry through “docker push” and “docker pull” may have experienced failures as the engineering team investigated the incident. After performing a failover to one of our database replicas, the affected systems were properly restored.</p>
+<p>Our internal engineering team is now prioritizing work that will help ensure reduced impact to customers should such underlying outages happen again. This work includes creating internal documentation, dashboards, and enhanced alerts to quickly triage the cause of operation failures. We will also continue to actively maintain and increase replicas in different regions and availability zones that serve as a line of defense against unexpected region outages.</p>
+<h2 id="may-16-0717-utc-lasting-9-hours-48-minutes"><a class="heading-link" href="#may-16-0717-utc-lasting-9-hours-48-minutes">May 16 07:17 UTC (lasting 9 hours 48 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>This incident was caused when a foreign key for scoped tokens exceeded max INT32, which resulted in high failure rates for GitHub Actions and GitHub Pages. It also prevented some access to operations against the GitHub API and low-level git commands, such as &#8220;push&#8221; and &#8220;pull”, using scoped tokens. We mitigated this with a long-running schema migration to change the foreign key to INT64.</p>
+<p>Once the foreign key migration was successful, the internal engineering teams then worked to slowly remove token records stored in our cache layer that were considered invalid. After these cached records were removed, newly created API tokens were able to generate new records and API calls resumed working as expected.</p>
+<p>Alerting and linting are already in place to help prevent integer overflows in the database. Unfortunately, these mechanisms were not sufficient in this case due to it being a foreign key that predated our linting. In response, we are manually auditing all our INT32 columns and investigating further improvements to our automation to help prevent these types of issues moving forward.</p>
+<p>Given the nature of this overflow, only a single GitHub Action used on a single repository received unauthorized access grants for a short period of time. We revoked these grants and confirmed that no unauthorized access was gained through the use of this Action in this repository.</p>
+<p>Our internal engineering teams are actively working on reducing the impact and likelihood of this class of issue happening in the future. This work includes tooling to prevent database inconsistencies and improved alerting to allow faster remediation.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>From our open source release of the <a href="https://github.blog/2021-05-18-github-artifact-exporter-open-source-release/">GitHub Artifact Exporter</a> to our adoption of <a href="https://github.blog/2021-05-26-why-and-how-github-is-adopting-opentelemetry/">OpenTelemetry SDKs</a>, you can learn more about what we are working on to improve our internal development tooling and infrastructure in the <a href="https://github.blog/category/engineering/">GitHub Engineering Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2021/">GitHub Availability Report: May 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">58527</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: April 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-april-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Wed, 05 May 2021 15:59:15 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=57590</guid>
+
+					<description><![CDATA[<p>In April, we experienced two incidents resulting in significant impact and degraded state of availability for API requests and the GitHub Packages service, specifically the GitHub Packages Container registry service.&#8230;</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2021/">GitHub Availability Report: April 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In April, we experienced two incidents resulting in significant impact and degraded state of availability for API requests and the GitHub Packages service, specifically the GitHub Packages Container registry service.</p>
+<h2 id="april-1-2130-utc-lasting-one-hour-and-34-minutes"><a class="heading-link" href="#april-1-2130-utc-lasting-one-hour-and-34-minutes">April 1 21:30 UTC (lasting one hour and 34 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>This incident was caused by failures in our DNS resolution, resulting in a degraded state of availability for the GitHub Packages Container registry service. During this incident, some of our internal services that support the Container registry experienced intermittent failures when trying to connect to dependent services. The inability to resolve requests to these services resulted in users being unable to push new container images to the Container registry as well as pull existing images. The Container registry is currently in a public beta, and only beta users were impacted during this incident. The broader GitHub Packages service remained unaffected.</p>
+<p>As a next step, we are looking at increasing the cache times of our DNS resolutions to decrease the impact of intermittent DNS resolution failures in the future.</p>
+<h2 id="april-22-1716-utc-lasting-53-minutes"><a class="heading-link" href="#april-22-1716-utc-lasting-53-minutes">April 22 17:16 UTC (lasting 53 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Our service monitors detected an elevated error rate when using API requests, which resulted in a degraded state of availability for repository creation. Upon further investigation of this incident, we identified the issue was caused by a bug from a recent data migration. In a data migration to isolate our secret scanning tables into their own cluster, a bug was discovered that broke the ability of the application to successfully write to the secret scanning database. The incident revealed a hitherto unknown dependency that repository creation had upon secret scanning, which makes a call for every repository created. Due to this dependency, repository creation was blocked until we were able to roll back the data migration.</p>
+<p>As next steps, we are actively working with our vendor to update the data migration tool and have amended our migration process to include revised steps for remediation, in case similar incidents occur. Furthermore, our application code has been updated to remove the dependency on secret scanning for the creation of repositories.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>From <a href="https://github.blog/2021-04-05-how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/" rel="noopener" target="_blank">scaling the GitHub API</a> to <a href="https://github.blog/2021-03-16-improving-large-monorepo-performance-on-github/" rel="noopener" target="_blank">improving large monorepo performance</a>, we will continue to keep you updated on the progress and investments we’re making to ensure the reliability of our services. To learn more about what we’re working on, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2021/">GitHub Availability Report: April 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">57590</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: March 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-march-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Wed, 07 Apr 2021 16:29:19 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=57216</guid>
+
+					<description><![CDATA[<p>In March, we experienced three incidents resulting in significant impact and degraded state of availability for issues, pull requests, webhooks, API requests, GitHub Pages, and GitHub Actions services. Follow up&#8230;</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2021/">GitHub Availability Report: March 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<p>In March, we experienced three incidents resulting in significant impact and degraded state of availability for issues, pull requests, webhooks, API requests, GitHub Pages, and GitHub Actions services.</p>
+<h3 id="follow-up-to-march-1-0959-utc-lasting-one-hour-and-42-minutes"><a class="heading-link" href="#follow-up-to-march-1-0959-utc-lasting-one-hour-and-42-minutes">Follow up to March 1 09:59 UTC (lasting one hour and 42 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>As mentioned in the <a href="https://github.blog/2021-03-03-github-availability-report-february-2021/" rel="noopener" target="_blank">February availability repor</a>t, our service monitors detected a high error rate on creating check suites for workflow runs, which affected the Actions service. This incident resulted in the failure or delay of some queued jobs for a period of time. Additionally, some customers using the search/filter functionality to find workflows may have experienced incomplete search results.</p>
+<p>Upon further investigation of this incident, we identified this issue was caused by check suite IDs exceeding max Int32. We had anticipated the check suite IDs and check run IDs would cross the limit and migrated all database columns to bigint six months back. Our codebase that consists of Ruby, Go, and C# does not have explicit type casting to Int32. We failed to identify a GraphQL library we depend on using Int32 when unmarshalling JSON.</p>
+<p>When Actions identifies that a job needs to be run on a repo (triggered by webhooks or cron schedules), we first create a check suite. Those individual check suites were successfully created since the database could handle values greater than Int32, but processing those responses failed due to an external library we were using expecting an Int32. Jobs failed to be queued as a result and the check suites were left in a pending state. We deployed a code fix to mitigate after validating it would not lead to data integrity issues in other microservices that may be relying on check suite IDs.</p>
+<p>Another impact of check suite ID exceeding max Int32 was in searching for workflow runs via the UI and the API. We used check suite ID to index the data and the service handling that was similarly impacted. The index had to be re-built and while it was in progress, the search results were incomplete.</p>
+<p>To help avoid this class of failure in the future, we have audited and updated usage of all external libraries. Furthermore, through drill testing exercises, we’ve mocked other possible failure points like check run IDs exceeding max Int32 to validate and avoid repeat incidents.</p>
+<h3 id="march-12-1911-utc-lasting-one-hour-and-10-minutes"><a class="heading-link" href="#march-12-1911-utc-lasting-one-hour-and-10-minutes">March 12 19:11 UTC (lasting one hour and 10 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>This incident was caused by a database migration to flip the order of an index to improve a query’s performance, resulting in a degraded state of availability for GitHub.com. Reversing the index caused a full table scan since there was a missed dependency on the changed index by a generated ActiveRecord query. The performance degradation due to the table scan had a cascading effect on query response times which resulted in timeouts for various dependent services.</p>
+<p>To mitigate this issue, we’re determining better tooling to identify index regressions. We’ve also created an inventory of indexes used by generated queries to further ensure we’re compliant on all ActiveRecord best practices.</p>
+<h3 id="march-15-2021-03-15-2038-utc-lasting-one-hour-and-18-minutes"><a class="heading-link" href="#march-15-2021-03-15-2038-utc-lasting-one-hour-and-18-minutes">March 15 2021-03-15 20:38 UTC (lasting one hour and 18 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>Our service monitors detected high failure rates and the inability to run hosted jobs for the Actions service. This incident resulted in a period of time where all hosted jobs were queued for extended periods of time and eventually abandoned due to an inability to serve them with virtual environments. Due to this backup, we were unable to process any build requests delayed over 30 minutes.</p>
+<p>This issue was caused by an outage from our authentication provider that is used for our  infrastructure that runs the hosted compute. This left us unable to provide hosted builds during the time of the outage. Once the authentication service was restored, we were able to quickly process the backlog of requests and return to normal operation.</p>
+<p>In order to mitigate this issue in the future, we are determining ways to extend the lifetime of authentication tokens to handle brief outages so we rely less on this authentication mechanism.</p>
+<h3 id="summary"><a class="heading-link" href="#summary">Summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>We place great importance in the reliability of our service, and know that the more we invest in the infrastructure and tooling that powers GitHub, the faster we can deliver a more delightful experience to boot.</p>
+<p>Last month, we shared details on <a href="https://github.blog/2021-03-25-how-github-actions-renders-large-scale-logs/" rel="noopener" target="_blank">how Actions renders large-scale logs</a>, and we’ll continue to spotlight our ongoing investments in scaling the Actions service to be faster and even more reliable. To learn more about our efforts in making GitHub more resilient every day, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2021/">GitHub Availability Report: March 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">57216</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: February 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-february-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Wed, 03 Mar 2021 19:17:41 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=56550</guid>
+
+					<description><![CDATA[<p>Introduction In February, we experienced no incidents resulting in service downtime to our core services. This month’s GitHub Availability Report will provide initial details around an incident from March 1&#8230;</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2021/">GitHub Availability Report: February 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h2 id="introduction"><a class="heading-link" href="#introduction">Introduction<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>In February, we experienced no incidents resulting in service downtime to our core services.</p>
+<p>This month’s GitHub Availability Report will provide initial details around an incident from March 1 that caused significant impact and a degraded state of availability for the GitHub Actions service.</p>
+<h2 id="march-1-0959-utc-lasting-one-hour-and-42-minutes"><a class="heading-link" href="#march-1-0959-utc-lasting-one-hour-and-42-minutes">March 1 09:59 UTC (lasting one hour and 42 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Our service monitors detected a high error rate on creating check suites for workflow runs. This incident resulted in the failure or delay of some queued jobs for a period of time. Additionally, some customers using the search/filter functionality to find workflows may have experienced incomplete search results.</p>
+<p>In February, we experienced a few smaller and unrelated incidents affecting different parts of the GitHub Actions service. While these were localized to a subset of our customers and did not have broad impact, we take reliability very seriously and are conducting a thorough investigation into the contributing factors.</p>
+<p>Due to the recency of the March 1 incident, we are still investigating the contributing factors and will provide a more detailed update in the March Availability Report, which will be published the first Wednesday of April. We will also share more about our efforts to minimize the impact of future incidents and increase the performance of the Actions service.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>GitHub Actions has grown tremendously, and we know that the availability and performance of the service is critical to its continued success. We are committed to providing excellent service, reliability, and transparency to our users, and will continue to keep you updated on the progress we’re making to ensure this.</p>
+<p>For more information, you can check out our <a href="https://www.githubstatus.com/" rel="noopener" target="_blank">status page</a> for real-time updates on the availability of our systems and the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub Engineering blog</a> for deep-dives around how we’re improving our engineering systems and infrastructure.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2021/">GitHub Availability Report: February 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">56550</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: January 2021</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-january-2021/</link>
+		
+		<dc:creator><![CDATA[Keith Ballinger]]></dc:creator>
+		<pubDate>Tue, 02 Feb 2021 23:53:58 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=56036</guid>
+
+					<description><![CDATA[<p>Introduction In January, we experienced one incident resulting in significant impact and degraded state of availability for the GitHub Actions service. January 28 04:21 UTC (lasting 3 hours 53 minutes)&#8230;</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-january-2021/">GitHub Availability Report: January 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<h2 id="introduction"><a class="heading-link" href="#introduction">Introduction<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>In January, we experienced one incident resulting in significant impact and degraded state of availability for the GitHub Actions service.</p>
+<h2 id="january-28-0421-utc-lasting-3-hours-53-minutes"><a class="heading-link" href="#january-28-0421-utc-lasting-3-hours-53-minutes">January 28 04:21 UTC (lasting 3 hours 53 minutes)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Our service monitors detected abnormal levels of errors affecting the Actions service. This incident resulted in the failure or delay of some queued jobs for a period of time. Jobs that were queued during the incident were run successfully after the issue was resolved.</p>
+<p>We identified the issue as caused by an infrastructure error in our SQL database layer. The database failure impacted one of the core microservices that facilitates authentication and communication between the Actions microservices, which affected queued jobs across the service. In normal circumstances, automated processes would detect that the database was unhealthy and failover with minimal or no customer impact. In this case, the failure pattern was not recognized by the automated processes, and telemetry did not show issues with the database, resulting in a longer time to determine the root cause and complete mitigation efforts.</p>
+<p>To help avoid this class of failure in the future, we are updating the automation processes in our SQL database layer to improve error detection and failovers. Furthermore, we are continuing to invest in localizing failures to minimize the scope of impact resulting from infrastructure errors.</p>
+<h2 id="in-summary"><a class="heading-link" href="#in-summary">In summary<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>We’ll continue to keep you updated on the progress we’re making on ensuring reliability of our services. To learn more about how teams across GitHub identify and address opportunities to improve our engineering systems, check out the <a href="https://github.blog/category/engineering/" rel="noopener" target="_blank">GitHub Engineering blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-january-2021/">GitHub Availability Report: January 2021</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">56036</post-id>	</item>
+	</channel>
+</rss>

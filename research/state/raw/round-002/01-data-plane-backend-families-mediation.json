@@ -1,0 +1,1064 @@
+{
+ "target": "data-plane-backend-families-mediation",
+ "round": 2,
+ "explorer": "01",
+ "nodes": [
+  {
+   "id": "dpf-family-matrix",
+   "layer": "L2",
+   "domain": "W-DATA-GATE",
+   "type": "synthesis",
+   "title": "Native authz granularity vs in-server PEP need across 17 non-Postgres backend families",
+   "summary": "Of 17 families, only 6 have native row/document-level read enforcement usable for tenant isolation (CockroachDB RLS, YugabyteDB YSQL RLS, SQL Server RLS, OpenSearch DLS/FLS, Neo4j Enterprise label/property privileges, DynamoDB dynamodb:LeadingKeys at partition-key level). 5 have namespace/prefix-level native enforcement that works if the server owns key construction (S3 prefix policy + STS session policy, Redis ACL key patterns, Kafka PREFIXED topic ACLs, NATS accounts/subject permissions, FoundationDB tenants (experimental)). The rest have only database/collection/table grants and need an in-server PEP: MySQL/MariaDB, TiDB, libSQL/Turso (token = full-access|read-only per DB), MongoDB (finest built-in privilege = collection), Cassandra/Scylla (keyspace/table), Neo4j Community, Qdrant (JWT per collection r/rw, no payload filter), Meilisearch documents API (tenant tokens only cover search), Tantivy (library, no authz), InfluxDB/QuestDB (bucket/token), upstream HTTP/gRPC (the upstream's own model).",
+   "specifics": "Every native mechanism documents bypass paths: CockroachDB RLS skipped by FK cascades/TRUNCATE/CDC/backup-restore/LDR/PCR; SQL Server RLS has error side channel (1/(col-k)) and CDC/change-tracking leaks and AFTER UPDATE block predicates skip when predicate cols unchanged; DynamoDB Scan bypasses LeadingKeys, Attributes condition checks request not response, PutItem/DeleteItem bypass attribute limits, FGAC unsupported on global-table replication; Redis key patterns don't cover FLUSHALL/FLUSHDB/SWAPDB or module commands; Neo4j read restrictions silent; NATS '>' includes $JS.API.> control plane. So native enforcement is necessary-but-not-sufficient: the IR must also forbid the documented bypass operations per family.",
+   "urls": [
+    "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html",
+    "https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/",
+    "https://www.cockroachlabs.com/docs/stable/row-level-security",
+    "https://learn.microsoft.com/en-us/sql/relational-databases/security/row-level-security",
+    "https://www.mongodb.com/docs/manual/core/authorization/",
+    "https://qdrant.tech/documentation/guides/security/",
+    "https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-privileges/",
+    "https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization",
+    "https://github.com/apache/kafka/blob/trunk/docs/security/authorization-and-acls.md",
+    "https://apple.github.io/foundationdb/authorization.html",
+    "https://docs.turso.tech/api-reference/databases/create-token"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Classification is from vendor docs as of 2026-10; managed variants (Atlas, Aura, Turso cloud) may add features; 'native' row security still has documented bypasses so 'native' != 'sufficient'.",
+   "underclaim_risk": "MongoDB views+$redact and Meilisearch tenant-token searchRules can emulate doc-level reads for narrow paths; counting them as 'no native' may overstate PEP need for read-only search."
+  },
+  {
+   "id": "dpf-mysql-mariadb",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "MySQL/MariaDB: grants only (db/table/column), no RLS; mysql_async 0.37.1",
+   "summary": "No row security; GRANT at global/db/table/column/routine + DEFINER views. Needs in-server PEP with injected tenant conjunct.",
+   "specifics": "Failure classes: (1) privilege-to-host escalation CVE-2026-107814 (MariaDB, 2026-10-09: FILE privilege writes dotfiles into RPM service-account home); (2) client tooling CVE-2024-21096 (mysqldump, 2024-04-16); (3) driver-side injection CVE-2024-21508/CVE-2024-21511 (node mysql2, 2024-04); (4) semantic mismatch CVE-2026-90997 (Keycloak, 2026-09-17: affected-rows vs found-rows semantics -> replay-protection bypass). Oracle CPU MySQL server privilege CVEs are opaque (component-only descriptions). Driver: mysql_async 0.37.1 (2026-09-01), 8.29M dl, 1 crates.io owner, 4 unsafe sites/14.9k LOC (HEAD 2026-10-24), TLS rustls(ring|aws-lc-rs)|native-tls, OSV advisories 0. Wire: MySQL client/server protocol (COM_STMT_PREPARE/EXECUTE); parseable but Envoy mysql_proxy is alpha + requires_trusted_downstream_and_upstream. PQ: rustls aws-lc-rs path offers X25519MLKEM768 by default (server must support).",
+   "urls": [
+    "https://crates.io/crates/mysql_async",
+    "https://www.cve.org/CVERecord?id=CVE-2026-107814",
+    "https://www.cve.org/CVERecord?id=CVE-2026-90997",
+    "https://www.cve.org/CVERecord?id=CVE-2024-21096"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "mysql_async bus factor 1 owner \u2014 maintenance risk; 'no RLS' true for MySQL 8.4/MariaDB 11.x community.",
+   "underclaim_risk": "MariaDB/MySQL Enterprise has firewall/masking plugins not assessed.",
+   "repo": "https://github.com/blackbeam/mysql_async",
+   "version": "0.37.1",
+   "last_release": "2026-09-01",
+   "license": "MIT OR Apache-2.0",
+   "unsafe_loc": "4 sites/14.9k LOC",
+   "cve_count": 0,
+   "maintainers": 1
+  },
+  {
+   "id": "dpf-libsql-turso",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "libSQL/Turso: per-DB JWT full-access|read-only, no table/row scopes; libsql 0.10.0 drags 1.43M LOC C/C++",
+   "summary": "Turso tokens: authorization=full-access|read-only, permissions.read_attach.databases, expiration default NEVER. Embedded libsql = SQLite fork in-process. Needs PEP; adapter must be out-of-process or accept C TCB.",
+   "specifics": "CVE-2025-47736 (2025-05-09) libsql-sqlite3-parser panic on non-UTF8 input (<=0.13.0). 0 GHSA on tursodatabase/libsql and turso repos (2026-10-24). Only 1 dated libSQL-specific id found (>=2 target NOT met; inherited SQLite CVEs not re-verified here). libsql crate 0.10.0 (2026-10-13), 3 owners, 831 unsafe sites + ~1.43M C/C++ LOC, has tools/fuzz. Wire: Hrana over HTTP/WebSocket for remote; embedded = no wire, no PEP possible except in-process.",
+   "urls": [
+    "https://crates.io/crates/libsql",
+    "https://docs.turso.tech/api-reference/databases/create-token",
+    "https://www.cve.org/CVERecord?id=CVE-2025-47736"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "LOC count includes vendored SQLite amalgamation + tests.",
+   "underclaim_risk": "SQLite itself is extremely well fuzzed (OSS-Fuzz); C LOC != proportional risk.",
+   "repo": "https://github.com/tursodatabase/libsql",
+   "version": "0.10.0",
+   "last_release": "2026-10-13",
+   "unsafe_loc": "831 sites + 1.43M C/C++",
+   "cve_count": 1,
+   "maintainers": 3,
+   "fuzzed": true
+  },
+  {
+   "id": "dpf-distributed-sql",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "CockroachDB/YugabyteDB/TiDB: RLS in CRDB+YSQL (with bypass list), none in TiDB; CVE stream is DoS + mgmt-plane",
+   "summary": "CockroachDB RLS bypassed by FK cascades, unique constraints, TRUNCATE, CDC, backup/restore, LDR/PCR (vendor doc). YugabyteDB YSQL = PG RLS; YCQL keyspace/table roles. TiDB = MySQL-style grants, no RLS -> PEP.",
+   "specifics": "NVD since 2023 (queried 2026-10-24): CockroachDB 0 (vendor uses Technical Advisories, not CVE); YugabyteDB 12, mostly YB Anywhere mgmt plane: CVE-2025-8866 unauth /metamaster/universe, CVE-2025-8865 YCQL null-deref (2025-08-11), CVE-2024-41435 overflow; TiDB 5 all crash/DoS: CVE-2024-33809, CVE-2024-41433, CVE-2024-41434 (2024). 0 GHSA on cockroach/yugabyte/tidb repos. Drivers: tokio-postgres 0.7.18 (2026-06-12; RUSTSEC-2026-0178 DataRow panic DoS) for CRDB/YSQL; mysql_async for TiDB. Wire: PG v3 / MySQL.",
+   "urls": [
+    "https://www.cockroachlabs.com/docs/stable/row-level-security",
+    "https://www.cve.org/CVERecord?id=CVE-2025-8866",
+    "https://www.cve.org/CVERecord?id=CVE-2024-33809"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.65,
+   "load_bearing": false,
+   "overclaim_risk": "Absence of CRDB CVEs reflects disclosure channel, not absence of bugs.",
+   "underclaim_risk": "",
+   "cve_count": 17
+  },
+  {
+   "id": "dpf-sqlserver",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "SQL Server: RLS filter+block predicates since 2016 with documented side channels; tiberius 0.13.0",
+   "summary": "Native RLS usable with SESSION_CONTEXT(@read_only=1) for pooled middle tier; but error side channel, CDC/change-tracking leaks, AFTER UPDATE block-predicate gap. IR must forbid arbitrary expressions in WHERE (side channel) and CDC reads.",
+   "specifics": "CVE-2025-49719 (2025-07-08, improper input validation -> info disclosure, unauth network), CVE-2025-24999 (2025-08-12, improper access control EoP). tiberius 0.13.0 (2026-09-25), 5.6M dl, 6 owners, 6 unsafe/40k LOC, TLS rustls|native-tls|vendored-openssl; RUSTSEC-2020-0010 (old 'unmaintained' note, stale vs active releases). Wire: TDS; no OSS hardened TDS PEP found.",
+   "urls": [
+    "https://learn.microsoft.com/en-us/sql/relational-databases/security/row-level-security",
+    "https://crates.io/crates/tiberius",
+    "https://www.cve.org/CVERecord?id=CVE-2025-24999"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "repo": "https://github.com/prisma/tiberius",
+   "version": "0.13.0",
+   "last_release": "2026-09-25",
+   "maintainers": 6,
+   "unsafe_loc": "6 sites/40k"
+  },
+  {
+   "id": "dpf-mongodb",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "MongoDB: collection is finest privilege; operator/$where injection recurring; mongodb crate 3.9.1 had 2 own CVEs",
+   "summary": "No doc/field-level authz (views+$redact as workaround). PEP must build filters from typed IR: field names from schema enum, values only as BSON scalars, forbid $where/$function/$accumulator/$expr-JS and any key starting with '$' from user data.",
+   "specifics": "Injection: CVE-2024-53900 (Mongoose $where in match, 2024-12-02) + CVE-2025-23061 (incomplete fix, nested $where via populate, 2025-01-15). Driver: CVE-2024-6382 (Rust driver <2.8.2: string inputs -> unintended server commands, 2024-07-02), CVE-2025-11695 (tlsInsecure=False disables cert validation <3.2.5, 2025-10-13). Server: CVE-2025-14847 (zlib header length mismatch -> uninit heap read, unauth, 2025-12-19), CVE-2024-1351 (CA config skips peer validation). mongodb 3.9.1 (2026-09-10), 19.8M dl, 1 crates.io owner (org-managed), 14 unsafe/91.7k LOC, TLS rustls(aws-lc)|openssl. 0 GHSA on mongodb/mongo repo (uses JIRA). Wire: OP_MSG + BSON \u2014 parseable, but Envoy mongo_proxy (stable) requires_trusted_downstream_and_upstream. Zlib compression on wire: disable (CVE-2025-14847).",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2024-6382",
+    "https://www.cve.org/CVERecord?id=CVE-2025-11695",
+    "https://www.cve.org/CVERecord?id=CVE-2025-14847",
+    "https://www.cve.org/CVERecord?id=CVE-2024-53900",
+    "https://www.cve.org/CVERecord?id=CVE-2025-23061",
+    "https://www.mongodb.com/docs/manual/core/authorization/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Mongoose CVEs are JS ODM not Rust; they show the class, not Rust exposure.",
+   "underclaim_risk": "Rust driver's own CVE-2024-6382 shows the class reaches Rust drivers too.",
+   "repo": "https://github.com/mongodb/mongo-rust-driver",
+   "version": "3.9.1",
+   "last_release": "2026-09-10",
+   "cve_count": 3,
+   "maintainers": 1,
+   "unsafe_loc": "14 sites/91.7k"
+  },
+  {
+   "id": "dpf-redis-valkey",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Redis/Valkey: ACL key patterns + command categories; Lua is the dominant RCE/authz-bypass vector",
+   "summary": "Native: per-user ACL (+@category, %R~/%W~ key patterns, &channel patterns). Gaps: FLUSHALL/FLUSHDB/SWAPDB ignore key patterns; module commands only in +@all. IR must never emit EVAL/EVALSHA/FUNCTION/SCRIPT/MODULE/KEYS/FLUSH*/CONFIG/DEBUG; keys constructed as t:<tenant>:<...> by adapter.",
+   "specifics": "Key-ACL bypass: CVE-2023-41053 (SORT_RO keys not identified -> ACL bypass, 2023-09-06). Lua: CVE-2025-49844 (GC UAF RCE, 2025-10-03), CVE-2025-46817/46818/46819 (2025-10-03), CVE-2024-46981 (2025-01-06), CVE-2024-31449 (bit lib overflow); Valkey CVE-2025-67733 (2026-02-23: Lua error_reply null char -> RESP response-stream injection to other users on same connection). DoS: CVE-2024-31228 (long glob patterns incl. ACL defs), CVE-2025-21605 (unauth output buffer growth). GHSA counts (2026-10-24): redis/redis 47 total/29 in 2023-26/6 authz-class; valkey 12/12/1. redis crate 1.8.0 (2026-10-23), 119.9M dl, 2 owners, 6 unsafe/49.3k, tls-rustls|native-tls, 0 OSV; fred 10.1.0 (2025-02-27, stale 20 mo). Wire RESP2/3 trivially parseable; Envoy redis_proxy requires_trusted_downstream_and_upstream. Per-tenant ACL users let native enforcement survive a compromised adapter.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2023-41053",
+    "https://www.cve.org/CVERecord?id=CVE-2025-49844",
+    "https://www.cve.org/CVERecord?id=CVE-2025-67733",
+    "https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/",
+    "https://crates.io/crates/redis"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Lua CVEs require authenticated users with EVAL; mitigated entirely by -@scripting ACL.",
+   "underclaim_risk": "Response-stream injection (CVE-2025-67733) also matters for connection pooling across tenants: never share a connection across tenants.",
+   "repo": "https://github.com/redis-rs/redis-rs",
+   "version": "1.8.0",
+   "last_release": "2026-10-23",
+   "maintainers": 2,
+   "unsafe_loc": "6 sites/49.3k",
+   "cve_count": 0
+  },
+  {
+   "id": "dpf-foundationdb",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "FoundationDB: tenant+JWT authz EXPERIMENTAL (not for production), no revocation; crate binds C++ libfdb_c",
+   "summary": "Native: mTLS trusted vs untrusted clients; untrusted need JWT (ES256/RS256) with `tenants` claim; tenant (key prefix) granularity only. Caveats: no token revocation, cached tokens survive key rotation, ALLOW_TOKENLESS_TENANT_ACCESS bypass. Effective model: in-server PEP over tenant-prefixed key ranges.",
+   "specifics": "CVEs: NVD 0 since 2023; 0 GHSA (2026-10-24) -> >=2 target not met (none exist). foundationdb crate 0.11.0 (2026-06-24), 15.3M dl, 4 owners, 120 unsafe sites + 9.9k LOC C headers, requires libfdb_c (C++ client with its own TLS) => Rust TLS/PQ settings do not apply. Wire: proprietary FDB RPC; no PEP parse possible. Isolation: out-of-process adapter recommended.",
+   "urls": [
+    "https://apple.github.io/foundationdb/authorization.html",
+    "https://crates.io/crates/foundationdb"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Zero CVEs reflects small attack-surface exposure/disclosure, not proof of safety.",
+   "underclaim_risk": "FDB simulation testing is best-in-class for correctness (see as.fdb-sim).",
+   "version": "0.11.0",
+   "last_release": "2026-06-24",
+   "maintainers": 4,
+   "unsafe_loc": "120 sites + C client",
+   "cve_count": 0
+  },
+  {
+   "id": "dpf-dynamodb",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "DynamoDB: IAM FGAC dynamodb:LeadingKeys enforces partition-key tenancy natively, with Scan/attribute/replication gaps",
+   "summary": "Native enforcement by minting per-tenant STS session (session tag tenant) with policy ForAllValues:StringEquals dynamodb:LeadingKeys=${aws:PrincipalTag/tenant}; deny Scan; pin Select=SPECIFIC_ATTRIBUTES + ReturnValues; FGAC not on global-table replication.",
+   "specifics": "No server CVEs (managed service). SDK: GHSA-g59m-gf8j-gjf5 (aws-sdk-rust region parameter, 2026-01-08); only 1 dated id (>=2 target not met; failure class is policy misconfiguration documented by vendor). aws-sdk-dynamodb 1.134.0 (2026-10-22), 27.6M dl, 2 owners, TLS rustls via aws-smithy-http-client (provider selectable). Wire: JSON over HTTPS SigV4 \u2014 PEP could parse JSON, but native STS-scoped credentials survive a compromised adapter.",
+   "urls": [
+    "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html",
+    "https://github.com/awslabs/aws-sdk-rust/security/advisories/GHSA-g59m-gf8j-gjf5",
+    "https://crates.io/crates/aws-sdk-dynamodb"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "version": "1.134.0",
+   "last_release": "2026-10-22",
+   "maintainers": 2,
+   "cve_count": 1
+  },
+  {
+   "id": "dpf-cassandra-scylla",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Cassandra/Scylla: keyspace/table roles only; repeated priv-esc via system tables; scylla 1.9.0 pure Rust",
+   "summary": "No row security; tenant must be partition-key prefix enforced by allowlisted prepared statements (IR lowers to prepared CQL with tenant bound as first PK component).",
+   "specifics": "CVE-2025-23015 (2025-02-04) + CVE-2025-26467 (2025-08-25, incomplete fix): MODIFY ON ALL KEYSPACES -> superuser via system resources; Scylla CVE-2023-33972 (2023-09-27: CREATE in keyspace -> access other tables); CVE-2021-44521 (UDF RCE, older). scylla crate 1.9.0 (2026-09-15), 10.2M dl, 4 owners, 3 unsafe/93.9k, TLS rustls-023|openssl-010, accepts caller rustls config (examples/tls_rustls.rs), 0 OSV. Wire: CQL binary v4/v5 (query text inside frames); no hardened OSS PEP. IR rule: never grant MODIFY on system keyspaces; no UDF/UDA.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2025-23015",
+    "https://www.cve.org/CVERecord?id=CVE-2025-26467",
+    "https://www.cve.org/CVERecord?id=CVE-2023-33972",
+    "https://crates.io/crates/scylla"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "repo": "https://github.com/scylladb/scylla-rust-driver",
+   "version": "1.9.0",
+   "last_release": "2026-09-15",
+   "maintainers": 4,
+   "unsafe_loc": "3 sites/93.9k",
+   "cve_count": 0
+  },
+  {
+   "id": "dpf-graph-neo4j",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Neo4j: label/property privileges Enterprise-only; Cypher injection via LLM/MCP is the 2024-26 growth class; neo4rs stale since 2024-08",
+   "summary": "Community has no fine-grained authz -> PEP with allowlisted parameterized Cypher, no APOC/CALL, label/rel types from schema enum. Enterprise: TRAVERSE/READ/MATCH per label/property, silent read restriction, FOR-pattern unsupported for writes.",
+   "specifics": "Cypher injection: CVE-2024-8309 (LangChain GraphCypherQAChain via prompt injection, 2024-10-29), CVE-2026-32247 (Graphiti label concat reachable via prompt injection, 2026-03-12), CVE-2026-35402 (mcp-neo4j-cypher read_only bypass via APOC CALL, 2026-04-17), CVE-2026-55615 (Langroid), CVE-2026-41274 (Flowise), CVE-2026-86460 (Apache Syncope FIQL->Cypher). Server: CVE-2026-1471 (auth-context cache inherits first user, SSO, 2026-03-11), CVE-2026-14587 (Bolt handshake decoder stall, unauth DoS, 2026-08-05), CVE-2023-23926 (APOC XXE). neo4rs 0.8.0 (2024-08-07, >26 months stale), 4 owners, 6 unsafe/31.9k. Wire: Bolt/PackStream.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2024-8309",
+    "https://www.cve.org/CVERecord?id=CVE-2026-35402",
+    "https://www.cve.org/CVERecord?id=CVE-2026-1471",
+    "https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-privileges/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Most Cypher-injection CVEs are in LLM frameworks, not Neo4j.",
+   "underclaim_risk": "They are exactly the agent-amplified path AEGIS targets.",
+   "version": "neo4rs 0.8.0",
+   "last_release": "2024-08-07",
+   "maintainers": 4,
+   "agent_amplified": true
+  },
+  {
+   "id": "dpf-vector",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Vector: pgvector inherits PG RLS; Qdrant JWT per-collection r/rw only, no payload filter; internal gRPC unauth in distributed mode",
+   "summary": "Qdrant needs PEP that injects a mandatory `must` tenant payload filter on every search/scroll/count/recommend; per-collection JWT as coarse native backstop.",
+   "specifics": "Qdrant: GHSA-frc7-44gm-99qq (2026-10, critical: internal gRPC unauth by default in distributed mode; auth default-on since v1.20.0), CVE-2024-2221 (snapshot upload path traversal, 2024-04-10), CVE-2024-3584 (2024-05-30), CVE-2024-3829 (snapshot symlink arbitrary read/write, 2024-06-03). pgvector: 0 GHSA. qdrant-client 1.20.0 (2026-10-22), 5.25M dl, 1 owner, 0 unsafe; pgvector crate 0.4.2 (2026-05-22). Wire: gRPC/REST JSON \u2014 parseable. IR must forbid snapshot/collection-admin endpoints.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2024-2221",
+    "https://www.cve.org/CVERecord?id=CVE-2024-3829",
+    "https://github.com/qdrant/qdrant/security/advisories/GHSA-frc7-44gm-99qq",
+    "https://qdrant.tech/documentation/guides/security/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-search",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Search: OpenSearch DLS/FLS native (with bypass history), Meilisearch tenant tokens search-only, Tantivy embedded no authz",
+   "summary": "OpenSearch: security plugin DLS/FLS; wrap all queries in bool.filter tenant term anyway. Meilisearch: tenant token searchRules filter covers /search only, not documents/settings APIs -> PEP. Tantivy: in-process library, PEP by construction.",
+   "specifics": "OpenSearch CVE-2023-31141 (DLS/FLS/field-masking rules not applied, 2023-05-08); opensearch-project/security 14 GHSA total, 12 in 2023-26, 6 authz-class. Tantivy GHSA-7pph-m7rw-cqhv (OOB write, 2026-10-16). Meilisearch 0 server GHSA/NVD. Crates: opensearch 2.4.0 (2026-03-24), 1 owner, 0 unsafe/93k; meilisearch-sdk 0.33.0 (2026-04-22), 0 unsafe; tantivy 0.27.0 (2026-10-17), 20.8M dl, 2 owners. Wire: HTTP JSON Query DSL.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2023-31141",
+    "https://github.com/quickwit-oss/tantivy/security/advisories/GHSA-7pph-m7rw-cqhv",
+    "https://crates.io/crates/tantivy"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.75,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-timeseries",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Time series: InfluxDB bucket tokens, QuestDB ingestion client with large C share, TimescaleDB = PG RLS",
+   "summary": "InfluxDB/QuestDB have no row security -> PEP with tenant tag injected in every query; Timescale uses PG reference path.",
+   "specifics": "CVE-2024-30896 (InfluxDB OSS 2.x operator token readable by org-read users, 2024-11-21, vendor disputes), CVE-2019-20933 (InfluxDB JWT empty shared secret auth bypass, older); TimescaleDB CVE-2023-25149 (telemetry job priv-esc, 2023-02-14). questdb-rs 7.2.0 (2026-10-21), 3 owners, 1508 unsafe sites + 39.9k LOC C (ILP ingest). influxdb2 crate 0.5.2 (2024-07-22, stale). Weakest Rust driver ecosystem of all families.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2024-30896",
+    "https://www.cve.org/CVERecord?id=CVE-2023-25149",
+    "https://crates.io/crates/questdb-rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-s3",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "S3-compatible: prefix policies + STS session policy native; presign = bearer for one key+method <=7d; MinIO policy-inheritance bugs",
+   "summary": "Server constructs object keys tenant/<id>/<uuid> (never accepts raw keys); presign only from server with TTL<=900s and bucket policy s3:signatureAge; presigned PUT overwrites existing key, so keys must be unique per upload; size limits require POST policy content-length-range, not presigned PUT.",
+   "specifics": "MinIO: CVE-2024-24747 (access key inherits admin:* from parent, 2024-01-31), CVE-2025-62506 (svc/STS session policy bypass, 2025-10-16), CVE-2025-31489 (upload signature not verified, 2025-04-03), CVE-2023-28432 (env/secret disclosure); minio/minio 27 GHSA total/18 in 2023-26/9 authz-class. object_store 0.14.2 (2026-09-15), 100.8M dl, 5 owners, 2 unsafe/38.7k, CVE-2024-41178 (OIDC token in logs); aws-sdk-s3 1.155.0 (2026-10-22); rust-s3 0.38.0 #![forbid(unsafe_code)], 1 owner. Wire: HTTP + SigV4.",
+   "urls": [
+    "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+    "https://www.cve.org/CVERecord?id=CVE-2024-24747",
+    "https://www.cve.org/CVERecord?id=CVE-2025-62506",
+    "https://www.cve.org/CVERecord?id=CVE-2024-41178"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-kafka",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Kafka/Redpanda: topic/group PREFIXED ACLs, no record-level authz; client-config SSRF class; rskafka pure Rust vs rdkafka C",
+   "summary": "Tenant = topic prefix t.<tenant>. + per-tenant principal with PREFIXED ACLs (native) ; PEP forbids admin/config/ACL APIs and client-supplied SASL/ConfigProvider settings.",
+   "specifics": "CVE-2024-27309 (ACLs not enforced during ZK->KRaft migration, 2024-04-12), CVE-2025-27817 (client SASL OAUTHBEARER token endpoint URL -> SSRF/arbitrary file read, 2025-06-10), CVE-2024-31141 (ConfigProvider file read, 2024-11-19), CVE-2025-27818/27819 (2025-06-10), CVE-2023-25194 (Connect JNDI). Redpanda 0 GHSA. Docs: StandardAuthorizer, default deny when no ACL matches, allow.everyone.if.no.acl.found=true opens all. rdkafka 0.39.0 (2026-01-25), 41.3M dl, 6 owners, 335 unsafe sites + librdkafka C (OpenSSL TLS); rskafka 0.6.0 (2025-03-20), 3 owners, 0 unsafe, fuzz/, rustls. Wire: Kafka protocol (JSON-schema'd messages) parseable; Envoy kafka_broker WIP + requires trusted.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2024-27309",
+    "https://www.cve.org/CVERecord?id=CVE-2025-27817",
+    "https://github.com/apache/kafka/blob/trunk/docs/security/authorization-and-acls.md",
+    "https://crates.io/crates/rskafka"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-nats",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "NATS: accounts + subject permissions native (JWT); empty allow list = allow all; $JS.API control plane under '>'",
+   "summary": "Per-tenant account (or user JWT) with explicit subject allow lists; never '>'; IR emits subjects t.<tenant>.* only.",
+   "specifics": "CVE-2025-30215 ($JS.API management subjects lacked authz, 2.2.0-<2.10.27, 2025-04-15), CVE-2023-47090 (implicit $G user unauth access, 2023-10-30); nats-server 36 GHSA total/29 in 2023-26/12 authz-class. Docs: no permissions block = unrestricted; publish: [] = allow all; deny wins; wildcard subscribe overlapping deny silently filtered. async-nats 0.50.0 (2026-07-20), 50.2M dl, 2 owners, 9 unsafe/40.2k, RUSTSEC-2023-0027 (CN validation bypass), aws-lc-rs, accepts rustls config. Durability: see sdg-jepsen-nats.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2025-30215",
+    "https://www.cve.org/CVERecord?id=CVE-2023-47090",
+    "https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization",
+    "https://crates.io/crates/async-nats"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-upstream-http-grpc",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "backend-family-row",
+   "title": "Upstream HTTP/gRPC: authz is the upstream's; PEP = canonical method/path allowlist + egress allowlist",
+   "summary": "Adapter canonicalizes :path (leading slash) before allowlist match; no client-controlled URLs (SSRF).",
+   "specifics": "CVE-2026-33186 (gRPC-Go :path without leading slash bypasses path-based authz, <1.79.3, 2026-03-20); CVE-2024-47609 (tonic DoS); hyper 14 historical OSV entries; Kafka CVE-2025-27817 shows the client-config SSRF class. reqwest 0.13.5 (2026-09-08), 835M dl, 1 owner; tonic 0.14.6 (2026-05-07), 3 owners; both rustls/aws-lc-rs.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2026-33186",
+    "https://crates.io/crates/tonic",
+    "https://crates.io/crates/reqwest"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "dpf-envoy-db-filters-untrusted",
+   "layer": "L3",
+   "domain": "W-DATA-GATE",
+   "type": "contrarian-evidence",
+   "title": "Envoy marks every DB wire-protocol filter requires_trusted_downstream_and_upstream",
+   "summary": "In Envoy main (extensions_metadata.yaml, read 2026-10-25) redis_proxy (stable), mongo_proxy (stable), thrift_proxy, zookeeper_proxy, contrib postgres_proxy (stable), mysql_proxy (alpha), kafka_broker/kafka_mesh (wip) are all requires_trusted_downstream_and_upstream; only rbac, ext_authz, tcp_proxy, sni_dynamic_forward_proxy, postgres_inspector are robust_to_untrusted_downstream. A server-side PEP that parses native DB protocols from untrusted clients is not hardened even in the most mature OSS proxy. Envoy's 133 GHSAs name none of these filters, consistent with their being out of threat model.",
+   "specifics": "Design consequence (generate-don't-parse): AEGIS should never expose native DB protocols to untrusted downstream; the adapter is the DB *client*, generating wire requests from a typed IR, and parses only upstream responses (bounded, from a credentialed backend).",
+   "urls": [
+    "https://github.com/envoyproxy/envoy/blob/main/source/extensions/extensions_metadata.yaml",
+    "https://github.com/envoyproxy/envoy/blob/main/contrib/extensions_metadata.yaml",
+    "https://github.com/envoyproxy/envoy/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Posture labels are self-declared; robustness unmeasured either way.",
+   "underclaim_risk": "Valkey CVE-2025-67733 shows even upstream responses can be attacker-shaped (response stream injection), so response parsing also needs bounds."
+  },
+  {
+   "id": "dpf-empty-means-all-pattern",
+   "layer": "L3",
+   "domain": "W-DATA-GATE",
+   "type": "threat",
+   "title": "Cross-family 'empty/absent policy means allow-all' defaults",
+   "summary": "Seven independent systems treat empty or absent authz configuration as unrestricted: NATS (no permissions block = unrestricted; publish: [] = allow all), Kafka allow.everyone.if.no.acl.found=true, FoundationDB ALLOW_TOKENLESS_TENANT_ACCESS, Hasura ModelPermissions ('Null filter implies all rows are selectable'), Turso tokens expiration default never, Apache Syncope CVE-2026-73579 (2026-09-14: realm filter rendered empty for non-recursive searches voids authz across SQL/Neo4j/OpenSearch backends), DBHub CVE-2026-61788 (read-only session code gated on never-populated config, leaving a first-keyword classifier).",
+   "specifics": "cwe: CWE-276/CWE-863; agent_amplified: true (MCP DB servers). Invariant INV-NONEMPTY: every lowered read/write carries a tenant binding that is structurally verified AFTER rendering to native form; an absent or empty capability set denies; 'unrestricted' is an explicit enum variant that fails CI unless allowlisted with justification.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2026-73579",
+    "https://www.cve.org/CVERecord?id=CVE-2026-61788",
+    "https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization",
+    "https://hasura.io/docs/3.0/reference/metadata-reference/permissions/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Several are documented opt-in defaults, not bugs.",
+   "underclaim_risk": "Syncope shows a multi-backend app PEP failing exactly this way in 2026."
+  },
+  {
+   "id": "dpf-agent-db-tool-bypass-cluster",
+   "layer": "L3",
+   "domain": "W-DATA-GATE",
+   "type": "threat",
+   "title": "2026 agent/MCP database tools: read-only/allowlist validators bypassed across SQL and Cypher",
+   "summary": "CVE-2026-61788 DBHub (first-keyword classifier; SELECT calling side-effect functions passes), CVE-2026-61742 DBHub (unauth HTTP MCP + DNS rebinding), CVE-2026-35402 mcp-neo4j-cypher (read_only bypass via APOC CALL), CVE-2026-32247 Graphiti (Cypher label injection reachable via prompt injection), CVE-2026-84993 MikroORM (ORDER BY direction concatenated). Text-level validators in front of a query language fail; enforcement must be structural (typed IR or parsed-AST allowlist) plus native read-only/least-privilege credentials.",
+   "specifics": "Extends sdg-sql-allowlist-bypass to non-Postgres families (MySQL/MariaDB/SQL Server/SQLite via DBHub, Neo4j). agent_amplified: true.",
+   "urls": [
+    "https://www.cve.org/CVERecord?id=CVE-2026-61788",
+    "https://www.cve.org/CVERecord?id=CVE-2026-35402",
+    "https://www.cve.org/CVERecord?id=CVE-2026-32247",
+    "https://www.cve.org/CVERecord?id=CVE-2026-84993"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "dpf-uniform-abstraction-comparison",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "decision-analysis",
+   "title": "Smallest uniform data abstraction: typed op-capability IR (a) beats WIT-first (b) and per-family traits (c)",
+   "summary": "(a) Typed operation-capability IR with per-adapter build-time allowlists: one place to bind tenant, one structural INV-NONEMPTY check, generate-don't-parse matches Envoy evidence, enumerable allowlist = finite assurance target for the golden. Existence proof of a cross-backend query IR with per-connector capability flags: Hasura NDC spec v0.2.14 (2026-09-29), out-of-process connectors over HTTP. (b) WIT data interface: no standardized relational/document WIT exists (wasi-keyvalue Phase 2, last change 2024-03-29; wasi-sql no current phase; wasi-sql-embed Phase 1, last push 2025-01-14) \u2014 WIT is an isolation/serialization boundary, not a safety model, so use it only as the wire encoding of (a) for sandboxed adapters. (c) Per-family traits with no common IR: maximum fidelity but tenant binding reimplemented 17x and no single checkable invariant; the 2026 DBHub/mcp-neo4j bypasses are what per-adapter ad hoc validators look like.",
+   "specifics": "Fidelity escape hatch inside (a): `Named{stmt_id, params}` = native statement text pinned at build time per adapter and passed through that adapter's allowlist generator, so complex SQL/Cypher/aggregation pipelines stay possible without a lowest-common-denominator IR. Policy->filter compilers exist to feed the IR's tenant/ABAC predicate: Oso list_local (SQL WHERE), Enterprise OPA compile API (sql+mysql/postgresql/sqlserver, UCAST JSON), Cedar 4.14.0 (2026-10-17) experimental `tpe` residual policies.",
+   "urls": [
+    "https://github.com/hasura/ndc-spec",
+    "https://hasura.github.io/ndc-spec/specification/capabilities.html",
+    "https://github.com/WebAssembly/wasi-keyvalue",
+    "https://github.com/WebAssembly/wasi-sql-embed",
+    "https://www.osohq.com/docs/develop/enforce/list-filtering",
+    "https://docs.styra.com/enterprise-opa/reference/api-reference/partial-evaluation-api",
+    "https://crates.io/crates/cedar-policy"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "NDC proves feasibility of a uniform IR, not its security; IR expressiveness ceiling unmeasured for graph/stream workloads.",
+   "underclaim_risk": "WIT may become the right encoding once wasi-sql matures; (b) is a transport choice compatible with (a)."
+  },
+  {
+   "id": "dpf-l5-op-capability-ir",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "interface-sketch",
+   "title": "L5: aegis data-op IR (operations, capability params, tenant binding) with WIT encoding",
+   "summary": "Rust enum (mirrored 1:1 in WIT for out-of-process/Wasm adapters).",
+   "specifics": "Op { tenant: TenantId /* from verified session only; no constructor from request bytes */, cap: CapId /* build-time registered */, budget: Budget{max_rows<=10_000, max_bytes<=8MiB, deadline_ms<=5000}, kind: OpKind }\nOpKind = Get{coll: CollId, key: KeyTuple} | Query{coll, pred: Pred, proj: Vec<FieldId>, order: Vec<(FieldId,Dir)>, limit<=budget.max_rows, cursor: Option<Opaque>} | Put{coll, key, doc: TypedDoc, cond: Option<Pred>} | Delete{coll, key, cond} | Append{stream: StreamId, msg: Bytes<=1MiB} | Subscribe{stream, from: Offset} | BlobGet{obj: ObjId} | BlobPut{max_len, content_type: Mime} | Presign{method: Get|Put, obj: ObjId, ttl_s<=900} | Call{svc: SvcId, method: MethodId, body: TypedMsg} | VectorSearch{coll, vec: [f32;N], k<=100, pred} | Named{stmt: StmtId, params: Vec<Scalar>}\nPred = And(Vec<Pred>) | Or(Vec<Pred>) | Not(Box<Pred>) | Cmp{field: FieldId, op: Eq|Ne|Lt|Le|Gt|Ge|In|Prefix, val: Scalar}   // FieldId/CollId/StreamId/ObjId are enums generated from schema; Scalar = typed values only, never names/operators/strings that start with '$'\nTenant binding (lowering, per family): RLS families (CRDB, YSQL, SQL Server) -> session var / SESSION_CONTEXT(@read_only=1) + native policy; PEP families (MySQL, TiDB, Mongo, Cassandra/Scylla, Neo4j, Qdrant, OpenSearch, Meili, Influx) -> mandatory conjunct tenant_field = $tenant prepended to pred; namespace families (Redis, FDB, S3, Kafka, NATS) -> adapter-constructed prefix t/<tenant>/ (ObjId/KeyTuple are opaque suffixes, raw keys rejected; reject '..', '%2F', NUL); DynamoDB -> PK = tenant + per-tenant STS session tag LeadingKeys.\nWIT: package aegis:data@0.1.0; interface ops { variant op-kind {...}; record op { tenant: tenant-handle /* resource minted by host */, cap: u32, budget: budget, kind: op-kind }; execute: func(o: op) -> result<rows, data-error>; }  tenant-handle is a host-owned WIT resource so a guest adapter cannot forge another tenant.",
+   "urls": [
+    "https://github.com/hasura/ndc-spec",
+    "https://component-model.bytecodealliance.org/design/wit.html"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Design sketch, unimplemented; budget numbers are proposed defaults, not measured.",
+   "underclaim_risk": "Every element maps to a documented failure (Mongo $-operators, Redis Lua, S3 key traversal, Syncope empty filter)."
+  },
+  {
+   "id": "dpf-l5-allowlist-generation",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "ci-gate",
+   "title": "L5: per-adapter build-time allowlist generation rule + CI gate",
+   "summary": "xtask `aegis-data lock`: for each app capability manifest entry (CapId -> Op template), call adapter.lower(template) to native form, normalize, check, hash, emit committed allowlist.<adapter>.lock; runtime adapter refuses any lowered op whose fingerprint is not in the lock.",
+   "specifics": "Normalizers per family: SQL (PG/CRDB/YSQL) pg_query fingerprint; MySQL/TiDB/SQL Server: sqlparser-rs AST with params stripped -> canonical hash; CQL: prepared-statement text canonicalized; Mongo: canonical extended-JSON of filter/pipeline with values replaced by type tags; RESP: command name + key template; Cypher: AST hash, CALL/APOC rejected; OpenSearch/Qdrant/Meili: canonical JSON body with values typed; Kafka/NATS: (api, topic/subject template); S3: (method, key template, ttl); HTTP/gRPC: (method, canonical :path).\nChecks before hashing (fail build): (1) INV-NONEMPTY: tenant binding present in lowered form (conjunct in WHERE/filter, prefix in key/subject/topic, or session-var+RLS policy present for RLS families); (2) family denylist absent: Redis EVAL/EVALSHA/FUNCTION/SCRIPT/MODULE/KEYS/FLUSH*/SWAPDB/CONFIG/DEBUG/SORT(non-RO w/ BY/GET); Mongo $where/$function/$accumulator/$expr w/ JS, mapReduce, compression=zlib; Cypher CALL/apoc.*/LOAD CSV; CQL UDF/UDA, system_* keyspaces; Kafka admin/ACL/config APIs, client-supplied sasl.* / config.providers; NATS '>' and $JS.API.* / $SYS.*; SQL Server CDC/change-tracking fns and non-allowlisted scalar fns in predicates; DynamoDB Scan, Select!=SPECIFIC_ATTRIBUTES; S3 ttl>900, ListBuckets, admin:*; Qdrant snapshots/collections admin; (3) budget fields bounded. Empty manifest => empty lock => deny all. Any `Unrestricted` variant requires a signed justification line in the lock and a CODEOWNERS review. CI: lock diff without approval = fail; property test: random IR from proptest lowered by every adapter must pass check (1) (100k cases/adapter); differential fuzz (cargo-fuzz) of normalizer vs backend parser where a Rust parser exists.",
+   "urls": [
+    "https://github.com/pganalyze/pg_query.rs",
+    "https://github.com/apache/datafusion-sqlparser-rs"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Normalizer/parser differentials (the backend parses differently than the normalizer) remain; mitigated because adapters generate text from IR rather than accept text.",
+   "underclaim_risk": "Denylist entries each trace to a dated CVE or vendor-documented bypass in this file."
+  },
+  {
+   "id": "dpf-l5-adapter-isolation",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "type": "isolation-rule",
+   "title": "L5: adapter isolation rule: in-process feature-gated for pure-Rust drivers; out-of-process for C-binding and third-party adapters",
+   "summary": "Rule: an adapter runs in-process (Cargo feature, zero code when unused) only if its driver is pure Rust, <=~15 unsafe sites at HEAD, has no C/C++ client library, and is first-party in the golden. Otherwise it runs out-of-process (separate binary, seccomp+Landlock, IPC carrying the WIT-encoded Op; or a Wasm component when the driver compiles to wasm32-wasip2 with sockets).",
+   "specifics": "Measured inputs (HEAD clones 2026-10-24, regex unsafe{|fn|impl, non-test): IN-PROCESS eligible: tokio-postgres 1/23.1k, mysql_async 4/14.9k, redis 6/49.3k, scylla 3/93.9k, async-nats 9/40.2k, mongodb 14/91.7k, tiberius 6/40k, neo4rs 6/31.9k (but stale), rskafka 0, object_store 2/38.7k, rust-s3 0 (forbid), qdrant-client 0, opensearch 0, meilisearch-sdk 0. OUT-OF-PROCESS required: libsql (831 + ~1.43M C/C++), foundationdb (120 + libfdb_c C++), rdkafka (335 + librdkafka C), questdb-rs (1508 + 39.9k C). TCB cost: in-process adds the driver's full LOC to the core TCB (e.g. mongodb 91.7k, scylla 93.9k) and its TLS stack; out-of-process adds an IPC codec (~1-2k LOC est.) + per-op IPC latency (UNMEASURED: implementation spike). \nWhich invariants survive a malicious/buggy adapter (third-party contract): only those enforced NATIVELY with credentials the core mints per tenant and hands to the adapter: PG/CRDB/YSQL/SQL Server RLS role or session; DynamoDB/S3 per-tenant STS session policy; Redis per-tenant ACL user (key pattern t:<tenant>:*, -@scripting -@dangerous); Kafka per-tenant principal with PREFIXED ACL; NATS per-tenant account/user JWT; FDB tenant JWT (experimental). For PEP-only families (MySQL, TiDB, Mongo, Cassandra/Scylla, Neo4j Community, Qdrant, Meili, Influx, libSQL) the adapter is inside the trust boundary: third-party adapters for these families cannot get core-guaranteed tenant isolation, which should be stated in the extension contract.\nPQ: rustls 0.23.46 default features include prefer-post-quantum + aws_lc_rs, so all rustls-based drivers offer X25519MLKEM768 first by default; C-stack adapters (librdkafka, libfdb_c) do not inherit this, which is another reason to put them out-of-process with a separately audited TLS config.",
+   "urls": [
+    "https://crates.io/crates/rustls",
+    "https://github.com/rustls/rustls/blob/main/rustls/src/manual/defaults.rs"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "unsafe-site regex counts are a proxy; the ~15-site threshold is a judgment call; IPC overhead unmeasured.",
+   "underclaim_risk": "Out-of-process adapters also give crash isolation (a C-driver segfault cannot take down ingress)."
+  },
+  {
+   "id": "dpf-rustls-pq-driver-inheritance",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "crate",
+   "title": "rustls 0.23.46 defaults prefer X25519MLKEM768: rustls-based DB drivers offer PQ-hybrid with no driver changes",
+   "summary": "rustls 0.23.46 (2026-10-14) default features [aws_lc_rs, logging, prefer-post-quantum, std, tls12]; manual says X25519MLKEM768 is highest-priority by default with aws-lc-rs. Drivers with rustls paths: mysql_async, sqlx, tiberius, mongodb, redis, fred, scylla, opensearch, aws-sdk-*, object_store, rust-s3, rskafka, async-nats, reqwest, tonic. Caller-supplied rustls::ClientConfig hooks seen (GitHub code search, partial due to rate limit) in redis-rs, scylla, async-nats, rskafka, aws-smithy-http-client. Not inherited: rdkafka (librdkafka OpenSSL), foundationdb (libfdb_c).",
+   "specifics": "Whether the session is actually PQ depends on the DB server TLS stack (OpenSSL 3.5+/Go 1.24+/JDK) \u2014 not verified per server here (seed). Cargo feature unification means one top-level rustls feature choice governs all drivers.",
+   "urls": [
+    "https://crates.io/crates/rustls",
+    "https://github.com/rustls/rustls/blob/main/rustls/src/manual/defaults.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.75,
+   "load_bearing": false
+  },
+  {
+   "id": "dpf-surrealdb-inline-perms-negative",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "type": "negative-result",
+   "title": "SurrealDB: in-database fine-grained permissions produced 79 GHSAs in 2023-26, ~40 authz-class",
+   "summary": "surrealdb/surrealdb repo: 79 published GHSAs all in 2023-2026, 40 classified authz/permission-bypass (gh api, 2026-10-24); surrealdb crate 3.3.4 (2026-10-13) has 54-55 OSV entries. Rich in-DB record-level permission languages are a high-defect surface; native fine-grained authz in a young engine should not be trusted as the sole tenant boundary.",
+   "specifics": "Raw list: 01-data/adv_surrealdb_surrealdb.tsv. Supports keeping a server-side IR check even where native row security exists.",
+   "urls": [
+    "https://github.com/surrealdb/surrealdb/security/advisories",
+    "https://crates.io/crates/surrealdb"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false
+  }
+ ],
+ "edges": [
+  {
+   "src": "dpf-family-matrix",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "extends",
+   "note": "non-Postgres families; PG remains reference row"
+  },
+  {
+   "src": "dpf-agent-db-tool-bypass-cluster",
+   "dst": "sdg-sql-allowlist-bypass",
+   "type": "extends",
+   "note": "MySQL/MSSQL/SQLite/Neo4j MCP-tool bypasses 2026"
+  },
+  {
+   "src": "dpf-l5-allowlist-generation",
+   "dst": "sdg-compile-time-extraction",
+   "type": "extends",
+   "note": "generalizes pg_query fingerprint lock to every family normalizer"
+  },
+  {
+   "src": "dpf-l5-allowlist-generation",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "extends",
+   "note": "INV-ALLOW generalized to all adapters"
+  },
+  {
+   "src": "dpf-l5-adapter-isolation",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "extends",
+   "note": "per-driver unsafe/C-dependency thresholds"
+  },
+  {
+   "src": "dpf-l5-adapter-isolation",
+   "dst": "landlock-seccomp-self-sandbox",
+   "type": "depends_on"
+  },
+  {
+   "src": "dpf-rustls-pq-driver-inheritance",
+   "dst": "crate-rustls-pq",
+   "type": "extends",
+   "note": "0.23.46 default prefer-post-quantum; DB driver inheritance"
+  },
+  {
+   "src": "dpf-rustls-pq-driver-inheritance",
+   "dst": "std-rfc10024-ecdhe-mlkem",
+   "type": "depends_on"
+  },
+  {
+   "src": "dpf-nats",
+   "dst": "sdg-jepsen-nats",
+   "type": "related",
+   "note": "authz row vs durability row"
+  },
+  {
+   "src": "dpf-envoy-db-filters-untrusted",
+   "dst": "dpf-uniform-abstraction-comparison",
+   "type": "supports",
+   "note": "generate-don't-parse favors (a)"
+  },
+  {
+   "src": "dpf-empty-means-all-pattern",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "mitigates",
+   "note": "INV-NONEMPTY check"
+  },
+  {
+   "src": "dpf-agent-db-tool-bypass-cluster",
+   "dst": "dpf-uniform-abstraction-comparison",
+   "type": "supports",
+   "note": "ad hoc per-adapter validators fail -> against (c)"
+  },
+  {
+   "src": "dpf-uniform-abstraction-comparison",
+   "dst": "dpf-l5-op-capability-ir",
+   "type": "implies"
+  },
+  {
+   "src": "dpf-l5-op-capability-ir",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "depends_on"
+  },
+  {
+   "src": "dpf-l5-op-capability-ir",
+   "dst": "pqc-capability-token-design",
+   "type": "related",
+   "note": "CapId could be carried in the attenuable token caveats"
+  },
+  {
+   "src": "dpf-family-matrix",
+   "dst": "dpf-l5-adapter-isolation",
+   "type": "implies",
+   "note": "native-enforced families survive third-party adapters"
+  },
+  {
+   "src": "dpf-l5-adapter-isolation",
+   "dst": "dpf-rustls-pq-driver-inheritance",
+   "type": "depends_on"
+  },
+  {
+   "src": "dpf-mysql-mariadb",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-libsql-turso",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-distributed-sql",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-sqlserver",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-mongodb",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-redis-valkey",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-foundationdb",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-dynamodb",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-cassandra-scylla",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-graph-neo4j",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-vector",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-search",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-timeseries",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-s3",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-kafka",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-nats",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-upstream-http-grpc",
+   "dst": "dpf-family-matrix",
+   "type": "part_of"
+  },
+  {
+   "src": "dpf-mongodb",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-redis-valkey",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-cassandra-scylla",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-graph-neo4j",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-kafka",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-nats",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-s3",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-dynamodb",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-sqlserver",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-vector",
+   "dst": "dpf-l5-allowlist-generation",
+   "type": "fills_gap",
+   "note": "family denylist entries"
+  },
+  {
+   "src": "dpf-surrealdb-inline-perms-negative",
+   "dst": "dpf-family-matrix",
+   "type": "supports",
+   "note": "native-not-sufficient"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Implementation spike: measure per-op latency and RSS of an out-of-process adapter (UDS + postcard/WIT-canonical-ABI) vs in-process for redis GET, scylla prepared SELECT and S3 presign on the operator laptop under heavy.sh; decide whether the ~15-unsafe-site in-process threshold should move.",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.7,
+   "reason": "TCB-vs-latency tradeoff unmeasured; decides isolation rule"
+  },
+  {
+   "question": "Which DB servers actually negotiate X25519MLKEM768 as TLS servers in 2026-10 (Redis/Valkey OpenSSL builds, MongoDB 8.x, MySQL 8.4/9.x, NATS Go, CockroachDB Go, Kafka/Cassandra JDK, MinIO Go, Qdrant rustls)?",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.6,
+   "reason": "driver side is PQ by default; server side unknown"
+  },
+  {
+   "question": "Can Cedar tpe residuals (or a hand-written Pred lowering) be proven sound per adapter in Lean/Verus: lowered native filter returns subset of rows the policy permits? Size the proof for the Pred fragment over SQL, Mongo filter and OpenSearch bool.filter.",
+   "layer": "L5",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.65,
+   "reason": "would make the IR lowering a golden proof obligation"
+  },
+  {
+   "question": "Per-tenant native credential minting limits: Redis ACL user count/perf, Kafka principals x prefixed ACLs, NATS accounts per server, STS AssumeRole rate limits, CockroachDB role counts \u2014 at 10k tenants.",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.55,
+   "reason": "native enforcement surviving third-party adapters depends on it scaling"
+  },
+  {
+   "question": "RLS/tenant filter interaction with ANN indexes (pgvector HNSW iterative scans, Qdrant payload index + tenant filter): recall and latency collapse when the tenant predicate is selective?",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.5,
+   "reason": "vector PEP correctness vs performance"
+  },
+  {
+   "question": "Fill >=2 dated CVE gaps: libSQL/Turso server (sqld), DynamoDB (client-side expression injection advisories in any SDK/ORM), FoundationDB (confirm zero), MySQL server privilege CVEs with real descriptions (MariaDB JIRA MDEV security).",
+   "layer": "L4",
+   "domain": "W-DATA-GATE",
+   "expected_info_gain": 0.3,
+   "reason": "completeness of family rows"
+  }
+ ],
+ "protocol_implications": [
+  "Data plane = typed op-capability IR + per-adapter lowering; never expose native DB wire protocols to untrusted downstream (generate, don't parse).",
+  "INV-NONEMPTY: tenant binding verified structurally after lowering; empty capability set denies; 'Unrestricted' is explicit and CI-gated.",
+  "Per-adapter allowlist lock files generated at build time with family denylists traced to dated CVEs; runtime refuses ops outside the lock.",
+  "Prefer native enforcement with per-tenant core-minted credentials where it exists (RLS, STS session policy, Redis ACL user, Kafka PREFIXED ACL, NATS account); only those invariants survive third-party adapters \u2014 state this in the extension contract.",
+  "In-process adapters only for pure-Rust low-unsafe first-party drivers; C/C++-binding drivers (libsql, foundationdb, rdkafka, questdb-rs) and all third-party adapters out-of-process with WIT-encoded Op and host-owned tenant-handle resource.",
+  "Never share a backend connection across tenants (Valkey CVE-2025-67733 response-stream injection; SQL Server SESSION_CONTEXT pooling)."
+ ],
+ "self_improvement": [
+  "NVD WebFetch domain blocked in this environment; explorers should use services.nvd.nist.gov REST (no pubStartDate range >120d) and cveawg.mitre.org/api/cve/<id>. GitHub code search allows ~10 req/min; batch accordingly.",
+  "Explorer crashed mid-run (machine OOM, round-2); progress-file checkpointing allowed resume with zero re-query \u2014 keep checkpoint cadence mandatory."
+ ],
+ "notes": {
+  "resumed_after_crash": true,
+  "queries_logged": 42,
+  "dup_skipped": 3,
+  "near_dup_rewritten": 0,
+  "novelty_gate_note": "query gate run on 7 queries (all NOVEL pre-log; 3 later re-checks DUP vs own log entries, not rerun); topic gate: IR/isolation/Envoy titles NOVEL (max 0.29); rustls-PQ topic near crate-rustls-pq -> modeled as extends edge.",
+  "new_urls_approx": 34,
+  "seen_urls": 0,
+  "new_nodes": 26,
+  "reused_ids": [
+   "sdg-l5-db-gate-invariants",
+   "sdg-sql-allowlist-bypass",
+   "sdg-compile-time-extraction",
+   "isolation-decision-table-by-provenance",
+   "landlock-seccomp-self-sandbox",
+   "crate-rustls-pq",
+   "std-rfc10024-ecdhe-mlkem",
+   "sdg-jepsen-nats",
+   "pqc-capability-token-design"
+  ],
+  "dedupe_rule": "Counts dedupe GHSA==RUSTSEC==CVE aliases via OSV; repo-advisory counts are GHSA published on the repo (fetched 2026-10-24); NVD counts are keywordSearch totals filtered to published>=2023 (2026-10-24), which include third-party products mentioning the keyword.",
+  "gaps": ">=2 dated CVE target not met for libSQL/Turso (1), DynamoDB (1 SDK GHSA), FoundationDB (0 exist). GitHub code search rate-limited mid-run (qdrant, opensearch, libsql not checked for ClientConfig hooks). WebFetch to nvd.nist.gov blocked; used NVD REST API + cveawg.mitre.org API instead.",
+  "vocabularies": [
+   "offensive-security",
+   "database-systems",
+   "systems/proxy-ops",
+   "PL-formal (policy partial evaluation)",
+   "cryptography"
+  ],
+  "source_types": [
+   "registry API (crates.io, OSV)",
+   "repo advisories (gh api, 27 repos)",
+   "CVE/NVD APIs",
+   "vendor docs",
+   "spec repos (WASI, NDC)",
+   "repo metadata (Envoy posture)",
+   "code search",
+   "changelogs"
+  ],
+  "contrarian": [
+   "Envoy DB-filter posture: in-path wire-protocol PEPs are not hardened even in Envoy",
+   "native row security is necessary-but-not-sufficient: every native mechanism documents bypasses"
+  ],
+  "data_files": [
+   "/home/patrickd/aegis/research/state/raw/round-002/01-data/crates.json",
+   "/home/patrickd/aegis/research/state/raw/round-002/01-data/cve_batch1.tsv",
+   "/home/patrickd/aegis/research/state/raw/round-002/01-data/repo_advisories.txt",
+   "/home/patrickd/aegis/research/state/raw/round-002/01-data/adv_envoy.tsv",
+   "/home/patrickd/aegis/research/state/raw/round-002/01-data/nvd/"
+  ]
+ },
+ "sources": [
+  "https://api.osv.dev/v1/query",
+  "https://apple.github.io/foundationdb/authorization.html",
+  "https://component-model.bytecodealliance.org/design/wit.html",
+  "https://crates.io/api/v1/crates",
+  "https://crates.io/crates/async-nats",
+  "https://crates.io/crates/aws-sdk-dynamodb",
+  "https://crates.io/crates/cedar-policy",
+  "https://crates.io/crates/foundationdb",
+  "https://crates.io/crates/libsql",
+  "https://crates.io/crates/mysql_async",
+  "https://crates.io/crates/questdb-rs",
+  "https://crates.io/crates/redis",
+  "https://crates.io/crates/reqwest",
+  "https://crates.io/crates/rskafka",
+  "https://crates.io/crates/rustls",
+  "https://crates.io/crates/scylla",
+  "https://crates.io/crates/tantivy",
+  "https://crates.io/crates/tiberius",
+  "https://crates.io/crates/tonic",
+  "https://cveawg.mitre.org/api/cve/",
+  "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+  "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html",
+  "https://docs.meilisearch.com/learn/security/multitenancy_tenant_tokens",
+  "https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization",
+  "https://docs.styra.com/enterprise-opa/reference/api-reference/partial-evaluation-api",
+  "https://docs.turso.tech/api-reference/databases/create-token",
+  "https://github.com/WebAssembly/wasi-keyvalue",
+  "https://github.com/WebAssembly/wasi-sql-embed",
+  "https://github.com/apache/datafusion-sqlparser-rs",
+  "https://github.com/apache/kafka/blob/trunk/docs/security/authorization-and-acls.md",
+  "https://github.com/awslabs/aws-sdk-rust/security/advisories/GHSA-g59m-gf8j-gjf5",
+  "https://github.com/envoyproxy/envoy/blob/main/contrib/extensions_metadata.yaml",
+  "https://github.com/envoyproxy/envoy/blob/main/source/extensions/extensions_metadata.yaml",
+  "https://github.com/envoyproxy/envoy/security/advisories",
+  "https://github.com/hasura/ndc-spec",
+  "https://github.com/minio/minio/security/advisories",
+  "https://github.com/nats-io/nats-server/security/advisories",
+  "https://github.com/opensearch-project/security/security/advisories",
+  "https://github.com/pganalyze/pg_query.rs",
+  "https://github.com/qdrant/qdrant/security/advisories/GHSA-frc7-44gm-99qq",
+  "https://github.com/quickwit-oss/tantivy/security/advisories/GHSA-7pph-m7rw-cqhv",
+  "https://github.com/redis/redis/security/advisories",
+  "https://github.com/rustls/rustls/blob/main/rustls/src/manual/defaults.rs",
+  "https://github.com/surrealdb/surrealdb/security/advisories",
+  "https://github.com/valkey-io/valkey/security/advisories",
+  "https://hasura.github.io/ndc-spec/specification/capabilities.html",
+  "https://hasura.io/docs/3.0/reference/metadata-reference/permissions/",
+  "https://learn.microsoft.com/en-us/sql/relational-databases/security/row-level-security",
+  "https://neo4j.com/docs/operations-manual/current/authentication-authorization/manage-privileges/",
+  "https://qdrant.tech/documentation/guides/security/",
+  "https://redis.io/docs/latest/operate/oss_and_stack/management/security/acl/",
+  "https://services.nvd.nist.gov/rest/json/cves/2.0",
+  "https://www.cockroachlabs.com/docs/stable/row-level-security",
+  "https://www.cve.org/CVERecord?id=CVE-2023-25149",
+  "https://www.cve.org/CVERecord?id=CVE-2023-31141",
+  "https://www.cve.org/CVERecord?id=CVE-2023-33972",
+  "https://www.cve.org/CVERecord?id=CVE-2023-41053",
+  "https://www.cve.org/CVERecord?id=CVE-2023-47090",
+  "https://www.cve.org/CVERecord?id=CVE-2024-21096",
+  "https://www.cve.org/CVERecord?id=CVE-2024-2221",
+  "https://www.cve.org/CVERecord?id=CVE-2024-24747",
+  "https://www.cve.org/CVERecord?id=CVE-2024-27309",
+  "https://www.cve.org/CVERecord?id=CVE-2024-30896",
+  "https://www.cve.org/CVERecord?id=CVE-2024-33809",
+  "https://www.cve.org/CVERecord?id=CVE-2024-3829",
+  "https://www.cve.org/CVERecord?id=CVE-2024-41178",
+  "https://www.cve.org/CVERecord?id=CVE-2024-53900",
+  "https://www.cve.org/CVERecord?id=CVE-2024-6382",
+  "https://www.cve.org/CVERecord?id=CVE-2024-8309",
+  "https://www.cve.org/CVERecord?id=CVE-2025-11695",
+  "https://www.cve.org/CVERecord?id=CVE-2025-14847",
+  "https://www.cve.org/CVERecord?id=CVE-2025-23015",
+  "https://www.cve.org/CVERecord?id=CVE-2025-23061",
+  "https://www.cve.org/CVERecord?id=CVE-2025-24999",
+  "https://www.cve.org/CVERecord?id=CVE-2025-26467",
+  "https://www.cve.org/CVERecord?id=CVE-2025-27817",
+  "https://www.cve.org/CVERecord?id=CVE-2025-30215",
+  "https://www.cve.org/CVERecord?id=CVE-2025-47736",
+  "https://www.cve.org/CVERecord?id=CVE-2025-49844",
+  "https://www.cve.org/CVERecord?id=CVE-2025-62506",
+  "https://www.cve.org/CVERecord?id=CVE-2025-67733",
+  "https://www.cve.org/CVERecord?id=CVE-2025-8866",
+  "https://www.cve.org/CVERecord?id=CVE-2026-107814",
+  "https://www.cve.org/CVERecord?id=CVE-2026-1471",
+  "https://www.cve.org/CVERecord?id=CVE-2026-32247",
+  "https://www.cve.org/CVERecord?id=CVE-2026-33186",
+  "https://www.cve.org/CVERecord?id=CVE-2026-35402",
+  "https://www.cve.org/CVERecord?id=CVE-2026-61788",
+  "https://www.cve.org/CVERecord?id=CVE-2026-73579",
+  "https://www.cve.org/CVERecord?id=CVE-2026-84993",
+  "https://www.cve.org/CVERecord?id=CVE-2026-90997",
+  "https://www.mongodb.com/docs/manual/core/authorization/",
+  "https://www.osohq.com/docs/develop/enforce/list-filtering"
+ ]
+}

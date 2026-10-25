@@ -1,0 +1,2074 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>GitHub Availability Report Archives - The GitHub Blog</title>
+	<atom:link href="https://github.blog/tag/github-availability-report/feed/" rel="self" type="application/rss+xml" />
+	<link>https://github.blog/tag/github-availability-report/</link>
+	<description>Updates, ideas, and inspiration from GitHub to help developers build and design software.</description>
+	<lastBuildDate>Wed, 14 Oct 2026 20:01:38 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.3</generator>
+
+<image>
+	<url>https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32</url>
+	<title>GitHub Availability Report Archives - The GitHub Blog</title>
+	<link>https://github.blog/tag/github-availability-report/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">153214340</site>	<item>
+		<title>GitHub availability report: September 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-september-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 14 Oct 2026 20:01:35 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=99506</guid>
+
+					<description><![CDATA[<p>In September, we experienced two incidents that resulted in degraded performance across GitHub services.  </p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2026/">GitHub availability report: September 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p class="wp-block-paragraph">Our last update covered content through August. We did not publish another in September while other public content addressed the August 17 outage. This edition covers progress over the past two months.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The short version of August and September</strong>: we reduced shared-database pressure, added overload controls, created headroom for GitHub Actions, expanded failure containment for pull requests, and moved more production workloads to Azure. Significant incidents, a capacity pause, and a missed migration target show that the work is not complete.</p>
+
+
+
+<p class="wp-block-paragraph">By October 7, 120 of 160 production services were deployed in Central US, and 13 of 51 primary MySQL databases had moved. Azure also handled 65.4% of read traffic for GitHub&rsquo;s core application, 48.3% of Git read traffic, and 80.2% of stream-processing traffic. These percentages measure different workloads and should not be added.</p>
+
+
+
+<p class="wp-block-paragraph">We paused Central US deployments and traffic increases on September 11 because capacity was uneven across availability zones. Permanent ramps resumed September 18 after temporary relief, but durable capacity work continues, with a goal of unlocking all available capacity by the end of October. We missed our aggressive September 30 goal to deploy every production service there. During a planned database failover, an automated emergency process disconnected Central US database copies and disrupted customers in that region. We disabled that process during planned handoffs while improving recovery.</p>
+
+
+
+<p class="wp-block-paragraph">Outside the regional migration, 24 authentication-core tables moved off GitHub&rsquo;s oldest shared database, removing approximately one million queries per second from its replicas. The database cluster supporting issues and pull requests removed approximately 980 million unnecessary edit-history rows, creating an estimated 1.8 terabytes of recoverable storage. Weekly deadlocks fell approximately 77% from their June peak, and continuous cleanup now prevents the same unbounded growth from returning.</p>
+
+
+
+<p class="wp-block-paragraph">Half of sampled pull request traffic can now continue with limited functionality when a shared dependency fails. Production results showed several read operations remained available during a shared-database incident. Database traffic routing can also add capacity automatically during spikes; one group expanded from 14 to 19 instances during a September 23 increase in pull request activity. A production overload control now lets responders protect higher-priority API and web workflows by rejecting lower-priority requests before broader saturation. Operator documentation and training are complete.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub Actions also gained operating headroom. Production changes reduced measured Redis operations by approximately 28% and relative CPU by approximately 30%. A separate infrastructure cache reduced Redis bandwidth by 84%, average response time by 66%, median response time for the primary inventory request by 96%, and queued requests by 95%.</p>
+
+
+
+<p class="wp-block-paragraph">The August 6 actions outage, August 17 github.com outage, September failover disruption, and controlled capacity pause are reminders that measured improvements matter only when they reduce customer risk under real conditions. The principle remains the same: <strong>availability, then capacity, then features.</strong></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity">
+
+
+
+<h2 id="h-september-13-09-16-utc-lasting-1-hour-and-28-minutes" class="wp-block-heading">September 13 09:16 UTC (lasting 1 hour and 28 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" fetchpriority="high" decoding="async" height="451" width="1024" src="https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?resize=1024%2C451" alt="Line chart titled &ldquo;GitHub.com edge failure rate.&rdquo; The percentage of requests failing at the front door stays near 0% until about 8:45, then fluctuates sharply&mdash;mostly between 0.5% and 1.1%, peaking around 1.2%&mdash;during the shaded period labeled &ldquo;impact.&rdquo; It falls back near 0% by 10:00 and remains there, with only tiny blips, through about 12:15." class="wp-image-99509" srcset="https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?w=1631 1631w, https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?w=300 300w, https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?w=768 768w, https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/10/09-13-Graph-Incident5334.png?w=1536 1536w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--1" style="border-top-width:4px">
+<h3 id="h-impact-summary" class="wp-block-heading h5-mktg gh-aside-title is-typography-preset-h5" style="margin-top:0">Impact summary</h3>
+
+
+
+<p class="wp-block-paragraph"><strong>Duration:</strong> approximately 2 hours</p>
+
+
+
+<p class="wp-block-paragraph">Customers may have seen requests fail, run slowly, or remain pending when opening or updating issues and pull requests, calling APIs, creating access tokens, starting GitHub Actions workflows, or signing up.</p>
+
+
+
+<p class="wp-block-paragraph">~96% of the customer requests creating issues through the web interface were impacted during the incident window. In addition, 90% of new customer signup and ~4% of actions workflows also experienced intermittent failures.</p>
+</aside>
+
+
+
+<h3 id="h-what-went-wrong-and-why" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">A background data-cleanup job increased load on a shared database. The job had a safeguard designed to slow its writes when database replicas fell behind, but the safeguard did not account for incoming load on the primary database server. As a result, the job continued running until the primary reached its connections limit. When the primary ran out of available connections, requests that depended on it could not complete reliably.</p>
+
+
+
+<p class="wp-block-paragraph">Two other factors increased the impact and delayed recovery. First, there was no quick timeout on these database calls, so request handlers waited on the stalled database instead of failing fast. Second, a retry loop around token creation kept resending writes that were already failing, which held the database saturated rather than letting it recover.</p>
+
+
+
+<h3 id="h-how-did-we-respond" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>A background data-cleanup job began writing to a shared database.</li>
+
+
+
+<li>The job&rsquo;s safeguard monitored replica lag but did not account for load building on the database&rsquo;s primary server.</li>
+
+
+
+<li>The primary ran out of available connections, causing requests across dependent services to fail or run slowly.</li>
+
+
+
+<li>Automated monitoring detected the incident, and we traced the failures to load on the shared database.</li>
+
+
+
+<li>We reduced internal load and paused the background job.</li>
+
+
+
+<li>The database recovered, and error rates across the affected services returned to normal.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>We are implementing additional safeguards to improve database resilience and service availability. These measures will better control background processing based on available database capacity, reduce unnecessary retries during failures, and limit the impact of slow database requests.</li>
+
+
+
+<li>We are also improving service startup behavior to ensure that temporary database connectivity issues do not unnecessarily affect service recovery.</li>
+</ul>
+
+
+
+<h2 id="h-september-28-21-16-utc-lasting-52-minutes" class="wp-block-heading">September 28 21:16 UTC (lasting 52 minutes)&nbsp;</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" decoding="async" height="422" width="1024" src="https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?resize=1024%2C422" alt="Line chart titled &ldquo;Copilot code reviews not delivering results.&rdquo; During the shaded period labeled &ldquo;Reviews not completing,&rdquo; the percentage of reviews not completing rises from near 0% around 19:25 to roughly 85% by 19:35 and stays near that level until about 21:30. It then declines, dropping to near 0% around 21:50, and remains mostly near 0% with small fluctuations through 23:00." class="wp-image-99510" srcset="https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?w=1652 1652w, https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?w=300 300w, https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?w=768 768w, https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/10/09-28-Graph-Incident5437.png?w=1536 1536w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened-0" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--2" style="border-top-width:4px">
+<h3 id="h-impact-summary-0" class="wp-block-heading h5-mktg gh-aside-title is-typography-preset-h5" style="margin-top:0">Impact summary&nbsp;</h3>
+
+
+
+<p class="wp-block-paragraph"><strong>Duration:</strong> approximately 2 hours and 45 minutes&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">This incident impacted Copilot code review across github.com and GHEC data-residency regions. Affected customers saw Copilot remain in a reviewing state without a review appearing, with delays ranging from ~30 minutes to a max of 2 hours.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">Some reviews on github.com continued to complete normally during the incident, while reviews in data-residency regions did not. Some customers still received delayed error messages for requests made during the incident.&nbsp;</p>
+</aside>
+
+
+
+<h3 id="h-what-went-wrong-and-why-0" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">Copilot code review uses a separate service to run reviews and 2 versions of the results are returned: a limited copy that excludes the review comments and a full copy that includes the completed review. Copilot code review posts reviews only from the full copy. A change to that service began sending the full copy only for some customers. For other customers, only the limited copy was sent.</p>
+
+
+
+<p class="wp-block-paragraph">As a result, Copilot code review could not build a review, but reported that the job had completed successfully. The missing review results were not detected due to lack of monitoring. The incident was detected as some of the reviews remained incomplete for more than 30 minutes, triggering an alert to first responders.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by reverting the change.</p>
+
+
+
+<h3 id="h-how-did-we-respond-0" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>A change to the service that runs Copilot code reviews began rolling out, and review results stopped appearing on pull requests. The change reached every environment.</li>
+
+
+
+<li>Reviews began timing out, triggering an alert to the Copilot code review team. We declared an incident.</li>
+
+
+
+<li>We traced the failures to the change and began reverting it.</li>
+
+
+
+<li>While the revert completed its required checks, we posted the incident on the GitHub Status page.</li>
+
+
+
+<li>The revert then reached all the affected regions. We resolved the incident and advised customers to request affected reviews again.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful-0" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>We are strengthening the reliability of Copilot code reviews by adding safeguards throughout the review and delivery process. These improvements will help ensure that completed reviews are delivered successfully, allow failed reviews to recover automatically, and provide earlier notification when issues occur.</li>
+
+
+
+<li>We are also improving our monitoring and deployment processes so that problems can be identified and addressed more quickly.</li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity">
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we&rsquo;re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+</body></html>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-september-2026/">GitHub availability report: September 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">99506</post-id>	</item>
+		<item>
+		<title>GitHub availability report: August 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-august-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 10 Sep 2026 02:05:17 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=98774</guid>
+
+					<description><![CDATA[<p>In August, we experienced five incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2026/">GitHub availability report: August 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p class="wp-block-paragraph">While we continue to make progress, August proved to be a challenging month for availability. You can read more about these incidents in <a href="https://github.blog/news-insights/company-news/the-august-17-outage-and-the-work-ahead/">a blog post</a> we published last month. We are aggressively investing in both architectural improvements and moving to Azure, which will give us more capacity. Meanwhile, we continue to see significant growth on our platform. We are prioritizing the most impactful work while minimizing risk, but as these incidents in August show, we cannot completely eliminate risk.</p>
+
+
+
+<p class="wp-block-paragraph">Ultimately, all the work needs to be done, and incidents give us an opportunity to adjust our priorities. As repair items from these incidents, we&rsquo;ve made significant improvements to our capacity monitoring and management, retry policies that led to bigger impact, and resiliency improvements to core services. We&rsquo;ve also continued to make great progress across many durable work streams.</p>
+
+
+
+<p class="wp-block-paragraph">On August 11, GitHub ran a production MySQL primary from Azure for the first time. Client-observed write impact was minimal, and no customer impact occurred in the transition. We repeated the pattern with two more primaries on August 27. We have further primaries scheduled over the coming weeks, increasing in complexity as we learn from each failover.</p>
+
+
+
+<p class="wp-block-paragraph">Read traffic also reached new highs. Reads from migrated services peaked at 60.4%, while reads from GitHub&rsquo;s monolith peaked at 64.3% in Azure. Git reads reached 54%.</p>
+
+
+
+<p class="wp-block-paragraph">Away from the regional migration, the 24-table authentication-core cohort moved off GitHub&rsquo;s oldest shared database, mysql1, removing approximately one million queries per second from its replicas. Separate query-hygiene changes removed another 120,000 queries per second and eliminated approximately 59,000 seconds of wasted database work per hour.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub Actions gained additional capacity while longer-term isolation work continues. Job-routing changes moved 33% of jobs from a constrained production cluster to spare capacity, reducing peak cache CPU utilization from 98% to 80% and adding an estimated three months of headroom. This is a near-term containment measure, not the finish line; the August outage reinforced the need for more durable capacity and isolation, which continues.</p>
+
+
+
+<p class="wp-block-paragraph">Pull request isolation work continued. In addition to unauthenticated traffic already being served, now authenticated reads for the first production cohort reached 100%.</p>
+
+
+
+<p class="wp-block-paragraph">Investments in Git overload protection served 6.4% more traffic while improving 95th-percentile duration by 24% and maximum delay by 78%. Broader load-shedding protections at the edge also made progress, enabling levers that can protect GitHub under unexpected load&mdash;in fact, these protections were used in mitigating the aforementioned incidents in August.</p>
+
+
+
+<p class="wp-block-paragraph">We also improved monitoring and telemetry. Pull request monitoring now measures merge, review, and comment failures independently, where high read volume could otherwise mask a failing write path. On August 21, automated high impact incident detection began combining customer-support signals with service telemetry. API monitoring was also recalibrated and validated over 30 days, reducing noise and improving signal quality. These changes improve detection and response.</p>
+
+
+
+<p class="wp-block-paragraph">The next month of work includes moving the next database primaries, continuing to migrate services and corresponding traffic to Azure, chipping away at database health particularly on shared-databases, adding more automation around capacity management and auto-scaling, and extending dependency-failure handling across more of the pull request experience.</p>
+
+
+
+<p class="wp-block-paragraph">This principle continues to guide us: <strong>availability, then capacity, then features.</strong></p>
+
+
+
+<h2 id="h-august-06-15-22-utc-lasting-10-hours-and-42-minutes" class="wp-block-heading">August 06 15:22 UTC (lasting 10 hours and 42 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" decoding="async" height="509" width="1024" src="https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?resize=1024%2C509" alt="Graph showing the customer impact rate from 15:00 to 00:00 UTC." class="wp-image-98775" srcset="https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?w=1625 1625w, https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?w=300 300w, https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?w=768 768w, https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/09/Actions-Run-Start_delay.png?w=1536 1536w" sizes="(max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--3" style="border-top-width:4px">
+<h3 id="h-impact-summary" class="wp-block-heading h5-mktg gh-aside-title">Impact Summary</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Duration</strong>: approximately 9 hours</li>
+
+
+
+<li><strong>Services impacted</strong>: GitHub Actions (GitHub-hosted and self-hosted runners), plus actions-dependent features, including Copilot coding agent, Copilot code review, GitHub Pages builds, Dependabot, and repository migrations.</li>
+
+
+
+<li><strong>Customer impact</strong>: At least 74 organizations saw GitHub Actions workflows fail to start, fail partway through, or sit queued far longer than usual, measured against each organization&rsquo;s own normal baseline. Customers during the impact window may have seen workflow runs failing or stuck in a queued state, some actions API requests returning errors, and in some cases unexpected rate limiting in your workflows. In most cases, re-running a failed workflow once the incident was over succeeded.</li>
+</ul>
+</aside>
+
+
+
+<p class="wp-block-paragraph">The incident began with a routine deployment to an internal GitHub Actions service that processes incoming events and turns them into actions jobs. The deployment&rsquo;s contents were not at fault (we rolled it back to confirm this); instead, replacing pods during the rollout briefly reduced capacity in one site and pushed the remaining sites past their limit as traffic shifted to them. Impact was heaviest through the middle hours of the incident, when a large share of actions workflow runs were failing to start or complete.</p>
+
+
+
+<h3 id="h-what-went-wrong-and-why" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">The affected actions services were running close to their capacity and concurrency limits. A routine deployment that briefly reduced the number of running pods was enough to exhaust available headroom. This caused service mesh sidecars to experience CPU throttling and out-of-memory restarts, which then cascaded into cache, DNS, and API errors across multiple clusters. The ingress service mesh for these services had limited headroom so it could not absorb the temporary loss of capacity during the deployment.</p>
+
+
+
+<p class="wp-block-paragraph">As the core services recovered, a latent bug in the job-assignment path made recovery slower: runners were handed jobs that had already been revoked, then got stuck retrying them instead of picking up valid work, which created a self-amplifying backlog.</p>
+
+
+
+<h3 id="h-how-did-we-respond" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>A routine deployment to an internal actions service briefly reduced running capacity in one data center, and within minutes the service mesh and remaining pods saturated.</li>
+
+
+
+<li>The failures cascaded across clusters as cache, DNS, and API errors spread and actions infrastructure failures climbed. We declared a public incident, identified the triggering deployment, and rolled it back to confirm its contents were not the cause.</li>
+
+
+
+<li>Over roughly the next two hours we expanded capacity for the saturated services and throttled incoming webhook-triggered work so the system could stabilize.</li>
+
+
+
+<li>With the core services recovering, a large backlog of queued jobs remained. A latent bug caused runners to be assigned jobs that were no longer valid and then get stuck retrying them, holding back real work.</li>
+
+
+
+<li>We deployed fixes so runners stopped trying to acquire invalid jobs, drained the accumulated queues, and raised the internal rate limits that were slowing recovery. Workflow success rates climbed back toward normal.</li>
+
+
+
+<li>System-wide queues drained, and actions returned to normal operation. A smaller set of self-hosted runners stayed stuck and were recovered manually, and some events from during the incident could not be replayed automatically and had to be re-triggered.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>Add headroom and enable autoscaling for the service mesh ingress and the affected actions services so a routine deployment cannot tip them into saturation.</li>
+
+
+
+<li>Make deployments safer for these services by avoiding capacity reductions during rollout.</li>
+
+
+
+<li>Strengthen monitoring for the saturation and database-proxy conditions that preceded the incident so they are caught earlier.</li>
+
+
+
+<li>Improve how the system sheds load and drains backlogged work during large actions incidents, and prevent runners from getting stuck retrying invalid jobs.</li>
+
+
+
+<li>Ship automatic recovery for self-hosted Actions Runner Controller runners affected by this failure mode in upcoming runner and ARC releases.</li>
+</ul>
+
+
+
+<h2 id="h-august-17-13-40-utc-lasting-7-hours-and-35-minutes" class="wp-block-heading">August 17 13:40 UTC (lasting 7 hours and 35 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" loading="lazy" decoding="async" height="509" width="1024" src="https://github.blog/wp-content/uploads/2026/09/API_Error.png?resize=1024%2C509" alt="Graph of the front-door failure rate from 13:30 to 20:00." class="wp-image-98777" srcset="https://github.blog/wp-content/uploads/2026/09/API_Error.png?w=1625 1625w, https://github.blog/wp-content/uploads/2026/09/API_Error.png?w=300 300w, https://github.blog/wp-content/uploads/2026/09/API_Error.png?w=768 768w, https://github.blog/wp-content/uploads/2026/09/API_Error.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/09/API_Error.png?w=1536 1536w" sizes="auto, (max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened-0" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--4" style="border-top-width:4px">
+<h3 id="h-impact-summary-0" class="wp-block-heading h5-mktg gh-aside-title">Impact summary</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Duration</strong>: approximately 6 hours 44 minutes</li>
+
+
+
+<li><strong>Services impacted</strong>: Issues and pull requests were the most visible (pages and API returned errors and slow responses). A broad set of other services that route through the same datacenter&rsquo;s load balancers&mdash;including the REST and GraphQL APIs, actions, Copilot, sign-in and authentication, and the webhooks API&mdash;also saw errors and latency</li>
+
+
+
+<li><strong>Customer impact</strong>: At the peak, 56.07% of front-door requests to the affected services failed or ran slow at the edge. Across the window, about 29K organizations, defined as a collection of user accounts owning repositories, saw at least one failed or slow request&mdash;over roughly 4.8M failed or slow requests in total. Retrying often worked, but during the worst stretches a large share of attempts failed. Once engineers halted the overloaded load-balancer processes and reduced the retry pressure feeding them, the affected datacenter recovered and error rates returned to normal. No data was lost.</li>
+</ul>
+</aside>
+
+
+
+<h3 id="h-what-went-wrong-and-why-0" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">A new peak in traffic pushed one datacenter&rsquo;s load balancers past their limits. A service-mesh sidecar reached its concurrency limit and did not scale up.</p>
+
+
+
+<p class="wp-block-paragraph">As requests backed up, several of the datacenter&rsquo;s load-balancer nodes exhausted their network flow limits, which degraded the shared gateway authentication path and produced widespread authentication latency and failures across the many services that route through that datacenter.</p>
+
+
+
+<p class="wp-block-paragraph">A latent client retry bug sharply amplified traffic to one internal authentication endpoint, which slowed recovery for the Copilot Token Service. The core weakness was that our service-mesh sidecar did not scale up, together with our retry behavior, and clients were not bound enough to keep a partial degradation from amplifying into a broader overload.</p>
+
+
+
+<h3 id="h-how-did-we-respond-0" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>A new peak in traffic pushes a datacenter&rsquo;s load balancers toward their limits; a service-mesh sidecar hits its concurrency limit and fails to scale up.</li>
+
+
+
+<li>The overload cascades as several load-balancer nodes exhaust their network flow limits and the shared authentication path degrades; issues, pull requests, the APIs, actions, Copilot, and other services begin returning errors and slow responses.</li>
+
+
+
+<li>Automated monitoring detects the elevated errors and an incident is opened; the affected products are marked degraded on the public status page as engineers from across the affected services converge.</li>
+
+
+
+<li>Engineers trace the failure to network saturation on the load balancers in a single datacenter and begin shifting some traffic to another datacenter and reducing gateway retries to relieve the pressure.</li>
+
+
+
+<li>The team stops the load-balancer processes on the saturated nodes and blocks the retry-triggering requests to the most-affected internal endpoint, which produces broad and immediate recovery.</li>
+
+
+
+<li>Remaining authentication errors driven by client retry amplification are stabilized by ramping traffic back up gradually, and after a sustained period of healthy telemetry the incident is resolved.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful-0" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>Correct autoscaling policies so they account for service-mesh sidecar concurrency and capacity, not just the host service.</li>
+
+
+
+<li>Audit request, concurrency, and scaling limits for the service mesh across the affected services.</li>
+
+
+
+<li>Review retry and backoff limits across gateways and clients so a partial degradation cannot be amplified into a broader overload.</li>
+
+
+
+<li>Fix the client retry behavior that amplified authentication traffic during the incident.</li>
+
+
+
+<li>Improve load-balancer capacity monitoring and strengthen regional failover safeguards.</li>
+</ul>
+
+
+
+<h2 id="h-august-20-14-43-utc-lasting-9-hours-and-54-minutes" class="wp-block-heading">August 20 14:43 UTC (lasting 9 hours and 54 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" loading="lazy" decoding="async" height="509" width="1024" src="https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?resize=1024%2C509" alt="Graph of the customer-facing impact rate from 14:00 to 00:30." class="wp-image-98779" srcset="https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?w=1625 1625w, https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?w=300 300w, https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?w=768 768w, https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/09/CCA_Outage.png?w=1536 1536w" sizes="auto, (max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened-1" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--5" style="border-top-width:4px">
+<h3 id="h-incident-summary" class="wp-block-heading h5-mktg gh-aside-title is-typography-preset-h5" style="margin-top:0">Incident summary</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Duration</strong>: approximately 10 hours 40 minutes</li>
+
+
+
+<li><strong>Services impacted</strong>: Copilot cloud agent (task status and results not updating; the agent tasks themselves continued to run and complete)</li>
+
+
+
+<li><strong>Customer impact</strong>: At least 54 organizations saw Copilot cloud agent task status and results lag well above their normal baseline, in some cases by up to 60 to 90 minutes. The tasks kept running and finishing; only the visibility of their status and results was delayed.</li>
+</ul>
+</aside>
+
+
+
+<p class="wp-block-paragraph">During the incident window, the Copilot cloud agent task was impacted. The tasks themselves still ran to completion, so no work was lost. Once processing caught up the correct status and results appeared. Waiting a short time, or checking back a little later, would have shown the up-to-date state.</p>
+
+
+
+<p class="wp-block-paragraph">Across the incident, at least 54 organizations experienced Copilot Cloud Agent task status and results lagging well above their own normal level. Per-minute customer-facing impact peaked at 37.5% of measured task-status activity.</p>
+
+
+
+<h3 id="h-what-went-wrong-and-why-1" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">Copilot cloud agent stores the status and results of each agent task in a managed cloud database. One region of that database suffered a provider-side outage, and the calls that read and write task status in the affected region began failing and running slow.</p>
+
+
+
+<p class="wp-block-paragraph">The processors that stream task-status updates into that database then fell behind as database latency climbed. Their throughput is bounded by a fixed number of processing partitions sized for normal latency plus some headroom. The latency in this incident went well past that headroom, causing the backlog of task-status updates to grow instead of clearing. A storage configuration on the database also made the affected region slow to fail over, so the first failover attempts did not take effect, and recovery took longer than expected.</p>
+
+
+
+<h3 id="h-how-did-we-respond-1" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>A region of the managed cloud database that stores Copilot cloud agent task status began failing and running slow after a provider-side regional outage.</li>
+
+
+
+<li>On-call engineers were paged, opened an incident, and traced the errors to the affected database region.</li>
+
+
+
+<li>Engineers began a regional failover, but it did not take effect&mdash;a storage configuration on the database made the region slow to move&mdash;so task-status updates kept backing up.</li>
+
+
+
+<li>The team forced the affected region offline and shifted task-status processing to a healthy region; write latency remained elevated, and the backlog kept the status view delayed.</li>
+
+
+
+<li>Additional streaming capacity was added and the provider&rsquo;s region gradually recovered, letting the processors work through the backlog so task status and results caught up.</li>
+
+
+
+<li>Latency returned to normal, the backlog cleared, and the incident was mitigated and resolved.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful-1" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>Remove the database storage configuration that made the affected region slow to fail over, so a single region&rsquo;s problems can be exited quickly.</li>
+
+
+
+<li>Improve runbooks for regional failover of this database, including a vetted, ordered list of fallback regions that keep the service healthy.</li>
+
+
+
+<li>Review failover priority so the next region chosen during a failover is the next-best healthy option.</li>
+
+
+
+<li>Make task-status streaming more resilient to elevated database latency, so a latency spike does not immediately throttle throughput and build a backlog.</li>
+
+
+
+<li>Improve monitoring and escalation on the managed databases.</li>
+</ul>
+
+
+
+<h2 id="h-august-26-15-11-utc-lasting-2-hours-and-50-minutes" class="wp-block-heading">August 26 15:11 UTC (lasting 2 hours and 50 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" loading="lazy" decoding="async" height="509" width="1024" src="https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?resize=1024%2C509" alt="Graph showing the customer impact rate from 15:00 to 17:45." class="wp-image-98782" srcset="https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?w=1624 1624w, https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?w=300 300w, https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?w=768 768w, https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/09/Actions-run-start-delay.png?w=1536 1536w" sizes="auto, (max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened-2" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--6" style="border-top-width:4px">
+<h3 id="h-impact-summary-1" class="wp-block-heading h5-mktg gh-aside-title is-typography-preset-h5" style="margin-top:0">Impact summary</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Duration</strong>: approximately 2 hours 53 minutes</li>
+
+
+
+<li><strong>Services impacted</strong>: GitHub Actions (run starts), with knock-on delays to GitHub Pages deployments and Copilot code review.</li>
+
+
+
+<li><strong>Customer impact</strong>: At least 24 organizations saw actions runs fail to start or start much later than usual, measured against each organization&rsquo;s own normal baseline, and a total of 386 organizations saw at least some run-start impact. At peak, more than one in five actions run starts in each minute were failing or badly delayed. Affected workflow runs would have sat queued well past their normal start time, and some would have failed to start outright.</li>
+</ul>
+</aside>
+
+
+
+<p class="wp-block-paragraph">Dependent services like Copilot code review and some GitHub Pages deployments that run on top of actions, were impacted during the incident window.</p>
+
+
+
+<p class="wp-block-paragraph">In most cases, delayed runs started once the backlog drained, and runs that failed to start succeeded when re-run after the incident. A small set of runs that were created during the earliest part of the incident could not be recovered by re-running and had to be started fresh.</p>
+
+
+
+<h3 id="h-what-went-wrong-and-why-2" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">The quick summary is that our shared infrastructure services have not kept up with our month-over-month actions growth and peak load.</p>
+
+
+
+<p class="wp-block-paragraph">A burst of incoming events arrived on top of an already-high load and pushed the database past its tipping point. Query times climbed, and the database primary saturated.</p>
+
+
+
+<p class="wp-block-paragraph">With the database overloaded, the internal service that turns incoming events into runner assignments could not keep up, so actions runs failed to start and began queuing well past their normal start time.</p>
+
+
+
+<p class="wp-block-paragraph">Failing over the database primary helped only partially. The throttles used to relieve inbound load were initially set slightly too high to fully protect the database, so recovery had to be ramped up slowly and manually.</p>
+
+
+
+<p class="wp-block-paragraph">There was no automatic circuit breaker to throttle inbound actions load when the database showed early signs of stress, so the protective throttling had to be applied and tuned manually during the incident. This is one of the learnings from this incident.</p>
+
+
+
+<h3 id="h-how-did-we-respond-2" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>During a daily traffic peak, a burst of incoming events landed while a shared database that actions depends on was already running near its limit. Write and query pressure on the database primary rose sharply and began to saturate.</li>
+
+
+
+<li>The internal service that turns incoming events into runner assignments could no longer keep up. Actions runs began failing an began incident investigation.</li>
+
+
+
+<li>We failed the database primary over to a replica. This improved things briefly but did not fully mitigate, so runs continued to fail or start late.</li>
+
+
+
+<li>We throttled inbound event processing to relieve pressure on the database and let it recover. Core service health returned once the throttling and service restarts took effect, though inbound work was now intentionally slowed.</li>
+
+
+
+<li>We raised the throttles gradually, watching telemetry at each step so we did not re-overwhelm the database, until full event processing was restored and the backlog of delayed work drained. We marked the incident mitigated.</li>
+
+
+
+<li>A subset of jobs on larger and self-hosted runners remained stuck waiting for a runner. We deployed a change to release them, and continued follow-up work to clear runs that had been left showing as queued.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful-2" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>Improve query efficiency of database usage by optimizing specific code paths in the client code.</li>
+
+
+
+<li>Add an automatic circuit breaker that throttles inbound actions load when the database shows signs of stress, instead of relying on manual throttling during an incident.</li>
+
+
+
+<li>Add protections around how often the service falls back to the database primary when a replica is lagging, so a fallback cannot compound database pressure.</li>
+
+
+
+<li>Improve our ability to quickly cancel or clear runs left stuck in a queued or waiting-for-runner state after an incident, so affected jobs recover sooner.</li>
+
+
+
+<li>Continue the scaling and resiliency work already in flight for this part of actions, including changes that were completing and rolling out around the time of the incident.</li>
+</ul>
+
+
+
+<h2 id="h-august-27-10-04-utc-lasting-2-hours-and-8-minutes" class="wp-block-heading">August 27 10:04 UTC (lasting 2 hours and 8 minutes)</h2>
+
+
+
+<figure class="wp-block-image size-large"><img data-recalc-dims="1" loading="lazy" decoding="async" height="509" width="1024" src="https://github.blog/wp-content/uploads/2026/09/kimi_image.png?resize=1024%2C509" alt="Graph of the customer-facing impact rate from 09:30 to 12:15." class="wp-image-98784" srcset="https://github.blog/wp-content/uploads/2026/09/kimi_image.png?w=1625 1625w, https://github.blog/wp-content/uploads/2026/09/kimi_image.png?w=300 300w, https://github.blog/wp-content/uploads/2026/09/kimi_image.png?w=768 768w, https://github.blog/wp-content/uploads/2026/09/kimi_image.png?w=1024 1024w, https://github.blog/wp-content/uploads/2026/09/kimi_image.png?w=1536 1536w" sizes="auto, (max-width: 1000px) 100vw, 1000px" /></figure>
+
+
+
+<h3 id="h-what-happened-3" class="wp-block-heading">What happened?</h3>
+
+
+
+<aside data-color-mode="light" data-dark-theme="dark" data-light-theme="light_dimmed" class="wp-block-group post-aside--large p-4 p-md-6 is-style-light-dimmed has-global-padding is-layout-constrained wp-block-group-is-layout-constrained is-style-light-dimmed--7" style="border-top-width:4px">
+<h3 id="h-impact-summary-2" class="wp-block-heading h5-mktg gh-aside-title is-typography-preset-h5" style="margin-top:0">Impact summary</h3>
+
+
+
+<ul class="wp-block-list">
+<li><strong>Duration</strong>: approximately 2 hours 50 minutes</li>
+
+
+
+<li><strong>Services impacted</strong>: GitHub Copilot (the Kimi K3 model)</li>
+
+
+
+<li><strong>Customer impact</strong>: 63.3% of Kimi K3 requests failed during this impact window.</li>
+</ul>
+</aside>
+
+
+
+<p class="wp-block-paragraph">Customers who had configuration to use the Kimi K3 model were impacted by this incident. Customers who were using other models or switched to using other models were not impacted.</p>
+
+
+
+<h3 id="h-what-went-wrong-and-why-3" class="wp-block-heading">What went wrong and why?</h3>
+
+
+
+<p class="wp-block-paragraph">Copilot offers a choice of AI models. One of them, Kimi K3, is served by an upstream model provider.</p>
+
+
+
+<p class="wp-block-paragraph">That provider had a serving degradation that caused a large share of Kimi K3 requests to fail with errors. Because the problem was with the upstream provider, requests that used other models&mdash;and requests made with the Auto setting, which routed to a different model&mdash;were not affected.</p>
+
+
+
+<p class="wp-block-paragraph">A steady share of Kimi K3 requests kept failing until the provider&rsquo;s mitigation took hold. At peak, more than half of the requests using Kimi K3 were failing.</p>
+
+
+
+<h3 id="h-how-did-we-respond-3" class="wp-block-heading">How did we respond?</h3>
+
+
+
+<ol class="wp-block-list">
+<li>The upstream provider for Kimi K3 experienced a degradation, resulting in elevated failure rates for Copilot requests routed to that model.</li>
+
+
+
+<li>Within a few minutes, monitoring flagged the elevated errors and we began investigating.</li>
+
+
+
+<li>We declared an incident, traced the failures to a degradation at the upstream provider affecting Kimi K3 specifically, and posted a public status update pointing to the provider.</li>
+
+
+
+<li>Requests that used other models, or the Auto setting, kept working throughout, so retrying or switching models would have succeeded.</li>
+
+
+
+<li>We opened a ticket with the provider and monitored recovery as success rates climbed back toward normal on our dashboards.</li>
+
+
+
+<li>We kept the incident open until the provider confirmed Kimi K3 was fully restored, then resolved it.</li>
+</ol>
+
+
+
+<h3 id="h-how-are-we-making-incidents-like-this-less-likely-or-less-impactful-3" class="wp-block-heading">How are we making incidents like this less likely or less impactful?</h3>
+
+
+
+<ul class="wp-block-list">
+<li>Work with the upstream provider to improve the reliability of the Kimi K3 model and reduce the errors seen during this incident.</li>
+
+
+
+<li>Investigate backup serving capacity for Kimi K3 so a single provider degradation has a fallback.</li>
+</ul>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity">
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we&rsquo;re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+</body></html>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-august-2026/">GitHub availability report: August 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">98774</post-id>	</item>
+		<item>
+		<title>GitHub availability report: July 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-july-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 12 Aug 2026 22:17:32 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=98241</guid>
+
+					<description><![CDATA[<p>In July, we experienced eight incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2026/">GitHub availability report: July 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">The GitHub Actions incident on Thursday, August 6, was unacceptable in both its impact and particularity of its duration. Availability continues to be our top priority across all of GitHub. However, with this incident, we have fallen short of our commitments to you. We know how heavily customers rely on actions, and a prolonged outage like this one has a real impact on your productivity and on your trust in us.</p>
+
+
+
+<p class="wp-block-paragraph">We continue to work through a deeper root cause analysis (RCA) on the incident, as there were many aspects in play that we want to fully understand before calling the investigation complete. We’ll update the <a href="https://www.githubstatus.com/incidents/qcvjkzcs7j74">public summary</a> when our investigation is complete, and we will include the complete details in our August availability post to be published in September.</p>
+
+
+
+<p class="wp-block-paragraph">Aside from immediate repair items discovered through our investigation, we are accelerating our architectural roadmap in GitHub Actions, aligned to our ongoing efforts around isolation, resiliency, and scale.</p>
+
+
+
+<p class="wp-block-paragraph">It’s worth noting that the GitHub Actions service at the core of the aforementioned incident is still fully running in our data centers, a contributing factor to the lack of capacity we experienced. While the majority of actions runs on Azure, we hadn’t yet prioritized migrating launch service, the component that bridges the monolith to actions, due to its generally asynchronous nature and ability to queue work in response to issues. Unfortunately, as outlined in the public summary, cascading failures led to an unacceptable delay in recovery. This is why we are accelerating our move of GitHub Actions to Azure, where we will have more headroom and capabilities to absorb spikes.</p>
+
+
+
+<p class="wp-block-paragraph">On our broader efforts, <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2026/">last month</a>, we shared how a deliberate pause and stronger stability controls changed the way we move production traffic into Azure. In July, those controls allowed us to resume that work with greater confidence while continuing to reduce shared dependencies across GitHub.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The short version of July:</strong> GitHub is becoming less dependent on shared infrastructure and individual datacenter locations, giving us more capacity to absorb growth and making failures easier to isolate. This month, more than half of monolith read traffic ran in Azure Central US, authentication data began leaving our oldest shared database, and dedicated services removed substantial load from that shared path.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub can now serve a larger share of customer requests from independent Azure capacity, reducing reliance on any single datacenter while preserving performance. Monolith read traffic served from Azure Central US peaked at <strong>52.75% on July 28</strong>—the first time we consistently remained above the halfway line. Git traffic in Azure reached <strong>47%</strong>, up from 43% in June, and <strong>29% of all repositories</strong> now have a second replica in Central US, making failover less disruptive when a region degrades. Just as important, the stability validation process introduced after May’s incident is now part of every major traffic expansion, helping us increase capacity without increasing customer risk.</p>
+
+
+
+<p class="wp-block-paragraph">We also reduced shared failure points behind critical customer workflows. The first authentication tables moved from our oldest shared database to dedicated infrastructure, proving the migration pattern for the remaining work. Authentication and permission checks now place substantially less pressure on that shared path: at peak, the dedicated user service offloads <strong>more than one million queries per second</strong>, while <strong>80%</strong> of a major authorization lookup has moved to the isolated service path. Repository content traffic now runs fully from Central US on dedicated infrastructure, and the dedicated pull request service, which already serves anonymous traffic, reached <strong>99.87% parity</strong> with the monolith for authenticated reads as we progressively roll all traffic to it. Together, these changes make it less likely that pressure or failures in one part of GitHub will affect unrelated customer activity.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub can now absorb more workload growth before shared infrastructure becomes a source of degradation that affects customers. One production change cut total query time on the artifacts table in half, while caching in the Git authorization path reduced authorization service load by <strong>18.2%</strong>, even as request volume grew. Search is also less exposed to the capacity constraints that contributed to earlier incidents: all production search workloads now serve from Central US with additional headroom during demand or infrastructure stress.</p>
+
+
+
+<p class="wp-block-paragraph">We are also changing how we measure and operate reliability. In addition to infrastructure health, we are increasingly measuring the health of important customer workflows such as pull requests so teams can identify degradation earlier. We are continuing to replace high-risk manual production activity with automation, review controls, and operational safeguards, so customer experience is less dependent on perfect human execution.</p>
+
+
+
+<p class="wp-block-paragraph">Crossing 50% is the midpoint, not the finish. The next phase is about building enough independent Azure capacity to serve all production traffic and, ultimately, withstand the loss of a region without failure. This quarter, we are targeting 70% of read traffic and 30% of write traffic in Central US while bringing every production service online there. Moving database primaries will unlock write traffic; a second Azure region will provide the foundation for regional resilience. We now have a line of sight to get dotcom production traffic out of our datacenters by the end of CY2026.</p>
+
+
+
+<p class="wp-block-paragraph">The eight incident write-ups that follow are the other half of this picture—what the system did well, what it did not, and what we have already changed as a result. The principle continues to guide us: <strong>availability, then capacity, then features.</strong></p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 8, 2026 (lasting 7 hours and 4 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 8, 2026, between 15:07 and 22:13 UTC, multiple GitHub services—including the Web UI, REST API, GraphQL API, Actions, Packages, Copilot, and Git operations—were unavailable across data-resident Enterprise Cloud environments and returned 5xx errors. Affected users experienced page-load and login failures, failed API requests, queued or rejected Actions workflow runs, and unavailable package registry endpoints. During the peak hour, approximately 84% of active tenants across the affected production environments had a majority of their requests fail, and the peak 5xx error rate reached approximately 96% in the most affected environment.</p>
+
+
+
+<p class="wp-block-paragraph">Our automated monitoring detected elevated 5xx errors within approximately 19 minutes of the first impact.</p>
+
+
+
+<p class="wp-block-paragraph">An automated infrastructure metadata process changed a runtime configuration value across virtual machines in these affected environments. A safeguard that normally prevents this value from changing on running machines did not apply to this update. The incorrect value disrupted service discovery and left traffic routers without available backends. We mitigated the incident by restoring the correct configuration values in each of the affected environments and allowing services to re-register. Recovery took several hours because the values had to be corrected and validated across many machines. A separate infrastructure component exhausted its available memory during the recovery and required additional mitigation, extending the recovery duration. We are enforcing metadata immutability, removing unsafe overwrite behavior, and improving staged rollouts. In addition, we are investing in improving monitoring for empty traffic-router backend pools; and developing safer fleet-wide recovery tooling. These changes are intended to prevent recurrence and reduce detection and mitigation for similar issues in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 9, 2026 (lasting 9 hours and 18 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 9, 2026, between 03:29 and 13:39 UTC, GitHub Actions experienced delayed and failed job starts on GitHub-hosted runners. Some Pages builds, Copilot Cloud Agent jobs and Copilot Code Review jobs were also delayed or failed because they depend on GitHub Actions for job execution. The incident was caused by an unhealthy state in a backend data service responsible for provisioning hosted runners, preventing runner acquisition for a subset of workloads. The shard serving the highest-volume runner workload became overloaded and could not synchronize reliably across regions, preventing runner acquisition for affected workloads. During most of the incident, approximately 8% of workflow runs on hosted runners were delayed by more than 5 minutes, while roughly 2% failed to start.</p>
+
+
+
+<p class="wp-block-paragraph">We restored the health of the backend data replication system, allowing provisioning to recover and the accumulated workflow backlog to drain. Service performance then returned to expected levels. The recovery surge briefly placed additional pressure on Actions and dependent services, but the backlog cleared and service performance returned to expected levels by 13:39 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub has completed several improvements to monitoring, operational guidance, and workload management following this incident. Additional work is underway to better distribute demand, protect services during recovery, and reduce delays when traffic increases suddenly. Longer-term changes will further improve data resilience and service capacity. These efforts are intended to reduce the likelihood and impact of similar incidents.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 16, 2026 (lasting 3 hours and 7 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 16, 2026, between 08:50 and 09:50 UTC, the GitHub MCP Server’s <code>web_search</code> tool experienced elevated failures. The average error rate was 42% and peaked at 82% of requests to the tool. Other GitHub MCP Server tools were unaffected. This was caused by degradation at an upstream web search provider.</p>
+
+
+
+<p class="wp-block-paragraph">The incident was mitigated when the upstream provider recovered, after which we confirmed that the tool’s success rate had returned to normal.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub has improved request handling, monitoring, and response guidance for the web search tool: every search now runs under an overall time budget, so a failing provider cannot leave a request running indefinitely, monitoring now tracks the tool&#8217;s reliability specifically, and new internal runbooks help responders diagnose provider-side failures and judge when a single degraded tool warrants a public incident.</p>
+
+
+
+<p class="wp-block-paragraph">Additional safeguards are underway, including a circuit breaker that will report search as unavailable once failures persist, rather than letting every request fail on its own. These changes make a provider outage faster to diagnose and clearer to customers, but they cannot return search results while a provider is unavailable.</p>
+
+
+
+<p class="wp-block-paragraph">That requires a second, independent source of results, since the tool had no alternative to fall back on. We are therefore evaluating backup options to help maintain service during future provider interruptions.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 19, 2026 (lasting 2 hour and 11 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 19, 2026, between 18:00 and 20:11 UTC, a broad DNS reconfiguration caused significant service degradation across github.com and all data residency environments. Customers experienced elevated failed requests across services including GitHub Actions, webhooks, and Copilot. Impact was greater in our data residency environments, where the affected internal service discovery mechanism is more heavily relied upon. The peak regional 5xx error rate was 9.9%, and webhook deliveries in one affected environment were interrupted for approximately 40 minutes.</p>
+
+
+
+<p class="wp-block-paragraph">At 17:50 UTC, a database connectivity issue affected our internal DNS control plane. The resulting incomplete data was incorrectly interpreted by automated reconfiguration of DNS servers across the fleet and disrupted internal service discovery. As cached DNS records expired, some services could no longer resolve internal addresses, causing failed requests.</p>
+
+
+
+<p class="wp-block-paragraph">Automated monitoring detected customer impact within approximately one minute. Recovery began at approximately 18:54 UTC as database connectivity returned. Customer impact ended at 19:26 UTC as DNS forwarding and caches repopulated, and the incident fully resolved at 20:11 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">Following the incident, we deployed safeguards that preserve the last known good DNS configuration, reject incomplete data, and prevent large destructive changes. We also reduced the duration of cached negative DNS responses and improved monitoring for DNS control-plane database availability.</p>
+
+
+
+<p class="wp-block-paragraph">In addition, we are continuing to audit all automated DNS reconfiguration paths and adding read-only database fallback when the primary is unavailable to ensure incomplete data cannot cause destructive changes. These improvements are intended to prevent recurrence and reduce detection and mitigation time for similar issues.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 19, 2026 (lasting 5 hours and 10 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">Between July 19, 2026 at 23:05 UTC and July 20, 2026 at 03:55 UTC, GitHub Actions experienced delayed and failed job starts for self-hosted and larger runners. Jobs using standard GitHub hosted and macOS runners were not impacted by this incident. Overall, 9% of actions workflow runs experienced a start delay, with impact peaking at 21.4%. Among the affected runner categories, 78.99% of larger-hosted jobs, 29.8% of scale-set jobs, and 8.7% of self-hosted jobs took more than five minutes to acquire a runner. Reconnection traffic from affected runners also increased load on GitHub APIs, resulting in three to four seconds of additional average request latency and elevated 5xx error rates.</p>
+
+
+
+<p class="wp-block-paragraph">The incident was caused by a certificate lifecycle management failure in a subset of internal services, resulting in an SSL certificate expiration that disrupted runner connectivity. This specific certificate is used by minimum runner version enforcement. It relied on manual deployment and while a replacement was generated, it was not automatically deployed on receiving an automated alert. We restored service by rotating the affected certificate. Recovery began at 02:45 UTC. By 03:55 UTC, queued workflow backlog had been processed and workflow delay rates returned to normal.</p>
+
+
+
+<p class="wp-block-paragraph">GitHub has strengthened protections to limit the wider impact of runner connection issues. We are adding independent certificate expiration monitoring and improving renewal automation to prevent similar interruptions. We are also updating alerting, access, and response procedures so certificate concerns can be identified and addressed sooner.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 21, 2026 (lasting 1 hour and 26 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 21, 2026, between 07:41 and 11:57 UTC, the SSH Authentication service on github.com was degraded, and some SSH connections using user RSA keys and deploy keys were rejected. On average, 12.2% of SSH authentication requests failed, peaking at 15.7%. Both user RSA keys and deploy keys were impacted.</p>
+
+
+
+<p class="wp-block-paragraph">This was due to a regression introduced during an unrelated internal infrastructure change. The regression affected a less common public-key authentication flow: a directly signed public-key method commonly used by deploy keys and automation. Valid authentication attempts using this method were rejected as invalid.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by reverting the change, after which SSH authentication returned to normal.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to expand our automated test coverage for our SSH public-key authentication flows to catch more edge cases and to improve observability and alerting on SSH authentication failures, to reduce our time to detection and mitigation of issues like this one in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 24, 2026 (lasting 57 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 24, 2026, between 19:17 and 20:02 UTC, users were unable to create pull requests through web, command line, or API interfaces due to a database vschema change. In total, 113,930 pull request creation attempts were impacted across 50,904 users, with an average error rate of 1.75% and a maximum error rate of 2.25% for all requests to pull requests service. Existing pull requests and other GitHub functionality were not affected, although workflows dependent on creating new pull requests were also affected.</p>
+
+
+
+<p class="wp-block-paragraph">The root cause was related to a backfill workflow into the Vitess keyspace hosting pull request data. The backfill Vitess command encountered errors and increased VReplication lag, and the workflow was canceled at 19:17 UTC. The cancellation executed a misunderstood Vitess codepath that dropped the backing table to the target keyspace, leaving a non-existent reference that resulted in errors creating pull requests.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was resolved by reverting the change to the affected database, upon which pull request creation immediately resumed. The mitigation was executing a command to drop the vschema reference to the dropped table, allowing pull request creation to resume.</p>
+
+
+
+<p class="wp-block-paragraph">Following the incident, we have added operational guidance for database index backfill and documented unexpected cancellation behavior. We are currently working on adding stronger pre-flight validation to our tooling, building capabilities into well known codepaths, and end-to-end testing in lower environments prior to production rollout.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>July 25, 2026 (lasting 52 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On July 25, 2026, GitHub Actions experienced two related periods of degradation that caused some workflow runs to be delayed by more than five minutes or end with infrastructure failures.</p>
+
+
+
+<p class="wp-block-paragraph">The first degradation occurred between 08:45 and 09:13 UTC. During a planned availability-related configuration change on a critical-path Redis cluster for Actions, one participating region was left in a degraded state. Separately, an independent capacity operation temporarily removed another region from the cluster and redirected its traffic to the degraded region. This created cross-region inconsistencies in job-assignment state, causing workflow runs to be delayed, exhaust retries, or fail outright. At peak, about 7% of runs were delayed by more than 5 minutes, and 25% of runs failed with an infrastructure error during the course of the incident. We mitigated the incident at 09:13 UTC by returning traffic to its normal distribution.</p>
+
+
+
+<p class="wp-block-paragraph">Second period occurred between 12:08 and 12:48 UTC. As part of mitigating the first incident, traffic was returned to the regional instance that was still undergoing its capacity increase. Multiple Redis nodes in the scaling region experienced failures, increasing traffic to healthy nodes and causing connection limits to be reached on many nodes. At peak, 30% of runs were delayed by more than five minutes, and 60% of runs failed with an infrastructure error during the course of the incident. We mitigated the incident at 12:48 UTC by redirecting workflow traffic away from the scaling region.</p>
+
+
+
+<p class="wp-block-paragraph">We have added stronger regional health and capacity checks before maintenance, along with a required stable observation period before restoring traffic. We are continuing to improve automated connection resiliency and are partnering with our platform dependency to automatically detect and remediate unhealthy cluster members and shard imbalance. More broadly, we already had work underway to improve the resiliency and scale of this part of GitHub Actions infrastructure.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-july-2026/">GitHub availability report: July 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">98241</post-id>	</item>
+		<item>
+		<title>GitHub availability report: June 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-june-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 08 Jul 2026 19:35:51 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=97408</guid>
+
+					<description><![CDATA[<p>In June, we experienced six incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2026/">GitHub availability report: June 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">Last month, we <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2026/">added a new section</a> to our monthly reports with updates on GitHub&#8217;s availability work and the infrastructure investments behind it. The response and the questions we heard made one thing clear: customers want more of this, not less—including when the news is mixed.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>The short version of June:</strong> We made real structural progress, we paused deliberately when a ramp went sideways, and we missed a target that we&#8217;ve now re-baselined.</p>
+
+
+
+<p class="wp-block-paragraph">Monolith traffic in Azure peaked at <strong>45% in Central US</strong> this month. That number is lower than we&#8217;d hoped, because we paused the ramp for roughly a month after a stability incident on May 21 made it clear the environment wasn&#8217;t ready for more traffic. We restarted the ramp on June 17 with a new per-turnup stability gate that requires the environment to be verifiably healthy before each step up. Going more slowly with more confidence is the right trade—a controlled pause is preferable to relearning the same lessons at higher load.</p>
+
+
+
+<p class="wp-block-paragraph">Git in Azure grew from 30% to a peak of <strong>43% (HTTP and SSH combined)</strong> over the month, and we missed our June target of 50%. We expect Git to plateau near 45% for now because of two deliberate decisions to avoid added user latency: we are waiting on additional vPoP traffic to route to Central US rather than backhauling IAD HUB Git traffic, and we are routing only HTTP for now because SSH has no read/write split at the edge. We continue to prioritize this, but we don’t have a new target to share. We’ll keep working as quickly and safely as possible and will report the specific numbers in our next update.</p>
+
+
+
+<p class="wp-block-paragraph">Underneath those headline numbers, we made progress that we are particularly excited about. Our new extracted pull requests service, pullsd, is now handling <strong>100% of anonymous pull request reads</strong> in production; this traffic is no longer served by the monolith. Reposd, our new extracted repository service, became the first extracted service to serve production REST traffic from Azure, ramping to 50% of read traffic before we proactively turned it down for a Redis capacity constraint. There was no incident and no rollback under duress. It will re-ramp once that capacity work completes. Our new users service is now offloading roughly <strong>500,000 queries per second at peak</strong> from our primary database, with the physical migration of authentication and authorization tables landing in early July. Our API rate limiting is now approximately <strong>97% handled at the Gateway</strong>, so rate-limiting decisions no longer contend with request-serving workers inside the monolith. Client-side database load shedding is running against 5% of real production traffic, which means we now have live evidence that we can shed low-priority queries under stress before they cascade into user-facing failures. And two-person confirmation is now required end-to-end for interactive production access and ChatOps changes, with a unified audit trail behind it.</p>
+
+
+
+<p class="wp-block-paragraph">The incident write-ups that follow are the other half of the picture: what the system did well and what it didn&#8217;t, what we&#8217;ve already changed as a result, and what we&#8217;re still changing. The same principle continues to guide us: <strong>availability, then capacity, then features.</strong></p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">In June, we experienced six incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 04 17:30 UTC (lasting 1 hour and 25 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 4, 2026, from 17:30 to 18:55 UTC, Copilot code review experienced elevated failures for review requests on github.com. Affected users saw “Copilot ran into an error” on pull requests when requesting a code review.</p>
+
+
+
+<p class="wp-block-paragraph">During the incident window, an average of 81.6% of Copilot code review requests failed, with a peak failure rate of 93.9%, and a total of approximately 36,800 code review requests failing. GitHub Enterprise Cloud with data residency was not impacted.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was caused by a newly released dependency used by the Copilot code review processing workflow. The release introduced an incompatibility with the runtime environment. Because the workflow automatically consumed the latest release, the incompatible version was picked up without sufficient compatibility validation and caused review processing to fail. Affected review jobs did not fail fast; many continued running until they timed out.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by removing the problematic dependency version and redeploying the affected processing service. New code reviews began recovering at 18:44 UTC, and the failure rate returned to baseline by 18:55 UTC. Remaining timed-out work drained by 19:59 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">To reduce the risk of recurrence, we are pinning the dependency version instead of automatically consuming the latest release, adding compatibility checks for future releases, improving fast-failure behavior when the review processor cannot start, adding shorter timeout controls for review workflows, and improving monitoring for review completion failures.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 08 06:30 UTC (lasting 2 hour and 06 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 8, 2026, between approximately 06:30 and 08:36 UTC, signed-out users experienced sustained elevated HTTP 504 errors when accessing pull requests, issues, releases, patch diffs, and other related github.com pages. During the incident, approximately 17% of unauthenticated requests to the affected github.com endpoints returned gateway timeout errors, peaking at roughly 34% of requests at around 06:50 UTC. Some GitHub Actions workflows were also affected when they depended on release downloads or related github.com endpoints. The impact lasted approximately two hours and was isolated to unauthenticated traffic; signed-in users were not affected.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was caused by a significant increase in abusive, automated anonymous traffic to specific github.com endpoints. Because unauthenticated requests are served by a dedicated pool of web application servers, it degraded our ability to respond to unauthenticated requests, causing requests to queue beyond timeout thresholds and return gateway timeout errors.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by identifying the anomalous traffic pattern and applying targeted blocks at the load balancer and application layers. Once the blocks took full effect, error rates returned to normal and affected services were fully restored by 08:36 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">To reduce the likelihood and impact of similar incidents in the future, we are improving automated detection and blocking for these traffic patterns, improving our emergency traffic-blocking deployment path, and evaluating routing changes for endpoints used by both signed-out users and automated workflows.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 10 15:05 UTC (lasting 1 hour and 20 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 10, 2026, between 15:05 and 16:25 UTC, GitHub API services experienced degraded availability due to sporadic authentication failures affecting approximately 9% of requests. Both REST and GraphQL API requests were affected. Customers experienced intermittent “logged out” behavior as erroneous 401 (unauthorized) responses caused first- and third-party app integrations to trigger repeated authentication flows. Because only requests routed through the affected infrastructure failed, the same client could succeed on one request and fail on the next, producing the intermittent behavior. Affected requests also experienced approximately 800ms of additional latency, as the gateway retried authentication before returning an error.</p>
+
+
+
+<p class="wp-block-paragraph">A memcached proxy service, rollout to our internal API infrastructure caused our authentication service to pick up an incorrect host configuration, leading to intermittent authentication lookup failures. We mitigated the incident by deploying a configuration change to memcached service to use the correct host.</p>
+
+
+
+<p class="wp-block-paragraph">To prevent similar issues in the future, we plan to migrate our authentication system to the new caching infrastructure to improve resilience and strengthen overall reliability posture. We are also improving how the gateway distinguishes transient authentication-system errors from genuinely invalid credentials, so that temporary lookup failures no longer appear to users as being logged out.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 16 17:20 UTC (lasting 55 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 16, 2026, between 17:20 and 18:15 UTC, the Opus 4.8 model experienced degraded availability in GitHub Copilot. During this window, some requests to Opus 4.8 failed or errored. Other Copilot models were not affected and remained available as alternatives. This was caused by an issue with an upstream model provider.</p>
+
+
+
+<p class="wp-block-paragraph">While the issue was ongoing, we enabled degraded-mode messaging to inform affected users. The upstream provider resolved the issue, and we monitored Opus 4.8 until success rates returned to normal. The incident is fully resolved.</p>
+
+
+
+<p class="wp-block-paragraph">We are reducing our reliance on any single inference provider for a given model and balancing capacity across providers, so traffic can fail over to healthy capacity during an upstream outage. Separately, we hardened our public status-page tooling to ensure incident updates publish reliably, improving how we keep customers informed during mitigation.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 17 03:50 UTC (lasting 54 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 17, 2026, between approximately 03:50 and 04:44 UTC, GitHub Copilot was degraded and most of its frontier chat models were temporarily unavailable across all regions. During this window, affected models either disappeared from the model picker in the web, editor, and CLI experiences, or returned a &#8220;model not available&#8221; error when selected. Customers could continue using GitHub Copilot by selecting one of the models that remained available. The incident occurred during off-peak hours, which limited the number of customers affected.</p>
+
+
+
+<p class="wp-block-paragraph">This was due to a configuration change that our production system deemed invalid. We mitigated the incident by reverting the configuration change, after which the affected models returned automatically as the service reloaded the previous configuration.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to roll out configuration changes gradually with stronger validations, alerts on sudden drops in the number of available models, and automatically roll back configuration changes that trigger these alerts.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>June 25 17:33 UTC (lasting 23 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On June 25, 2026, between 17:33 and 17:55 UTC, our background job service experienced degradation which increased delays to pull requests, repository pushes, actions workflows, and webhooks, with delays peaking at 7 minutes. The issue was caused by underlying hypervisor issues and an incoming traffic spike, causing service timeouts which led to a connection storm and continual rebalances.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was mitigated by replacing the impacted node at 17:49, after which all services saw recovery by 18:07.</p>
+
+
+
+<p class="wp-block-paragraph">To reduce the likelihood and impact of similar incidents in the future, we have made background job processing more resilient to sudden traffic spikes, reduced the possibility of connection churn in degraded cases, removed the co-location of critical nodes so that one unhealthy node cannot affect others, and added earlier alerting on the conditions that led to this degradation.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-june-2026/">GitHub availability report: June 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">97408</post-id>	</item>
+		<item>
+		<title>GitHub availability report: May 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-may-2026/</link>
+		
+		<dc:creator><![CDATA[Natalie Guevara]]></dc:creator>
+		<pubDate>Thu, 11 Jun 2026 21:30:15 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=96626</guid>
+
+					<description><![CDATA[<p>In May, we experienced nine incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2026/">GitHub availability report: May 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In&nbsp;<a href="https://github.blog/news-insights/company-news/addressing-githubs-recent-availability-issues-2/" target="_blank" rel="noreferrer noopener">March</a>&nbsp;and&nbsp;<a href="https://github.blog/news-insights/company-news/an-update-on-github-availability/" target="_blank" rel="noreferrer noopener">April</a>&nbsp;we shared updates on GitHub&#8217;s availability and infrastructure investments. As that work continues and we approach some major milestones, we wanted to start sharing more regular updates in our monthly availability reports.&nbsp;&nbsp;So&nbsp;before we dive into incidents from May,&nbsp;here’s&nbsp;how&nbsp;we’re&nbsp;tracking with&nbsp;our ongoing work to make GitHub more reliable.&nbsp;&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Our progress in making GitHub more resilient</strong></p>
+
+
+
+<p class="wp-block-paragraph"><strong>The short version:</strong> GitHub&#8217;s traffic is growing rapidly, driven in large part by AI-assisted and agentic development workflows, and we&#8217;ve been transforming our infrastructure to keep up with it. That means moving to Azure for elastic capacity, breaking our monolith apart into isolated services, and eliminating the shared failure points that have driven past incidents. </p>
+
+
+
+<p class="wp-block-paragraph">Here&#8217;s where we stand. We&#8217;re now serving <strong>40% of monolith traffic from Azure</strong> (up from 8% in February), with Git traffic at 30% and repository replication at 99%. We&#8217;ve more than doubled our effective capacity in four months. At the same time, we&#8217;re completing the isolation of our primary database cluster: splitting users, authentication, and authorization into independent domains so that a problem in one can no longer cascade across the platform. Our new users service is fully cut over, and handling double the traffic at substantially lower database cost. Stateless authentication tokens are also rolling out, eliminating per-request database lookups that amplified pressure during traffic spikes. </p>
+
+
+
+<p class="wp-block-paragraph">We are making&nbsp;structural changes that permanently remove failure modes.&nbsp;We&nbsp;acknowledge that we&nbsp;have&nbsp;work&nbsp;to do, but&nbsp;we’re&nbsp;committed to getting it done and making GitHub reliable when and where you need it. The principle guiding&nbsp;our&nbsp;decision is simple:&nbsp;<strong>availability, then capacity, then features.</strong>&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">Thanks for your partnership as we keep building GitHub&#8217;s reliability and resilience.&nbsp;</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">In May, we experienced nine incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 04 15:45 UTC (lasting 55 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 4, 2026, between 15:34 and 16:40 UTC, github.com experienced a service disruption that produced elevated latency and an increased rate of request failures across a broad set of customer-facing services. Total customer impact lasted approximately one hour and six minutes. </p>
+
+
+
+<p class="wp-block-paragraph">The most significantly impacted service was pull requests, which was statused <code>Red</code> for the duration of peak impact. Issues, actions, webhooks, and Git operations experienced elevated latency and intermittent errors. A number of dependent services—including Codespaces, Pages, Packages, OAuth and GitHub Apps, Marketplace, and Copilot—also saw varying degrees of degraded performance due to shared data dependencies. At peak, approximately 1.3% of requests returned a 5xx response, averaging around 0.46% across the duration of the incident. </p>
+
+
+
+<p class="wp-block-paragraph">The disruption was triggered by a routine online schema migration running against a large,&nbsp;heavily-accessed&nbsp;database table. The migration had been progressing without issue for several hours, but as traffic&nbsp;ramped up&nbsp;toward the weekly peak, the combined load from the migration and normal production traffic saturated database connection capacity. This produced query contention on a primary database and cascading timeouts across services that depend on it.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">The incident was detected within approximately three minutes of the first signs of impact through a combination of automated monitoring and on-call observation. Once the contributing migration was&nbsp;identified, it was paused, and dependent services recovered shortly thereafter. Time to mitigation was approximately 33 minutes, and full resolution followed approximately 30 minutes later&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">As follow-up, we are implementing several improvements to reduce the likelihood and blast radius of a similar event. Migrations against large, high-traffic tables will be more tightly aligned with low-traffic windows and will use dynamic throttling that adapts to live cluster load. We are adding automated circuit breakers that will pause in-flight migrations when latency or connection utilization on the underlying database crosses safe thresholds, and we are extending our monitoring so that migration-induced pressure (i.e., write rate, lock time, and connection saturation) triggers alerts before customer impact occurs. In parallel, we are reviewing connection-pool capacity to ensure adequate headroom is maintained while migrations are running.  </p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 05 13:37 UTC (lasting 3 hours and 49 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 06 07:19 UTC (lasting 2 hours and 25 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 5 and May 6, GitHub Actions was degraded across two related incidents affecting hosted runners. The two events were connected: remediation work performed after the May 5 incident introduced the configuration&nbsp;issue that triggered the May 6 incident.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">On May 5, 2026, from 13:22 to 17:05 UTC, GitHub Actions hosted runners in the East US region were degraded. Approximately 13.5% of jobs requesting a standard runner failed and ~16% of requested larger runners with private networking pinned to East US failed or were delayed by more than five minutes. Copilot code review requests were also impacted. Approximately 8,500 code review requests timed out during this window. Affected users saw an error comment on their pull requests and were able to retry by rerequesting a review. Most runner requests were picked up by other regions automatically, but a portion of requests still routing to East US were impacted. </p>
+
+
+
+<p class="wp-block-paragraph">This was triggered by a scale-up operation for hosted runner VMs in the East US region. This is a regular operation, but the VM create load hit an internal rate limit when VM creates pull images from storage. Existing backoff logic was not triggered&nbsp;because of&nbsp;the response code&nbsp;returned&nbsp;in this case. The rate limiting and VM creation failures were mitigated by reducing load to allow for recovery and allowing queued work to be processed. By 15:34 UTC, queued and failed job assignments were mostly mitigated, with less than 0.5% of runner assignments&nbsp;impacted&nbsp;between 15:34 and full recovery at 17:05.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">On May 6, 2026, from 06:45 to 09:15 UTC, GitHub Actions Standard Ubuntu hosted runners were&nbsp;again&nbsp;degraded, and approximately 17.1% of jobs requesting a standard runner failed. The issue was caused by unexpected configuration data introduced during remediation work for the previous day’s incident, which blocked new allocations as daily load ramped up. We removed the problematic data at 08:51 UTC, allowing allocations to resume and runner pools to scale back up and recover.&nbsp;&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">We are improving our system&#8217;s throttling behavior when limits occur, improving our controls to&nbsp;more quickly mitigate similar situations&nbsp;in the future, and reviewing all limits end-to-end for similar operations.&nbsp;In addition, we are updating the filter logic for this allocation data to be resilient to abnormal data shapes and improving monitoring to alert when allocations are blocked, allowing the team to respond before customer impact starts.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 06 11:21 UTC (lasting 38 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 6, 2026, between 11:02 and 11:13 UTC, users were unable to start or view Copilot cloud agent or remote sessions. During this time, all requests to the session API returned errors, preventing users from creating new sessions or viewing existing ones. The issue was caused by a configuration change to the service&#8217;s network routing that inadvertently removed the ingress path for the service. The team reverted the change at 11:13 UTC which restored service. The incident remained open until 11:59 UTC while the team verified full recovery. We are taking steps to improve our deployment validation process to prevent similar configuration changes from impacting production traffic in the future. </p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 06 15:25 UTC (lasting 3 hours and 39 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 6, 2026,&nbsp;between 15:12 and 19:02 UTC,&nbsp;creation&nbsp;of new pull request review threads on&nbsp;github.com failed. This included new line comments and file comments on pull requests. Existing&nbsp;pull requests and previously created comments were unaffected.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">This incident was caused by a 32-bit integer key reaching its maximum value in a&nbsp;Vitess&nbsp;lookup table used during&nbsp;pull request&nbsp;thread creation. The primary table&nbsp;was&nbsp;migrated to a 64-bit integer key,&nbsp;but the&nbsp;Vitess&nbsp;lookup table remained 32-bit. Once the values in the primary table passed the available 32-bit ID&nbsp;space&nbsp;attempts&nbsp;to create new review threads began failing, resulting in&nbsp;a&nbsp;near 100% failure rate for new thread creation requests. We mitigated the issue by updating the impacted lookup table definitions across all shards to use 64-bit integer column types, increasing the available ID&nbsp;range,&nbsp;and restoring normal operation. Service was fully restored once the schema changes competed globally.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">To help prevent similar incidents, we are expanding existing monitoring of database columns to include&nbsp;Vitess&nbsp;lookup tables&nbsp;and&nbsp;enabling earlier detection of any tables approaching a column size limit.&nbsp;&nbsp;&nbsp;&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 07 05:02 UTC (lasting 1 hour and 54 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 7, 2026, between 04:12 and 06:13 UTC, Copilot cloud agent and Copilot code review agent sessions for pull requests were delayed or failed to start.   </p>
+
+
+
+<p class="wp-block-paragraph">During the impact window, new Copilot coding agent sessions triggered by pull requests were not created, while review agent sessions dropped by ~50% from the baseline.   </p>
+
+
+
+<p class="wp-block-paragraph">The issue was caused by follow-up recovery work from a separate <a href="https://www.githubstatus.com/incidents/f5pb5d5mr9yh" target="_blank" rel="noreferrer noopener">pull request incident</a>. As part of that recovery, we ran a large database migration, which caused replication delays on several replica hosts. </p>
+
+
+
+<p class="wp-block-paragraph">Although those replicas were not serving user traffic, our safeguards correctly treated the elevated replication lag as a signal to slow down writes to the affected database cluster.&nbsp;As a result, some pull request background processing was temporarily delayed.&nbsp;That processing&nbsp;is responsible for&nbsp;sending the internal events that Copilot agents use to begin work, so affected agents did not start until the database replicas caught up.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">The system recovered once replication lag returned to normal and pull request processing resumed.&nbsp;We are making critical background processing more resilient to replication&nbsp;lag&nbsp;so it degrades gracefully and keeps essential events flowing under strain, reducing the chance of similar secondary impact during future recovery work.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 15 08:13 UTC (lasting 35 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 15, 2026, from 07:43 to 08:48 UTC, GitHub Actions experienced a degradation that caused workflow runs to fail or&nbsp;experience&nbsp;delayed starts for a subset of customers. The incident was triggered by a planned failover of supporting infrastructure used by GitHub Actions. During that operation, an automated service discovery update did not propagate correctly, which caused traffic to be routed incorrectly and increased request timeouts in a core dependency for workflow orchestration.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">At peak impact, 42% of Actions runs failed. Downstream services that depend on&nbsp;Actions&nbsp;workflow execution were also&nbsp;impacted, including GitHub Pages and Copilot cloud services. At 08:12 UTC, responders manually corrected the service discovery routing issue. Timeout and failure rates recovered shortly after, and we continued&nbsp;monitoring&nbsp;until full stabilization was confirmed across all affected services. The incident was marked resolved at 08:48 UTC.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">To&nbsp;prevent recurrence, we are taking several steps. First, we are implementing failover guardrails that&nbsp;validate&nbsp;service discovery state before completing failover operations. Second, we are&nbsp;strengthening verification&nbsp;checks. Finally, we are improving dependency resilience to reduce timeout cascades during infrastructure events.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 26 10:57 UTC (lasting 2 hours and 21 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 26, 2026, between 10:40 and 12:56 UTC, GitHub Actions jobs were degraded. From 10:40 to 12:16 UTC, all newly queued runs&nbsp;failed to&nbsp;start. From 12:16 to 12:56 UTC, runs that required downloading actions for their workflows continued to fail. GitHub Pages, Copilot&nbsp;code&nbsp;review, Copilot coding agent,&nbsp;Octoshift, and GitHub Enterprise Importer were also&nbsp;impacted&nbsp;due to their dependency on&nbsp;GitHub&nbsp;Actions.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">This was caused by our automated account review system incorrectly suspending the service account used by GitHub Actions to authenticate workflow runs and download actions.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated by restoring the account at 12:16 UTC, marking it&nbsp;exempt&nbsp;from further automated review at 12:20 UTC, and redeploying a related service at 12:48 UTC to flush cached account state. Full recovery was confirmed at 12:56 UTC.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">During this incident, a small number of&nbsp;issues,&nbsp;pull requests,&nbsp;comments, and&nbsp;discussions were marked as hidden when the service account was disabled. No data was lost. All content hidden because of this incident has been&nbsp;restored&nbsp;and full search index restoration&nbsp;was completed.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">To prevent a recurrence, we have added an allowlist of all service accounts that cannot be suspended by automated systems, and ensuring these protections are enforced consistently across all account management tooling. We are also improving diagnostic tooling for accounts and reducing cache propagation delays to shorten time to mitigate similar incidents in the future.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph"><strong>May 28 19:01 UTC (lasting 1 hour and 40 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On May 28, 2026, between 18:27 and 20:41 UTC, the GitHub Copilot service was degraded due to an issue with the Responses API of an upstream provider affecting the GPT-5.2, GPT-5.3-Codex, GPT-5.4, and GPT-5.5 models. Requests routed to these models via the Responses API returned elevated error rates, which also affected&nbsp;Copilot coding agent and Copilot code review. No other models were&nbsp;impacted.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by shifting traffic away from the affected models while the upstream provider deployed a fix.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">GitHub is working to improve automated failover for the affected models and strengthen monitoring to prevent similar incidents in the future. </p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-may-2026/">GitHub availability report: May 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">96626</post-id>	</item>
+		<item>
+		<title>GitHub availability report: April 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-april-2026/</link>
+		
+		<dc:creator><![CDATA[Natalie Guevara]]></dc:creator>
+		<pubDate>Thu, 14 May 2026 22:02:43 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=96106</guid>
+
+					<description><![CDATA[<p>In April, we experienced 10 incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2026/">GitHub availability report: April 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In April, we experienced 10 incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph">To increase transparency, at the end of April, we released a <a href="https://github.blog/news-insights/company-news/an-update-on-github-availability/">blog post</a> covering major incidents on April 23 and April 27. We have also taken steps to <a href="https://github.blog/news-insights/company-news/bringing-more-transparency-to-githubs-status-page/">bring more detail to the GitHub status page.</a></p>
+
+
+
+<p class="wp-block-paragraph">Thank you for your patience as we work through near-term and long-term investments we’re making.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 01 15:02 UTC (lasting 8 hours and 43 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 1, 2026, between 14:40 and 17:00 UTC, GitHub&#8217;s code search service was fully unavailable; 100% of search queries failed. Service was restored in a degraded state by 17:00 UTC with temporarily stale results, and fully recovered with current data by 23:45 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">During the 2 hour and 20 minute period of full unavailability, 100% of code search requests failed. After initial recovery at 17:00 UTC, search returned results, but they did not reflect repository changes made after approximately 07:00 UTC that day. Full indexing caught up by 23:45 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">During a routine infrastructure upgrade to the messaging system supporting code search, an automated change was applied too aggressively, causing a coordination failure between internal services. This halted search indexing, and search results began going stale. While the team worked to recover the messaging infrastructure, an unintended service deployment cleared internal routing state, escalating the staleness issue into a complete outage.</p>
+
+
+
+<p class="wp-block-paragraph">We restored the messaging infrastructure through a controlled restart, reestablishing coordination between services. We then reset the search index to a point in time before the disruption. No repository data was lost—the search index is a secondary index derived from Git repositories, which were completely unaffected. Once re-indexing completed, all search results reflected the current state of repositories.</p>
+
+
+
+<p class="wp-block-paragraph">We are adding more gradual upgrades with better health checks, so problems are caught before they cascade, deployment safeguards to prevent unintended changes during active incidents, faster recovery tooling to reduce time to restore service and better traffic isolation to prevent cascading impact from unexpected traffic spikes during outages.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 01 16:06 UTC (lasting 4 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 1, 2026, between 15:34 UTC and 16:02 UTC, our audit log service lost connectivity to its backing data store due to a failed credential rotation. During this 28-minute window, audit log history was unavailable via both the API and web UI. This resulted in 5xx errors for 4,297 API actors and 127 github.com users. Additionally, events created during this window were delayed by up to 29 minutes in github.com and event streaming. No audit log events were lost; all audit log events were ultimately written and streamed successfully. Customers using GitHub Enterprise Cloud with data residency were not impacted by this incident.</p>
+
+
+
+<p class="wp-block-paragraph">We were alerted to the infrastructure failure at 15:40 UTC—six minutes after onset—and resolved the issue by recycling the affected environment, restoring full service by 16:02 UTC. As a result of the incident, we completed several follow-up actions to reduce the risk of recurrence and improve detection. The team updated and strengthened the credential rotation process to improve resiliency and help prevent similar failures in the future. In parallel, we enhanced our monitoring configuration, including making paging thresholds more sensitive to improve detection speed and operator visibility into similar issues going forward.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 09 09:50 UTC (lasting 25 minutes) and 16:20 UTC (lasting 4 hours and 16 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 9, 2026, we had two incidents, between 09:05 UTC and 19:05 UTC and between 16:05 UTC and 20:36 UTC, where the Copilot coding agent service was degraded and users experienced significant delays starting new agent sessions. Approximately 84% of new agent session requests were delayed across four separate outage waves, with queue wait times peaking at 54 minutes compared to a normal baseline of 15–40 seconds. On average, the error rate was 83.9% and peaked at 97.5% of requests to the service. Approximately 22,700 workflow creations were delayed or failed during the incident.</p>
+
+
+
+<p class="wp-block-paragraph">This was due to a bug in our rate limiting logic that incorrectly applied a rate limit globally across all users, rather than scoping it to the individual installation that triggered the limit. A contributing factor was a surge in API traffic from a client update that increased requests to an internal endpoint by 3–4x, which accelerated rate limit exhaustion. The second similar incident was also caused due to an internal service exceeding API rate limits, compounded by a caching bug that persisted the rate-limited state beyond the actual rate limit window, causing recurring outage.</p>
+
+
+
+<p class="wp-block-paragraph">Our team detected the issue within 15 minutes and began investigating immediately. We mitigated the incident by disabling the faulty rate limit caching mechanism via feature flag and updating our service to use per-installation credentials for API calls, ensuring rate limits are correctly scoped to individual installations. Service was fully restored by 20:36 UTC. Jobs that were delayed during the incident were queued and processed once service resumed.</p>
+
+
+
+<p class="wp-block-paragraph">We have since added automated monitoring and alerting to detect this failure mode proactively, deployed fixes to reduce unnecessary API traffic through caching improvements, and are continuing work to further isolate rate limit scoping across client types to prevent similar issues in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 13 19:56 UTC (lasting 39 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 13, 2026, between 18:53 UTC and 20:30 UTC, the GitHub Pages service experienced elevated error rates. On average, the error rate was 10.58% and peaked at 12.77% of requests to the service, resulting in approximately 17.5 million failed requests returning HTTP 500 errors.</p>
+
+
+
+<p class="wp-block-paragraph">This incident was due to an automated DNS management tool erroneously deleting a DNS record for a GitHub Pages backend storage host after its upstream data source intermittently failed to return the record, causing the tool to treat it as stale and remove it. As cached copies of the record expired across our systems, GitHub Pages servers were no longer able to reach the affected storage host, resulting in errors for a portion of requests.</p>
+
+
+
+<p class="wp-block-paragraph">Once the issue was identified, our team quickly traced it to the missing DNS record and re-created it. Service returned to normal by 20:30 UTC, and the incident was fully resolved by 20:35 UTC. We recognize that detection took longer than we would have liked—approximately 53 minutes—due to the gradual nature of the error increase and a gap in our alerting for this type of failure.</p>
+
+
+
+<p class="wp-block-paragraph">We are making three key improvements to prevent similar issues in the future. We are implementing availability-zone-tolerant routing in the GitHub Pages frontend so that an unresolvable backend host triggers failover to healthy hosts rather than returning errors, adding safeguards to prevent automated deletion of DNS records owned by other systems, and improving logging and alerting for DNS resolution failures in the GitHub Pages serving path.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 16 15:06 UTC (lasting 3 hours and 22 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 16, 2026, between 09:30 UTC and 17:15 UTC, users experienced failures when attempting to connect to GitHub Codespaces via the VS Code editor. During this time, approximately 40% of codespace start operations failed. Users connecting via SSH were not impacted.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was caused by failures in an upstream service that prevented the VS Code Server from being retrieved during codespace startup. The impact was mitigated by implementing a workaround to use an alternative download path when the primary endpoint is degraded. In parallel, we coordinated with the upstream dependency team to address the root cause of the download failure.</p>
+
+
+
+<p class="wp-block-paragraph">We are improving our fallback mechanism to reduce the impact of similar upstream failures in the future and streamlining processes to accelerate deployment of similar changes in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 20 13:28 UTC (lasting 15 hours and 36 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 20, 2026, between 10:28 UTC and 15:04 UTC, GitHub experienced degraded service for code scanning default setup, code quality, and project boards. Repair of affected project boards additionally lasted until 05:04 UTC on April 21.</p>
+
+
+
+<p class="wp-block-paragraph">During this time, code scanning default setup and code quality analyses were not triggered on newly opened pull requests. Additionally, newly created issues were not appearing on project boards.</p>
+
+
+
+<p class="wp-block-paragraph">The cause was a serialization error that prevented proper triggering of code scanning, code quality analyses, and project board updates.</p>
+
+
+
+<p class="wp-block-paragraph">We identified the issue within ~40 minutes and mitigated the issue by deploying a fix, restoring event publishing for code scanning and code quality. For project boards, an additional code change was deployed to update event consumers, followed by a reindex of affected project items.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to prevent recurrence by strengthening our schema validations and improving monitoring for drops in publishing on critical topics. In addition, we are auditing other parts of our system to ensure no similar limitations exist elsewhere.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 22 15:35 UTC (lasting 3 hours and 43 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 22, 2026, between 15:16 UTC and 19:18 UTC, users experienced errors when interacting with Copilot Chat on github.com and Copilot Cloud Agent. During this time, users were unable to use Copilot Chat or Copilot Cloud Agent. Copilot Memory (in preview) was not available to Copilot agent sessions during this time.</p>
+
+
+
+<p class="wp-block-paragraph">The issue was caused by an infrastructure configuration change that resulted in connectivity issues with our databases. The team identified the cause and restored connectivity to the database. Copilot Chat and Cloud Agent for github.com were restored by 18:16 UTC. Remaining regional deployments were restored incrementally, with full resolution at 19:18 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">We have taken steps to prevent similar infrastructure changes from causing these kinds of database operations in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 23 16:12 UTC (lasting 1 hour and 18 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 23, 2026, between 16:03 and 17:30 UTC, users experienced elevated error rates and degraded performance across GitHub Copilot, Webhooks, Git Operations, GitHub Actions, Migrations, and Deployments. Approximately 5–7% of overall traffic was affected during the 1 hour and 27 minute impact window. For Copilot, ~7% of AI model requests failed, ~10% of Copilot cloud agent sessions were affected, and ~9% of Copilot Insights dashboard requests returned errors. For Webhooks, ~0.35% of API requests returned errors at peak, with up to 10% of traffic experiencing elevated latency (>3 seconds). Git Operations averaged 1.25% errors over the incident duration, with a peak of 2.07%. GitHub Actions saw workflow run status updates experienced delays of up to ~8 seconds. For Migrations, 0.88% of active repository migrations failed, and 79% saw elevated durations. Deployments were temporarily blocked during the incident window.</p>
+
+
+
+<p class="wp-block-paragraph">Our DNS infrastructure in one datacenter entered a degraded state and began intermittently failing to resolve service addresses. This caused a cascading impact: services that depend on name resolution to communicate with internal APIs, external providers, and storage systems all experienced errors simultaneously.</p>
+
+
+
+<p class="wp-block-paragraph">The root cause was a recently introduced traffic-balancing mechanism that had been rolled out progressively to support our growth. Under a specific load pattern, this mechanism caused DNS resolvers to begin failing. Existing DNS caching provided partial protection. Services with recently cached entries continued operating normally, which is why overall impact was limited to approximately 5–7% of traffic rather than a complete outage.</p>
+
+
+
+<p class="wp-block-paragraph">After an initial configuration rollback did not resolve the issue, we restarted the affected DNS infrastructure. Services began recovering within minutes, and all returned to normal by 17:30 UTC. No data was lost; all repositories, databases, and workflow data were unaffected.</p>
+
+
+
+<p class="wp-block-paragraph">To prevent incidents like this in the future we are improving our DNS infrastructure resilience to prevent single-datacenter failures from cascading across services, implementing safer rollout and validation with a dedicated environment to test infrastructure changes against production-like traffic, investing in faster automated detection and recovery with self-healing mechanisms for DNS resolution failures and reducing blast radius by reviewing service dependencies on shared infrastructure components.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>April 27 16:31 UTC (lasting 6 hours and 15 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On April 27, 2026, between 16:15 UTC and 22:46 UTC, GitHub search services experienced degraded connectivity due to saturation of the load balancing tier deployed in front of our search infrastructure. This resulted in intermittent failures for services relying on our search data including Issues, Pull Requests, Projects, Repositories, Actions, Package Registry and Dependabot Alerts. The impact was varied by search target, with services seeing up to 65% of searches timing out or returning an error between 16:15 UTC and 18:00 UTC.</p>
+
+
+
+<p class="wp-block-paragraph">We detected the drop in search results through our ongoing monitoring and declared an incident at 16:21 UTC. We tracked the incident as mitigated as of 21:33 UTC and monitored the systems until 22:46 UTC when we declared the incident resolved.</p>
+
+
+
+<p class="wp-block-paragraph">The saturation was caused by a large influx of anonymous distributed scraping traffic that was crafted to avoid our public API rate limits. This scraping traffic made up 30% of the day’s total search traffic, but it was concentrated within a four-hour period. The traffic originated from over 600,000 Unique IP addresses, with matching actor information in all requests. Our existing monitoring did not classify the increased scraping as a risk and this dimension of the incident was only discovered while working to mitigate.</p>
+
+
+
+<p class="wp-block-paragraph">To mitigate, we immediately focused on relieving pressure from the load balancers while simultaneously working on scaling the load balancing tier, blocking the anomalous traffic and applying tuning to the balancers to fully resolve the incident.</p>
+
+
+
+<p class="wp-block-paragraph">Looking ahead, we’ve not only scaled the load balancer tier, but applied optimizations to improve our connection handling and re-use to reduce the possibility that a saturation event like this can re-occur. We’ve also added new monitors and controls within the platform to allow us to restrict anonymous traffic to mitigate the impact to our registered users. We are continuing to strengthen our defenses against this type of large-scale automated abuse.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-april-2026/">GitHub availability report: April 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">96106</post-id>	</item>
+		<item>
+		<title>GitHub availability report: March 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-march-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 09 Apr 2026 02:21:17 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=95150</guid>
+
+					<description><![CDATA[<p>In March, we experienced four incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2026/">GitHub availability report: March 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In March, we experienced four incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>March 03 18:59 UTC (lasting 1 hour and 10 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On March 3, 2026, between 18:46 and 20:09 UTC, GitHub experienced a period of degraded availability impacting github.com, the GitHub API, GitHub Actions, Git operations, GitHub Copilot, and other dependent services. At the peak of the incident, github.com request failures reached approximately 40%. During the same period, approximately 43% of GitHub API requests failed. Git operations over HTTP had an error rate of approximately 6%, while SSH was not impacted. GitHub Copilot requests had an error rate of approximately 21%. GitHub Actions experienced less than 1% impact.</p>
+
+
+
+<p class="wp-block-paragraph">This incident shared the same underlying cause as an incident in early February, where we saw a large volume of writes to the user settings caching mechanism. While deploying a change to reduce the burden of these writes, a bug caused every user’s cache to expire, get recalculated, and get rewritten. The increased load caused replication delays that cascaded down to all affected services. We mitigated this issue by immediately rolling back the faulty deployment.</p>
+
+
+
+<p class="wp-block-paragraph">We understand these incidents disrupted the workflows of developers. While we have made (and are making) substantial, long-term investments in how GitHub is built and operated to improve resilience, we acknowledge we have more work to do. Getting there requires deep architectural work that is already underway, as well as urgent, targeted improvements. We are taking the following immediate steps:</p>
+
+
+
+<ul class="wp-block-list">
+<li>We have added a killswitch and improved monitoring to the caching mechanism to ensure we are notified before there is user impact and can respond swiftly.</li>
+
+
+
+<li>We are moving the cache mechanism to a dedicated host, ensuring that any future issues will solely affect services that rely on it.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>March 05 16:35 UTC (lasting 2 hours and 55 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On March 5, 2026, between 16:24 and 19:30 UTC, GitHub Actions was degraded. During this time, 95% of workflow runs failed to start within 5 minutes with an average delay of 30 minutes, and 10% of workflow runs failed with an infrastructure error. This was due to Redis infrastructure updates that were being rolled out to production to improve our resiliency. These updates introduced a set of incorrect configuration changes into our Redis load balancer, causing internal traffic to be routed to an incorrect host leading to two incidents.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated this incident by correcting the misconfigured load balancer. Actions jobs were running successfully starting at 17:24 UTC. The remaining time until we closed the incident was spent burning through the queue of jobs.</p>
+
+
+
+<p class="wp-block-paragraph">We immediately rolled back the updates that were a contributing factor and have frozen all changes in this area until we complete follow-up work. We are working to improve our automation to ensure incorrect configuration changes cannot propagate through our infrastructure. We are also working on improved alerting to catch misconfigured load balancers before it becomes an incident. Additionally, we are updating the Redis client configuration in Actions to improve resiliency to brief cache interruptions.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>March 19 13:44 UTC (lasting 48 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On March 19, 2026, between 01:05 and 02:52 UTC, and again on March 20, 2026, between 00:42 and 01:58 UTC, the Copilot Coding Agent service was degraded and users were unable to start new Copilot Agent sessions or view existing ones. During the first incident, the average error rate was ~53% and peaked at ~93% of requests to the service. During the second incident, the average error rate was ~99% and peaked at ~100% of requests with significant retry amplification. Both incidents were caused by the same underlying system authentication issue that prevented the service from connecting to its backing datastore.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated each incident by rotating the affected credentials, which restored connectivity and returned error rates to normal. The mitigation time was 01:24. The second occurrence was due to an incomplete remediation of the first.</p>
+
+
+
+<p class="wp-block-paragraph">We have implemented automated monitoring for credential lifecycle events and are improving operational processes to reduce our time to detection and mitigation of issues like this one in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>March 24 16:59 UTC (lasting 2 hours and 52 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On March 24, 2026, between 15:57 and 19:51 UTC, the Microsoft Teams Integration and Teams Copilot Integration services were degraded and unable to deliver GitHub event notifications to Microsoft Teams. On average, the error rate was 37.4% and peaked at 90.1% of requests to the service—approximately 19% of all integration installs failed to receive GitHub-to-Teams notifications in this time period.</p>
+
+
+
+<p class="wp-block-paragraph">This was due to an outage at one of our upstream dependencies, which caused HTTP 500 errors and connection resets for our Teams integration.</p>
+
+
+
+<p class="wp-block-paragraph">We coordinated with the relevant service teams, and the issue was resolved at 19:51 UTC when the upstream incident was mitigated.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to update observability and runbooks to reduce time to mitigation for issues like this in the future.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-march-2026/">GitHub availability report: March 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">95150</post-id>	</item>
+		<item>
+		<title>GitHub availability report: February 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-february-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Thu, 12 Mar 2026 03:23:54 +0000</pubDate>
+				<category><![CDATA[Company]]></category>
+		<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=94475</guid>
+
+					<description><![CDATA[<p>In February, we experienced six incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2026/">GitHub availability report: February 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In February, we experienced six incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph">We recognize the impact these outages have had on teams, workflows, and overall confidence in our platform. Earlier today, <a href="https://github.blog/news-insights/company-news/addressing-githubs-recent-availability-issues-2/">we released a blog post</a> outlining the root causes of recent incidents and the steps GitHub is taking to make our systems more resilient moving forward. Thank you for your patience as we work through near-term and long-term investments we’re making.</p>
+
+
+
+<p class="wp-block-paragraph">Below, we go over the six major incidents specific to February.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>February 02 17:41 UTC (lasting 1 hour and 5 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">From January 31, 2026, 00:30 UTC, to February 2, 2026, 18:00 UTC, Dependabot service was degraded and failed to create 10% of automated pull requests. This was due to a cluster failover that connected to a read-only database.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by pausing Dependabot queues until traffic was properly routed to healthy clusters. All failed jobs were identified and restarted.</p>
+
+
+
+<p class="wp-block-paragraph">We added new monitors and alerts to reduce our time to detect and prevent this in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>February 02 19:03 UTC (lasting 5 hours and 53 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On February 2, 2026, between 18:35 UTC and 22:20 UTC, GitHub Actions hosted runners and GitHub Codespaces were unavailable, with service degraded until full recovery at 23:10 UTC for standard runners, February 3, 2026 at 00:30 UTC for larger runners, and February 3 at 00:15 for codespaces. During this time, actions jobs queued and timed out while waiting to acquire a hosted runner. Other GitHub features that leverage this compute infrastructure were similarly impacted, including Copilot coding agent, Copilot code review, CodeQL, Dependabot, GitHub Enterprise Importer, and GitHub Pages. All regions and runner types were impacted. Codespaces creation and resume operations also failed in all regions. Self-hosted runners for actions on other providers were not impacted.</p>
+
+
+
+<p class="wp-block-paragraph">This outage was caused by a loss in telemetry that cascaded to mistakenly applying security policies to backend storage accounts in our underlying compute provider. Those policies blocked access to critical VM metadata, causing all VM create, delete, reimage, and other operations to fail. More information is available here. This was mitigated by rolling back the policy changes, which started at 22:15 UTC. As VMs came back online, our runners worked through the backlog of requests that hadn’t timed out.</p>
+
+
+
+<p class="wp-block-paragraph">We are working with our compute provider to improve our incident response and engagement time, improve early detection, and ensure safe rollout should similar changes occur in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>February 09 16:19 UTC (lasting 1 hour and 21 minutes) and February 09 19:01 UTC (lasting 1 hour and 8 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On February 9, 2026, GitHub experienced two related periods of degraded availability affecting github.com, the GitHub API, GitHub Actions, Git operations, GitHub Copilot, and other services. The first period occurred between 16:12 UTC and 17:39 UTC, and the second between 18:53 UTC and 20:09 UTC. In total, users experienced approximately 2 hours and 43 minutes of degraded service across the two incidents.</p>
+
+
+
+<p class="wp-block-paragraph">During both incidents, users encountered errors loading pages on github.com, failures when pushing or pulling code over HTTPS, failures starting or completing GitHub Actions workflow runs, and errors using GitHub Copilot. Additional services including GitHub Issues, pull requests, webhooks, Dependabot, GitHub Pages, and GitHub Codespaces experienced intermittent errors. SSH-based Git operations were not affected during either incident.</p>
+
+
+
+<p class="wp-block-paragraph">Our investigation determined that both incidents shared the same underlying cause: a configuration change to a user settings caching mechanism caused a large volume of cache rewrites to occur simultaneously. In the first incident, asynchronous rewrites overwhelmed a shared infrastructure component responsible for coordinating background work, which led to cascading failures and connection exhaustion in the service proxying Git operations over HTTPS. We mitigated this incident by disabling async cache rewrites and restarting the affected Git proxy service across multiple datacenters.</p>
+
+
+
+<p class="wp-block-paragraph">The second incident arose when an additional source of cache updates, not addressed by the initial mitigation, introduced a high volume of synchronous writes. This caused replication delays, resulting in a similar cascade of failures and again leading to connection exhaustion in the Git HTTPS proxy. We mitigated by disabling the source of the cache rewrites and again restarting Git proxy.</p>
+
+
+
+<p class="wp-block-paragraph">We are taking the following immediate steps:</p>
+
+
+
+<ul class="wp-block-list">
+<li>We optimized the caching mechanism to avoid write amplification and added self-throttling during bulk updates.</li>
+
+
+
+<li>We are adding safeguards to ensure the caching mechanism responds more quickly to rollbacks and strengthening how changes to these caching systems are planned, validated, and rolled out with additional checks.</li>
+
+
+
+<li>We are fixing the underlying cause of connection exhaustion in our Git HTTPS proxy layer so the proxy can recover from this failure mode automatically without requiring manual restarts.</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph"><strong>February 12 07:53 UTC (lasting 2 hours and 3 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On February 12, 2026, between 00:51 UTC and 09:35 UTC, users attempting to create or resume Codespaces experienced elevated failure rates across Europe, Asia, and Australia, peaking at a 90% failure rate. Impact started in UK South and impacted other regions progressively. US regions were not impacted.</p>
+
+
+
+<p class="wp-block-paragraph">The failures were caused by an authorization claim change in a core networking dependency, which led to codespace pool provisioning failures. Alerts detected the issue but did not have the appropriate severity, leading to delayed detection and response. Learning from this, we have improved our validation of changes to this backend service and monitoring during rollout. Our alerting thresholds have also been updated to catch issues before they impact customers and improved our automated failover mechanisms to cover this area.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>February 12 10:38 UTC (lasting 34 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On February 12, 2026, from 09:16 to 11:01 UTC, users attempting to download repository archives (<code>tar.gz/zip</code>) that include Git LFS objects received errors. Standard repository archives without LFS objects were not affected. On average, the archive download error rate was 0.0042% and peaked at 0.0339% of requests to the service. This was caused by the deployment of an incorrect network configuration in the LFS Service that caused service health checks to fail and an internal service to be incorrectly marked as unreachable.</p>
+
+
+
+<p class="wp-block-paragraph">We mitigated the incident by manually applying the corrected network setting. Additional checks for corruption and auto-rollback detection were added to prevent this type of configuration issue.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-february-2026/">GitHub availability report: February 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">94475</post-id>	</item>
+		<item>
+		<title>GitHub availability report: January 2026</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-january-2026/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 11 Feb 2026 23:12:34 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=93780</guid>
+
+					<description><![CDATA[<p>In January, we experienced two incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-january-2026/">GitHub availability report: January 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In January, we experienced two incidents that resulted in degraded performance across GitHub services.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>January 13 09:38 UTC (lasting 46 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On January 13, 2026, from 09:25 to 10:11 UTC, GitHub Copilot experienced a service outage with error rates averaging 18% and peaking at 100%. This impacted chat features across Copilot Chat, VS Code, JetBrains IDEs, and other dependent products. The incident was triggered by a configuration error introduced during a model update and was initially mitigated by rolling back the change. A secondary recovery phase extended until 10:46 UTC due to upstream provider Open AI experiencing degraded availability for GPT‑4.1 model.</p>
+
+
+
+<p class="wp-block-paragraph">We have completed a detailed root‑cause review and are implementing stronger monitors, improved test environments, and tighter configuration safeguards to prevent recurrence and accelerate detection and mitigation of future issues.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>January 15 16:56 UTC (lasting 1 hour and 40 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On January 15, 2026, between 16:40 UTC and 18:20 UTC, we observed increased latency and timeouts across issues, pull requests, notifications, actions, repositories, API, account login, and an internal service, Alive, that powers live updates on GitHub. An average 1.8% of combined web and API requests saw failure, peaking briefly at 10% early on. The majority of impact was observed for unauthenticated users, but authenticated users were impacted as well.</p>
+
+
+
+<p class="wp-block-paragraph">This was caused by an infrastructure update to some of our data stores. Upgrading this infrastructure to a new major version resulted in unexpected resource contention, leading to distributed impact in the form of slow queries and increased timeouts across services that depend on these datasets. We mitigated this by rolling back to the previous stable version.</p>
+
+
+
+<p class="wp-block-paragraph">We are working to improve our validation process for these types of upgrades to catch issues that only occur under high load before full release, improve detection time, and reduce mitigation times in the future.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Looking ahead</strong>&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph">Please note that the incidents that occurred on February 9, 2026, will be included in next month’s February Availability Report. In the meantime, you can refer to <a href="https://www.githubstatus.com/incidents/lcw3tg2f6zsd" target="_blank" rel="noreferrer noopener">incident report</a> on the GitHub Status site for more details.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-january-2026/">GitHub availability report: January 2026</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">93780</post-id>	</item>
+		<item>
+		<title>GitHub Availability Report: December 2025</title>
+		<link>https://github.blog/news-insights/company-news/github-availability-report-december-2025/</link>
+		
+		<dc:creator><![CDATA[Jakub Oleksy]]></dc:creator>
+		<pubDate>Wed, 14 Jan 2026 22:06:49 +0000</pubDate>
+				<category><![CDATA[Company news]]></category>
+		<category><![CDATA[News & insights]]></category>
+		<category><![CDATA[GitHub Availability Report]]></category>
+		<guid isPermaLink="false">https://github.blog/?p=93278</guid>
+
+					<description><![CDATA[<p>In December, we experienced five incidents that resulted in degraded performance across GitHub services.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-december-2025/">GitHub Availability Report: December 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">In December, we experienced five incidents that resulted in degraded performance across GitHub services.&nbsp;</p>
+
+
+
+<p class="wp-block-paragraph" id="h-december-08-19-51-utc-lasting-1-hour-and-15-minutes"><strong>December 08 19:51 UTC (lasting 1 hour and 15 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">Between November 26, 2025, at 02:24 UTC and December 8, 2025 at 20:26 UTC, enterprise administrators experienced a disruption when viewing agent session activities in the Enterprise AI Controls page. During this period, users were unable to list agent session activity in the AI Controls view. This did not impact viewing agent session activity in audit logs, directly navigating to individual agent session logs, or otherwise managing AI agents.<br><br>The issue was caused by a misconfiguration in a change deployed on November 25 that unintentionally prevented data from being published to an internal Kafka topic responsible for feeding the AI Controls page with agent session activity information.<br><br>The problem was identified and mitigated on December 8 by correcting the configuration issue. GitHub is improving monitoring for data pipeline dependencies and enhancing pre-deployment validation to catch configuration issues before they reach production.</p>
+
+
+
+<p class="wp-block-paragraph" id="h-december-15-17-43-utc-lasting-39-minutes"><strong>December 15 17:43 UTC (lasting 39 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On December 15, 2025, between 15:15 UTC and 18:22 UTC, Copilot Code Review experienced a service degradation that caused 46.97% of pull request review requests to fail, requiring users to re-request a review. Impacted users saw the error message: “Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review.” The remaining requests completed successfully.<br><br>The degradation was caused by elevated response times in an internal, model-backed dependency, which led to request timeouts and backpressure in the review processing pipeline, resulting in sustained queue growth and failed review completion.<br><br>We mitigated the issue by temporarily bypassing fix suggestions to reduce latency, increasing worker capacity to drain the backlog, and rolling out a model configuration change that reduced end-to-end latency. Queue depth and request success rates returned to normal and remained stable through peak traffic.<br><br>Following the incident, we increased baseline worker capacity, added instrumentation for worker utilization and queue health, and are improving automatic load-shedding, fallback behavior, and alerting to reduce time to detection and mitigation for similar issues.</p>
+
+
+
+<p class="wp-block-paragraph" id="h-december-18-16-33-utc-lasting-1-hour-and-8-minutes"><strong>December 18 16:33 UTC (lasting 1 hour and 8 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On December 18, 2025, from 08:15 UTC to 17:11 UTC, some GitHub Actions runners experienced intermittent timeouts for Github API calls, which led to failures during runner setup and workflow execution. This was caused by network packet loss between runners in the West US region and one of GitHub’s edge sites. Approximately 1.5% of jobs on larger and standard hosted runners in the West US region (0.28% of all Actions jobs) were impacted during this period.<br><br>By 17:11 UTC, all traffic was routed away from the affected edge site, mitigating the timeouts. We are working to improve early detection of cross-cloud connectivity issues and faster mitigation paths to reduce the impact of similar issues in the future.</p>
+
+
+
+<p class="wp-block-paragraph" id="h-december-18-17-36-utc-lasting-1-hour-and-33-minutes"><strong>December 18 17:36 UTC (lasting 1 hour and 33 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On December 18, 2025, between 16:25 UTC and 19:09 UTC, the service underlying Copilot policies was degraded and users, organizations, and enterprises were not able to update any policies related to Copilot. No other GitHub services, including other Copilot services, were impacted. This was due to a database migration causing a schema drift.<br><br>We mitigated the incident by synchronizing the schema. We have hardened the service to make sure schema drift does not cause any further incidents, and we will investigate improvements in our deployment pipeline to shorten time to mitigation in the future.</p>
+
+
+
+<p class="wp-block-paragraph" id="h-december-22-22-31-utc-lasting-1-hour-and-46-minutes"><strong>December 22 22:31 UTC (lasting 1 hour and 46 minutes)</strong></p>
+
+
+
+<p class="wp-block-paragraph">On December 22, 2025, between 22:01 UTC and 22:32 UTC, unauthenticated requests to github.com were degraded, resulting in slow or timed out page loads and API requests. Unauthenticated requests from Actions jobs, such as release downloads, were also impacted. Authenticated traffic was not impacted. This was due to a severe spike in traffic, primarily to search endpoints.<br><br>Our immediate response focused on identifying and mitigating the source of the traffic increase, which along with automated traffic management restored full service for our users.<br><br>We improved limiters for load to relevant endpoints and are continuing work to more proactively identify these large changes in traffic volume, improve resilience in critical request flows, and improve our time to mitigation.</p>
+
+
+
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+
+
+
+<p class="wp-block-paragraph">Follow our <a href="https://www.githubstatus.com/">status page</a> for real-time updates on status changes and post-incident recaps. To learn more about what we’re working on, check out the engineering section on the <a href="https://github.blog/category/engineering/">GitHub Blog</a>.</p>
+<p>The post <a href="https://github.blog/news-insights/company-news/github-availability-report-december-2025/">GitHub Availability Report: December 2025</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">93278</post-id>	</item>
+	</channel>
+</rss>

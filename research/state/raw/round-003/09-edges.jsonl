@@ -1,0 +1,21 @@
+{"src": "r3e09.ws-upgrade-smuggling", "dst": "threat-request-smuggling-desync", "type": "extends", "note": "Upgrade-mode desync instances 2024-26"}
+{"src": "r3e09.ws-upgrade-smuggling", "dst": "gap.pingora", "type": "cve", "note": "CVE-2026-2833/2835/105297/105299"}
+{"src": "r3e09.ws-deflate-and-frame-dos", "dst": "threat-decompression-parser-complexity", "type": "extends", "note": "post-inflate ordering bug x4"}
+{"src": "r3e09.grpc-defect-classes", "dst": "threat-h2-h3-resource-exhaustion", "type": "extends", "note": "grpc-go 84304, h2 RUSTSEC-2026-0258"}
+{"src": "r3e09.grpc-defect-classes", "dst": "crate-hyper-h2", "type": "depends_on", "note": "tonic rides hyper/h2"}
+{"src": "r3e09.tonic-connect-crate-scorecard", "dst": "crate-hyper-h2", "type": "depends_on", "note": ""}
+{"src": "r3e09.webtransport-defect-classes", "dst": "crate-quinn", "type": "depends_on", "note": "wtransport on quinn; 13 GHSA"}
+{"src": "r3e09.webtransport-defect-classes", "dst": "rec60-quinn-advisory-wave", "type": "extends", "note": "datagram-cap bypass GHSA-2hv7"}
+{"src": "r3e09.webtransport-defect-classes", "dst": "crate-quiche", "type": "related", "note": "9 GHSA"}
+{"src": "r3e09.core-vs-per-frontend-matrix", "dst": "w02.ingress-design-verdict", "type": "extends", "note": "failure-class evidence for R-ING-1"}
+{"src": "r3e09.ring1-verdict-amendment", "dst": "w02.ingress-design-verdict", "type": "refines", "note": "Exchange model; L4 split; defer WebTransport/UDP"}
+{"src": "r3e09.ring1-verdict-amendment", "dst": "w02.L5-feature-gate-rule", "type": "depends_on", "note": "each front end a cargo feature"}
+{"src": "r3e09.l4-proxy-protocol-udp", "dst": "r3e09.ring1-verdict-amendment", "type": "conflicts_with", "note": "L4 proxy cannot share L7 normalization"}
+{"src": "r3e09.async-graphql-defaults-audit", "dst": "r3e09.graphql-defect-classes", "type": "extends", "note": "library defaults"}
+{"src": "r3e09.rust-ws-crate-scorecard", "dst": "r3e09.ws-cswsh-origin", "type": "related", "note": "no Origin check in crates"}
+{"src": "r3e09.webhook-defect-classes", "dst": "r3e09.ring1-verdict-amendment", "type": "conflicts_with", "note": "raw-body requirement vs normalization"}
+{"src": "r3e09.L5-per-frontend-budget-table", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "depends_on", "note": ""}
+{"src": "r3e09.L5-ingress-conformance-harness", "dst": "r3e09.L5-per-frontend-budget-table", "type": "depends_on", "note": ""}
+{"src": "r3e09.ossfuzz-negative", "dst": "r3e09.L5-ingress-conformance-harness", "type": "fills_gap", "note": "own harness needed"}
+{"src": "r3e09.sse-defect-classes", "dst": "r3e09.core-vs-per-frontend-matrix", "type": "related", "note": "pure budget class"}
+{"src": "r3e09.L5-per-frontend-budget-table", "dst": "w02.L5-lean-budget", "type": "related", "note": "size budget unchanged by features off"}

@@ -1,0 +1,12 @@
+{
+ "round": 2,
+ "queries": 301,
+ "urls": 460,
+ "nodes": 211,
+ "url_novelty": 0.8978260869565218,
+ "query_novelty": 0.9767441860465116,
+ "node_novelty": 0.95260663507109,
+ "axis_cell_novelty": 0.9102990033222591,
+ "intra_round_query_dup_rate": 0.009966777408637873,
+ "mechanical_novelty": 0.8978260869565218
+}

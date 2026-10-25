@@ -1,0 +1,79 @@
+[
+ {
+  "name": "agentgateway-1.6.0/docs-example-cors-wildcard",
+  "url": "http://127.0.0.1:18013/mcp",
+  "eras": [
+   "legacy",
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18013,
+  "flood_n": 12000,
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/jwt+aud+origin-allowlist",
+  "url": "http://127.0.0.1:18012/mcp",
+  "eras": [
+   "legacy"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18012,
+  "flood_n": 12000,
+  "jwt": {
+   "key": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/cfg/jwt_priv.pem",
+   "iss": "http://issuer.test",
+   "aud": "http://127.0.0.1:18012/mcp",
+   "aud2": "http://127.0.0.1:18012/mcp2"
+  },
+  "url2": "http://127.0.0.1:18012/mcp2",
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/jwt-audiences-UNSET(default)",
+  "url": "http://127.0.0.1:18014/mcp",
+  "eras": [
+   "legacy"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18014,
+  "flood_n": 12000,
+  "jwt": {
+   "key": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/cfg/jwt_priv.pem",
+   "iss": "http://issuer.test",
+   "aud": "http://127.0.0.1:18014/mcp",
+   "aud2": null
+  },
+  "url2": "http://127.0.0.1:18014/mcp2",
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/mock-upstream(passthrough,redirect)",
+  "url": "http://127.0.0.1:18016/mcp",
+  "url_redir": "http://127.0.0.1:18016/redir",
+  "eras": [
+   "legacy"
+  ],
+  "pid_port": 18016,
+  "only_cases": [
+   "token-passthrough",
+   "redirect-strip-headers"
+  ],
+  "mock": {
+   "logA": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/mockA.jsonl",
+   "logB": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/mockB.jsonl"
+  },
+  "skip_flood": true
+ },
+ {
+  "name": "agentgateway-1.6.0/mcp-shorthand-default(up=py2-open:18101)",
+  "url": "http://127.0.0.1:18010/mcp",
+  "eras": [
+   "legacy",
+   "modern"
+  ],
+  "counter": "/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/logs/agup.cnt",
+  "pid_port": 18010,
+  "flood_n": 12000
+ }
+]
