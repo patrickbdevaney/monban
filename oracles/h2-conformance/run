@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# HTTP/2 conformance: pinned h2spec v2.6.0 (summerwind) against a subject serving cleartext h2 (prior knowledge).
+#   run --subject <binary>   subject must accept: --plain --port <p>; prints "READY <port> ..." when listening
+#   run --self-test          h2spec against a plain TCP sink must FAIL (the check is not vacuous)
+# PASS iff every test passes except the allow-listed ones below (each justified by RFC 9113 wording).
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; H="$HERE/.h2spec"
+SHA_TGZ=157ee0de702e01ad40e752dbf074b366027e550c8e7504f9450da2809e279318
+URL=https://github.com/summerwind/h2spec/releases/download/v2.6.0/h2spec_linux_amd64.tar.gz
+# http2/3.5/2: invalid preface -> we close without GOAWAY. RFC 9113 §5.4.1: an endpoint SHOULD (not MUST) send GOAWAY
+# before closing on a connection error; on a bad preface the peer may not speak HTTP/2 at all.
+ALLOW=("Sends invalid connection preface")
+if [ ! -x "$H/h2spec" ]; then
+  mkdir -p "$H"; curl -sfL -o "$H/h2spec.tgz" "$URL" && echo "$SHA_TGZ  $H/h2spec.tgz" | sha256sum -c --quiet \
+    && tar -xzf "$H/h2spec.tgz" -C "$H" || { echo "H2-CONFORMANCE: FAIL (could not fetch/verify h2spec)"; exit 1; }
+fi
+port=$((20000 + RANDOM % 20000))
+if [ "${1:-}" = --self-test ]; then
+  python3 -I -c "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',$port));s.listen(64)
+while True:
+  c,_=s.accept();c.recv(65536);c.close()" & pid=$!
+  sleep 0.3; out=$(timeout 120 "$H/h2spec" -h 127.0.0.1 -p $port -o 2 2>&1); kill $pid 2>/dev/null
+  if grep -qE "[0-9]+ tests, [0-9]+ passed, [0-9]+ skipped, 0 failed" <<<"$out"; then
+    echo "H2-CONFORMANCE SELF-TEST: FAIL (h2spec passed against a non-HTTP/2 sink)"; exit 1; fi
+  echo "H2-CONFORMANCE SELF-TEST: PASS (non-HTTP/2 sink fails: $(grep -oE '[0-9]+ tests, .*failed' <<<"$out"))"; exit 0
+fi
+[ "${1:-}" = --subject ] && [ -n "${2:-}" ] || { echo "usage: run --subject <binary> | --self-test"; exit 2; }
+subj="$2"; [ -x "$subj" ] || subj="$(cd "$OLDPWD" 2>/dev/null; realpath "$2")"
+log=$(mktemp); "$subj" --plain --port $port >"$log" 2>&1 & pid=$!
+for _ in $(seq 50); do grep -q READY "$log" && break; sleep 0.1; done
+out=$(timeout 300 "$H/h2spec" -h 127.0.0.1 -p $port -o 5 2>&1); kill $pid 2>/dev/null; rm -f "$log"
+summary=$(grep -oE '[0-9]+ tests, [0-9]+ passed, [0-9]+ skipped, [0-9]+ failed' <<<"$out" | tail -1)
+failed=$(grep -E '^\s+× ' <<<"$out" | sed -E 's/^\s+× [0-9]+: //' | sort -u)
+bad=""; while IFS= read -r f; do [ -z "$f" ] && continue; ok=0; for a in "${ALLOW[@]}"; do [ "$f" = "$a" ] && ok=1; done; [ $ok = 1 ] || bad="$bad; $f"; done <<<"$failed"
+[ -n "$summary" ] || { echo "H2-CONFORMANCE: FAIL (no h2spec summary)"; echo "$out" | tail -5; exit 1; }
+[ -z "$bad" ] && echo "H2-CONFORMANCE: PASS ($summary; allow-listed: ${ALLOW[*]})" || { echo "H2-CONFORMANCE: FAIL ($summary; not allowed:${bad})"; exit 1; }

@@ -1,0 +1,4 @@
+PID 4028241
+READY 18217 impl=h2-baseline ledger_mib=12
+OBSERVE rapidreset rst_stream=0 goaway_codes=[11] first_goaway_ms=Some(0) eof=true
+attack done shape=rapidreset conns=1 streams=1000

@@ -112,7 +112,7 @@ impl Drop for Gauge<'_> {
 }
 
 fn fresh_chunk(n: usize) -> Bytes {
-    Bytes::from(vec![0u8; n])
+    Bytes::from(vec![0xA5u8; n]) // non-zero: force resident pages (calloc zero pages would hide RSS)
 }
 
 fn main() {
@@ -270,12 +270,15 @@ async fn send_body_baseline(mut respond: h2::server::SendResponse<Bytes>, body_b
     while remaining > 0 {
         let want = remaining.min(SEND_BUFFER);
         send.reserve_capacity(want);
-        let cap = poll_fn(|cx| send.poll_capacity(cx)).await;
-        let cap = match cap {
-            Some(Ok(c)) if c > 0 => c,
-            Some(Ok(_)) => continue,
-            _ => return,
-        };
+        // spend already-assigned capacity first; poll_capacity only wakes on an increase
+        let mut cap = send.capacity();
+        if cap == 0 {
+            cap = match poll_fn(|cx| send.poll_capacity(cx)).await {
+                Some(Ok(c)) if c > 0 => c,
+                Some(Ok(_)) => continue,
+                _ => return,
+            };
+        }
         let n = cap.min(CHUNK).min(remaining);
         if send.send_data(fresh_chunk(n), false).is_err() {
             return;
@@ -318,14 +321,18 @@ async fn send_body_wrapper(
             tokio::time::sleep(Duration::from_millis(20)).await;
             continue;
         }
-        send.reserve_capacity(CHUNK);
-        let left = stall.saturating_sub(last_progress.elapsed()).max(Duration::from_millis(1));
-        let cap = match tokio::time::timeout(left, poll_fn(|cx| send.poll_capacity(cx))).await {
-            Ok(Some(Ok(c))) if c > 0 => c,
-            Ok(Some(Ok(_))) => continue,
-            Ok(_) => return, // stream closed by peer
-            Err(_) => continue, // deadline check at loop top
-        };
+        // same reservation pattern as the baseline (up to SEND_BUFFER) so the only difference is the ledger
+        send.reserve_capacity(remaining.min(SEND_BUFFER));
+        let mut cap = send.capacity();
+        if cap == 0 {
+            let left = stall.saturating_sub(last_progress.elapsed()).max(Duration::from_millis(1));
+            cap = match tokio::time::timeout(left, poll_fn(|cx| send.poll_capacity(cx))).await {
+                Ok(Some(Ok(c))) if c > 0 => c,
+                Ok(Some(Ok(_))) => continue,
+                Ok(_) => return,    // stream closed by peer
+                Err(_) => continue, // deadline check at loop top
+            };
+        }
         // re-check after the await: other streams may have consumed the budget meanwhile
         if c.buffered() + CHUNK as u64 > ledger_budget {
             continue;
@@ -532,7 +539,7 @@ async fn one_conn(port: u16, streams: u32, hold_ms: u64, init_win: u32, shape: &
                     break;
                 }
             }
-            hold(&mut sock, hold_ms).await;
+            observe(&mut sock, hold_ms, "rapidreset").await;
         }
         "continuation" => {
             // TBI-1: HEADERS (no END_HEADERS) then CONTINUATION flood on stream 1
@@ -540,11 +547,11 @@ async fn one_conn(port: u16, streams: u32, hold_ms: u64, init_win: u32, shape: &
             let _ = sock.write_all(&buf).await;
             buf.clear();
             for _ in 0..64 {
-                if sock.write_all(&continuation(1, 16 * 1024)).await.is_err() {
+                if sock.write_all(&continuation(1, 15 * 1024)).await.is_err() { // < max_frame 16384
                     break;
                 }
             }
-            hold(&mut sock, hold_ms).await;
+            observe(&mut sock, hold_ms, "continuation").await;
         }
         _ => {
             // window0 / bigwin-noread / slowread: open all streams requesting the large response
@@ -569,6 +576,50 @@ async fn one_conn(port: u16, streams: u32, hold_ms: u64, init_win: u32, shape: &
             }
         }
     }
+}
+
+/// Read the server's frames until EOF or deadline; report RST_STREAM / GOAWAY (with error codes) and EOF.
+async fn observe(sock: &mut TcpStream, hold_ms: u64, what: &str) {
+    let deadline = Instant::now() + Duration::from_millis(hold_ms);
+    let mut buf: Vec<u8> = Vec::new();
+    let mut tmp = vec![0u8; 65536];
+    let (mut rst, mut goaway, mut eof) = (0u32, Vec::<u32>::new(), false);
+    let start = Instant::now();
+    let mut first_goaway_ms = None;
+    loop {
+        let left = deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            break;
+        }
+        match tokio::time::timeout(left, sock.read(&mut tmp)).await {
+            Ok(Ok(0)) | Ok(Err(_)) => {
+                eof = true;
+                break;
+            }
+            Ok(Ok(n)) => buf.extend_from_slice(tmp.get(..n).unwrap_or(&[])),
+            Err(_) => break,
+        }
+        // parse complete frames
+        loop {
+            if buf.len() < 9 {
+                break;
+            }
+            let len = ((buf[0] as usize) << 16) | ((buf[1] as usize) << 8) | buf[2] as usize;
+            if buf.len() < 9 + len {
+                break;
+            }
+            let ty = buf[3];
+            if ty == 3 {
+                rst += 1;
+            } else if ty == 7 && len >= 8 {
+                goaway.push(u32::from_be_bytes([buf[13], buf[14], buf[15], buf[16]]));
+                first_goaway_ms.get_or_insert(start.elapsed().as_millis());
+            }
+            buf.drain(..9 + len);
+        }
+    }
+    println!("OBSERVE {what} rst_stream={rst} goaway_codes={goaway:?} first_goaway_ms={first_goaway_ms:?} eof={eof}");
+    let _ = sock.shutdown().await;
 }
 
 async fn hold(sock: &mut TcpStream, hold_ms: u64) {

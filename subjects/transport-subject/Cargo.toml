@@ -1,0 +1,24 @@
+[package]
+name = "transport-subject"
+description = "Oracle subject for oracles/transport-stall and h2spec: TLS (aegis-tls PublicWeb) + aegis-transport serving a fixed 200 and a large body."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-transport = { workspace = true, features = ["negative-control"] }
+aegis-config = { workspace = true }
+aegis-canon = { workspace = true }
+aegis-types = { workspace = true }
+aegis-tls = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "time"] }
+
+[lints]
+workspace = true

@@ -86,3 +86,14 @@
   `test-faults` feature so release builds cannot enable it.
 - Not done: TLS-ALPN-01, EAB; Let's Encrypt staging interop (needs a public name); PQ group negotiation with Pebble
   unverified (only a unit test checks the PQ-first preference). ACME uses blocking std sockets + rustls (no tokio).
+
+## Transport (from P2-transport-001, 2026-10-25)
+- h2spec 132–133/146 over h2c: 9–10 RFC 9113 stream-state/flow-control behaviours wrong → P2-transport-002.
+  (An earlier run showed 144/146; repeated runs are stable at 9–10 failures, so that run was the outlier.)
+- Resource-limit oracle (stall / reset / header-block budgets measured against the running server) NOT built:
+  generating that client tripped a content safety stop during this session. Coverage today: aegis-transport e2e
+  tests (window-0 stall reset, 431 on 129 cookie crumbs, idle close, strict H1 rejects) and spike q2-009's
+  measurements. Operator decision needed on how to provide this gate (e.g. an established public HTTP/2 test tool).
+- h2spec v2.6.0 cannot negotiate TLS 1.3, so conformance runs over h2c; TLS-path conformance needs a newer client.
+- panic = "abort": a handler panic aborts the process (supervisor restarts it) rather than becoming a per-request
+  Error → Deny; fine for fail-closed, but the INV-FAILCLOSED host mapping is per-process here, not per-request.

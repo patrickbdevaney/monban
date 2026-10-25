@@ -1,0 +1,5 @@
+{"id":"P2-transport-002","crates":["aegis-transport"],
+ "spec_refs":["RFC 9113 §5.1 stream states, §5.4 error handling, §6.9 flow control","oracles/h2-conformance"],
+ "failing":["closed: DATA after RST_STREAM","closed: HEADERS after RST_STREAM","pseudo-header in trailers","content-length != DATA length","PRIORITY on half-closed (remote)","second HEADERS without END_STREAM","WINDOW_UPDATE on half-closed (remote)","exceeding advertised concurrent stream limit","stream window above 2^31-1"],
+ "acceptance":{"cmd":"oracles/h2-conformance/run --subject target/release/transport-subject","must":"H2-CONFORMANCE: PASS (only the allow-listed invalid-preface case may fail), stable over 5 consecutive runs"},
+ "write_scope":["crates/aegis-transport/**","subjects/transport-subject/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
