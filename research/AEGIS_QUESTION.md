@@ -132,6 +132,47 @@ What this requires:
   protocol-agnostic ingress + modularity/leanness. Synthesis must present the data plane and ingress as modular layers,
   with Postgres/SQLite as examples only.
 
+## 0c. OPERATOR STEER: golden reference, build-time proofs, no local prover models, stop rule (2026-10-24, mid-run)
+
+> "yes the server should be as versatile to any frontend standup or dataabse as needed. lean proving should be necessary, but llm open weights to run lean proofs shouldn't run on the vps and shouldn't be required. we can precompute security for a reference server format "our golden", but we aren't responsible for the formal security of downstream forks or db integrations of others. on this laptop, i cannot really spare the space per se for formal lean open weight llms nor the vram. when we reach a point of demonstrable saturation on  the dedup different directions discipline, then we can pivot from research to implementation so its not endless recursion and token spend on diminishiong returns."
+
+What this requires:
+- **Versatility.** The server must work with any frontend stack and any database (§0b).
+- **Machine-checked proofs are required, with Lean in the assurance story.** Lean 4 is the operator's named prover and a
+  required part of the story. Lean-only is not required: Verus, Kani or F* may carry specific components where the
+  evidence says they fit better. Choose per component on evidence, and say why.
+- **Proofs are build-time artifacts, never runtime work.**
+  - Proofs are authored at development time (cloud coding agents plus humans) and checked by a small trusted kernel or
+    solver in CI/release.
+  - The production VPS/server does zero proving and ships zero prover dependencies.
+- **No open-weight prover LLMs, anywhere in the required path.**
+  - Not on the VPS, and not on the operator's laptop: it has little spare disk and VRAM.
+  - LLM proof synthesis (DeepSeek-Prover, Kimina, Goedel and similar) may appear only as an optional accelerator. The plan
+    must work without it.
+  - Report the disk and RAM footprint of each required verification toolchain: Lean 4 + Mathlib (avoid Mathlib if the
+    proofs don't need it), Verus + Z3, Kani/CBMC, and so on. Prefer the smallest toolchain that discharges the
+    obligations.
+- **Responsibility boundary: "our golden".**
+  - We precompute and publish the assurance case for ONE reference build, "the golden": a pinned configuration, module
+    set and adapters.
+  - We are NOT responsible for the formal security of downstream forks or third-party DB/frontend integrations.
+  - We ARE responsible for:
+    - a precise extension contract (interfaces + specs)
+    - a conformance test suite third parties can run
+    - core invariants that, by architecture, a misbehaving sandboxed/out-of-process module cannot break
+  - Say which invariants survive arbitrary third-party modules and which assume the golden's modules.
+- **Stop rule: research ends at demonstrable saturation, then implementation starts.**
+  - Saturation means two consecutive rounds that each have:
+    - novelty < 0.2 under the §8a directional-uniqueness discipline (new axis cells exhausted, not just repeated
+      phrasing)
+    - load-bearing architecture decisions stable (≥ 0.75 unchanged)
+    - no open area that could flip a load-bearing decision
+  - Otherwise, the current run's round cap ends the research.
+  - The final synthesis's OPEN GAPS must say which gaps can be closed during implementation (spikes, benchmarks,
+    prototypes) instead of by more research. The default is to pivot to building.
+  - Another research round is justified only if an unresolved gap would change a load-bearing decision, and then at most
+    one targeted round.
+
 ## 1. The questions (score each separately)
 
 - **W-THREAT.** What actually breaks middle-tier servers, and what changes when attackers are LLM agents?
