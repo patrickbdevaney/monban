@@ -233,6 +233,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "canon-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-canon",
+]
+
+[[package]]
 name = "cc"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

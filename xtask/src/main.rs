@@ -102,7 +102,7 @@ const OWNERS: &[(&str, &str, &str)] = &[
     ("raw-owner", "raw_owner", "aegis-transport"),
 ];
 /// Same-layer edges allowed by the crate table (REPO_LAYOUT §4). Everything else must point strictly downward.
-const INTRA_LAYER: &[(&str, &str)] = &[("aegis-admission", "aegis-budget")];
+const INTRA_LAYER: &[(&str, &str)] = &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon")];
 /// Crates permitted to relax `forbid(unsafe_code)` (each call site audited, ≤20 sites).
 const UNSAFE_ALLOWED: &[&str] = &["aegis-iso"];
 
