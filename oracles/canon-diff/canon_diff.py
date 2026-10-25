@@ -943,6 +943,8 @@ def main():
     if args.self_test:
         return self_test(args)
     argv = shlex.split(args.subject) if args.subject else None
+    if argv and not os.path.isabs(argv[0]) and os.path.exists(argv[0]):
+        argv[0] = os.path.abspath(argv[0])  # resolve relative to the caller's cwd, not the oracle dir
     t0 = time.time()
     n, summary, _ = run_oracle(argv, args.g1, args.g2 == "pinned", args.g3 == "ledger", args.g4 == "lock", args.lock,
                                args.timeout)

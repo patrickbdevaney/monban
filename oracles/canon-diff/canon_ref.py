@@ -39,7 +39,7 @@ HEXD = frozenset("0123456789abcdefABCDEF")
 TCHAR = frozenset("!#$%&'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 COOKIE_OCTET = frozenset(chr(c) for c in [0x21] + list(range(0x23, 0x2C)) + list(range(0x2D, 0x3B))
                          + list(range(0x3C, 0x5C)) + list(range(0x5D, 0x7F)))
-LDH = re.compile(r"^(?!-)[a-z0-9-]{1,63}(?<!-)$")
+LDH = re.compile(r"(?!-)[a-z0-9-]{1,63}(?<!-)")  # used with fullmatch: `$` would also match before a trailing "\n"
 DEFAULT_PORT = {"http": 80, "https": 443}
 MAX_PATH, MAX_HOST, MAX_JSON, MAX_JSON_DEPTH = 8192, 253, 1 << 20, 64
 
@@ -271,7 +271,7 @@ def canon_host(h):
             return _rej("400 host: non-canonical IPv4")
         return _acc(h)
     for lab in labels:
-        if not LDH.match(lab):
+        if not LDH.fullmatch(lab):
             return _rej("400 host: label not LDH")
         if len(lab) >= 4 and lab[2:4] == "--":
             if not lab.startswith("xn--"):
@@ -314,7 +314,7 @@ def canon_authority(a, scheme="https"):
 
 
 # ---------------------------------------------------------------- Origin (serialized origin, RFC 6454)
-ORIGIN_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*)://([^/?#\\]*)$")
+ORIGIN_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*)://([^/?#\\]*)")  # fullmatch
 
 
 def canon_origin(o):
@@ -324,7 +324,7 @@ def canon_origin(o):
         return _rej("403 origin: opaque 'null'")
     if not o.isascii() or any(ord(c) <= 0x20 or ord(c) == 0x7F for c in o):
         return _rej("403 origin: non-ASCII/control/space")
-    m = ORIGIN_RE.match(o)
+    m = ORIGIN_RE.fullmatch(o)
     if not m:
         return _rej("403 origin: not a serialized origin")
     scheme, auth = m.group(1).lower(), m.group(2)
@@ -418,7 +418,7 @@ class _JErr(ValueError):
     pass
 
 
-_NUM_SIG = re.compile(r"^-?(\d+)(?:\.(\d+))?(?:[eE][+-]?\d+)?$")
+_NUM_SIG = re.compile(r"-?(\d+)(?:\.(\d+))?(?:[eE][+-]?\d+)?")  # fullmatch
 
 
 def canon_json(s):
@@ -446,7 +446,7 @@ def canon_json(s):
         return n
 
     def pfloat(x):
-        m = _NUM_SIG.match(x)
+        m = _NUM_SIG.fullmatch(x)
         digits = ((m.group(1) or "") + (m.group(2) or "")).lstrip("0") if m else x
         f = float(x)
         if f != f or f in (float("inf"), float("-inf")):
