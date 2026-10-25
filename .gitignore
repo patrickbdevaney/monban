@@ -20,3 +20,4 @@ spikes/cmvp-client-policy/out/
 spikes/q3-008/certs/
 *.map
 oracles/h2-conformance/.h2spec/
+notes/

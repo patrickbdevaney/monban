@@ -98,3 +98,21 @@
 - h2spec v2.6.0 cannot negotiate TLS 1.3, so conformance runs over h2c; TLS-path conformance needs a newer client.
 - panic = "abort": a handler panic aborts the process (supervisor restarts it) rather than becoming a per-request
   Error → Deny; fine for fail-closed, but the INV-FAILCLOSED host mapping is per-process here, not per-request.
+
+## Developer recipes and extension contracts (operator request 2026-10-25; schedule with Phase 3–4)
+1. Normative extension contracts (frozen): F10 data adapters (how to add a DB family; two-sided oracle; mandated
+   write forms; golden criteria), Wasm handlers (P2), SDK handlers (F7/F7b), Cedar policies via aegis-pdp.
+   Each: grammar/ABI, host guarantees, extension obligations, conformance tests, report label.
+2. Ingress recipes: React/Next.js, Vue/Nuxt, SvelteKit, htmx, mobile, plain fetch; MCP clients. Auth (cookie vs
+   DPoP-bound tokens), Origin/CORS binding, CSRF, streaming. Exact AEGIS config, tested in CI against the binary.
+3. Egress recipes: Postgres, SQLite, MariaDB, CockroachDB, Redis/Valkey (golden/eligible); MySQL, Mongo, managed
+   platforms as non-golden adapters; upstream app servers in reverse-proxy mode.
+4. Reverse direction: webhooks (raw-byte signatures), outbox, SSE.
+5. Optional thin typed SDKs generated from frozen interfaces (TypeScript client; Rust SDK in-tree).
+
+## TCB reduction (from the 2026-10-25 verification survey)
+- Pin AWS-LC versions/CPU paths where the proved implementations (mlkem-native, mldsa-native, s2n-bignum, SAW'd
+  AES-GCM/SHA-2) are the ones executed; re-run upstream proofs in CI.
+- Vest (Verus-verified parsers) for HTTP/2 frame headers + HPACK primitives in front of h2; Kani on hyper/h2 parsers.
+- mrustc diverse double compilation as a trusting-trust cross-check of the pinned rustc.
+- Phase 7 libcrux CryptoProvider spike (more-proved crypto for P-PUBLIC-WEB; FIPS stays on AWS-LC).
