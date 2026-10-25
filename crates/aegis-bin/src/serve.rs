@@ -11,11 +11,10 @@ use std::path::{Path, PathBuf};
 use std::pin::pin;
 use std::process::ExitCode;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use aegis_audit::{DetailValue, Outcome};
-use aegis_canon::Scheme;
 use aegis_config::{ConfigStore, MAX_CONFIG_BYTES};
 use aegis_ops::fdcheck::describe_tcp;
 use aegis_ops::handover::{self, LeakPolicy, Offered, ParentConfig, ParentHooks};
@@ -23,15 +22,14 @@ use aegis_ops::notify::Notifier;
 use aegis_ops::signals::{Sig, Signals};
 use aegis_ops::stek::StekRing;
 use aegis_ops::wire::ListenerDesc;
-use aegis_transport::TlsAcceptor;
+use aegis_transport::{Server, TlsAcceptor};
 use tokio::net::{TcpListener, UnixListener};
-use tokio::time::timeout;
 
 use crate::audit::{Auditor, text};
 use crate::cli::ServeOpts;
-use crate::h1in::ConnMeta;
 use crate::plan::{AdminBind, Plan, Snapshot, plan};
-use crate::shared::{ConnGuard, Peer, Shared, bump};
+use crate::proxy::ProxyApp;
+use crate::shared::{ConnGuard, Shared, bump};
 use crate::tls::{CertPaths, Tls};
 use crate::util::{Either, race};
 
@@ -65,11 +63,12 @@ fn fail_closed(msg: &str) -> ExitCode {
     ExitCode::from(EX_CONFIG)
 }
 
-static CONN_IDS: AtomicU64 = AtomicU64::new(1);
+/// The inbound server: aegis-transport (h1 + h2 with the AEGIS wrapper) in front of the proxy.
+pub type Srv = Server<ProxyApp>;
 
 #[derive(Clone)]
 enum Kind {
-    Public(TlsAcceptor),
+    Public(Arc<Srv>, TlsAcceptor),
     Admin(Arc<aegis_tls::FipsStatus>),
 }
 
@@ -99,8 +98,8 @@ async fn accept_tcp(shared: Arc<Shared>, l: TcpListener, kind: Kind) {
             Either::Left(Ok((sock, addr))) => {
                 let shared = shared.clone();
                 match &kind {
-                    Kind::Public(acc) => {
-                        tokio::spawn(public_conn(shared, sock, addr, acc.clone()));
+                    Kind::Public(srv, acc) => {
+                        tokio::spawn(public_conn(shared, srv.clone(), sock, addr, acc.clone()));
                     }
                     Kind::Admin(f) => {
                         let f = f.clone();
@@ -136,27 +135,22 @@ async fn accept_unix(shared: Arc<Shared>, l: UnixListener, fips: Arc<aegis_tls::
     }
 }
 
-async fn public_conn(shared: Arc<Shared>, sock: tokio::net::TcpStream, addr: std::net::SocketAddr, acc: TlsAcceptor) {
+async fn public_conn(
+    shared: Arc<Shared>,
+    srv: Arc<Srv>,
+    sock: tokio::net::TcpStream,
+    addr: std::net::SocketAddr,
+    acc: TlsAcceptor,
+) {
     let _g = ConnGuard::new(&shared);
     let _ = sock.set_nodelay(true);
-    let stall = Duration::from_millis(shared.snapshot().plan.wl.stall_timeout_ms);
-    let Ok(Ok(tls)) = timeout(stall, acc.accept(sock)).await else { return };
-    let (_, sc) = tls.get_ref();
-    let meta = ConnMeta {
-        scheme: Scheme::Https,
-        sni: sc.server_name().map(|s| s.as_bytes().to_vec()),
-        peer: Peer::new(Some(addr), CONN_IDS.fetch_add(1, Ordering::Relaxed)),
-    };
-    if sc.alpn_protocol() == Some(b"h2") {
-        crate::h2in::serve(shared, tls, meta).await;
-    } else {
-        crate::h1in::serve(shared, tls, meta).await;
-    }
+    srv.serve_tls_from(sock, acc, Some(addr)).await;
 }
 
 /// Upgrade hooks: the parent stops accepting and drains (UP-1/UP-4).
 struct Hooks {
     shared: Arc<Shared>,
+    srv: Arc<Srv>,
 }
 
 impl ParentHooks for Hooks {
@@ -169,17 +163,17 @@ impl ParentHooks for Hooks {
         }
     }
     fn drain(&mut self, deadline: Duration) -> u64 {
-        drain(&self.shared, deadline)
+        drain(&self.shared, &self.srv, deadline)
     }
 }
 
-fn drain(shared: &Shared, deadline: Duration) -> u64 {
+fn drain(shared: &Shared, srv: &Srv, deadline: Duration) -> u64 {
     shared.draining.store(true, Ordering::Release);
-    shared.drain_notify.notify_waiters();
+    srv.drain();
     let until = Instant::now() + deadline;
     while shared.live_conns.load(Ordering::Acquire) > 0 && Instant::now() < until {
         std::thread::sleep(Duration::from_millis(10));
-        shared.drain_notify.notify_waiters();
+        srv.drain();
     }
     u64::try_from(shared.live_conns.load(Ordering::Acquire)).unwrap_or(u64::MAX)
 }
@@ -189,6 +183,7 @@ struct Ctl {
     exe: PathBuf,
     store: ConfigStore,
     shared: Arc<Shared>,
+    srv: Arc<Srv>,
     auditor: Auditor,
     tls: Tls,
     certs: CertPaths,
@@ -210,13 +205,22 @@ impl Ctl {
         self.auditor.admin(action, object, outcome, hash, detail)
     }
 
+    /// Serve a new routing table: the proxy's snapshot plus the transport's vhosts and limits.
+    fn install(&self, snap: Snapshot) {
+        self.srv.set_vhosts(snap.vhost_table());
+        if let Err(e) = self.srv.set_limits(snap.plan.wl) {
+            log(&format!("transport limits refused, previous limits kept: {e}"));
+        }
+        self.shared.install(snap);
+    }
+
     /// CFG-3: a load that fails leaves the served config untouched and counts a last-known-good fallback.
     fn fallback(&self, action: &str, why: &str) {
         log(&format!("config reload refused: {why}; last-known-good keeps serving"));
         if self.shared.mutants.skip_lkg {
             // NEGATIVE CONTROL: drop the served config instead of keeping the last-known-good.
             #[cfg(feature = "e2e-mutants")]
-            self.shared.install(self.shared.snapshot().empty());
+            self.install(self.shared.snapshot().empty());
             return;
         }
         self.shared.registry.config_lkg_fallbacks.inc();
@@ -265,7 +269,7 @@ impl Ctl {
                         } else {
                             // CRS C5: a changed config is a new epoch; pooled upstream connections are dropped.
                             let epoch = if hash == cur.hash { cur.epoch } else { cur.epoch.saturating_add(1) };
-                            self.shared.install(Snapshot::new(generation.0, epoch, hash, p));
+                            self.install(Snapshot::new(generation.0, epoch, hash, p));
                             bump(&self.shared.stats.config_reloads);
                             log(&format!("config generation {} applied ({})", generation.0, cfg.config_hash_hex()));
                         }
@@ -314,7 +318,7 @@ impl Ctl {
         let offered: Vec<Offered<'_>> =
             self.descs.iter().zip(&self.offers).map(|(d, o)| Offered { desc: d, fd: o.as_fd() }).collect();
         let _ = self.audit("upgrade.start", &self.exe.display().to_string(), Outcome::Allow, &[]);
-        let mut hooks = Hooks { shared: self.shared.clone() };
+        let mut hooks = Hooks { shared: self.shared.clone(), srv: self.srv.clone() };
         match handover::upgrade(&cfg, &offered, &self.ring, &mut hooks) {
             Ok(h) => {
                 self.shared.registry.upgrade_forced_closes.add(h.forced);
@@ -351,7 +355,7 @@ impl Ctl {
         self.shared.stop_accept.store(true, Ordering::Release);
         self.shared.stop_notify.notify_waiters();
         self.offers.clear();
-        let forced = drain(&self.shared, DRAIN_DEADLINE);
+        let forced = drain(&self.shared, &self.srv, DRAIN_DEADLINE);
         let _ = self.audit(
             "listener.stop",
             "all",
@@ -429,6 +433,13 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     let hash = cfg.config_hash();
     let admin_bind = p.admin.clone();
     let shared = Shared::new(Snapshot::new(generation.0, 1, hash, p));
+    let srv = {
+        let snap = shared.snapshot();
+        match Server::new(ProxyApp { shared: shared.clone() }, snap.vhost_table(), snap.plan.wl) {
+            Ok(s) => s,
+            Err(e) => return fail_closed(&format!("transport limits: {e}")),
+        }
+    };
     shared.registry.set_fips_active(tls.fips.config_fips);
     if let Some(i) = tls.current() {
         shared.cert_not_after.store(i.report.not_after, Ordering::Relaxed);
@@ -510,7 +521,7 @@ pub fn run(opts: ServeOpts) -> ExitCode {
             Kind::Admin(fips.clone())
         } else {
             match tls.acceptors.iter().find(|(n, _)| n == name) {
-                Some((_, a)) => Kind::Public(a.clone()),
+                Some((_, a)) => Kind::Public(srv.clone(), a.clone()),
                 None => return fail_closed(&format!("no TLS acceptor for listener {name}")),
             }
         };
@@ -565,7 +576,7 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         auditor.dir.display()
     ));
     drop(snap);
-    let mut ctl = Ctl { opts, exe, store, shared, auditor, tls, certs, notifier, descs, offers, ring };
+    let mut ctl = Ctl { opts, exe, store, shared, srv, auditor, tls, certs, notifier, descs, offers, ring };
     loop {
         match signals.wait() {
             Ok(Sig::Hup) => ctl.reload(),

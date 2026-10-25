@@ -2,11 +2,11 @@
 //! it or close it. An fd that fails any check is never used.
 
 use crate::wire::{Family, ListenerDesc, Proto};
-use nix::sys::socket::{SockType, SockaddrStorage, getsockname, getsockopt, sockopt};
+use rustix::net::sockopt::{socket_acceptconn, socket_type};
+use rustix::net::{AddressFamily, SocketAddrUnix, SocketType, getsockname};
 use std::fmt;
-use std::net::{SocketAddr, TcpListener};
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd, OwnedFd};
-use std::os::unix::ffi::OsStrExt;
+use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, TcpListener};
+use std::os::fd::{AsFd, BorrowedFd, OwnedFd};
 
 /// Why an fd was rejected.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,35 +59,35 @@ pub fn describe_tcp(name: &str, l: &TcpListener) -> std::io::Result<ListenerDesc
 }
 
 fn sockname(fd: BorrowedFd<'_>) -> Result<(Family, Vec<u8>), FdReject> {
-    let ss: SockaddrStorage = getsockname(fd.as_raw_fd()).map_err(|_| FdReject::NoName)?;
-    if let Some(a) = ss.as_sockaddr_in() {
-        let mut v = a.ip().octets().to_vec();
-        v.extend_from_slice(&a.port().to_be_bytes());
-        return Ok((Family::Inet, v));
+    let ss = getsockname(fd).map_err(|_| FdReject::NoName)?;
+    let fam = ss.address_family();
+    if fam == AddressFamily::INET {
+        let a = SocketAddrV4::try_from(ss).map_err(|_| FdReject::NoName)?;
+        return Ok(encode_addr(&SocketAddr::V4(a)));
     }
-    if let Some(a) = ss.as_sockaddr_in6() {
-        let mut v = a.ip().octets().to_vec();
-        v.extend_from_slice(&a.port().to_be_bytes());
-        return Ok((Family::Inet6, v));
+    if fam == AddressFamily::INET6 {
+        let a = SocketAddrV6::try_from(ss).map_err(|_| FdReject::NoName)?;
+        return Ok(encode_addr(&SocketAddr::V6(a)));
     }
-    if let Some(u) = ss.as_unix_addr() {
-        let p = u.path().map(|p| p.as_os_str().as_bytes().to_vec()).unwrap_or_default();
-        return Ok((Family::Unix, p));
+    if fam == AddressFamily::UNIX {
+        // Pathname sockets carry their path; unnamed and abstract ones encode as empty (as before).
+        let u = SocketAddrUnix::try_from(ss).map_err(|_| FdReject::NoName)?;
+        return Ok((Family::Unix, u.path_bytes().map(<[u8]>::to_vec).unwrap_or_default()));
     }
     Err(FdReject::AddrMismatch)
 }
 
 /// Validate `fd` against `desc` (UP-2). `Ok` means the fd is exactly the socket the parent described.
 pub fn validate(fd: BorrowedFd<'_>, desc: &ListenerDesc) -> Result<(), FdReject> {
-    let ty = getsockopt(&fd, sockopt::SockType).map_err(|_| FdReject::NotSocket)?;
+    let ty = socket_type(fd).map_err(|_| FdReject::NotSocket)?;
     match (desc.proto, ty) {
-        (Proto::Tcp, SockType::Stream) => {
-            let listening = getsockopt(&fd, sockopt::AcceptConn).map_err(|_| FdReject::NotSocket)?;
+        (Proto::Tcp, SocketType::STREAM) => {
+            let listening = socket_acceptconn(fd).map_err(|_| FdReject::NotSocket)?;
             if !listening {
                 return Err(FdReject::NotListening);
             }
         }
-        (Proto::Udp, SockType::Datagram) => {}
+        (Proto::Udp, SocketType::DGRAM) => {}
         _ => return Err(FdReject::WrongType),
     }
     let (family, addr) = sockname(fd)?;

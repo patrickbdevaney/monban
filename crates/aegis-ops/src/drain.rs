@@ -8,12 +8,12 @@
 use std::collections::HashMap;
 use std::io;
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::os::fd::AsFd;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
+use rustix::event::{PollFd, PollFlags, Timespec, poll};
+use rustix::io::Errno;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     match m.lock() {
@@ -125,16 +125,17 @@ pub fn accept_loop(
     mut on_conn: impl FnMut(TcpStream),
 ) -> io::Result<()> {
     listener.set_nonblocking(true)?;
-    let ms = u16::try_from(tick.as_millis()).unwrap_or(u16::MAX);
+    let timeout =
+        Timespec { tv_sec: i64::try_from(tick.as_secs()).unwrap_or(i64::MAX), tv_nsec: tick.subsec_nanos().into() };
     loop {
         if stop.load(Ordering::Acquire) {
             return Ok(());
         }
-        let mut fds = [PollFd::new(listener.as_fd(), PollFlags::POLLIN)];
-        match poll(&mut fds, PollTimeout::from(ms)) {
+        let mut fds = [PollFd::new(&listener, PollFlags::IN)];
+        match poll(&mut fds, Some(&timeout)) {
             Ok(0) => continue,
             Ok(_) => {}
-            Err(nix::errno::Errno::EINTR) => continue,
+            Err(Errno::INTR) => continue,
             Err(e) => return Err(io::Error::from(e)),
         }
         loop {

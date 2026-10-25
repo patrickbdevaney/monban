@@ -10,7 +10,7 @@ publish = false
 [package.metadata.aegis]
 layer = "tool"
 
-# No third-party dependencies: nix and sd-notify stay inside aegis-ops.
+# No third-party dependencies: rustix, tokio (signals) and sd-notify stay inside aegis-ops.
 [dependencies]
 aegis-ops = { workspace = true }
 

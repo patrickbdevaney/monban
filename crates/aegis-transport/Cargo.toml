@@ -31,3 +31,6 @@ workspace = true
 # Oracle negative control only (oracles/transport-stall --self-test via subjects/transport-subject):
 # exposes `Server::new_without_wrapper`. Never enabled by aegis-bin.
 negative-control = []
+# Oracle negative control only (oracles/proxy-e2e --self-test via aegis-bin's `e2e-mutants`): exposes the raw
+# request target on `Request::raw_target`, so the `raw-path` mutant can forward it. Never in a shipped build.
+e2e-raw-target = []

@@ -308,17 +308,14 @@ impl Snapshot {
         }
     }
 
-    /// The vhost table in aegis-canon form (borrowing this snapshot).
-    pub fn with_vhosts<R>(&self, f: impl FnOnce(&[aegis_canon::Vhost<'_>]) -> R) -> R {
-        let origins: Vec<Vec<&[u8]>> =
-            self.authorities.iter().map(|(_, o, _)| o.iter().map(Vec::as_slice).collect()).collect();
-        let table: Vec<aegis_canon::Vhost<'_>> = self
-            .authorities
-            .iter()
-            .zip(origins.iter())
-            .map(|((a, _, _), o)| aegis_canon::Vhost { authority: a.as_slice(), origins: o.as_slice() })
-            .collect();
-        f(&table)
+    /// The same table for the transport (CANON-6 binding happens there).
+    pub fn vhost_table(&self) -> aegis_transport::VhostTable {
+        let mut t = aegis_transport::VhostTable::new();
+        for (a, o, _) in &self.authorities {
+            let origins: Vec<&[u8]> = o.iter().map(Vec::as_slice).collect();
+            t.add(a, &origins);
+        }
+        t
     }
 
     /// The vhost a canonical authority belongs to.

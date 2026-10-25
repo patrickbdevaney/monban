@@ -5,8 +5,8 @@
 //! * `aegis check-config <path> [--print-effective]`: CFG-1/2 validation plus the assembly's own checks.
 //! * `aegis --config <path> ...`: serve (see [`serve`]).
 //!
-//! Modules: [`plan`] (config → listeners / routes), [`proxy`] (per-request pipeline, CANON-4 forwarding),
-//! [`h1in`] / [`h2in`] (inbound drivers), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
+//! Modules: [`plan`] (config → listeners / routes), [`proxy`] (the `aegis_transport::App` that forwards: CANON-4;
+//! inbound h1 and h2 are served by `aegis_transport::Server` with the AEGIS wrapper), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
 //! clients), [`admin`] (metrics, healthz), [`audit`] (F9 admin events), [`tls`] (cert stores, profiles),
 //! [`serve`] (boot, signals, reload, upgrade).
 #![forbid(unsafe_code)]
@@ -14,8 +14,6 @@
 mod admin;
 mod audit;
 mod cli;
-mod h1in;
-mod h2in;
 mod plan;
 mod proxy;
 mod serve;

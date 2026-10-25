@@ -40,7 +40,7 @@ aegis-wasm = { workspace = true }
 # Third-party: root pins only, every crate already in Cargo.lock. tokio: no `macros` (tokio-macros is not in the
 # lock) and no `signal` (signal-hook-registry is not in the lock; signals go through aegis-ops sigwait).
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "time", "sync", "io-util"] }
-# h2 server (inbound h2) and h2 client (h2c upstream). Its `Bytes` type is named through hyper's re-export.
+# h2 client (h2c upstream; inbound h2 is aegis-transport). Its `Bytes` type is named through hyper's re-export.
 h2 = { workspace = true }
 # No features: only `hyper::body::Bytes` (re-export of `bytes`, which has no root pin). hyper's client needs `want`
 # and its http2 needs `futures-channel`, neither in the lock, so the H1 upstream client is hand-written.
@@ -52,7 +52,7 @@ rustls = { workspace = true }
 default = []
 # Oracle negative controls ONLY (oracles/proxy-e2e --self-test): env-var hooks that break forwarding, the
 # INV-NONEMPTY deny and last-known-good. Never part of a shipped build; the default build has no hook code.
-e2e-mutants = []
+e2e-mutants = ["aegis-transport/e2e-raw-target"]
 
 [lints]
 workspace = true

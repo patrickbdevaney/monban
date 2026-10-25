@@ -101,9 +101,8 @@ pub struct Shared {
     admission: Mutex<Admission>,
     started: Instant,
     next_id: AtomicU64,
-    /// Upgrade / shutdown: stop keep-alive, GOAWAY h2.
+    /// Upgrade / shutdown started (`/healthz` reports it; the transport drains the connections).
     pub draining: AtomicBool,
-    pub drain_notify: Notify,
     /// Stop accepting (listener fds are closed by the accept tasks).
     pub stop_accept: AtomicBool,
     pub stop_notify: Notify,
@@ -125,7 +124,6 @@ impl Shared {
             started: Instant::now(),
             next_id: AtomicU64::new(1),
             draining: AtomicBool::new(false),
-            drain_notify: Notify::new(),
             stop_accept: AtomicBool::new(false),
             stop_notify: Notify::new(),
             accept_tasks: AtomicUsize::new(0),

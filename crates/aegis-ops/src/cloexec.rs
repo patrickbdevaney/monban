@@ -42,7 +42,7 @@ mod tests {
         assert!(!before.contains(&fd), "std opens with O_CLOEXEC");
         // Clear FD_CLOEXEC on a duplicate and the audit must see it.
         let Ok(dup) = f.try_clone() else { return };
-        let r = nix::fcntl::fcntl(&dup, nix::fcntl::FcntlArg::F_SETFD(nix::fcntl::FdFlag::empty()));
+        let r = rustix::io::fcntl_setfd(&dup, rustix::io::FdFlags::empty());
         assert!(r.is_ok());
         let after = non_cloexec_fds().unwrap_or_default();
         assert!(after.contains(&dup.as_raw_fd()));
