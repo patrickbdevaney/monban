@@ -125,6 +125,14 @@ def build_corpus():
                             add("canon6", "request", r)
     for r in extra["request_cleartext"]:
         add("canon6", "request", dict(r, vhosts=dict(vh, **{"example.com": ["https://example.com"]})))
+    # q4-008 (appended so that earlier case ids are unchanged): new path/query probes, then every query input again
+    # in typed mode (F8 canon.query = typed keeps the strict per-parameter rules).
+    for kind, key in [("path", "paths_q4008"), ("query", "queries_q4008")]:
+        for x in extra[key]:
+            add("q4008", kind, x)
+    for _, kind, x in list(cases):
+        if kind == "query":
+            add("q4008", "query_typed", x)
     return cases
 
 
@@ -150,10 +158,11 @@ def ledger_cases():
 INS = {
     "path": ["/./", "/../", "//", "\\", ";", "%2F", "%2f", "%5C", "%5c", "%2e", "%2E%2E", "%00", "%25", "%252F", "\u00a0",
              "\u200b", "\uff0f", "%3B", "..", ".", "%41", "%7e", "%7E", "%20", "~", ":", "@", "/", "%61", "%C3%A9", "?",
-             "#", "%zz", "\u212a"],
+             "#", "%zz", "\u212a", "%CC%81", "%ED%A0%80", "%FF", "%e2%80%8b", "%D1%83", "/a/"],
     "host": [".", "..", "-", "xn--", ":443", ":0", "%2e", "\u3002", "\uff0e", "\u212a", "\u0130", "\u00df", "\u200b",
              "0x", "0", "_", " ", "\t", "@", "[", "]", "1", "\u00ad"],
-    "query": ["&", ";", "=", "+", "%26", "%3D", "%2B", "%25", "%00", "%61", "%e9", "\u00e9", "&&", "a=1", "%2F", "?"],
+    "query": ["&", ";", "=", "+", "%26", "%3D", "%2B", "%25", "%00", "%61", "%e9", "\u00e9", "&&", "a=1", "%2F", "?",
+              "%7f", "#", " ", "b=2&a=1"],
 }
 HOST_SEEDS = ["example.com", "api.example.com", "xn--fa-hia.de", "127.0.0.1", "localhost", "a.b", "xn--mnchen-3ya.de"]
 PATH_SEEDS = ["/", "/admin", "/admin/x", "/public/a", "/a/b/c", "/api/v1/users"]
@@ -193,7 +202,7 @@ def gen(kind, rng, vh):
         return _mut_str(rng, rng.choice(PATH_SEEDS), INS["path"])
     if kind == "host":
         return _ipv4ish(rng) if rng.random() < .2 else _mut_str(rng, rng.choice(HOST_SEEDS), INS["host"])
-    if kind == "query":
+    if kind in ("query", "query_typed"):
         base = "&".join("%s=%s" % (rng.choice("abAB"), rng.choice(["1", "x", "", "%41"])) for _ in range(rng.randint(1, 3)))
         return _mut_str(rng, base, INS["query"])
     if kind == "origin":
@@ -304,6 +313,9 @@ def ref_property_violations(kind, x, res):
         if any(t in low for t in ("%2f", "%5c", "%3b", "%00", "%25", "\\", ";", "//", "/./", "/../")) or \
                 v.endswith(("/.", "/..")) or not v.isascii():
             return "path output shape"
+    elif kind == "query":
+        if v != _safe_path(x):
+            return "opaque query changed beyond 6.2.2.1/6.2.2.2 (split, reordered or re-encoded)"
     elif kind == "host":
         if v != x.lower() or not v.isascii() or v.endswith("."):
             return "host repaired beyond ASCII lowercase"
@@ -415,6 +427,9 @@ class Table:
             out.append("    %-8s %-24s %6d   e.g. %s" % (kind, cell, cnt, " | ".join(self.ex[(kind, cell)])[:300]))
 
 
+CODE_KINDS = ("request", "path")   # reject status compared: CANON-6 codes; path 308 (redirect) vs 400/414 (reject)
+
+
 def compare(table, cid, kind, x, ref, subj):
     table.seen(kind)
     ex = "%s %s" % (cid, ascii(dumps(x))[:80])
@@ -429,8 +444,10 @@ def compare(table, cid, kind, x, ref, subj):
         table.hit(kind, "ref_accept_subj_reject", ex + " ref=%s subj=%r" % (ascii(dumps(rv))[:60], sv))
     elif rs == R.ACCEPT and rv != sv:
         table.hit(kind, "canonical_mismatch", ex + " ref=%s subj=%s" % (ascii(dumps(rv))[:60], ascii(dumps(sv))[:60]))
-    elif rs == R.REJECT and kind == "request" and code_of(rv) != code_of(sv):
+    elif rs == R.REJECT and kind in CODE_KINDS and code_of(rv) != code_of(sv):
         table.hit(kind, "reject_code_mismatch", ex + " ref=%r subj=%r" % (rv, sv))
+    elif rs == R.REJECT and code_of(rv) == "308" and R.redirect_target(rv) != R.redirect_target(sv):
+        table.hit(kind, "canonical_mismatch", ex + " 308 target ref=%r subj=%r" % (rv, sv))
 
 
 def expect_to_res(e):
@@ -728,8 +745,6 @@ def m_dot_repair(kind, x):
         y = re.sub("%2[eE]", ".", x)
         q = re.split(r"[?#]", y, maxsplit=1)[0]
         x = _remove_dots(q) + ("/" if q.endswith("/") and q != "/" and not q.endswith("/..") else "")
-        if x.endswith("/") and len(x) > 1:
-            x = x[:-1]
     return R.canon(kind, x)
 
 
@@ -784,6 +799,46 @@ def m_trailing_dot(kind, x):
     return R.canon(kind, x)
 
 
+# ---- q4-008 outcome mutants (each must be caught against the new per-clause outcomes)
+def m_trailing_slash_308(kind, x):
+    """the pre-q4-008 rule: '/a/' answered with a 308 to '/a' (would redirect 40% of CC URLs)"""
+    st, v = R.canon(kind, x)
+    if kind == "path" and st == R.ACCEPT and len(v) > 1 and v.endswith("/"):
+        return (R.REJECT, "308 path: trailing slash, redirect to " + v[:-1])
+    return (st, v)
+
+
+def m_reject_enc_nonascii(kind, x):
+    """the pre-q4-008 rule: any %80-%FF in a path rejected (false reject of UTF-8 slugs)"""
+    if kind == "path" and isinstance(x, str) and re.search("%[89A-Fa-f][0-9A-Fa-f]", x):
+        return (R.REJECT, "400 path: ambiguous percent-escape (non-ASCII)")
+    return R.canon(kind, x)
+
+
+def m_split_query(kind, x):
+    """splits the opaque query on '&' and re-joins it sorted (the core must never split or reorder it)"""
+    st, v = R.canon(kind, x)
+    if kind == "query" and st == R.ACCEPT and v:
+        return (R.ACCEPT, "&".join(sorted(v.split("&"))))
+    return (st, v)
+
+
+def m_forward_empty_segments(kind, x):
+    """forwards a path containing '//' as-is instead of answering 308"""
+    st, v = R.canon(kind, x)
+    if kind == "path" and st == R.REJECT and code_of(v) == "308":
+        return (R.ACCEPT, _safe_path(x))
+    return (st, v)
+
+
+def m_empty_segments_400(kind, x):
+    """rejects '//' with 400 instead of redirecting with 308 (status code must be compared for paths)"""
+    st, v = R.canon(kind, x)
+    if kind == "path" and st == R.REJECT and code_of(v) == "308":
+        return (R.REJECT, "400 path: empty segment")
+    return (st, v)
+
+
 MUTANTS = {
     # name: (function, cell that must be nonzero)
     "decode-%2F": (m_decode_slash, "ref_reject_subj_accept"),
@@ -798,6 +853,11 @@ MUTANTS = {
     "ignore-SNI-binding (CANON-6)": (m_sni_unbound, "ref_reject_subj_accept"),
     "ignore-Origin-binding (CANON-6)": (m_origin_unbound, "ref_reject_subj_accept"),
     "strip-trailing-dot": (m_trailing_dot, "ref_reject_subj_accept"),
+    "308-trailing-slash (q4-008)": (m_trailing_slash_308, "ref_accept_subj_reject"),
+    "reject-encoded-non-ASCII-path (q4-008)": (m_reject_enc_nonascii, "ref_accept_subj_reject"),
+    "split-reorder-opaque-query (q4-008)": (m_split_query, "canonical_mismatch"),
+    "forward-//-instead-of-308 (q4-008)": (m_forward_empty_segments, "ref_reject_subj_accept"),
+    "400-instead-of-308-for-// (q4-008)": (m_empty_segments_400, "reject_code_mismatch"),
 }
 
 
@@ -852,8 +912,8 @@ def self_test(args):
         print("  %-44s %s  (%s)" % (name, "caught/ok" if c else "MISSED", detail))
     caught = sum(1 for _, c, _ in results if c)
     if ok:
-        print("%s SELF-TEST: PASS (%d/%d checks: %d lenient mutants caught, reference subject passes, golden tamper and "
-              "G4 ban caught)" % (NAME, caught, len(results), len(MUTANTS)))
+        print("%s SELF-TEST: PASS (%d/%d checks: %d mutants caught (lenient, false-reject and q4-008 outcome), reference "
+              "subject passes, golden tamper and G4 ban caught)" % (NAME, caught, len(results), len(MUTANTS)))
         return 0
     print("%s SELF-TEST: FAIL (%d/%d checks)" % (NAME, caught, len(results)))
     return 1

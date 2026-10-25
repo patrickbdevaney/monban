@@ -1,17 +1,19 @@
 # lowering-read: read-path lowering differential oracle
 
 Checks that a renderer of the IR filter (`Pred`) into engine queries is sound and complete against the formal model
-in `spec/AegisIR/Lowering.lean`. Spec clause: **SPEC_INVARIANTS §E "Lowering soundness"** (`lower_sound_pos`,
-`lowerQ_sound`, `lower_sound_full`, `lowerQ_sound_full`, `refines_necessary`, `not_absent_permits`) and the
-R-DB-7 executed contract (leak = 0 ∧ miss = 0, ≥100k cases per ENGINE_PIN). IMPLEMENTATION_PLAN §2 row
-"read lowering oracle".
+in `spec/AegisIR/Lowering.lean` and `spec/AegisIR/ThreeValued.lean`. Spec clause: **SPEC_INVARIANTS §E "Lowering
+soundness"** as rewritten by spike q4-004 (three-valued policy semantics: `eval3`, `refQ3`, `lower_exact3`,
+`lowerQ_exact3`, `rows_exact3`, `not_absent_gap`, `sql3_inList_nil`, `inList_nil_not_const_false`; plus
+`lower_sound_full`, `refines_necessary`) and its executed contract: **leak = 0 ∧ widen = 0 ∧ miss = 0 against
+`refQ3`**, GAP vs the two-valued `refQ` reported as information only, ≥100k cases per ENGINE_PIN.
+IMPLEMENTATION_PLAN §2 row "read lowering oracle".
 
 ## Run
 
 ```
-oracles/lowering-read/run                                  # default gate: SQLite (stdlib), offline, ~10 s
-oracles/lowering-read/run --self-test                      # mutants must be caught, ~5 s
-ci/heavy.sh oracles/lowering-read/run --big                # 100k unique generated cases (x5 schemas), ~45 s
+oracles/lowering-read/run                                  # default gate: SQLite (stdlib), offline, ~17 s
+oracles/lowering-read/run --self-test                      # mutants must be caught, ~8 s
+ci/heavy.sh oracles/lowering-read/run --big                # 100k unique generated cases (x5 schemas), ~2.5 min
 oracles/lowering-read/run --subject "<cmd>"                # plug in the Rust renderer (protocol below)
 oracles/lowering-read/run --engine pg --dsn postgresql://postgres:x@127.0.0.1:55711/postgres \
                           --engine redis --url redis://127.0.0.1:55712/9     # optional live engines
@@ -32,20 +34,23 @@ rows **as stored** (read back after insert, so affinity conversions belong to th
 
 | set | definition (Lean names) |
 |---|---|
-| permit | `refQ tenant t r p` (policy, two-valued `eval`, absent field ⇒ atom false) |
-| model | `keeps EXACT r (lowerQ tenant t p)` (Kleene `sql3` over an exact backend) |
+| permit | `refQ3 tenant t r p` (policy since q4-004: `eval3`, absent/NULL field ⇒ atom UNKNOWN, Kleene and/or/not, permitted iff `some true`) |
+| model | `keeps EXACT r (lowerQ tenant t p)` (Kleene `sql3` over an exact backend); equal to permit by `lowerQ_exact3` |
+| permit2 | `refQ tenant t r p` (the old two-valued `eval`, absent field ⇒ atom false); information only |
 | got | rows the engine returned |
 
-* **LEAK** = got − permit (unsound). **Must be 0.**
-* **WIDEN** = got − model (a row the Lean lowering drops; LEAK ⊆ WIDEN because model ⊆ permit by `lowerQ_sound_full`).
-  **Must be 0.** This is what catches a two-valued NOT over NULL fields, which is *not* a leak under the current
-  two-valued `eval` (see D1).
-* **MISS** = model − got (Backend.Exact violated or incomplete renderer). **Must be 0.**
-* **GAP** = permit − model: rows the policy permits but SQL 3VL drops (`not_absent_permits`). Reported, not failing;
-  `--miss-vs-policy` counts GAP as MISS (it then FAILs: the spec decision "three-valued reference for NOT over absent
-  fields" is still open).
-* Also failing: engine errors on rendered SQL, refusals, and `theorem_violations` (on every evaluated row the
-  Python port must satisfy `lower_sound_full`: `sql3 = some b → eval = b`; guards the port itself).
+* **LEAK** = got − permit (unsound against the 3VL policy). **Must be 0.**
+* **WIDEN** = got − model. **Must be 0.** Since permit = model it equals LEAK on a correct port; kept as a separate
+  counter so a port bug in either reference shows up as a disagreement (see `theorem_violations`).
+* **MISS** = (permit ∪ model) − got (Backend.Exact violated or incomplete renderer). **Must be 0.**
+* **GAP** = permit2 − permit: rows the old two-valued reference permits and `refQ3` denies, i.e. NOT over an absent
+  field (`not_absent_gap`). **Information only.** `--miss-vs-2vl` counts GAP as MISS and therefore FAILs; it exists
+  to reproduce the pre-q4-004 D1 discussion, not as a gate.
+* Also failing: engine errors on rendered SQL, refusals, and `theorem_violations`. On every evaluated row the Python
+  port must satisfy `lower_exact3` (`sql3 EXACT (lower p) = eval3 p`), `lowerQ_exact3` (`keeps = refQ3`),
+  `lower_sound_full` (`sql3 = some b → eval = b`) and `eval3_sound` (`eval3 = some b → eval = b`). This guards the
+  port itself. `eval3`/`refQ3` live in `read_oracle.py`, not in `lowir.py`, because `lowir.py` must stay
+  byte-identical with `oracles/lowering-write/lowir.py`.
 
 Families (default run, SQLite 3.45.3 = Python's stdlib):
 
@@ -73,7 +78,7 @@ typed columns, NUL-free corpus because PG text cannot hold NUL), and the self-jo
 
 ## Pass criterion
 
-`leak = widen = miss = errors = refused = theorem_violations = 0`. The default run has ≥10k unique generated cases
+`leak = widen = miss = errors = refused = theorem_violations = 0`, with `permit = refQ3` (GAP vs `refQ` is not part of it). The default run has ≥10k unique generated cases
 plus every research seed/regression case; `--big` gives ≥100k unique cases (the Phase 4 gate number).
 
 ## Self-test (negative controls)
@@ -84,7 +89,9 @@ counter to go non-zero:
 | mutant | caught as |
 |---|---|
 | drop-tenant | leak |
-| two-valued-not (research StrictTyped atoms: FALSE on NULL) | widen |
+| two-valued-not (research StrictTyped atoms: FALSE on NULL) | leak (was widen under the 2VL gate) |
+| in-nil-const-false (`In f []` rendered as constant FALSE; q4-004) | leak: `NOT (x in [])` on a NULL x returns the row, eval3 is UNKNOWN (`inList_nil_not_const_false`) |
+| two-valued-not-absent (`NOT COALESCE(p, FALSE)`: absent ⇒ NOT true; q4-004) | leak (and widen) |
 | or-precedence (`tenant AND a OR b`) | leak |
 | like-prefix (LIKE s‖'%', no escaping of %/_) | leak |
 | empty-or-true (`orN []` ⇒ TRUE) | leak |
@@ -96,6 +103,11 @@ counter to go non-zero:
 | selfjoin-alias (tenant conjunct always on alias a) | leak |
 | refuse-all | miss |
 | kv-naive, kv-escaped-colon | leak |
+
+The two q4-004 mutants are defined in `read_oracle.py` (`LOCAL_MUTANTS`, subclasses of `lowir.Renderer`). Against the
+old 2VL permit set they score leak = 0 (only widen: 11 and 248 on the self-test corpus), so they are caught as leaks
+only because the gate is now `refQ3`. The self-test also checks the two separating witnesses directly
+(`not_absent_gap` and `NOT In []` on NULL: `refQ` permits, `refQ3` denies).
 
 It also checks that naive-bound reproduces every research LEAK verdict of the SQLite cex corpus (10/10), that the
 `refines_necessary` witness holds in the model, that the unmutated reference passes **through the `--subject`
@@ -148,12 +160,14 @@ column type.
 
 ## Divergences found (reported, not silently fixed)
 
-* **D1 SPEC §E vs Lowering.lean.** SPEC §E states `Backend.Exact ⇒ rows(render(lower(t,p))) = {x | x.tenant = t ∧
+* **D1 SPEC §E vs Lowering.lean (resolved 2026-10-25 by spike q4-004).** §E now defines the policy as `refQ3`, and
+  `lowerQ_exact3` proves equality with SQL 3VL on exact backends, so the gate is against `refQ3` and the GAP below is
+  information only. Original text: SPEC §E stated `Backend.Exact ⇒ rows(render(lower(t,p))) = {x | x.tenant = t ∧
   ⟦p⟧(x)}`. The Lean file proves only `sql3 = some b → eval = b` (`lower_sound_full`), i.e. ⊆. With NOT over a
   NULL/absent field the policy permits (`not_absent_permits`) and SQL drops, so equality is false: the default run
   measures GAP in 5,334 cases (46,944 with `--big`). Equality holds only for NOT-free predicates or non-null fields.
-  The oracle gates on `model` (what Lean proves a correct renderer returns) and reports GAP; `--miss-vs-policy`
-  applies the SPEC wording and fails.
+  The oracle then gated on `model` and reported GAP; the flag `--miss-vs-policy` applied the old SPEC wording and
+  failed. That flag is now `--miss-vs-2vl` (GAP = refQ − refQ3, information only).
 * **D2 research IR ≠ Lean IR.** The research oracle has no NOT and treats float as a third storage class; Lean
   `Value` is int | str only. 2281/12000 research-replay cases contain float literals and are skipped.
 * **D3 research hardened atoms are two-valued.** `StrictTyped`'s `typeof(col)=... AND ...` is FALSE (not UNKNOWN)
@@ -166,9 +180,10 @@ column type.
   the `nul-prefix` mutant.
 * **D5 own first fix was wrong, caught by this oracle.** SQLite returns NULL (not `x''`) for `substr`/`CAST` of a
   zero-length BLOB; the first BLOB-prefix rendering missed every empty stored string. Fixed with `coalesce`.
-* **D6 Lean comment vs Lean definition for `inList []`.** The `SqlExpr` comment says "[] ⇒ FALSE", but
-  `sql3 (.inList f [])` is UNKNOWN on a NULL column. Research renders `(1=0)` (FALSE), which differs under NOT. The
-  reference follows the definition.
+* **D6 Lean comment vs Lean definition for `inList []` (resolved by q4-004).** The `SqlExpr` comment said "[] ⇒
+  FALSE", but `sql3 (.inList f [])` is UNKNOWN on a NULL column. The comment is fixed and `sql3_inList_nil` /
+  `inList_nil_not_const_false` are proved. Research renders `(1=0)` (FALSE), which differs under NOT; that rendering
+  is now the `in-nil-const-false` mutant. The reference follows the definition.
 
 ## Research provenance (untrusted input: read, reviewed and re-implemented; never executed in place)
 
@@ -187,18 +202,18 @@ column type.
 | df77c6e4aa6aceaa8d709615ddb43069d2da92a3b75ffdae0f76b5bd55dbd212 | round-004/_verify_r4_verdicts.json | same finding, verifier verdict |
 | 18e95e213b77215919b30f987e2ed63818b6bae8f038af4bddf5d25960e4a3dd | round-004/02-write-path-lowering-differential-oracle.json | context |
 
-In-repo inputs: `spec/AegisIR/Lowering.lean` 5b79eac2615fdd02e5f7260919080d178e9f7fd24206b9b56fd093f034c70203,
-`spec/SPEC_INVARIANTS.md` 2d7444473fe2f878680c70ba87d721a52ba7a2a3348b1a24125a8363dab12ac1.
+In-repo inputs (2026-10-25, after q4-004): `spec/AegisIR/ThreeValued.lean` 278740ea86d7cdfc7a4e74acc72c2ba4af4c19a06a097ec716ee7396153d0135,
+`spec/AegisIR/Lowering.lean` 007e2f74bda62896066c006a90cfa7f0438f05f6fb675616a925ae4140190f3e, `spec/SPEC_INVARIANTS.md` 1fd940943a4c1e67921cca70b5a556231598b6f0222e9c5821baffd0e02c82c1,
+`spikes/q4-004/verdict.json` (decision and `oracle_follow_up`).
 `lowir.py` is byte-identical to `oracles/lowering-write/lowir.py` (sha256 e5774a4bbb32420a9fcaf4288b62085c5cf59d687bdbaff94ac6a40e792be5b4).
 
-## Re-run in repo (2026-10-25, Python 3.12.9, SQLite 3.45.3)
+## Re-run in repo (2026-10-25, after switching the gate to refQ3; Python 3.12, SQLite 3.45.3)
 
-* `run`: `LOWERING-READ: PASS (cases=103917 generated_unique_sqlite=12000 (x5 schemas=60000) ... leak=0 widen=0 miss=0 gap=5334 errors=0)`, 10 s.
-* `ci/heavy.sh ... --big`: `LOWERING-READ: PASS (cases=543917 generated_unique_sqlite=100000 (x5 schemas=500000) ... leak=0 widen=0 miss=0 gap=46944 errors=0)`, 43 s.
-* `--self-test`: `LOWERING-READ SELF-TEST: PASS (14/14 mutants caught; research naive LEAKs reproduced; positive control PASS)`;
-  with PG 17.11 + Valkey: 21/21.
-* `--engine pg` (postgres:17 image, 17.11) `--engine redis` (valkey/valkey:alpine), `--pg-cases 1500`: PASS, 24,530
-  cases, leak=0 widen=0 miss=0, 14.7 s.
+* `run`: `LOWERING-READ: PASS (cases=103917 generated_unique_sqlite=12000 (x5 schemas=60000) generated_unique_pg=0 (x4 schemas) leak=0 widen=0 miss=0 gap_vs_2vl(info)=5334 errors=0)`, 17 s. theorem_violations=0 (lower_exact3, lowerQ_exact3, lower_sound_full, eval3_sound on 1,727,370 row evaluations).
+* `ci/heavy.sh ... --big`: `LOWERING-READ: PASS (cases=543917 generated_unique_sqlite=100000 (x5 schemas=500000) generated_unique_pg=0 (x4 schemas) leak=0 widen=0 miss=0 gap_vs_2vl(info)=46944 errors=0)`, 141 s (theorem_violations=0 over 6,548,757 row evaluations).
+* `--self-test`: `LOWERING-READ SELF-TEST: PASS (16/16 mutants caught; research naive LEAKs reproduced; positive control PASS)`, 7.5 s.
+* Not re-run after this change: `--engine pg` / `--engine redis` (no throwaway PG/Valkey container was started).
+  Before the change (2-valued gate): PG 17.11 + Valkey PASS, 24,530 cases, self-test 21/21 with engines.
 
 ## Known limits / pending
 
@@ -210,5 +225,7 @@ In-repo inputs: `spec/AegisIR/Lowering.lean` 5b79eac2615fdd02e5f7260919080d178e9
 * Not covered: MySQL/MariaDB, SQL Server, MongoDB (doc-derived denylist only), timing/scoring side channels,
   RLS plan-cache (q1012), PG self-join elimination on PG master (needs a PG master build), engine logic bugs
   beyond what the corpus hits.
-* The GAP / three-valued reference decision (D1) is a spec decision; until it is made, NOT over nullable fields
-  returns fewer rows than the policy permits.
+* Under the three-valued policy `NOT (f = v)` does not match rows whose f is NULL, and the IR has no `isNull` atom, so
+  "f != v or f is missing" is not expressible yet (q4-004 follow-up). The oracle checks the semantics as frozen.
+* F4's `Not` ⇒ `Fidelity::Exact` rule is enforced in `check_schema`, not here. This oracle tests one renderer that
+  claims Exact; it does not test that a Refines adapter refuses `Not`.

@@ -47,3 +47,13 @@
 ## Process
 - Phase-1 commits swept in unfinished spike files (incl. a throwaway self-signed loopback key in spikes/q3-008,
   since removed from the tree; still in history, no real secret). Commit only finished spike dirs by path.
+
+## Oracle follow-ups (2026-10-25)
+- NC3 widened: every resource a cancelled request touched is quarantined (closes the gap where a cancelled connection
+  passing the checkin predicate carried `SET` state). Update oracles/cancel-sweep model + add mutant "cancelled
+  connection with session state checked in without DISCARD ALL" (spec-author unit).
+- C8: pools shared across principals must reset on recycle (DISCARD ALL) regardless of cancellation — make explicit in
+  the PG adapter unit acceptance.
+- canon-diff: opaque path octets that pass UTF-8+NFC (zero-width, bidi overrides, BOM, fullwidth) are accepted; only
+  dangerous behind path-folding upstreams (CANON-8 per-upstream folding profile must reject them for such upstreams).
+- lowering-read: PG/Redis engines not re-run after the refQ3 switch.

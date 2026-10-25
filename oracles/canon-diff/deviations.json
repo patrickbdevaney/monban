@@ -1,7 +1,8 @@
 {
  "_comment": "Reviewed, deliberate deviations of canon_ref.py from research/state/raw/round-004/07-work/canon_map.json (output of the research canon_ref.py). Any other disagreement with canon_map fails the research-pin check.",
  "deviations": [
-  {"kind": "path", "input": "/admin/", "research": "/admin", "ours": "reject 308 -> /admin", "why": "The research owner table says 'strip trailing slash with 308'; a 308 is not an accept of the original target, and silently stripping is a repair outside the RFC 3986 6.2.2 safe set (CANON-2)."},
+  {"kind": "path", "input": "/admin/", "research": "/admin", "ours": "/admin/", "why": "Spike q4-008 (F8 canon.trailing_slash = accept): a trailing slash is its own canonical form, distinct from /admin (RFC 3986). Research silently stripped it, which is a repair outside the RFC 3986 6.2.2 safe set (CANON-2). Before q4-008 this oracle answered 308 -> /admin."},
+  {"kind": "path", "input": "/%ef%bc%a1dmin", "research": null, "ours": "/%EF%BC%A1dmin", "why": "Spike q4-008 (F8 canon.encoded_non_ascii_path = accept_opaque): %80-%FF octets are accepted as opaque uppercase-hex bytes when they are strict UTF-8 and NFC. U+FF21 FULLWIDTH A is NFC (only NFKC folds it), so the path is accepted and is byte-distinct from /admin; it can only alias /admin behind an upstream that NFKC-folds paths, which is CANON-8 (per-upstream folding profile, not checked here)."},
   {"kind": "host", "input": "xn--fa-hia.de", "research": null, "ours": "xn--fa-hia.de", "why": "Research canon_ref.py validated A-labels with Python's IDNA2003 codec (h.encode().decode('idna')), i.e. IDNA on ingress, which contradicts its own rule and rejects valid IDNA2008 A-labels (nameprep maps U+00DF to 'ss'); its own config example lists xn--fa-hia.de as a vhost. We check RFC 3492 structure only and match the A-label byte-exactly."}
  ]
 }

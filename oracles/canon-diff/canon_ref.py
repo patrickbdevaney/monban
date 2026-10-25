@@ -14,8 +14,19 @@ Rules (CANON-2 "reject, don't repair"): anything with more than one plausible re
   * ASCII-lowercasing of tokens that the governing RFC defines as case-insensitive (media type/subtype, parameter
     names, header field names, charset value). This is canonicalization of a single reading, not a repair.
 6.2.2.3 (remove_dot_segments) is deliberately NOT applied: dot segments are rejected (CANON-2 overrides).
-A trailing slash is not repaired either: "/admin/" is answered with a 308 to "/admin" (reported as a reject whose
-reason starts with "308"), which is what the research owner table specifies ("strip trailing slash with 308").
+
+Per-clause outcomes fixed by spike q4-008 (spikes/q4-008/verdict.json; F8 `canon` block; CANON-2 text), each one
+because the benign false-reject rate of the old reject exceeded 0.1%:
+  * empty segments ("//")      -> 308 to the slash-merged path (a reject whose reason starts with "308"; nothing is
+                                  forwarded in the non-canonical form). F8 canon.empty_segments = redirect_308.
+  * trailing slash             -> accepted as its own canonical form: "/a/" != "/a", no 308. canon.trailing_slash = accept.
+  * %80-%FF path escapes       -> kept as opaque uppercase-hex octets (never decoded or Unicode-normalized for
+                                  matching); rejected if the percent-decoded path is not strict UTF-8 (overlong,
+                                  surrogates, truncated) or not NFC. canon.encoded_non_ascii_path = accept_opaque.
+  * query                      -> canon_query is the default `opaque` mode: only 6.2.2.1/6.2.2.2 are applied and
+                                  the rest is forwarded byte-exact, never split or reordered. canon_query_typed is
+                                  the `typed` mode (route-declared parameters): the old strict per-parameter rules.
+Unchanged: dot segments, encoded / \\ ; NUL controls %25, raw \\ ; and raw non-ASCII in paths, host rules, headers.
 """
 import json
 import re
@@ -70,7 +81,7 @@ def canon_path(t):
             ch = chr(int(h, 16))
             if ch in UNRES:
                 out.append(ch)                                # 6.2.2.2 decode unreserved
-            elif ch in "/\\;\x00%" or ord(ch) < 0x20 or ord(ch) >= 0x7F:
+            elif ch in "/\\;\x00%" or ord(ch) < 0x20 or ord(ch) == 0x7F:
                 return _rej("400 path: ambiguous percent-escape %" + h.upper())
             else:
                 out.append("%" + h.upper())                   # 6.2.2.1 uppercase hex
@@ -84,16 +95,91 @@ def canon_path(t):
     segs = p.split("/")[1:]
     if any(s in (".", "..") for s in segs):
         return _rej("400 path: dot segment")
-    if "" in segs[:-1]:
-        return _rej("400 path: empty segment")
-    if len(p) > 1 and p.endswith("/"):
-        return _rej("308 path: trailing slash, redirect to " + p[:-1])
+    if "%" in p:                                          # %80-%FF kept opaque, but must be one strict UTF-8, NFC reading
+        raw = _pct_bytes(p)
+        try:
+            u = raw.decode("utf-8", errors="strict")      # rejects overlong forms, surrogates, truncated sequences
+        except UnicodeDecodeError:
+            return _rej("400 path: encoded octets are not valid UTF-8")
+        if unicodedata.normalize("NFC", u) != u:
+            return _rej("400 path: encoded octets are not NFC")
+    if "" in segs[:-1]:                                   # '//' anywhere (a single trailing '/' is its own form)
+        return _rej("308 path: empty segment, redirect to " + _merge_slashes(p))
     return _acc(p)
 
 
-# ---------------------------------------------------------------- query (application/x-www-form-urlencoded, strict)
+def _pct_bytes(p):
+    """Percent-decode an already validated path (every '%' starts a 2-hex-digit escape) to bytes."""
+    b, i = bytearray(), 0
+    while i < len(p):
+        if p[i] == "%":
+            b.append(int(p[i + 1:i + 3], 16))
+            i += 3
+        else:
+            b.extend(p[i].encode("ascii"))
+            i += 1
+    return bytes(b)
+
+
+def _merge_slashes(p):
+    return re.sub("/{2,}", "/", p)
+
+
+def redirect_target(reason):
+    """The Location of a 308 reject reason, or None."""
+    m = re.match(r"^308 .*, redirect to (/\S*)$", reason or "")
+    return m.group(1) if m else None
+
+
+# ---------------------------------------------------------------- query, opaque mode (F8 canon.query = opaque, default)
+QUERY_LIT = PCHAR_LIT | frozenset(";/?")                 # RFC 3986 query = *( pchar / "/" / "?" ); pchar has ';'
+
+
 def canon_query(q):
-    """'&' is the only separator (';' rejected: python-multipart CVE-2026-53538); every pair is name=value; '+' is
+    """Opaque mode (q4-008): the query is canonicalized only by RFC 3986 6.2.2.1 (uppercase hex) and 6.2.2.2 (decode
+    unreserved) and otherwise forwarded byte-exact. It is never split, reordered or de-duplicated by the core; '+',
+    ';', '%26', '%3D', '%25', %80-%FF, repeated names and name-only tokens are all accepted (authz never keys on the
+    query, CANON-5). Still rejected: bad percent-escape, raw non-ASCII, raw space / forbidden ASCII / '#', encoded or
+    raw NUL and controls (%00-%1F, %7F), length > 8192, an empty pair ('&&', leading or trailing '&'), an empty name
+    ('=v'), and %2B."""
+    if not _is_str(q):
+        return _rej("400 query: not a string")
+    if q == "":
+        return _acc("")
+    if len(q) > MAX_PATH:
+        return _rej("414 query: too long")
+    o, i = [], 0
+    while i < len(q):
+        c = q[i]
+        if c == "%":
+            h = q[i + 1:i + 3]
+            if len(h) != 2 or not all(x in HEXD for x in h):
+                return _rej("400 query: bad percent-escape")
+            n = int(h, 16)
+            ch = chr(n)
+            if ch in UNRES:
+                o.append(ch)                              # 6.2.2.2
+            elif n < 0x20 or n == 0x7F or ch == "+":
+                return _rej("400 query: rejected percent-escape %" + h.upper())
+            else:
+                o.append("%" + h.upper())                 # 6.2.2.1; %80-%FF opaque octets
+            i += 3
+            continue
+        if c not in QUERY_LIT:
+            return _rej("400 query: forbidden character U+%04X" % ord(c))
+        o.append(c)
+        i += 1
+    for part in q.split("&"):                             # lexical checks only; the output is never split
+        if not part:
+            return _rej("400 query: empty pair")
+        if part.startswith("="):
+            return _rej("400 query: empty name")
+    return _acc("".join(o))
+
+
+# ---------------------------------------------------------------- query, typed mode (route-declared parameters, strict)
+def canon_query_typed(q):
+    """Typed mode (F8 canon.query = typed, per route). '&' is the only separator (';' rejected: python-multipart CVE-2026-53538); every pair is name=value; '+' is
     rejected (space-or-plus has two readings); escapes as in paths but %26 %3D %3B %2B %25 %00 and controls are
     rejected; duplicate decoded names are rejected (no route-declared list parameters in this model)."""
     if not _is_str(q):
@@ -516,8 +602,8 @@ def canon_request(r):
 
 
 KINDS = {
-    "path": canon_path, "query": canon_query, "host": canon_host, "origin": canon_origin, "cookie": canon_cookie,
-    "ctype": canon_media_type, "json": canon_json, "tenant": canon_tenant, "headers": canon_headers,
+    "path": canon_path, "query": canon_query, "query_typed": canon_query_typed, "host": canon_host,
+    "origin": canon_origin, "cookie": canon_cookie, "ctype": canon_media_type, "json": canon_json, "tenant": canon_tenant, "headers": canon_headers,
     "request": canon_request,
 }
 
