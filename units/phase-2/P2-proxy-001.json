@@ -1,0 +1,5 @@
+{"id":"P2-proxy-001","crates":["aegis-bin"],
+ "spec_refs":["IMPLEMENTATION_PLAN Phase 2 scope (reverse-proxy mode R)","F8 config","CANON-4 (forward exactly what was checked, re-serialized from Canon_K)","R-TLS-3 (H1 upstream framing regenerated; H2 or framed UDS preferred)","CRS C2/C3/C8 (pool key = whole UpstreamConnConfig; no upstream connection shared across principals' σ)","INV-NONEMPTY (route without authz ⇒ deny; no config ⇒ exit 78)","ARCHITECTURE §3.10 metrics on admin listener, audit for admin events"],
+ "oracles":["oracles/proxy-e2e (new): stdlib Python upstream that records exactly what it receives; drives aegis over TLS (h1 + h2) and checks forwarding, canonical re-serialization, 421/308/400 behaviours, admission rejects, metrics endpoint, config LKG on bad reload, fail-closed boot"],
+ "acceptance":{"cmd":"ci/heavy.sh cargo build --release -p aegis-bin && oracles/proxy-e2e/run --subject target/release/aegis && oracles/proxy-e2e/run --self-test","must":"PROXY-E2E: PASS and SELF-TEST: PASS"},
+ "write_scope":["crates/aegis-bin/**","oracles/proxy-e2e/**","deploy/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
