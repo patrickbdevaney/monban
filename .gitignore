@@ -14,3 +14,4 @@ spec/.lake/
 spec/negative-control/.lake/
 gates/out/
 __pycache__/
+**/.lake/

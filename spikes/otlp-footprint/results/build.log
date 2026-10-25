@@ -3,3 +3,4 @@ heavy.sh: waiting for the heavy-job lock (one at a time)...
 == build metrics
 == build metrics+logs
 == build metrics+logs+otlp
+== build metrics+logs+otlp-grpc

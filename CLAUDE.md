@@ -12,7 +12,7 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
 
 ## Privacy
 - Never put the operator's name or email in requests to external services (User-Agent, headers, query strings).
-  For crates.io and other APIs use `User-Agent: aegis-ci (https://patrickd-kamrui.tail90fdac.ts.net/patrickd/aegis)`.
+  For crates.io and other APIs use `User-Agent: aegis-ci` (no hostnames, no contact details).
 
 ## Roles and write scope (IMPLEMENTATION_PLAN §6)
 - Spec author / integrator: may change `spec/ interfaces/ oracles/ sdk/ ci/ gates/ tls/ supply-chain/ .github/`,
