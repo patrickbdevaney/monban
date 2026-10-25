@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aegis:interfaces:F8:config:1",
+  "title": "AEGIS configuration (frozen interface F8)",
+  "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 reject-vs-308 per clause is PROVISIONAL until spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "listeners", "vhosts"],
+  "properties": {
+    "v": {"const": 1},
+    "listeners": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/listener"}},
+    "vhosts": {"type": "array", "minItems": 1, "maxItems": 4096, "items": {"$ref": "#/$defs/vhost"}},
+    "admin": {"type": "object", "additionalProperties": false,
+      "properties": {"bind": {"type": "string", "description": "loopback address or unix:/path; metrics endpoint always on"}}},
+    "limits": {"$ref": "#/$defs/limits"},
+    "canon": {"type": "object", "additionalProperties": false, "description": "PROVISIONAL (q4-008)",
+      "properties": {"dot_segments": {"enum": ["reject", "redirect_308"]},
+                     "encoded_slash": {"const": "reject"},
+                     "non_ascii_host": {"const": "reject"}}}
+  },
+  "$defs": {
+    "listener": {"type": "object", "additionalProperties": false, "required": ["name", "bind", "profile"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$"},
+        "bind": {"type": "string"},
+        "profile": {"enum": ["P-PUBLIC-WEB", "P-PQ-REQUIRED", "P-UNIVERSAL", "P-BSI-ALT", "P-CNSA", "FIPS-FLOOR", "FIPS-CMVP"]},
+        "alpn": {"type": "array", "items": {"enum": ["h2", "http/1.1"]}, "minItems": 1, "uniqueItems": true}}},
+    "vhost": {"type": "object", "additionalProperties": false, "required": ["host", "routes"],
+      "properties": {
+        "host": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$",
+                 "description": "ASCII-lowercase A-label exact match; no IDNA on ingress (CANON-6)"},
+        "routes": {"type": "array", "minItems": 1, "maxItems": 4096, "items": {"$ref": "#/$defs/route"}}}},
+    "route": {"type": "object", "additionalProperties": false, "required": ["id", "path", "to"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "path": {"type": "string", "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*$"},
+        "to": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["upstream"],
+           "properties": {"upstream": {"type": "string"}, "framing": {"enum": ["h2", "uds", "h1-regenerate"]}}},
+          {"type": "object", "additionalProperties": false, "required": ["static"], "properties": {"static": {"type": "string"}}}]},
+        "authz": {"type": "string", "description": "Cedar policy set name; absent means the route is denied (INV-NONEMPTY)"}}},
+    "limits": {"type": "object", "additionalProperties": false, "description": "Golden defaults (ARCHITECTURE §3.1); each value bounded",
+      "properties": {
+        "max_concurrent_streams": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+        "max_header_list_size": {"type": "integer", "minimum": 1024, "maximum": 65536, "default": 16384},
+        "max_header_fields": {"type": "integer", "minimum": 8, "maximum": 256, "default": 128},
+        "header_table_size": {"type": "integer", "minimum": 0, "maximum": 65536, "default": 4096},
+        "rst_burst": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+        "rst_refill_per_s": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 33},
+        "max_streams_per_conn": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 10000},
+        "stream_window": {"type": "integer", "minimum": 65535, "maximum": 16777216, "default": 262144},
+        "conn_window": {"type": "integer", "minimum": 65535, "maximum": 67108864, "default": 1048576},
+        "stall_timeout_ms": {"type": "integer", "minimum": 100, "maximum": 120000, "default": 10000},
+        "idle_timeout_ms": {"type": "integer", "minimum": 1000, "maximum": 600000, "default": 30000},
+        "max_body_bytes": {"type": "integer", "minimum": 0, "maximum": 1073741824, "default": 1048576},
+        "per_conn_memory_bytes": {"type": "integer", "minimum": 65536, "maximum": 268435456, "default": 16777216}}}
+  }
+}

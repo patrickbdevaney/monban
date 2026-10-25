@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aegis:interfaces:F13:conformance-report:1",
+  "title": "AEGIS conformance report (frozen interface F13)",
+  "description": "Signed JSON report emitted by conformance/ for a build or a third-party extension. Levels C0-C4; the golden reference claims only what its gates executed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "subject", "artifact_sha256", "toolchain", "generated_at", "levels", "gates", "signature"],
+  "properties": {
+    "v": {"const": 1},
+    "subject": {"type": "object", "additionalProperties": false, "required": ["name", "version", "kind"],
+      "properties": {"name": {"type": "string"}, "version": {"type": "string"},
+                     "kind": {"enum": ["golden", "adapter", "module", "fork"]}}},
+    "artifact_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "toolchain": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "levels": {"type": "object", "additionalProperties": false,
+      "patternProperties": {"^C[0-4]$": {"type": "object", "required": ["passed", "total"],
+        "properties": {"passed": {"type": "integer", "minimum": 0}, "total": {"type": "integer", "minimum": 0}}}}},
+    "gates": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+      "required": ["name", "result", "log_sha256"],
+      "properties": {"name": {"type": "string"}, "result": {"enum": ["pass", "fail", "skipped"]},
+                     "reason": {"type": "string"}, "log_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
+    "not_claimed": {"type": "array", "items": {"type": "string"}},
+    "signature": {"type": "object", "required": ["alg", "sig"],
+      "properties": {"alg": {"enum": ["ed25519", "ml-dsa-87", "slh-dsa-sha2-128s"]}, "sig": {"type": "string"}}}
+  }
+}

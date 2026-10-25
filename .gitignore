@@ -12,3 +12,4 @@ research/state/raw/*/w[0-9]*/
 /target/
 spec/.lake/
 spec/negative-control/.lake/
+gates/out/

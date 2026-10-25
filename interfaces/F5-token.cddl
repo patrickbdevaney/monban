@@ -1,0 +1,36 @@
+; Frozen interface F5: capability token wire format (Tier L), deterministic CBOR (RFC 8949 §4.2.1 core deterministic).
+; Semantics: spec/AegisIR/Token.lean (T1 attenuation_mono, T2 aud_bound, T3 expiry, T4 depth, T5 verify_iff).
+; Ratified at freeze (ARCHITECTURE §3.5):
+;   D1 res_prefix is a SEGMENT prefix: "/t1" admits "/t1" and "/t1/x", never "/t10".
+;   D2 a child's ops mask is a subset of its parent's (bitwise: child & ~parent == 0).
+;   D3 depth_left is checked at verify: the effective depth is the minimum over all depth caveats.
+;   D4 a tool caveat whose argument constraint names a missing argument DENIES.
+;   Verify = conjunction of EVERY caveat (never leaf-only); `now` is a verifier parameter.
+;   Mint-shape check: the first caveats of a freshly minted token are exactly [aud, exp, depth_left] (drops the
+;   WellMinted hypothesis of Token.lean). exp - mint_time <= 900 s. Encoded token <= 4096 bytes. 1..64 caveats.
+; Key: K_aud = HKDF-SHA256(ikm = K, salt = "", info = "aegis-cap-v1" || aud || kid). Tag = HMAC chain over caveats.
+
+token-l = [
+  version: 1,
+  kid:     bstr .size (1..32),
+  nonce:   bstr .size 16,
+  caveats: [1*64 caveat],
+  tag:     bstr .size 32,          ; HMAC-SHA256 chain head; compared in constant time
+]
+
+caveat = aud / exp / nbf / ops / res-prefix / cnf-jkt / tenant / tool / depth-left
+aud        = [0, tstr .size (1..255)]
+exp        = [1, uint]              ; seconds since epoch
+nbf        = [2, uint]
+ops        = [3, uint .le 31]       ; bitmask over OpKind {select=1, insert=2, update=4, delete=8, upsert=16}
+res-prefix = [4, [1*16 segment]]    ; D1: path segments, compared segment-wise
+segment    = tstr .size (1..255)
+cnf-jkt    = [5, bstr .size 32]     ; RFC 7638 JWK thumbprint (DPoP binding)
+tenant     = [6, uint .gt 0]
+tool       = [7, tstr .size (1..128), [* argcon]]
+argcon     = [tstr .size (1..64), argpred]   ; D4: argument absent => deny
+argpred    = [0, any] / [1, [1*32 any]] / [2, int, int] / [3, tstr]   ; eq / one-of / int-range / str-prefix
+depth-left = [8, uint .le 16]
+
+; Tier X (trust-domain crossings only): COSE_Sign1 with ML-DSA-65 (RFC 9964), payload = token-l without tag.
+; Tier 0 (default): opaque 32-byte handle resolved in a server-side table; instant revocation.

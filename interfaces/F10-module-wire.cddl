@@ -1,0 +1,18 @@
+; Frozen interface F10: out-of-process module/adapter wire (aegis-adapter-host <-> third-party module).
+; Transport: SOCK_SEQPACKET UDS, one frame per message, postcard-encoded per the WIT package aegis:data@0.1.0;
+; this CDDL is the normative shape (postcard is a positional encoding of the same structures).
+; Host-side decoders of module output are in the verified TCB (SPEC_INVARIANTS §H): every frame is length-capped
+; (64 KiB default), fully validated before use, and a decode failure kills the module (crash budget), never the host.
+
+frame      = request / response
+request    = [0, req-id, op]            ; op = the checked F4 Op, tenant already bound by the host
+response   = [1, req-id, result]
+req-id     = uint .size 8
+result     = [0, rows] / [1, error-code]
+rows       = [* row]
+row        = [* value / null]
+value      = int / tstr
+error-code = 1..255                      ; uniform codes; no existence oracle (W6)
+op         = [tenant: uint .gt 0, collection: tstr, kind: 0..4, filter: pred, writes: [* [uint, value]], returning: [* uint]]
+pred       = [0] / [1] / [2, uint, value] / [3, uint, [* value]] / [4, uint, value, value] / [5, uint, tstr]
+           / [6, pred, pred] / [7, pred, pred] / [8, pred]    ; tt ff eq isIn range pfx and or not (Lowering.lean)

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aegis:interfaces:F9:audit-event:1",
+  "title": "AEGIS audit event (frozen interface F9)",
+  "description": "One JSON-lines leaf of the C2SP tlog-tiles audit log (RFC 6962 leaf hash). Single sequencer assigns seq gaplessly (Audit I2). Attacker-supplied strings are escaped and length-capped before logging.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "ts", "seq", "actor", "action", "object", "outcome", "req_id", "config_hash", "fips_status"],
+  "properties": {
+    "v": {"const": 1},
+    "ts": {"type": "string", "format": "date-time", "description": "UTC wall clock at sequencing"},
+    "seq": {"type": "integer", "minimum": 0},
+    "actor": {"type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": {"kind": {"enum": ["public", "principal", "admin", "system"]},
+                     "tenant": {"type": "integer", "minimum": 1},
+                     "subject_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "action": {"type": "string", "pattern": "^[a-z][a-z0-9_.]{0,63}$"},
+    "object": {"type": "string", "maxLength": 512},
+    "outcome": {"enum": ["allow", "deny", "error", "applied", "rolled_back"]},
+    "req_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "config_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fips_status": {"enum": ["none", "floor", "cmvp"]},
+    "detail": {"type": "object", "maxProperties": 16, "additionalProperties": {"type": ["string", "integer", "boolean"]}}
+  }
+}

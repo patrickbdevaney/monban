@@ -1,0 +1,78 @@
+# Phase 0 go/no-go (IMPLEMENTATION_PLAN §3 Phase 0). Run: python3 -I ci/run-gates.py --phase 0
+# Every gate has a live negative control: `selftest` must exit 0, which it does only when a mutated input FAILS.
+# Go: all pass on a clean checkout with zero manual overrides.
+phase = 0
+go_no_go = "all gates pass && all self-tests pass"
+
+[[gate]]
+name = "workflow-lint"
+cmd = "zizmor --pedantic --offline .github/"
+selftest = "! zizmor --pedantic --offline ci/fixtures/bad-workflow.yml"
+
+[[gate]]
+name = "hygiene"
+cmd = "cargo fmt --all --check && ci/heavy.sh cargo clippy --workspace --all-targets --locked -q -- -D warnings"
+
+[[gate]]
+name = "tests"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
+
+[[gate]]
+name = "layering"
+cmd = "cargo xtask layering"
+selftest = "cargo xtask layering --self-test"
+
+[[gate]]
+name = "interfaces-frozen"
+cmd = "python3 -I ci/interfaces.py check"
+selftest = "python3 -I ci/interfaces.py self-test"
+
+[[gate]]
+name = "proof"
+cmd = "ci/heavy.sh ci/gate.sh"
+selftest = "ci/gate-selftest.sh"
+heavy = true
+
+[[gate]]
+name = "deny"
+cmd = "cargo deny check"
+selftest = "ci/deny-selftest.sh"
+
+[[gate]]
+name = "audit"
+cmd = "cargo audit --deny warnings"
+
+[[gate]]
+name = "vet"
+cmd = "cargo vet --locked && ! grep -q '^\\[\\[exemptions' supply-chain/config.toml"
+
+[[gate]]
+name = "repo-advisories"
+cmd = "cargo xtask repo-advisories"
+selftest = "cargo xtask repo-advisories --self-test"
+
+[[gate]]
+name = "lock-age"
+cmd = "cargo xtask lock-age --min-days 7"
+selftest = "cargo xtask lock-age --self-test"
+
+[[gate]]
+name = "lock-targets"
+cmd = "cargo xtask lock-targets"
+selftest = "cargo xtask lock-targets --self-test"
+
+[[gate]]
+name = "repro"
+cmd = "ci/repro.sh"
+selftest = "ci/repro.sh --self-test"
+heavy = true
+
+[[gate]]
+name = "fail-closed-boot"
+cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+
+[[gate]]
+name = "oracles"
+cmd = "ci/oracles.sh run"
+selftest = "ci/oracles.sh self-test"
+heavy = true
