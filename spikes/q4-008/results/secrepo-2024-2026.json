@@ -122,7 +122,7 @@
    "p.enc_backslash": {
     "lines": 80,
     "pct_lines": 0.0035,
-    "sole_cause_lines": 72,
+    "sole_cause_lines": 74,
     "pct_sole": 0.0032,
     "unique_targets": 24,
     "pct_unique": 0.0374,
@@ -153,8 +153,8 @@
    "p.enc_nul": {
     "lines": 376,
     "pct_lines": 0.0165,
-    "sole_cause_lines": 370,
-    "pct_sole": 0.0162,
+    "sole_cause_lines": 372,
+    "pct_sole": 0.0163,
     "unique_targets": 11,
     "pct_unique": 0.0172,
     "examples": [
@@ -201,8 +201,8 @@
    "p.enc_nonascii": {
     "lines": 757,
     "pct_lines": 0.0332,
-    "sole_cause_lines": 734,
-    "pct_sole": 0.0322,
+    "sole_cause_lines": 742,
+    "pct_sole": 0.0326,
     "unique_targets": 78,
     "pct_unique": 0.1216,
     "examples": [
@@ -306,12 +306,12 @@
     ]
    },
    "p.dot_segment": {
-    "lines": 68,
-    "pct_lines": 0.003,
+    "lines": 60,
+    "pct_lines": 0.0026,
     "sole_cause_lines": 48,
     "pct_sole": 0.0021,
-    "unique_targets": 43,
-    "pct_unique": 0.0671,
+    "unique_targets": 39,
+    "pct_unique": 0.0608,
     "examples": [
      "/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
      "/images/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
@@ -322,12 +322,12 @@
     ]
    },
    "p.empty_segment": {
-    "lines": 22573,
-    "pct_lines": 0.9903,
+    "lines": 22565,
+    "pct_lines": 0.99,
     "sole_cause_lines": 21977,
     "pct_sole": 0.9642,
-    "unique_targets": 8316,
-    "pct_unique": 12.9672,
+    "unique_targets": 8310,
+    "pct_unique": 12.9579,
     "examples": [
      "//?tag&tagstpl=news.html&tag=%7Bpbohome/Indexot:if((get/*-*/(/**/t))/**/(get/*-*/(/**/t1),get/*-*/(/**/t2)(get/*-*/(/**/t3))))%7Dok%7B/pbohome/Indexot:if%7D&t=f",
      "//bootstrap/img/favicon.ico",
@@ -338,12 +338,12 @@
     ]
    },
    "p.trailing_slash_308": {
-    "lines": 97524,
-    "pct_lines": 4.2786,
+    "lines": 97522,
+    "pct_lines": 4.2785,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 3253,
-    "pct_unique": 5.0724,
+    "unique_targets": 3252,
+    "pct_unique": 5.0709,
     "examples": [
      "/self.logs/2015/?C=D;O=A",
      "/self.logs/2015/?C=N;O=D",
@@ -804,6 +804,33 @@
      "/Datasets%20Description/HttP:%2f%2fbxss.me%2ft%2fxss.html%3f%2500/dhcp.html",
      "/HttP:%2f%2fbxss.me%2ft%2fxss.html%3f%2500/PE_malware/OPCleaver.html"
     ]
+   },
+   "F.p": {
+    "lines": 36361,
+    "pct_lines": 1.5952,
+    "sole_cause_lines": 35158,
+    "pct_sole": 1.5424,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 27312,
+    "pct_lines": 1.1982,
+    "sole_cause_lines": 26109,
+    "pct_sole": 1.1454,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {
@@ -1454,6 +1481,33 @@
     ]
    },
    "p.lowercase_hex_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.p": {
+    "lines": 11390,
+    "pct_lines": 0.6883,
+    "sole_cause_lines": 11321,
+    "pct_sole": 0.6842,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 21102,
+    "pct_lines": 1.2753,
+    "sole_cause_lines": 21033,
+    "pct_sole": 1.2711,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
     "lines": 0,
     "pct_lines": 0.0,
     "sole_cause_lines": 0,

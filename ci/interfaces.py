@@ -20,7 +20,7 @@ IFACES = [
     ("F6", "crates/aegis-authz/src/combine.rs", "frozen"),
     ("F7", "sdk/aegis-sdk/src/surface.rs", "frozen"),
     ("F7b", "sdk/aegis-sdk/src/streaming.rs", "frozen"),
-    ("F8", "interfaces/F8-config.schema.json", "provisional:q4-008"),
+    ("F8", "interfaces/F8-config.schema.json", "frozen"),
     ("F9", "interfaces/F9-audit-event.schema.json", "frozen"),
     ("F10", "interfaces/F10-module-wire.cddl", "frozen"),
     ("F11", "interfaces/F11-upgrade-handover.cddl", "frozen"),

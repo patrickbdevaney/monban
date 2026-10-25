@@ -18,3 +18,4 @@ HEAVY=$H/../../ci/heavy.sh
 "$HEAVY" python3 -I -B "$H/analyze.py" --source cc-main-2026-43 --format cc --out "$R/cc-main-2026-43.json" \
   "$DL/cc/cc_urls.tsv.gz"
 python3 -I -B "$H/summarize.py" "$R" > "$R/table.md"
+python3 -I -B "$H/utf8_check.py" "$DL/cc/cc_urls.tsv.gz" > "$R/cc_utf8_check.txt"

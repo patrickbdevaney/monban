@@ -148,8 +148,8 @@
    "p.enc_nonascii": {
     "lines": 28223,
     "pct_lines": 2.8509,
-    "sole_cause_lines": 22698,
-    "pct_sole": 2.2928,
+    "sole_cause_lines": 28000,
+    "pct_sole": 2.8284,
     "unique_targets": 28174,
     "pct_unique": 3.085,
     "examples": [
@@ -232,40 +232,37 @@
     "examples": []
    },
    "p.dot_segment": {
-    "lines": 2,
-    "pct_lines": 0.0002,
+    "lines": 0,
+    "pct_lines": 0.0,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 2,
-    "pct_unique": 0.0002,
-    "examples": [
-     "/players/%F0%9D%93%9C%F0%9D%93%BB.%F0%9D%93%96%F0%9D%93%B8%F0%9D%93%B8%F0%9D%93%AD/Reversi",
-     "/view/%E0%B8%97%E0%B8%B3%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%88%E0%B8%B1%E0%B8%9A%E0%B8%A3%E0%B8%9E.%E0%B9%80%E0%B8%A5%E0%B8%AD%E0%B8%A5"
-    ]
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    },
    "p.empty_segment": {
-    "lines": 5540,
-    "pct_lines": 0.5596,
+    "lines": 111,
+    "pct_lines": 0.0112,
     "sole_cause_lines": 111,
     "pct_sole": 0.0112,
-    "unique_targets": 5507,
-    "pct_unique": 0.603,
+    "unique_targets": 95,
+    "pct_unique": 0.0104,
     "examples": [
      "/category/dental-wellness//",
      "/privacy-policy//",
      "/service-category/general-dental//",
      "//robots.txt",
-     "/%E0%B8%9A%E0%B8%97%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1/",
-     "/%CF%87%CE%AC%CE%BD%CF%84%CE%BC%CF%80%CE%BF%CE%BB/%CF%80%CF%8E%CF%82-%CE%BD%CE%B1-%CE%B4%CE%B9%CE%B1%CE%B2%CE%AC%CE%B6%CE%B5%CE%B9%CF%82-%CF%84%CE%B1-live-%CF%8"
+     "/cure//%22http://www.coconut-connections.com/lauric_acid.htm/%22",
+     "/knowledge-center//"
     ]
    },
    "p.trailing_slash_308": {
-    "lines": 400697,
-    "pct_lines": 40.4763,
+    "lines": 399354,
+    "pct_lines": 40.3406,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 383571,
-    "pct_unique": 41.9998,
+    "unique_targets": 382233,
+    "pct_unique": 41.8533,
     "examples": [
      "/material/100-wool/",
      "/material/70-nz-wool-30-bamboo-silk/",
@@ -375,8 +372,8 @@
    "q.enc_semicolon": {
     "lines": 113,
     "pct_lines": 0.0114,
-    "sole_cause_lines": 63,
-    "pct_sole": 0.0064,
+    "sole_cause_lines": 83,
+    "pct_sole": 0.0084,
     "unique_targets": 113,
     "pct_unique": 0.0124,
     "examples": [
@@ -530,12 +527,12 @@
     "examples": []
    },
    "q.dup_name": {
-    "lines": 1769,
-    "pct_lines": 0.1787,
+    "lines": 1749,
+    "pct_lines": 0.1767,
     "sole_cause_lines": 1289,
     "pct_sole": 0.1302,
-    "unique_targets": 1769,
-    "pct_unique": 0.1937,
+    "unique_targets": 1749,
+    "pct_unique": 0.1915,
     "examples": [
      "/de/immobilien/?availabilities%5B%5D=active&availabilities%5B%5D=taken&availabilities%5B%5D=reserved&salestypes%5B%5D=buy",
      "/itswp-admin/?action=logout&redirect_to=https%3A%2F%2Fitsadate.club&_wpnonce=881c828592&redirect_to=https%3A%2F%2Fitsadate.club",
@@ -716,6 +713,33 @@
     "examples": [
      "/robots.txt%5bEND,NE,R=permanent%5d"
     ]
+   },
+   "F.p": {
+    "lines": 29787,
+    "pct_lines": 3.0089,
+    "sole_cause_lines": 29570,
+    "pct_sole": 2.987,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 22319,
+    "pct_lines": 2.2545,
+    "sole_cause_lines": 22102,
+    "pct_sole": 2.2326,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 19,
+    "pct_lines": 0.0019,
+    "sole_cause_lines": 19,
+    "pct_sole": 0.0019,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {
@@ -857,8 +881,8 @@
    "p.enc_nonascii": {
     "lines": 28219,
     "pct_lines": 2.854,
-    "sole_cause_lines": 22694,
-    "pct_sole": 2.2952,
+    "sole_cause_lines": 27996,
+    "pct_sole": 2.8314,
     "unique_targets": 28170,
     "pct_unique": 3.0885,
     "examples": [
@@ -941,40 +965,37 @@
     "examples": []
    },
    "p.dot_segment": {
-    "lines": 2,
-    "pct_lines": 0.0002,
+    "lines": 0,
+    "pct_lines": 0.0,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 2,
-    "pct_unique": 0.0002,
-    "examples": [
-     "/players/%F0%9D%93%9C%F0%9D%93%BB.%F0%9D%93%96%F0%9D%93%B8%F0%9D%93%B8%F0%9D%93%AD/Reversi",
-     "/view/%E0%B8%97%E0%B8%B3%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%88%E0%B8%B1%E0%B8%9A%E0%B8%A3%E0%B8%9E.%E0%B9%80%E0%B8%A5%E0%B8%AD%E0%B8%A5"
-    ]
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    },
    "p.empty_segment": {
-    "lines": 5540,
-    "pct_lines": 0.5603,
+    "lines": 111,
+    "pct_lines": 0.0112,
     "sole_cause_lines": 111,
     "pct_sole": 0.0112,
-    "unique_targets": 5507,
-    "pct_unique": 0.6038,
+    "unique_targets": 95,
+    "pct_unique": 0.0104,
     "examples": [
      "/category/dental-wellness//",
      "/privacy-policy//",
      "/service-category/general-dental//",
      "//robots.txt",
-     "/%E0%B8%9A%E0%B8%97%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1/",
-     "/%CF%87%CE%AC%CE%BD%CF%84%CE%BC%CF%80%CE%BF%CE%BB/%CF%80%CF%8E%CF%82-%CE%BD%CE%B1-%CE%B4%CE%B9%CE%B1%CE%B2%CE%AC%CE%B6%CE%B5%CE%B9%CF%82-%CF%84%CE%B1-live-%CF%8"
+     "/cure//%22http://www.coconut-connections.com/lauric_acid.htm/%22",
+     "/knowledge-center//"
     ]
    },
    "p.trailing_slash_308": {
-    "lines": 400612,
-    "pct_lines": 40.5167,
+    "lines": 399270,
+    "pct_lines": 40.381,
     "sole_cause_lines": 0,
     "pct_sole": 0.0,
-    "unique_targets": 383498,
-    "pct_unique": 42.0462,
+    "unique_targets": 382161,
+    "pct_unique": 41.8996,
     "examples": [
      "/material/100-wool/",
      "/material/70-nz-wool-30-bamboo-silk/",
@@ -1084,8 +1105,8 @@
    "q.enc_semicolon": {
     "lines": 113,
     "pct_lines": 0.0114,
-    "sole_cause_lines": 63,
-    "pct_sole": 0.0064,
+    "sole_cause_lines": 83,
+    "pct_sole": 0.0084,
     "unique_targets": 113,
     "pct_unique": 0.0124,
     "examples": [
@@ -1239,12 +1260,12 @@
     "examples": []
    },
    "q.dup_name": {
-    "lines": 1769,
-    "pct_lines": 0.1789,
+    "lines": 1749,
+    "pct_lines": 0.1769,
     "sole_cause_lines": 1289,
     "pct_sole": 0.1304,
-    "unique_targets": 1769,
-    "pct_unique": 0.194,
+    "unique_targets": 1749,
+    "pct_unique": 0.1918,
     "examples": [
      "/de/immobilien/?availabilities%5B%5D=active&availabilities%5B%5D=taken&availabilities%5B%5D=reserved&salestypes%5B%5D=buy",
      "/itswp-admin/?action=logout&redirect_to=https%3A%2F%2Fitsadate.club&_wpnonce=881c828592&redirect_to=https%3A%2F%2Fitsadate.club",
@@ -1425,6 +1446,33 @@
     "examples": [
      "/robots.txt%5bEND,NE,R=permanent%5d"
     ]
+   },
+   "F.p": {
+    "lines": 29776,
+    "pct_lines": 3.0115,
+    "sole_cause_lines": 29559,
+    "pct_sole": 2.9895,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.q": {
+    "lines": 22257,
+    "pct_lines": 2.251,
+    "sole_cause_lines": 22040,
+    "pct_sole": 2.2291,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "F.h": {
+    "lines": 19,
+    "pct_lines": 0.0019,
+    "sole_cause_lines": 19,
+    "pct_sole": 0.0019,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
    }
   },
   "ref_reasons_top": {
