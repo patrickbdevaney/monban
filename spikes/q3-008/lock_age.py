@@ -8,7 +8,7 @@ for p in lock['package']:
     if 'source' not in p: continue
     for attempt in range(5):
         try:
-            req = urllib.request.Request(f"https://crates.io/api/v1/crates/{p['name']}/{p['version']}", headers={'User-Agent': 'aegis-spike-q3-008'})
+            req = urllib.request.Request(f"https://crates.io/api/v1/crates/{p['name']}/{p['version']}", headers={'User-Agent': 'aegis-ci'})
             d = json.load(urllib.request.urlopen(req, timeout=15))['version']['created_at']; break
         except Exception as e:
             time.sleep(2)

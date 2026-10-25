@@ -43,3 +43,7 @@
 - Full-size crash run (~170k images) is a CI/VPS job. Rust subjects need `--cfg rustix_use_libc` for the tracer.
 - Cancel-sweep pending: real-driver regression cases, task abort / h1 FIN / shutdown deadline / Wasm trap modes, NC6–NC8.
 - Admission: I3/I6/I9/I10 need TLA+; governor is not LRU, so the I4 check needs a declared eviction policy.
+
+## Process
+- Phase-1 commits swept in unfinished spike files (incl. a throwaway self-signed loopback key in spikes/q3-008,
+  since removed from the tree; still in history, no real secret). Commit only finished spike dirs by path.

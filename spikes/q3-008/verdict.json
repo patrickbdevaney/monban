@@ -1,0 +1,173 @@
+{
+ "id": "q3-008",
+ "question": "PG reconnect under discard-on-cancel: cost of discarding a cancelled PostgreSQL connection and replacing it (TLS off/on, SCRAM), p50/p99 and sustainable cancel+replace rate per core incl. server-side backend fork cost, vs state-tracked reuse",
+ "flips_if": ">20 ms p50 or <200 cancels/s → state-tracked reuse",
+ "measured": {
+  "hardware": {
+   "laptop": "Intel Core i9-14900HX, P-cores 8 (client) / 10 (server), kernel 6.17, powersave; heavily loaded (loadavg 20-25); postgres:17 = 17.11 Debian/OpenSSL 3.5.7",
+   "kamrui": "Intel N95 (4 E-cores), LAN box as weak-VPS stand-in (NOT a VPS), cores 2 (client) / 3 (server); first suite idle (loadavg 0.44), later runs contended by other agents' jobs; postgres:17-alpine = 17.11"
+  },
+  "conditions": "tokio-postgres 0.7.18 (PR #1374 not applied), rustls 0.23.45 aws-lc-rs TLS1.3 P-256 (PG17 offers only prime256v1), SCRAM-SHA-256 4096 iters; loopback, host network; cancelled op = pg_sleep(0.05) in a txn dropped at 2 ms; split = PG on its own core, shared = PG on the client core (1-vCPU box); rate = 16 closed-loop workers x 8 s",
+  "discard_reconnect_p50_p99_ms": {
+   "laptop_split": {
+    "trust": [
+     4.87,
+     15.5
+    ],
+    "scram": [
+     3.89,
+     9.4
+    ],
+    "scram_tls": [
+     5.4,
+     11.2
+    ]
+   },
+   "laptop_shared": {
+    "trust": [
+     14.3,
+     21.6
+    ],
+    "scram": [
+     6.9,
+     55.7
+    ],
+    "scram_tls": [
+     8.9,
+     87.0
+    ]
+   },
+   "n95_split": {
+    "trust": [
+     11.8,
+     49.1
+    ],
+    "scram": [
+     12.8,
+     35.5
+    ],
+    "scram_tls": [
+     17.1,
+     28.3
+    ],
+    "scram_tls_contended_rerun": [
+     21.9,
+     33.8
+    ]
+   },
+   "n95_shared": {
+    "trust": [
+     21.7,
+     34.3
+    ],
+    "scram": [
+     25.5,
+     43.3
+    ],
+    "scram_tls": [
+     37.7,
+     72.4
+    ]
+   }
+  },
+  "pure_reconnect_p50_ms": {
+   "laptop": {
+    "trust": "1.9-3.1",
+    "scram": 3.1,
+    "scram_tls": "3.9-4.0"
+   },
+   "n95": {
+    "trust": 6.7,
+    "scram": 7.95,
+    "scram_tls": 11.2
+   }
+  },
+  "cancel_replace_rate_per_s": {
+   "laptop_1core_shared": {
+    "discard": {
+     "trust": "189 (rerun 266)",
+     "scram": 167,
+     "scram_tls": "115 (rerun 135)"
+    },
+    "reuse_cancelrequest": {
+     "trust": "213-619",
+     "scram": 507,
+     "scram_tls": "276-370"
+    },
+    "reuse_wait": "290-293 (pool-occupancy bound, not CPU)"
+   },
+   "laptop_split_pg_core_saturated": {
+    "discard": {
+     "trust": 295,
+     "scram": 293,
+     "scram_tls": 225
+    }
+   },
+   "n95_1core_shared": {
+    "discard": {
+     "trust": 53,
+     "scram": 39,
+     "scram_tls": 30
+    },
+    "reuse_cancelrequest": {
+     "trust": "187-216",
+     "scram": 179,
+     "scram_tls": "74-82"
+    },
+    "reuse_wait": "298-307 (pool-occupancy bound)"
+   },
+   "n95_split_pg_core_saturated": {
+    "discard": {
+     "trust": 68,
+     "scram": 79,
+     "scram_tls": 48
+    }
+   }
+  },
+  "cpu_us_per_cancel_client_plus_server": {
+   "laptop_trust": {
+    "discard": "230+4814",
+    "discard_nocancel": "157+3603",
+    "reuse": "142+1745",
+    "reuse_wait": "146+229"
+   },
+   "laptop_scram_tls": {
+    "discard": "1905+4672",
+    "discard_nocancel": "1625+3714",
+    "reuse": "650+2360",
+    "reuse_wait": "148+304"
+   },
+   "n95_trust": {
+    "discard": "743+13307",
+    "discard_nocancel": "554+8899",
+    "reuse": "450+4488",
+    "reuse_wait": "404+605"
+   },
+   "n95_scram_tls": {
+    "discard": "5620+18227",
+    "discard_nocancel": "4408+12487",
+    "reuse": "2461+8443",
+    "reuse_wait": "493+759"
+   }
+  },
+  "server_backend_fork_cost_cpu_ms": {
+   "laptop": "2.0-2.8 per fresh backend (trust); CancelRequest child +1.0-1.2",
+   "n95": "7.0-10 per fresh backend; CancelRequest child +4.4-5.7"
+  },
+  "client_side_only_discard_ceiling_per_core": "laptop SCRAM/TLS ~530-560/s; N95 SCRAM/TLS ~135-180/s (<200 even with PG on another host)",
+  "reuse_correctness": "CancelRequest-based reuse: race probe on N95 (24,997 cycles) 21 resets hit by a stray cancel (detected, fell back to discard) and 3 stray cancels landed on the NEXT request after the sentinel passed (SQLSTATE 57014); laptop 0/42,392; N95 suites 1 reset hit/16,843. reuse-wait (no CancelRequest): 0 errors / 13,586 cycles."
+ },
+ "verdict": "flip",
+ "decision_effect": "ARCHITECTURE §3.7 / INV-NOMUT-C NC3: replace unconditional discard-on-cancel with state-tracked reuse. Proposed NC3 text: \"NC3 a resource in D(r) left mid-protocol is quarantined (never handed to another request) and either recovered or discarded. Recovery = drain every outstanding reply to ReadyForQuery WITHOUT a CancelRequest (the in-flight statement is bounded by statement_timeout = op budget ms), ROLLBACK if the server-reported txn status is not I, DISCARD ALL, and invalidate driver-side statement/type caches (session generation bump), all within T_recover = op budget; checkin iff ReadyForQuery ∧ server-reported txn status I ∧ no outstanding replies ∧ all server objects closed. Any error, timeout, COPY in progress, LISTEN or unknown protocol state ⇒ discard; discard sends a CancelRequest (or relies on client_connection_check_interval) so the orphan backend stops. A CancelRequest is never sent on a connection that will be checked back in. Quarantine time and discards are charged to the cancelling principal (NC4).\" Also: oracles/cancel-sweep NC3 check stays (checkin predicate unchanged), and gets a new mutation: reuse after CancelRequest ⇒ stray-cancel on the next request must go red; reverse-trigger text in §3.7 becomes 'Reverse to unconditional discard if recovery leaks session state in the cancel sweep or the q3-008 race probe shows next-request hits for reuse-wait'.",
+ "rung": "measurement grade B (laptop + LAN box standing in for a VPS; both contended at times)",
+ "reproduce": [
+  "cd spikes/q3-008 && ./gen_certs.sh",
+  "(cd harness && CARGO_TARGET_DIR=$PWD/../target ../../../ci/heavy.sh cargo build --release --locked)",
+  "../../ci/heavy.sh ./suite.sh raw/laptop-i9-14900HX.jsonl postgres:17 8 10 2000 8",
+  "../../ci/heavy.sh ./extra.sh raw/laptop-extra.jsonl postgres:17 8 10 1000 8",
+  "on kamrui (copy suite.sh extra.sh race.sh pg.sh certs/ target/release/q3008): ./suite.sh raw/kamrui-N95.jsonl postgres:17-alpine 2 3 1000 8; ./extra.sh raw/kamrui-extra.jsonl postgres:17-alpine 2 3 1000 8; ./race.sh raw/kamrui-race.jsonl postgres:17-alpine 2 3 5000",
+  "python3 summarize.py raw/*.jsonl; rm -rf target"
+ ],
+ "limits": "No real 1-vCPU VPS (a shared vCPU with steal is likely worse than a dedicated N95 core). Laptop heavily loaded (±30% between repeats); later kamrui runs contended by other agents' jobs. PG17 only (no PG18 ssl_groups / X25519MLKEM768, which would add handshake CPU and strengthen the flip). ECDSA cert (RSA dearer). No PgBouncer. Synthetic workload (pg_sleep in a txn). reuse-wait latency = remaining statement time, so it trades CPU for pool occupancy. The stray-cancel mechanism was observed but not root-caused in PG source. tokio-postgres PR #1374 was not applied (DISCARD ALL covers its leak window in the reuse path).",
+ "date": "2026-10-25"
+}
