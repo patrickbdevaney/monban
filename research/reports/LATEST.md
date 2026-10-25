@@ -1,188 +1,193 @@
-# AEGIS: LATEST cumulative view (through round 3, 2026-10-25)
+# AEGIS: LATEST cumulative view (through round 4, 2026-10-25)
 
 Sources:
 - State:
-  - `state/graph.jsonl`: 756 node ids, of which 728 are canonical (non-merged); 47 revision records.
-  - `state/edges.jsonl`: 1,116 edges.
-  - `state/seen.jsonl`: 1,660 canonical URLs.
-  - `state/frontier_queue.jsonl`: 432 items.
-  - `state/predictions.jsonl`: 34.
-- Rules: `ARCHITECTURE-DRAFT.md` (86 rules).
-- Round history: `reports/round-001.md`, `round-002.md`, `round-003.md`.
-- Blind-research status (§0a): independent map only, not yet reconciled with prior treatments.
+  - `state/graph.jsonl`: 938 node ids, of which 910 are canonical (non-merged); 78 revision records.
+  - `state/edges.jsonl`: 1,382 edges.
+  - `state/seen.jsonl`: 2,109 canonical URLs.
+  - `state/frontier_queue.jsonl`: 575 items.
+  - `state/predictions.jsonl`: 43, scored as of 2026-10-25; one resolved TRUE.
+- Rules: `ARCHITECTURE-DRAFT.md` (97 rules).
+- Round history: `reports/round-001.md` through `round-004.md`.
+- Blind-research status (§0a): independent map only, not yet reconciled with the prior treatments.
 
 **Saturation status: NOT saturated.**
-- Mechanical novelty: round 2 = 0.898, round 3 = **0.881**. The threshold is < 0.2 in two consecutive rounds.
-- Round-3 unseen mass ≈ 0.96 (strict singletons 0.29).
-- Decisions are stable: 68 of 71 round-2 rules kept direction (0.958). Three narrowed on measured evidence: R-PQC-1 per-listener HRR, R-MOD-1 hop budget, R-PQC-3 pure CNSA profile.
-- The open load-bearing questions are now almost all **implementation-phase spikes** (§6), not literature gaps:
+- Mechanical novelty: round 2 = 0.898, round 3 = 0.881, round 4 = **0.909**. The threshold is < 0.2 in two consecutive rounds.
+- Round-4 unseen mass ≈ 0.88 (strict singletons 0.22). First visible overlap: three topics were found twice by different explorers and merged.
+- Decisions are stable: 85 of 86 round-3 rules kept direction (**0.988**). One changed: R-PQC-3. The pure CNSA profile is demoted to an opt-in profile, because France rules pure ML-KEM non-conformant.
+- The open load-bearing questions are almost all implementation-phase spikes:
   - a real 1-vCPU handshake and IPC hop
-  - the FIPS lock triangle
-  - checking Lowering.lean
-  - mutants against real axum
-  - reconnect cost under discard-on-cancel
-  - the upgrade harness
-- Per §0c, the default is to pivot to building after the round cap. Another research round is justified only for an area that could flip a load-bearing decision.
+  - streaming in the scoped SDK
+  - the false-reject rate of strict canonicalization
+  - a custom 0x11ED key-exchange group
+  - the fuel-budget gate
+  - MySQL/Mongo write oracles
+  - a three-valued IR reference in Lean
+
+  Only two are literature questions: procurement texts (q4-003) and LLM-found advisory rates (q1-009).
+- Per §0c, the default is to pivot to building at the round cap.
 
 ## 1. Map: pillar × layer node counts (canonical nodes, cumulative)
 
-| pillar | L1 | L2 | L3 | L4 | L5 | total | new in r3 |
+| pillar | L1 | L2 | L3 | L4 | L5 | total | new in r4 |
 |---|---|---|---|---|---|---|---|
-| W-DATA-GATE | 0 | 2 | 15 | 38 | 11 | 66 | 24 |
-| W-AUTHZ | 0 | 2 | 26 | 26 | 11 | 65 | 18 |
-| W-TRANSPORT (incl. ingress front ends) | 0 | 0 | 3 | 53 | 6 | 62 | 22 |
-| W-AGENT-PROTOCOL | 1 | 1 | 27 | 18 | 5 | 52 | 2 |
-| W-FORMAL | 0 | 1 | 10 | 31 | 7 | 49 | 4 |
-| W-STATE | 0 | 3 | 28 | 8 | 10 | 49 | 7 |
-| W-ABUSE | 1 | 3 | 12 | 19 | 8 | 43 | 21 |
-| W-ISOLATION | 0 | 3 | 10 | 21 | 8 | 42 | 2 |
-| W-OPS | 1 | 1 | 14 | 18 | 8 | 42 | 25 |
-| W-SUPPLY | 0 | 0 | 2 | 26 | 13 | 41 | 23 |
-| W-PQC | 0 | 1 | 2 | 32 | 3 | 38 | 16 |
-| W-GAP | 0 | 5 | 25 | 1 | 0 | 31 | 1 |
-| W-PERF | 0 | 0 | 3 | 13 | 11 | 27 | 15 |
-| W-THREAT | 1 | 9 | 6 | 6 | 1 | 23 | 2 |
-| W-BRIDGE (cross-request state, cancellation) | 0 | 3 | 15 | 1 | 4 | 23 | 3 (+20 cancellation nodes filed under their home pillar) |
-| W-ASSURE | 0 | 0 | 3 | 8 | 11 | 22 | 3 |
-| W-DX | 0 | 2 | 5 | 9 | 2 | **18** | 15 (was 3) |
-| R-HISTORY | 0 | 0 | 17 | 0 | 0 | 17 | 0 |
-| K-CALIBRATION | 0 | 0 | 0 | 9 | 0 | 9 | 0 (+11 revisions) |
+| W-DATA-GATE | 0 | 2 | 15 | 52 | 14 | 83 | 17 |
+| W-AUTHZ | 0 | 2 | 26 | 29 | 15 | 72 | 7 |
+| W-TRANSPORT (incl. ingress front ends) | 0 | 0 | 4 | 59 | 7 | 70 | 6 |
+| W-FORMAL | 0 | 1 | 11 | 43 | 10 | 65 | 16 |
+| W-PQC | 0 | 1 | 5 | 48 | 10 | 64 | 25 |
+| W-AGENT-PROTOCOL | 1 | 1 | 27 | 25 | 8 | 62 | 10 |
+| W-ISOLATION | 0 | 3 | 13 | 30 | 11 | 57 | 15 |
+| W-STATE | 0 | 3 | 28 | 8 | 10 | 49 | 0 |
+| W-SUPPLY | 0 | 0 | 2 | 29 | 16 | 47 | 6 |
+| W-GAP | 2 | 8 | 32 | 3 | 0 | 45 | 14 |
+| W-OPS | 1 | 1 | 14 | 19 | 8 | 43 | 1 |
+| W-ABUSE | 1 | 3 | 12 | 19 | 8 | 43 | 0 |
+| W-THREAT | 3 | 11 | 7 | 14 | 5 | 40 | 17 |
+| W-BRIDGE (cross-request state, cancellation, canonical identity) | 0 | 4 | 17 | 4 | 7 | 32 | 9 |
+| W-DX | 0 | 2 | 8 | 15 | 5 | 30 | 12 |
+| W-PERF | 0 | 0 | 3 | 14 | 11 | 28 | 1 |
+| W-ASSURE | 0 | 0 | 3 | 8 | 14 | 25 | 3 |
+| R-HISTORY | 0 | 0 | 18 | 1 | 0 | 19 | 2 |
+| T-SAFETY-CERT (new r4) | 0 | 3 | 1 | 9 | 3 | 16 | 16 |
+| K-CALIBRATION | 0 | 0 | 0 | 9 | 2 | 11 | 2 (+13 revisions) |
 | S-FORMAL-WEB | 0 | 1 | 4 | 2 | 0 | 7 | 0 |
-| W-UNKNOWN | 1 | 0 | 0 | 1 | 0 | 2 | 2 (most adjacent-field nodes filed under home pillars) |
+| W-UNKNOWN | 1 | 0 | 0 | 1 | 0 | 2 | 0 |
 
-Grades (canonical nodes, latest record): A 279 · B 304 · C 97 · D 25 · E 23.
+Grades (canonical nodes, latest record): A 342 · B 394 · C 119 · D 27 · E 28.
 
 Verification:
 - Round 1: 173 of 333 checked (17 up, 28 down).
 - Round 2: 168 of 211 (15 up, 45 down).
-- Round 3: 161 of 211 (4 up, 52 down; mostly source misattribution or modelled-as-measured, not refutation).
+- Round 3: 161 of 211 (4 up, 52 down).
+- Round 4: 150 of 176 (15 up, 43 down). Downs were mostly single-machine experiments, citation mismatches and checker-independence overclaims; there was one outright range error (aws-lc-rs 1.17.2).
 
-Thin areas after round 3:
-- Pillars: W-ISOLATION and W-AGENT-PROTOCOL (2 new each), W-FORMAL (only unchecked Lean drafts).
-- Axes: economics vocabulary, household scale, non-English sources, forums and talks.
+Thin areas after round 4:
+- Pillars: W-STATE, W-ABUSE, W-PERF, W-OPS had no round-4 target (W-OPS gained rules from the outage dataset).
+- Axes: benchmark sources, hyperscaler/household scale, database vocabulary outside the write path, Chinese primaries.
 
 ## 2. Best-known choice per pillar (grade; alternatives; key nodes)
 
 | pillar | best-known choice now | grade | alternatives kept in map | key nodes |
 |---|---|---|---|---|
-| W-THREAT | Two rankings, metric stated. By KEV: canonicalization/fail-open authz > smuggling > memory RCE. By Rust-stack advisory volume (alias-deduped): resource exhaustion 61% (CI 47-73), falling to 50% in 2026, with TLS logic rising to 25%. New class: async cancellation with an attacker-chosen instant. Cross-stack classes recurring in 6 weeks: trailers, H3→H1, validator/handler divergence, unbounded sizes. AI-found bugs are rediscovered independently, so patch SLA ≤7 days | B (classes A) | skeptic: AI-found CVEs exploited at base rate | `threat-ledger-middle-tier-2023-2026`, `ac.root-cause-drop-at-await`, `r3e11.cross-stack-bug-classes-sep-oct-2026`, `r3e11.ai-found-bug-flood-vendor-posture` |
-| W-GAP | Integration + assurance + measured leanness. Closest 2026 prior art: nucleus (agent IFC runtime, Lean+Kani, not a front proxy) and agentgateway (PQ via aws-lc-rs, CEL). No system holds the conjunction | C (absence) / A (lean numbers) | Pingora, Envoy, Caddy, HAProxy, Spin, agentgateway, nucleus, Rullst | `gap.unserved-combination`, `w02.size-deps-table` |
-| W-TRANSPORT | One normalization core whose object is an **Exchange** (message stream, per-message and per-lifetime budgets), non-destructive normalization, canonical route identity for authz. Front ends feature-gated, with defect-class rules: typed Origin; leave framed mode only after a validated 101; no permessage-deflate; GraphQL behind the core; webhooks verified over raw bytes; SSE caps; CI fails any effective unbounded limit. L4/PROXY is a separate module. WebTransport is out of v1. hyper =1.12.0 / h2 =0.4.20 + wrapper (TBI-1..9). H3 off in the golden | A (pins, classes) / B (TBI) / C (core structure, numbers) | per-protocol stacks; tonic (set limits explicitly; `None` default), async-graphql (limits `None`), quinn ≥0.11.19, s2n-quic | `r3e09.ring1-verdict-amendment`, `r3e09.ws-upgrade-smuggling`, `r3e09.grpc-defect-classes`, `l5-transport-budget-invariant-tbi`, `w02.norm-copy-cost-measured` |
-| W-PQC | rustls ≥0.23.46 with `prefer-post-quantum` asserted on every rustls in the lock. **pq-required kx_groups on agent/API listeners; client order on the public listener** until `PreferServerOrder` ships. HRR verdicts frozen in CI. Public certs ECDSA-P256 via ACME (ARI, profiles); ML-DSA-44 on private hops now; MTC through a CredentialSelector. PQ tokens go in the body or by reference. FIPS: separate lock with aws-lc-fips-sys =0.13.11 (AWS-LC FIPS 3.1.0, CMVP #5298/#5314; ML-KEM approved, ML-DSA not) + aws-lc-rs 1.15.2-1.17.2. CNSA: pure ML-KEM-1024 + ML-DSA-87 (not FIPS-approvable today) | A (KA verdicts, sizes) / B (FIPS pin, auth posture) / C (CNSA compliance) | OpenSSL 3.5/Go modules; composite ML-DSA for long-lived signatures; AuthKEM rejected; dual chains (blocked by CA/B) | `r3pq.hrr-acceptance-test`, `r3pq.prefer-pq-feature-pitfall`, `r3pq.pq-auth-posture-decision`, `ops.fips-module-boundary-pin`, `v3.aws-lc-rs-fips-sys-range`, `r3pq.header-limit-table` |
-| W-ISOLATION | Provenance table (unchanged direction). Wasm is never the sole boundary for third-party code: M0 escape rate 0.36-2.0/yr. Wasmtime ≥36.0.19 (36 line) or ≥49.0.4/50.0.0; component-model-async off; Store discarded after any dropped call; **no wasmtime-wasi-http for egress** (narrow host fetch). OS sandbox around every Wasm worker | E design / A inputs / B pin / C rate | V8 isolates, Hyperlight, Firecracker, gVisor | `isolation-decision-inputs-table`, `wasmtime-advisory-share-by-config`, `ac.i07-wasmtime-cancel-advisories`, `r3e11.wasi-http-host-side-framing-batch` |
-| W-STATE | **INV-NOMUT-C (NC1-NC8)**: cancellation is failure; commit-point latch (timeouts after commit return 202); discard-on-cancel checkin predicate; pre-debit accounting that charges cancels; cancelled authz denies; output gate; drain bound. Cancel sweep + clippy CR1-CR9 + driver pins. Idempotency with the principal in the key; store-of-record gated by the crash harness (SQLite WAL+FULL default); CRS C1-C8 + C5b (buffers empty at key change) + C8 recycled-object reset | A (pins, instances) / B (INV-NOMUT-C, CRS) / C (store choice) | one-txn+outbox alone (closes ~5 of 15 instances); state-tracked reuse (if reconnect is expensive) | `ac.l5-inv-nomut-c`, `ac.l5-cancel-sweep-harness`, `ac.l5-coding-rule-lint-gate`, `crs-l5-invariant-text`, `cc.ranking-negative` |
-| W-AUTHZ | Cedar 4.14 + symcc PDP (SymCC path trusts the Lean compiler via native_decide; no delegation RFC; TPE has no native lowering). Token: **Tier 0 opaque handle (default), Tier L HMAC chain in verified CBOR, Tier X COSE ML-DSA-65 at crossings**; external tokens exchanged at ingress. Attenuation = conjunction of every caveat (never leaf-only + subsumption); `now` as a parameter; no wall-clock authz limits | B (decision) / A (Tenuo counterexample, drafts) / C (Lean statements) | Biscuit (158 µs, no PQ, 1 ms wall clock), UCAN, ZCAP, AAT/DT drafts, JWT (avoid) | `r3e05.l5-token-decision`, `r3e05.tenuo-cel-attenuation-bypass`, `r3e05.token-verify-microbench`, `l5-authz-stack-recommendation`, `vfg-policy-tristate-failclosed-invariant` |
-| W-DATA-GATE | **Backend-agnostic** typed op-capability IR (And([])=TRUE, Or([])=FALSE) lowered per adapter. **Adapter refinement contract**: Lean Refines claim + live schema gate + executed oracle with leak_cases = 0 at ENGINE_PIN, re-run on engine bumps. Unsound-lowering denylist: binary collations, no LIKE/GLOB for Prefix, Redis `t:{hex(tenant)}:`, Mongo `$eq` + not-array; builders that drop empty sub-expressions banned. INV-NONEMPTY, allowlist lock, native per-tenant credentials, no shared connections. PG: SET LOCAL ROLE + statement cache allowed; `is_local` GUCs only; minor floor + recycle after upgrade and role DDL | A (executed SQLite/PG/Redis) / B (Mongo/MySQL/MSSQL) / E (Lean theorem) / C (IR design) | policy-to-SQL compilers (OPA compile: unsound for SQL Server, literals inline); Cedar TPE; RLS-only | `irl-l5-differential-oracle-harness`, `irl-l5-unsound-lowering-denylist`, `irl-l5-lean-lowering-theorems`, `irl-l5-q1012-role-plan-cache-gate`, `dpf-l5-op-capability-ir` |
-| W-AGENT-PROTOCOL | Unchanged from round 2: MCP 2026-07-28 + mandatory 2025-11-25 path; listener-gate type; sealed handles; strict shared JSON parse; resolved egress; 33-case corpus. Round 3 adds the SSE budget class and MCP-adjacent individual drafts, none on the standards track | A/B/C | A2A, AP2, EMVCo agentic payments (draft) | `l5.origin-audience-session-rules`, `l5.conformance-manifest`, `r3e11.ietf-window-agent-individual-drafts` |
-| W-ABUSE | Pipeline S0 → **S0.5 handshake reservation** → S1 (10/s burst 50) → classify → cost classes with **fresh vs established session classes** → **aggregate expensive-tier budgets independent of identity count** (300/400 units/s) → step-up 16-bit PoW for anonymous expensive requests → Gradient2 (4/8/32) + CoDel (20/250 ms). No CPU-keyed challenge; PoW ≤18 bits. I1-I11; acceptance C1-C12 (tuned passes all but C5 NAT flash crowd; C11 untested). First make expensive endpoints cheap. Behaviour scores only weight budgets | D (numbers) / B (mechanisms) / C (PoW asymmetry measured) | Anubis WASM Argon2id (unmeasured), Privacy Pass, ASN keying | `r3e07-L5-tuned-default-table`, `r3e07-L5-swarm-acceptance-criteria`, `r3e07-r2-defaults-collapse`, `r3e07-pow-asymmetry-measured`, `r3e07-L5-cost-model-sheet` |
-| W-FORMAL | Lean 4.35 core (no Mathlib) + TLC on the laptop; Verus/Kani/EverParse CI-only; gate = `lake check --paranoid` + axiom allowlist + native_decide ban + Kani ≥#4910. New Lean drafts (lowering, token T1-T6) are **unchecked** (SPK-LEAN-IR-1) | A (footprint) / B-C (tool map) / E (new drafts) | Creusot, Prusti, F*, Dafny, Velvet/Veil (CAV'26, Lean-native) | `vfg-toolchain-pin-footprint-table`, `vfg-proof-ci-gate-spec`, `irl-l5-lean-lowering-theorems`, `r3e11.velvet-veil-lean-verifiers` |
-| W-ASSURE | Executed oracles first. DST with a deterministic CryptoProvider; cancel sweep; lowering oracle; ingress conformance harness (CVE→test traceability); upgrade harness; mutants gate; conformance suite C0-C4 | A/B | Antithesis, LazyFS | `ac.l5-cancel-sweep-harness`, `irl-l5-differential-oracle-harness`, `r3e09.L5-ingress-conformance-harness`, `zd.l5-upgrade-harness-gate` |
-| W-SUPPLY | Executed on the 233-crate golden lock: audit 0 vulnerabilities; deny skip list of 6 duplicates; vet with zero exemptions = 116/165 linux crates unaudited (3.66M lines). **7-day cooldown + audited security bypass** (a 14-day window lands the rustls PQ downgrade); no `=` pins under cooldown; security floors. Repro gate with 3 remap flags (toolchain + auditable mode = build identity). Tarball-git parity; trustpub ancestry; release = provenance + independent rebuild; non-dismissable workflow lint; new-crate intake gate | A (executed) / B (policies) / C (incident matrix) | Nix/StageX, TUF (0/12 at intake), SLSA verify alone (2/12) | `sc3.golden-lock-gate-run`, `sc3.cooldown-executed-cargo-198`, `sc3.repro-ablation-golden`, `sc3.l5-ci-gate-list`, `sc3.l5-new-crate-intake` |
-| W-PERF | Core numbers unchanged (4.21 MB, idle 3.4-5.9 MB). PQ handshake +12.5-15% (rustls, logged bands). IPC hop 4.8 µs UDS / 2.1 µs ring vs 0.02-0.05 µs in process; zero-copy normalization 30 µs per 10 MB. IPC wire rules (postcard, serde_bytes, fds for bodies, no spin on ≤2 CPUs). ML-DSA-44 flight 11.7 KB. Bands from interleaved trials only | A (laptop) / B (bands) / C (OOP thresholds) | iceoryx2 / shm rings (vendor 240 ns, needs a spare core) | `w02.ipc-hop-cost-1core`, `w02.norm-copy-cost-measured`, `w02.handshake-pq-cost`, `r3pq.mldsa-handshake-measured` |
-| W-OPS | systemd ≤2 gate; CRA (Art 14 live, OJ-confirmed); 800-53/KSI map (46 KSIs; AU-9(3) fixed); tlog audit; instant-acme + ARI. **In-place upgrade UP-1..7**: fd inheritance + FDSTORE, claim-or-close fds, two-phase GOAWAY, drain deadline, STEK by pipe, authenticated handover; QUIC resets accepted in v1. Scale-out state behind traits. Rename before public release (RFC 10032 collision) | A (systemd, CRA, mechanisms) / B / C (protocol) | nginx USR2, HAProxy fd transfer, Envoy hot restart, tableflip/shellflip, tcp_migrate_req | `zd.l5-upgrade-protocol`, `zd.l4-orphan-socket-blackhole`, `zd.l3-scaleout-state-matrix`, `ops.cra-obligation-split` |
-| W-DX | **Capability-typed handler SDK in a separate crate** (router-built Ctx with a non-optional Principal; tenant-scoped handles; effect classes; Tx typestate; HTML/URL/Secret newtypes); agents denied edits to the SDK; compile-fail mutant corpus as a CI gate. Rust is not an agent handicap (one shared benchmark pool). Deploy artifact = OCI + cosign, digest-pinned | C (decision) / B (toy experiment, benchmarks) | plain axum + lints; WIT component handlers; Encore-style codegen; policy-core/typesec-agent/capsec (to evaluate) | `dx.l5-decision-sdk-shape`, `dx.exp-handler-sdk-mutants`, `dx.exp-error-signal`, `v3.typed-authz-ctx-prior-art`, `dx.deploy-prior-art` |
+| W-THREAT | Two adversarial rankings (KEV: canonicalization/fail-open authz first; Rust advisory volume: resource exhaustion ~55-61%, falling, TLS logic rising). Identity canonicalization divergence is one class: 11 instance classes, 34 dated instances (24 from 2026). Plus a **non-adversarial outage ranking**: config push 17.5% > latent bug 12.5% > exhaustion 10.6% > capacity > retry/dependency/DNS > reload/cert 5% each; 0 memory-corruption causes in 160 outages | B (classes A; outage frequencies C) | skeptic: AI-found CVEs exploited at base rate | `threat-ledger-middle-tier-2023-2026`, `r4e07.instance-ledger`, `uu11.outage-class-frequency-table`, `ac.root-cause-drop-at-await` |
+| W-GAP | Integration + assurance + measured leanness is the gap; **positioning changed by demand data**: assurance is an invisible default; enter via agent-infra builders (credential isolation, MCP authz, audit, compiled binary); clear migration parity, default drift, paywall and governance deal breakers first | C (gap) / C-D (demand) / B (deal breakers) | Pingora, Envoy, Caddy, Traefik (ingress-nginx compat), HAProxy, agentgateway, nucleus | `gap.unserved-combination`, `econ.differentiators-absent`, `econ.deal-breakers`, `econ.who-switches-first` |
+| W-TRANSPORT | Normalization core with an Exchange object and front-end defect-class rules (unchanged), plus **CANON-1..8 in one `aegis-canon` crate**: reject-don't-repair, sealed Canon_K, authz on the matched route id, SNI/authority/Origin binding (421) with userinfo rejected, exact-match A-label hosts (no IDNA on ingress), duplicate-rejecting JSON/cookie/media-type owners; simd-json/sonic-rs banned; CANON-DIFF gate. hyper/h2 do not check Host vs :authority, so the core does | A (differential, pins) / B (classes, identity sub-claim) / E (invariant) | normalize-and-forward (lighttpd/Cloudflare), WHATWG host parsing (rejected), per-protocol stacks | `r4e07.invariant-canon-one-owner`, `r4e07.canon-ref-zero-disagreement`, `r4e07.hyper-h2-authority-host-unchecked`, `r3e09.ring1-verdict-amendment` |
+| W-PQC | **Typed jurisdiction profile set:** P-UNIVERSAL = SecP384r1MLKEM1024 (0x11ED; missing from rustls 0.23.46, so a custom group or upstream PR is a blocker), P-CNSA pure ML-KEM-1024 + ML-DSA-87 opt-in, P-PUBLIC-WEB (X25519MLKEM768 first), gov profiles without X25519/Ed25519/ChaCha/0-RTT. Server: pq-required on agent/API listeners, client order on public; FIPS listener sets kx_groups explicitly. **FIPS: two lock profiles** (floor: rustls 0.23.46 + aws-lc-rs 1.18; cmvp: rustls 0.23.43 + aws-lc-rs 1.15.3 + fips-sys 0.13.11, AL2023 operational environments only, with an advisory-exception list); single-fips-sys and FIPS-string gates | A (primaries, resolver, verdicts) / B (profile decision, FIPS decision) | OpenSSL 3.5 FIPS provider; forked rustls without ML-DSA (spike); floor-only, no CMVP claim | `r4e10.golden-tls-kex-profiles`, `r4e10.matrix-jurisdiction-requirements`, `r4tri.no-co-resolvable-lock`, `r4tri.fips-sys-decoy-lock`, `r3pq.hrr-acceptance-test` |
+| W-ISOLATION | Provenance table, direction unchanged, now with **measured containment**: P1 native + catch_unwind + resource ledger + supervisor-held socket + crash budget; P2 fresh Wasm instance per request (reuse 1, fuel 10-50 ms) in a **per-tenant** OS-sandboxed cordon, exec-spawned; multi-principal P2 = fork per request from an exec-spawned zygote. dumpable=0; clone-flag filter, clone3 ENOSYS; Wasmtime ≥36.0.19 or ≥49.0.4 on any arch; serve reuse pinned to 1. Escape planning rate 2.21/yr; trigger ≥3 M0 escapes in 12 months | B (containment) / A (perf, pins) / C (rates, kernel reachability) / E (expected loss) | V8 isolates (OOM process-fatal), Hyperlight, Firecracker, gVisor | `r4i04.provenance-substrate-decision-table`, `r4i04.blast-radius-table`, `r4i04.php-fpm-measured-control`, `wasmtime-advisory-share-by-config` |
+| W-STATE | Unchanged from round 3: INV-NOMUT-C (NC1-NC8), cancel sweep, CR1-CR9, driver pins, idempotency with the principal in the key, crash-harness-gated store (SQLite WAL+FULL default), CRS C1-C8 + C5b + C8 (C8 now measured: reused context poisons nearly all later requests) | A/B/C | one-txn+outbox alone; state-tracked reuse | `ac.l5-inv-nomut-c`, `crs-l5-invariant-text`, `r4i04.state-leak-c8-measured` |
+| W-AUTHZ | Cedar 4.14 PDP (cite its Lean theorems at B until `#print axioms` runs; Int64 native_decide in the TPE closure). Token tiers (opaque handle default / HMAC chain in verified CBOR / COSE ML-DSA-65 at crossings); **token model T1-T5 checked in Lean**, with D1 segment-prefix resources, D3 verify-time depth and D4 missing-argument-denies to ratify; **Combine fail-closed checked** (first real file) | A (checked models) / B (decision, Cedar theorem status) | Biscuit, UCAN, ZCAP, AAT/DT drafts, JWT (avoid) | `r4e01.token-T1-T6-checked`, `r4e01.token-spec-sharpenings`, `r4e01.combine-failclosed-first-check`, `r3e05.l5-token-decision` |
+| W-DATA-GATE | Backend-agnostic op IR with per-adapter lowering. **Lean model checked** (lower_sound_full closed). Adapter contract **two-sided** (leak = 0 ∧ miss = 0) for any adapter exposing NOT; schema gate refuses mismatched partition keys; three-valued reference to decide at freeze. **Write path:** INV-WRITE-SUBSET W1-W7, executed write oracle, composite arbiters, FORCE + WITH CHECK RLS, no REPLACE family, upsert WHERE without user expressions, Redis flush/swap bans; PG19 gated on the ON CONFLICT ordering fix | A (executed, model) / B (denylists, Mongo/MySQL doc-derived) / C (IR design) | RLS alone; SQLite authorizer; policy-to-SQL compilers | `r4e01.lower-sound-full-proved`, `r4e01.exact-vs-refines-not-witness`, `wpo-inv-write-subset`, `wpo-l5-write-denylist`, `wpo-pg-onconflict-where-peek`, `irl-l5-unsound-lowering-denylist` |
+| W-AGENT-PROTOCOL | MCP 2026-07-28 (still the latest dated revision on 2026-10-25) + 2025-11-25 path. Listener gate enforces Host/Origin in both eras regardless of SDK defaults (Origin protection is default-off or absent in rmcp, agentgateway, py, TS modern). **43-case corpus executed** against 5 implementations; 2026-07-28 delta (-32020, -32022, 404/-32601, GET 405, sealed requestState). The official conformance suite is not evidence (warnings on MUSTs; no Origin-only case) | B (corpus, defaults) / A (spec revision) / C (suite gap) | A2A, AP2; reuse official cases once strict | `l5.mcp-lc-corpus-runnable`, `l5.mcp-lc-passrate-matrix`, `l5.listener-gate-delta-2026-07-28`, `l4.defaults-vs-configurable-matrix` |
+| W-ABUSE | Round-3 tuned pipeline kept as mechanism. **Overclaim corrected**: C1/C2 were mixed-scenario only; the tuned table fails aged_swarm, flash_crowd, worst-seed dc_swarm (C1) and cheap_flood (C2); report per scenario, tune on held-out seeds | D (numbers) / B (mechanisms) | Anubis Argon2id, Privacy Pass, ASN keying | `r3e07-L5-swarm-acceptance-criteria`, `r3e07-L5-tuned-default-table` |
+| W-FORMAL | Lean 4.35.0 Init-only toolchain (**712 MB** with lakefile.toml, zero requires); 45 theorems checked, 0 sorry; gate = pin check → build (no sorry) → per-theorem axiom **allowlist** {propext, Classical.choice, Quot.sound} → `lake check --paranoid` (6 checkers, ~4 min / 1.0 GB, CI only); native_decide banned; from-export only on own exports; known-false-proof corpus. Checkers disagree on adversarial preludes (#15908). Verus/Kani CI-only | A (executed) / B (checker independence, qualification argument) | Verus, Kani, F*, Rocq; DO-330 TQL-5-style qualification | `r4e01.l5-proof-ci-gate`, `r4e01.lakefile-toml-init-only`, `r4e01.native-decide-aux-axiom-naming`, `v4.lean-checker-disagreement-15908`, `sc.implication-checker-qualification-arguments` |
+| W-ASSURE | Executed oracles first (lowering read/write, identity differential, MCP corpus, FIPS probe, cancel sweep). New gates: isolation fault-injection gate (counts hard, latency soft), CANON-DIFF, trybuild compile-fail corpus, Lean proof gate, CFG/CERT/UPS/OPS gates. Assurance case: every claim has ≥2 evidence kinds plus a residual | A/B | Antithesis, LazyFS | `r4i04.isolation-fault-ci-gate`, `r4e07.ci-gate-canon-property`, `dx.r4-l5-ci-gate-trybuild`, `sc.implication-case-structure-diverse-evidence` |
+| W-SUPPLY | Round-3 gates plus **G10 repo-GHSA poll** (7 of 133 repo GHSAs were invisible to OSV on 2026-10-25), an expiring reachability-justified ignore list for certified pins, single-fips-sys and FIPS-string gates; the 7-day cooldown with the audited bypass is confirmed mandatory (it lands the vulnerable webpki); `prefer-post-quantum` missing from the golden's own rustls dependency, now fixed | A (executed) / B (policies) | Nix/StageX, TUF | `r4c12.repo-ghsa-osv-blindspot`, `sc3.cooldown-executed-cargo-198`, `r4tri.golden-lock-no-pq-feature`, `sc3.l5-ci-gate-list` |
+| W-PERF | Core numbers unchanged. IPC hop: same-core 4.8 µs is the best case, cross-core 8.07 µs (budget ≈12.4k calls/s/core). Substrates on 1 core: native 22.6k rps, fresh Wasm 21.1k, cordon 24.1k, fork 8.2k, PHP-FPM 9.1k (toy handler). Crash restart 1.3-1.9 ms with a held socket | A (laptop) / B (substrate bands) | iceoryx2 / shm rings | `w02.ipc-hop-cost-1core`, `r4i04.blast-radius-table`, `w02.handshake-pq-cost` |
+| W-OPS | Round-3 ops rules plus **outage-derived gates**: CFG-1..4 (total parse, bounded artifacts, last-known-good, staged apply), CERT-1..4 (expiry gauge, preflight, atomic swap, faketime CI), UPS-1..6 (per-upstream budgets, deadlines, retry budget, rlimit preflight, log budget, TTL re-resolution), OPS-1..5 (healthy floor, dry-run, linear regex, monotonic clock, readiness-ack reload). **Government-buyer route:** memory-safe language + FIPS module + EAL4+ ST if demanded + formal policy model (SA-17(1)); no regulator credits code proofs | C (gates, buyer route) / A-B (incidents, certificates) | EAL7 as a separately funded decision; Ferrocene for safety regimes | `uu11.l5-config-lkg-canary-rule`, `uu11.l5-cert-expiry-gate`, `uu11.l5-upstream-budget-retry-budget`, `sc.implication-buyer-recognition-route`, `zd.l5-upgrade-protocol` |
+| W-DX | **Scoped-adapter capability SDK (B2)** on real axum: Routes-only registration with a sealed `for<'r> ScopedHandler`, borrowed `Ctx<'r>`, app crates without tokio/axum dependencies, Tx Drop guard, Detached capability for background work, clippy ban list, trybuild gate; owned extractors rejected (`'static` escapes). Open: streaming/SSE/WS/body extraction and agent repair on B2 diagnostics | B (experiment, decision) / C (prior art) | owned extractors (16/32), plain axum + lints (3/32), WIT handlers, cap-std reuse | `dx.r4-l5-decision-update`, `dx.r4-real-axum-mutant-scores`, `dx.r4-l5-sdk-api-changes`, `dx.r4-l5-ci-gate-trybuild` |
+| T-SAFETY-CERT (new) | Proofs discharge specific claims; tests/fuzz/DST stay independent legs (DO-333, CompCert at MTU). Checkers get TQL-5-style qualification arguments with a known-false-proof corpus; no prover is qualified anywhere, so qualification cost is not a discriminator. Real EAL6/7 evaluations are rare, slow and costly; the realistic ceiling is EAL4+/EAL5+ | B (standards, precedents) / C (negative existence) | Ferrocene-qualified rustc; EAL7 | `sc.do333-credit-scope`, `sc.do330-tql-verification-tools`, `sc.compcert-qualification-evidence`, `sc.cc-eal6-eal7-real-evals` |
 
 ## 3. Threat → mitigation → assurance matrix (current)
 
 | threat (rank) | mitigation | assurance mechanism | rung | residual |
 |---|---|---|---|---|
 | 1 H2/H3 resource exhaustion [A] | golden pins + wrapper; TBI-1..9; H3 off; explicit tonic limits | Kani H1-H5; Verus ledgers; Lean composition; fuzz resource oracle; DST stall | proof (structs) + test | TBI-4/7/8 rely on the wrapper; C_FIELD |
-| 2 canonicalization / fail-open authz [A/B] | canonical route identity (grpc-go :path); Cedar; tri-state combiner; INV-NONEMPTY; binary collations for tenant ids | Cedar Lean model + DRT; Lean combine_failclosed; build lock; lowering oracle | proof (model) + DRT + test | Cedar Rust evaluator; Lean compiler on the SymCC path; cvc5 |
-| 3 smuggling / differentials (H3→H1, Upgrade/101, trailers, JSON) [A] | strict H1; H2 upstream; validated-101 gate; one parse shared by policy and handler; trailers dropped at bridges | HTTP Garden; differential framing corpus (q3-013); Lean H1 model | model + differential | Rust H1 parser unproven |
+| 2 canonicalization / fail-open authz [A/B] | **CANON-1..8 (one owner per identity, reject-don't-repair)**; authz on route id; Cedar; tri-state combiner (checked); INV-NONEMPTY; binary collations | CANON-DIFF G1-G4; Cedar Lean + DRT; Lean Combine (checked); lowering oracle | proof (model) + differential + DRT | false-reject rate; Cedar Rust evaluator; Cedar theorem axioms |
+| 3 smuggling / differentials [A] | strict H1; H2 upstream; validated-101 gate; one JSON owner shared by policy and handler; Host = :authority binding | HTTP Garden; framing corpus (q3-013); Lean H1 model; identity differential | model + differential | Rust H1 parser unproven |
 | 4 memory corruption [A] | Rust; forbid(unsafe); C drivers out of process; geiger ceilings | Miri, sanitizers, unsafe gate | type + test | aws-lc C, tokio, rustc |
-| 5 agent origin/session/audience [A/B] | listener-gate type; sealed handles; typed Origin for WS/SSE | 33-case corpus; CSWSH matrix | type + test | absent-Origin interop |
-| 6 cross-request state scope [A] | CRS C1-C8 + C5b + recycled-object reset | two-scope oracles; Tomcat-style mix-up test | test | unenumerated classes |
-| 7 TLS logic / PQ downgrade [B] | rustls ≥0.23.46; pq-required on agent/API listeners; prefer-post-quantum assertion | 5-verdict HRR test; lockfile feature audit; BoGo | test | public listener classical for X25519-first clients |
-| 8 data-plane injection / authz per family [A] | typed IR; lock + denylists; refinement contract; native per-tenant creds | executed oracle leak=0; schema gate; Lean Refines (unchecked) | test + model | write path; timing channels; engine logic bugs |
-| async cancellation (r3) [A] | INV-NOMUT-C; discard-on-cancel; commit latch; pinned driver fixes | cancel sweep (8 modes × 8 oracles); CR1-CR9 lints; TLA+/P | test + lint + model | executed paths only; unreleased upstream fixes |
-| 9 decompression / complexity [B] | decode budgets; no permessage-deflate; GraphQL cost to the core budget | fuzz ratio oracle; 10k-alias/field tests | test | — |
-| 10 supply chain [A] | locked + 7-day cooldown with bypass + vet + intake + repro + parity + provenance + rebuild + workflow lint | double build; attestation verify; zizmor; negative-control PRs | provenance | maintainer takeover with a long window (xz 34 d) |
-| admission swarms [B] | S0.5 reservation; fresh class; aggregate expensive budgets; step-up PoW | swarm acceptance C1-C12 (10 × 10 seeds); I8 Kani; TLA+ I9/I10 | sim + test | uncalibrated sim; NAT flash crowd |
-| reload / upgrade (r3) [A mechanisms] | fd inheritance; claim-or-close; GOAWAY; drain deadline | upgrade harness + negative control; fuzz handover | test + model | forced closes after D; H3 resets |
-| sandbox escape [A/B] | OS sandbox around Wasm; pins; no wasi-http egress | config CI assertion; 72 h SLO | boundary | M0 0.36-2.0 escapes/yr |
-| extension-boundary decoding [A] | host parses + re-serializes | conformance C2 | test | host decoder |
+| 5 agent origin/session/audience [A/B] | listener-gate type in both eras regardless of SDK defaults; sealed handles | **executed 43-case corpus**; CSWSH matrix | type + test | absent-Origin interop; SDK churn |
+| 6 cross-request state scope [A] | CRS C1-C8 + C5b; fresh instance per request (C8 measured) | two-scope oracles; poison test in the isolation gate | test | unenumerated classes |
+| 7 TLS logic / PQ downgrade [B] | rustls ≥0.23.46; pq-required on agent/API listeners; **jurisdiction profiles**; FIPS kx explicit | HRR test on both lock profiles; per-profile ClientHello matrix | test | public listener classical for X25519-first clients; cmvp lock carries 0349; 0x11ED absent |
+| 8 data-plane injection / authz per family [A] | typed IR; lock + denylists; **two-sided refinement contract**; **write denylist + INV-WRITE-SUBSET**; native per-tenant creds | Lean model (checked); two-sided executed oracle; write oracle; schema gate; RLS CI with column-free writes | proof (model) + test | Exact violated by engines (BUG #19645); PG ON CONFLICT order; MySQL/Mongo writes; timing channels |
+| async cancellation [A] | INV-NOMUT-C; discard-on-cancel; SDK Drop guard (not a backstop) | cancel sweep; CR1-CR9; TLA+/P | test + lint + model | executed paths only |
+| non-adversarial outages (r4) [C freq / A-B instances] | CFG/CERT/UPS/OPS gates | config fuzz; faketime; slow-upstream DST; TLA+ healthy ≥ floor | test + model | latent logic bugs on valid input |
+| crash blast radius (r4) [B] | per-tenant fresh-instance substrates; dumpable=0; held socket; crash budgets | isolation fault-injection gate | test | laptop-only numbers |
+| 9 decompression / complexity [B] | decode budgets; no permessage-deflate; GraphQL cost to the core budget | fuzz ratio oracle | test | — |
+| 10 supply chain [A] | locked + cooldown with bypass + vet + intake + repro + parity + provenance + rebuild + workflow lint + **G10 repo GHSAs** | double build; attestation; zizmor; fips_lock_gate | provenance | xz-class long windows; OSV lag |
+| proof-checker false PASS (r4) [B] | allowlist; native_decide ban; 6 checkers; own exports only; no third-party Lean deps | executed gate + negative control; known-false-proof corpus | process | shared-spec bugs; spec fidelity |
+| admission swarms [B] | S0.5, fresh class, aggregate budgets, step-up PoW | per-scenario acceptance on held-out seeds | sim + test | fails 3 scenarios; uncalibrated sim |
+| reload / upgrade [A mechanisms] | fd inheritance; claim-or-close; GOAWAY; drain deadline; readiness ack | upgrade harness | test + model | forced closes after D; H3 resets |
+| sandbox escape [A/B] | OS sandbox around Wasm; pins (any arch); clone filter; exec spawn | config assertions; 72 h SLO; negative syscall tests | boundary | 2.21 escapes/yr planning rate; kernel LPE via allowlisted syscalls |
 | durability loss [A] | ack ⇒ fsynced; bootstrap dir fsync | crash harness + DST | test | double fault, EIO |
-| remote timing [A] | constant time at TCP-ts resolution; Range/Prefix timing on the NOT-proven list | dudect/ctgrind | test | lowering timing channel |
-| config-plane failure [A] | validated generated config; last-known-good; canary; no unwrap | clippy deny; config fuzz | lint + test | — |
+| remote timing [A] | constant time at TCP-ts resolution | dudect/ctgrind | test | lowering timing channel |
 
 ## 4. TCB ledger (current)
 
-- **Toolchain and runtime:** rustc/LLVM/std; tokio (155k LOC; 2,527 used unsafe items).
-- **HTTP stack:** hyper (16.7k LOC; 123 unsafe items), h2 (15.2k; 3), httparse (3k), plus the **AEGIS transport wrapper** (ours).
-- **TLS and crypto:** rustls (45.7k LOC, unsafe-free); aws-lc-rs/aws-lc-sys (11.3k unsafe binding lines; 1.5M bundled C/asm LOC; 2.09M lines in the vet backlog). FIPS boundary: AWS-LC FIPS 3.1.0 under the FIPS lock (ML-KEM approved; X25519 and ML-DSA outside).
-- **Data plane:** adapters in process (each driver's full LOC); DB drivers pinned at git revisions (sqlx, diesel_async, patched tokio-postgres). Per-adapter `Backend.Refines` facts + engine collation/affinity semantics: tested, not proven; engine logic bugs are in scope.
-- **Ours:** the pool checkin predicate and drop guards; the token verifier + EverParse deterministic-CBOR (verified parser); the upgrade handover parser; the tlog writer.
-- **Linux kernel:** seccomp, Landlock, cgroups, systemd sandboxing, fd passing; KVM if microVM.
-- **Wasmtime/Cranelift:** P2/P3 only, inside an OS sandbox.
-- **Host decoders of module output.**
-- **Policy:** Cedar Rust evaluator (DRT); the Lean compiler for SymCC analyses only.
-- **Build-time checkers, never shipped:** Lean kernel + nanoda/lean4lean, Verus + Z3, Kani/CBMC ≥#4910, TLC, cvc5. Specs are trusted.
+- **Toolchain and runtime:** rustc/LLVM/std (Ferrocene-qualified option for safety regimes); tokio (155k LOC).
+- **HTTP stack:** hyper, h2, httparse, the AEGIS transport wrapper (ours), and **`aegis-canon`** (ours; one identity canonicalizer).
+- **TLS and crypto:** rustls; aws-lc-rs/aws-lc-sys. Two lock profiles: floor (AWS-LC FIPS 4.2.0 source, uncertified) and cmvp (AWS-LC FIPS 3.1.0, CMVP #5298/#5314, AL2023 operational environments only, with documented advisory exceptions).
+- **Data plane:** adapters in process (each driver's full LOC). Per-adapter Refines/Exact hypotheses are tested by a two-sided oracle, not proven. For writes, PG RLS (FORCE + WITH CHECK) and vetted triggers. Engine logic bugs are in scope.
+- **Ours:** pool checkin predicate and drop guards; token verifier + EverParse deterministic CBOR; upgrade handover parser; tlog writer; supervisor (sockets, crash budgets, exec-spawned zygote).
+- **Linux kernel:** seccomp (clone-flag filter), Landlock, cgroups, systemd sandboxing; KVM if microVM.
+- **Wasmtime/Cranelift:** P2/P3 only, inside per-tenant OS sandboxes.
+- **Policy:** Cedar Rust evaluator (DRT); the Lean compiler only for analyses that use native_decide.
+- **Build-time checkers, never shipped:** Lean 4.35.0 Init-only toolchain + 6 checkers + gate scripts; Verus + Z3; Kani/CBMC ≥#4910; TLC; cvc5. Specs and model hypotheses are trusted.
 - **Stores:** Postgres (adapter); embedded store (harness-gated).
-- **CI/release:** runners, Sigstore, TUF keys; toolchain digest and auditable mode in the attested build identity.
+- **CI/release:** runners (bwrap AppArmor profile needed for the lake sandbox), Sigstore, TUF keys; toolchain digest and auditable mode in the build identity.
 
 **NOT proven:**
-- Cedar Rust evaluator.
-- Rust HTTP/1.1 framing.
-- TBI-4/7/8 over hyper/h2.
-- The async I/O shell and its liveness.
+- IR lowering for real engines: the model is checked; Refines/Exact, renderer = model and the 3VL reference are tested or open.
+- The write path (oracle-tested W1/W2/W4 only).
+- CANON-1..8 (differential on a small corpus).
+- Cedar Rust evaluator, and Cedar's Lean theorems' axiom status.
+- Rust HTTP/1.1 framing; TBI-4/7/8 over hyper/h2; the async shell and liveness.
 - Cancel safety beyond swept paths.
-- Wasmtime runtime and glue; KVM.
-- aws-lc C outside its verified parts.
-- IR lowering soundness: the Lean model is unchecked (T4 sorry); refinement is tested; write path, projection and timing are out of scope.
-- Native DB enforcement; normalizer ≡ backend parser.
-- Microarchitectural tenant isolation.
-- Admission I3/I4/I6/I9/I10 and the tuned numbers.
-- Token T1-T6 and upgrade UP-1..7 (statements only).
-- Store crash consistency beyond single crashes.
-- Handler noninterference.
-- DST fidelity.
-- Spec fidelity.
+- Wasmtime runtime and glue; KVM; aws-lc C outside its verified parts.
+- Native DB enforcement; normalizer ≡ backend parser; microarchitectural tenant isolation.
+- Admission numbers (fail 3 scenarios) and I3/I4/I6/I9/I10.
+- Token outside the model: Rust verifier, codec, constant-time compare, HMAC EUF-CMA. Upgrade UP-1..7 are statements only.
+- Store crash consistency beyond single crashes; handler noninterference; DST fidelity; spec fidelity.
+- Proof-checker independence.
+- Isolation numbers beyond one laptop; outage frequencies as incidence.
+- No regulator credits any of these proofs.
 
 ## 5. Top bridges
 
-1. **Fail-closed construction** (r2) now also covers the config plane: validate-then-swap on reload, and CI fails any effective unbounded limit (tonic `None`, async-graphql `None`).
-2. **Scope tuple σ = tenant handle = clean pooled connection** (r2+r3). CRS C8, NC3's checkin predicate and the lowering theorem's role/GUC binding are one precondition: a cancelled BEGIN (sqlx#4393) breaks all three.
-3. **Checker vs evaluator** (r3). Tenuo's leaf-only + subsumption design and the empty-OR family both widen authority silently. One canonical evaluator over the full conjunction fixes both, with Or([]) = FALSE.
-4. **Canonical identity** (r3). grpc-go `:path` and SQL collation/LIKE tenant collisions are one class: each identity gets one canonicalization owner.
-5. **Supply chain × PQC** (r3). A blanket cooldown lands the PQ downgrade; `default-features=false` makes rustls classical; the FIPS pin conflicts with the golden lock. The lockfile is a security artifact for PQ, not just provenance.
-6. **One proof pattern** (r3): verified parser + core-Lean semantics theorem + DRT to Rust, for tokens and data-plane lowering, on one small toolchain.
-7. **Executed oracles beat reading** (r3). They found bugs in code written to be safe, in drivers with unreleased fixes, and in a mainstream policy compiler.
-8. **Budgets at two layers + one admission ledger** (r2+r3): TBI per connection, I1-I11 per identity, and NC4 pre-debit with charged cancellations.
-9. **Drain = cancellation** (r3): one T_drain bound for the upgrade protocol and INV-NOMUT-C.
+1. **Fail-closed construction** (r2) now covers the config plane too: CFG-1..4, with totality as one proof rung shared by config parse and identity canonicalization (r4).
+2. **Scope tuple σ = tenant handle = clean pooled connection** (r2+r3), with CRS C8 now measured (r4): only a fresh instance per request has zero poisoning.
+3. **One owner per identity, at every layer** (r3+r4): grpc-go `:path`, SQL collation, Host vs :authority, MCP Origin defaults and the JSON header/body check (-32020) are one class with one fix, `aegis-canon`.
+4. **Engine bugs break adapter contracts from both sides** (r4). PG BUG #19645 (completeness) and ON CONFLICT before RLS (side effects) require a two-sided read oracle and a write oracle on every engine bump, and one three-valued reference for NOT and the write W1 clause.
+5. **The lockfile is a security artifact** (r3+r4): cooldown vs security floors; prefer-post-quantum; the empty FIPS triangle; the decoy fips-sys lock; repo GHSAs invisible to OSV. Gates read `cargo metadata`, not grep.
+6. **One proof pattern on one small toolchain** (r3+r4): verified parser + core-Lean semantics theorem + DRT to Rust, now **executed** (712 MB, 45 theorems). The gate is the qualification evidence (DO-330 TQL-5 style).
+7. **Executed oracles beat reading** (r3+r4). This round they caught a broken Lean draft, a phantom "proven" claim, a tenant-capture upsert, a silent FIPS module swap and a canonicalizer bug.
+8. **Demand vs mandate** (r4): forums never ask for PQ or proofs, while national rules mandate PQ by date. Ship assurance as invisible defaults and profile evidence; win adoption on parity.
+9. **Crash containment = durability = abuse** (r4). Fork-server crash containment is also a BROP oracle: exec spawn plus per-principal crash budgets. The fd-leak gray failure is the lab twin of the 10.6% exhaustion outage class.
 10. Carried over:
+    - budgets at two layers + one admission ledger
+    - drain = cancellation
     - interposition is unsound for Rust
-    - modularity = isolation = TCB accounting (now with a measured hop cost)
+    - modularity = isolation = TCB accounting
     - generated artifacts are untrusted input
-    - determinism as a security property
 
 ## 6. Open frontier (top of `state/frontier_queue.jsonl`)
 
 | id | score | question (abridged) | closes by |
 |---|---|---|---|
 | q3-001 | 0.80 | rustls full vs resumed handshake CPU on a real $5 vCPU | spike (R-ABUSE-1, R-PERF-1) |
-| q1-013 | 0.80 | Crash blast radius: PHP-FPM vs pooled Wasm vs fork-server | spike |
+| q4-001 | 0.80 | B2 scoped adapter for streaming/SSE/WS and detached jobs | spike (R-DX-1) |
 | q1-009 | 0.80 | LLM-found vs human-found advisory rates | research (R-THR-2) |
+| q3-002 | 0.75 | ipcbench on a real 1-vCPU VPS, same-core vs cross-core | spike (R-MOD-1) |
 | q2-009 | 0.75 | Window-0 stalled flow-control harness vs golden pins | spike (TBI-8) |
-| q3-004 | 0.70 | Golden version triangle: rustls floor + prefer-post-quantum + FIPS pin | spike (R-PQC-2) |
-| q3-002 | 0.70 | ipcbench on a real 1-vCPU KVM VPS | spike (R-MOD-1) |
-| q3-003 | 0.70 | Pre-TLS resumed-handshake prioritisation by ClientHello PSK identity | research + spike (S0.5) |
+| q4-002 | 0.70 | Agent repair success on B2 diagnostics | spike (R-DX-1) |
+| q4-003 | 0.70 | Procurement texts: do they score PQ-TLS, memory safety, formal assurance? | research (R-GAP-4) |
+| q3-005 | 0.70 | Swarm simulator v2; per-scenario, held-out seeds | spike (R-ABUSE-4) |
 | q2-013 | 0.70 | Kani/Verus RAM and time on TBI harnesses | spike (R-FORMAL-2) |
 | q2-007 | 0.70 | Double-fault + fsync-EIO crash harness | spike (R-STATE-4) |
-| q3-005 | 0.65 | Swarm simulator v2 (measured handshake, resumption, /64 churn, RST cancel storms) | spike |
-| q3-006 | 0.60 | Write-path lowering soundness | research + Lean (R-DB-7) |
-| q3-008 | 0.60 | Discard-on-cancel reconnect cost | spike (R-STATE-6 NC3) |
-| q3-012 | 0.60 | Capability-SDK mutants against real axum async handlers | spike (R-DX-1) |
-| q3-013 | 0.60 | Differential HTTP framing corpus from the Sept-Oct 2026 ids | spike |
-| q3-020 | 0.50 | Check Lowering.lean; close lower_sound_full | spike |
+| q4-004 | 0.60 | Three-valued IR reference; re-prove lower_sound_full | Lean (R-DB-7) |
+| q4-005 | 0.60 | Write oracle on MySQL/MariaDB + CockroachDB | spike (R-DB-8) |
+| q4-006 | 0.60 | Fuel budget + 64-slot pool for the Wasm loop gate | spike (R-ISO-5) |
+| q4-008 | 0.60 | False-reject rate of strict canonicalization on 1M request lines | spike (R-ING-4) |
+| q4-026/028 | 0.50 | 0x11ED in rustls (custom group or upstream) | spike (R-PQC-8) |
 
-**Decisions that could still flip** (load-bearing, support at E/C):
-- R-ISO-1 (M0 escape rate)
-- R-PQC-2 (FIPS lock triangle)
-- R-ING-1 (C)
-- R-DX-1 (C; async lifetimes)
-- R-DB-2/7 (Lean unchecked; write path)
-- R-ABUSE-1 (D; uncalibrated)
+**Decisions that could still flip** (load-bearing, support at E/C/D):
+- R-ISO-1 (expected-loss model; kernel reachability)
+- R-ING-4 (false-reject rate)
+- R-PQC-8 (0x11ED; BSI 2027)
+- R-DB-7/8 (3VL reference; PG fix; MySQL/Mongo)
+- R-GAP-4 (procurement evidence)
+- R-ABUSE-1 (D)
 - R-STATE-4 (double faults)
-- R-GAP-1 (short shelf life)
+- R-GAP-1 (short shelf life; recheck at synthesis)
 
-Every one of these closes during implementation (spikes, prototypes, harness runs) except R-GAP-1, which is a recheck at final synthesis. The research recommendation per §0c: **pivot to building at the round cap.**
+Every one closes during implementation (spikes, prototypes, harness runs), except q4-003 procurement and the R-GAP-1 recheck. The research recommendation per §0c: **pivot to building at the round cap.**

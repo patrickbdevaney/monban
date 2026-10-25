@@ -3,7 +3,88 @@
 Maintained by the META-OPTIMIZER after each round. Append dated sections. Never delete earlier lessons. Newest guidance first in the "CURRENT" block, history below.
 Evidence base for entry 2026-10-24: reports/round-001.md, graph.jsonl (327 non-merged nodes), queries.jsonl (473), directions.md, per-explorer raw JSON and progress files. Round 1 had no earlier round, so "novelty" is trivially 1.0 and yield is measured by node quality (layer, grade, verifier movement), not by novelty.
 
-## CURRENT GUIDANCE (after round 3; apply to round 4 planning, §12)
+## CURRENT GUIDANCE (after round 4; apply to the next planning step, §12)
+
+Evidence base for the 2026-10-25 (post-r4) entry: reports/round-004.md, graph.jsonl (179 non-merged r4 explorer+verifier nodes; per-explorer cross-tab recomputed from graph.jsonl), self_improvement.md r4 proposals. Verifier coverage 85% (150/176). Per-explorer n is 3-20, so rates are noisy.
+
+### A4. Round-4 lens ranking (n = new non-merged nodes; L45 = L4+L5; down = verifier moved grade down)
+
+| rank | lens / instrument (explorer) | n | L45 | L5 | A | C-E | down | verdict |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Resolver/metadata + pinned-crate probe at the golden pins (03 FIPS triangle) | 8 | 8 | 7 | 7 | 0 | 0 (2 up) | Best calibrated and most decision-relevant: crates.io metadata alone proves the empty triangle. Pure instrument + control, no modelling. |
+| 2 | Primary-document sweep in non-English/non-US sources, pdftotext (10 non-US PQC) | 20 | 17 | 3 | 8 | 2 | 6 | Highest yield per query (1.06) and the only direction change (R-PQC-3). Down-moves are "national primaries not re-fetched by verifier" (version-pinned snapshots), not wrong claims. |
+| 3 | Executed differential oracle across engines (02 write path; 01 lean-check) | 11 / 20 | 11 / 19 | 3 / 8 | 9 / 14 | 0 / 1 | 0 / 4 | Lean: first-ever execution falsified the r2 "proven" claim and the r3 draft, 8 L5. Write oracle: 0 down, 261/300 leak reproduced on 3 engines. Down-moves in Lean are checker-independence and release attribution, not the proofs. |
+| 4 | Executed corpus differential across implementations (07 bridge) | 17 | 13 | 5 | 7 | 5 | 4 | Strong core (zero-disagreement canonicalizer, 3 unreported upstream issues) but 5 C-E: tail nodes are policy restatements. Keep the instrument, cut the tail. |
+| 5 | Compiled mutants on real framework (05 DX) | 12 | 9 | 3 | 1 | 1 | 4 | Real answer (25/32 vs 16/32 vs 3/32) but only 1 A: mutant sets are our own construction so verifiers cap at B. Add an external-mutant control next time. |
+| 6 | Fault injection with control (04 isolation) | 18 | 14 | 4 | 3 | 2 | **9** | Most over-claimed per node: single contended laptop, naive native baseline. Findings stand as B with ratios; absolute numbers C. Do not run again without an idle host or a replicated second machine. |
+| 7 | Historical/regulatory-standard reading (09 safety-critical) | 15 | 11 | 3 | 0 | 4 | 2 | Produced the DO-330 / TQL-5 / SA-17 bridge (a real design argument) but zero A: standards text graded B at best. Use for argument structure, not for numbers. |
+| 8 | Hand-coded dataset from incident postmortems (11 UU) | 16 | 11 | 4 | 1 | **8** | 2 | Produced the only novel threat-model finding (0/160 outages from memory corruption), but half C-E: n=160 hand-labelled, one coder, duration median did not reproduce. UU works only when a dataset is built and counts are scripted. |
+| 9 | MCP conformance executed (06) | 8 | 8 | 3 | 2 | 1 | 3 | Low yield (0.47) and 3 citation mismatches (#553/#570). Executed, but the claims riding on it cite issues that say other things. |
+| 10 | Forum demand mining (08 switching) | 12 | 2 | 0 | 1 | 6 | 6 | Dead as a node source (0.02 L45/query). Valuable as ONE negative result (0 of ~8,175 comments name PQ) which is itself C. Retire unless a different instrument (procurement RFP texts, survey data) is named (q4-003). |
+| 11 | Two-sided calibration of prior top findings (12) | 3 new + 13 rev | 3 | 2 | 3 | 0 | n/a | Cheap and necessary: found 9 stale grade tags, Swarm D, FIPS range error. Count revisions, not nodes, as yield. |
+
+Verifier-promoted `v4.*` nodes (19): 8 of 19 are A; best value per verifier hour came from the cooldown/webpki and checker-disagreement items. The verifier "missed" list is a productive second explorer.
+
+### B4. Dead or exhausted (add to earlier lists)
+
+- Forum thread mining for demand (08): retired. Logged as queries it distorts diversity and dup metrics.
+- WebFetch on PDFs and cyber.gov.au / ec.europa.eu / media.defense.gov / reddit / lobste.rs: blocked or useless; use pdftotext on saved files, the GitHub OSCAL repo, ENISA, cellar, Lemmy/Discourse/HN Algolia.
+- More single-laptop absolute performance numbers (isolation, IPC, handshake): C unless idle host. They belong to the implementation spikes on a real VPS (q3-001/002, q4-006).
+- MCP SDK default-reading without execution: covered; the open MCP work is q4-001 style SDK extension, not more conformance.
+- Re-deriving the FIPS lock, Lean soundness record, Wasmtime M0 rate: done three times by two explorers each. Closed unless a version bumps.
+
+### C4. Calibration drift (round-4 evidence)
+
+- Over-claim ratio at the verifier fell from 13:1 (r3) to 2.9:1 (43 down vs 15 up of 150). The r3 recommendations (read/recomputed/modelled tags, medians, files for proofs) worked. Drift is now narrower and specific.
+- Remaining systematic over-claim classes, by size: (1) single-machine experiments graded A (isolation: 9 down of 18); (2) citation does not say what the node says (conformance #553/#570, PR #15156, HotOS'19, Django 34225): about 8 nodes; (3) own mapping presented as data (kernelCTF reachability); (4) absence-of-evidence from thin samples (forums C/D); (5) checker independence overstated (6 checkers share a kernel and a frontend); (6) version-pinned snapshots left as A without a pin date.
+- Under-claim: 15 up, concentrated in resolver/metadata and primary-source facts (FIPS, national regimes, upstream issue confirmations). Explorers under-grade facts that reduce to one crates.io/GitHub API field. Allow A 0.9+ when the claim is one fetched machine-readable field plus date.
+- Stale-tag rate is a process problem, not an explorer problem: 9 stale tags in the draft in r4 (3 in r3). Lint the draft against the graph every integration.
+- Phantom proof: the r2 "combine_failclosed proven" had no file. Rule stays: no proof above C without path + gate log.
+- Calibration-explorer finding: planning values repriced, not refuted (Wasmtime 2.21/yr; Kani #4910 0.85 to 0.5). Predictions drift down in p when they depend on upstream release dates: apply a 0.8x prior to any "release by date" prediction.
+
+### D4. Under-sampled domains and layers
+
+- Pillars: W-STATE, W-ABUSE, W-PERF, W-OPS had 0, 0, 1, 1 new nodes; W-UNKNOWN, S-FORMAL-WEB, K, R-HISTORY, W-DX, W-ASSURE, W-THREAT were thin before r4 and only partly refilled (DX, ASSURE, THREAT got a target).
+- Axes: benchmark sources 3, database vocabulary 9, web-dev vocabulary 8, household scale 12, historical era 22, last-60d era 26, attacker stance 34. L1-L3 are now only 20% of new nodes; that is fine for a descend phase but means few new hypotheses are entering.
+- Mongo/MySQL write path, CockroachDB RLS, Valkey ACL beyond the prefix side-channel: open (q4-005, q3-006 partial).
+- Procurement texts (FedRAMP/CNSA/CRA) as an evidence source for demand (q4-003): the one remaining research-not-spike item with a reversal rule (R-GAP-4).
+- LLM-found vs human-found advisory rates (q1-009) still open; R-THR-2 rests on it.
+
+### E4. Research-method findings from the round-4 map (planner, §12)
+
+1. **Diminishing returns are on the decisions, not the nodes.** Mechanical novelty is 0.909 but decision stability is 0.988 (85/86 rules kept direction; 1 direction change, from non-US primary documents). Of the 11 new rules, most extend rather than reverse. Use decision stability plus strict-singleton rate (0.22, down from 0.29) as the stop signal, not URL novelty: URL novelty will stay high on executed instruments forever.
+2. **Instrument changes produced the flips; breadth did not.** Every top-10 finding came from executing something on a pin (Lean, Postgres/SQLite, resolver, 12 parsers, axum, fault injection) or reading a primary document in a new language. Surveys and forums produced none. Descend-with-an-instrument remains the dominant strategy; keep the §0d(b) requirement.
+3. **Executed work falsifies earlier prose.** Lean falsified a graded A, write oracle falsified the "WITH CHECK covers it" assumption, the resolver falsified the "one lock" assumption. Plan one explorer per round whose only job is to execute a prior-round claim that is still stated or source-read only (check by grepping the graph for "measured"/"executed" first).
+4. **Remaining load-bearing uncertainties are spikes, not literature.** Of the 14 top frontier items 12 close by implementation-phase spikes (real VPS, MySQL write oracle, false-reject rate on real traffic, fuel budget, 0x11ED KxGroup). q4-003 and q1-009 are the only research items. This is the argument the plan notes already make (§0c) and it holds after r4: pivot unless the planner can name a decision with a reversal rule that research could flip.
+5. **Pairs of explorers duplicated work (3 merges; one version-range contradiction).** Give the planner a numbers-touched manifest and the calibration explorer the same manifest. Integrator-side id/version-range dedup.
+6. **Forum and UU targets inflate the query log.** Count only `search` kind in metrics; log fetches as `fetch`. Report diversity with and without the largest explorer.
+7. **UU yield depends on building a dataset.** The one UU target that did (incident table) produced the only new threat-model class. Adjacent-field reading (r3) did not. Keep UU slots only for targets that name a dataset and a scripted count.
+8. **Verifier "missed" lists produce 19 promoted nodes at no extra explorer cost.** Keep them, and have verifiers write verdict + missed files (fifth round it is not done: now a data-loss risk).
+9. **Strict-singleton nodes (40) cluster in executed work (wpo, r4e07, r4i04, uu11).** These are the novel part; pair each with a neighbour-pillar edge, as the bridge step did (21 integrator bridges).
+
+### F4. Concrete next-step hints (priority order)
+
+1. Default after r4: pivot to implementation, treating the queue as spikes (§0c, E3.1). A round 5 is justified only for: (a) q4-003 procurement texts with a reversal rule on R-GAP-4; (b) q1-009 LLM- vs human-found advisories; (c) a three-valued reference Lean re-proof (q4-004), which is executable, small and flips the R-DB-7 spec freeze; (d) MySQL/Mongo write oracle (q4-005).
+2. If round 5 runs: <=8 targets, 6+ descend with a named instrument on a pin, 1 UU with a dataset, 1 calibration with a numbers-touched manifest. At most 2 compiling explorers concurrently (the crash was memory exhaustion); every brief states RSS cap and runs builds under heavy.sh with `systemd-run --scope -p MemoryMax`.
+3. Mandatory brief lines: progress file within 2 minutes; per-explorer clone dirs; source-access preflight (blocked-site list above); executed-command logs saved; one pillar per target in canonical W-* form; `kind` column on query log; verifier verdict file path stated; grade ceiling rules (proof needs file + log, press claim stays secondary, single-machine perf caps at B).
+4. Prefer replication over novelty for the isolation and DX results: run the isolation table on a second machine or idle window; build an external mutant set for DX.
+5. Cover W-STATE, W-ABUSE, W-PERF, W-OPS only via spikes with executable harnesses; do not open literature targets there.
+
+### History entry
+
+#### 2026-10-25, after round 4 (META-OPTIMIZER; post-crash, memory-exhaustion recovery)
+
+- Round 4: 182 new nodes (80% L4/L5, 59 A), 31 revisions, 11 new rules, 28 amended, 1 direction change (R-PQC-3); decision stability 0.988; mechanical novelty 0.909; Good-Turing 0.88; strict singletons 40; verifier over-claim ratio 2.9:1 (from 13:1).
+- Best lenses: resolver/metadata and pinned probes (03), primary documents in non-English sources (10), first-time execution of long-unchecked artifacts (01 Lean, 02 write oracle), cross-implementation differential corpus (07). Worst: forum mining (08), single-laptop absolute numbers (04), standards-reading without executables (09), MCP default-reading (06).
+- Calibration moved from "everything over-claimed" to specific classes (single machine, citation mismatch, own mapping, thin-sample absence). Under-claims exist for one-field machine-readable facts.
+- Method findings: stop on decision flips not URL novelty; calibration needs a numbers-touched manifest; UU needs a dataset; verifier files still not self-written; memory safety: cap RSS per heavy job.
+- Planner recommendation: pivot to implementation; a round 5 only for the four named research or small-Lean items.
+
+---
+
+## PRIOR GUIDANCE: AFTER ROUND 3 (superseded by the block above, retained, never deleted)
+
+## (formerly CURRENT) GUIDANCE after round 3; apply to round 4 planning, §12
 
 Evidence base for the 2026-10-25 entry: reports/round-003.md, graph.jsonl (207 new r3 nodes, 11 explorer-12 revisions, 12 integrator corrections), per-explorer cross-tab computed from graph.jsonl (layer, grade, verifier direction), the yield table and metrics (url novelty 0.881, direction diversity 0.366 / 0.572 with vocab, Good-Turing 0.96, decision stability 0.958). Verifier coverage 76% (161/211), n is 12-23 per explorer, so per-explorer rates are noisy.
 
