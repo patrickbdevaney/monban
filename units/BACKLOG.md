@@ -91,8 +91,8 @@
 - h2spec: RESOLVED by P2-transport-002 (145/146 stable; failures were a subject vhost misconfig). Two h2 0.4.20
   deviations remain (crates/aegis-transport/INFEASIBLE_REPORT.md): GOAWAY(PROTOCOL_ERROR) instead of STREAM_CLOSED
   for HEADERS on a client-reset stream; pseudo-headers in END_STREAM trailers accepted. Strict tests #[ignore]d.
-- Resource-limit oracle (stall / reset / header-block budgets measured against the running server) NOT built:
-  generating that client tripped a content safety stop during this session. Coverage today: aegis-transport e2e
+- Resource-limit oracle: RESOLVED with the public tool h2load (oracles/transport-limits; operator approved
+  2026-10-25). Previously not built because generating a custom client tripped a content safety stop. Coverage today: aegis-transport e2e
   tests (window-0 stall reset, 431 on 129 cookie crumbs, idle close, strict H1 rejects) and spike q2-009's
   measurements. Operator decision needed on how to provide this gate (e.g. an established public HTTP/2 test tool).
 - h2spec v2.6.0 cannot negotiate TLS 1.3, so conformance runs over h2c; TLS-path conformance needs a newer client.

@@ -143,8 +143,13 @@ cmd = "ci/kani.sh"
 selftest = "ci/kani.sh --self-test"
 heavy = true
 
-# OPEN (not yet a gate): transport resource-limit oracle measured against the running server (stall/reset/header
-# budgets) — see units/BACKLOG.md "Transport"; perf-w1 vs nginx (provisional on laptop).
+[[gate]]
+name = "transport-limits"
+cmd = "oracles/transport-limits/run --subject target/release/transport-subject"
+selftest = "oracles/transport-limits/run --self-test target/release/transport-subject"
+heavy = true
+
+# OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
 cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
