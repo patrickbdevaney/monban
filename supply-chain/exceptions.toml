@@ -1,0 +1,2 @@
+# Expiring exception ledger. Entries only decrease. Each: crate, version, reason, expires (YYYY-MM-DD), approver.
+# An expired entry no longer exempts anything (lock-age, vet) and fails the ledger-validity gate.

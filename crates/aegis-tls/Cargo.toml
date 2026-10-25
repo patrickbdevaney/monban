@@ -1,0 +1,17 @@
+[package]
+name = "aegis-tls"
+description = "TLS profiles, PQ key exchange (incl. our SecP384r1MLKEM1024), ticketer per scope, STEK ring (P-PQ1..6)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 3
+
+[dependencies]
+aegis-types = { workspace = true }
+
+[lints]
+workspace = true

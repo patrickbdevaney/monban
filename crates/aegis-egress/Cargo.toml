@@ -1,0 +1,18 @@
+[package]
+name = "aegis-egress"
+description = "Outbound fetch: resolved-address connect, redirect policy, SSRF guard."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 3
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-canon = { workspace = true }
+
+[lints]
+workspace = true

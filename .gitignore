@@ -9,3 +9,6 @@ research/state/raw/*/*-work/
 research/state/raw/*/w[0-9]*/
 **/cargohome/
 .git/checkpoint.index
+/target/
+spec/.lake/
+spec/negative-control/.lake/

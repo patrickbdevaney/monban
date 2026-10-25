@@ -1,0 +1,19 @@
+[package]
+name = "aegis-sdk"
+description = "Handler SDK (B2 scoped adapter). Separate trust zone: implementer agents may not edit."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "sdk"
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-data-ir = { workspace = true }
+aegis-authz = { workspace = true }
+
+[lints]
+workspace = true

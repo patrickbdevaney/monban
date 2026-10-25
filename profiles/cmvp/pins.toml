@@ -1,0 +1,5 @@
+# cmvp FIPS profile: exact pins (module byte identity; CMVP #5298/#5314, AL2023 OEs only).
+# aws-lc-fips-sys 0.14.3 is the decoy (not the certified module). Checked by `cargo xtask fips-lock --profile cmvp`.
+rustls = "0.23.43"
+aws-lc-rs = "1.15.3"
+aws-lc-fips-sys = "0.13.11"

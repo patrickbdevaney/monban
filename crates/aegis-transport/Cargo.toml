@@ -1,0 +1,19 @@
+[package]
+name = "aegis-transport"
+description = "hyper/h2 wrapper enforcing TBI-1..9, strict H1, upstream framing regeneration, Exchange."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 3
+
+[dependencies]
+aegis-types = { workspace = true, features = ["raw-owner"] }
+aegis-budget = { workspace = true }
+aegis-canon = { workspace = true }
+
+[lints]
+workspace = true

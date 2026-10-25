@@ -1,0 +1,24 @@
+[package]
+name = "aegis-types"
+description = "Sealed newtypes: Principal (no Default, authn-path constructor only), TenantId, RouteId, CapId, Decision, Canon<K>, RawFor<S>."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 1
+
+[features]
+# Constructor gates. Cargo unifies features across the workspace, so `xtask layering` additionally rejects any
+# use of these modules outside their owner crate.
+authn-path = []   # owner: aegis-token
+canon-owner = []  # owner: aegis-canon
+raw-owner = []    # owner: aegis-transport
+
+[dependencies]
+
+
+[lints]
+workspace = true

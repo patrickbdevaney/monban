@@ -1,0 +1,62 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "sdk/aegis-sdk", "xtask"]
+default-members = ["crates/*", "sdk/aegis-sdk"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99.1"
+license = "Apache-2.0"
+
+# Pin rule (REPO_LAYOUT §1): caret ranges + security floors here; the golden Cargo.lock targets are
+# enforced by `xtask lock-targets`. Exact `=` pins live only in profiles/cmvp/.
+[workspace.dependencies]
+aegis-adapter-host = { path = "crates/aegis-adapter-host" }
+aegis-adapter-pg = { path = "crates/aegis-adapter-pg" }
+aegis-adapter-redis = { path = "crates/aegis-adapter-redis" }
+aegis-adapter-sqlite = { path = "crates/aegis-adapter-sqlite" }
+aegis-admission = { path = "crates/aegis-admission" }
+aegis-agent = { path = "crates/aegis-agent" }
+aegis-audit = { path = "crates/aegis-audit" }
+aegis-authz = { path = "crates/aegis-authz" }
+aegis-budget = { path = "crates/aegis-budget" }
+aegis-canon = { path = "crates/aegis-canon" }
+aegis-config = { path = "crates/aegis-config" }
+aegis-data-ir = { path = "crates/aegis-data-ir" }
+aegis-egress = { path = "crates/aegis-egress" }
+aegis-iso = { path = "crates/aegis-iso" }
+aegis-metrics = { path = "crates/aegis-metrics" }
+aegis-ops = { path = "crates/aegis-ops" }
+aegis-state = { path = "crates/aegis-state" }
+aegis-tls = { path = "crates/aegis-tls" }
+aegis-token = { path = "crates/aegis-token" }
+aegis-transport = { path = "crates/aegis-transport" }
+aegis-types = { path = "crates/aegis-types" }
+aegis-wasm = { path = "crates/aegis-wasm" }
+aegis-sdk = { path = "sdk/aegis-sdk" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+indexing_slicing = "deny"
+dbg_macro = "deny"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+debug = false
+incremental = false
+
+[profile.dev]
+panic = "abort"
