@@ -1,6 +1,8 @@
 //! HTTP/1.1 connection driver: hyper's h1 server behind the strict framing filter ([`crate::h1::H1Validator`]),
 //! with a TBI-8 watchdog (head / body / response stall deadline, idle deadline) and the TBI-6/7 ledger on the
-//! response path. One request at a time per connection, so TBI-4 holds by construction (≤ 1 live handler).
+//! response path. One request at a time per connection, so TBI-4 holds by construction (≤ 1 live handler). While
+//! the handler runs the watchdog is suspended (the handler is bounded by the exchange's stall deadline itself).
+//! Draining (`Server::drain`) closes an idle connection and ends a busy one after its current response.
 
 use std::future::{Future, poll_fn};
 use std::pin::{Pin, pin};
@@ -17,8 +19,11 @@ use tokio::time::{Instant, sleep, timeout, timeout_at};
 use crate::counters;
 use crate::h1::{H1Reject, H1Validator, HeadLimits};
 use crate::ledger::{ConnLedger, RecvHold, Side};
+use crate::limits::WrapperLimits;
 use crate::limits::usize_sat;
-use crate::pipeline::{App, ConnInfo, RawHead, Reply, ReplyBody, admit, body_cap, finish, response_head, stall_ms};
+use crate::pipeline::{
+    App, ConnFlags, ConnInfo, RawHead, Reply, ReplyBody, admit, arrive, body_cap, finish, response_head, stall_ms,
+};
 use crate::server::{CountingIo, Gauge, Progress, Server};
 
 /// State shared by the I/O filter, the service and the watchdog.
@@ -28,6 +33,8 @@ struct H1State {
     head_partial: AtomicBool,
     mid_message: AtomicBool,
     in_flight: AtomicU64,
+    /// Handlers running (watchdog suspended while > 0).
+    handling: AtomicU64,
     reject: Mutex<Option<H1Reject>>,
 }
 
@@ -111,8 +118,27 @@ impl<IO: AsyncRead + AsyncWrite + Unpin> hyper::rt::Write for H1Guard<IO> {
 struct Shared<A: App> {
     srv: Arc<Server<A>>,
     info: ConnInfo,
+    flags: Arc<ConnFlags>,
+    l: WrapperLimits,
     ledger: Arc<ConnLedger>,
     st: Arc<H1State>,
+}
+
+/// Marks a handler as running; the I/O progress clock restarts when it returns.
+struct Handling<'a, A: App>(&'a Shared<A>);
+
+impl<'a, A: App> Handling<'a, A> {
+    fn new(sh: &'a Shared<A>) -> Self {
+        counters::bump(&sh.st.handling);
+        Self(sh)
+    }
+}
+
+impl<A: App> Drop for Handling<'_, A> {
+    fn drop(&mut self) {
+        self.0.st.progress.touch(self.0.srv.now_ms());
+        counters::dec(&self.0.st.handling);
+    }
 }
 
 struct Svc<A: App>(Arc<Shared<A>>);
@@ -205,15 +231,15 @@ impl Body for OutBody {
 fn out<A: App>(sh: &Shared<A>, reply: Reply, head_req: bool, close: bool, stall: Duration) -> http::Response<OutBody> {
     counters::bump(&sh.srv.counters.responses);
     let (mut parts, ()) = response_head(&reply, head_req).into_parts();
-    if close {
+    if close || sh.srv.is_draining() {
         parts.headers.insert(http::header::CONNECTION, http::HeaderValue::from_static("close"));
     }
-    let len = if head_req { 0 } else { reply.body.len() };
+    let len = reply.sent_len(head_req);
     let body = OutBody {
         body: reply.body,
         off: 0,
         len,
-        chunk: sh.srv.limits.chunk_bytes,
+        chunk: sh.l.chunk_bytes,
         stall,
         ledger: if sh.srv.wrapper { Some(sh.ledger.clone()) } else { None },
         pending: None,
@@ -231,12 +257,18 @@ enum BodyErr {
 async fn handle<A: App>(sh: Arc<Shared<A>>, req: http::Request<Incoming>) -> http::Response<OutBody> {
     let _f = InFlight::new(sh.st.clone());
     let srv = sh.srv.clone();
-    let l = srv.limits;
-    let stall = srv.stall();
+    let l = sh.l;
+    let stall = Duration::from_millis(l.stall_timeout_ms);
     counters::bump(&srv.counters.streams_accepted);
     let _live = Gauge::up(&srv.counters.streams_live);
     let (parts, mut body) = req.into_parts();
     let head_req = parts.method == http::Method::HEAD;
+    // A reply sent before the body was read would desynchronize keep-alive: close after it.
+    let unread = !body.is_end_stream();
+    let mut arrival = match arrive(&srv.app, &sh.info, &sh.flags) {
+        Ok(a) => a,
+        Err(reply) => return out(&sh, reply, head_req, unread, stall),
+    };
     let hosts: Vec<&[u8]> = parts.headers.get_all(http::header::HOST).iter().map(|v| v.as_bytes()).collect();
     let raw = RawHead {
         proto: Proto::H1,
@@ -246,15 +278,16 @@ async fn handle<A: App>(sh: Arc<Shared<A>>, req: http::Request<Incoming>) -> htt
         hosts,
         origin: parts.headers.get(http::header::ORIGIN).map(http::HeaderValue::as_bytes),
         path_and_query: parts.uri.path_and_query().map_or(b"" as &[u8], |p| p.as_str().as_bytes()),
+        fields: parts.headers.iter().map(|(n, v)| (n.as_str().as_bytes(), v.as_bytes())).collect(),
     };
-    let adm = match admit(&srv.app, &srv.vhosts, &sh.info, &raw) {
+    let adm = match admit(&srv.app, &srv.vhosts(), &sh.info, &raw) {
         Ok(a) => a,
         Err(r) => {
             if r.authority {
                 counters::bump(&srv.counters.authority_rejects);
             }
-            // The unread body (if any) would desynchronize keep-alive: close after a reject.
-            return out(&sh, r.reply, head_req, true, stall);
+            arrival.complete();
+            return out(&sh, r.reply, head_req, unread, stall);
         }
     };
     let cap = body_cap(&adm.budget, l.max_body_bytes);
@@ -272,8 +305,11 @@ async fn handle<A: App>(sh: Arc<Shared<A>>, req: http::Request<Incoming>) -> htt
         }
         Err(BodyErr::Other) => return out(&sh, Reply::status(400), head_req, true, stall),
     };
-    let reply = finish(&srv.app, &adm, &message);
-    drop(message);
+    let reply = {
+        let _h = Handling::new(&sh);
+        finish(&srv.app, adm, &sh.info, message, stall).await
+    };
+    arrival.complete();
     drop(hold);
     out(&sh, reply, head_req, false, stall)
 }
@@ -332,12 +368,12 @@ fn reason_phrase(status: u16) -> &'static str {
 }
 
 /// Drive one HTTP/1.1 connection to completion.
-pub(crate) async fn serve<A, IO>(srv: Arc<Server<A>>, io: IO, info: ConnInfo)
+pub(crate) async fn serve<A, IO>(srv: Arc<Server<A>>, io: IO, info: ConnInfo, flags: Arc<ConnFlags>)
 where
     A: App,
     IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let l = srv.limits;
+    let l = srv.limits();
     let on = srv.wrapper;
     let ledger = Arc::new(ConnLedger::new(if on { l.ledger_bytes } else { u64::MAX }));
     let st = Arc::new(H1State::default());
@@ -359,7 +395,7 @@ where
         eof: false,
         st: st.clone(),
     };
-    let sh = Arc::new(Shared { srv: srv.clone(), info, ledger, st: st.clone() });
+    let sh = Arc::new(Shared { srv: srv.clone(), info, flags, l, ledger, st: st.clone() });
     let mut b = hyper::server::conn::http1::Builder::new();
     b.half_close(true)
         .keep_alive(true)
@@ -367,14 +403,20 @@ where
         .max_buf_size(65_536)
         .header_read_timeout(None)
         .writev(false);
-    let conn = b.serve_connection(guard, Svc(sh));
-    let mut fut = pin!(conn.without_shutdown());
+    let mut conn = b.serve_connection(guard, Svc(sh));
     let mut timer = pin!(sleep(Duration::from_millis(l.idle_timeout_ms)));
+    let mut drain = pin!(srv.drain_notify.notified());
+    drain.as_mut().enable();
+    let mut drained = false;
     let res = poll_fn(|cx| {
-        if let Poll::Ready(r) = fut.as_mut().poll(cx) {
+        if !drained && (srv.is_draining() || drain.as_mut().poll(cx).is_ready()) {
+            drained = true;
+            Pin::new(&mut conn).graceful_shutdown();
+        }
+        if let Poll::Ready(r) = conn.poll_without_shutdown(cx) {
             return Poll::Ready(Some(r));
         }
-        if !on {
+        if !on || st.handling.load(Ordering::Relaxed) > 0 {
             return Poll::Pending;
         }
         loop {
@@ -398,7 +440,7 @@ where
         }
     })
     .await;
-    let Some(Ok(parts)) = res else { return };
+    let Some(Ok(())) = res else { return };
     if let Some(rej) = st.reject() {
         counters::bump(&srv.counters.h1_rejects);
         if rej.status == 431 {
@@ -409,7 +451,7 @@ where
             rej.status,
             reason_phrase(rej.status)
         );
-        let mut io = parts.io.io.io;
+        let mut io = conn.into_parts().io.io.io;
         let _ = timeout(srv.stall(), async {
             io.write_all(msg.as_bytes()).await?;
             io.shutdown().await

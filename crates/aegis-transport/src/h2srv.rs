@@ -6,7 +6,9 @@
 //! ENHANCE_YOUR_CALM), the TBI-5 peer-reset bucket, server-reset cap and total-streams cap, the TBI-6/7
 //! per-connection ledger (request bytes are only released back to the peer as window when the ledger admits them;
 //! response bytes are only handed to h2 when it admits them), and TBI-8 per-stream stall and connection idle
-//! deadlines. Spikes/q2-009 is the prototype of the ledger + stall part.
+//! deadlines. Spikes/q2-009 is the prototype of the ledger + stall part. The request handler runs inside the stream
+//! task, under its TBI-4 permit; its reply goes out through the same ledger-gated send path. Draining
+//! (`Server::drain`) sends a graceful GOAWAY.
 
 use std::future::{Future, poll_fn};
 use std::sync::Arc;
@@ -25,8 +27,10 @@ use tokio::time::{Instant, sleep, timeout_at};
 use crate::counters;
 use crate::fields::request_block;
 use crate::ledger::{Admit, ConnLedger, HandlerGate, RecvHold, ResetBudget, Side};
-use crate::limits::{u32_sat, usize_sat};
-use crate::pipeline::{App, ConnInfo, RawHead, Reply, admit, body_cap, finish, response_head, stall_ms};
+use crate::limits::{WrapperLimits, u32_sat, usize_sat};
+use crate::pipeline::{
+    App, ConnFlags, ConnInfo, RawHead, Reply, admit, arrive, body_cap, finish, response_head, stall_ms,
+};
 use crate::server::{CountingIo, Gauge, Progress, Server};
 
 /// Grace given to a GOAWAY to reach the peer before the transport is dropped.
@@ -35,6 +39,8 @@ const GOAWAY_GRACE: Duration = Duration::from_millis(1000);
 struct Conn<A: App> {
     srv: Arc<Server<A>>,
     info: ConnInfo,
+    flags: Arc<ConnFlags>,
+    l: WrapperLimits,
     ledger: Arc<ConnLedger>,
     gate: HandlerGate,
     resets: ResetBudget,
@@ -79,15 +85,16 @@ enum Ev<T> {
     Accept(Option<Result<T, h2::Error>>),
     Done,
     Timer,
+    Drain,
 }
 
 /// Drive one HTTP/2 connection to completion.
-pub(crate) async fn serve<A, IO>(srv: Arc<Server<A>>, io: IO, info: ConnInfo)
+pub(crate) async fn serve<A, IO>(srv: Arc<Server<A>>, io: IO, info: ConnInfo, flags: Arc<ConnFlags>)
 where
     A: App,
     IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let l = srv.limits;
+    let l = srv.limits();
     let on = srv.wrapper;
     let ledger = Arc::new(ConnLedger::new(if on { l.ledger_bytes } else { u64::MAX }));
     let io = CountingIo::new(io, ledger.clone(), None);
@@ -108,6 +115,8 @@ where
     };
     let c = Arc::new(Conn {
         info,
+        flags,
+        l,
         ledger,
         gate: HandlerGate::new(usize_sat(l.max_concurrent_streams), l.handler_queue),
         resets: ResetBudget::new(l.rst_burst, l.rst_refill_per_s, l.max_local_error_resets, srv.now_ns()),
@@ -121,6 +130,9 @@ where
     let mut accepted: u64 = 0;
     let mut closing_at: Option<Instant> = None;
     let mut timer = Box::pin(sleep(Duration::from_millis(l.idle_timeout_ms)));
+    let mut drain = Box::pin(srv.drain_notify.notified());
+    drain.as_mut().enable();
+    let mut drained = false;
     loop {
         let idle_at = srv.instant_at(c.activity.get().saturating_add(l.idle_timeout_ms));
         let wake = match closing_at {
@@ -138,6 +150,9 @@ where
             }
             if timer_live && timer.as_mut().poll(cx).is_ready() {
                 return Poll::Ready(Ev::Timer);
+            }
+            if !drained && (srv.is_draining() || drain.as_mut().poll(cx).is_ready()) {
+                return Poll::Ready(Ev::Drain);
             }
             Poll::Pending
         })
@@ -159,6 +174,10 @@ where
                 tasks.spawn(stream_task(c.clone(), req, respond));
             }
             Ev::Done => {}
+            Ev::Drain => {
+                drained = true;
+                conn.graceful_shutdown();
+            }
             Ev::Timer => {
                 if closing_at.is_some_and(|t| Instant::now() >= t) {
                     break;
@@ -202,7 +221,7 @@ enum BodyErr {
 
 async fn stream_task<A: App>(c: Arc<Conn<A>>, req: http::Request<RecvStream>, mut respond: SendResponse<Bytes>) {
     let srv = c.srv.clone();
-    let l = srv.limits;
+    let l = c.l;
     let on = c.on();
     let _live = Gauge::up(&srv.counters.streams_live);
     let stall = srv.stall();
@@ -250,7 +269,26 @@ async fn stream_task<A: App>(c: Arc<Conn<A>>, req: http::Request<RecvStream>, mu
 
     let (parts, mut body) = req.into_parts();
     let head_req = parts.method == http::Method::HEAD;
+    let mut arrival = match arrive(&srv.app, &c.info, &c.flags) {
+        Ok(a) => a,
+        Err(reply) => {
+            send_reply(&c, &mut respond, reply, head_req, stall).await;
+            return;
+        }
+    };
     let hosts: Vec<&[u8]> = parts.headers.get_all(http::header::HOST).iter().map(|v| v.as_bytes()).collect();
+    // RFC 9113 §8.2.3: cookie crumbs are concatenated with "; " before anything else sees them.
+    let cookie: Vec<u8> =
+        parts.headers.get_all(http::header::COOKIE).iter().map(|v| v.as_bytes()).collect::<Vec<_>>().join(&b"; "[..]);
+    let mut fields: Vec<(&[u8], &[u8])> = parts
+        .headers
+        .iter()
+        .filter(|(n, _)| *n != http::header::COOKIE)
+        .map(|(n, v)| (n.as_str().as_bytes(), v.as_bytes()))
+        .collect();
+    if !cookie.is_empty() {
+        fields.push((b"cookie", &cookie));
+    }
     let raw = RawHead {
         proto: Proto::H2,
         method: &parts.method,
@@ -259,13 +297,15 @@ async fn stream_task<A: App>(c: Arc<Conn<A>>, req: http::Request<RecvStream>, mu
         hosts,
         origin: parts.headers.get(http::header::ORIGIN).map(http::HeaderValue::as_bytes),
         path_and_query: parts.uri.path_and_query().map_or(b"" as &[u8], |p| p.as_str().as_bytes()),
+        fields,
     };
-    let adm = match admit(&srv.app, &srv.vhosts, &c.info, &raw) {
+    let adm = match admit(&srv.app, &srv.vhosts(), &c.info, &raw) {
         Ok(a) => a,
         Err(r) => {
             if r.authority {
                 counters::bump(&srv.counters.authority_rejects);
             }
+            arrival.complete();
             send_reply(&c, &mut respond, r.reply, head_req, stall).await;
             return;
         }
@@ -290,10 +330,15 @@ async fn stream_task<A: App>(c: Arc<Conn<A>>, req: http::Request<RecvStream>, mu
         }
         Err(BodyErr::Other) => return,
     };
-    let reply = finish(&srv.app, &adm, &message);
-    drop(message);
-    drop(hold);
     drop(body);
+    let reply = finish(&srv.app, adm, &c.info, message, stall).await;
+    arrival.complete();
+    drop(hold);
+    c.touch();
+    if reset_by_peer(&mut respond) {
+        c.peer_reset();
+        return;
+    }
     send_reply(&c, &mut respond, reply, head_req, stall).await;
 }
 
@@ -356,9 +401,9 @@ async fn send_reply<A: App>(
     stall: Duration,
 ) {
     let srv = &c.srv;
-    let l = srv.limits;
+    let l = c.l;
     let on = c.on();
-    let body_len = if head_req { 0 } else { reply.body.len() };
+    let body_len = reply.sent_len(head_req);
     let mut send = match respond.send_response(response_head(&reply, head_req), body_len == 0) {
         Ok(s) => s,
         Err(_) => {

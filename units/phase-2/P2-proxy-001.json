@@ -27,5 +27,5 @@
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
- "status": "partial: proxy-e2e PASS (48 checks) + self-test 3/3; systemd 1.6; blocked items: aegis-bin runs its own inbound drivers until P2-transport-003 (h2 path lacks TBI-4/5/7); budget non-crypto unsafe 5373 > 5000 until P2-ops-rustix-001; idle RSS needs a config in xtask budget"
+ "status": "partial\u2192mostly done: serves through aegis_transport::Server (P2-transport-003); budget unsafe fixed (P2-ops-rustix-001); open: idle RSS measurement in xtask budget needs a config; upstream response is an 8 MiB bounded buffer, not a stream; upstream TLS later"
 }

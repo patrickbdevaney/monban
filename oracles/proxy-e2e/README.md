@@ -60,6 +60,11 @@ Written for this unit; no research artifact was ported. Results recorded at impl
 laptop): `run --subject target/release/aegis` → `PROXY-E2E: PASS (48 checks)`; `--self-test` → `PROXY-E2E SELF-TEST: PASS
 (3/3 mutants caught: raw-path, skip-authz-deny, skip-lkg)`.
 
+P2-transport-003 (2026-10-25): aegis now serves h1 and h2 through `aegis_transport::Server` (its own inbound drivers
+were deleted), and the proxy is an async `App::handle` handler. Re-run results: `PROXY-E2E: PASS (48 checks)`, self-test
+3/3. The `raw-path` mutant now reads the raw target from `Request::raw_target`, which exists only with
+aegis-transport's `e2e-raw-target` feature (enabled by aegis-bin's `e2e-mutants`).
+
 ## Known limits
 
 - The upstream is HTTP/1.1 only (stdlib has no h2 server), so the h2 *upstream* framing (`"framing": "h2"`) and UDS

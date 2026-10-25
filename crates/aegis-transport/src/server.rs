@@ -1,41 +1,63 @@
 //! Server shell: limits + front end + vhosts, TLS / cleartext entry points, and the I/O adapters the drivers share.
 
+use std::net::SocketAddr;
 use std::pin::Pin;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
 use aegis_canon::Scheme;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
+use tokio::sync::Notify;
 use tokio::time::{Instant, timeout};
 use tokio_rustls::TlsAcceptor;
 
 use crate::counters::{self, Counters};
 use crate::ledger::ConnLedger;
 use crate::limits::{LimitsError, WrapperLimits};
-use crate::pipeline::{App, ConnInfo, VhostTable};
+use crate::pipeline::{App, ConnFlags, ConnInfo, VhostTable};
 
 /// The HTTP/2 connection preface (RFC 9113 §3.4).
 pub const H2_PREFACE: &[u8; 24] = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
 /// One server: a front end, its vhosts and the wrapper limits. Cheap to share (`Arc`).
+///
+/// Vhosts and limits can be replaced at run time (config reload): new requests see the new vhost table, new
+/// connections the new limits (a live connection keeps the limits it started with).
 #[derive(Debug)]
 pub struct Server<A: App> {
     pub(crate) app: A,
-    pub(crate) vhosts: VhostTable,
-    pub(crate) limits: WrapperLimits,
+    vhosts: RwLock<Arc<VhostTable>>,
+    limits: RwLock<WrapperLimits>,
     pub(crate) counters: Counters,
     /// `false` only through the `negative-control` feature (oracle self-test).
     pub(crate) wrapper: bool,
     epoch: Instant,
+    conn_ids: AtomicU64,
+    draining: AtomicBool,
+    pub(crate) drain_notify: Notify,
 }
 
 impl<A: App> Server<A> {
+    fn build(app: A, vhosts: VhostTable, limits: WrapperLimits, wrapper: bool) -> Result<Arc<Self>, LimitsError> {
+        limits.validate()?;
+        Ok(Arc::new(Self {
+            app,
+            vhosts: RwLock::new(Arc::new(vhosts)),
+            limits: RwLock::new(limits),
+            counters: Counters::default(),
+            wrapper,
+            epoch: Instant::now(),
+            conn_ids: AtomicU64::new(1),
+            draining: AtomicBool::new(false),
+            drain_notify: Notify::new(),
+        }))
+    }
+
     /// Build a server; limits are validated here (fail closed before any connection is served).
     pub fn new(app: A, vhosts: VhostTable, limits: WrapperLimits) -> Result<Arc<Self>, LimitsError> {
-        limits.validate()?;
-        Ok(Arc::new(Self { app, vhosts, limits, counters: Counters::default(), wrapper: true, epoch: Instant::now() }))
+        Self::build(app, vhosts, limits, true)
     }
 
     /// NEGATIVE CONTROL ONLY (oracles/transport-stall `--self-test`): the same server with the AEGIS wrapper
@@ -43,16 +65,44 @@ impl<A: App> Server<A> {
     /// deadlines, strict-H1 filter; h2's own settings stay). Never enabled in the shipped binary.
     #[cfg(feature = "negative-control")]
     pub fn new_without_wrapper(app: A, vhosts: VhostTable, limits: WrapperLimits) -> Result<Arc<Self>, LimitsError> {
-        limits.validate()?;
-        Ok(Arc::new(Self { app, vhosts, limits, counters: Counters::default(), wrapper: false, epoch: Instant::now() }))
+        Self::build(app, vhosts, limits, false)
     }
 
     pub fn counters(&self) -> &Counters {
         &self.counters
     }
 
-    pub fn limits(&self) -> &WrapperLimits {
-        &self.limits
+    /// The current limits (a copy).
+    pub fn limits(&self) -> WrapperLimits {
+        *self.limits.read().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Replace the limits for connections accepted from now on; invalid limits are refused and change nothing.
+    pub fn set_limits(&self, limits: WrapperLimits) -> Result<(), LimitsError> {
+        limits.validate()?;
+        *self.limits.write().unwrap_or_else(std::sync::PoisonError::into_inner) = limits;
+        Ok(())
+    }
+
+    /// The current vhost table.
+    pub fn vhosts(&self) -> Arc<VhostTable> {
+        self.vhosts.read().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+    }
+
+    /// Replace the vhost table for requests admitted from now on.
+    pub fn set_vhosts(&self, vhosts: VhostTable) {
+        *self.vhosts.write().unwrap_or_else(std::sync::PoisonError::into_inner) = Arc::new(vhosts);
+    }
+
+    /// Start draining (upgrade / shutdown): HTTP/1.1 connections close after their current response (idle ones
+    /// now), HTTP/2 connections get a graceful GOAWAY. Idempotent; connections accepted later drain at once.
+    pub fn drain(&self) {
+        self.draining.store(true, Ordering::Release);
+        self.drain_notify.notify_waiters();
+    }
+
+    pub fn is_draining(&self) -> bool {
+        self.draining.load(Ordering::Acquire)
     }
 
     pub fn app(&self) -> &A {
@@ -76,12 +126,38 @@ impl<A: App> Server<A> {
     }
 
     pub(crate) fn stall(&self) -> Duration {
-        Duration::from_millis(self.limits.stall_timeout_ms)
+        Duration::from_millis(self.limits().stall_timeout_ms)
+    }
+
+    fn conn_info(&self, scheme: Scheme, sni: Option<Vec<u8>>, peer: Option<SocketAddr>) -> ConnInfo {
+        ConnInfo { scheme, sni, peer, id: self.conn_ids.fetch_add(1, Ordering::Relaxed) }
+    }
+
+    /// Run one driver, then tell the app the connection ended.
+    async fn drive<IO>(self: Arc<Self>, io: IO, info: ConnInfo, h2: bool)
+    where
+        IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        let flags = Arc::new(ConnFlags::default());
+        if h2 {
+            crate::h2srv::serve(self.clone(), io, info.clone(), flags.clone()).await;
+        } else {
+            crate::h1srv::serve(self.clone(), io, info.clone(), flags.clone()).await;
+        }
+        self.app.conn_closed(&info, flags.admitted());
     }
 
     /// Serve one accepted TLS transport: handshake (bounded by the stall deadline), then h2 if ALPN chose `h2`,
     /// else HTTP/1.1. SNI is bound to the vhost through aegis-canon (CANON-6).
     pub async fn serve_tls<IO>(self: Arc<Self>, io: IO, acceptor: TlsAcceptor)
+    where
+        IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        self.serve_tls_from(io, acceptor, None).await;
+    }
+
+    /// [`Server::serve_tls`] with the peer address (handed to the app in [`ConnInfo`]).
+    pub async fn serve_tls_from<IO>(self: Arc<Self>, io: IO, acceptor: TlsAcceptor, peer: Option<SocketAddr>)
     where
         IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
@@ -94,17 +170,22 @@ impl<A: App> Server<A> {
             }
         };
         let (_, sc) = tls.get_ref();
-        let info = ConnInfo { scheme: Scheme::Https, sni: sc.server_name().map(|s| s.as_bytes().to_vec()) };
-        if sc.alpn_protocol() == Some(b"h2") {
-            crate::h2srv::serve(self.clone(), tls, info).await;
-        } else {
-            crate::h1srv::serve(self.clone(), tls, info).await;
-        }
+        let info = self.conn_info(Scheme::Https, sc.server_name().map(|s| s.as_bytes().to_vec()), peer);
+        let h2 = sc.alpn_protocol() == Some(b"h2");
+        self.clone().drive(tls, info, h2).await;
     }
 
     /// Serve one cleartext transport: h2 with prior knowledge if the client opens with the h2 preface, else
     /// HTTP/1.1 (no h2c Upgrade).
-    pub async fn serve_plain<IO>(self: Arc<Self>, mut io: IO)
+    pub async fn serve_plain<IO>(self: Arc<Self>, io: IO)
+    where
+        IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        self.serve_plain_from(io, None).await;
+    }
+
+    /// [`Server::serve_plain`] with the peer address (handed to the app in [`ConnInfo`]).
+    pub async fn serve_plain_from<IO>(self: Arc<Self>, mut io: IO, peer: Option<SocketAddr>)
     where
         IO: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
@@ -127,12 +208,8 @@ impl<A: App> Server<A> {
         }
         let h2 = prefix.as_slice() == H2_PREFACE.as_slice();
         let io = Prefixed { prefix, pos: 0, io };
-        let info = ConnInfo { scheme: Scheme::Http, sni: None };
-        if h2 {
-            crate::h2srv::serve(self.clone(), io, info).await;
-        } else {
-            crate::h1srv::serve(self.clone(), io, info).await;
-        }
+        let info = self.conn_info(Scheme::Http, None, peer);
+        self.clone().drive(io, info, h2).await;
     }
 }
 
