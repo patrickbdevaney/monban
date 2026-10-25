@@ -1,0 +1,102 @@
+2023-03-14	CVE-2022-41328	Fortinet	FortiOS	Fortinet FortiOS Path Traversal Vulnerability	CWE-22
+2023-05-12	CVE-2016-8735	Apache	Tomcat	Apache Tomcat Remote Code Execution Vulnerability	CWE-284
+2023-06-13	CVE-2023-27997	Fortinet	FortiOS and FortiProxy SSL-VPN	Fortinet FortiOS and FortiProxy SSL-VPN Heap-Based Buffer Overflow Vulnerability	CWE-122
+2023-07-19	CVE-2023-3519	Citrix	NetScaler ADC and NetScaler Gateway	Citrix NetScaler ADC and NetScaler Gateway Code Injection Vulnerability	CWE-94
+2023-07-25	CVE-2023-35078	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile Authentication Bypass Vulnerability	CWE-287
+2023-07-31	CVE-2023-35081	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Path Traversal Vulnerability	CWE-22
+2023-08-16	CVE-2023-24489	Citrix	Content Collaboration	Citrix Content Collaboration ShareFile Improper Access Control Vulnerability	CWE-284
+2023-08-22	CVE-2023-38035	Ivanti	Sentry	Ivanti Sentry Authentication Bypass Vulnerability	CWE-863
+2023-10-10	CVE-2023-44487	IETF	HTTP/2	HTTP/2 Rapid Reset Attack Vulnerability	CWE-400
+2023-10-18	CVE-2023-4966	Citrix	NetScaler ADC and NetScaler Gateway	Citrix NetScaler ADC and NetScaler Gateway Buffer Overflow Vulnerability	CWE-119
+2023-10-31	CVE-2023-46747	F5	BIG-IP Configuration Utility	F5 BIG-IP Configuration Utility Authentication Bypass Vulnerability	CWE-288
+2023-10-31	CVE-2023-46748	F5	BIG-IP Configuration Utility	F5 BIG-IP Configuration Utility SQL Injection Vulnerability	CWE-89
+2023-11-13	CVE-2023-36844	Juniper	Junos OS	Juniper Junos OS EX Series PHP External Variable Modification Vulnerability	CWE-473
+2023-11-13	CVE-2023-36845	Juniper	Junos OS	Juniper Junos OS EX Series and SRX Series PHP External Variable Modification Vulnerability	CWE-473
+2024-01-10	CVE-2023-46805	Ivanti	Connect Secure and Policy Secure	Ivanti Connect Secure and Policy Secure Authentication Bypass Vulnerability	CWE-287
+2024-01-10	CVE-2024-21887	Ivanti	Connect Secure and Policy Secure	Ivanti Connect Secure and Policy Secure Command Injection Vulnerability	CWE-77
+2024-01-17	CVE-2023-6548	Citrix	NetScaler ADC and NetScaler Gateway	Citrix NetScaler ADC and NetScaler Gateway Code Injection Vulnerability	CWE-94
+2024-01-17	CVE-2023-6549	Citrix	NetScaler ADC and NetScaler Gateway	Citrix NetScaler ADC and NetScaler Gateway Buffer Overflow Vulnerability	CWE-119
+2024-01-18	CVE-2023-35082	Ivanti	Endpoint Manager Mobile (EPMM) and MobileIron Core	Ivanti Endpoint Manager Mobile (EPMM) and MobileIron Core Authentication Bypass Vulnerability	CWE-287
+2024-01-31	CVE-2024-21893	Ivanti	Connect Secure, Policy Secure, and Neurons	Ivanti Connect Secure, Policy Secure, and Neurons Server-Side Request Forgery (SSRF) Vulnerability	CWE-918
+2024-02-09	CVE-2024-21762	Fortinet	FortiOS	Fortinet FortiOS Out-of-Bound Write Vulnerability	CWE-787
+2024-03-25	CVE-2021-44529	Ivanti	Endpoint Manager Cloud Service Appliance (EPM CSA)	Ivanti Endpoint Manager Cloud Service Appliance (EPM CSA) Code Injection Vulnerability 	CWE-94
+2024-03-25	CVE-2023-48788	Fortinet	FortiClient EMS	Fortinet FortiClient EMS SQL Injection Vulnerability	CWE-89
+2024-04-12	CVE-2024-3400	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Command Injection Vulnerability	CWE-20,CWE-77
+2024-06-12	CVE-2024-4577	PHP Group	PHP	PHP-CGI OS Command Injection Vulnerability	CWE-78
+2024-07-09	CVE-2024-38080	Microsoft	Windows 	Microsoft Windows Hyper-V Privilege Escalation Vulnerability	CWE-190
+2024-09-13	CVE-2024-8190	Ivanti	Cloud Services Appliance	Ivanti Cloud Services Appliance OS Command Injection Vulnerability	CWE-78
+2024-09-19	CVE-2024-8963	Ivanti	Cloud Services Appliance (CSA)	Ivanti Cloud Services Appliance (CSA) Path Traversal Vulnerability	CWE-22
+2024-09-24	CVE-2024-7593	Ivanti	Virtual Traffic Manager	Ivanti Virtual Traffic Manager Authentication Bypass Vulnerability	CWE-287,CWE-303
+2024-10-02	CVE-2024-29824	Ivanti	Endpoint Manager (EPM)	Ivanti Endpoint Manager (EPM) SQL Injection Vulnerability	CWE-89
+2024-10-09	CVE-2024-23113	Fortinet	Multiple Products	Fortinet Multiple Products Format String Vulnerability	CWE-134
+2024-10-09	CVE-2024-9379	Ivanti	Cloud Services Appliance (CSA)	Ivanti Cloud Services Appliance (CSA) SQL Injection Vulnerability	CWE-89
+2024-10-09	CVE-2024-9380	Ivanti	Cloud Services Appliance (CSA)	Ivanti Cloud Services Appliance (CSA) OS Command Injection Vulnerability	CWE-77
+2024-10-23	CVE-2024-47575	Fortinet	FortiManager	Fortinet FortiManager Missing Authentication Vulnerability	CWE-306
+2024-11-07	CVE-2024-5910	Palo Alto Networks	Expedition	Palo Alto Networks Expedition Missing Authentication Vulnerability	CWE-306
+2024-11-14	CVE-2024-9463	Palo Alto Networks	Expedition	Palo Alto Networks Expedition OS Command Injection Vulnerability	CWE-78
+2024-11-14	CVE-2024-9465	Palo Alto Networks	Expedition	Palo Alto Networks Expedition SQL Injection Vulnerability	CWE-89
+2024-11-18	CVE-2024-0012	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Management Interface Authentication Bypass Vulnerability	CWE-306
+2024-11-18	CVE-2024-9474	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Management Interface OS Command Injection Vulnerability	CWE-77
+2024-12-30	CVE-2024-3393	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Malicious DNS Packet Vulnerability	CWE-754
+2025-01-08	CVE-2025-0282	Ivanti	Connect Secure, Policy Secure, and ZTA Gateways	Ivanti Connect Secure, Policy Secure, and ZTA Gateways Stack-Based Buffer Overflow Vulnerability	CWE-121
+2025-01-14	CVE-2024-55591	Fortinet	FortiOS and FortiProxy	Fortinet FortiOS and FortiProxy Authentication Bypass Vulnerability	CWE-288
+2025-01-14	CVE-2025-21333	Microsoft	Windows	Microsoft Windows Hyper-V NT Kernel Integration VSP Heap-based Buffer Overflow Vulnerability	CWE-122
+2025-01-14	CVE-2025-21334	Microsoft	Windows	Microsoft Windows Hyper-V NT Kernel Integration VSP Use-After-Free Vulnerability	CWE-416
+2025-01-14	CVE-2025-21335	Microsoft	Windows	Microsoft Windows Hyper-V NT Kernel Integration VSP Use-After-Free Vulnerability	CWE-416
+2025-02-18	CVE-2025-0108	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Authentication Bypass Vulnerability	CWE-306
+2025-02-20	CVE-2025-0111	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS File Read Vulnerability	CWE-73
+2025-03-10	CVE-2024-13159	Ivanti	Endpoint Manager (EPM)	Ivanti Endpoint Manager (EPM) Absolute Path Traversal Vulnerability	CWE-36
+2025-03-10	CVE-2024-13160	Ivanti	Endpoint Manager (EPM)	Ivanti Endpoint Manager (EPM) Absolute Path Traversal Vulnerability	CWE-36
+2025-03-10	CVE-2024-13161	Ivanti	Endpoint Manager (EPM)	Ivanti Endpoint Manager (EPM) Absolute Path Traversal Vulnerability	CWE-36
+2025-03-18	CVE-2025-24472	Fortinet	FortiOS and FortiProxy	Fortinet FortiOS and FortiProxy Authentication Bypass Vulnerability	CWE-288
+2025-04-01	CVE-2025-24813	Apache	Tomcat	Apache Tomcat Path Equivalence Vulnerability	CWE-44,CWE-502
+2025-04-04	CVE-2025-22457	Ivanti	Connect Secure, Policy Secure, and ZTA Gateways	Ivanti Connect Secure, Policy Secure, and ZTA Gateways Stack-Based Buffer Overflow Vulnerability	CWE-121
+2025-05-01	CVE-2024-38475	Apache	HTTP Server	Apache HTTP Server Improper Escaping of Output Vulnerability	CWE-116
+2025-05-05	CVE-2025-3248	Langflow	Langflow	Langflow Missing Authentication Vulnerability	CWE-306
+2025-05-14	CVE-2025-32756	Fortinet	Multiple Products	Fortinet Multiple Products Stack-Based Buffer Overflow Vulnerability	CWE-124
+2025-05-19	CVE-2025-4427	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Authentication Bypass Vulnerability	CWE-288
+2025-05-19	CVE-2025-4428	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Code Injection Vulnerability	CWE-94
+2025-06-25	CVE-2019-6693	Fortinet	FortiOS	Fortinet FortiOS Use of Hard-Coded Credentials Vulnerability	CWE-798
+2025-06-30	CVE-2025-6543	Citrix	NetScaler ADC and Gateway	Citrix NetScaler ADC and Gateway Buffer Overflow Vulnerability	CWE-119
+2025-07-07	CVE-2016-10033	PHP	PHPMailer	PHPMailer Command Injection Vulnerability	CWE-77,CWE-88
+2025-07-10	CVE-2025-5777	Citrix	NetScaler ADC and Gateway	Citrix NetScaler ADC and Gateway Out-of-Bounds Read Vulnerability	CWE-125
+2025-07-18	CVE-2025-25257	Fortinet	FortiWeb	Fortinet FortiWeb SQL Injection Vulnerability	CWE-89
+2025-08-25	CVE-2024-8068	Citrix	Session Recording	Citrix Session Recording Improper Privilege Management Vulnerability	CWE-269
+2025-08-25	CVE-2024-8069	Citrix	Session Recording	Citrix Session Recording Deserialization of Untrusted Data Vulnerability	CWE-502
+2025-08-26	CVE-2025-7775	Citrix	NetScaler	Citrix NetScaler Memory Overflow Vulnerability	CWE-119
+2025-11-14	CVE-2025-64446	Fortinet	FortiWeb	Fortinet FortiWeb Path Traversal Vulnerability	CWE-23
+2025-11-18	CVE-2025-58034	Fortinet	FortiWeb	Fortinet FortiWeb OS Command Injection Vulnerability	CWE-78
+2025-12-16	CVE-2025-59718	Fortinet	Multiple Products	Fortinet Multiple Products Improper Verification of Cryptographic Signature Vulnerability	CWE-347
+2026-01-22	CVE-2025-68645	Synacor	 Zimbra Collaboration Suite (ZCS)	Synacor Zimbra Collaboration Suite (ZCS) PHP Remote File Inclusion Vulnerability	CWE-98
+2026-01-27	CVE-2026-24858	Fortinet	Multiple Products	Fortinet Multiple Products Authentication Bypass Using an Alternate Path or Channel Vulnerability	CWE-288
+2026-01-29	CVE-2026-1281	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Code Injection Vulnerability	CWE-94
+2026-03-09	CVE-2026-1603	Ivanti	 Endpoint Manager (EPM)	Ivanti Endpoint Manager (EPM) Authentication Bypass Vulnerability	CWE-288
+2026-03-25	CVE-2026-33017	Langflow	Langflow	Langflow Code Injection Vulnerability	CWE-94,CWE-95,CWE-306
+2026-03-27	CVE-2025-53521	F5	BIG-IP	F5 BIG-IP Stack-Based Buffer Overflow Vulnerability	CWE-121
+2026-03-30	CVE-2026-3055	Citrix	NetScaler	Citrix NetScaler Out-of-Bounds Read Vulnerability	CWE-125
+2026-04-06	CVE-2026-35616	Fortinet	FortiClient EMS	Fortinet FortiClient EMS Improper Access Control Vulnerability	CWE-284
+2026-04-08	CVE-2026-1340	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Code Injection Vulnerability	CWE-94
+2026-04-13	CVE-2026-21643	Fortinet	FortiClient EMS	Fortinet FortiClient EMS SQL Injection Vulnerability	CWE-89
+2026-05-06	CVE-2026-0300	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Out-of-bounds Write Vulnerability	CWE-787
+2026-05-07	CVE-2026-6973	Ivanti	Endpoint Manager Mobile (EPMM)	Ivanti Endpoint Manager Mobile (EPMM) Improper Input Validation Vulnerability	CWE-20
+2026-05-21	CVE-2025-34291	Langflow	Langflow	Langflow Origin Validation Error Vulnerability	CWE-346
+2026-05-29	CVE-2026-0257	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Authentication Bypass Vulnerability	CWE-565
+2026-06-11	CVE-2026-10520	Ivanti	Sentry	Ivanti Sentry OS Command Injection Vulnerability	CWE-78
+2026-07-07	CVE-2026-55255	Langflow	Langflow	Langflow Authorization Bypass Through User-Controlled Key Vulnerability	CWE-639
+2026-07-16	CVE-2026-25089	Fortinet	FortiSandbox	Fortinet FortiSandbox OS Command Injection Vulnerability	CWE-78
+2026-07-16	CVE-2026-39808	Fortinet	FortiSandbox	Fortinet FortiSandbox OS Command Injection Vulnerability	CWE-78
+2026-07-21	CVE-2026-0770	Langflow	Langflow	Langflow Inclusion of Functionality from Untrusted Control Sphere Vulnerability	CWE-829
+2026-07-27	CVE-2025-68686	Fortinet	FortiOS	Fortinet FortiOS Exposure of Sensitive Information to an Unauthorized Actor Vulnerability	CWE-200
+2026-08-04	CVE-2026-34486	Apache	Tomcat	Apache Tomcat Missing Encryption of Sensitive Data Vulnerability	CWE-311
+2026-08-04	CVE-2026-9198	IBM	Langflow	IBM Langflow Code Injection Vulnerability	CWE-94
+2026-08-26	CVE-2026-8452	Citrix	NetScaler ADC and NetScaler Gateway	Citrix NetScaler ADC and NetScaler Gateway Improper Restriction of Operations within the Bounds of a Memory Buffer Vulnerability	CWE-119
+2026-09-09	CVE-2025-25249	Fortinet	Multiple Products	Fortinet Multiple Products Heap-based Buffer Overflow Vulnerability	CWE-122,CWE-787
+2026-09-09	CVE-2026-19490	Citrix	NetScaler	Citrix NetScaler Authentication Bypass Using an Alternate Path or Channel Vulnerability	CWE-288
+2026-09-22	CVE-2026-94127	F5	BIG-IP APM	F5 BIG-IP APM Heap-based Buffer Overflow Vulnerability	CWE-122
+2026-09-27	CVE-2026-88771	Citrix	NetScaler	Citrix NetScaler Improper Input Validation Vulnerability	CWE-119
+2026-09-27	CVE-2026-88772	Citrix	NetScaler	Citrix NetScaler Improper Restriction of Operations within the Bounds of a Memory Buffer Vulnerability	CWE-119
+2026-10-01	CVE-2026-104286	Fortinet	FortiMail	Fortinet FortiMail Path Traversal Vulnerability	CWE-22,CWE-158
+2026-10-04	CVE-2026-88779	Citrix	NetScaler	Citrix NetScaler Improper Restriction of Operations within the Bounds of a Memory Buffer Vulnerability	CWE-119
+2026-10-13	CVE-2026-104935	Ivanti	Connect Secure	Ivanti Connect Secure Authentication Bypass by Spoofing Vulnerability	CWE-290
+2026-10-14	CVE-2026-0322	Palo Alto Networks	PAN-OS	Palo Alto Networks PAN-OS Code Injection Vulnerability	CWE-94
+2026-10-16	CVE-2025-61624	Fortinet	Multiple Products	Fortinet Multiple Products Path Traversal Vulnerability	CWE-22

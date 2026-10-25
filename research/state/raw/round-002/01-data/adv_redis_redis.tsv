@@ -1,0 +1,47 @@
+GHSA-c8h9-259x-jff4	CVE-2026-25243	2026-05-05	high	Invalid Memory Access in Redis RESTORE Command May Lead to Remote Code Execution
+GHSA-8ghh-qpmp-7826	CVE-2026-23631	2026-05-05	medium	Lua Use-After-Free may lead to remote code execution
+GHSA-93m2-935m-8rj3	CVE-2026-23479	2026-05-05	high	Use-After-Free in unblock client flow may lead to remote code execution
+GHSA-jhjx-x4cf-4vm8	CVE-2025-62507	2025-11-02	high	Bug in XACKDEL may lead to stack overflow and potential RCE
+GHSA-4789-qfc9-5f9q	CVE-2025-49844	2025-10-03	critical	Lua Use-After-Free may lead to remote code execution
+GHSA-m8fj-85cg-7vhp	CVE-2025-46817	2025-10-03	high	Lua library commands may lead to integer overflow and potential RCE
+GHSA-4c68-q8q8-3g4f	CVE-2025-46819	2025-10-03	medium	Out of bound read due to a bug in LUA
+GHSA-qrv7-wcrx-q5jp	CVE-2025-46818	2025-10-03	medium	Running Lua function as a different user
+GHSA-2r7g-8hpc-rpq9	-	2025-07-06	high	Multi-bulk commands sent by clients can lead to DoS
+GHSA-rp2m-q4j6-gr43	CVE-2025-32023	2025-07-06	high	Out of bounds write in hyperloglog commands leads to RCE
+GHSA-5453-q98w-cmvm	CVE-2025-27151	2025-05-27	medium	redis-check-aof may lead to stack overflow and potential RCE
+GHSA-r67f-p999-2gff	CVE-2025-21605	2025-04-23	high	Redis DoS Vulnerability due to unlimited growth of output buffers abused by unauthenticated client
+GHSA-4q32-c38c-pwgq	CVE-2025-48367	2025-07-06	high	Redis DoS Vulnerability due to bad connection error handling
+GHSA-prpq-rh5h-46g9	CVE-2024-51741	2025-01-06	medium	Denial-of-service due to malformed ACL selectors
+GHSA-39h2-x6c4-6w4c	CVE-2024-46981	2025-01-06	high	Lua library commands may lead to remote code execution
+GHSA-whxg-wx83-85p5	CVE-2024-31449	2024-10-06	high	Lua library commands may lead to stack overflow and potential RCE
+GHSA-38p4-26x2-vqhh	CVE-2024-31227	2024-10-06	medium	Denial-of-service due to malformed ACL selectors
+GHSA-66gq-c942-6976	CVE-2024-31228	2024-10-06	medium	Denial-of-service due to unbounded pattern matching
+GHSA-ghmp-889m-7cvx	CVE-2023-45145	2023-10-18	low	Redis Unix-domain socket may be exposed with the wrong permissions for a short time window.
+GHSA-xr47-pcmx-fq2m	CVE-2023-41056	2024-01-09	high	Certain sequence of payloads may lead to remote code execution
+GHSA-q4jr-5p56-4xwc	CVE-2023-41053	2023-09-06	low	Redis SORT_RO may bypass ACL configuration
+GHSA-4cfx-h9gq-xpx3	CVE-2023-36824	2023-07-10	high	Heap overflow in COMMAND GETKEYS and ACL evaluation
+GHSA-hjv8-vjf6-wcr6	CVE-2023-28856	2023-04-18	medium	HINCRBYFLOAT can be used to crash a redis-server process
+GHSA-mvmm-4vq6-vw8c	CVE-2023-28425	2023-03-20	medium	Specially crafted MSETNX command can lead to denial-of-service
+GHSA-x2r7-j9vw-3w83	CVE-2023-25155	2023-02-28	medium	Integer Overflow in several Redis commands can lead to denial of service.
+GHSA-r8w2-2m53-gprj	CVE-2023-22458	2023-01-20	medium	Integer overflow in the Redis HRANDFIELD and ZRANDMEMBER commands may lead to denial-of-service
+GHSA-jr7j-rfj5-8xqv	CVE-2022-36021	2023-02-28	medium	Redis string pattern matching can be abused to achieve Denial of Service
+GHSA-mrcw-fhw9-fj8j	CVE-2022-35977	2023-01-20	medium	Integer overflow in the Redis SETRANGE and SORT/SORT_RO commands may result with false OOM panic
+GHSA-5gc4-76rx-22c9	CVE-2022-35951	2022-09-22	high	Heap overflow in Redis 7.0 XAUTOCLAIM command's COUNT argument.
+GHSA-96f7-42fg-2jrh	CVE-2022-31144	2022-07-18	high	Potential heap overflow in Redis 7.0 XAUTOCLAIM command.
+GHSA-p8x2-9v9q-c838	CVE-2022-24834	2023-07-10	high	Heap overflow issue with the Lua cjson and cmsgpack libraries used by Redis
+GHSA-647m-2wmq-qmvq	CVE-2022-24735	2022-04-27	low	Lua scripts can be manipulated to overcome ACL rules
+GHSA-3qpw-7686-5984	CVE-2022-24736	2022-04-27	low	A Malformed Lua script can crash Redis
+GHSA-px78-xgh7-74fw	-	2022-04-27	medium	DEBUG command is dangerous and enabled by default
+GHSA-j3cr-9h5g-6cph	CVE-2021-41099	2021-10-04	high	Integer overflow issue with strings
+GHSA-833w-8v3m-8wwr	CVE-2021-32762	2021-10-04	high	Integer overflow that can lead to heap overflow in redis-cli, redis-sentinel on some platforms
+GHSA-8wxq-j7rp-g8wj	CVE-2021-32761	2021-07-21	high	Integer overflow issues with BITFIELD command on 32-bit systems
+GHSA-m3mf-8x9w-r27q	CVE-2021-32687	2021-10-04	high	Integer overflow issue with intsets
+GHSA-f6pw-v9gw-v64p	CVE-2021-32675	2021-10-04	high	DoS vulnerability in Redis
+GHSA-9mj9-xx53-qmxm	CVE-2021-32672	2021-10-04	low	Vulnerability in Lua Debugger
+GHSA-vw22-qm3h-49pr	CVE-2021-32628	2021-10-04	high	Vulnerability in handling large ziplists
+GHSA-f434-69fm-g45v	CVE-2021-32627	2021-10-04	high	Integer overflow issue with Streams
+GHSA-p486-xggp-782c	CVE-2021-32626	2021-10-04	high	Lua scripts can overflow the heap-based Lua stack
+GHSA-46cp-x4x9-6pfq	CVE-2021-32625	2021-06-01	high	Vulnerability in STRALGO LCS
+GHSA-qh52-crrg-44g3	CVE-2021-29478	2021-05-03	high	Vulnerability in the COPY command for large intsets
+GHSA-vqxj-26vj-996g	CVE-2021-29477	2021-05-03	high	Vulnerability in the STRALGO LCS command
+GHSA-hgj8-vff2-7cjf	CVE-2021-21309	2021-02-23	high	Integer overflow on 32-bit systems

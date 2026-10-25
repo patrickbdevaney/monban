@@ -1,3 +1,7 @@
 research/state/raw/_transcripts/
 research/state/raw/_inflight_live/
 target/
+research/state/raw/*/work/
+research/state/raw/*/*bench/
+*.cwasm
+*.wasm

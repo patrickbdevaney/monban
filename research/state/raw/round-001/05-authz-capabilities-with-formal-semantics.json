@@ -1,0 +1,1287 @@
+{
+ "target": "05-authz-capabilities-with-formal-semantics",
+ "round": 1,
+ "date": "2026-10-24",
+ "nodes": [
+  {
+   "id": "authz-formal-pdp-comparison",
+   "layer": "L2",
+   "domain": "G",
+   "type": "result",
+   "title": "Which authz systems satisfy (a) formal semantics (b) verified/differential evaluator (c) decidable SMT analysis (d) agent-chain attenuation",
+   "summary": "Independent survey of 15 systems (2026-10-24). Only Cedar satisfies (a)+(b)+(c); it has no (d). Systems with (d) (Biscuit, Macaroons, UCAN 1.0, ZCAP) lack (b) and mostly (a). No surveyed system satisfies all four: that is the unserved gap.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec",
+    "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md",
+    "https://github.com/ucan-wg/spec"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "(a)/(b)/(c)/(d): Cedar Y/DRT vs Lean, Rust impl NOT proven/Y (SymCC sound+complete proved in Lean)/N. Biscuit informal spec/N (shared samples only)/no tooling, Datalog without negation/Y offline attenuation. Macaroons logic in paper/N/N/Y HMAC chain. UCAN 1.0 informal/N/N/Y. ZCAP v0.3 draft/N/N/Y. SPKI/SDSI FOL semantics (Li-Mitchell)/N/partial/Y (dead). Rego only MS thesis/N/N/N. OpenFGA,SpiceDB N/N/N/N (relation tuples, not tokens). Zelkova (IAM) Y internal/internal/Y PSPACE-complete/N. Oso/Polar archived. Souffle general Datalog engine. OCapN draft/N/N/Y (live refs).",
+   "overclaim_risk": "'Cedar is formally verified' overstates: the shipped Rust evaluator is differential-tested against the Lean model, not proven. Both 2026 Cedar GHSAs sit in parsing and conversion code outside the model.",
+   "underclaim_risk": "Dismissing Cedar's assurance because the Rust isn't proven ignores the evidence: 3,912 Lean theorems with 0 sorry, release-gated DRT, and decidable SMT analysis with machine-checked soundness and completeness. No competitor comes close.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "cedar-lean-proofs-2026-10",
+   "layer": "L4",
+   "domain": "G",
+   "type": "result",
+   "title": "cedar-spec Lean proof coverage at commit 301bdd2 (2026-10-23)",
+   "summary": "Lean 4 v4.35.0 formalization of Cedar semantics, validator, symbolic compiler, partial evaluation and policy slicing. Counted from a local clone.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "387 .lean files, 125,621 LOC; Cedar/Thm: 226 files, 96,228 LOC, 3,912 theorem declarations; 0 'sorry'; 1 'partial def' (SymCC/Decoder.lean:161, the SMT S-expression parser); @[implemented_by] only in CedarFFI solver glue. Key theorems: forbid_trumps_permit, default_deny, allowed_only_if_explicitly_permitted (Thm/Authorization.lean); validation_is_sound, validate_with_level_is_sound (Thm/Validation.lean); compile_is_sound/complete, isAuthorized_is_sound/complete (Thm/SymbolicCompilation.lean); verifyNeverErrors_is_sound/complete, verifyAlwaysMatches_is_sound/complete (Thm/Verification.lean); isAuthorized_eq_for_sound_policy_slice (PolicySlice); reauthorize_is_sound, partial_authorize_decision_is_sound (TPE). Termination and determinism follow from the spec being total Lean functions; there is no separate theorem.",
+   "overclaim_risk": "The proofs cover the Lean model, not the Rust crate. Parsing (text/JSON to AST) is outside the model. The SMT solver (cvc5) is trusted for analysis verdicts.",
+   "underclaim_risk": "96k LOC of proofs kept current on every release is a production existence proof of verification-guided development at the scale of an authz engine.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "property": "default-deny, forbid-overrides, validator soundness, SymCC soundness+completeness, slicing soundness, partial-eval soundness",
+   "tool": "Lean 4 v4.35.0",
+   "tcb": "Lean kernel; Lean compiler (for the executable spec used in DRT); cvc5 for analysis results; Rust impl trusted via DRT only"
+  },
+  {
+   "id": "cedar-policy-crate-4.14",
+   "layer": "L4",
+   "domain": "G",
+   "type": "system",
+   "title": "cedar-policy 4.14.0 / cedar-policy-symcc 0.8.0 (crates.io, 2026-10-17)",
+   "summary": "The production Rust evaluator and the SMT analysis crate (never-errors, always-allows/denies, implies, equivalence, disjointness).",
+   "urls": [
+    "https://crates.io/crates/cedar-policy",
+    "https://docs.rs/cedar-policy-symcc",
+    "https://github.com/cedar-policy/cedar"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Apache-2.0. 10.5M downloads. 2 GHSAs total: GHSA-m84h-6f26-p3p7 (high, 2026-10-22; >=4.3,<4.13): a ~258-byte policy drives ~29 GB of allocation in the parser error path (Display expands Arc-shared `has` chains), so untrusted policy text can OOM the process. GHSA-c33x-vcv4-vg3g (low, 2026-06-25; fixed 4.11.1/3.4.3): JSON template `is in` slot-id silent correction leads to a panic or decision divergence. Perf (arXiv 2403.04651, Cedar 3.0.1, m5.4xlarge): median 4-5 us (gdrive), ~11 us (github), p99 <10/<20 us; 28.7-35.2x faster than OpenFGA, 42.8-80.8x faster than Rego; SMT analysis ~75.1 ms average.",
+   "overclaim_risk": "The latency figures are vendor-authored on synthetic workloads, measured on 3.0.1 (2024), not 4.14.",
+   "underclaim_risk": "Two advisories in ~3 years, both outside the decision semantics, is a strong record next to OpenFGA (29) and SpiceDB (18).",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "repo": "gh:cedar-policy/cedar",
+   "version": "4.14.0",
+   "last_release": "2026-10-17",
+   "license": "Apache-2.0",
+   "cve_count": 2,
+   "fuzzed": true,
+   "verified_parts": "semantics/validator/symcc via Lean model + DRT"
+  },
+  {
+   "id": "cedar-drt-harness",
+   "layer": "L4",
+   "domain": "G",
+   "type": "method",
+   "title": "cedar-drt: differential random testing of Rust vs Lean model",
+   "summary": "cargo-fuzz targets that generate schemas, entities, policies and requests (cedar-policy-generators, using `arbitrary`) and compare Rust against the compiled Lean spec. More than 60 targets.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec/tree/main/cedar-drt",
+    "https://arxiv.org/abs/2407.01688"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Targets include abac, abac-type-directed, rbac-authorizer, eval-type-directed, level-validation-drt, entity-slicing-drt, batched-evaluation-drt, symcc-term-drt-*, symcc-check-*-ok, symcc-cex-drt, protobuf roundtrip, pst-* roundtrips. FSE Companion 2024 (arXiv 2407.01688): proving found 4 validator bugs, and DRT plus PBT found 21 more. The README says it is tested only on Amazon Linux 2.",
+   "overclaim_risk": "DRT gives probabilistic assurance only. Generators bias the input space: the parser OOM was not caught.",
+   "underclaim_risk": "DRT against an executable proven spec is the cheapest high-assurance pattern available. Our checker can copy the harness design.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "cedar-skip-on-error-semantics",
+   "layer": "L4",
+   "domain": "G",
+   "type": "failure",
+   "title": "Cedar skip-on-error: an erroring forbid policy cannot deny",
+   "summary": "Cedar docs: if a policy's evaluation returns error, the policy is skipped. A forbid guard that errors (missing attribute, overflow, extension error) silently fails to deny.",
+   "urls": [
+    "https://docs.cedarpolicy.com/auth/authorization.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Mitigations: (1) run strict validation (validation_is_sound rules out type errors but not every runtime error); (2) in CI, require cedar-policy-symcc verifyNeverErrors to pass on every forbid policy; (3) or wrap the decision so that a non-empty erroringPolicies set that contains a forbid produces Deny. That deviates from Cedar and must be stated.",
+   "overclaim_risk": "Validation already removes most error classes.",
+   "underclaim_risk": "This is a fail-open path on deny-lists. Agent-generated policies make malformed guards likely.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "symcert-fmcad2026",
+   "layer": "L3",
+   "domain": "G",
+   "type": "result",
+   "title": "SymCert: Verifying SMT-based policy analyses (Torlak, FMCAD 2026)",
+   "summary": "Lean framework: a verified symbolic compiler and authorizer, a hierarchy enforcer, and a counterexample extractor that turns infinite SMT models into finite Cedar inputs, which is needed to prove completeness. It verifies 5 analyses used by an AWS Cedar analysis service.",
+   "urls": [
+    "https://www.amazon.science/publications/symcert-verifying-smt-based-policy-analyses"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "Modeling and proving the 5 analyses took about one work day. Three extensions for new Cedar features took 4-8 days each. The verified models drive DRT of production code.",
+   "overclaim_risk": "Effort figures come from the expert authors of the framework.",
+   "underclaim_risk": "Shows that adding a new verified analysis is days of work, not months.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "cedar-arxiv-2403.04651",
+   "layer": "L3",
+   "domain": "G",
+   "type": "source",
+   "title": "Cedar: A New Language for Expressive, Fast, Safe, and Analyzable Authorization (PACMPL OOPSLA1 2024; arXiv 2403.04651)",
+   "summary": "Language design and evaluation. The symbolic encoding is decidable, sound and complete, using only decidable theories: cvc5 finite sets, ADTs, and 64-bit bitvectors.",
+   "urls": [
+    "https://arxiv.org/abs/2403.04651"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "biscuit-auth-6.0",
+   "layer": "L4",
+   "domain": "G",
+   "type": "system",
+   "title": "Biscuit (eclipse-biscuit) spec v3.0-3.3 + biscuit-auth 6.0.0",
+   "summary": "Offline-attenuable bearer token: an append-only list of signed blocks with a Datalog variant (no negation; 'reject if' since v3.3), trusted-origin scopes, and third-party blocks.",
+   "urls": [
+    "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md",
+    "https://github.com/eclipse-biscuit/biscuit-rust",
+    "https://crates.io/crates/biscuit-auth"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Signature algorithms: ed25519 | secp256r1 only, with no PQC enum value. biscuit-auth 6.0.0, released 2025-07-16; no release in 15 months, although commits continued in Oct 2026 (dependency bumps). CVE-2024-41949 / GHSA-p9w4-585h-g3c7 (low, 2024-07-31): public-key confusion in third-party block requests. RunLimits::default() = {max_facts:1000, max_iterations:100, max_time:1ms}. That is wall-clock, so the same token can be accepted or denied depending on host load. No fuzz/ or proptest found in the repo; cross-implementation conformance comes from shared samples/. No formal model found.",
+   "overclaim_risk": "'Datalog therefore terminates' is true only modulo expressions. Biscuit relies on runtime limits, one of which is time-based.",
+   "underclaim_risk": "It is the most mature open attenuable public-key token, with multiple implementations and a sound scope design for third-party trust.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "repo": "gh:eclipse-biscuit/biscuit-rust",
+   "version": "6.0.0",
+   "last_release": "2025-07-16",
+   "license": "Apache-2.0",
+   "cve_count": 1,
+   "fuzzed": false,
+   "verified_parts": "none"
+  },
+  {
+   "id": "macaroons-ndss2014",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "Macaroons (Birgisson et al., NDSS 2014)",
+   "summary": "Chained-HMAC bearer credentials with conjunctive caveats and third-party discharge macaroons; formalized in an authorization logic in the paper.",
+   "urls": [
+    "https://www.ndss-symposium.org/ndss2014/programme/macaroons-cookies-contextual-caveats-decentralized-authorization-cloud/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Caveats cost 32 B each (HMAC-SHA256). Attenuation is monotone by construction, because the authorized set is an intersection of caveat predicates. Verification needs the root secret, so the token is not publicly verifiable. It is symmetric-only and therefore not threatened by Shor; Grover leaves a 256-bit key at about 128-bit security.",
+   "overclaim_risk": "",
+   "underclaim_risk": "Often dismissed as legacy, but for issuer equals verifier (the common middle-tier case) it gives PQ-safe attenuation at about 1% of the size of an ML-DSA chain.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ucan-1.0-spec",
+   "layer": "L4",
+   "domain": "G",
+   "type": "standard",
+   "title": "UCAN 1.0.0 (ucan-wg/spec, delegation v1.0.0)",
+   "summary": "Delegation and invocation specs labeled Version 1.0.0. The policy language is a jq-selector subset that constrains invocation args. Replay protection is by CID uniqueness, which requires canonical signatures.",
+   "urls": [
+    "https://github.com/ucan-wg/spec",
+    "https://github.com/ucan-wg/delegation"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "Signatures: Ed25519 (recommended), P-256, secp256k1 via Varsig. Other algorithms, including any PQC, are 'off spec' and non-interoperable. Spec repo pushed 2026-10-22. No formal semantics and no verified evaluator.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "id_status": "community spec, not IETF/W3C"
+  },
+  {
+   "id": "zcap-ccg-status",
+   "layer": "L4",
+   "domain": "G",
+   "type": "standard",
+   "title": "ZCAP (Authorization Capabilities) W3C CCG work item",
+   "summary": "v0.3 is out of sync with production deployments. Revival plan (Apr 2026): v0.4 to match implementations. W3C lacks budget for a security WG (Jul 2025).",
+   "urls": [
+    "https://lists.w3.org/Archives/Public/public-credentials/2026Apr/0065.html",
+    "https://lists.w3.org/Archives/Public/public-credentials/2025Jun/0062.html"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "spki-sdsi-li-mitchell",
+   "layer": "L3",
+   "domain": "S",
+   "type": "source",
+   "title": "Li & Mitchell, Understanding SPKI/SDSI using first-order logic (CSFW 2003; IJIS 2006)",
+   "summary": "Datalog/FOL semantics of SDSI names. Finds the RFC 2693 proof procedure semantically incomplete and authorization tags algorithmically problematic. Lesson: a delegation logic needs a semantics before deployment.",
+   "urls": [
+    "https://www.cs.purdue.edu/homes/ninghui/papers/spkisdsi_csfw03.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "rego-formal-status",
+   "layer": "L3",
+   "domain": "G",
+   "type": "result",
+   "title": "OPA/Rego: no official formal semantics. The only academic formalization found is an MS thesis (Kreuze, Brown, Feb 2024, Lean 4)",
+   "summary": "Kreuze formalized a Rego fragment plus XACML 3.0 in Lean 4 and proved policy equivalences. There is no verified OPA evaluator and no official SMT analyzer.",
+   "urls": [
+    "https://cs.brown.edu/media/filer_public/00/df/00df3f96-8712-4ef6-be1b-4f7cc0f046a8/jakobkreuze.pdf",
+    "https://github.com/open-policy-agent/opa"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "OPA v1.21.4 (2026-10-23), 4 GHSAs: GHSA-g2pf-6v5v-qcc8 (high, 2026-10-19: unsigned bundles accepted when signature verification is configured without a keyid); GHSA-6m8w-jc87-6cr7 (high, 2025-05-01: Rego injection via Data API path); GHSA-f524-rf33-2jjr (high, 2022: `with` keyword bypasses WithUnsafeBuiltins). Builtins such as http.send make evaluation non-hermetic.",
+   "overclaim_risk": "This rests partly on a negative search: two searches found no paper.",
+   "underclaim_risk": "Rego's wide adoption is real, but adoption is not assurance.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "rebac-decision-bug-cluster",
+   "layer": "L4",
+   "domain": "G",
+   "type": "failure",
+   "title": "ReBAC engines (OpenFGA, SpiceDB): decision-correctness bugs cluster at exclusion/caveats/errors/concurrency",
+   "summary": "OpenFGA has 29 GHSAs, 12+ of them 'Improper Policy Enforcement' or 'Authorization Bypass' since 2025. Examples: StreamedListObjects returns excluded objects when the subtract side errors (GHSA-5278-rrxc-mgf7, fixed 1.19.0); ListUsers with nested `but not` plus wildcard (GHSA-h7w8-xr72-cv4r, fixed 1.20.0). SpiceDB has 18 GHSAs, including GHSA-4vrg-r928-h5vv: under concurrency, a caveat combined with intersection or exclusion returns HAS_PERMISSION instead of CONDITIONAL.",
+   "urls": [
+    "https://github.com/openfga/openfga/security/advisories",
+    "https://github.com/authzed/spicedb/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "openfga v1.22.0 (2026-10-06); spicedb v1.57.0 (2026-10-20). Neither has a formal model or DRT against a spec. Pattern: negation, error propagation and concurrency are where unverified evaluators fail. These are exactly the cases Cedar's Lean theorems (default_deny, skip-on-error semantics) pin down.",
+   "overclaim_risk": "Advisory count also reflects disclosure diligence and attack surface (list APIs).",
+   "underclaim_risk": "A string of fail-open decisions is the worst failure class for a PDP.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "zanzibar-consistency-zedtokens",
+   "layer": "L4",
+   "domain": "G",
+   "type": "method",
+   "title": "Zanzibar zookies / SpiceDB ZedTokens consistency semantics",
+   "summary": "SpiceDB defaults to minimize_latency for checks, which opens a new-enemy-problem window. at_least_as_fresh with a ZedToken closes it. fully_consistent does not give read-after-write on CockroachDB. No formal verification is mentioned.",
+   "urls": [
+    "https://authzed.com/docs/spicedb/concepts/consistency"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "For our server: if a ReBAC store is used, the invariant is that a check after a revoke carries the revoke's ZedToken (at_least_as_fresh). Otherwise revocation is eventually-consistent.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "zelkova-fmcad2018",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "Zelkova (AWS, FMCAD 2018)",
+   "summary": "SMT encoding of the IAM policy language (strings, regex, bitvectors; Z3 plus the Z3AUTOMATA extension). PSPACE-complete. Invoked 'many millions of times daily'. Basis of S3 Block Public Access. Proprietary.",
+   "urls": [
+    "https://www.amazon.science/publications/semantic-based-automated-reasoning-for-aws-access-policies-using-smt"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "The production existence proof that SMT policy analysis scales to hyperscaler query volumes.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "oso-polar-archived",
+   "layer": "L4",
+   "domain": "G",
+   "type": "system",
+   "title": "Oso / Polar open-source library: repository archived",
+   "summary": "osohq/oso is archived=true; its last release was 2024-06-13. Not a candidate.",
+   "urls": [
+    "https://github.com/osohq/oso"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "souffle-2.5",
+   "layer": "L4",
+   "domain": "G",
+   "type": "system",
+   "title": "Souffle Datalog 2.5 (2025-03-24)",
+   "summary": "A general Datalog engine (UPL-1.0). Not an authz system and has no verified evaluator. Possible offline analysis backend for Datalog caveats.",
+   "urls": [
+    "https://github.com/souffle-lang/souffle"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ocapn-draft",
+   "layer": "L4",
+   "domain": "S",
+   "type": "standard",
+   "title": "OCapN (CapTP, Locators, Netlayers, Model) draft specifications",
+   "summary": "Pre-standard drafts in ocapn/ocapn (pushed 2026-10-13), with no tagged release. It is the live-reference ocap alternative to bearer tokens. Not a candidate for v1 wire auth.",
+   "urls": [
+    "https://github.com/ocapn/ocapn"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ocap-formal-foundations",
+   "layer": "L3",
+   "domain": "S",
+   "type": "source",
+   "title": "Mechanized ocap theory: Swasey/Garg/Dreyer OOPSLA 2017 (Iris robust safety); Devriese/Birkedal/Piessens EuroS&P 2016 (logical relations, effect parametricity); seL4 integrity+authority confinement (ITP 2011) and noninterference (S&P 2013)",
+   "summary": "These supply the precise forms for our invariants: robust safety (untrusted context cannot break invariants of code that exports only wrapped values), authority confinement (an upper bound on how authority can change), and integrity (an upper bound on writes). seL4 noninterference needed a deterministic scheduler and excludes timing channels.",
+   "urls": [
+    "https://www.mpi-sws.org/~dg/papers/oopsla17-obj.pdf",
+    "https://lirias.kuleuven.be/handle/123456789/529252",
+    "https://trustworthy.systems/publications/papers/Sewell_WGMAK_11.abstract.html",
+    "https://trustworthy.systems/projects/OLD/infoflow"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "These templates make our L5 invariants statable in a week, not a research project.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "camel-2503.18813",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "CaMeL (Debenedetti et al., arXiv 2503.18813; SaTML 2026 pp.587-618)",
+   "summary": "Privileged LLM writes a program from the trusted query; a quarantined LLM parses untrusted data with no tools; a custom interpreter tracks provenance capabilities and checks policies at tool calls.",
+   "urls": [
+    "https://arxiv.org/abs/2503.18813",
+    "https://github.com/google-research/camel-prompt-injection"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "AgentDojo: 77% of tasks solved with provable security vs 84% undefended. The repo is a research artifact, last pushed 2025-06-20. Critiques: it assumes a trusted user prompt, leaves side channels open, and pays dual-LLM cost (2505.22852). Its guarantees do not compose across agents (2610.05640).",
+   "overclaim_risk": "'Provable' means guaranteed by construction under the interpreter's model. There is no machine-checked proof, the interpreter is in the TCB, and the user query is trusted.",
+   "underclaim_risk": "It is the first design whose security holds regardless of model robustness, and successors keep confirming the core idea.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "camel-noncompositional-2610.05640",
+   "layer": "L3",
+   "domain": "G",
+   "type": "failure",
+   "title": "Can CaMeLs Talk? CaMeL guarantees do not compose in hierarchical multi-agent systems (arXiv 2610.05640, Oct 2026)",
+   "summary": "A concrete attack succeeds even though every agent runs CaMeL: untrusted data becomes trusted input to a downstream agent. multi-CaMeL keeps provenance across A2A boundaries with a separate data channel.",
+   "urls": [
+    "https://arxiv.org/abs/2610.05640"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "MultiAgentDojo ASR: multi-CaMeL 0.0%, single-agent CaMeL 0.2%, no CaMeL 12.9%. Implication: provenance and integrity labels must be part of the wire protocol (MCP/A2A payloads), not process-local.",
+   "overclaim_risk": "Single paper with a self-built benchmark.",
+   "underclaim_risk": "Composition failure is structural, not statistical, so one concrete attack is decisive.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "progent-2504.11703",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "Progent: privilege control with SMT-checked monotonic confinement (arXiv 2504.11703, v3 2026-05)",
+   "summary": "Symbolic rules over tool names and arguments. Each LLM-proposed policy update is classified by an SMT solver as narrowing (applied) or expansion (needs approval), so the action space can only shrink without approval.",
+   "urls": [
+    "https://arxiv.org/abs/2504.11703"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Evaluated on AgentDojo, ASB, LangChain, and the OpenAI Agents SDK. It is the closest existing artifact to an attenuation-monotonicity check: subsumption decided by SMT.",
+   "overclaim_risk": "Approval-gated expansion is attackable; see approval-to-abuse-2610.22987.",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "fides-2505.23643",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "FIDES: IFC planner for agents (MSR, arXiv 2505.23643)",
+   "summary": "Formal model of agent planners. Characterizes which properties dynamic taint tracking can enforce. Tracks confidentiality and integrity labels and adds selective-hiding primitives. Evaluated on AgentDojo.",
+   "urls": [
+    "https://arxiv.org/abs/2505.23643",
+    "https://github.com/microsoft/fides"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "repo MIT, last push 2025-05-30",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "spides-2610.24277",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "SPIDES: IFC for browser agents (MSR, arXiv 2610.24277, Oct 2026)",
+   "summary": "Element-level HTML confidentiality and integrity annotations propagate labels that gate typing, clicking and navigation. Untrusted or confidential content is masked from the agent. 0% ASR by design on MicroNet (28 sites).",
+   "urls": [
+    "https://arxiv.org/abs/2610.24277",
+    "https://github.com/microsoft/SPIDES"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "specifics": "Server-side implication: a middle-tier server can emit integrity and confidentiality labels in its HTML and JSON so that IFC-aware agents can enforce them. That makes it an L5 projection-layer feature.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "kairos-2610.18457",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "Kairos: transactional reference monitor at the isolation boundary (arXiv 2610.18457)",
+   "summary": "Mediates file and network effects of an opaque agent. Deterministic policy over trusted sources, plus deferred effects held while the agent runs speculatively. A bounded-authority oracle releases or refuses deferred effects.",
+   "urls": [
+    "https://arxiv.org/abs/2610.18457"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "AgentDojo ASR 47.0% -> 2.7% at undefended utility. Maps onto our 'failed request => no state mutation' transactional write buffering.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "toolfence-2609.37196",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "ToolFence: typed authorization blueprint + deterministic monitor (arXiv 2609.37196)",
+   "summary": "Compiles a typed capability blueprint before execution. A judge grants capabilities rather than individual calls. Handles within-tool argument manipulation.",
+   "urls": [
+    "https://arxiv.org/abs/2609.37196"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "AgentDojo with Qwen3-max: ASR near zero, clean utility -3.80 pp.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "capscope-2609.08371",
+   "layer": "L3",
+   "domain": "G",
+   "type": "system",
+   "title": "CapScope: 'Authority Is Not a String' capability-scoped coding-agent harness (arXiv 2609.08371)",
+   "summary": "Task-wide authority ceiling derived from trusted input before any untrusted read. Typed per-subagent capabilities stored outside the model's context.",
+   "urls": [
+    "https://arxiv.org/abs/2609.08371"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "Injected effect executes in 3/75 runs vs 33-47/75 for the ambient-authority and global-policy baselines; 68/75 task completion; 300 runs.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "camelot-2609.18674",
+   "layer": "L3",
+   "domain": "G",
+   "type": "method",
+   "title": "CaMeLoT: static CTL model checking of agent plans with nuXmv before execution (arXiv 2609.18674)",
+   "summary": "Plan becomes a finite transition system labeled with tool calls, provenance and taint, then is checked against CTL policies. Counterexamples feed plan repair.",
+   "urls": [
+    "https://arxiv.org/abs/2609.18674"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "approval-to-abuse-2610.22987",
+   "layer": "L3",
+   "domain": "G",
+   "type": "failure",
+   "title": "From Approval to Abuse: privilege escalation via agent-proposed allow-rules (arXiv 2610.22987)",
+   "summary": "Injected repository context steers agents into requesting broad but plausible allow-rules. Once approved, the rules blind the harness.",
+   "urls": [
+    "https://arxiv.org/abs/2610.22987"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Claude Code and Codex CLI: 58% elicitation; approved rules cover 56.9% of category capability tests; 47/58 (81%) silent goal completion conditional on approval. Design rule: capability expansion requests must never be shown with model-authored scope. Display a machine-computed diff of the authorized set (SMT-derived), and bound expansions by a static ceiling.",
+   "overclaim_risk": "Requires user approval; the human-factors rate is environment-dependent.",
+   "underclaim_risk": "It attacks exactly the escape hatch that every 'monotonic, expansion needs approval' design relies on.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ajar-open-privilege-2609.26900",
+   "layer": "L3",
+   "domain": "G",
+   "type": "benchmark",
+   "title": "Ajar: measuring open privilege as a third axis beside ASR and utility (arXiv 2609.26900)",
+   "summary": "Builds unneeded candidate tool calls for each benign AgentDojo task and checks whether the defense allows them. Progent, CaMeL, AC4A, Permission Assistant and Claude Code Auto mode leave widely different privilege open, which ASR and utility cannot reveal.",
+   "urls": [
+    "https://arxiv.org/abs/2609.26900",
+    "https://github.com/reSHARMA/Ajar"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "Adopt as a CI metric: open-privilege count of our capability mediator on AgentDojo-style task sets.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ipi-eval-validity-2609.32691",
+   "layer": "L3",
+   "domain": "G",
+   "type": "failure",
+   "title": "Silent Failures in agentic security evaluation (arXiv 2609.32691)",
+   "summary": "Four harness defect classes. Tool-identity scoring reports 21.7% ASR where the argument-level rate is 1.2%. A model reported at 62.8% scores 0% under the corrected harness.",
+   "urls": [
+    "https://arxiv.org/abs/2609.32691"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "Every ASR number in this map should be read as harness-dependent. Our CI must use argument-level attacker predicates and persisted traces.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "agentdojo-results-stale",
+   "layer": "L4",
+   "domain": "G",
+   "type": "benchmark",
+   "title": "AgentDojo official results page: newest row 2025-02-24, no CaMeL/Progent rows",
+   "summary": "The page says it is not a leaderboard. Baselines: gpt-4o-2024-05-13 important_instructions ASR 47.69%; tool_filter 6.84% (utility 72.16%); spotlighting 41.65%; transformers_pi_detector 7.95% (utility 41.24%); claude-3-7-sonnet ASR 7.31%. Defense numbers in 2025-26 papers are self-reported.",
+   "urls": [
+    "https://agentdojo.spylab.ai/results/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "fips204-mldsa-sizes",
+   "layer": "L4",
+   "domain": "G",
+   "type": "standard",
+   "title": "FIPS 204 ML-DSA sizes (2024-08-13)",
+   "summary": "Table 2: ML-DSA-44 pk 1312, sk 2560, sig 2420; ML-DSA-65 pk 1952, sk 4032, sig 3309; ML-DSA-87 pk 2592, sk 4896, sig 4627 bytes.",
+   "urls": [
+    "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.99,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "fips205-slhdsa-sizes",
+   "layer": "L4",
+   "domain": "G",
+   "type": "standard",
+   "title": "FIPS 205 SLH-DSA sizes",
+   "summary": "SLH-DSA-128s: pk 32, sig 7856. 128f: pk 32, sig 17088. 192s: pk 48, sig 16224 bytes.",
+   "urls": [
+    "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.99,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "fn-dsa-fips206-draft",
+   "layer": "L4",
+   "domain": "G",
+   "type": "standard",
+   "title": "FIPS 206 FN-DSA still not final (Oct 2026); draft-ietf-lamps-fn-dsa-certificates-00 (May 2026)",
+   "summary": "Secondary sources put submission for approval at 2025-08-28 and expect finalization in late 2026 or 2027. A compact signature (about 666 B for FN-DSA-512) would cut chain size but is not yet usable for FIPS.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/html/draft-ietf-lamps-fn-dsa-certificates"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "pqc-capability-token-design",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Sketch: PQ-ready attenuable capability token (two-tier: HMAC chain locally, ML-DSA only at trust-domain crossings)",
+   "summary": "Tier L (issuer = verifier, the dominant middle-tier case): macaroon-style chained MAC (HMAC-SHA256 or KMAC256, 256-bit root key from HKDF over a KMS secret) with typed caveats. That costs 32 B per caveat, is PQ-safe today, and needs no signature. Tier X (cross-domain delegation or third-party verification): the root block is signed with a hybrid Ed25519+ML-DSA-44 composite (or ML-DSA-65 for CNSA 2.0 alignment), and further attenuation within the domain stays MAC-based via the holder's discharge. Per-block public-key attenuation (Biscuit-style) is allowed but costs about 3.7-5.3 KB per hop.",
+   "urls": [
+    "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf",
+    "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Size arithmetic, signature material only, per public-key block (next_pk + sig): Ed25519 96 B; ML-DSA-44 3,732 B; ML-DSA-65 5,261 B; ML-DSA-87 7,219 B; hybrid Ed25519+ML-DSA-44 3,828 B; SLH-DSA-128s 7,888 B. Three-hop chain (root + 2 attenuations): Ed25519 288 B; ML-DSA-44 11.2 KB; ML-DSA-65 15.8 KB (21.0 KB with base64url); SLH-DSA-128s 23.7 KB. Two-tier design, 1 ML-DSA-65 root + 5 MAC caveats: about 5.3 KB + 160 B. Wire rules: carry Tier X tokens in the body or a dedicated header with an explicit max (16 KB); allow a by-reference handle (token hash) after the first presentation (session-bound cache), to avoid per-request multi-KB headers. Algorithm agility: a per-block alg id from a closed enum {ed25519, mldsa44, mldsa65, hybrid-ed25519-mldsa44, hmac-sha256}. Unknown alg means reject. No 'none'.",
+   "overclaim_risk": "Header-limit concerns depend on proxy defaults (nginx and Node header limits not re-fetched this round).",
+   "underclaim_risk": "Choosing per-hop PQ signatures by default would multiply token size about 39x vs Ed25519 (11.2 KB vs 288 B for 3 hops) for a property (public verifiability) most middle-tier deployments do not need.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "inv-no-ambient-authority",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Invariant: No ambient authority (statement for Lean model + Rust type boundary)",
+   "summary": "For every trace t of the server and every effect e in t (DB query, outbound HTTP, file op, tool call, state write) performed while serving request r: there exists c in Held(r, t, before e) with permits(c, e). Held(r) changes only by (i) Grant: at request entry, Held := derive(verified_token(r)) union route_endowment(route(r)), where route_endowment is static config; (ii) Introduction: c passed as an explicit argument by a holder; (iii) Creation: capabilities to freshly allocated objects. No effect API is callable without a Cap argument, and Cap has no public constructor.",
+   "urls": [
+    "https://www.mpi-sws.org/~dg/papers/oopsla17-obj.pdf",
+    "https://trustworthy.systems/publications/papers/Sewell_WGMAK_11.abstract.html"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Lean: `theorem no_ambient : \u2200 t r e, e \u2208 effects t r \u2192 \u2203 c \u2208 held t r (pre e), permits c e`. `held` is defined inductively by the 3 rules above, so the theorem reduces to an induction over the step relation. Rust: `pub struct Cap<O: Op>(PhantomData<O>, Sealed)` with a crate-private constructor; effect fns take `&Cap<O>`; `#![forbid(unsafe_code)]` in handler crates; a CI gate denies std::fs/std::net/tokio::net imports in handler crates (cargo-deny, clippy disallowed-methods). Verus: a spec fn `derive(token) -> Set<Perm>` with an ensures clause that derive is a subset of the token's authorized set.",
+   "overclaim_risk": "A type boundary does not hold under unsafe, FFI or a compromised dependency. The TCB includes rustc and the effect-API crate.",
+   "underclaim_risk": "Type-level ocap discipline is checkable today at zero proof cost for the handler code.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "inv-attenuation-monotonicity",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Invariant: Attenuation monotonicity",
+   "summary": "Denotation [[t]] is a subset of Requests \u00d7 Time. For every token t and every block or caveat b, [[append(t, b)]] \u2286 [[t]]. For policy updates p -> p' accepted without human approval: [[p']] \u2286 [[p]] (SMT-checked as `implies(p', p)`). For delegation chains: [[t_k]] \u2286 [[t_{k-1}]] \u2286 ... \u2286 [[t_0]] \u2286 ceiling(issuer).",
+   "urls": [
+    "https://arxiv.org/abs/2504.11703",
+    "https://docs.rs/cedar-policy-symcc"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Lean: define `denote : Token \u2192 Request \u2192 Prop` with denote (append t b) r := denote t r \u2227 caveat b r, so monotonicity is a one-line \u2227-elimination proof. The burden moves to proving that the Rust checker refines `denote` (DRT plus Verus). Biscuit-style Datalog blocks need an extra side condition: facts from block i are not visible to authority checks unless explicitly trusted (scope), else a later block could add facts that satisfy an earlier check. Prove `scope_isolation`. Use cedar-policy-symcc checkImplies (SymCC soundness is proved in Lean) to gate policy diffs in CI.",
+   "overclaim_risk": "Monotonicity of the set does not prevent confused deputy if the deputy merges authority from several tokens.",
+   "underclaim_risk": "It is trivially provable once caveats are conjunctive. Do not design caveats that can widen, such as disjunctive blocks.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "inv-confused-deputy-ni",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Invariant: Confused-deputy freedom as integrity noninterference on authority selection",
+   "summary": "Deputy D serving request r may exercise only authority in A(r) = [[token(r)]] \u222a Endow(route(r)). Noninterference form: let inputs split into high-integrity H (verified token, route, static config, trusted user query) and low-integrity L (request body fields not bound by the token, fetched documents, tool and LLM outputs). For all executions \u03c31, \u03c32 with \u03c31|H = \u03c32|H: AuthSel(\u03c31) = AuthSel(\u03c32), where AuthSel is the sequence of (capability id, op kind, target designation source) exercised. L may affect data arguments only through label-checked sinks: label(arg) \u2291 sink_policy(op).",
+   "urls": [
+    "https://arxiv.org/abs/2503.18813",
+    "https://arxiv.org/abs/2505.23643",
+    "https://arxiv.org/abs/2610.05640"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Concretely the server must (1) designate targets by capability, not by name strings taken from L (the 'Authority Is Not a String' rule); (2) never merge the deputy's own authority with the requester's for one effect unless the effect is in A(r); (3) propagate integrity labels across MCP and A2A hops (fixes the CaMeL non-composition). Lean: a 2-run relational property over a small-step semantics of the handler DSL (as in Devriese et al. logical relations). Verus: a ghost label on values, and a requires clause on effect APIs that the target designation is high-integrity. Test oracle: a hyperproperty fuzz. Run each request twice with L randomized, assert equal AuthSel traces (DST harness).",
+   "overclaim_risk": "NI for general handler code is undecidable to check fully. We prove it for the mediator and DSL, then test it (2-run fuzz) for handler code.",
+   "underclaim_risk": "The 2-run fuzz is cheap and catches most real confused-deputy bugs (argument-designated targets).",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "inv-decision-determinism-failclosed",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Invariant: Deterministic, total, fail-closed authorization decision",
+   "summary": "authorize(req, ents, pols) is a total function independent of wall-clock, scheduling and allocator state. Resource bounds are fuel (step counts), not time: exhaustion means Deny with reason ResourceExhausted, reproducibly. Any error in a forbid policy, or in token verification, means Deny.",
+   "urls": [
+    "https://docs.cedarpolicy.com/auth/authorization.html",
+    "https://github.com/eclipse-biscuit/biscuit-rust"
+   ],
+   "evidence_grade": "E",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "Rejects Biscuit-default max_time=1ms semantics. CI gates: (1) cedar-policy-symcc verifyNeverErrors on every forbid policy; (2) a DRT target comparing our wrapper decision with the Lean spec under an error-to-deny overlay; (3) a determinism test that runs each fuzz case under a CPU-stress cgroup and asserts identical decisions; (4) parser fuzz with -rss_limit_mb=512 and -max_len=65536 on policy, schema and token parsers (motivated by GHSA-m84h-6f26-p3p7); (5) never parse untrusted policy text on the request path. Policies are loaded and validated at deploy time only.",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "l5-authz-stack-recommendation",
+   "layer": "L5",
+   "domain": "G",
+   "type": "artifact",
+   "title": "Component decision (independent): PDP = Cedar 4.14.x (+symcc 0.8) ; token = own minimal two-tier capability format with Lean spec + Verus checker ; agent IFC = label propagation in the projection layer",
+   "summary": "Alternatives were enumerated before choosing: Rego/OPA (no formal semantics, non-hermetic builtins), OpenFGA/SpiceDB (repeated fail-open decision bugs, no spec; usable only as an optional relationship store behind Cedar entities), Biscuit (attenuation yes, but no formal model, no PQC, wall-clock limits, stale releases), UCAN/ZCAP (no semantics, no PQC, ecosystem-specific encodings), a custom Datalog PDP (re-does Cedar's 96k-LOC proof effort), Oso (archived). Reversal conditions: Biscuit gains a formal model plus ML-DSA alg and a fuel-based limit, then adopt it as Tier X. A Cedar delegation or token RFC lands, then reuse it. FN-DSA final plus a FIPS module, then switch Tier X to FN-DSA-512.",
+   "urls": [
+    "https://github.com/cedar-policy/cedar-spec",
+    "https://crates.io/crates/cedar-policy"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "Pins: cedar-policy = \"=4.14.0\", cedar-policy-symcc = \"=0.8.0\" (cvc5 binary pinned by hash in CI). Acceptance: (a) p99 decision <= 50 us for 1k policies on a 2-vCPU VPS (bench; the paper measured 4-11 us median); (b) 0 sorry in our token Lean spec, plus DRT of the Rust checker vs the Lean executable for >= 1e8 cases per release; (c) policy diff gate: symcc equivalence or implies must pass, or the PR must carry an approved widening note; (d) Ajar-style open-privilege count <= the declared baseline; (e) the 2-run NI fuzz finds no AuthSel divergence over 1e6 cases.",
+   "overclaim_risk": "Building our own token format adds a new unverified surface until its proofs exist. Budget roughly 2-4 agent-weeks: a small conjunctive caveat language is far smaller than Cedar.",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "gap-verified-attenuable-pq-token",
+   "layer": "L2",
+   "domain": "G",
+   "type": "problem",
+   "title": "Unserved gap: no attenuable capability token with formal semantics, a verified or DRT-checked verifier, decidable caveats and PQ signatures",
+   "summary": "Cedar has verified semantics and analysis but no delegation. Biscuit, UCAN, ZCAP and Macaroons have delegation but no verified checker and no PQC (the Macaroons MAC excepted). The Aug-Oct 2026 agent-security wave (CapScope, ToolFence, Progent, the 2609.30824 proposal) is reinventing ad-hoc capability tokens.",
+   "urls": [
+    "https://arxiv.org/abs/2609.30824",
+    "https://arxiv.org/abs/2609.08371"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "",
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  }
+ ],
+ "edges": [
+  {
+   "src": "cedar-lean-proofs-2026-10",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "proves",
+   "note": "models semantics; Rust trusted via DRT only"
+  },
+  {
+   "src": "cedar-drt-harness",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "verifies",
+   "note": "differential testing vs Lean"
+  },
+  {
+   "src": "symcert-fmcad2026",
+   "dst": "cedar-lean-proofs-2026-10",
+   "type": "extends",
+   "note": "verified SMT analyses"
+  },
+  {
+   "src": "cedar-arxiv-2403.04651",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "describes",
+   "note": ""
+  },
+  {
+   "src": "cedar-skip-on-error-semantics",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "failure_of",
+   "note": "erroring forbid skipped"
+  },
+  {
+   "src": "inv-decision-determinism-failclosed",
+   "dst": "cedar-skip-on-error-semantics",
+   "type": "mitigates",
+   "note": ""
+  },
+  {
+   "src": "inv-decision-determinism-failclosed",
+   "dst": "biscuit-auth-6.0",
+   "type": "conflicts_with",
+   "note": "wall-clock max_time"
+  },
+  {
+   "src": "rebac-decision-bug-cluster",
+   "dst": "zanzibar-consistency-zedtokens",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "cedar-policy-crate-4.14",
+   "type": "depends_on",
+   "note": "PDP pin"
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "rego-formal-status",
+   "type": "alternative_to",
+   "note": "rejected"
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "rebac-decision-bug-cluster",
+   "type": "alternative_to",
+   "note": "rejected as PDP"
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "biscuit-auth-6.0",
+   "type": "alternative_to",
+   "note": "rejected for now; reversal condition"
+  },
+  {
+   "src": "l5-authz-stack-recommendation",
+   "dst": "oso-polar-archived",
+   "type": "alternative_to",
+   "note": "archived"
+  },
+  {
+   "src": "pqc-capability-token-design",
+   "dst": "fips204-mldsa-sizes",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "pqc-capability-token-design",
+   "dst": "fips205-slhdsa-sizes",
+   "type": "alternative_to",
+   "note": "SLH-DSA per-hop"
+  },
+  {
+   "src": "pqc-capability-token-design",
+   "dst": "fn-dsa-fips206-draft",
+   "type": "alternative_to",
+   "note": "reversal when final"
+  },
+  {
+   "src": "pqc-capability-token-design",
+   "dst": "macaroons-ndss2014",
+   "type": "depends_on",
+   "note": "Tier L MAC chain"
+  },
+  {
+   "src": "pqc-capability-token-design",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "fills_gap",
+   "note": ""
+  },
+  {
+   "src": "inv-attenuation-monotonicity",
+   "dst": "progent-2504.11703",
+   "type": "generalizes",
+   "note": "SMT subsumption for updates"
+  },
+  {
+   "src": "inv-attenuation-monotonicity",
+   "dst": "approval-to-abuse-2610.22987",
+   "type": "mitigates",
+   "note": "machine-computed widening diff"
+  },
+  {
+   "src": "inv-confused-deputy-ni",
+   "dst": "camel-2503.18813",
+   "type": "generalizes",
+   "note": ""
+  },
+  {
+   "src": "inv-confused-deputy-ni",
+   "dst": "camel-noncompositional-2610.05640",
+   "type": "mitigates",
+   "note": "labels on the wire"
+  },
+  {
+   "src": "inv-confused-deputy-ni",
+   "dst": "capscope-2609.08371",
+   "type": "related",
+   "note": "authority not a string"
+  },
+  {
+   "src": "inv-confused-deputy-ni",
+   "dst": "spides-2610.24277",
+   "type": "related",
+   "note": "server-emitted labels"
+  },
+  {
+   "src": "inv-no-ambient-authority",
+   "dst": "ocap-formal-foundations",
+   "type": "derived_from",
+   "note": ""
+  },
+  {
+   "src": "inv-confused-deputy-ni",
+   "dst": "ocap-formal-foundations",
+   "type": "derived_from",
+   "note": "seL4 NI, logical relations"
+  },
+  {
+   "src": "camel-noncompositional-2610.05640",
+   "dst": "camel-2503.18813",
+   "type": "refutes",
+   "note": "composition"
+  },
+  {
+   "src": "approval-to-abuse-2610.22987",
+   "dst": "progent-2504.11703",
+   "type": "attacks",
+   "note": "approval-gated expansion"
+  },
+  {
+   "src": "ajar-open-privilege-2609.26900",
+   "dst": "camel-2503.18813",
+   "type": "evaluates",
+   "note": ""
+  },
+  {
+   "src": "ajar-open-privilege-2609.26900",
+   "dst": "progent-2504.11703",
+   "type": "evaluates",
+   "note": ""
+  },
+  {
+   "src": "ipi-eval-validity-2609.32691",
+   "dst": "agentdojo-results-stale",
+   "type": "critiques",
+   "note": ""
+  },
+  {
+   "src": "kairos-2610.18457",
+   "dst": "inv-confused-deputy-ni",
+   "type": "related",
+   "note": "boundary mediation"
+  },
+  {
+   "src": "camelot-2609.18674",
+   "dst": "camel-2503.18813",
+   "type": "extends",
+   "note": "static CTL"
+  },
+  {
+   "src": "toolfence-2609.37196",
+   "dst": "camel-2503.18813",
+   "type": "alternative_to",
+   "note": "lower latency"
+  },
+  {
+   "src": "fides-2505.23643",
+   "dst": "camel-2503.18813",
+   "type": "alternative_to",
+   "note": "IFC planner"
+  },
+  {
+   "src": "ucan-1.0-spec",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "related",
+   "note": "no PQC, no semantics"
+  },
+  {
+   "src": "zcap-ccg-status",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "related",
+   "note": ""
+  },
+  {
+   "src": "biscuit-auth-6.0",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "related",
+   "note": "closest; unverified"
+  },
+  {
+   "src": "spki-sdsi-li-mitchell",
+   "dst": "inv-attenuation-monotonicity",
+   "type": "lesson",
+   "note": "semantics before deployment"
+  },
+  {
+   "src": "zelkova-fmcad2018",
+   "dst": "symcert-fmcad2026",
+   "type": "precedes",
+   "note": ""
+  },
+  {
+   "src": "authz-formal-pdp-comparison",
+   "dst": "gap-verified-attenuable-pq-token",
+   "type": "implies",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Benchmark Cedar 4.14 (Rust) vs the Lean-compiled executable spec (cedar-lean-ffi) for per-decision latency. Can the proven Lean evaluator run in production and shrink the TCB?",
+   "layer": "L4",
+   "domain": "G",
+   "expected_info_gain": 0.7,
+   "reason": "Would remove the Rust impl from the TCB if within 10x"
+  },
+  {
+   "question": "Do nginx, Envoy, Node/undici, hyper and Cloudflare default header-size limits (2026 versions) allow 5-16 KB PQ capability tokens? Exact limits with source lines.",
+   "layer": "L4",
+   "domain": "G",
+   "expected_info_gain": 0.6,
+   "reason": "Sizes token transport (body vs header vs by-reference)"
+  },
+  {
+   "question": "Is there any Cedar RFC or design for delegation/attenuation tokens (cedar-policy/rfcs), or entity-store-backed capability chains?",
+   "layer": "L3",
+   "domain": "G",
+   "expected_info_gain": 0.6,
+   "reason": "Might fill the gap without a custom token"
+  },
+  {
+   "question": "Verus or Lean verified implementations of macaroon/HMAC-chain verifiers or capability token checkers (2024-2026)?",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.55,
+   "reason": "Existence proof for the L5 token checker"
+  },
+  {
+   "question": "MCP/A2A spec support for provenance and integrity labels on tool results (2026 revisions, SEPs); the multi-CaMeL data channel?",
+   "layer": "L3",
+   "domain": "W-AGENT-PROTOCOL",
+   "expected_info_gain": 0.7,
+   "reason": "Composition of IFC requires wire labels"
+  },
+  {
+   "question": "Independent replication of CaMeL/Progent/FIDES ASR numbers under the corrected harness (2609.32691) and the Ajar open-privilege axis",
+   "layer": "L4",
+   "domain": "G",
+   "expected_info_gain": 0.6,
+   "reason": "Self-reported numbers; harness validity is load-bearing"
+  },
+  {
+   "question": "Composite ML-DSA + Ed25519 signature drafts (IETF LAMPS composite sigs) status and exact encoded sizes, for the token Tier X",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "Hybrid choice for capability roots"
+  },
+  {
+   "question": "cvc5 soundness bug history and proof-producing mode (Alethe/LFSC checking in Lean) for trusting SymCC verdicts",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.5,
+   "reason": "cvc5 is in the analysis TCB"
+  }
+ ],
+ "protocol_implications": [
+  "Default PDP: Cedar 4.14.x with policies validated and symcc-checked at deploy time. Never parse untrusted policy text on the request path (GHSA-m84h-6f26-p3p7).",
+  "Wrap Cedar so that an error in a forbid policy produces Deny, or gate CI on verifyNeverErrors for all forbid policies. Document the deviation.",
+  "Authorization resource limits must be step-counted fuel, never wall-clock, so decisions stay reproducible (DST-compatible).",
+  "Two-tier capability token: HMAC-chain caveats for issuer=verifier, and an ML-DSA-65 or hybrid root signature only at trust-domain crossings. Per-hop PQ signatures cost 3.7-5.3 KB each.",
+  "Agent-facing projection must carry provenance and integrity labels across MCP/A2A boundaries. Single-agent CaMeL guarantees do not compose (2610.05640).",
+  "Capability widening must never be presented with model-authored scope text. Show a machine-computed authorized-set diff (2610.22987: 58% elicitation).",
+  "CI security metrics: argument-level ASR (not tool-identity), Ajar open-privilege count, and 2-run NI fuzz for AuthSel divergence.",
+  "Write SPEC_INVARIANTS entries: no_ambient_authority, attenuation_monotonicity, confused_deputy_NI (AuthSel), decision_total_deterministic_failclosed."
+ ],
+ "self_improvement": [
+  "The Semantic Scholar API rate-limited (429) and OpenAlex wants an API key. The arXiv export API with id_list and search_query worked well for forward-search and recency sweeps. Recommend it as the default needle tool.",
+  "Counting theorems and sorry in a shallow clone gives grade-A proof-coverage numbers in about 1 minute. Add this as a standard tactic for every 'formally verified' claim.",
+  "The gh api security-advisories endpoint gives exact per-repo GHSA counts and dates. Standardize it for maintenance and CVE fields."
+ ],
+ "sources": [
+  "https://agentdojo.spylab.ai/results/",
+  "https://arxiv.org/abs/2403.04651",
+  "https://arxiv.org/abs/2407.01688",
+  "https://arxiv.org/abs/2503.18813",
+  "https://arxiv.org/abs/2504.11703",
+  "https://arxiv.org/abs/2505.23643",
+  "https://arxiv.org/abs/2609.08371",
+  "https://arxiv.org/abs/2609.18674",
+  "https://arxiv.org/abs/2609.26900",
+  "https://arxiv.org/abs/2609.30824",
+  "https://arxiv.org/abs/2609.32691",
+  "https://arxiv.org/abs/2609.37196",
+  "https://arxiv.org/abs/2610.05640",
+  "https://arxiv.org/abs/2610.18457",
+  "https://arxiv.org/abs/2610.22987",
+  "https://arxiv.org/abs/2610.24277",
+  "https://authzed.com/docs/spicedb/concepts/consistency",
+  "https://crates.io/crates/biscuit-auth",
+  "https://crates.io/crates/cedar-policy",
+  "https://cs.brown.edu/media/filer_public/00/df/00df3f96-8712-4ef6-be1b-4f7cc0f046a8/jakobkreuze.pdf",
+  "https://datatracker.ietf.org/doc/html/draft-ietf-lamps-fn-dsa-certificates",
+  "https://docs.cedarpolicy.com/auth/authorization.html",
+  "https://docs.rs/cedar-policy-symcc",
+  "https://github.com/authzed/spicedb/security/advisories",
+  "https://github.com/cedar-policy/cedar",
+  "https://github.com/cedar-policy/cedar-spec",
+  "https://github.com/cedar-policy/cedar-spec/tree/main/cedar-drt",
+  "https://github.com/eclipse-biscuit/biscuit-rust",
+  "https://github.com/eclipse-biscuit/biscuit/blob/main/SPECIFICATIONS.md",
+  "https://github.com/google-research/camel-prompt-injection",
+  "https://github.com/microsoft/SPIDES",
+  "https://github.com/microsoft/fides",
+  "https://github.com/ocapn/ocapn",
+  "https://github.com/open-policy-agent/opa",
+  "https://github.com/openfga/openfga/security/advisories",
+  "https://github.com/osohq/oso",
+  "https://github.com/reSHARMA/Ajar",
+  "https://github.com/souffle-lang/souffle",
+  "https://github.com/ucan-wg/delegation",
+  "https://github.com/ucan-wg/spec",
+  "https://lirias.kuleuven.be/handle/123456789/529252",
+  "https://lists.w3.org/Archives/Public/public-credentials/2025Jun/0062.html",
+  "https://lists.w3.org/Archives/Public/public-credentials/2026Apr/0065.html",
+  "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf",
+  "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf",
+  "https://trustworthy.systems/projects/OLD/infoflow",
+  "https://trustworthy.systems/publications/papers/Sewell_WGMAK_11.abstract.html",
+  "https://www.amazon.science/publications/semantic-based-automated-reasoning-for-aws-access-policies-using-smt",
+  "https://www.amazon.science/publications/symcert-verifying-smt-based-policy-analyses",
+  "https://www.cs.purdue.edu/homes/ninghui/papers/spkisdsi_csfw03.pdf",
+  "https://www.mpi-sws.org/~dg/papers/oopsla17-obj.pdf",
+  "https://www.ndss-symposium.org/ndss2014/programme/macaroons-cookies-contextual-caveats-decentralized-authorization-cloud/"
+ ],
+ "notes": "Blind research: prior_treatments and seed_conversation were not opened. Queries were logged to _queries.log. Vocabularies: PL/formal methods, LLM-security, crypto/standards, distributed systems, offensive (advisories). Source types: papers, spec repos, Lean source, crate registries, GHSA databases, vendor docs, benchmark pages, mailing lists. Contrarian directions: Cedar advisories, CaMeL non-composition, approval-to-abuse, eval validity, ReBAC fail-open bugs."
+}

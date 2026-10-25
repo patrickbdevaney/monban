@@ -1,0 +1,79 @@
+GHSA-p296-7pr4-87rr	-	2026-10-19	high	deny-funcs capability bypass via method-style invocations on the streaming engine (day-one since 2.0.0; 10 deny families verified incl. a file::* write+read chain)
+GHSA-pm86-cc75-q463	-	2026-10-19	high	Use-after-free in `surrealdb-core` KV backends via `affinitypool::spawn_local` leak amplification
+GHSA-3vw5-j55x-486h	-	2026-09-28	medium	Record users can read another tenant's records through RETURN … FETCH
+GHSA-w5v9-jc5f-5rmc	-	2026-09-28	critical	Cross-tenant access for system users through the Surreal-NS / Surreal-DB headers and the RPC use method
+GHSA-vx2p-7hhm-wv62	-	2026-09-28	critical	Cross-tenant access through the Surreal-NS / Surreal-DB headers with Basic authentication
+GHSA-x6mm-9295-rvph	-	2026-10-19	medium	Incorrect authorization: the streaming index planner exposes restricted-field matches through full-text, compound B-tree, and HNSW scans
+GHSA-2jj6-v2fq-rwpp	-	2026-09-28	medium	COMPUTED fields expose values hidden by field-level SELECT permissions
+GHSA-pm6c-q8rh-92m8	-	2026-09-28	medium	Field-level SELECT permissions bypassed in LIVE query projections via `$before` / `$after`
+GHSA-jm88-9wvx-6h4q	-	2026-09-28	medium	Field-level SELECT permissions bypassed in LIVE query WHERE clauses via `$before` / `$after`
+GHSA-84w9-87hm-mxqx	-	2026-09-28	medium	Denial of Service via non-ASCII header values in embedded JavaScript
+GHSA-jj89-wvrw-c4gp	-	2026-09-28	medium	Surrealism module output buffering bypasses the module memory limit
+GHSA-4w65-7h3j-p29h	-	2026-09-28	medium	REFERENCE ON DELETE CASCADE bypasses an edge table's PERMISSIONS FOR delete
+GHSA-h2c3-549c-gjpr	-	2026-09-28	high	PATCH copy/move/test JSON Pointer operations bypass field-level SELECT permissions
+GHSA-2jc3-58q7-mm2j	-	2026-09-28	medium	The `revoke` RPC invalidates any user's refresh token without authentication or proof of possession
+GHSA-pgh9-49q4-hqcx	-	2026-10-19	high	MCP session hijack / privilege escalation via BoundSubject fingerprint collision for JWT/Bearer access methods
+GHSA-c9wc-jcr5-8974	-	2026-10-19	high	IPv6 transition address bypass of SSRF guard in FilteringResolver
+GHSA-mhv5-88p6-w4c3	-	2026-10-19	medium	Port-specific --deny-net rules bypassed by aliasing the host (hostname <-> IP) — SSRF egress-policy bypass
+GHSA-h3mp-7wcg-p6vj	-	2026-10-19	medium	JWKS fetch bypasses port-specific deny-net rules on implicit default ports
+GHSA-rpmq-gq3f-h6jg	-	2026-10-19	medium	Unbounded recursion over persisted val::Value in response serializer, SQL formatter and storage codec causes process abort (DoS)
+GHSA-2v9j-645m-pcrq	-	2026-09-28	critical	Cross-tenant access through the USE statement
+GHSA-66r2-5gwj-gxm2	-	2026-07-02	medium	Writes in a PERMISSIONS clause bypass table permissions
+GHSA-jwr6-6444-28xv	-	2026-07-02	medium	Denial of Service via malformed SurrealML model import
+GHSA-848m-r628-vrxw	-	2026-07-02	high	Custom API route lets authenticated callers override namespace/database scope via URL path
+GHSA-5x4x-2946-qr67	-	2026-07-02	medium	SSRF via JWKS URL — allow-listed hostname resolving to a private IP
+GHSA-jv2j-mqmw-xvv5	-	2026-06-19	medium	Denial of Service via deep operator chains
+GHSA-hv6h-hc26-q48p	-	2026-06-19	medium	Field-level SELECT permissions bypassed via graph and reference traversals
+GHSA-h4h3-3rfj-x6fq	-	2026-06-19	medium	Indexed ORDER BY leaks the value ordering of a SELECT-restricted field
+GHSA-cc8f-fcx3-gpjr	-	2026-06-19	high	Arbitrary file read via DEFINE ANALYZER mapper() filter
+GHSA-8rw6-p7m8-63jp	-	2026-06-10	medium	Array element-level (field.*) SELECT permissions leak denied elements to record users
+GHSA-whwg-vh4f-pmmf	CVE-2026-49997	2026-05-27	medium	Edge PERMISSIONS FOR delete bypassed when a connected node is deleted
+GHSA-wp87-mgvq-5j93	-	2026-05-27	medium	USE NS/DB implicit creation bypasses DEFINE authorization
+GHSA-c8jx-96c9-8xrp	-	2026-05-27	medium	Field-level SELECT permissions bypassed via indexed COUNT fast paths
+GHSA-97vg-427p-8hx5	-	2026-05-27	medium	Port-specific --deny-net rules silently bypassed on HTTP redirect
+GHSA-h5rg-8p7f-47g2	-	2026-06-19	medium	SSRF via JWKS URL — Redirect Following in JWT Key Fetch
+GHSA-6vg3-hgrw-p5gf	-	2026-05-27	medium	Authorization Bypass via Composite Record-id Paths
+GHSA-vjjx-rfw4-rmfc	-	2026-05-27	medium	Graph traversal bypasses table SELECT permissions
+GHSA-wjjj-24cx-f28g	-	2026-05-27	high	Unauthenticated remote DoS via malformed RPC `use` call
+GHSA-6g9v-7gq3-p2c6	-	2026-05-27	medium	Authenticated callers can read fields hidden by field-level SELECT permissions via error messages
+GHSA-6wqw-vhfr-9999	-	2026-05-27	medium	Authenticated subscribers can read records hidden by SELECT permissions via LIVE subscriptions
+GHSA-65rj-r9fh-jp2v	-	2026-05-27	medium	Pre-auth memory amplification via unbounded `/sql` WebSocket frames
+GHSA-fpxg-5xmv-922m	-	2026-05-27	medium	Bypass of field-level SELECT permissions through JSON Patch `copy` and `move` with empty `from`
+GHSA-f82j-v89j-mf86	-	2026-05-27	medium	`RELATE` overwrites existing edge records without `UPDATE` permission
+GHSA-4m82-p8cx-f94j	-	2026-05-27	medium	LIVE query subscriptions survive session state changes, bypassing access controls
+GHSA-4v76-cw68-4vc9	-	2026-05-27	medium	Crafting malicious LIVE queries writes to the database, resulting in DoS, without permission to the table required
+GHSA-98fx-66cf-fc7c	-	2026-05-27	medium	Scraping a TABLE with no available PERMISSIONS to current auth level
+GHSA-4vgr-h27g-cf9p	-	2026-05-27	high	HTTP RPC Session Race Condition Allows Privilege Escalation
+GHSA-5qfp-32cf-69jh	-	2026-05-27	high	HTTP /rpc `sessions` method leaks attached session UUIDs, enabling full session hijack by anonymous callers
+GHSA-gcwr-5mrf-fvch	-	2026-05-27	medium	Authorization Bypass in KILL Statement Allows Termination of Other Users' Live Queries
+GHSA-q8qp-67f9-wr3f	-	2026-05-27	medium	Denial of Service due to nested types annotations
+GHSA-q729-696q-g9pq	-	2026-05-27	high	Denial of Service in JSON parser due to nested objects
+GHSA-fwg2-gr34-q3w8	-	2026-05-27	medium	ES512 silently downgraded to ES384 due to jsonwebtoken crate limitation
+GHSA-xx7m-69ff-9crp	-	2026-02-12	medium	Denial of Service through scripting function memory edge case
+GHSA-3v2x-9xcv-2v2v	-	2026-01-22	high	Confused Deputy Privilege Escalation through Future Fields and Functions.
+GHSA-7vm2-j586-vcvc	-	2025-09-11	medium	Unauthorized Data Exposure via LIVE Query Subscriptions
+GHSA-m3c3-78fh-w3w7	-	2025-06-26	medium	Bypass of deny-net flags via DNS resolution
+GHSA-rq86-9m6r-cm3g	-	2025-04-10	high	Uncaught exception in Net module leads to database crash
+GHSA-ccj3-5p93-8p42	-	2025-04-10	critical	Server-takeover via SurrealQL injection on backup import
+GHSA-m7rc-8w7m-r9qr	-	2025-04-10	medium	Memory exhaustion via nested functions and scripts
+GHSA-2cvj-g5r5-jrrg	-	2025-04-10	low	Local file read of 2-column TSV files via analyzers 
+GHSA-3633-g6mg-p6qq	-	2025-04-10	high	Memory exhaustion via string::replace using regex 
+GHSA-3824-qmfq-2qv7	-	2025-04-10	low	No JavaScript script function default timeout could facilitate DoS
+GHSA-pxw4-94j3-v9pf	-	2025-04-10	high	CPU exhaustion via custom functions result in total DoS
+GHSA-5q9x-554g-9jgg	-	2025-04-10	medium	Bypass of deny-net flags via redirect results in SSRF 
+GHSA-27vq-hv74-7cqp	-	2024-12-16	low	Silent Failure to Overwrite Table Definition of Relation Type
+GHSA-h4f5-h82v-5w4r	-	2024-11-22	medium	Uncaught Exception in Function Generating Random Time
+GHSA-jc55-246c-r88f	-	2024-11-22	medium	Uncaught Exception Handling Nonexistent Role
+GHSA-m52v-24p8-654f	-	2024-11-22	medium	Uncaught Exception Sorting Tables by Random Order
+GHSA-qjrv-v6qp-x99x	-	2024-10-08	medium	Uncaught Exception Handling Parsing Errors on Empty Strings
+GHSA-64f8-pjgr-9wmr	-	2024-09-11	high	Untrusted Query Object Evaluation in RPC API
+GHSA-gh9f-6xm2-c4j2	-	2024-07-10	medium	Improper Authentication when Changing Databases as Scope User
+GHSA-8xff-473h-f863	-	2024-02-19	medium	Uncaught Exception Handling Parsing Errors on Line Terminators
+GHSA-6wr5-jmpr-mjcx	-	2024-02-19	medium	Uncaught Exception in Macro Expecting Native Function to Exist
+GHSA-q3gg-m8hr-h4x4	-	2024-02-19	high	Externally Controlled Format String in Scripting Functions
+GHSA-9722-9j67-vjcr	-	2024-10-08	high	Improper Authorization in Select Permissions
+GHSA-m24x-r6q3-2vp9	-	2024-01-17	high	Uncaught Exception Processing HTTP Headers
+GHSA-jm4v-58r5-66hj	-	2024-01-17	medium	Uncaught Exception Invoking Global Parameters and Functions
+GHSA-x5fr-7hhj-34j3	-	2023-12-14	high	Full Table Permissions by Default
+GHSA-6r8p-hpg7-825g	-	2024-01-17	medium	Uncontrolled Recursion in SurrealQL Parsing
+GHSA-58j9-j2fj-v8f4	CVE-2023-43669	2024-01-17	high	Uncontrolled CPU Consumption via WebSocket Interface

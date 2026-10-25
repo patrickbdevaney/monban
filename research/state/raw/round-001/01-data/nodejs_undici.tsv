@@ -1,0 +1,55 @@
+2026-10-15	CVE-2026-109869	high	CWE-248,CWE-459	undici vulnerable to Denial of Service via unhandled error on excessive content-encodings
+2026-10-15	CVE-2026-109924	medium	CWE-770	undici vulnerable to Denial of Service via unbounded memory in the EventSource parser
+2026-10-14	CVE-2026-109855	high	CWE-248,CWE-754	undici WebSocket client vulnerable to Denial of Service via failed HTTP/2 handshake
+2026-10-15	CVE-2026-109841	medium	CWE-178	undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens
+2026-10-15	CVE-2026-109829	high	CWE-346,CWE-524	undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects
+2026-10-15	CVE-2026-109383	high	CWE-295	undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent
+2026-10-15	CVE-2026-87018	high	CWE-248,CWE-617	undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation
+2026-10-15	CVE-2026-109932	medium	CWE-400,CWE-405,CWE-770	undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering
+2026-10-15	CVE-2026-87029	medium	CWE-248	undici vulnerable to Denial of Service via unhandled exception in the decompress interceptor
+2026-09-04	CVE-2026-85024	medium	CWE-248	undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression
+2026-09-04	CVE-2026-85014	medium	CWE-248,CWE-754	undici vulnerable to Denial of Service via WebSocketStream unclean close
+2026-09-04	CVE-2026-85152	high	CWE-346	undici vulnerable to cross-origin cache poisoning via missing origin isolation in interceptors
+2026-09-04	CVE-2026-85008	low	CWE-345	undici vulnerable to caching and replay of unsafe HTTP method responses
+2026-09-04	CVE-2026-84961	high	CWE-295	undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool
+2026-09-04	CVE-2026-84947	low	CWE-20,CWE-248	undici vulnerable to response truncation via oversized chunked responses in the dump interceptor
+2026-09-04	CVE-2026-84933	medium	CWE-200,CWE-524	undici vulnerable to cross-user cookie disclosure via Set-Cookie caching in shared caches
+2026-09-04	CVE-2026-84890	medium	CWE-770	undici vulnerable to Denial of Service via unbounded decompression of compressed responses
+2026-09-04	CVE-2026-19534	high	CWE-248,CWE-252	undici vulnerable to Denial of Service via unrequested WebSocket subprotocol
+2026-09-04	CVE-2026-18540	low	CWE-444	undici vulnerable to downstream response splitting via retry interceptor
+2026-09-04	CVE-2026-18149	medium	CWE-772	undici vulnerable to Denial of Service via orphaned RetryHandler response body
+2026-07-29	CVE-2026-15157	medium	CWE-93	undici vulnerable to CRLF Injection via blob-like body 'type' property
+2026-07-29	CVE-2026-14643	medium	CWE-436,CWE-524	undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives
+2026-07-29	CVE-2026-16728	medium	CWE-444	undici vulnerable to downstream response desynchronization via retry interceptor
+2026-07-29	CVE-2026-13697	high	CWE-200,CWE-248,CWE-525	undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives
+2026-07-29	CVE-2026-16729	medium	CWE-74	undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields
+2026-06-17	CVE-2026-11525	low	CWE-183	undici vulnerable to Set-Cookie SameSite attribute downgrade via permissive substring matching
+2026-06-17	CVE-2026-12151	high	CWE-400,CWE-770	undici WebSocket client vulnerable to denial of service via fragment count bypass
+2026-06-17	CVE-2026-9697	high	CWE-295	undici vulnerable to TLS certificate validation bypass via dropped requestTls in SOCKS5 ProxyAgent
+2026-06-17	CVE-2026-9678	medium	CWE-524	undici vulnerable to cross-user information disclosure via shared cache whitespace bypass
+2026-06-17	CVE-2026-9679	medium	CWE-93	undici vulnerable to HTTP header injection via Set-Cookie percent-decoding
+2026-06-17	CVE-2026-9675	high	CWE-400,CWE-770	undici WebSocket client vulnerable to denial of service via cumulative fragment bypass
+2026-06-17	CVE-2026-6734	high	CWE-346	undici vulnerable to cross-origin request routing via SOCKS5 proxy pool reuse
+2026-06-17	CVE-2026-6733	low	CWE-367	undici vulnerable to HTTP response queue poisoning via keep-alive socket reuse
+2026-03-12	CVE-2026-1525	medium	CWE-444	Inconsistent Interpretation of HTTP Requests ('HTTP Request/Response Smuggling') in undici
+2026-03-12	CVE-2026-1528	medium	CWE-248,CWE-1284	Malicious WebSocket 64-bit length overflows undici parser and crashes the client
+2026-03-12	CVE-2026-2581	medium	CWE-770	Unbounded Memory Consumption in Undici's DeduplicationHandler via Response Buffering leads to DoS
+2026-03-12	CVE-2026-1527	medium	CWE-93	CRLF Injection in undici via `upgrade` option
+2026-03-12	CVE-2026-2229	medium	CWE-248,CWE-1284	Unhandled Exception in undici WebSocket Client Due to Invalid server_max_window_bits Validation
+2026-03-12	CVE-2026-1526	medium	CWE-409	Unbounded Memory Consumption in undici WebSocket permessage-deflate Decompression
+2026-01-14	CVE-2026-22036	medium	CWE-770	Unbounded decompression chain in HTTP responses via Content-Encoding leads to resource exhaustion
+2025-05-15	CVE-2025-47279	low	CWE-771	Denial of Service attack via bad certificate data
+2025-01-21	CVE-2025-22150	medium	CWE-330	Use of Insufficiently Random Values in undici fetch()
+2024-07-08	CVE-2024-38372	low	CWE-201	Data leak when using response.arrayBuffer()
+2024-04-04	CVE-2024-30260	low	CWE-200	Proxy-Authorization header not cleared on cross-origin redirect for dispatch, request, stream, pipeline
+2024-04-04	CVE-2024-30261	low	CWE-657	fetch with integrity option is too lax when algorithm is specified but hash value is in incorrect
+2024-02-16	CVE-2024-24758	low	CWE-200	Proxy-Authorization header not cleared on cross-origin redirect in fetch
+2024-02-16	CVE-2024-24750	medium	CWE-400	Backpressure request ignored in fetch()
+2023-10-12	CVE-2023-45143	low	CWE-200	Cookie header not cleared on cross-origin redirect in fetch
+2023-02-16	CVE-2023-23936	medium	CWE-93	CRLF Injection in Nodejs ‘undici’ via host
+2023-02-16	CVE-2023-24807	low		Regular Expression Denial of Service in Headers
+2022-08-09	CVE-2022-35948	medium	CWE-93	CRLF Injection in Nodejs ‘undici’ via Content-Type
+2022-08-09	CVE-2022-35949	medium	CWE-918	`undici.request` vulnerable to SSRF using absolute URL on `pathname`
+2022-07-18	CVE-2022-31150	medium	CWE-93	CRLF injection in request path, method, and headers
+2022-07-18	CVE-2022-31151	low	CWE-200	Cookies uncleared on cross-host / cross-origin redirect
+2022-06-13	CVE-2022-32210	high	CWE-295	ProxyAgent vulnerable to MITM

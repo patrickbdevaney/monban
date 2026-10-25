@@ -1,0 +1,582 @@
+{
+ "nodes": [
+  {
+   "id": "rec60-wasmtime-cranelift-crit-2026-10",
+   "layer": "L4",
+   "domain": "M/W-ISOLATION",
+   "type": "cve",
+   "title": "Wasmtime Oct 2026 critical sandbox-escape batch (Cranelift bit-pack + aarch64 br_table + async callback BOF)",
+   "summary": "Three critical wasmtime advisories in 3 weeks: GHSA-897f-g5gm-fmxm (CVE-2026-115889, Cranelift SSA index bit-packing overflows silently in RELEASE builds; a very large/crafted Wasm function => type confusion => sandbox escape on ANY arch with DEFAULT config; fixed v43, backport 36.0.19), GHSA-mghf-wjfp-p5xm (CVE-2026-115893, aarch64 br_table wrong jump, 36.0.19/48.0.7/49.0.4), GHSA-32h6-97mm-8q3c (CVE-2026-115384, component async-lifted callback result count unvalidated => native stack BOF, >=39.0.0, fixed 48.0.4/49.0.2). ~37 wasmtime GHSAs 2026-08-25..10-20, dominated by component-model-async/WASIp3/wasi-http panics, fuel-accounting bypasses (exponential fuel amplification via call_ref/catch, poll_oneoff skips fuel), GC heap corruption, uncapped handle tables, wasi fs sandbox escape via symlink rename. wasmtime 50.0.0 released 2026-10-20.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0380",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0379",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0327",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: pin wasmtime >=49.0.4 or >=50.0.0 (or 36.0.19 LTS line); gate: cargo-deny advisory check + reject any wasmtime < patched; enforce Config max_wasm_stack, module/function size caps (limit function body bytes) and use Cranelift only (Winch had its own critical Apr 2026); never rely on Wasm as sole boundary for third-party/agent code: wrap in seccomp+Landlock+separate process (or microVM). Disable component-model-async/WASIp3 unless needed (most Oct advisories are there).",
+   "overclaim_risk": "Counting advisories overstates risk if most are panics/DoS in preview features; only 3 are sandbox-escape class.",
+   "underclaim_risk": "Dismissing as 'patched' misses that class (compiler miscompile) recurs; a verified compiler backend is absent; 36.0.19 shows it was latent for years across LTS."
+  },
+  {
+   "id": "rec60-mcp-2026-07-28",
+   "layer": "L4",
+   "domain": "M/W-AGENT-PROTOCOL",
+   "type": "standard",
+   "title": "MCP spec revision 2026-07-28: stateless protocol, no sessions, MRTR, DCR deprecated",
+   "summary": "Primary changelog verified. Removes Mcp-Session-Id and initialize handshake (SEP-2567, SEP-2575); every request carries protocolVersion/clientCapabilities in _meta; server/discover; subscriptions/listen replaces GET stream and resources/subscribe; SSE resumability (Last-Event-ID) removed - broken stream loses in-flight request, client re-issues with new request id; MRTR (SEP-2322) replaces server-initiated roots/sampling/elicitation with InputRequiredResult retry; tasks moved to extension (SEP-2663); Mcp-Method/Mcp-Name headers (SEP-2243); ttlMs/cacheScope on list results (SEP-2549); RFC 9207 iss validation MUST (SEP-2468); RFC 7591 DCR deprecated for Client ID Metadata Documents; Roots/Sampling/Logging deprecated with 12-month policy (SEP-2577/2596); JSON Schema 2020-12 for tool schemas (SEP-2106); OTel traceparent in _meta. Previous rev 2025-11-25.",
+   "urls": [
+    "https://modelcontextprotocol.io/specification/2026-07-28/changelog",
+    "https://github.com/modelcontextprotocol/modelcontextprotocol"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: target 2026-07-28 as primary MCP projection; server holds NO per-connection protocol state => idempotency/WAL keyed by explicit server-minted handles + request ids; request routing by Mcp-Method/Mcp-Name headers enables L7 policy before body parse; implement server/discover; keep 2025-11-25 compat shim behind adapter. rmcp (rust-sdk) at 3.7.0 on 2026-10-22 - verify it tracks this revision before depending.",
+   "overclaim_risk": "Secondary articles claim 'MCP 2.0'; the spec itself is a dated revision, not a major version.",
+   "underclaim_risk": "Statelessness removes whole session-hijack class but pushes state into tool handles (new confused-deputy surface)."
+  },
+  {
+   "id": "rec60-ai-desync-http-terminator",
+   "layer": "L3",
+   "domain": "M/W-THREAT",
+   "type": "paper",
+   "title": "PortSwigger HTTP Terminator (2026-09-28): autonomous AI desync research factory",
+   "summary": "Kettle's pipeline (ideation/evaluation/weaponization/cascade) ran on c7i.2xlarge, 2000 threads, 30k sites <1 req/s/domain; novel techniques: HTTP/1.0+TE:gzip CL.0, multipart/byteranges Content-Type as CL.0 trigger (>200 sites incl. a US bank), dual matching Content-Length treated as 0, dangling-byte RQP, 'Shared-Parser Confusion' (request input reaching response-only parsing features); Apache Traffic Server zero-day CVE-2026-63078; F5 BIG-IP, Beyond Trust, NetScaler cases. Recommends: avoid upstream HTTP/1.1, method allow-lists, no bodies on GET/HEAD/OPTIONS. To be open-sourced. Model attribution unspecific (OpenAI+Anthropic).",
+   "urls": [
+    "https://portswigger.net/research/can-ai-do-novel-security-research"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L5: acceptance criterion: strict request grammar (reject dual CL even if equal, reject TE with HTTP/1.0, reject body on GET/HEAD/OPTIONS/CONNECT unless allow-listed, single parser path for req vs resp types); upstream is H2/H3 or Unix-socket framed, never raw H1 relays; differential-fuzz vs HTTP Terminator when released.",
+   "overclaim_risk": "Vendor-run offensive research; counts of affected sites not independently audited.",
+   "underclaim_risk": "Evidence that novelty can be machine-generated at ~1 rps scale - time-to-exploit for parser differentials is collapsing."
+  },
+  {
+   "id": "rec60-go-1.27.2-batch",
+   "layer": "L4",
+   "domain": "M/W-TRANSPORT",
+   "type": "cve",
+   "title": "Go 1.27.2/1.26.9 (2026-10-08): 15 security fixes, 8 in net/http",
+   "summary": "HPACK encoder race CVE-2026-97032; trailers bypass header limits 78659; SETTINGS initial-window CPU 78669; double flow-control refund on reset streams 78663; H2 transport forwards malformed headers => response smuggling 78660; HTTP/1 server keeps parsing after 2xx CONNECT 94439 (smuggling); client connection reuse after rejected CONNECT 56866; Range DoS 78667 (ranges>200 ignored); ECH outer ext memory 97031; multipart MIME limits 94440. Follow-up 1.27.3/1.26.10 on 10-20 for emSign CA removal. Even a mature, heavily-fuzzed memory-safe stack ships ~8 HTTP logic bugs per batch.",
+   "urls": [
+    "https://www.openwall.com/lists/oss-security/2026/10/08/9"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "L5: add each as regression case in H2/H1 conformance+DST suite: reset-stream flow-control refund accounting once; CONNECT state machine (no further HTTP parse post-2xx); trailer bytes counted in header budget; SETTINGS-change rate limit.",
+   "overclaim_risk": "",
+   "underclaim_risk": "Shows memory safety does not remove protocol-logic DoS/smuggling classes."
+  },
+  {
+   "id": "rec60-header-accordions-qpack",
+   "layer": "L4",
+   "domain": "M/W-TRANSPORT",
+   "type": "cve",
+   "title": "Header Accordions (FoxIO, 2026-10-20): QPACK amplification vs HTTP/3 servers, hyperium/h3 default-unsafe",
+   "summary": "Small QPACK blocks decode to huge header sets (~4000:1 Bun; ~10KB->hundreds MB in h3). 7 of 10 tested H3 stacks affected (quic-go, quiche, lsquic, aioquic, Bun, h3 ...). hyperium/h3 0.0.8: max_field_section_size defaults to VarInt::MAX and HeaderMap conversion panics; issue #379 open, fix PRs #377/#378 (64KiB default) unmerged at fetch; last h3 release 2025-05. RFC 9114 already allows limits - implementation bugs. Same family as June HTTP/2 Bomb (HPACK+flow control; CVE-2026-49975) and Pingora/Envoy H2 memory exhaustion.",
+   "urls": [
+    "https://github.com/hyperium/h3/issues/379",
+    "https://www.openwall.com/lists/oss-security/2026/10/22/",
+    "https://foxio.io/blog/header-accordions-qpack-amplification-attacks-against-http3-servers"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L5: any H3/H2 decoder must enforce DECODED-size budget (32B/field overhead per RFC 9114) as a hard default; fuzz oracle: output_bytes/input_bytes <= K; don't depend on hyperium/h3 pre-fix.",
+   "overclaim_risk": "FoxIO primary post not fetchable; ratios are from secondary summaries and the h3 issue.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-quinn-advisory-wave",
+   "layer": "L4",
+   "domain": "M/W-TRANSPORT",
+   "type": "cve",
+   "title": "quinn-proto: 9 HIGH advisories 2026-08-17..09-30 (+2 earlier in 2026); RUSTSEC-2026-0341",
+   "summary": "GHSA-qfwj-vfxf-92j2 (RUSTSEC-2026-0341: reassembly cap bypass, ~3GB pinned for 125MB accounted, fixed 0.11.17; follow-up to 4w2j-m93h-cj5j June), 2hv7-gw8g-gpq5, hmxj-32vh-65vr, 465w-v9q3-7j98 (5 small STREAM frames panic), ppcp-v39w-8jq2, 3g6h-r5qx-f6hq, 53rm-773f-4q8c (MAX_STREAM_DATA over limit), wppq-2f6r-wfvm, 6pp4-4cxf-xf88; quinn-proto 0.11.19 2026-09-30. Fix-of-fix pattern (0185 -> 0341). Parallel: OpenSSL 2026-09-29 has 7 QUIC server lows (CVE-2026-35191, 42772, 54873, 75804 no conn-level flow control ~100MB/conn, 84784), nginx HTTP/3 CVEs 42530 (UAF, major), 90439, 40460, 95101; HAProxy H3 CVE-2026-90678 (pub 09-13, desync) ; Envoy H3 UAF CVE-2026-73512. Every QUIC server stack had memory-accounting/desync bugs this quarter.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0341",
+    "https://github.com/quinn-rs/quinn/security/advisories",
+    "https://openssl-library.org/news/secadv/20260929.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "L5: decision-record input: H3 in-process = high residual risk; ship H1/H2 over TLS first, terminate QUIC at a CDN/edge or isolate QUIC worker process with cgroup memory cap + seccomp; if native QUIC: gate on 0 open HIGH advisories and own fuzz of reassembly accounting.",
+   "overclaim_risk": "Counting advisories is a proxy for scrutiny as much as for fragility.",
+   "underclaim_risk": "Rust memory safety did not prevent any of these; they are accounting/panic bugs."
+  },
+  {
+   "id": "rec60-rustls-0.23.46-downgrade",
+   "layer": "L4",
+   "domain": "M/W-PQC",
+   "type": "cve",
+   "title": "rustls 0.23.46 (2026-10-14): 4 advisories incl. silent PQ downgrade via key-share prediction poisoning",
+   "summary": "RUSTSEC-2026-0349 / GHSA-w44r-93j7-qv28 (low 3.7): unauthenticated ServerHello selecting X25519 poisons per-server-name key-share record; later ClientHellos send only X25519 share even though X25519MLKEM768 first in supported_groups; if server accepts without HelloRetryRequest, handshake completes classical-only => HNDL exposure; mitigation: server HRR for preferred group, resumption store off. Also 0346 session Debug leaks TLS secrets (medium), 0347 ECH rejection leaks buffered app data to outer server, 0348 brotli cert decompress 1GiB pre-auth. Also 0.23.45 (09-14) GHSA-2mjx-qc3c-rqvc accepted handshake msgs across encryption levels. Related draft-ietf-tls-key-share-prediction.",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0349",
+    "https://github.com/rustls/rustls/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.93,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "L5: server config must send HRR when client key_share lacks preferred hybrid group (policy: require X25519MLKEM768, never accept X25519-only for PQ-required listeners); test: downgrade-injection harness; rustls >=0.23.46 pin; disable brotli cert compression; no Debug on session types in logs (lint).",
+   "overclaim_risk": "Low severity per CVSS; client-side only in rustls (our server is server-side) - our exposure is for outbound clients/upstream mTLS.",
+   "underclaim_risk": "CVSS 3.7 hides that it silently strips the whole PQ property."
+  },
+  {
+   "id": "rec60-rfc-10024-hybrid-tls",
+   "layer": "L4",
+   "domain": "M/W-PQC",
+   "type": "standard",
+   "title": "RFC 10024 (PQ/T hybrid key agreement for TLS 1.3, Proposed Standard, ~Aug 2026); RFC 9954; RFC 9846 TLS 1.3 bis",
+   "summary": "Verified on rfc-editor.org: RFC 10024 defines X25519MLKEM768 (0x11EC, IANA Recommended Y), SecP256r1MLKEM768 (0x11EB, N), SecP384r1MLKEM1024 (0x11ED, N); authors PQShield/AWS/Cloudflare/Waterloo. RFC 9954 = Hybrid Key Exchange in TLS 1.3 (Informational framework). RFC 9846 = TLS 1.3 (Proposed Standard) obsoleting RFC 8446 AND RFC 5246 (TLS 1.2) etc, adds requirements for TLS 1.2. Cloudflare: >2/3 of human TLS to its network used hybrid by 2026-04-30 (secondary).",
+   "urls": [
+    "https://www.rfc-editor.org/info/rfc10024",
+    "https://www.rfc-editor.org/info/rfc9954",
+    "https://www.rfc-editor.org/info/rfc9846"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.92,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L5: cite RFC 9846 not 8446 in spec; cipher/group config: X25519MLKEM768 only mandatory hybrid; CNSA 2.0 users need ML-KEM-1024 hybrids (SecP384r1MLKEM1024, not Recommended) - make group list a typed config enum.",
+   "overclaim_risk": "Exact publication month not shown on rfc-editor page (Aug 2026 from secondary).",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-mtc-plants-chrome-apple-le",
+   "layer": "L4",
+   "domain": "M/W-PQC",
+   "type": "standard",
+   "title": "Merkle Tree Certificates: PLANTS draft-07, Apple policy (2026-09-21), Let's Encrypt, Cloudflare CA, Chrome root store Q3 2027",
+   "summary": "datatracker: draft-ietf-plants-merkle-tree-certs-07 (2026-10-07, 109pp), draft-ietf-plants-mtc-deploy-use-cases-00 (10-23), enterprise deployment -01. Apple Root Program (2026-09-21): MTC for TLS with 3 cosigs (ML-DSA-44+ECDSA-P256 issuer, ML-DSA-44 mirror), FIPS140-3 L3 HSMs, 7-day max validity, draft policy due end Oct 2026, CA applications late summer 2027; composite roots for S/MIME. Let's Encrypt (2026-06-03): staging late 2026, prod 2027. Cloudflare public CA w/ MTC production Q1 2027; Chrome Quantum-resistant Root Store targeted Q3 2027 (secondary). CA/B 'Allow ML-DSA' ballot PR#622/#624 still draft (May 2026 minutes); Chrome 150 ML-DSA only private trust anchors. Net: X.509 ML-DSA for public web is NOT the path; MTC is, with ~7-day certs and ACME changes.",
+   "urls": [
+    "https://datatracker.ietf.org/doc/search?name=plants&activedrafts=on",
+    "https://letsencrypt.org/2026/06/03/pq-certs.html",
+    "https://postquantum.com/security-pqc/apple-mtc-policy-post-quantum/",
+    "https://github.com/apple/apple-root-program"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "L5: server cert layer must be pluggable: X.509 (ECDSA/RSA) now, MTC landmark/standalone certs later; ACME client with short-lived cert rotation <=7d; do not invest in ML-DSA X.509 for public-facing TLS; track plants-07 -> RFC.",
+   "overclaim_risk": "Chrome/Cloudflare dates are from secondary reports; MTC spec still draft and could change.",
+   "underclaim_risk": "Underclaim: MTC changes cert issuance cadence and ACME - ops impact bigger than crypto swap."
+  },
+  {
+   "id": "rec60-name-constraints-emsign-wave",
+   "layer": "L4",
+   "domain": "M/W-PQC",
+   "type": "cve",
+   "title": "X.509 name-constraints bypass wave (Oct 13-14) + emSign/eMudhra intermediates compromise distrust (Oct 20)",
+   "summary": "oss-security 2026/10/14 (Oleh Konko) + CERT/CC VU#573195, #948176, #410595, #862559: rustls-webpki CVE-2026-93601 (fixed 0.103.12) & 93600 (0.103.13), GnuTLS 3.8.13 (3833), wolfSSL 5.9.1 (5263), AWS-LC 1.71.0, Go 1.26.2 (33810), pyca/cryptography 46.0.6 (34073), crypton-x509 (9.1), OpenSSL/BoringSSL partial, s2n-tls & Mbed TLS open/disputed. RUSTSEC-2026-0312 x509-validator. Then eMudhra/emSign intermediates compromise: RUSTSEC-2026-0381/0382/0383 (webpki-roots, rustls-webpki, webpki-root-certs, Oct 20), certifi GHSA-6q48-6c7w-9gw2, Go 1.27.3/1.26.10, Python CVE-2026-115557, Node NSS 3.131.1.",
+   "urls": [
+    "https://openwall.com/lists/oss-security/2026/10/14/11",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0382",
+    "https://www.openwall.com/lists/oss-security/2026/10/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.88,
+   "actionability": 0.75,
+   "load_bearing": false,
+   "specifics": "L5: upstream/mTLS client verifier: pin webpki >=0.103.13; CI test corpus for name-constraint edge cases; root-store update path must be hot-swappable without rebuild (distrust within hours).",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-pingora-envoy-haproxy-nginx-h2h3",
+   "layer": "L4",
+   "domain": "M/W-GAP",
+   "type": "cve",
+   "title": "Incumbent proxies Aug-Oct 2026: Pingora (3 new 10-20), Envoy (14 GHSAs 08-26 + critical Brotli 10-23), nginx 1.30.6/1.31.7 (10-14), HAProxy H3 desync (09-13)",
+   "summary": "Pingora 2026-10-20: CVE-2026-105297 HIGH H2 memory exhaustion via unbounded DEFAULT header-list/concurrent-stream limits, 105298 :authority/Host mismatch cache poison + ACL bypass, 105299 HIGH Connection-header forwarding ACL bypass; (Mar 2026 two CRITICAL smuggling CVE-2026-2835/2833); 0.9.0 released 09-09 predates fixes. Envoy 2026-08-26 batch: 73548 cross-user response poisoning via generic upgrade, 73550 HTTP/2 discarded Host header 200GB OOM, 73552 RBAC safe_regex fail-open on obs-text, 73553 path param canonicalization bypass, 73512 H3 UAF, 73513 oghttp2 trailers; GHSA-3wvj-j6qm-62mr CRITICAL Brotli decoder OOB write (CVE-2026-111497, credited OpenAI Security Research; fixed Envoy 1.40.0/1.39.3...; google/brotli 1.2.1/1.1.1/1.0.10 on 2026-10-21; Node also patched). nginx: 26 CVEs YTD per tracker, five on 10-14 (15176 alias BOF 8.1/9.2 since 0.1.29; 93479 map-regex BOF; 95101 H3 body injection; 97629 TLS session-ticket forgery bypasses client-cert; 97205 AIO UAF) and oss-sec 'nginx RCEs' post 10-23. HAProxy CVE-2026-90678 H3 truncated frames desync (3.3.0-3.4.4). Node 10-21: 7 CVEs. Caddy CVE-2026-55458 hop-by-hop leak.",
+   "urls": [
+    "https://github.com/cloudflare/pingora/security/advisories",
+    "https://github.com/envoyproxy/envoy/security/advisories",
+    "https://nginx.org/en/security_advisories.html",
+    "https://www.openwall.com/lists/oss-security/2026/10/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "L5: gap evidence: every incumbent shipped parser/accounting/path-normalization bugs this quarter incl. memory-safe Pingora and Go; new server wins only if parser+normalizer are generated/verified and resource budgets are default-on. Test oracles: ACL decision must be computed on canonical form used by upstream (Envoy 73553/73511 class); Host/:authority single-source (Pingora 105298).",
+   "overclaim_risk": "",
+   "underclaim_risk": "Brotli decoder is in C inside Rust/Go servers via FFI/vendored - memory-safe language claim leaks at compression deps."
+  },
+  {
+   "id": "rec60-rust-prover-llm-proofs",
+   "layer": "L4",
+   "domain": "M/W-FORMAL",
+   "type": "paper",
+   "title": "Rust-Prover (arXiv 2610.03994): all 1325 VeriContest theorems proved via Lean-backed Rust verifier with agents",
+   "summary": "Authors translate Rust+Verus specs to Lean theorems; Lean kernel is final check; 1259/1325 in one run <32h on Claude Opus 5.5, median 3.2 min and $1.17 per proof; Sonnet 5.5 low effort proved all 50 hardest; baseline Verus 13.95% first-attempt per benchmark authors; Lean output matched Rust on 21,413 tests; restated specs checked vs test suites, none weakened. Caveat: competitive-programming scale, not systems.",
+   "urls": [
+    "https://arxiv.org/abs/2610.03994"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "L5: proof-effort budget model: $1-2 per small theorem, hours per module; use Lean kernel as the TCB check for agent-written proofs; require spec-restatement review gate.",
+   "overclaim_risk": "Benchmark problems are small pure functions; says little about unsafe/IO/concurrency.",
+   "underclaim_risk": "Cost per proof collapsing by orders of magnitude vs 2024 (AutoVerus/Verus-bench era)."
+  },
+  {
+   "id": "rec60-cryptoprover-symcrypt",
+   "layer": "L4",
+   "domain": "M/W-FORMAL",
+   "type": "paper",
+   "title": "CryptoProver (2608.00965) and SymCrypt-in-Rust Aeneas+Lean (2609.15648): agent-written proofs of production crypto",
+   "summary": "CryptoProver: independent Verus proof of curve25519-dalek + RustCrypto chacha20 vs RFC 8439 in 11.4 h and USD 466.99 (original: 5 months x 3 people); mechanical gates reject spec weakening/invented axioms/git-history retrieval. Aeneas+Lean (Microsoft SymCrypt port): SHA-3 and ML-KEM verified, extended with FrodoKEM/ML-DSA/HPKE; agents write proofs, Lean kernel checks; humans still design/review standard formalization and intrinsics specs. libcrux in same quarter shipped RUSTSEC-2026-0331/0329 panic advisories (fixed libcrux-kem 0.0.10, hmac-drbg 0.0.2) - 'verified' libs still have unverified API wrappers.",
+   "urls": [
+    "https://arxiv.org/abs/2608.00965",
+    "https://arxiv.org/abs/2609.15648",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0331"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.78,
+   "actionability": 0.75,
+   "load_bearing": true,
+   "specifics": "L5: TCB ledger: spec files (RFC formalization) + Lean kernel + Aeneas extraction + intrinsics models; decode/parse wrappers around verified cores need their own fuzz/Kani panic-freedom gate.",
+   "overclaim_risk": "Preprints, not peer reviewed; vendor-affiliated authors.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-spec-fidelity-verus",
+   "layer": "L4",
+   "domain": "M/W-FORMAL",
+   "type": "paper",
+   "title": "Spec fidelity is the bottleneck: VerusEval (2610.26464) + Verus vstd soundness issues (#3029, #3234, #3252)",
+   "summary": "VerusEval: of 13,716 LLM artifacts only 42.3% of verifier-accepted ones pass all semantic checks; I/O suites reject 23.6% of accepted; Verus GitHub: #3029 BTreeMap insert spec unsound under obeys_cmp (open), #3234 await soundness bug (open), #3252 closed soundness bug (verified code panics on usize::MAX vec) ; PR #3110 adds -V check-erasure; PR #3221 Hash::hash declared. 'Stop Means Stop' (2607.14166): 0/6 popular agent frameworks honor approval/cancel barriers; SOUNDGATE Rust gate admission core verified in Verus+TLA+. Verus rolling releases daily (2026.10.24).",
+   "urls": [
+    "https://arxiv.org/abs/2610.26464",
+    "https://github.com/verus-lang/verus/issues/3029",
+    "https://github.com/verus-lang/verus/issues/3252",
+    "https://arxiv.org/abs/2607.14166"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L5: VERIFICATION_PLAN gate: every Verus-verified module ships (a) spec-triviality check, (b) executable-spec differential test vs implementation, (c) list of assume_specification std models used (treat as TCB), (d) toolchain pin by dated Verus release; admission-gate component can copy SOUNDGATE invariants (hold-until-decided, reject-cancels, dedup-on-replay, fence-on-cancel).",
+   "overclaim_risk": "",
+   "underclaim_risk": "LLM-written specs weaker than proofs: 'proved' != 'right'."
+  },
+  {
+   "id": "rec60-agent-authz-attacks",
+   "layer": "L3",
+   "domain": "M/W-AUTHZ",
+   "type": "paper",
+   "title": "Oct 2026 agent-security papers: MCP filesystem capability laundering, ASU step-up binding, harness allow-rule escalation, SPIDES IFC",
+   "summary": "2610.22301: across 21,097 MCP servers from 9 registries, 16.4% of 4,806 triaged have FS capability despite non-FS purpose; 2610.21063: 12 attacks on approval path vs AP2/MS action-bound approval/MCP elicitation, 4 of 8 runtimes allow post-approval arg change; ASU gateway w/ passkey over canonical effect digest, Tamarin proof; 2610.22987: planted repo context steers agents (Claude Code incl.) into approving over-broad allow-rules; 2610.24277 SPIDES label-based IFC gating browser actions; 2610.23449 GatewayBench (524 tasks, 11,118 tools). Cedar GHSA-m84h-6f26-p3p7 (10-22, HIGH): policy parser allocs ~29GB from 258-byte input (has-expression Arc sharing expanded in error path); cedar v4.14.0 10-17.",
+   "urls": [
+    "https://arxiv.org/abs/2610.22301",
+    "https://arxiv.org/abs/2610.21063",
+    "https://arxiv.org/abs/2610.22987",
+    "https://github.com/cedar-policy/cedar/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "L5: approval = signature over canonical effect descriptor (digest of exact call); capability = per-tool OS-level least privilege not client approval; never parse untrusted policy text in-process without memory cap; Cedar >= patched release.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-kernel-isolation",
+   "layer": "L4",
+   "domain": "M/W-ISOLATION",
+   "type": "cve",
+   "title": "Kernel/hypervisor wave: io_uring LPE on hardened kernel (2609.37608), KVM guest->host escapes, io_uring restriction drop on exec",
+   "summary": "arXiv 2609.37608 (09-29): two new io_uring vulns, one full LPE under hardened config; Linux 6.18 SLUB sheaf/barn weakens freelist protections and cross-cache assumptions. CVE-2026-80713 (08-28) io_uring restrictions dropped on exec. oss-security: KVM/arm64 guest-to-host CVE-2026-89775 (09-16), vhost stale IOTLB LPE/VM escape CVE-2026-74580 (10-14), 'PwnEscape' KVM guest-to-host CVE-2026-99999 (10-15; body unread), Sep 8 ZcopyReaper CVE-2026-43502 +20 LPEs, Sep 18 four local roots. Firecracker v1.17.0 (09-10), gvisor release-20261019, hyperlight GHSA-5m92 (low) ; no Firecracker advisories in window.",
+   "urls": [
+    "https://arxiv.org/abs/2609.37608",
+    "https://www.openwall.com/lists/oss-security/2026/10/",
+    "https://www.openwall.com/lists/oss-security/2026/09/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.72,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "specifics": "L5: io_uring off by default (and in seccomp deny) for untrusted-handler processes; if used, only in the trusted front process with IORING_REGISTER_RESTRICTIONS and no exec; KVM microVM boundary also has live escapes -> defense in depth + prompt kernel patch SLA; BENCH_PLAN must measure epoll baseline.",
+   "overclaim_risk": "Several oss-sec items known by subject line only.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-supply-chain-incidents",
+   "layer": "L4",
+   "domain": "M/W-SUPPLY",
+   "type": "incident",
+   "title": "Supply chain: arrayref/internment/append-only-vec hijack (08-20), npm CHAINDROP (08-04), tokio 1.54.0 UAF yanked (10-19..22), Nix/Lix local root (10-13), AI-agent intrusion (Zammad 09-21)",
+   "summary": "crates.io: arrayref 0.3.10, internment 0.8.7, append-only-vec 0.1.9 published from a compromised maintainer account; typosquat proc-macro1 1.0.107 build script fetched payload; arrayref 245M downloads, 403 direct dependents; RUSTSEC-2026-0260; pin <=0.3.9 (5 days before window; context). npm CHAINDROP Aug 4: 400+ packages, 3rd-gen self-replicating worm (secondary). tokio 1.54.0 (10-19) Interval timer race => UAF in safe code (RUSTSEC-2026-0384, CVE-2026-115567), yanked, 1.54.1 on 10-21 - a point release within 2 days broke core runtime. Nix/Lix local root privesc 10-13 (reproducible-build tooling). Hex 2.5.2 security fixes. DIVD/Zammad 09-21: AI agent chained CVE-2026-102489/102490 to root (loud/messy).",
+   "urls": [
+    "https://rustsec.org/advisories/RUSTSEC-2026-0384",
+    "https://thehackernews.com/2026/08/rust-supply-chain-attack-puts-build.html",
+    "https://thehackernews.com/2026/10/threatsday-ai-powered-zero-day-chain.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "L5: SUPPLY_CHAIN gates: crate pin by hash with 7-14 day cooldown before adopting new releases (tokio 1.54.0 lived 2 days), deny build.rs network, cargo-vet for build scripts/proc-macros, typosquat check on any new dep name vs top-1000, reproducible build in non-Nix builder or Nix pinned post-patch.",
+   "overclaim_risk": "",
+   "underclaim_risk": "Cooldown policy would have avoided both tokio 1.54.0 and the arrayref window."
+  },
+  {
+   "id": "rec60-cra-reporting-live",
+   "layer": "L4",
+   "domain": "M/W-OPS",
+   "type": "standard",
+   "title": "EU CRA reporting obligations live since 2026-09-11 (ENISA SRP), full obligations 2027-12-11",
+   "summary": "Commission guidance 2026-07-27: manufacturers report actively exploited vulns and severe incidents: early warning 24h, notification 72h, final 14 days after fix (vulns) / 1 month (incidents); single reporting platform; fines up to EUR 15M or 2.5% turnover; applies to products placed on market before 2027-12-11; SRP implementing-act text not located. Open-source steward treatment not covered in sources read.",
+   "urls": [
+    "https://www.jonesday.com/en/insights/2026/07/eu-cyber-resilience-act-24hour-reporting-duties-start-september-11-2026",
+    "https://digital-strategy.ec.europa.eu/en/policies/cra-reporting"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.82,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "L5: COMPLIANCE_MAP: 24h/72h/14d runbook + PSIRT contact + machine-readable VEX/CSAF output; tamper-evident audit log supports 'becoming aware' timestamp.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-ai-offense-trend",
+   "layer": "L3",
+   "domain": "M/W-THREAT",
+   "type": "incident",
+   "title": "AI offense/defense trend (Aug-Oct 2026): AI-found Brotli RCE, AI desync, AI-driven intrusion, harness false negatives",
+   "summary": "OpenAI Security Research credited for Envoy/Brotli OOB write RCE (CVE-2026-111497); Calif+Codex HTTP/2 Bomb (June, context; HPACK+flow-control chain reasoned not fuzzed; 880k sites); PortSwigger HTTP Terminator (09-28); DIVD Zammad intrusion driven by AI agent (09-21); 2610.29379: 13 structural drop points in AI vuln-discovery harnesses (OpenAnt, raptor); SWE-Test 2609.06229 contamination critique; FIRST projecting ~66,000 CVEs in 2026 (secondary); Anthropic Claude Mythos Preview (Apr 2026, secondary) and OpenAI July 2026 eval containment failure (secondary). Implication: patch-to-exploit window and known-bug re-discovery cost fall; CVE volume (nginx 26 YTD) high.",
+   "urls": [
+    "https://github.com/envoyproxy/envoy/security/advisories/GHSA-3wvj-j6qm-62mr",
+    "https://labs.cloudsecurityalliance.org/research/csa-research-note-http2-bomb-ai-discovered-dos-20260604/",
+    "https://arxiv.org/abs/2610.29379"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "L5: CI stage: run AI red-team harness against own server per release; patch SLA <24h for parser components.",
+   "overclaim_risk": "Several items secondary/vendor.",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-h2-hyper-releases",
+   "layer": "L4",
+   "domain": "M/W-TRANSPORT",
+   "type": "crate",
+   "title": "h2 0.4.20 / hyper 1.12.0 (2026-10-06) and h2 unbounded empty DATA advisory",
+   "summary": "hyperium/h2 GHSA-q83h-524g-xf6h unbounded empty DATA frames (2026-08-17); h2 0.4.20: reject GOAWAY with nonzero stream id, reject differing duplicate content-lengths, count refused streams on local-reset abuse counter, reserved push promises vs concurrency; hyper 1.12.0: http1 max_header_size for server+client (#4183), CL/TE stripping fixes; no hyper/h2/axum RUSTSEC entries in window other than that. axum last release 0.8.9 2026-04-14 (6 months).",
+   "urls": [
+    "https://github.com/hyperium/h2/releases/tag/v0.4.20",
+    "https://github.com/hyperium/hyper/releases/tag/v1.12.0"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "L5: pin h2>=0.4.20, hyper>=1.12.0 with explicit max_header_size/max_concurrent_streams/reset budgets set (not defaults); Pingora 105297 shows defaults unsafe.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  },
+  {
+   "id": "rec60-tokio-axum-rmcp-versions",
+   "layer": "L3",
+   "domain": "M/W-DX",
+   "type": "crate",
+   "title": "Ecosystem versions snapshot 2026-10-24",
+   "summary": "tokio 1.54.1 (1.54.0 yanked), rustls 0.23.46, aws-lc-rs 1.18.2, quinn-proto 0.11.19, pingora 0.9.0, quiche 0.30.0, s2n-quic 1.91.0, rmcp 3.7.0, lean4 4.35.0 (4.36.0-rc1), kani 0.68.0, Verus rolling 2026.10.24, hax cargo-hax 0.4.2, everparse v2026.10.07, cedar 4.14.0, spin 4.2.5, wasmCloud 2.11.0, workerd daily, fjall 3.1.12, caddy 2.11.7, envoy 1.40.1, biscuit-rust: NO release since 2025-07 (maintenance signal), A2A v1.0.1 2026-05-28.",
+   "urls": [
+    "https://github.com/tokio-rs/tokio/releases",
+    "https://github.com/eclipse-biscuit/biscuit-rust/releases"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "specifics": "L5: fill REPO_LAYOUT pins from this table after a cooldown check.",
+   "overclaim_risk": "",
+   "underclaim_risk": ""
+  }
+ ],
+ "edges": [
+  {
+   "src": "rec60-wasmtime-cranelift-crit-2026-10",
+   "dst": "rec60-kernel-isolation",
+   "type": "depends_on",
+   "note": "defense-in-depth layer needed beneath wasm; kernel/KVM also has escapes"
+  },
+  {
+   "src": "rec60-mcp-2026-07-28",
+   "dst": "rec60-agent-authz-attacks",
+   "type": "mitigates(threat)",
+   "note": "stateless removes session hijack; tool-handle confused deputy remains"
+  },
+  {
+   "src": "rec60-ai-desync-http-terminator",
+   "dst": "rec60-go-1.27.2-batch",
+   "type": "depends_on",
+   "note": "CONNECT/CL parser differential classes recur"
+  },
+  {
+   "src": "rec60-header-accordions-qpack",
+   "dst": "rec60-quinn-advisory-wave",
+   "type": "depends_on",
+   "note": "H3 stack immaturity"
+  },
+  {
+   "src": "rec60-rustls-0.23.46-downgrade",
+   "dst": "rec60-rfc-10024-hybrid-tls",
+   "type": "depends_on",
+   "note": "downgrade of RFC 10024 group"
+  },
+  {
+   "src": "rec60-rfc-10024-hybrid-tls",
+   "dst": "rec60-mtc-plants-chrome-apple-le",
+   "type": "depends_on",
+   "note": "key-agreement vs authentication tracks"
+  },
+  {
+   "src": "rec60-rust-prover-llm-proofs",
+   "dst": "rec60-spec-fidelity-verus",
+   "type": "conflicts_with",
+   "note": "cheap proofs raise spec-fidelity as the bottleneck"
+  },
+  {
+   "src": "rec60-cryptoprover-symcrypt",
+   "dst": "rec60-spec-fidelity-verus",
+   "type": "depends_on",
+   "note": "TCB = specs"
+  },
+  {
+   "src": "rec60-pingora-envoy-haproxy-nginx-h2h3",
+   "dst": "rec60-ai-offense-trend",
+   "type": "depends_on",
+   "note": "AI-found bugs"
+  },
+  {
+   "src": "rec60-supply-chain-incidents",
+   "dst": "rec60-tokio-axum-rmcp-versions",
+   "type": "depends_on",
+   "note": "cooldown policy"
+  },
+  {
+   "src": "rec60-name-constraints-emsign-wave",
+   "dst": "rec60-rustls-0.23.46-downgrade",
+   "type": "depends_on",
+   "note": "rustls-webpki line"
+  },
+  {
+   "src": "rec60-pingora-envoy-haproxy-nginx-h2h3",
+   "dst": "rec60-h2-hyper-releases",
+   "type": "alternative_to",
+   "note": "hyper/h2 vs Pingora stacks"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Fetch GHSA-32h6-97mm-8q3c + component-model-async advisories: can we avoid async/WASIp3 surface entirely and what fraction of 37 advisories remain?",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "expected_info_gain": 0.7,
+   "reason": "decides Wasm component-model vs core-wasm vs native sandbox"
+  },
+  {
+   "question": "Read FoxIO Header Accordions post + hyperium/h3 PR #378 merge status; does s2n-quic/quiche/lsquic enforce decoded-size default?",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.6,
+   "reason": "QUIC-now-vs-later decision"
+  },
+  {
+   "question": "Pull HTTP Terminator repo when released; run against a strict-grammar prototype parser",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "expected_info_gain": 0.6,
+   "reason": "ready-made differential oracle"
+  },
+  {
+   "question": "Primary NIST CSRC check: FIPS 206 / FIPS 207 / IR 8547 final status (search tools returned only secondary)",
+   "layer": "L3",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.5,
+   "reason": "unresolved standards dates"
+  },
+  {
+   "question": "Read PwnEscape CVE-2026-99999 (oss-sec 2026/10/15) and Firecracker/cloud-hypervisor exposure",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "expected_info_gain": 0.5,
+   "reason": "microVM boundary reliability"
+  },
+  {
+   "question": "MCP 2026-07-28 auth page + rmcp 3.x conformance: does rust-sdk implement stateless/MRTR?",
+   "layer": "L4",
+   "domain": "W-AGENT-PROTOCOL",
+   "expected_info_gain": 0.55,
+   "reason": "SDK choice"
+  },
+  {
+   "question": "Black Hat/DEF CON 2026 program (primary) for other server-relevant talks; this sweep could not fetch it",
+   "layer": "L3",
+   "domain": "W-THREAT",
+   "expected_info_gain": 0.4,
+   "reason": "coverage gap"
+  },
+  {
+   "question": "CAV'26/OOPSLA'26/CCS'26/SOSP'26 accepted lists for verified-server papers; only arXiv searched here",
+   "layer": "L3",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.4,
+   "reason": "coverage gap"
+  },
+  {
+   "question": "Rust-Prover/CryptoProver reproducibility: repos, license, whether proofs run on Verus rolling pins",
+   "layer": "L4",
+   "domain": "W-FORMAL",
+   "expected_info_gain": 0.5,
+   "reason": "LLM proof cost claims are load-bearing"
+  }
+ ],
+ "protocol_implications": [
+  "Calibration: task text says 'IETF 124 (Nov 2026)'; datatracker shows IETF 127 is Nov 14-20 2026 (124 was Nov 2025). Fix directive.",
+  "Search-tool summaries are LLM-mediated and sometimes wrong on dates (Envoy batch dated Sept by search, 2026-08-26 per GHSA API) - require primary fetch (gh api / rustsec / datatracker / arXiv API) before grading above C.",
+  "gh api security-advisories + releases and export.arxiv.org work from the sandbox and give fast primary recency data; make them the default sweep tools.",
+  "Directive recency checklist should add: Brotli/zstd decompressor CVEs, QPACK/HPACK decode budgets, X.509 name constraints, emSign-type root distrust, crate cooldown."
+ ],
+ "self_improvement": [
+  "Add a reusable recency-sweep script (gh api advisories+releases for a watchlist, arXiv API queries, rustsec index) so sibling explorers do not rediscover tooling.",
+  "WebFetch of rustsec index truncates at 100k chars per call; use offset or the rustsec git DB instead.",
+  "FoxIO/blog hosts and phoronix returned 403; keep fallback list.",
+  "Directive asks 'Black Hat/DEF CON 2026 talks' and 'conference programs' but tools reached none; add proceedings-mirror fetch step."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-001/11-recency-sweep-last-60-days.json",
+ "top10_by_decision_impact": [
+  "rec60-wasmtime-cranelift-crit-2026-10",
+  "rec60-quinn-advisory-wave",
+  "rec60-ai-desync-http-terminator",
+  "rec60-mcp-2026-07-28",
+  "rec60-rust-prover-llm-proofs",
+  "rec60-spec-fidelity-verus",
+  "rec60-rustls-0.23.46-downgrade",
+  "rec60-mtc-plants-chrome-apple-le",
+  "rec60-pingora-envoy-haproxy-nginx-h2h3",
+  "rec60-supply-chain-incidents"
+ ]
+}

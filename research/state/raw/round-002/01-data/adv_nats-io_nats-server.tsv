@@ -1,0 +1,36 @@
+GHSA-q59r-vq66-pxc2	CVE-2026-58207	2026-06-29	high	Remote crash via integer overflow in Connz pagination
+GHSA-p957-7v2w-g93g	CVE-2026-58208	2026-06-29	medium	MQTT-over-WebSocket Path Can Crash WebSocket-Only JetStream Servers Before MQTT Is Enabled
+GHSA-7qmq-8cc4-hxwg	CVE-2026-58209	2026-06-29	medium	MQTT retained and QoS replay bypass subscribe deny filters
+GHSA-r72h-j7qq-v6qg	CVE-2026-58210	2026-06-29	high	MQTT partial CONNECT packets can exhaust pre-auth memory
+GHSA-hmmp-q8cx-v964	CVE-2026-58211	2026-06-29	medium	`no_auth_user` pre-CONNECT fast path bypasses user connection restrictions
+GHSA-g33f-6538-grxh	CVE-2026-58212	2026-06-29	high	Pre-auth panic and server hang via malformed JWT issuer (missing Ed25519 length check in nkeys)
+GHSA-qrcv-3558-gj4f	CVE-2026-58213	2026-06-29	high	MQTT SUBSCRIBE Protocol Injection via Leaf Node/Route Forwarding allows arbitrary NATS command injection (CWE-74)
+GHSA-4g68-3pwx-5vfj	CVE-2026-58214	2026-06-29	medium	MQTT subscribe ACL bypass via $MQTT.deliver.pubrel prefix (incomplete fix for CVE-2026-33217)
+GHSA-p3j5-5hrq-p75h	CVE-2026-58254	2026-06-29	medium	Incomplete fix for CVE-2026-33249: Leaf node connections bypass Nats-Trace-Dest permission check
+GHSA-3g5q-cfh2-cq67	CVE-2026-58250	2026-06-29	high	Pre-auth server crash via double INFO in leafnode handshake — incomplete fix for CVE-2026-29785 and CVE-2026-33218
+GHSA-jx8g-9g95-6322	CVE-2026-58251	2026-06-29	medium	Queue Subscribe Authz Bypass 
+GHSA-wh7g-5m82-pmhr	CVE-2026-58252	2026-06-29	medium	Subscribe Authz Bypass via Wildcard-Overlap
+GHSA-38x3-76xf-cq45	CVE-2026-58253	2026-06-29	high	Route API Auth Bypass
+GHSA-8m2x-3m6q-6w8j	CVE-2026-33249	2026-03-24	medium	Message tracing can be redirected to arbitrary subject
+GHSA-x6g4-f6q3-fqvv	CVE-2026-33247	2026-03-24	high	credentials via command-line argv exposed to monitoring
+GHSA-3f24-pcvm-5jqc	CVE-2026-33248	2026-03-24	medium	mTLS DN-based identity auth bypass for some DN patterns
+GHSA-9983-vrx2-fg9c	CVE-2026-33222	2026-03-24	medium	JetStream: Stream restore endpoint auth bypass
+GHSA-pwx7-fx9r-hr4h	CVE-2026-33223	2026-03-24	medium	Internal identity header Nats-Request-Info spoofable
+GHSA-8r68-gvr4-jh7j	CVE-2026-33219	2026-03-24	medium	WebSockets pre-auth DoS
+GHSA-vprv-35vv-q339	CVE-2026-33218	2026-03-24	high	Pre-auth server panic in leafnode handling
+GHSA-55h8-8g96-x4hj	CVE-2026-33246	2026-03-24	medium	Leafnode spoofing of Nats-Request-Info identity information
+GHSA-jxxm-27vp-c3m5	CVE-2026-33217	2026-03-24	high	MQTT ACLs ineffective
+GHSA-v722-jcv5-w7mc	CVE-2026-33216	2026-03-24	high	MQTT plaintext password disclosure
+GHSA-fcjp-h8cc-6879	CVE-2026-33215	2026-03-24	medium	MQTT hijacking via Client ID
+GHSA-52jh-2xxh-pwh6	CVE-2026-29785	2026-03-24	high	leafnode pre-auth server panic DoS
+GHSA-pq2q-rcw4-3hr6	CVE-2026-27889	2026-03-24	high	Pre-auth remote server crash via WebSocket frame length overflow in wsRead
+GHSA-qrvq-68c2-7grw	CVE-2026-27571	2026-02-23	medium	nats-server WebSockets pre-auth memory DoS
+GHSA-fhg8-qxh5-7q3w	CVE-2025-30215	2025-04-15	critical	Failure to authorize certain Jetstream admin APIs
+GHSA-fr2g-9hjm-wr23	CVE-2023-47090	2023-10-18	high	Adding accounts for just the system account adds auth bypass
+GHSA-6h3m-36w8-hv68	CVE-2022-26652	2022-03-10	high	Arbitrary file write by JetStream-enabled users
+GHSA-g6w6-r76c-28j7	CVE-2022-24450	2022-02-07	critical	Unconstrained account assumption by authenticated clients
+GHSA-jj54-5q2m-q7pj	CVE-2021-32026	2021-05-04	low	TLS missing ciphersuite settings when CLI flags used
+GHSA-j756-f273-xhp4	CVE-2021-3127	2021-03-24	critical	Import token permissions checking not enforced
+GHSA-gwj5-3vfq-q992	CVE-2020-28466	2021-03-24	low	Import loops in account imports, nats-server DoS
+GHSA-hmm9-r2m2-qg9w	CVE-2020-26521	2021-03-24	low	Nil dereference in NATS JWT, DoS of nats-server
+GHSA-2c64-vj8g-vwrq	CVE-2020-26892	2021-03-24	high	Incorrect handling of credential expiry by NATS Server

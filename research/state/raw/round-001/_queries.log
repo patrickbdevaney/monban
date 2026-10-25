@@ -1,0 +1,473 @@
+historical-and-formal-web-foundations-why-they-died	Ur/Web Chlipala PLDI 2015 Ur/Web static guarantees XSS SQL injection	PL,paper,proponent
+historical-and-formal-web-foundations-why-they-died	Ur/Web TechEmpower results	benchmark
+historical-and-formal-web-foundations-why-they-died	Hails OSDI 2012 Stefan IFC web framework	paper
+historical-and-formal-web-foundations-why-they-died	Erlang AXD301 nine nines uptime Armstrong thesis	talk,historical
+historical-and-formal-web-foundations-why-they-died	Waterken web-key Tyler Close ceremony	e-lang,historical
+historical-and-formal-web-foundations-why-they-died	Caja SES Hardened JavaScript Endo history	retrospective
+historical-and-formal-web-foundations-why-they-died	LLM Lean Dafny proof synthesis dependently typed languages performance	LLM,negative
+historical-and-formal-web-foundations-why-they-died	PHP share-nothing architecture mod_php FastCGI history	practitioner
+historical-and-formal-web-foundations-why-they-died	Jif SIF Swift Chong secure web applications SOSP 2007	paper
+historical-and-formal-web-foundations-why-they-died	LWeb LIO Fable Storm refinement types web	paper
+transport-stacks-and-pqc-deployment-reality	Cloudflare Radar post-quantum encryption share 2026	cryptography|telemetry|mainstream|2026
+transport-stacks-and-pqc-deployment-reality	rustls X25519MLKEM768 default release changelog	crypto-eng|repo-changelog|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	FIPS 140-3 CMVP aws-lc ML-KEM certificate	standards-policy|vendor-doc|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	MadeYouReset CVE-2025-8671 h2 hyper	offensive-sec|CVE|attacker|2025
+threat-cve-record-and-ai-exploit-speed	MadeYouReset CVE-2025-8671 affected vendors	offsec/CVE+advisory/attacker/2025
+threat-cve-record-and-ai-exploit-speed	PortSwigger HTTP/1.1 must die desync 2025 CVEs	offsec/talk+research/attacker/2025
+threat-cve-record-and-ai-exploit-speed	AIxCC final results 2025 points vulnerabilities found patched	AI-security/competition results/proponent/2025
+threat-cve-record-and-ai-exploit-speed	CISA KEV HTTP/2 rapid reset CVE-2023-44487 catalog	policy/KEV catalog/attacker/2023
+threat-cve-record-and-ai-exploit-speed	nginx security advisories 2024 2025 CVE list	ops/vendor advisory/empirical/2024-26
+supply-chain-provenance-and-deterministic-sim-ci	cargo-vet imported audits list	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Antithesis pricing availability	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	mrustc DDC rustc bootstrap	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	slopsquatting hallucination rate study	N+O;L3-L5;SRE
+isolation-substrates-measured-and-escaped	gh api repos/bytecodealliance/wasmtime/security-advisories full list	systems,repo+advisory,negative
+isolation-substrates-measured-and-escaped	gh api firecracker/gvisor/wasmer/wamr/workerd/hyperlight security advisories	systems,repo+advisory,negative
+formal-proofs-in-production-and-llm-proof-synthesis	Anvil OSDI 2024 Verus Kubernetes controller liveness proof effort lines	PL,paper,proponent,2024
+formal-proofs-in-production-and-llm-proof-synthesis	Atmosphere verified OS Verus SOSP 2025 proof ratio	PL,paper,2025
+formal-proofs-in-production-and-llm-proof-synthesis	VeriSMo OSDI 2024 Verus SEV-SNP security module	PL,paper
+formal-proofs-in-production-and-llm-proof-synthesis	AutoVerus Verus-Bench success rate	LLM,paper,2024-25
+formal-proofs-in-production-and-llm-proof-synthesis	AWS verify-rust-std challenges closed Kani	repo,industry,2025-26
+formal-proofs-in-production-and-llm-proof-synthesis	Verus soundness issue github label	repo-issues,negative
+authz-capabilities-with-formal-semantics	Cedar policy language Lean proofs cedar-spec differential random testing OOPSLA 2024	PL,paper,proponent
+authz-capabilities-with-formal-semantics	cedar-symcc symbolic compiler SMT analyzer 2025	PL,repo,engineering
+authz-capabilities-with-formal-semantics	biscuit-auth crate RustSec advisory CVE	offsec,advisory,skeptic
+authz-capabilities-with-formal-semantics	UCAN 1.0 specification status delegation	standards,spec,2025
+authz-capabilities-with-formal-semantics	CaMeL 2503.18813 forward citations AgentDojo attack success 2026	LLM-security,paper,leaderboard
+agent-protocols-primary-source-status	gh api MCP spec releases	J,L1,primary
+state-durability-and-db-gate-failure-modes	draft-ietf-httpapi-idempotency-key-header latest version datatracker	F+H;L2-L4;databases;spec/CVE/issue;negative;2022-26
+state-durability-and-db-gate-failure-modes	PostgreSQL security advisory row security policy bypass CVE	F+H;L2-L4;databases;spec/CVE/issue;negative;2022-26
+state-durability-and-db-gate-failure-modes	redb database corruption data loss issue github crash consistency	F+H;L2-L4;databases;spec/CVE/issue;negative;2022-26
+state-durability-and-db-gate-failure-modes	Jepsen analysis list jepsen.io 2024 2025 2026 database	F+H;L2-L4;databases;spec/CVE/issue;negative;2022-26
+recency-sweep-last-60-days	wasmtime security advisory GHSA September 2026	domain=M;layer=L3-4;vocab=mixed;src=advisory
+recency-sweep-last-60-days	rustls security advisory October 2026	domain=M;layer=L3-4;vocab=mixed;src=advisory
+recency-sweep-last-60-days	HTTP/2 new DoS vulnerability 2026 CVE denial of service class	domain=M;layer=L3-4;vocab=mixed;src=advisory
+recency-sweep-last-60-days	NIST FIPS 206 FN-DSA final 2026	domain=M;layer=L3-4;vocab=mixed;src=advisory
+identifier-calibration-seed-and-prior-claims	crates.io API existence/versions/yanked for all cited crates	domain=K;layer=L4;source=crates.io API;stance=prosecutor
+identifier-calibration-seed-and-prior-claims	GitHub API bytecodealliance/wasmtime issue 13467	source=GitHub API
+identifier-calibration-seed-and-prior-claims	GitHub API soumyarupsarkar/spargio	source=GitHub API
+identifier-calibration-seed-and-prior-claims	arXiv API 2605.03822 and 2603.24775	source=arXiv API
+identifier-calibration-seed-and-prior-claims	rfc-editor RFC 9680 and RFC index	source=rfc-editor
+identifier-calibration-seed-and-prior-claims	modelcontextprotocol spec repo revisions 2026-07-28	source=MCP spec repo
+threat-cve-record-and-ai-exploit-speed	nginx 2026 vulnerabilities reported by AI who discovered credit	offsec/mailing list/attacker/last60d
+threat-cve-record-and-ai-exploit-speed	CERT VU#767506 MadeYouReset vendor status	CERT advisory/2025
+agent-protocols-primary-source-status	datatracker api group docs webbotauth/aipref/oauth	J,L3,spec-RFC
+formal-proofs-in-production-and-llm-proof-synthesis	VeruSAGE agent Verus large systems	LLM,paper,2025
+formal-proofs-in-production-and-llm-proof-synthesis	Atmosphere SOSP 2025 Burtsev verified kernel Verus	PL,paper
+formal-proofs-in-production-and-llm-proof-synthesis	Verus production use Microsoft Azure AWS 2025	industry,vendor
+formal-proofs-in-production-and-llm-proof-synthesis	verify-rust-std challenges resolved list	repo
+threat-cve-record-and-ai-exploit-speed	Project Glasswing Mythos zero-days open source servers nginx	AI-security/vendor blog/proponent/2026
+threat-cve-record-and-ai-exploit-speed	CVE-2026-42533 NVD credit reporter	NVD record/2026
+recency-sweep-last-60-days	rustsec.org advisories index recent	src=advisory-feed
+recency-sweep-last-60-days	RUSTSEC wasmtime criticals	src=advisory-feed
+recency-sweep-last-60-days	HTTP/2 Bomb CSA note	src=advisory-feed
+state-durability-and-db-gate-failure-modes	jepsen Orkes Conductor 5.3.2	fetch primary
+state-durability-and-db-gate-failure-modes	postgresql.org/support/security CVE-2026-14666	fetch primary
+state-durability-and-db-gate-failure-modes	datatracker idempotency-key-header-08	fetch primary
+state-durability-and-db-gate-failure-modes	jepsen RDS postgres 17.4	fetch primary
+state-durability-and-db-gate-failure-modes	redb releases	fetch primary
+threat-cve-record-and-ai-exploit-speed	HTTP/2 Bomb attack 2026 CVE	offsec/news+advisory/attacker/last60d
+threat-cve-record-and-ai-exploit-speed	red.anthropic.com Mythos Preview exploit writeup	vendor primary/2026
+recency-sweep-last-60-days	MCP spec new revision 2026 changelog	src=news
+recency-sweep-last-60-days	Black Hat 2026 request smuggling	src=news
+recency-sweep-last-60-days	npm crates.io supply chain Sept 2026	src=news
+recency-sweep-last-60-days	CRA reporting Sept 11 2026	src=news
+recency-sweep-last-60-days	nginx security advisory Oct 2026	src=news
+isolation-substrates-measured-and-escaped	V8 in-the-wild 0-day exploits count 2024 2025 2026 Project Zero spreadsheet	offensive-sec,dataset,attacker
+isolation-substrates-measured-and-escaped	V8 sandbox heap sandbox status 2025 2026 bypass bounty	browser-security,vendor-doc+bounty,negative
+isolation-substrates-measured-and-escaped	gVisor sandbox escape CVE 2023-2026	container-security,CVE,negative
+isolation-substrates-measured-and-escaped	wasmtime pooling allocator instantiation microseconds benchmark	systems,benchmark,proponent
+recency-sweep-last-60-days	MCP 2026-07-28 changelog fetch	src=primary-spec/vendor
+recency-sweep-last-60-days	nginx security_advisories page	src=primary-spec/vendor
+recency-sweep-last-60-days	PortSwigger HTTP Terminator	src=primary-spec/vendor
+transport-stacks-and-pqc-deployment-reality	gh api releases+security-advisories for 13 transport/TLS repos	SRE-supply|repo-advisory|mainstream|last-60d
+transport-stacks-and-pqc-deployment-reality	seanmonstar hyper http2 didnt madeyoureset	practitioner|blog|defender|2025
+transport-stacks-and-pqc-deployment-reality	NIST CMVP certificate 5314 AWS-LC ML-KEM	standards-policy|gov-database|mainstream|2026
+transport-stacks-and-pqc-deployment-reality	io_uring security disabled Google kCTF 2025 2026 CVE	kernel-security|vendor-blog|skeptic|2025-26
+transport-stacks-and-pqc-deployment-reality	Merkle Tree Certificates draft-ietf-plants Chrome experiment 2026	PKI-standards|IETF datatracker|mainstream|2026
+threat-cve-record-and-ai-exploit-speed	GHSA envoyproxy/envoy security advisories list 2023-2026	repo advisory/empirical
+threat-cve-record-and-ai-exploit-speed	HAProxy CVE 2023 2024 2025 request smuggling	vendor advisory/attacker
+historical-and-formal-web-foundations-why-they-died	Armstrong thesis 2003 pdftotext AXD301 99.9999999 provenance	primary,thesis
+historical-and-formal-web-foundations-why-they-died	SES README lockdown limitations Endo	repo
+historical-and-formal-web-foundations-why-they-died	TC39 SES status discourse	forum
+historical-and-formal-web-foundations-why-they-died	Joe-E Mettler Wagner verifiable functional purity	paper
+historical-and-formal-web-foundations-why-they-died	Waterken web-key W3C TAG	mailing-list
+historical-and-formal-web-foundations-why-they-died	OCapN Spritely Goblins status	repo
+historical-and-formal-web-foundations-why-they-died	Swift Chong Jif web SOSP overhead	paper
+historical-and-formal-web-foundations-why-they-died	LLM Lean/Coq/F*/Dafny proof generation benchmark	LLM
+historical-and-formal-web-foundations-why-they-died	Ocsigen Eliom adoption retrospective	practitioner
+historical-and-formal-web-foundations-why-they-died	AOLserver history Tcl threads	historical
+historical-and-formal-web-foundations-why-they-died	IronFleet Ironclad proof effort ratio	paper
+historical-and-formal-web-foundations-why-they-died	seL4 web server verified	systems
+agent-protocols-primary-source-status	gh api A2A AP2 ACP x402 releases/readme	J,L3,repo
+formal-proofs-in-production-and-llm-proof-synthesis	gh api verus soundness label counts	repo-issues,negative,last60d
+formal-proofs-in-production-and-llm-proof-synthesis	gh api verify-rust-std challenge closed dates	repo,2024-26
+formal-proofs-in-production-and-llm-proof-synthesis	KVerus Asterinas verified proofs	LLM,paper,2026
+formal-proofs-in-production-and-llm-proof-synthesis	empirical study bugs in formally verified systems specification gaps 2023-2025	SE,negative,paper
+formal-proofs-in-production-and-llm-proof-synthesis	Dafny unsoundness issues Z3 soundness bug verified software	negative,repo
+authz-capabilities-with-formal-semantics	Cedar SymCC symbolic compiler Lean verified SMT paper 2025	formal-methods,paper
+authz-capabilities-with-formal-semantics	Biscuit authorization token Datalog formal semantics eclipse	capability,spec
+authz-capabilities-with-formal-semantics	AgentDojo CaMeL successor 2026 attack success rate information flow control agents	LLM-security,paper,2026
+authz-capabilities-with-formal-semantics	FIDES information flow control agents Microsoft planner	IFC,paper
+recency-sweep-last-60-days	Envoy security release Sept 2026	src=cve-feed
+recency-sweep-last-60-days	HAProxy smuggling 2026	src=cve-feed
+recency-sweep-last-60-days	io_uring CVE Sep Oct 2026	src=cve-feed
+recency-sweep-last-60-days	Go net/http HTTP/2 Oct 2026	src=cve-feed
+formal-proofs-in-production-and-llm-proof-synthesis	gh api soundness issues dafny fstar z3 counts	repo-issues,negative
+formal-proofs-in-production-and-llm-proof-synthesis	Systems Correctness Practices at AWS CACM 2025 P TLA+ Dafny Lean	vendor,industry,practitioner
+formal-proofs-in-production-and-llm-proof-synthesis	Formally verified cloud-scale authorization Dafny AWS ICSE 2025	SE,paper,industry
+formal-proofs-in-production-and-llm-proof-synthesis	EverParse Hyper-V vSwitch Windows deployment verified parsers	vendor,PL,industry
+formal-proofs-in-production-and-llm-proof-synthesis	HACL* Firefox Linux kernel deployment verified crypto lines	crypto,deployment
+recency-sweep-last-60-days	oss-security archive Oct 2026	src=oss-security-archive
+recency-sweep-last-60-days	oss-security archive Sep 2026	src=oss-security-archive
+recency-sweep-last-60-days	Go 1.27.2 announce	src=oss-security-archive
+identifier-calibration-seed-and-prior-claims	arXiv API id_list 2605.03822,2603.24775	source=arXiv
+historical-and-formal-web-foundations-why-they-died	Swift SOSP07 pdftotext eval	paper
+historical-and-formal-web-foundations-why-they-died	vericoding benchmark arxiv fetch	LLM
+historical-and-formal-web-foundations-why-they-died	PHP share nothing request lifecycle Rasmus Lerdorf talk	talk
+historical-and-formal-web-foundations-why-they-died	Ocsigen Eliom Ur/Web type-safe web frameworks adoption HN	forum
+historical-and-formal-web-foundations-why-they-died	Cowboy Yaws Erlang web server benchmarks supervision	repo
+historical-and-formal-web-foundations-why-they-died	LWeb Fable Storm information flow web	paper
+historical-and-formal-web-foundations-why-they-died	E language erights ELib CapTP Miller thesis	thesis
+authz-capabilities-with-formal-semantics	arxiv listing check: Progent 2504.11703, FIDES 2505.23643, Tallam-Miller 2505.22852, design patterns 2506.08837	paper,verification-of-identifiers
+authz-capabilities-with-formal-semantics	AgentDojo leaderboard defenses results page	leaderboard,benchmark-log
+recency-sweep-last-60-days	Header Accordions QPACK	src=advisory/disclosure
+recency-sweep-last-60-days	X.509 name constraints bypass TLS libraries Oct 2026	src=advisory/disclosure
+recency-sweep-last-60-days	OpenSSL security advisory 29 Sept 2026	src=advisory/disclosure
+formal-proofs-in-production-and-llm-proof-synthesis	EverParse slides pdftotext IETF 123	talk,vendor
+formal-proofs-in-production-and-llm-proof-synthesis	libcrux hax ML-KEM verified OpenSSH Signal deployment	crypto,repo
+formal-proofs-in-production-and-llm-proof-synthesis	Aeneas Charon Lean Rust verified library used	PL,repo
+formal-proofs-in-production-and-llm-proof-synthesis	Creusot Prusti status 2025 2026 verified Rust crate	PL,repo,forum
+formal-proofs-in-production-and-llm-proof-synthesis	s2n-bignum HOL Light aws-lc formal verification coverage	crypto,vendor
+formal-proofs-in-production-and-llm-proof-synthesis	Seed-Prover PutnamBench score 2025 2026 Goedel-Prover-V2 DeepSeek-Prover-V2 miniF2F	LLM,leaderboard
+state-durability-and-db-gate-failure-modes	fjall github issue 329 sync journal	primary/github api
+state-durability-and-db-gate-failure-modes	crates.io api redb fjall sled heed	primary/github api
+state-durability-and-db-gate-failure-modes	LMDB ALICE fdatasync	primary/github api
+state-durability-and-db-gate-failure-modes	FAST OSDI 2025 crash consistency kv	primary/github api
+state-durability-and-db-gate-failure-modes	sqlite howtocorrupt wal walresetbug	primary/github api
+recency-sweep-last-60-days	NIST HQC FIPS 207 draft	src=standards
+recency-sweep-last-60-days	NIST IR 8547 final	src=standards
+isolation-substrates-measured-and-escaped	ColorGuard MPK wasm density striping paper	systems-arch,paper,proponent
+isolation-substrates-measured-and-escaped	Hyperlight micro-VM cold start microseconds Microsoft hyperlight-wasm	vendor-doc,benchmark
+isolation-substrates-measured-and-escaped	Cloudflare workers isolate memory per isolate startup ms	vendor-doc,practitioner
+authz-capabilities-with-formal-semantics	arXiv API search 2026: abs:(information flow OR capability) AND abs:prompt injection AND abs:agent sorted date	LLM-security,paper-index,last-90-days
+identifier-calibration-seed-and-prior-claims	MCP spec repo tags/releases 2026-07-28	source=MCP spec repo
+identifier-calibration-seed-and-prior-claims	MCP schema versions directory	source=MCP spec repo
+agent-protocols-primary-source-status	cloudflare blog bots tag; x402 foundation LF press; x402 wash artemis	J,L3,vendor+news
+threat-cve-record-and-ai-exploit-speed	OSV api query per package stdlib x/net hyper h2 pingora undici rustls tokio wasmtime	vuln DB API/empirical/2023-26
+threat-cve-record-and-ai-exploit-speed	gh api security-advisories envoy pingora caddy quinn quiche h2o undici php-src	repo advisory/empirical
+threat-cve-record-and-ai-exploit-speed	CISA KEV json filter web server proxy products	KEV catalog/attacker
+supply-chain-provenance-and-deterministic-sim-ci	cargo-vet import sets audits.toml counts google mozilla bytecodealliance	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	RustSec advisory-db clone stats malicious typosquat 2026	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	rustls s2n-quic tigerbeetle workflows CI configs	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	crates.io malicious crates faster_log async_println Socket 2025	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Rust reproducible builds rustc remap-path-prefix non-determinism	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	SLSA v1.1 build L3 requirements GitHub artifact attestations	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	cargo-mutants missed mutants exit code CI	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Polar Signals DST WebAssembly Rust writeup	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	S2 deterministic simulation testing Rust turmoil	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	madsim vs turmoil comparison	N+O;L3-L5;SRE
+recency-sweep-last-60-days	Chrome MTC ML-DSA 2026	src=standards-tracker
+recency-sweep-last-60-days	CABF ML-DSA ballot	src=standards-tracker
+recency-sweep-last-60-days	IETF 124 agenda PQC	src=standards-tracker
+recency-sweep-last-60-days	RFC 10024	src=standards-tracker
+transport-stacks-and-pqc-deployment-reality	datatracker API + rfc-editor json for PQ/TLS drafts (ecdhe-mlkem, mlkem, mldsa, plants, key-share-prediction, authkem)	standards|spec-RFC|mainstream|last-60d
+transport-stacks-and-pqc-deployment-reality	Chrome quantum-safe HTTPS MTC root store blog Feb 2026	standards-policy|vendor-blog|mainstream|2026
+transport-stacks-and-pqc-deployment-reality	Cloudflare state of the post-quantum internet handshake size ML-DSA bytes	network-ops|vendor-measurement|skeptic-on-size|2025
+transport-stacks-and-pqc-deployment-reality	Cloudflare Merkle tree certificates experiment results Chrome	PKI|vendor-measurement|mainstream|2025-26
+identifier-calibration-seed-and-prior-claims	mcp raw docs spec 2026-07-28 streamable-http/mrtr/changelog	source=spec repo raw
+isolation-substrates-measured-and-escaped	gVisor CVE sandbox escape Sentry netstack vulnerability history	container-security,CVE+bugtracker,negative
+isolation-substrates-measured-and-escaped	Firecracker SPECIFICATION.md boot time memory overhead creation rate	spec,vendor-doc
+isolation-substrates-measured-and-escaped	WebAssembly Spectre mitigations Swivel Cloudflare dynamic process isolation	microarch,paper+engineering,skeptic
+identifier-calibration-seed-and-prior-claims	rfc-editor rfc9680.txt	source=rfc-editor
+threat-cve-record-and-ai-exploit-speed	httpd.apache.org security vulnerabilities 2.4 list	vendor advisory/empirical
+threat-cve-record-and-ai-exploit-speed	tomcat.apache.org security-11 list	vendor advisory/empirical
+threat-cve-record-and-ai-exploit-speed	HAProxy CVE list 2023-2026 OSV/NVD	vuln DB
+threat-cve-record-and-ai-exploit-speed	nodejs.org vulnerability releases llhttp smuggling 2024-2026	vendor advisory
+identifier-calibration-seed-and-prior-claims	datatracker merkle-tree-certs draft search	source=datatracker
+formal-proofs-in-production-and-llm-proof-synthesis	Symbolic Software libcrux bugs verified code 2026	contrarian,blog,negative
+formal-proofs-in-production-and-llm-proof-synthesis	Aeneas SymCrypt arXiv 2609.15648	PL,crypto,paper,2026
+formal-proofs-in-production-and-llm-proof-synthesis	VeriSoftBench per-model results	LLM,benchmark,negative-transfer
+formal-proofs-in-production-and-llm-proof-synthesis	DafnyBench success rate 2025 2026 Claude	LLM,benchmark
+formal-proofs-in-production-and-llm-proof-synthesis	HACL* Linux kernel Firefox NSS deployment 2025	crypto,deployment
+formal-proofs-in-production-and-llm-proof-synthesis	Atmosphere SOSP 2025 proof effort person-months	PL,paper
+identifier-calibration-seed-and-prior-claims	x402 FAQ gitbook / x402.org / x402scan / dune dashboards	source=on-chain dashboards
+identifier-calibration-seed-and-prior-claims	x402 wash trading search; wayback x402.org	source=web+wayback;stance=contrarian
+isolation-substrates-measured-and-escaped	Crocus ISLE lowering rules verification Cranelift ASPLOS SMT	PL-formal,paper
+isolation-substrates-measured-and-escaped	VeriWasm status archived Cranelift translation validation	PL-formal,repo
+gap-prior-art-servers-and-unserved-slot	GitHub API repo metadata+releases+contributors for ~45 servers/proxies/wasm/mcp-gateways	B L3 repos skeptic
+transport-stacks-and-pqc-deployment-reality	NIST CMVP certificate search ML-KEM modules (AWS-LC, OpenSSL 3.5 FIPS provider, BoringCrypto, wolfCrypt, SymCrypt)	compliance|gov-database|mainstream|2026
+transport-stacks-and-pqc-deployment-reality	NIST IR 8547 final status deprecate RSA ECC 2030 2035	standards-policy|NIST pub|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	CNSA 2.0 FAQ dates web browsers servers 2025 2033	gov-policy|NSA advisory|mainstream|2025
+identifier-calibration-seed-and-prior-claims	x402 165 million transactions; wayback x402.org snapshots 2026-03/06	source=web;wayback
+recency-sweep-last-60-days	gh api wasmtime security-advisories	src=github-release-feed
+recency-sweep-last-60-days	gh releases feed rust server crates	src=github-release-feed
+historical-and-formal-web-foundations-why-they-died	gh api urweb contributors releases|repo	x
+historical-and-formal-web-foundations-why-they-died	TechEmpower sunset issue 10932|repo	x
+historical-and-formal-web-foundations-why-they-died	cowboy GHSA advisories|CVE	x
+historical-and-formal-web-foundations-why-they-died	yaws advisories|CVE	x
+historical-and-formal-web-foundations-why-they-died	eliom ocsigen release history|repo	x
+recency-sweep-last-60-days	gh api release notes hyper h2 quinn	axes: src=repo-releases
+threat-cve-record-and-ai-exploit-speed	haproxy.org CVE 2023 2024 2025 2026 smuggling empty header	vendor+NVD
+state-durability-and-db-gate-failure-modes	gh api pgbouncer NEWS.md CVE	repo+issue+advisory;pooler;negative
+state-durability-and-db-gate-failure-modes	cveawg.mitre.org CVE verification	repo+issue+advisory;pooler;negative
+state-durability-and-db-gate-failure-modes	pgdog issues leak SET ROLE	repo+issue+advisory;pooler;negative
+state-durability-and-db-gate-failure-modes	supavisor txn_mode_leak_action	repo+issue+advisory;pooler;negative
+state-durability-and-db-gate-failure-modes	pgcat abandoned	repo+issue+advisory;pooler;negative
+isolation-substrates-measured-and-escaped	CLIR liveness-driven fuzzing Cranelift arXiv 2606.26977	PL-testing,paper,negative
+isolation-substrates-measured-and-escaped	wasmtime fuel vs epoch interruption overhead percent	systems,doc+benchmark
+isolation-substrates-measured-and-escaped	CHERIoT CHERI Morello compartmentalization 2025 2026 production silicon web server	arch,paper+vendor,proponent
+isolation-substrates-measured-and-escaped	fork per request seccomp landlock prefork latency microseconds measurement	OS-practitioner,benchmark
+formal-proofs-in-production-and-llm-proof-synthesis	vericoding benchmark Dafny Verus Lean	LLM,benchmark
+formal-proofs-in-production-and-llm-proof-synthesis	s2n-quic Kani proofs CI bolero	repo,industry,QUIC
+formal-proofs-in-production-and-llm-proof-synthesis	Asterinas vostd Verus verified page table OSTD	repo,PL,OS
+formal-proofs-in-production-and-llm-proof-synthesis	VeriSMo OSDI 2024 confidential VM security module Verus proof lines	paper
+formal-proofs-in-production-and-llm-proof-synthesis	Cedar Lean verification AWS authorization differential random testing	PL,industry
+formal-proofs-in-production-and-llm-proof-synthesis	Prusti archived maintenance Creusot 2026	repo,forum,status
+authz-capabilities-with-formal-semantics	biscuit spec repo SPECIFICATIONS.md datalog evaluation limits + RustSec biscuit-auth	capability,spec+advisory
+authz-capabilities-with-formal-semantics	Biscuit token formal verification Coq Lean model datalog attenuation proof	formal-methods,negative-search
+authz-capabilities-with-formal-semantics	UCAN 1.0 spec delegation invocation status github ucan-wg	standards,spec-repo
+authz-capabilities-with-formal-semantics	OPA Rego formal semantics denotational paper	PL,paper
+isolation-substrates-measured-and-escaped	Morello purecap benchmark overhead evaluation 2024 2025 nginx sqlite	arch,paper,skeptic
+gap-prior-art-servers-and-unserved-slot	NGINX Unit archived repository github end of life	B L3 repos skeptic
+gap-prior-art-servers-and-unserved-slot	Fermyon Akamai acquisition Spin SpinKube	B L3 vendor-docs
+gap-prior-art-servers-and-unserved-slot	Cloudflare MCP server portals Zero Trust MCP gateway	B L3 vendor-docs
+gap-prior-art-servers-and-unserved-slot	Docker MCP Gateway open source	B L3 repos
+gap-prior-art-servers-and-unserved-slot	River reverse proxy Pingora ISRG status	B L3 repos
+gap-prior-art-servers-and-unserved-slot	migrated from nginx to Caddy/Pingora/Traefik 2026	B L1 switching-posts
+gap-prior-art-servers-and-unserved-slot	HN MCP gateway agent firewall self-hosted missing	B L1 practitioner
+gap-prior-art-servers-and-unserved-slot	Bun rewrite in Rust 2026	B L3 runtime
+gap-prior-art-servers-and-unserved-slot	Convex open source FSL license self-host	B L3 license
+gap-prior-art-servers-and-unserved-slot	agentgateway LF Rust MCP A2A CVE	B L3 repos
+gap-prior-art-servers-and-unserved-slot	Hyperlight CNCF Wasm per-request latency	B L3 microvm
+gap-prior-art-servers-and-unserved-slot	Lunatic maintenance status	B L3 runtime
+gap-prior-art-servers-and-unserved-slot	Ferron 3.0 Rust server	B L3 server
+gap-prior-art-servers-and-unserved-slot	Pingora CVE smuggling 2026 GHSA	B L4 cve
+gap-prior-art-servers-and-unserved-slot	MCP gateway vulnerabilities CVE 2026	B L4 cve
+gap-prior-art-servers-and-unserved-slot	Wasmer Edge status 2026	B L3 vendor
+gap-prior-art-servers-and-unserved-slot	Unikraft Cloud cold start pricing adoption	B L3 vendor-claims
+gap-prior-art-servers-and-unserved-slot	GitHub security-advisories API counts for ~30 repos	B L4 cve-db
+gap-prior-art-servers-and-unserved-slot	nginx.org security_advisories 2026	B L4 cve
+gap-prior-art-servers-and-unserved-slot	haproxy.org release/CVE status	B L4 cve
+threat-cve-record-and-ai-exploit-speed	CERT VU#421644 HTTP/2 CONTINUATION flood CVE list	CERT advisory/2024
+threat-cve-record-and-ai-exploit-speed	Rapid Reset peak rps Google Cloudflare AWS Oct 2023	incident writeup/hyperscaler
+historical-and-formal-web-foundations-why-they-died	Storm OSDI21 pdf	paper
+historical-and-formal-web-foundations-why-they-died	Ur/Web manual security model	doc
+historical-and-formal-web-foundations-why-they-died	Fable SELinks	paper
+historical-and-formal-web-foundations-why-they-died	type-constrained code generation arXiv 2504.09246	LLM
+historical-and-formal-web-foundations-why-they-died	OSV cowlib CVE-2026-59248 API	CVE
+historical-and-formal-web-foundations-why-they-died	plug_cowboy CVE-2026-32688	CVE
+historical-and-formal-web-foundations-why-they-died	AOLserver wikipedia	historical
+historical-and-formal-web-foundations-why-they-died	seL4 microkit http server	systems
+isolation-substrates-measured-and-escaped	Landlock ABI version 2026 kernel network scoping signal abstract unix	kernel-docs,spec
+isolation-substrates-measured-and-escaped	eBPF verifier bypass CVE privilege escalation 2024 2025 unprivileged bpf	offensive-sec,CVE,negative
+isolation-substrates-measured-and-escaped	fork vs posix_spawn vs vfork latency microseconds large RSS measurement	OS-research,paper
+identifier-calibration-seed-and-prior-claims	quinn issue 915 comments 370k/270k	source=GitHub/HTTP
+identifier-calibration-seed-and-prior-claims	pg_query.rs issue 75	source=GitHub/HTTP
+identifier-calibration-seed-and-prior-claims	vaultwarden discussion 7675	source=GitHub/HTTP
+identifier-calibration-seed-and-prior-claims	wasmtime isle veri dir; docs.rs memory_protection_keys	source=GitHub/HTTP
+identifier-calibration-seed-and-prior-claims	openreview 2NqssmiXLu api	source=GitHub/HTTP
+identifier-calibration-seed-and-prior-claims	mdpi 1999-5903/18/8/437	source=GitHub/HTTP
+formal-proofs-in-production-and-llm-proof-synthesis	VeriSMo pdftotext LOC table	paper,appendix
+formal-proofs-in-production-and-llm-proof-synthesis	How we built Cedar verification-guided	industry,paper
+formal-proofs-in-production-and-llm-proof-synthesis	Beyond Benchmarks Verus spec failures vostd	negative,industry
+formal-proofs-in-production-and-llm-proof-synthesis	Kani s2n-quic Firecracker proofs CI production	repo,industry,model-checking
+formal-proofs-in-production-and-llm-proof-synthesis	P language S3 strong consistency model checking AWS	industry,distributed
+formal-proofs-in-production-and-llm-proof-synthesis	Local Success Does Not Compose LLM verification	negative,paper
+agent-protocols-primary-source-status	datatracker name search agent/mcp/a2a/aiproto/wimse	J,L3,IETF
+isolation-substrates-measured-and-escaped	V8 isolate creation time milliseconds memory per isolate measured workerd benchmark	browser-engine,benchmark
+isolation-substrates-measured-and-escaped	serverless WebAssembly runtime benchmark paper 2024 2025 Wasmtime WAMR Wasmer startup memory	systems-academic,paper
+threat-cve-record-and-ai-exploit-speed	AIxCC open source cyber reasoning systems github released final scoreboard	AI-security/repo/proponent/2025
+threat-cve-record-and-ai-exploit-speed	Big Sleep vulnerabilities disclosed 2025 list issuetracker	AI-security/vendor/2025
+threat-cve-record-and-ai-exploit-speed	XBOW HackerOne leaderboard top US false positive	AI-security/leaderboard+skeptic/2025
+authz-capabilities-with-formal-semantics	object capability logical relations robust safety Iris verification capability patterns	PL-theory,paper,foundational
+authz-capabilities-with-formal-semantics	Zanzibar zookie new enemy problem consistency SpiceDB ZedTokens	distributed-systems,vendor-doc
+authz-capabilities-with-formal-semantics	Zelkova SMT IAM policy analysis FMCAD 2018 production queries per day	formal-methods,paper,hyperscaler
+authz-capabilities-with-formal-semantics	OCapN specification status Spritely Goblins CapTP 2026	ocap,spec-repo
+state-durability-and-db-gate-failure-modes	Jepsen Temporal Restate	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	Cloudflare DO output gates storage relay	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	Golem durability docs	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	arxiv durable execution formal semantics	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	SQL equivalence VeriEQL SQLSolver QED Cosette	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	CIDR 2026 workflow AC/DC	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	PG docs ddl-rowsecurity caveats	durable-exec;sql-verif;vendor-doc+arxiv
+state-durability-and-db-gate-failure-modes	SJE RLS pgsql-hackers report	durable-exec;sql-verif;vendor-doc+arxiv
+recency-sweep-last-60-days	arxiv Verus LLM proof 2026	src=arxiv-api
+recency-sweep-last-60-days	arxiv LLM proof synthesis Lean Rocq Dafny	src=arxiv-api
+recency-sweep-last-60-days	arxiv HTTP/3 HTTP/2 smuggling QPACK	src=arxiv-api
+recency-sweep-last-60-days	arxiv agent vuln discovery benchmark	src=arxiv-api
+threat-cve-record-and-ai-exploit-speed	gh search repos aixcc afc CRS open source	repo/AI-security
+formal-proofs-in-production-and-llm-proof-synthesis	Kani model checker for Rust ASE 2026 industry	paper,industry
+formal-proofs-in-production-and-llm-proof-synthesis	DeepSeek-Prover-V2 miniF2F PutnamBench Seed-Prover IMO AlphaProof Nature	LLM,math,leaderboard
+formal-proofs-in-production-and-llm-proof-synthesis	PoWER never corrupts OSDI 2025 Verus persistent memory storage	PL,storage,paper
+formal-proofs-in-production-and-llm-proof-synthesis	Verus Amazon production verified Rust AWS team uses Verus	industry,forum
+identifier-calibration-seed-and-prior-claims	krustlet repo archived	source=GitHub/arXiv
+identifier-calibration-seed-and-prior-claims	arXiv Adversarial Training: A Survey 2024 authors	source=GitHub/arXiv
+identifier-calibration-seed-and-prior-claims	OWASP Top 10 for LLM 2025 / AI security	source=GitHub/arXiv
+identifier-calibration-seed-and-prior-claims	madsim polarsignals dst claims	source=GitHub/arXiv
+isolation-substrates-measured-and-escaped	Spectre attack WebAssembly runtime cross-tenant side channel 2024 2025	microarch,paper,attacker
+isolation-substrates-measured-and-escaped	resource isolation attack surface WebAssembly containers arXiv 2509.11242	security-academic,paper,negative
+authz-capabilities-with-formal-semantics	Rego policy SMT verification symbolic execution OPA analysis tool	offsec+formal,repo,other-vocab
+authz-capabilities-with-formal-semantics	ReBAC relationship-based access control decidability complexity Zanzibar formal model	theory,paper
+authz-capabilities-with-formal-semantics	AgentDojo results table defenses ASR utility tool_filter spotlighting	benchmark-log,leaderboard
+authz-capabilities-with-formal-semantics	macaroons formal analysis caveat discharge vulnerability	crypto-protocol,negative
+threat-cve-record-and-ai-exploit-speed	CVE-Bench arxiv zero-day one-day success rate agents web apps	AI-benchmark paper/2025
+threat-cve-record-and-ai-exploit-speed	CyberGym benchmark results by model 2026 leaderboard	benchmark leaderboard/2026
+threat-cve-record-and-ai-exploit-speed	BountyBench exploit detect patch success rates per agent	benchmark paper/2025
+identifier-calibration-seed-and-prior-claims	spargio README claims; verus Z3 version; wasmtime fuel cost doc	source=GitHub
+agent-protocols-primary-source-status	llms.txt adoption ahrefs; content signals; aipref txt	J,L1,vendor study
+threat-cve-record-and-ai-exploit-speed	Mandiant time-to-exploit 2024 2025 analysis average days negative	threat-intel report/attacker/empirical
+threat-cve-record-and-ai-exploit-speed	VulnCheck exploited day zero percentage KEV 2025 2026 report	threat-intel/empirical
+threat-cve-record-and-ai-exploit-speed	cybergym.io leaderboard official	leaderboard/2026
+formal-proofs-in-production-and-llm-proof-synthesis	OpenSSH mlkem768x25519 libcrux formally verified code Signal SPQR libcrux	crypto,deployment
+formal-proofs-in-production-and-llm-proof-synthesis	s2n-bignum aws-lc verified assembly HOL Light coverage ML-KEM	crypto,vendor
+formal-proofs-in-production-and-llm-proof-synthesis	Atmosphere SOSP 2025 pdf proof lines person years Burtsev	paper,appendix
+threat-cve-record-and-ai-exploit-speed	Just 1% of AI-discovered vulnerabilities exploited in the wild	skeptic/news+research/2026
+threat-cve-record-and-ai-exploit-speed	ExploitGym leaderboard exploit generation results	benchmark 2026 successor
+recency-sweep-last-60-days	arxiv MCP security	src=arxiv-api
+recency-sweep-last-60-days	arxiv wasm sandbox	src=arxiv-api
+recency-sweep-last-60-days	arxiv PQC TLS	src=arxiv-api
+recency-sweep-last-60-days	arxiv io_uring	src=arxiv-api
+recency-sweep-last-60-days	arxiv prompt injection IFC capability	src=arxiv-api
+agent-protocols-primary-source-status	webmcp repo + cloudflare webmcp/past-bots posts	J,L3,browser agents
+isolation-substrates-measured-and-escaped	kvmCTF full VM escape payout results 2025 2026 KVM guest-to-host	offensive-sec,bounty-program,attacker
+isolation-substrates-measured-and-escaped	gVisor systrap syscall overhead benchmark microseconds 2024 2025	container-perf,benchmark
+isolation-substrates-measured-and-escaped	unikernel security mitigations ASLR stack canaries analysis negative	security-academic,paper,negative
+threat-cve-record-and-ai-exploit-speed	Cybench leaderboard unguided success rate first solve time Claude GPT 2025 2026	benchmark/2025-26
+threat-cve-record-and-ai-exploit-speed	MCP Inspector CVE-2025-49596 mcp-remote CVE-2025-6514 DNS rebinding	agent-security/CVE/2025
+threat-cve-record-and-ai-exploit-speed	GitHub MCP prompt injection private repo exfiltration Invariant toxic agent flow	agent-security/research writeup/2025
+recency-sweep-last-60-days	gh pingora quinn rustls advisories	src=gh-advisory/news
+recency-sweep-last-60-days	gh verus soundness issues	src=gh-advisory/news
+recency-sweep-last-60-days	crates.io supply chain 2026	src=gh-advisory/news
+recency-sweep-last-60-days	Chrome Firefox PQ 2026	src=gh-advisory/news
+supply-chain-provenance-and-deterministic-sim-ci	mrustc bootstrap rustc 1.90 binary-equal compiler-team 925 closed	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Antithesis mutation-testing agents blog rqlite	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	crates.io trusted publishing OIDC 2025 2026 attestations	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Rust releases remap-path-prefix stabilized 1.97	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	FROST threshold signature crate ZF 3.0 release signing	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	tough TUF crate cargo update framework	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Jepsen Elle checker rust	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	HTTP differential fuzzing request smuggling hyper nginx	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	LLM red team agent CI harness garak promptfoo PyRIT	N+O;L3-L5;SRE
+formal-proofs-in-production-and-llm-proof-synthesis	Vest verified parsing serialization Rust Verus USENIX Security 2025	PL,parsers,paper
+formal-proofs-in-production-and-llm-proof-synthesis	AI will make formal verification mainstream blog 2025 2026 practitioner	forum,practitioner,proponent
+formal-proofs-in-production-and-llm-proof-synthesis	Verus-SpecGym specification autoformalization benchmark	LLM,spec-fidelity,negative
+agent-protocols-primary-source-status	MPP httpauth-payment datatracker; x402 IETF drafts; visa artemis report	J,L3,payments
+threat-cve-record-and-ai-exploit-speed	OSV npm @modelcontextprotocol/sdk pypi mcp advisories	vuln DB/agent-security
+threat-cve-record-and-ai-exploit-speed	NVD keyword Model Context Protocol CVE count 2025 2026	vuln DB/agent-security
+formal-proofs-in-production-and-llm-proof-synthesis	Verdict verified X.509 certificate validation USENIX Security 2025 Verus	PL,PKI,paper
+formal-proofs-in-production-and-llm-proof-synthesis	AWS Encryption SDK Dafny generated Material Providers Library verified	industry,crypto,vendor
+formal-proofs-in-production-and-llm-proof-synthesis	verified HTTP parser Rust formally verified HTTP/1.1 request smuggling proof	web,PL,niche
+authz-capabilities-with-formal-semantics	docs.rs biscuit-auth RunLimits default max_facts max_iterations max_time	engineering,api-doc
+authz-capabilities-with-formal-semantics	FIPS 204 ML-DSA-44 ML-DSA-65 public key signature sizes bytes	crypto,standard
+authz-capabilities-with-formal-semantics	SpiceDB ZedToken consistency at_least_as_fresh fully_consistent docs	distributed,vendor-doc
+authz-capabilities-with-formal-semantics	capability safety noninterference Devriese Birkedal Piessens effect parametricity	PL-theory,paper
+formal-proofs-in-production-and-llm-proof-synthesis	SAFE self-evolution Verus proof synthesis RagVerus repository-level success	LLM,paper
+formal-proofs-in-production-and-llm-proof-synthesis	Claude Code Verus agent verified Rust 2026 experience report	practitioner,forum,last60d
+formal-proofs-in-production-and-llm-proof-synthesis	SampCert Lean AWS differential privacy production	industry,Lean
+threat-cve-record-and-ai-exploit-speed	postmark-mcp malicious npm MCP server BCC emails Koi Security 2025	supply-chain/incident/attacker/2025
+threat-cve-record-and-ai-exploit-speed	Invariant Labs GitHub MCP toxic agent flow private repositories May 2025	agent-security/incident writeup
+supply-chain-provenance-and-deterministic-sim-ci	FoundationDB simulation SIGMOD 2021 paper	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	cargo-fuzz coverage plateau fuzz blockers	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Miri limitations FFI io_uring syscalls unsupported	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	xz backdoor postmortem build-to-release tarball lessons CI gates	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	NixOS reproducible r13y percentage 2026	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	StageX full source bootstrap reproducible Rust	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	sanitizers Rust MSAN TSAN nightly build-std	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	continuous AI red team CI agent harness MCP prompt injection	N+O;L3-L5;SRE
+threat-cve-record-and-ai-exploit-speed	curl AI slop bug reports Stenberg 2025 2026 bug bounty ended	skeptic/maintainer forum/2025-26
+threat-cve-record-and-ai-exploit-speed	CVE published count 2026 record surge AI-assisted discovery	standards-policy/statistics/last60d
+threat-cve-record-and-ai-exploit-speed	request smuggling new technique 2026 research desync	offsec research/last60d
+state-durability-and-db-gate-failure-modes	gh api rustsec advisory-db crates sqlx tokio-postgres lmdb	rustsec+issues
+state-durability-and-db-gate-failure-modes	crates.io api pg_query pgwire sqlx	rustsec+issues
+state-durability-and-db-gate-failure-modes	gh issues redb corruption	rustsec+issues
+state-durability-and-db-gate-failure-modes	PG docs data_sync_retry	rustsec+issues
+state-durability-and-db-gate-failure-modes	gh issues turso rocksdb corruption	rustsec+issues
+threat-cve-record-and-ai-exploit-speed	LLM agent n-day exploit from patch diff minutes cost CVE-Genie one-day 87%	AI-security paper/attacker/2024-26
+threat-cve-record-and-ai-exploit-speed	portswigger http1-must-die 0.CL Expect CVE-2025-32094 details	primary research
+authz-capabilities-with-formal-semantics	FIPS 205 SLH-DSA sizes; FIPS 206 FN-DSA status; node max-http-header-size default|crypto+web-ops,standard	crypto,standard
+authz-capabilities-with-formal-semantics	gh repo status osohq/oso, openfga/openfga, souffle-lang/souffle, authzed/spicedb releases+advisories|repo,maintenance	repo,maintenance
+isolation-substrates-measured-and-escaped	gh search rust-lang/rust open issues label I-unsound count; cve-rs safe-rust memory corruption	PL-soundness,repo+issue,contrarian
+agent-protocols-primary-source-status	gh security-advisories MCP SDK repos; UCP; rmcp release	J,L4,advisory
+threat-cve-record-and-ai-exploit-speed	quinn panic remote DoS Rust memory-safe server panics as DoS class	PL-formal/vocab: panic-freedom/negative
+isolation-substrates-measured-and-escaped	unikernel security analysis ASLR W^X canaries x41 NCC	security-consultancy,report,negative
+isolation-substrates-measured-and-escaped	gh workerd README security warning not hardened sandbox	vendor-doc,repo
+recency-sweep-last-60-days	CRA Jones Day reporting	src=law-policy/news
+recency-sweep-last-60-days	Apple root program PQC	src=law-policy/news
+recency-sweep-last-60-days	THN threatsday AI zero-day	src=law-policy/news
+recency-sweep-last-60-days	gh release cadence tools sweep	src=law-policy/news
+state-durability-and-db-gate-failure-modes	ALICE osdi14 pdftotext LMDB SQLite	paper+docs
+state-durability-and-db-gate-failure-modes	PoWER Never Corrupts OSDI25	paper+docs
+state-durability-and-db-gate-failure-modes	PostgREST transactions raw docs	paper+docs
+state-durability-and-db-gate-failure-modes	pgbouncer features config docs	paper+docs
+state-durability-and-db-gate-failure-modes	CVE-2017-7484 CVE-2025-8713 statistics leak	paper+docs
+state-durability-and-db-gate-failure-modes	sqlx changelog 0.9.0	paper+docs
+authz-capabilities-with-formal-semantics	seL4 authority confinement integrity proof Sewell ITP 2011 noninterference Murray S&P 2013	OS-verification,paper,other-field
+authz-capabilities-with-formal-semantics	SPKI SDSI first-order logic semantics Li Mitchell name resolution	PKI-theory,paper,foundational
+authz-capabilities-with-formal-semantics	macaroons NDSS 2014 contextual caveats decentralized authorization	crypto,paper,foundational
+supply-chain-provenance-and-deterministic-sim-ci	turmoil-net turmoil-fs crate family	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	bach s2n-quic simulation runtime	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	mad-turmoil libc symbol override	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	Jepsen Elle linearizability checker Rust	N+O;L3-L5;SRE
+supply-chain-provenance-and-deterministic-sim-ci	FoundationDB testing paper simulation	N+O;L3-L5;SRE
+recency-sweep-last-60-days	brotli CVE-2026-111497; envoy gh advisories; cedar advisories	src=gh-advisory
+transport-stacks-and-pqc-deployment-reality	io_uring CVE 2025 2026 privilege escalation exploit	kernel-offensive|CVE-db|attacker|2025-26
+transport-stacks-and-pqc-deployment-reality	io_uring vs epoll proxy benchmark negative result no improvement	SRE-perf|benchmark-log|contrarian|2024-26
+transport-stacks-and-pqc-deployment-reality	kTLS sendfile nginx rustls throughput measured	network-ops|benchmark|mainstream|2024-26
+state-durability-and-db-gate-failure-modes	Restate durable agents exactly once	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	gh api postgres commits self-join elimination	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	CVE-2026-85620 postgres mcp pro	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	UpGuard supabase 16326	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	Jepsen PG 12.3	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	LMDB commits openldap mirror	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	PG sequences docs	contrarian;negative;primary
+state-durability-and-db-gate-failure-modes	postgres allowlist query firewall	contrarian;negative;primary
+supply-chain-provenance-and-deterministic-sim-ci	OSS-Fuzz projects rust coverage hyper h2 absent	N+O;L3-L5;SRE;contrarian-negative
+supply-chain-provenance-and-deterministic-sim-ci	RustSec monthly advisory counts 2026	N+O;L3-L5;SRE;contrarian-negative
+supply-chain-provenance-and-deterministic-sim-ci	GitHub advisories ecosystem rust monthly counts	N+O;L3-L5;SRE;contrarian-negative
+transport-stacks-and-pqc-deployment-reality	NVD keyword counts io_uring vs epoll vs ktls vs xdp CVEs 2024-2026	kernel-security|CVE-db stats|skeptic|2024-26
+transport-stacks-and-pqc-deployment-reality	libcrux ML-KEM OpenSSH mlkem768x25519 default verified hax	formal-crypto|repo+release-notes|proponent|2025-26
+transport-stacks-and-pqc-deployment-reality	KyberSlash timing side channel affected implementations list ML-KEM 2025 new side channel	side-channel-research|paper|attacker|2024-26
+transport-stacks-and-pqc-deployment-reality	aws-lc ML-KEM formal verification s2n-bignum mlkem-native CBMC HOL Light	formal-crypto|repo|proponent|2025-26
+gap-prior-art-servers-and-unserved-slot	GitHub topic searches mcp-gateway/agent-firewall/mcp-proxy rust/new rust reverse proxy 2025+	B L3 repos
+gap-prior-art-servers-and-unserved-slot	GitHub issues search "mcp" in caddy/traefik/nginx/haproxy/envoy/pingora	B L1 issue-trackers demand
+gap-prior-art-servers-and-unserved-slot	GitHub code search kani/verus/madsim/turmoil/fuzz in server repos	B L4 assurance-claims contrarian
+gap-prior-art-servers-and-unserved-slot	ingress-nginx retirement kubernetes blog	B L1 demand
+gap-prior-art-servers-and-unserved-slot	Caddy/nginx/Go X25519MLKEM768 PQ default	B L4 pqc
+gap-prior-art-servers-and-unserved-slot	MCP production survey blockers 2026	B L1 survey
+gap-prior-art-servers-and-unserved-slot	reddit selfhosted reverse proxy switch reasons	B L1 practitioner
+gap-prior-art-servers-and-unserved-slot	Wasmtime security advisories 2026 LLM-found (bytecodealliance.org)	B L4 cve
+gap-prior-art-servers-and-unserved-slot	formally verified HTTP server/proxy 2025-26	B L2 negative-search
+gap-prior-art-servers-and-unserved-slot	DST for proxy/web server case study	B L2 negative-search
+gap-prior-art-servers-and-unserved-slot	Hasura v2 status; Fastly Compute isolation; Pomerium/Lasso/Invariant-Snyk; freenginx/Angie; FreeUnit	B L3 vendor
+isolation-substrates-measured-and-escaped	LOCAL microbenchmark wasmtime 36.0.19 pooling/MPK/epoch + fork baseline + crash semantics (04-bench/)	systems,own-measurement,empirical
+transport-stacks-and-pqc-deployment-reality	Apple iOS 26 URLSession TLS X25519MLKEM768 quantum-secure default Safari	platform-vendor|vendor-doc|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	post-quantum share of HTTPS traffic percent September October 2026	telemetry|news/telemetry|mainstream|last-60d
+transport-stacks-and-pqc-deployment-reality	OpenSSL 3.5 default keyshare X25519MLKEM768 FIPS provider ML-KEM validation	crypto-eng|release-notes|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	Go 1.26 crypto/tls MLKEM SecP256r1MLKEM768 FIPS 140-3 Go Cryptographic Module certificate	crypto-eng|release-notes+CMVP|mainstream|2026
+transport-stacks-and-pqc-deployment-reality	rustls.dev perf post-quantum key exchange cost handshake	crypto-eng|benchmark-log|mainstream|2024-26
+transport-stacks-and-pqc-deployment-reality	NVD lsquic picoquic tquic h2o ngtcp2 CVE counts	SRE-supply|CVE-db|skeptic|2024-26
+transport-stacks-and-pqc-deployment-reality	EverParse 3D production use Hyper-V vswitch network parser verified 2025	PL-formal|paper+repo|proponent|2019-26
+transport-stacks-and-pqc-deployment-reality	HTTP/1.1 request smuggling desync hyper strict parsing 2025 funky chunks TE.0 research	offensive-sec|research-writeup|attacker|2025
+transport-stacks-and-pqc-deployment-reality	tldr.fail ClientHello split across packets middlebox post-quantum Kyber Chrome breakage	network-ops|incident/compat|negative|2024-25
+transport-stacks-and-pqc-deployment-reality	QUIC Initial ML-KEM ClientHello two packets amplification limit 3x server PQ certificate	transport-eng|IETF list/paper|skeptic|2025-26
+transport-stacks-and-pqc-deployment-reality	quinn GSO GRO throughput Gbps benchmark quinn-udp	transport-eng|benchmark-log|mainstream|2024-26
+transport-stacks-and-pqc-deployment-reality	XDP DDoS drop rate Mpps per core Cloudflare L4drop Unimog numbers	network-ops|vendor-measurement|mainstream|2018-26
+transport-stacks-and-pqc-deployment-reality	rustls kTLS tokio throughput sendfile benchmark	SRE-perf|repo/benchmark|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	EverParse 3D generated parser deployment Windows Hyper-V vswitch TCP/IP CBOR COSE 2025	PL-formal|repo+paper|proponent|2019-26
+transport-stacks-and-pqc-deployment-reality	CA/Browser Forum ballot ML-DSA post-quantum S/MIME TLS baseline requirements 2026	standards-policy|ballot records|mainstream|2025-26
+transport-stacks-and-pqc-deployment-reality	Sigstore cosign ML-DSA SLH-DSA post-quantum signing support 2026 LMS release signing	supply-chain|repo-issues|mainstream|2025-26
+supply-chain-provenance-and-deterministic-sim-ci	turmoil axum example hyper	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	rustls SecureRandom TimeProvider determinism	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	aws-lc urandom raw syscall getrandom	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	getrandom crate backends linux raw syscall	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	cargo-geiger run on hyper rustls tokio lock	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	cargo-vet suggest backlog hyper tokio rustls	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	cargo-mutants httparse baseline	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	reproducible build remap-path-prefix two dirs experiment	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	HTTP Garden TROPHIES hyper	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	Antithesis docs requirements registry	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	TigerBeetle fuzzer blind spots Jepsen	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	slopsquatting react-codeshift Shai-Hulud	N+O;L4-L5;SRE;own-experiment
+supply-chain-provenance-and-deterministic-sim-ci	tough GHSA threshold bypass 2026	N+O;L4-L5;SRE;own-experiment
+transport-stacks-and-pqc-deployment-reality	verify-urls kCTF blog, XDP DOI, CABF SMC013	verification|primary|mainstream|mixed

@@ -1,0 +1,12 @@
+GHSA-jcj7-v34w-v9vv	-	2026-08-31	high	Use-after-free in the RDMA pending-data handler when a client
+GHSA-fq2f-crmw-q97r	-	2026-08-31	high	Unauthenticated use-after-free of the Lua interpreter state in Valkey (script debugger command cache)
+GHSA-mvcj-73cw-22m4	CVE-2026-63639	2026-07-22	high	UAF in stream deserialization may lead to remote code execution
+GHSA-53mc-f3m3-99vh	CVE-2026-56684	2026-07-22	high	UAF in Valkey with TLS may lead to remote code execution
+GHSA-93p9-5vc7-8wgr	CVE-2026-27623	2026-02-23	high	Pre-Authentication DOS from malformed RESP request
+GHSA-c677-q3wr-gggq	CVE-2026-21863	2026-02-23	medium	Remote DoS with malformed Valkey Cluster bus message
+GHSA-p876-p7q5-hv2m	CVE-2025-67733	2026-02-23	high	RESP Protocol Injection via Lua error_reply
+GHSA-9rfg-jx7v-52p6	CVE-2025-49844	2025-10-03	high	Lua Use-After-Free may lead to remote code execution
+GHSA-24vm-hv6g-2mj5	CVE-2025-21605	2025-04-28	high	DoS Vulnerability due to unlimited growth of output buffers abused by unauthenticated client
+GHSA-p4rf-xgfj-c2gq	CVE-2024-31228	2024-11-11	medium	Denial-of-service due to unbounded pattern matching
+GHSA-3864-2g29-c6pm	CVE-2024-31227	2024-11-11	medium	Denial-of-service due to malformed ACL selectors
+GHSA-cjwh-fcpr-v5r7	CVE-2024-31449	2024-11-11	high	Lua library commands may lead to stack overflow and potential RCE

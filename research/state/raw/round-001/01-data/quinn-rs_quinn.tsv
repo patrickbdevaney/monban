@@ -1,0 +1,13 @@
+2026-09-30		high	CWE-358,CWE-770	MAX_STREAM_DATA frame opens streams over the stream limit
+2026-09-30		high	CWE-617,CWE-770	Retry packet with a long token panics or exhausts client memory
+2026-09-30		high	CWE-835	recv_single() can spin after a truncated datagram
+2026-09-14		high		Peer minimum ACK delay can panic when ACK_FREQUENCY transmission is enabled
+2026-09-14		high		Datagrams::send double-subtracts `payload_bytes` on the drop-oldest path, panicking the sender
+2026-09-14		high		Remote peer can panic quinn-proto with five small STREAM frames
+2026-08-17		high		Zero-length DATAGRAM frames bypass `datagram_receive_buffer_size` (quinn-proto)
+2026-08-17		medium	CWE-770	quinn-proto: unbounded pending.retire_cids growth via already-retired NEW_CONNECTION_ID frames (remote memory-exhaustion DoS)
+2026-08-17		high	CWE-770	Stream reassembly memory-exhaustion guard (fix for GHSA-4w2j-m93h-cj5j) can be bypassed
+2026-06-22		high	CWE-770	Remote memory exhaustion in quinn-proto from unbounded out-of-order stream reassembly
+2026-03-09	CVE-2026-31812	high		Unauthenticated remote DoS via panic in QUIC transport parameter parsing (UnexpectedEnd on malformed varint)
+2024-09-02	CVE-2024-45311	high		Denial of service in quinn-proto when using `Endpoint::retry()`
+2023-09-21	CVE-2023-42805	high		Denial of Service issue in quinn-proto

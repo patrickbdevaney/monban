@@ -1,0 +1,175 @@
+ops-compliance-government-adoptability	EUR-Lex CRA 2024/2847 Art 3 open-source software steward Art 24 Art 64 fines	standards-policy|primary-law|skeptic
+ops-compliance-government-adoptability	CRA Recital 18 19 non-commercial open source out of scope	standards-policy|primary-law
+ops-compliance-government-adoptability	NIST SP 800-218 SSDF v1.2 draft SP 800-218 Rev 1 changes	standards-policy|nist
+ops-compliance-government-adoptability	FedRAMP 20x pilot KSI GitHub repo	gov|repo
+ops-compliance-government-adoptability	systemd-analyze security score directives nginx caddy unit exposure	sre|measured
+ops-compliance-government-adoptability	instant-acme rustls-acme crate maturity versions	crates|repo
+ops-compliance-government-adoptability	Tessera tiles tlog-tiles checkpoint spec C2SP; Trillian v2 status	transparency|spec
+ops-compliance-government-adoptability	NIAP protection profile application software web server PCL	gov|niap
+abuse-admission-control-under-swarms	Anubis proof-of-work AI crawler bypass measured	forum,skeptic,2025-26
+abuse-admission-control-under-swarms	governor crate GCRA release	crate,rate-limit
+abuse-admission-control-under-swarms	Netflix concurrency-limits gradient2 Vegas AIMD	repo,queueing
+abuse-admission-control-under-swarms	Privacy Pass RFC 9576 9578 deployments rate-limited tokens	RFC
+abuse-admission-control-under-swarms	residential proxy botnet scale 2026	measurement
+talks-nonenglish-adjacent-field-scan	5G core SBI HTTP/2 attack paper 2026	telecom|papers
+talks-nonenglish-adjacent-field-scan	FreeBuf HTTP 请求走私 2026	chinese|nonenglish
+talks-nonenglish-adjacent-field-scan	JPCERT HTTP server vulnerability 2026	japanese
+talks-nonenglish-adjacent-field-scan	game server QUIC UDP amplification reflection 2026	gameserver
+agent-gateway-cves-to-invariants	GHSA repo advisories MCP SDKs (gh api)	offensive;repo-advisory;attacker;2025-26;enterprise
+isolation-decision-inputs-measured	gh api wasmtime security-advisories snapshot 2026-10-25	repo-advisory|systems|skeptic
+verification-footprint-and-golden-contract	gh api releases assets lean4 elan verus kani apalache cvc5 FStar everparse z3 aeneas charon	PL-formal|release-artifact|measurement
+h2-h3-budget-invariant-and-harness	git clone hyperium/h2 hyper h3 quinn s2n-quic quiche rustls nghttp2 h2o; grep default limit constants	W-TRANSPORT+W-FORMAL;L5;systems/PL-formal;repo-code;proponent;2026
+h2-h3-budget-invariant-and-harness	grep kani::proof|verus!|cfg(kani)|proptest|bolero|cargo-fuzz targets across transport crates (local clone count)	W-TRANSPORT+W-FORMAL;L5;systems/PL-formal;repo-code;proponent;2026
+talks-nonenglish-adjacent-field-scan	USENIX Security 2026 accepted papers HTTP proxy CDN parsing differential	talks|venue
+cross-request-state-invariant-counterexamples	TLS 1.3 session ticket encryption key compromise forward secrecy measurement	crypto|paper|attacker|historical
+cross-request-state-invariant-counterexamples	QUIC 0-RTT replay attack server anti-replay RFC 9001	crypto|spec|attacker
+cross-request-state-invariant-counterexamples	HTTP connection coalescing misdirected request 421 cross-origin attack	web-sec|paper|attacker
+cross-request-state-invariant-counterexamples	web cache deception path normalization delimiter 2024	web-cache|portswigger|attacker|2024
+cross-request-state-invariant-counterexamples	HPACK dynamic table cross-request compression side channel	crypto-sidechannel|paper
+cross-request-state-invariant-counterexamples	JWKS cache key confusion kid refresh attack CVE	authn|CVE
+cross-request-state-invariant-counterexamples	idempotency key collision cross-tenant scoping	api-practitioner|forum
+cross-request-state-invariant-counterexamples	DNS rebinding cache TTL pinning server-side	network|paper
+two-sided-calibration-load-bearing-numbers	CISA KEV JSON snapshot recompute non-memory CWE share 2023-2026	statistics;dataset;skeptic
+two-sided-calibration-load-bearing-numbers	NVD API keywordSearch io_uring per-year counts recompute	statistics;dataset;skeptic
+two-sided-calibration-load-bearing-numbers	rfc-editor rfc10024.json status date	standards;spec;verify
+two-sided-calibration-load-bearing-numbers	cveawg CVE-2026-14666 CVE-2026-107350 records	offensive;cve-db;verify
+two-sided-calibration-load-bearing-numbers	gh api OAI releases dates OpenAPI Arazzo	web-dev;repo;verify
+data-plane-backend-families-mediation	crates.io API metadata for 30 Rust DB/queue/object drivers (versions, release dates, downloads, owners)	database-systems|registry-api|repo|2026
+data-plane-backend-families-mediation	OSV.dev crates.io advisory query per driver crate	offensive-security|advisory-db|repo|2023-2026
+state-crash-consistency-experiment	OWN EXPERIMENT: LD_PRELOAD write-log + crash-state replay vs redb/fjall/heed/sqlite/canopydb	systems;own-experiment;negative-result
+talks-nonenglish-adjacent-field-scan	Black Hat USA 2026 briefings web server proxy CDN talk new attack|talks
+talks-nonenglish-adjacent-field-scan	DEF CON 34 talk HTTP/3 QUIC proxy exploitation|talks
+talks-nonenglish-adjacent-field-scan	ACM CCS 2026 accepted paper QUIC TLS HTTP/3 attack CDN|venue
+agent-gateway-cves-to-invariants	spec repo releases/tags latest revision date	offensive;repo-advisory;attacker;2025-26;enterprise
+agent-gateway-cves-to-invariants	modelcontextprotocol/conformance repo	offensive;repo-advisory;attacker;2025-26;enterprise
+agent-gateway-cves-to-invariants	rmcp latest release crates.io + README stateless MRTR	offensive;repo-advisory;attacker;2025-26;enterprise
+agent-gateway-cves-to-invariants	IBM mcp-context-forge/ToolHive/pomerium/kong advisories via gh api	offensive;repo-advisory;attacker;2025-26;enterprise
+agent-gateway-cves-to-invariants	mcp-remote CVE-2025-6514 JFrog	offensive;repo-advisory;attacker;2025-26;enterprise
+talks-nonenglish-adjacent-field-scan	腾讯 阿里 HTTP/3 QUIC 漏洞 CDN 回源 放大|chinese
+talks-nonenglish-adjacent-field-scan	CNVD 2026 nginx envoy caddy 请求走私|chinese
+talks-nonenglish-adjacent-field-scan	JPCERT 2026 HTTP/2 reverse proxy|japanese
+isolation-decision-inputs-measured	classify 81 wasmtime GHSAs by feature precondition (own classification, descriptions)	systems|repo-advisory|skeptic|own-measurement
+abuse-admission-control-under-swarms	go-away iocaine tarpit nepenthes Ormandy Anubis critique	skeptic,practitioner
+abuse-admission-control-under-swarms	Privacy Pass ARC anonymous rate-limited credentials Cloudflare Apple PAT	RFC,deployment
+abuse-admission-control-under-swarms	CoDel adaptive LIFO shedding Envoy adaptive concurrency	queueing
+talks-nonenglish-adjacent-field-scan	IETF 124 httpbis QUIC security considerations new attack|ietf
+talks-nonenglish-adjacent-field-scan	formal verification QUIC implementation model checking 2026|verif
+talks-nonenglish-adjacent-field-scan	Encrypted Client Hello attack fingerprint 2026|tls
+talks-nonenglish-adjacent-field-scan	CDN edge compute Wasm side channel cross-tenant 2026|edge
+talks-nonenglish-adjacent-field-scan	web cache deception 2026 USENIX|browser
+talks-nonenglish-adjacent-field-scan	ML-KEM side channel timing 2026|pqc
+talks-nonenglish-adjacent-field-scan	payment gateway webhook replay race 2026|payment
+talks-nonenglish-adjacent-field-scan	game server UDP reflection 2026|game
+cross-request-state-invariant-counterexamples	We Really Need to Talk About Session Tickets USENIX Security 2023 STEK	crypto|paper|measurement
+cross-request-state-invariant-counterexamples	cross-host TLS session resumption virtual host confusion shared ticket key attack	crypto|paper|attacker
+cross-request-state-invariant-counterexamples	RFC 8470 Early-Data header 425 Too Early proxy	spec|rfc
+cross-request-state-invariant-counterexamples	QUIC address validation token reuse NEW_TOKEN cross-server	transport|spec
+isolation-decision-inputs-measured	crates.io cargo search wasmtime wit-bindgen wasm-tools versions	registry|own-measurement
+abuse-admission-control-under-swarms	Ormandy Anubis native solver cost	skeptic,economics
+abuse-admission-control-under-swarms	Cloudflare ARC anonymous credentials benchmarks	standards
+abuse-admission-control-under-swarms	IETF124 privacypass minutes	standards
+ops-compliance-government-adoptability	NIST OSCAL SP800-53 rev5.2.0 catalog json SA-15(13) SA-24 SC-13	standards-policy|primary-json
+ops-compliance-government-adoptability	FedRAMP/rules consolidated rules JSON KSI control mappings	gov|repo
+agent-gateway-cves-to-invariants	fix PR diffs: rmcp #1349 #935, agentgateway session route, docker mcp-gateway PRs	offensive;PR-diff;attacker;2026;enterprise
+two-sided-calibration-load-bearing-numbers	Cloudflare Radar post-quantum encrypted share HTTPS requests October 2026	crypto;measurement-dashboard;skeptic
+two-sided-calibration-load-bearing-numbers	X25519MLKEM768 handshake failure middlebox ClientHello split 2026 incident	network-ops;incident;contrarian
+two-sided-calibration-load-bearing-numbers	rustls default key exchange groups X25519MLKEM768 version	crypto;repo;verify
+cross-request-state-invariant-counterexamples	curl too eager connection reuse CVE list client certificate	client-lib|advisory-db|historical|failure-analysis
+cross-request-state-invariant-counterexamples	Cache-Poisoned Denial of Service CPDoS CCS 2019 HHO HMC	web-cache|paper|historical|attacker
+cross-request-state-invariant-counterexamples	HEIST HPACK compression oracle cross-origin BREACH HTTP/2	crypto-sidechannel|talk|historical
+cross-request-state-invariant-counterexamples	Early-Data 425 Too Early CDN 0-RTT replay real exploit	cdn-ops|vendor-doc|attacker
+cross-request-state-invariant-counterexamples	JWKS caching kid not found refetch denial CVE jwt library	authn|GHSA
+cross-request-state-invariant-counterexamples	draft-ietf-httpapi-idempotency-key security considerations fingerprint scope	api|ietf-draft
+abuse-admission-control-under-swarms	GitHub GraphQL rate limit cost points secondary	cost-budget
+abuse-admission-control-under-swarms	RFC 8289 CoDel defaults	queueing
+abuse-admission-control-under-swarms	Anubis botPolicies.yaml thresholds	practice
+abuse-admission-control-under-swarms	Kimwolf Aisuru size	botnet
+abuse-admission-control-under-swarms	scrapers selectively respect robots.txt arxiv 2505.21733	academic
+ops-compliance-government-adoptability	crates.io API instant-acme rustls-acme tokio-rustls-acme acme2 sigsum tlog_tiles	crates|registry
+ops-compliance-government-adoptability	instant-acme releases README Cargo features fips ARI	repo+release
+cross-request-state-invariant-counterexamples	rustls ServerConfig max_early_data_size anti-replay ticketer docs	rust-crate|docs|proponent
+cross-request-state-invariant-counterexamples	quinn 0-RTT server accept replay application responsibility	rust-crate|repo-issue
+cross-request-state-invariant-counterexamples	web cache poisoning measurement CCS USENIX 2020 2023 unkeyed header prevalence	web-cache|paper|measurement
+lean-footprint-measured-vs-incumbents	docker pull nginx/caddy/haproxy/envoy + local build hyper/pingora/oha	own-measurement;systems;benchmark-log
+two-sided-calibration-load-bearing-numbers	gh api modelcontextprotocol releases + tags dates 2026	web-dev;repo-release;verify
+two-sided-calibration-load-bearing-numbers	gh api OAI OpenAPI-Specification Arazzo releases dates	web-dev;repo-release;verify
+two-sided-calibration-load-bearing-numbers	gh api verus-lang label:soundness counts open/closed	PL-formal;issue-tracker;skeptic
+two-sided-calibration-load-bearing-numbers	pgbouncer NEWS.md CVE list recount	offensive;changelog;verify
+ops-compliance-government-adoptability	systemd-analyze security --offline measured (local systemd 255.4) hardened vs caddy upstream unit	sre|own-measurement
+ops-compliance-government-adoptability	C2SP tlog-tiles tlog-checkpoint tlog-witness specs; Tessera releases GitHub API	transparency|spec|repo
+cross-request-state-invariant-counterexamples	Envoy auto_sni upstream connection pool reused different SNI CVE	proxy|GHSA|failure-analysis
+cross-request-state-invariant-counterexamples	jose jwks cache poisoning kid GHSA 2025	authn|GHSA|2025
+cross-request-state-invariant-counterexamples	SSRF DNS rebinding TOCTOU resolve then connect IP pinning library advisory	network|advisory|attacker
+cross-request-state-invariant-counterexamples	Delignat-Lavaud Bhargavan virtual host confusion WWW 2015 shared session cache	formal-crypto|paper|historical
+cross-request-state-invariant-counterexamples	idempotency key header draft security considerations reuse different payload 422	api|ietf-draft
+cross-request-state-invariant-counterexamples	Vary header cache key normalization Varnish Fastly CVE response mixup	web-cache|CVE
+isolation-decision-inputs-measured	wasmtime component model canonical ABI overhead benchmark per call	web|systems
+isolation-decision-inputs-measured	seccomp-bpf filter overhead per syscall bitmap cache selftest	kernel-lore|systems
+isolation-decision-inputs-measured	Landlock overhead benchmark fs_bench kernsec	kernel-lore|systems
+data-plane-backend-families-mediation	shallow-clone 18 driver repos; grep unsafe sites/C LOC/fuzz dirs	systems|code-audit|repo|2026
+two-sided-calibration-load-bearing-numbers	gh search issues verus soundness label count; z3 unsound issues Oct 2026	PL-formal;issue-tracker;skeptic
+data-plane-backend-families-mediation	gh api GHSA tursodatabase/libsql security advisories	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	YugabyteDB CVE authentication bypass YCQL	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	CockroachDB technical advisory privilege bypass	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	FoundationDB tenant authorization token JWT	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	DynamoDB PartiQL expression injection GHSA	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	pgvector CVE buffer overflow	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	Meilisearch tenant token GHSA	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	Redpanda CVE ACL	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	ScyllaDB CVE	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	Valkey CVE Lua 2025	offensive-security|advisory|2023-2026
+data-plane-backend-families-mediation	TiDB privilege escalation CVE 2024	offensive-security|advisory|2023-2026
+agent-gateway-cves-to-invariants	rmcp requestState integrity seal / MRTR grep	offensive;code-search;attacker;2026;enterprise
+cross-request-state-invariant-counterexamples	HashDoS hash flooding web server request parameters CVE-2011-4885 SipHash Rust hashbrown foldhash DoS	algorithmic-complexity|CVE|historical|contrarian
+cross-request-state-invariant-counterexamples	rate limiter X-Forwarded-For spoof bucket key bypass CVE GHSA	abuse|GHSA|contrarian
+cross-request-state-invariant-counterexamples	response queue poisoning HTTP/2 downgrade Kettle 2021 upstream connection	web-sec|portswigger|historical
+cross-request-state-invariant-counterexamples	HTTP/2 ORIGIN frame RFC 8336 connection coalescing security browser	spec|browser
+ops-compliance-government-adoptability	aws-lc-rs release notes fips module 3.x 4.x mapping; aws-lc FIPS.md; CMVP cert 5314	standards-policy|gov-db|repo
+agent-gateway-cves-to-invariants	agentgateway openapi path sanitization fix PR + test names	offensive;PR-diff;attacker;2026;enterprise
+state-crash-consistency-experiment	Linux RWF_ATOMIC untorn writes 6.11 kernel docs statx write_atomic	systems;kernel-docs;2024-26
+state-crash-consistency-experiment	ext4 xfs atomic writes bigalloc 6.13 documentation	systems;kernel-docs
+state-crash-consistency-experiment	dsrhaslab lazyfs README fault injection unsynced data	repo;tool
+state-crash-consistency-experiment	CrashMonkey ACE OSDI18 B3 bounded black-box crash testing	paper;foundational
+state-crash-consistency-experiment	Chipmunk crash consistency bugs file systems persistent memory ASPLOS 2023	paper
+state-crash-consistency-experiment	Rebello can applications recover from fsync failures ATC20	paper;negative
+state-crash-consistency-experiment	crash consistency key-value store fuzzing 2024 2025 LSM bugs	paper;2024-26
+state-crash-consistency-experiment	fsync ext4 delayed allocation rename zero-length file LWN	forum;historical
+state-crash-consistency-experiment	virtio-blk flush cache=unsafe VPS fsync honored	sre;household
+data-plane-backend-families-mediation	gh api repos/*/security-advisories for 26 server repos (libsql,turso,cockroach,yugabyte,tidb,fdb,scylla,pgvector,meili,redpanda,valkey,nats,qdrant,opensearch-security,neo4j,influxdb,minio,redis,tantivy,timescale,mongo,questdb,surrealdb,grpc-go,hyper,reqwest)	offensive-security|repo-advisory|2023-2026
+talks-nonenglish-adjacent-field-scan	APISIX Higress Tengine 漏洞 2026|chinese|gateway
+talks-nonenglish-adjacent-field-scan	看雪 先知 安全客 HTTP/3 nginx|chinese
+talks-nonenglish-adjacent-field-scan	KISA 2026 웹서버 취약점 PQC|korean
+talks-nonenglish-adjacent-field-scan	OSDI26 technical sessions|venue
+talks-nonenglish-adjacent-field-scan	SOSP 2026 accepted papers|venue
+talks-nonenglish-adjacent-field-scan	Lion Modular Verification of Async Runtime Liveness|verification
+h2-h3-budget-invariant-and-harness	gh pr view hyperium/h3 366 377 378 (frame-length ceiling, QPACK amplification fixes)	W-TRANSPORT;L4-L5;offensive/systems;repo-PR;attacker;last-60d
+cross-request-state-invariant-counterexamples	SSRF DNS rebinding TOCTOU resolve then connect IP pinning advisory 2025 2026	network|GHSA|attacker
+cross-request-state-invariant-counterexamples	TLS 1.3 0-RTT early data deployment measurement replay internet scan paper	crypto|paper|measurement
+cross-request-state-invariant-counterexamples	session fixation regenerate session identifier on privilege change OWASP cheat sheet	web-dev-practitioner|guide|historical
+agent-gateway-cves-to-invariants	empirical study MCP vulnerabilities fixes root cause	academic;paper;attacker;2026
+agent-gateway-cves-to-invariants	tool poisoning rug pull MCP shadowing measurement	offensive;paper;2025-26
+agent-gateway-cves-to-invariants	mcp-remote GHSA CVE-2025-6514 via NVD/osv	advisory;2025
+data-plane-backend-families-mediation	AWS IAM dynamodb:LeadingKeys condition key docs (vendor)	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	Qdrant JWT RBAC payload claim docs	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	CockroachDB row-level security release version	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	Turso fine-grained auth token permissions	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	FoundationDB authorization tenant token docs	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	SQL Server RLS side-channel divide-by-zero docs	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	MongoDB views redact row-level access docs	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	Meilisearch tenant token searchRules	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	Redis ACL key permissions %R~ docs	database-systems|vendor-doc|2025-2026
+data-plane-backend-families-mediation	S3 presigned URL SigV4 expiry condition keys signatureAge	database-systems|vendor-doc|2025-2026
+two-sided-calibration-load-bearing-numbers	clone cedar-spec recount theorems sorry; DRT targets vs Rust; cedar-lean-ffi	PL-formal;repo-code;defender+prosecutor
+ops-compliance-government-adoptability	commoncriteria GitHub org PP repos web server application gateway NIAP	gov|repo|negative
+ops-compliance-government-adoptability	CISA product security bad practices memory safety roadmap 2026	policy|secondary
+cross-request-state-invariant-counterexamples	Pingora cache key CacheKey primary variance default fields docs	rust-crate|docs
+cross-request-state-invariant-counterexamples	quinn ServerConfig 0-RTT into_0rtt server accept replay docs	rust-crate|docs
+cross-request-state-invariant-counterexamples	Cloudflare 0-RTT replay protection GET only Early-Data header blog	cdn-ops|vendor-blog|hyperscaler
+cross-request-state-invariant-counterexamples	Mirheidari Web Cache Deception Escalates USENIX 2022 path confusion	web-cache|paper|measurement
+ops-compliance-government-adoptability	CMVP overview + Modules In Process list csrc.nist.gov fetch; SSDF 1.2 IPD PDF full read	gov-primary|standards-policy
+h2-h3-budget-invariant-and-harness	formally verified HPACK decoder (F*/Coq/Isabelle/Dafny/Verus)	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+h2-h3-budget-invariant-and-harness	EverParse QUIC HTTP/2 frame format 3D specification	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+h2-h3-budget-invariant-and-harness	verified QPACK OR verified HTTP/3 parser	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+h2-h3-budget-invariant-and-harness	Kani proof hyper OR h2 OR quinn issue (attempted, failed)	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+h2-h3-budget-invariant-and-harness	HTTP/2 Bomb Calif mechanism HPACK zero window	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26
+h2-h3-budget-invariant-and-harness	CPU complexity per frame HTTP/2 SETTINGS O(n^2) Ferron h3	W-FORMAL+W-TRANSPORT;L4-L5;PL-formal/offensive;paper+repo;mixed;2023-26

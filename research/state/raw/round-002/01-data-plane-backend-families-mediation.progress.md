@@ -1,0 +1,16 @@
+# 01 data-plane-backend-families-mediation — progress (round 2, explorer 01)
+## Checkpoint 1 (2026-10-24 23:45)
+- crates.io API + OSV API pulled for 34 driver crates -> 01-data/crates.json (fetched 2026-10-24).
+- Shallow clones (HEAD 2026-10-24) unsafe-site counts (non-test .rs, regex `unsafe {|fn|impl`):
+  object_store 2/38.7k LOC; mysql_async 4/14.9k; rust-s3 0 (forbid unsafe); rdkafka 335/15.6k + librdkafka C (submodule); foundationdb 120 + 9.9k C headers (binds libfdb_c);
+  rskafka 0 (has fuzz/); meilisearch-sdk 0; mongodb 14/91.7k; nats.rs 9/40.2k; neo4rs 6/31.9k; opensearch 0/93k; tiberius 6/40k; qdrant-client 0; questdb 1508 + 39.9k C; redis-rs 6/49.3k; rust-postgres 1/23.1k; scylla 3/93.9k; libsql 831 + 1.43M C/C++ LOC (SQLite fork; tools/fuzz).
+- Driver advisories (OSV, dedup GHSA==RUSTSEC alias): sqlx 1 (RUSTSEC-2024-0363); tokio-postgres 1 (RUSTSEC-2026-0178 DataRow panic DoS, 2026-06-12); mongodb 3 (CVE-2024-6382 unintended commands; CVE-2025-11695 tlsInsecure cert validation disabled; CVE-2021-20332); async-nats 1 (RUSTSEC-2023-0027 CN validation bypass); object_store 1 (CVE-2024-41178 token in logs); aws-sdk-* 1 (GHSA-g59m-gf8j-gjf5 region param, 2026-01-08); tonic 1 (CVE-2024-47609 DoS); tiberius RUSTSEC-2020-0010 unmaintained (stale? crate active 0.13.0 2026-09-25); surrealdb 55 GHSA (!); all others 0.
+## Checkpoint 2 (sources ~12)
+- CVE.org API verified 47 server/driver CVEs (01-data/cve_batch1.tsv) all PUBLISHED.
+- gh api repo advisories (01-data/repo_advisories.txt, adv_*.tsv): nats-server 36 total/29 in 2023-26/12 authz-class; redis 47/29/6; minio 27/18/9; surrealdb 79/79/40 (!! in-DB fine-grained perms bypass dominant); opensearch-security 14/12/6 (DLS/FLS bypasses); valkey 12/12/1 (+RESP protocol injection via Lua error_reply CVE-2025-67733); qdrant 3 (2026-10 internal gRPC unauth by default in distributed mode, GHSA-frc7-44gm-99qq critical); tantivy 1 (GHSA-7pph-m7rw-cqhv 2026-10-16 OOB write); timescaledb 4; grpc-go 7 (CVE-2026-33186 authz bypass missing leading slash in :path); scylladb 2 (CVE-2023-33972); 0 published GHSA: libsql, turso, cockroach, yugabyte, fdb, pgvector, meilisearch, redpanda, neo4j, influxdb, mongo, questdb.
+- Vendor docs: DynamoDB FGAC (LeadingKeys requires ForAllValues; Scan bypasses LeadingKeys so must be excluded; Attributes evaluated only on request not response -> must also pin Select=SPECIFIC_ATTRIBUTES and ReturnValues; PutItem/DeleteItem bypass attribute limits; deny-based policies discouraged; FGAC not supported on global-table replication).
+  Redis ACL (key patterns only restrict commands naming keys; FLUSHALL/FLUSHDB/SWAPDB bypass key patterns; side channels ignored for R perms; module commands only in +@all).
+  CockroachDB RLS: FKs/cascades, unique constraints, TRUNCATE, CDC, backup/restore, LDR/PCR bypass policies.
+  Qdrant: JWT access per collection r/rw only, NO payload-level filter; internal gRPC auth default-on since v1.20.0.
+  SQL Server RLS since 2016: filter+block predicates; documented error side channel (1/(SALARY-100000)); SESSION_CONTEXT @read_only for pooled middle tier; CDC/change tracking leaks; AFTER UPDATE block predicate skipped if predicate columns unchanged.
+  MongoDB: finest built-in privilege granularity = collection (no native doc/field-level authz; views as workaround).

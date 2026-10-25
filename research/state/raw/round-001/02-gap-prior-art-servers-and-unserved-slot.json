@@ -1,0 +1,838 @@
+{
+ "nodes": [
+  {
+   "id": "gap.pingora",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy-framework",
+   "title": "Cloudflare Pingora",
+   "summary": "Rust async proxy framework, Apache-2.0; framework not a server (you write the binary). Fails slot: no per-request isolation, no capability authz, no agent protocol, no formal claims; h2 defaults weak; HTTP/3 still unmerged.",
+   "urls": [
+    "https://github.com/cloudflare/pingora",
+    "https://github.com/cloudflare/pingora/issues/95"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Cloudflare production scale does not transfer to the OSS crate; CVEs say Cloudflare CDN unaffected only because ingress normalizes.",
+   "underclaim_risk": "Active, 119 contributors, fast fixes; best-in-class Rust L7 base.",
+   "specifics": "v0.9.0 2026-09-09; ~27.7k stars; 119 contributors; 8 published GHSA: CVE-2025-4366, CVE-2025-8671 (MadeYouReset), CVE-2026-2833 and CVE-2026-2835 (critical smuggling, fixed 0.8.0, 2026-03-05), CVE-2026-2836 (insecure-default cache key), plus 3 on 2026-10-20 (Connection-header ACL bypass, h2 :authority/Host mismatch cache poisoning, h2 unbounded default header-list memory exhaustion). Issue #95 HTTP/3 open since 2024-03-02, 107 reactions. Kani/proptest/libfuzzer greps in repo: 0 hits (GitHub code search 2026-10-24)."
+  },
+  {
+   "id": "gap.river",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy",
+   "title": "River (ISRG Prossimo)",
+   "summary": "Pingora-based Rust reverse proxy; effectively dormant: last commit 2024-09-06, v0.5.0 2024-08-30, README 'no expectation of stability'. Fails: dormant, no isolation/authz.",
+   "urls": [
+    "https://github.com/memorysafety/river",
+    "https://www.memorysafety.org/initiative/reverse-proxy"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "Apache-2.0, ~2.35k stars, 3 contributors (API), 0 GHSA. Dormant ~25 months at 2026-10-24."
+  },
+  {
+   "id": "gap.envoy",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy",
+   "title": "Envoy",
+   "summary": "C++ L7 proxy, Apache-2.0, very heavy ops (xDS). Fails: C++ memory-unsafe, large CVE stream, heavy ops, no per-request isolation; but has in-tree MCP filters (mcp, mcp_router, mcp_json_rest_bridge).",
+   "urls": [
+    "https://github.com/envoyproxy/envoy",
+    "https://github.com/envoyproxy/envoy/issues/39174"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "v1.40.1 2026-10-23; ~29.1k stars; 1776 contributors; >=100 published GHSA (API cap; 43 since 2025-10). Issue #39174 'Envoy Support for MCP' open, 42 reactions. No formal/DST claims found."
+  },
+  {
+   "id": "gap.nginx",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "server",
+   "title": "NGINX (F5)",
+   "summary": "C, BSD-2; the incumbent. Fails: C memory-unsafe, CVE stream continues incl. HTTP/3 and TLS ticket bugs, no isolation, no agent protocol; MCP only via njs + community issue.",
+   "urls": [
+    "https://nginx.org/en/security_advisories.html",
+    "https://github.com/nginx/nginx/issues/1143"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "1.31.8 2026-10-21; ~32k stars; nginx.org page lists ~26 advisories with 2026 IDs (e.g. CVE-2026-95101 HTTP/3 request body injection, CVE-2026-97629 TLS session-ticket forgery, CVE-2026-97205 AIO UAF, CVE-2026-42530 HTTP/3 UAF) vs 2 with 2025 IDs. IDs are as listed by nginx.org; year counts derived from ID prefix, not publish date. OpenSSL 3.5 builds negotiate X25519MLKEM768 (Ubuntu 25.10 test, secondary)."
+  },
+  {
+   "id": "gap.nginx-unit",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "app-server",
+   "title": "NGINX Unit (archived) and FreeUnit",
+   "summary": "Polyglot app server (closest historical analogue to the slot: app runtime + proxy, JSON-API config). Archived 2025-10-08; last release 1.35.0 2025-09-11. Community fork FreeUnit (v1.37.0 2026-10-04, 70 stars, 75 contributors, Apache-2.0) adds OTel, Wasm component (WASI 0.2). Fails: C, no isolation, abandoned by vendor.",
+   "urls": [
+    "https://github.com/nginx/unit",
+    "https://github.com/freeunitorg/freeunit"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "README: 'Unsupported... security vulnerabilities may be unaddressed'. FreeBSD port expiry 2025-12-31 (search result, secondary)."
+  },
+  {
+   "id": "gap.caddy",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "server",
+   "title": "Caddy",
+   "summary": "Go, Apache-2.0, auto-HTTPS single binary; strongest household ergonomics. Fails: Go GC runtime, no per-request isolation, plugin supply chain, no capability authz, no agent protocol.",
+   "urls": [
+    "https://github.com/caddyserver/caddy",
+    "https://falcao.org/posts/caddy-nginx-traefik-2026/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "specifics": "v2.11.7 2026-10-03; ~78.4k stars; 465 contributors; 18 GHSA. Go 1.24 crypto/tls enables X25519MLKEM768 by default (kubernetes.dev PQC blog); a Caddy community thread reports a reverse-proxy transport still negotiating X25519 (unresolved), so Caddy PQ default per-path is B."
+  },
+  {
+   "id": "gap.traefik",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy",
+   "title": "Traefik",
+   "summary": "Go, MIT; cloud-native router. Fails: Go, >=89 GHSA (API cap 100), label/Docker coupling, no isolation. Gains share from ingress-nginx retirement.",
+   "urls": [
+    "https://github.com/traefik/traefik",
+    "https://traefik.io/blog/migrate-from-ingress-nginx-to-traefik-now"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "v3.7.16 2026-10-20; ~65.4k stars; 1141 contributors."
+  },
+  {
+   "id": "gap.haproxy",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy",
+   "title": "HAProxy",
+   "summary": "C, GPL/LGPL mix (GitHub: NOASSERTION); highest-performance L4/L7 LB. Fails: C, no app tier, no isolation; QUIC parse CVEs 2026-02.",
+   "urls": [
+    "https://www.haproxy.org/",
+    "https://github.com/haproxy/haproxy"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "specifics": "3.4.7 LTS (support to 2031-Q2); CVE-2026-26080/26081 QUIC crash fixed 2026-02-12 (3.0.12/3.1.14/3.2.12/3.3.3); issue #3515 jwt_verify accepted alg=none (closed 2026-09-29). 0 published GHSA on GitHub."
+  },
+  {
+   "id": "gap.ferron",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "server",
+   "title": "Ferron",
+   "summary": "Rust MIT web server (2.2k stars, 23 contributors); closest 'Rust nginx replacement'. Seven high/critical advisories on one day 2026-09-25 (h2 Rapid Reset bypass, h3 SETTINGS O(n^2), auth_to fail-open critical, forward-proxy ACL fail-open) show immaturity; v3.0 still rc (3.0.0-rc.10).",
+   "urls": [
+    "https://github.com/ferronweb/ferron",
+    "https://newreleases.io/project/github/ferronweb/ferron/release/3.0.0-rc.9"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "n/a",
+   "underclaim_risk": "Fast response; reported via coordinated batch.",
+   "specifics": "stable 2.8.1 2026-06-17; 7 GHSA. cargo-fuzz in tree (4 hits). Evidence that a young Rust server re-learns classic bugs (fail-open authz, Rapid Reset)."
+  },
+  {
+   "id": "gap.sozu",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy",
+   "title": "Sozu",
+   "summary": "Rust hot-reconfigurable proxy, AGPL-3.0 (licence blocks many enterprises), 3.7k stars, 64 contributors, 2.3.3 2026-10-19, 0 GHSA. Fails: AGPL, no isolation/authz/agent protocol.",
+   "urls": [
+    "https://github.com/sozu-proxy/sozu"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.3,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.new-rust-entrants",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "proxy-group",
+   "title": "2025-26 Rust proxy entrants: Pingoo, Aralez, pingora-proxy-manager",
+   "summary": "Pingoo (MIT, 1.0k stars, built-in WAF/bot/PQ-TLS, no release tag, 0 GHSA, README markets against 'Enterprise Edition' paywalls); Aralez (Pingora-based, Apache-2.0, 804 stars, v0.95.2 2026-10-21, 7 contributors). No Zig server >300 stars found (GitHub search). All single-maintainer-scale; none claim isolation or verification.",
+   "urls": [
+    "https://github.com/pingooio/pingoo",
+    "https://github.com/sadoyan/aralez"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.4,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.spin",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "wasm-host",
+   "title": "Spin / SpinKube (Fermyon -> Akamai)",
+   "summary": "Wasmtime-based per-request component host; Apache-2.0, CNCF (SpinKube); Akamai acquired Fermyon 2025-12-01. Fails: it is a FaaS framework, not a front server; needs separate ingress; no capability authz beyond WASI allow-lists; vendor now an edge CDN.",
+   "urls": [
+    "https://www.akamai.com/newsroom/press-release/akamai-announces-acquisition-of-function-as-a-service-company-fermyon",
+    "https://github.com/spinframework/spin"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "v4.2.5 2026-10-23; 6.55k stars; 100 contributors; 2 GHSA (CVE-2024-32980 critical network sandbox escape; CVE-2026-27887 memory leaks). Instantiation latency claims are vendor-only ('under a millisecond', 2022)."
+  },
+  {
+   "id": "gap.wasm-hosts-other",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "wasm-host-group",
+   "title": "wasmCloud, WasmEdge, Wasmer, workerd, Fastly Viceroy",
+   "summary": "wasmCloud v2.11.0 (2.46k stars, 0 GHSA); WasmEdge 0.18.1 (10.8k, 1 GHSA); Wasmer 7.5.0 (21k, MIT, 9 GHSA); workerd v1.20261025.1 (9k, C++/V8, 2 old GHSA) whose README states it is NOT a hardened sandbox and must run inside a VM; Viceroy 0.21.1 is a local Fastly Compute simulator. Fastly datasheet claims per-request isolation with few-microsecond instantiation (vendor claim).",
+   "urls": [
+    "https://github.com/cloudflare/workerd",
+    "https://github.com/wasmCloud/wasmCloud",
+    "https://github.com/WasmEdge/WasmEdge",
+    "https://github.com/wasmerio/wasmer",
+    "https://github.com/fastly/Viceroy"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.5,
+   "load_bearing": true,
+   "specifics": "Wasmer Edge status could not be established (wasmer.io blog 404; no news found) -> E for its commercial status."
+  },
+  {
+   "id": "gap.wasmtime-adv",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "isolation-substrate",
+   "title": "Wasmtime advisory stream and LLM-found bugs",
+   "summary": "Wasmtime v50.0.0 (2026-10-20): 81 published GHSA (7 critical, 6 high, 45 medium, 23 low; 60 published since 2025-10). On 2026-04-09 the project shipped 12 advisories at once (2 critical sandbox escapes CVE-2026-34987 Winch and CVE-2026-34971 Cranelift aarch64); 11/12 found by the team's LLM multi-agent harness; continuous fuzzing does not cover aarch64 for Cranelift/Winch. Implies: Wasm is a strong but not absolute boundary, and AI-driven bug discovery is already shifting advisory rates.",
+   "urls": [
+    "https://bytecodealliance.org/articles/wasmtime-security-advisories",
+    "https://github.com/bytecodealliance/wasmtime"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Counting advisories penalizes the project that finds its own bugs.",
+   "underclaim_risk": "Critical sandbox escapes exist in shipped Tier-1 compilers; 'absolute isolation' framing is wrong.",
+   "specifics": "Counts from GitHub security-advisories API 2026-10-24 (published only)."
+  },
+  {
+   "id": "gap.hyperlight",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "microvm",
+   "title": "Hyperlight (hyperlight-dev, CNCF Sandbox)",
+   "summary": "Rust hypervisor-backed function sandbox (Apache-2.0, 4.76k stars, v0.18.0 2026-10-14, 34 contributors, 1 GHSA low). Microsoft claims ~0.9 ms per call (KubeCon demo, Rust guest) and 1-2 ms for Hyperlight Wasm (experimental). Fails: library not server; no network stack/ingress; vendor numbers only. Repo has cargo-fuzz/libfuzzer targets; no Kani/Verus hits.",
+   "urls": [
+    "https://github.com/hyperlight-dev/hyperlight",
+    "https://thenewstack.io/microsofts-hyperlight-webassembly-for-vms-is-open-source/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": true
+  },
+  {
+   "id": "gap.firecracker",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "microvm",
+   "title": "Firecracker",
+   "summary": "Rust microVM monitor, Apache-2.0, v1.17.0 2026-09-10, 37.6k stars, 304 contributors, 2 GHSA (CVE-2026-5747 virtio-pci OOB write high; CVE-2026-1386 jailer symlink). Has Kani proofs in tree (17 code-search hits). Fails: ~125ms-class VM boot, needs KVM (not on $5 VPS without nested virt), not a server.",
+   "urls": [
+    "https://github.com/firecracker-microvm/firecracker"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "Boot-time figures not re-measured here (E for numbers)."
+  },
+  {
+   "id": "gap.unikraft",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "unikernel",
+   "title": "Unikraft / Unikraft Cloud",
+   "summary": "Unikraft OSS RELEASE-0.21.0 2026-05-20 (3.9k stars, licence NOASSERTION/BSD mix), 0 GHSA. Unikraft Cloud: $6M seed 2025-10-09; vendor claims <10 ms cold start, 100K+ density. Fails: POSIX-app compat, hosted dependency, vendor-only numbers; independent 2026 adoption evidence not found.",
+   "urls": [
+    "https://github.com/unikraft/unikraft",
+    "https://unikraft.com/pricing.md"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.3,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.lunatic",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "wasm-runtime",
+   "title": "Lunatic",
+   "summary": "Erlang-style Wasm actor runtime; dormant: last release v0.13.2 2023-05-03, last commit 2025-03-29, 4.9k stars, 0 GHSA. Fails: abandoned.",
+   "urls": [
+    "https://github.com/lunatic-solutions/lunatic"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.2,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.deno-bun",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "runtime",
+   "title": "Deno and Bun",
+   "summary": "Deno v2.9.8 (MIT, 108.8k stars, 40 GHSA, permission flags are the closest mainstream capability model but process-wide). Bun v1.4.4 (96k stars, 3 GHSA, licence NOASSERTION): Rust rewrite merged 2026-05-14 per bun.com; Anthropic acquired Bun Dec 2025 (bun.com, secondary elsewhere); Zig author published critique. Fail: JS runtimes, no per-request isolation, GC.",
+   "urls": [
+    "https://github.com/denoland/deno",
+    "https://bun.com/blog/bun-in-rust",
+    "https://andrewkelley.me/post/my-thoughts-bun-rust-rewrite.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "specifics": "Bun Rust claims (99.8% tests) from secondary source only."
+  },
+  {
+   "id": "gap.baas",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "baas",
+   "title": "Encore, Convex, PostgREST/Supabase, Hasura",
+   "summary": "Encore v1.58.8 (Go, MPL-2.0, 6 GHSA); convex-backend (FSL-Apache, source-available, SQLite/Postgres, 1 GHSA; self-host lacks SSO/RBAC/audit per third-party claims, unverified); PostgREST v16.5 (Haskell, MIT, 0 GHSA, DB-as-API with RLS); Supabase (113.9k stars, Apache-2.0); Hasura v2.51.2 (v2 LTS to 2027-01-01 EOL for 2.45, DDN v3 CLI/console proprietary per third party). Fail: each binds to one DB or one app model; none is a general middle tier with isolation.",
+   "urls": [
+    "https://github.com/encoredev/encore",
+    "https://github.com/get-convex/convex-backend",
+    "https://github.com/PostgREST/postgrest",
+    "https://hasura.io/legal/support-policy-hasura-v2"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.4,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.docker-mcp-gateway",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "mcp-gateway",
+   "title": "Docker MCP Gateway",
+   "summary": "Go, MIT, container-per-server isolation. v0.44.2, 1.6k stars, 39 contributors, 10 GHSA incl. 2 critical on 2026-07-09 (unauthenticated access to proxied tools in container mode CVE-2026-76092; config-driven bind mount CVE-2026-76099), image signature verification off by default (CVE-2026-76094), tool-name shadowing (CVE-2026-76097), DNS rebinding CVE-2025-64443, case-variant reserved-name bypass 2026-10-13. Shows gateways ship insecure defaults and re-learn confused-deputy bugs.",
+   "urls": [
+    "https://github.com/docker/mcp-gateway",
+    "https://www.docker.com/blog/docker-mcp-gateway-secure-infrastructure-for-agentic-ai/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Advisories mean transparency not worse security.",
+   "underclaim_risk": "A flagship security gateway shipped with unauthenticated tool access in a supported mode."
+  },
+  {
+   "id": "gap.agentgateway",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "mcp-gateway",
+   "title": "agentgateway (Linux Foundation, Solo.io)",
+   "summary": "Rust data plane for MCP/A2A/LLM, Apache-2.0, v1.6.0 2026-10-02, 5.5k stars, 280 contributors, 5 GHSA incl. high 'stateful MCP sessions can cross routes and overwrite the authorization policy' (2026-07-27) and MCP-to-OpenAPI parameter sanitization (CVE-2026-29791). The strongest OSS candidate in the agent-protocol column; fails: no formal claims, no isolation of tool handlers (it proxies), policy is CEL-like config not proof-backed.",
+   "urls": [
+    "https://github.com/agentgateway/agentgateway",
+    "https://linuxfoundation.org/press/linux-foundation-welcomes-agentgateway-project-to-accelerate-ai-agent-adoption-while-maintaining-security-observability-and-governance"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "specifics": "cargo-fuzz in tree (2 hits); madsim 0 hits."
+  },
+  {
+   "id": "gap.envoy-agent-router",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "mcp-gateway",
+   "title": "Envoy AI Gateway, renamed Agent Router",
+   "summary": "envoyproxy/ai-gateway now redirects to theagentrouter/agent-router ('Formerly Envoy AI Gateway', Agentic AI Foundation project), Go, Apache-2.0, v1.2.0 2026-10-07, 2.3k stars, 165 contributors. Envoy core also has in-tree mcp, mcp_router, mcp_json_rest_bridge filters. Fails: Envoy ops weight, C++ data plane.",
+   "urls": [
+    "https://github.com/theagentrouter/agent-router",
+    "https://github.com/envoyproxy/envoy/issues/40247"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.5,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.cloudflare-portals",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "mcp-gateway",
+   "title": "Cloudflare MCP Server Portals",
+   "summary": "Hosted Zero Trust MCP aggregator (launched Aug 2025, beta, requires Cloudflare Access and AI Controls); not self-hostable, so fails sovereignty/household/gov on-prem.",
+   "urls": [
+    "https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/index.md",
+    "https://developers.cloudflare.com/changelog/post/2025-08-26-mcp-server-portals/index.md"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.4,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.mcp-gateway-misc",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "mcp-gateway-group",
+   "title": "Other MCP/AI gateways: Kong, Tyk, IBM ContextForge, Bifrost, ToolHive, Pomerium, Lasso, Microsoft mcp-gateway, Invariant/Snyk",
+   "summary": "Kong (Lua, Apache-2.0, 44k stars; MCP proxy plugin since 3.12 Oct 2025; third parties say governance is enterprise-tier, unverified); Tyk (licence NOASSERTION); IBM mcp-context-forge (Python, v1.1.0, 19 GHSA); Bifrost (Go, 9k stars, enterprise build); ToolHive (Go, v0.56.0, 43 GHSA); Pomerium (Go, v0.33.4, 13 GHSA); Lasso mcp-gateway (Python, last release 2026-01-21, 5 contributors); microsoft/mcp-gateway (C#, no release); Invariant acquired by Snyk 2025-06 (scanner now Snyk Agent Scan). Pattern: many are Python/Go/TS, container-per-server, with large advisory counts.",
+   "urls": [
+    "https://github.com/Kong/kong",
+    "https://github.com/IBM/mcp-context-forge",
+    "https://github.com/stacklok/toolhive",
+    "https://github.com/pomerium/pomerium",
+    "https://github.com/lasso-security/mcp-gateway",
+    "https://tech.eu/2025/06/24/snyk-acquires-ai-security-pioneer-invariant-labs-for-a-new-era-in-ai-safeguards/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.5,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.agent-firewalls",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "agent-firewall",
+   "title": "Agent firewalls and sandboxes: pipelock, nono, mcpdef, ThinkWatch",
+   "summary": "pipelock (Go, Apache-2.0, 959 stars, v3.7.1, signed hash-chained action receipts, 5 GHSA); nono (Rust, Apache-2.0, 4.7k stars, v0.80.0, process sandbox for agents, 12 GHSA); ThinkWatch (Rust, 819 stars, licence NOASSERTION, 3 contributors); mcpdef (Rust Wasm sandbox, appears only on Docker Hub, unverified E). Most are client-side or egress-side; none is a server tier that also hosts handlers.",
+   "urls": [
+    "https://github.com/pipelab-org/pipelock",
+    "https://github.com/nolabs-ai/nono",
+    "https://github.com/ThinkWatchProject/ThinkWatch",
+    "https://hub.docker.com/r/mancube/mcpdef"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.unserved-combination",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "gap",
+   "title": "Unserved: one memory-safe binary combining front proxy, per-request isolated handlers, capability authz and agent protocols",
+   "summary": "No surveyed project combines (a) memory-safe single binary, (b) per-request hardware/Wasm isolation, (c) capability-style authorization checked at the boundary, (d) native MCP/A2A/agent-identity handling, (e) PQ-TLS by default, (f) any machine-checked claim. Proxies lack b,c; Wasm hosts lack front-proxy and c; MCP gateways lack b and f. Absence claim: based on this survey only (grade C).",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Absence of evidence in a ~45-repo survey is not proof no private/closed product exists.",
+   "underclaim_risk": "Pieces exist in production (Spin per-request isolation, agentgateway MCP, Pingora/rustls PQ); the gap is integration and assurance."
+  },
+  {
+   "id": "gap.no-assurance-claims",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "gap",
+   "title": "Unserved: no surveyed server makes machine-checked or DST claims",
+   "summary": "In-tree grep (GitHub code search 2026-10-24): Kani present only in Firecracker (17 hits); no Verus hits in hyperlight/wasmtime/others; no turmoil/madsim in the proxies checked (agentgateway madsim 0); fuzzing exists in hyperlight, ferron, sozu, agentgateway (cargo-fuzz/libfuzzer). Web search found no 2025-26 verified HTTP server/proxy; Cedar (Dafny) is authz only. Search tool limits make this C.",
+   "urls": [
+    "https://github.com/firecracker-microvm/firecracker"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Code search is keyword-only and rate-limited; some claims may live in docs/CI not matched."
+  },
+  {
+   "id": "gap.insecure-defaults",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "gap",
+   "title": "Pattern: gateways and young servers fail open and ship insecure defaults",
+   "summary": "Evidence: Docker MCP Gateway (unauth proxied tools; sig verification off by default), Ferron auth_to fail-open critical, forward-proxy DNS/ACL fail-open, Pingora insecure-by-default cache key and unbounded h2 header-list default, agentgateway session policy overwrite. Implies a fail-closed-by-construction requirement and a default-config gate in CI.",
+   "urls": [
+    "https://github.com/ferronweb/ferron/security/advisories",
+    "https://github.com/docker/mcp-gateway/security/advisories",
+    "https://github.com/cloudflare/pingora/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true
+  },
+  {
+   "id": "gap.dormancy-churn",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "gap",
+   "title": "Pattern: maintenance churn and acquisitions in this tier",
+   "summary": "NGINX Unit archived 2025-10-08; River dormant since 2024-09; Lunatic dormant; ingress-nginx retired 2026-03 with InGate dropped; Fermyon->Akamai 2025-12; Invariant->Snyk 2025-06; Bun->Anthropic 2025-12; Envoy AI Gateway renamed. Users bear migration risk, so governance (foundation home, multiple maintainers) is a selection criterion.",
+   "urls": [
+    "https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/",
+    "https://www.kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/",
+    "https://github.com/nginx/unit"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false
+  },
+  {
+   "id": "gap.demand-evidence",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "type": "demand",
+   "title": "Demand signals: what people say they would switch for",
+   "summary": "(1) ingress-nginx retired, official statement says no drop-in replacement (kubernetes.io 2026-01-29). (2) Pingora HTTP/3 request, 107 reactions, open 2.6 years. (3) Envoy MCP proposal 42 reactions. (4) Stacklok survey Jul 2026 (n=100 enterprise engineers): 41% some production MCP, only 5% governed enterprise-wide; WorkOS: 18% implement tool scoping (secondary); Adversa scan 38% of 500 servers no auth on critical endpoints (secondary, via blog). (5) Self-hosters pick Caddy for simple config/auto-HTTPS, Traefik for Docker labels (forum threads). (6) Pingoo README complains of paywalled Enterprise features. Most evidence is thin: forum threads, vendor blogs, one n=100 survey (grade C).",
+   "urls": [
+    "https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/",
+    "https://github.com/cloudflare/pingora/issues/95",
+    "https://github.com/envoyproxy/envoy/issues/39174",
+    "https://nhimg.org/articles/mcps-2026-roadmap-shows-enterprise-readiness-gaps-still-block-scale/",
+    "https://falcao.org/posts/caddy-nginx-traefik-2026/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Vendor/blog sourced stats; reactions are not purchases.",
+   "underclaim_risk": "No instrument measures willingness-to-switch at household scale."
+  },
+  {
+   "id": "gap.pq-status",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "type": "pqc",
+   "title": "PQ-TLS posture of incumbents",
+   "summary": "Hybrid X25519MLKEM768 reachable by default via Go 1.24 (Caddy/Traefik builds), OpenSSL 3.5 (nginx builds on Ubuntu 25.10/26.04 per Canonical discourse), Pingoo advertises PQ-TLS; Envoy status not established; PQ authentication (ML-DSA certs) not a differentiator yet. So 'PQ key exchange' alone does not fill the slot.",
+   "urls": [
+    "https://kubernetes.dev/blog/2025/07/18/pqc-in-k8s",
+    "https://discourse.ubuntu.com/t/post-quantum-support-in-the-upcoming-26-04-lts/76840",
+    "https://github.com/pingooio/pingoo"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false
+  }
+ ],
+ "edges": [
+  {
+   "src": "gap.river",
+   "dst": "gap.pingora",
+   "type": "depends_on",
+   "note": "built on Pingora"
+  },
+  {
+   "src": "gap.new-rust-entrants",
+   "dst": "gap.pingora",
+   "type": "depends_on",
+   "note": "Aralez, pingora-proxy-manager"
+  },
+  {
+   "src": "gap.nginx-unit",
+   "dst": "gap.nginx",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gap.ferron",
+   "dst": "gap.nginx",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gap.caddy",
+   "dst": "gap.nginx",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gap.traefik",
+   "dst": "gap.nginx",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gap.spin",
+   "dst": "gap.wasmtime-adv",
+   "type": "depends_on",
+   "note": "Spin runs on Wasmtime"
+  },
+  {
+   "src": "gap.hyperlight",
+   "dst": "gap.wasmtime-adv",
+   "type": "alternative_to",
+   "note": "microVM vs Wasm boundary"
+  },
+  {
+   "src": "gap.firecracker",
+   "dst": "gap.hyperlight",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gap.docker-mcp-gateway",
+   "dst": "gap.insecure-defaults",
+   "type": "fills_gap",
+   "note": "evidence"
+  },
+  {
+   "src": "gap.ferron",
+   "dst": "gap.insecure-defaults",
+   "type": "fills_gap",
+   "note": "evidence"
+  },
+  {
+   "src": "gap.pingora",
+   "dst": "gap.insecure-defaults",
+   "type": "fills_gap",
+   "note": "evidence"
+  },
+  {
+   "src": "gap.agentgateway",
+   "dst": "gap.insecure-defaults",
+   "type": "fills_gap",
+   "note": "evidence"
+  },
+  {
+   "src": "gap.envoy-agent-router",
+   "dst": "gap.envoy",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "gap.agentgateway",
+   "dst": "gap.envoy",
+   "type": "alternative_to",
+   "note": "Rust MCP data plane vs Envoy filters"
+  },
+  {
+   "src": "gap.unserved-combination",
+   "dst": "gap.agentgateway",
+   "type": "conflicts_with",
+   "note": "nearest competitor in agent column"
+  },
+  {
+   "src": "gap.unserved-combination",
+   "dst": "gap.spin",
+   "type": "conflicts_with",
+   "note": "nearest competitor in isolation column"
+  },
+  {
+   "src": "gap.unserved-combination",
+   "dst": "gap.pingora",
+   "type": "depends_on",
+   "note": "nearest competitor in transport column"
+  },
+  {
+   "src": "gap.demand-evidence",
+   "dst": "gap.unserved-combination",
+   "type": "fills_gap",
+   "note": ""
+  },
+  {
+   "src": "gap.no-assurance-claims",
+   "dst": "gap.unserved-combination",
+   "type": "fills_gap",
+   "note": ""
+  },
+  {
+   "src": "gap.dormancy-churn",
+   "dst": "gap.demand-evidence",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "gap.wasmtime-adv",
+   "dst": "gap.no-assurance-claims",
+   "type": "cve",
+   "note": "CVE-2026-34987, CVE-2026-34971"
+  },
+  {
+   "src": "gap.pingora",
+   "dst": "gap.pingora",
+   "type": "cve",
+   "note": "CVE-2026-2833, CVE-2026-2835, CVE-2026-2836, CVE-2025-8671, CVE-2025-4366"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Do rustls/aws-lc-rs-based proxies (Pingora rustls feature, agentgateway) negotiate X25519MLKEM768 by default and what is the measured handshake cost on a 1-vCPU VPS?",
+   "layer": "L4",
+   "domain": "W-PQC",
+   "expected_info_gain": 0.7,
+   "reason": "gap.pq-status is B only"
+  },
+  {
+   "question": "Measure Wasmtime pooling-allocator per-request instantiate latency and RSS vs Hyperlight vs process fork+seccomp on same hardware (independent of vendor numbers).",
+   "layer": "L4",
+   "domain": "W-ISOLATION",
+   "expected_info_gain": 0.9,
+   "reason": "all isolation latency figures are vendor claims"
+  },
+  {
+   "question": "Read the 2026-07-27 agentgateway GHSA (session overwrite authz) and docker/mcp-gateway CVE-2026-76092 diffs: derive the invariant each violated and whether a type/capability boundary would have prevented it.",
+   "layer": "L5",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.9,
+   "reason": "turns CVEs into SPEC_INVARIANTS"
+  },
+  {
+   "question": "Does any server or gateway ship Cedar/OPA/CEL policy with SMT-checked analysis in the request path (agentgateway CEL, Envoy, Pomerium)?",
+   "layer": "L3",
+   "domain": "W-AUTHZ",
+   "expected_info_gain": 0.6,
+   "reason": "no assurance claims found"
+  },
+  {
+   "question": "Primary-source check of Pingora HTTP/3 timeline, rustls-vs-OpenSSL backends, and FIPS status; same for River succession.",
+   "layer": "L4",
+   "domain": "W-TRANSPORT",
+   "expected_info_gain": 0.5,
+   "reason": "Pingora is likely base candidate; open h3 gap"
+  },
+  {
+   "question": "Quantify willingness-to-switch: mine Reddit/HN/lobste.rs threads (not mirrors) on ingress-nginx replacement and MCP gateway selection; classify stated criteria.",
+   "layer": "L2",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.6,
+   "reason": "demand evidence is grade C"
+  },
+  {
+   "question": "Verify Wasmer Edge, Unikraft Cloud and Hyperlight Wasm production status and independent benchmarks.",
+   "layer": "L3",
+   "domain": "W-GAP",
+   "expected_info_gain": 0.4,
+   "reason": "commercial status unresolved"
+  },
+  {
+   "question": "Compare LLM-found vs human-found advisory rates across Wasmtime/Pingora/Envoy 2025-26 to estimate time-to-exploit shift.",
+   "layer": "L2",
+   "domain": "W-THREAT",
+   "expected_info_gain": 0.8,
+   "reason": "Wasmtime 11/12 LLM-found"
+  }
+ ],
+ "protocol_implications": [
+  "Selection criteria from gap data: foundation-hosted or multi-maintainer base, fail-closed defaults gate, secure-by-default config tested in CI (insecure-defaults pattern).",
+  "Wasm is a strong but breakable boundary (Wasmtime 2 critical escapes 2026-04, 81 advisories): design needs defense in depth (OS sandbox) and rapid patch pipeline; do not claim absolute isolation.",
+  "MCP gateway reference tests: session-cross-route policy overwrite (agentgateway), tool-name shadowing/case variants, unauthenticated proxied tools, DNS rebinding (docker/mcp-gateway) become regression fixtures.",
+  "HTTP conformance corpus must include Pingora/nginx 2026 smuggling and h2/h3 DoS cases (CVE-2026-2833/2835, MadeYouReset, Rapid Reset bypass, h3 SETTINGS O(n^2)).",
+  "Positioning: gap is integration plus assurance, not any single feature; every competitor lacks machine-checked claims, so claims must be scoped to proved components only."
+ ],
+ "self_improvement": [
+  "GitHub API (gh api repos/*, security-advisories, search/code) gives A-grade metadata cheaply; add a reusable script to tools/ for repo metadata+GHSA counts; code search is rate-limited to ~10/min and returns errors that look like '{'.",
+  "WebSearch snippets are lossy; always follow with primary fetch for versions/CVEs. Search tool ignores quoted operators; mirror sites (reddit.sentinel-team) pollute results.",
+  "GHSA 'published' count undercounts project CVEs (nginx publishes none on GitHub); require per-project advisory source in schema.",
+  "Add 'last_verified_date' and 'source_tool' fields to nodes."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-001/02-gap-prior-art-servers-and-unserved-slot.json",
+ "sources": [
+  "https://andrewkelley.me/post/my-thoughts-bun-rust-rewrite.html",
+  "https://bun.com/blog/bun-in-rust",
+  "https://bytecodealliance.org/articles/wasmtime-security-advisories",
+  "https://developers.cloudflare.com/changelog/post/2025-08-26-mcp-server-portals/index.md",
+  "https://developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/index.md",
+  "https://discourse.ubuntu.com/t/post-quantum-support-in-the-upcoming-26-04-lts/76840",
+  "https://falcao.org/posts/caddy-nginx-traefik-2026/",
+  "https://github.com/IBM/mcp-context-forge",
+  "https://github.com/Kong/kong",
+  "https://github.com/PostgREST/postgrest",
+  "https://github.com/ThinkWatchProject/ThinkWatch",
+  "https://github.com/WasmEdge/WasmEdge",
+  "https://github.com/agentgateway/agentgateway",
+  "https://github.com/bytecodealliance/wasmtime",
+  "https://github.com/caddyserver/caddy",
+  "https://github.com/cloudflare/pingora",
+  "https://github.com/cloudflare/pingora/issues/95",
+  "https://github.com/cloudflare/pingora/security/advisories",
+  "https://github.com/cloudflare/workerd",
+  "https://github.com/denoland/deno",
+  "https://github.com/docker/mcp-gateway",
+  "https://github.com/docker/mcp-gateway/security/advisories",
+  "https://github.com/encoredev/encore",
+  "https://github.com/envoyproxy/envoy",
+  "https://github.com/envoyproxy/envoy/issues/39174",
+  "https://github.com/envoyproxy/envoy/issues/40247",
+  "https://github.com/fastly/Viceroy",
+  "https://github.com/ferronweb/ferron",
+  "https://github.com/ferronweb/ferron/security/advisories",
+  "https://github.com/firecracker-microvm/firecracker",
+  "https://github.com/freeunitorg/freeunit",
+  "https://github.com/get-convex/convex-backend",
+  "https://github.com/haproxy/haproxy",
+  "https://github.com/hyperlight-dev/hyperlight",
+  "https://github.com/lasso-security/mcp-gateway",
+  "https://github.com/lunatic-solutions/lunatic",
+  "https://github.com/memorysafety/river",
+  "https://github.com/nginx/nginx/issues/1143",
+  "https://github.com/nginx/unit",
+  "https://github.com/nolabs-ai/nono",
+  "https://github.com/pingooio/pingoo",
+  "https://github.com/pipelab-org/pipelock",
+  "https://github.com/pomerium/pomerium",
+  "https://github.com/sadoyan/aralez",
+  "https://github.com/sozu-proxy/sozu",
+  "https://github.com/spinframework/spin",
+  "https://github.com/stacklok/toolhive",
+  "https://github.com/theagentrouter/agent-router",
+  "https://github.com/traefik/traefik",
+  "https://github.com/unikraft/unikraft",
+  "https://github.com/wasmCloud/wasmCloud",
+  "https://github.com/wasmerio/wasmer",
+  "https://hasura.io/legal/support-policy-hasura-v2",
+  "https://hub.docker.com/r/mancube/mcpdef",
+  "https://kubernetes.dev/blog/2025/07/18/pqc-in-k8s",
+  "https://linuxfoundation.org/press/linux-foundation-welcomes-agentgateway-project-to-accelerate-ai-agent-adoption-while-maintaining-security-observability-and-governance",
+  "https://newreleases.io/project/github/ferronweb/ferron/release/3.0.0-rc.9",
+  "https://nginx.org/en/security_advisories.html",
+  "https://nhimg.org/articles/mcps-2026-roadmap-shows-enterprise-readiness-gaps-still-block-scale/",
+  "https://tech.eu/2025/06/24/snyk-acquires-ai-security-pioneer-invariant-labs-for-a-new-era-in-ai-safeguards/",
+  "https://thenewstack.io/microsofts-hyperlight-webassembly-for-vms-is-open-source/",
+  "https://traefik.io/blog/migrate-from-ingress-nginx-to-traefik-now",
+  "https://unikraft.com/pricing.md",
+  "https://www.akamai.com/newsroom/press-release/akamai-announces-acquisition-of-function-as-a-service-company-fermyon",
+  "https://www.docker.com/blog/docker-mcp-gateway-secure-infrastructure-for-agentic-ai/",
+  "https://www.haproxy.org/",
+  "https://www.kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/",
+  "https://www.kubernetes.io/blog/2026/01/29/ingress-nginx-statement/",
+  "https://www.memorysafety.org/initiative/reverse-proxy"
+ ]
+}

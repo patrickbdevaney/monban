@@ -1,0 +1,1633 @@
+{
+ "mysql_async": {
+  "version": "0.37.1",
+  "release": "2026-09-01",
+  "downloads": 8290427,
+  "recent": 1708631,
+  "repo": "https://github.com/blackbeam/mysql_async",
+  "owners": 1,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "aws-lc-rs",
+   "bigdecimal",
+   "binlog",
+   "chrono",
+   "client_ed25519",
+   "client_parsec",
+   "default",
+   "default-rustls",
+   "default-rustls-no-provider",
+   "default-rustls-ring",
+   "derive",
+   "frunk",
+   "minimal",
+   "minimal-rust",
+   "native-tls-tls",
+   "nightly",
+   "ring",
+   "rust_decimal",
+   "rustls-tls",
+   "time",
+   "tls12",
+   "tracing"
+  ],
+  "osv": []
+ },
+ "mysql": {
+  "version": "28.0.4",
+  "release": "2026-10-16",
+  "downloads": 4524471,
+  "recent": 831697,
+  "repo": "https://github.com/blackbeam/rust-mysql-simple",
+  "owners": 1,
+  "license": "MIT/Apache-2.0",
+  "features": [
+   "bigdecimal",
+   "binlog",
+   "buffer-pool",
+   "chrono",
+   "client_ed25519",
+   "client_parsec",
+   "default",
+   "default-rust",
+   "derive",
+   "frunk",
+   "minimal",
+   "minimal-rust",
+   "native-tls",
+   "nightly",
+   "rust_decimal",
+   "rustls",
+   "rustls-tls",
+   "rustls-tls-ring",
+   "time"
+  ],
+  "osv": []
+ },
+ "sqlx": {
+  "version": "0.9.0",
+  "release": "2026-05-21",
+  "downloads": 172808271,
+  "recent": 49962596,
+  "repo": "https://github.com/launchbadge/sqlx",
+  "owners": 2,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "_rt-async-global-executor",
+   "_rt-async-std",
+   "_rt-smol",
+   "_rt-tokio",
+   "_sqlite",
+   "_unstable-all-types",
+   "_unstable-docs",
+   "all-databases",
+   "any",
+   "bigdecimal",
+   "bit-vec",
+   "bstr",
+   "chrono",
+   "default",
+   "derive",
+   "ipnet",
+   "ipnetwork",
+   "json",
+   "mac_address",
+   "macros",
+   "migrate",
+   "mysql",
+   "mysql-rsa",
+   "postgres",
+   "regexp",
+   "runtime-async-global-executor",
+   "runtime-async-std",
+   "runtime-smol",
+   "runtime-tokio",
+   "rust_decimal",
+   "sqlite",
+   "sqlite-bundled",
+   "sqlite-deserialize",
+   "sqlite-load-extension",
+   "sqlite-preupdate-hook",
+   "sqlite-unbundled",
+   "sqlite-unlock-notify",
+   "sqlx-toml",
+   "time",
+   "tls-native-tls",
+   "tls-none",
+   "tls-rustls",
+   "tls-rustls-aws-lc-rs",
+   "tls-rustls-ring",
+   "tls-rustls-ring-native-roots",
+   "tls-rustls-ring-webpki",
+   "uuid"
+  ],
+  "osv": [
+   [
+    "GHSA-xmrp-424f-vfpx",
+    [
+     "RUSTSEC-2024-0363"
+    ],
+    "2024-08-19",
+    "SQLx Binary Protocol Misinterpretation caused by Truncating or Overflowing Casts"
+   ],
+   [
+    "RUSTSEC-2024-0363",
+    [
+     "GHSA-xmrp-424f-vfpx"
+    ],
+    "2024-08-15",
+    "Binary Protocol Misinterpretation caused by Truncating or Overflowing Casts"
+   ]
+  ]
+ },
+ "libsql": {
+  "version": "0.10.0",
+  "release": "2026-10-13",
+  "downloads": 2429427,
+  "recent": 844476,
+  "repo": "https://github.com/tursodatabase/libsql",
+  "owners": 3,
+  "license": "MIT",
+  "features": [
+   "cloudflare",
+   "core",
+   "default",
+   "encryption",
+   "hrana",
+   "parser",
+   "remote",
+   "replication",
+   "serde",
+   "stream",
+   "sync",
+   "tls",
+   "wasm"
+  ],
+  "osv": []
+ },
+ "tokio-postgres": {
+  "version": "0.7.18",
+  "release": "2026-06-12",
+  "downloads": 79313716,
+  "recent": 22614961,
+  "repo": "https://github.com/rust-postgres/rust-postgres",
+  "owners": 2,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "array-impls",
+   "default",
+   "js",
+   "runtime",
+   "with-bit-vec-0_6",
+   "with-bit-vec-0_7",
+   "with-bit-vec-0_8",
+   "with-bit-vec-0_9",
+   "with-chrono-0_4",
+   "with-cidr-0_2",
+   "with-cidr-0_3",
+   "with-eui48-0_4",
+   "with-eui48-1",
+   "with-geo-types-0_6",
+   "with-geo-types-0_7",
+   "with-jiff-0_1",
+   "with-jiff-0_2",
+   "with-serde_json-1",
+   "with-smol_str-01",
+   "with-time-0_2",
+   "with-time-0_3",
+   "with-uuid-0_8",
+   "with-uuid-1"
+  ],
+  "osv": [
+   [
+    "GHSA-3gjw-f78c-vvpw",
+    [
+     "RUSTSEC-2026-0178"
+    ],
+    "2026-08-24",
+    "tokio-postgres: Panic on a `DataRow` with fewer fields than columns allows denial of servi"
+   ],
+   [
+    "RUSTSEC-2026-0178",
+    [
+     "GHSA-3gjw-f78c-vvpw"
+    ],
+    "2026-06-12",
+    "Panic on a `DataRow` with fewer fields than columns allows denial of service"
+   ]
+  ]
+ },
+ "tiberius": {
+  "version": "0.13.0",
+  "release": "2026-09-25",
+  "downloads": 5628285,
+  "recent": 865356,
+  "repo": "https://github.com/prisma/tiberius",
+  "owners": 6,
+  "license": "MIT/Apache-2.0",
+  "features": [
+   "all",
+   "bigdecimal",
+   "default",
+   "integrated-auth-gssapi",
+   "native-tls",
+   "rustls",
+   "rustls-webpki-roots",
+   "serde",
+   "sql-browser-smol",
+   "sql-browser-tokio",
+   "sspi-rs",
+   "tds73",
+   "tds80",
+   "vendored-openssl"
+  ],
+  "osv": [
+   [
+    "RUSTSEC-2020-0010",
+    [],
+    "2020-02-28",
+    "tiberius is unmaintained"
+   ]
+  ]
+ },
+ "mongodb": {
+  "version": "3.9.1",
+  "release": "2026-09-10",
+  "downloads": 19836104,
+  "recent": 5143964,
+  "repo": "https://github.com/mongodb/mongo-rust-driver",
+  "owners": 1,
+  "license": "Apache-2.0",
+  "features": [
+   "aws-auth",
+   "azure-kms",
+   "azure-oidc",
+   "bson-2",
+   "bson-3",
+   "cert-key-password",
+   "compat-3-0-0",
+   "compat-3-3-0",
+   "default",
+   "dns-resolver",
+   "error-backtrace",
+   "gcp-kms",
+   "gcp-oidc",
+   "gssapi-auth",
+   "in-use-encryption",
+   "in-use-encryption-unstable",
+   "log",
+   "openssl-tls",
+   "opentelemetry",
+   "redact-errors",
+   "rustls-tls",
+   "rustls-tls-aws-lc",
+   "snappy-compression",
+   "socks5-proxy",
+   "sync",
+   "text-indexes-unstable",
+   "tracing-unstable",
+   "zlib-compression",
+   "zstd-compression"
+  ],
+  "osv": [
+   [
+    "GHSA-32jf-h775-g29h",
+    [
+     "CVE-2024-6382"
+    ],
+    "2024-07-02",
+    "MongoDB Rust driver may issue unintended commands"
+   ],
+   [
+    "GHSA-3p6w-gv5g-xjw9",
+    [
+     "CVE-2025-11695"
+    ],
+    "2025-10-13",
+    "MongoDB Rust Driver has certificate validation disabled when `tlsInsecure=False` appears i"
+   ],
+   [
+    "GHSA-4rjr-3gj2-5crq",
+    [
+     "CVE-2021-20332"
+    ],
+    "2022-05-24",
+    "Exposure of Sensitive Information to an Unauthorized Actor in MongoDB Rust Driver"
+   ]
+  ]
+ },
+ "redis": {
+  "version": "1.8.0",
+  "release": "2026-10-23",
+  "downloads": 119915116,
+  "recent": 32022387,
+  "repo": "https://github.com/redis-rs/redis-rs",
+  "owners": 2,
+  "license": "BSD-3-Clause",
+  "features": [
+   "acl",
+   "aio",
+   "bb8",
+   "bloom",
+   "cache-aio",
+   "cluster",
+   "cluster-async",
+   "connection-manager",
+   "default",
+   "entra-id",
+   "geospatial",
+   "json",
+   "num-bigint",
+   "r2d2",
+   "script",
+   "search_unfinished",
+   "sentinel",
+   "smol-comp",
+   "smol-native-tls-comp",
+   "smol-rustls-comp",
+   "streams",
+   "tls-native-tls",
+   "tls-rustls",
+   "tls-rustls-insecure",
+   "tls-rustls-webpki-roots",
+   "token-based-authentication",
+   "tokio-comp",
+   "tokio-native-tls-comp",
+   "tokio-rustls-comp",
+   "vector-sets"
+  ],
+  "osv": []
+ },
+ "fred": {
+  "version": "10.1.0",
+  "release": "2025-02-27",
+  "downloads": 10533221,
+  "recent": 2846092,
+  "repo": "https://github.com/aembke/fred.rs",
+  "owners": 1,
+  "license": "MIT",
+  "features": [
+   "blocking-encoding",
+   "credential-provider",
+   "custom-reconnect-errors",
+   "debug-ids",
+   "default",
+   "default-nil-types",
+   "dns",
+   "dynamic-pool",
+   "enable-native-tls",
+   "enable-rustls",
+   "enable-rustls-ring",
+   "full-tracing",
+   "glommio",
+   "i-acl",
+   "i-all",
+   "i-client",
+   "i-cluster",
+   "i-config",
+   "i-geo",
+   "i-hashes",
+   "i-hexpire",
+   "i-hyperloglog",
+   "i-keys",
+   "i-lists",
+   "i-memory",
+   "i-pubsub",
+   "i-redis-json",
+   "i-redis-stack",
+   "i-redisearch",
+   "i-scripts",
+   "i-server",
+   "i-sets",
+   "i-slowlog",
+   "i-sorted-sets",
+   "i-std",
+   "i-streams",
+   "i-time-series",
+   "i-tracking",
+   "metrics",
+   "mocks",
+   "monitor",
+   "monoio",
+   "monoio-native-tls",
+   "monoio-rustls",
+   "network-logs",
+   "partial-tracing",
+   "replicas",
+   "sentinel-auth",
+   "sentinel-client",
+   "serde-json",
+   "smol",
+   "subscriber-client",
+   "tcp-user-timeouts",
+   "transactions",
+   "trust-dns-resolver",
+   "unix-sockets",
+   "vendored-openssl"
+  ],
+  "osv": []
+ },
+ "foundationdb": {
+  "version": "0.11.0",
+  "release": "2026-06-24",
+  "downloads": 15296198,
+  "recent": 353530,
+  "repo": "https://github.com/foundationdb-rs/foundationdb-rs",
+  "owners": 4,
+  "license": "MIT/Apache-2.0",
+  "features": [
+   "default",
+   "embedded-fdb-include",
+   "fdb-5_1",
+   "fdb-5_2",
+   "fdb-6_0",
+   "fdb-6_1",
+   "fdb-6_2",
+   "fdb-6_3",
+   "fdb-7_0",
+   "fdb-7_1",
+   "fdb-7_3",
+   "fdb-7_4",
+   "num-bigint",
+   "recipes",
+   "recipes-leader-election",
+   "recipes-ranked-register",
+   "tenant-experimental",
+   "trace",
+   "uuid"
+  ],
+  "osv": []
+ },
+ "aws-sdk-dynamodb": {
+  "version": "1.134.0",
+  "release": "2026-10-22",
+  "downloads": 27630332,
+  "recent": 6436624,
+  "repo": "https://github.com/awslabs/aws-sdk-rust",
+  "owners": 2,
+  "license": "Apache-2.0",
+  "features": [
+   "behavior-version-latest",
+   "default",
+   "default-https-client",
+   "gated-tests",
+   "legacy-https-client",
+   "legacy-test-util",
+   "rt-tokio",
+   "rustls",
+   "test-util"
+  ],
+  "osv": [
+   [
+    "GHSA-g59m-gf8j-gjf5",
+    [],
+    "2026-01-08",
+    "AWS SDK for Rust v1 adopted defense in depth enhancement for region parameter value"
+   ]
+  ]
+ },
+ "scylla": {
+  "version": "1.9.0",
+  "release": "2026-09-15",
+  "downloads": 10190287,
+  "recent": 2251340,
+  "repo": "https://github.com/scylladb/scylla-rust-driver",
+  "owners": 4,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "bigdecimal-04",
+   "chrono-04",
+   "default",
+   "full-serialization",
+   "metrics",
+   "num-bigint-03",
+   "num-bigint-04",
+   "openssl-010",
+   "rustls-023",
+   "secrecy-08",
+   "secrecy-10",
+   "time-03",
+   "unstable-client-routes",
+   "unstable-cpp-rs",
+   "unstable-csharp-rs",
+   "unstable-host-listener",
+   "unstable-nodejs-rs",
+   "unstable-python-rs",
+   "unstable-reconnect-policy",
+   "unstable-strong-consistency",
+   "unstable-testing"
+  ],
+  "osv": []
+ },
+ "cdrs-tokio": {
+  "version": "9.0.2",
+  "release": "2026-05-21",
+  "downloads": 838042,
+  "recent": 41586,
+  "repo": "https://github.com/krojew/cdrs-tokio",
+  "owners": 1,
+  "license": "MIT/Apache-2.0",
+  "features": [
+   "derive",
+   "e2e-tests",
+   "http-proxy",
+   "rust-tls"
+  ],
+  "osv": []
+ },
+ "neo4rs": {
+  "version": "0.8.0",
+  "release": "2024-08-07",
+  "downloads": 1334629,
+  "recent": 405160,
+  "repo": "https://github.com/neo4j-labs/neo4rs",
+  "owners": 4,
+  "license": "MIT",
+  "features": [
+   "json"
+  ],
+  "osv": []
+ },
+ "qdrant-client": {
+  "version": "1.20.0",
+  "release": "2026-10-22",
+  "downloads": 5254265,
+  "recent": 2101830,
+  "repo": "https://github.com/qdrant/rust-client",
+  "owners": 1,
+  "license": "Apache-2.0",
+  "features": [
+   "default",
+   "download_snapshots",
+   "generate-snippets",
+   "serde",
+   "uuid"
+  ],
+  "osv": []
+ },
+ "pgvector": {
+  "version": "0.4.2",
+  "release": "2026-05-22",
+  "downloads": 20816865,
+  "recent": 5390782,
+  "repo": "https://github.com/pgvector/pgvector-rust",
+  "owners": 1,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "halfvec",
+   "postgres"
+  ],
+  "osv": []
+ },
+ "opensearch": {
+  "version": "2.4.0",
+  "release": "2026-03-24",
+  "downloads": 3524196,
+  "recent": 555901,
+  "repo": "https://github.com/opensearch-project/opensearch-rs",
+  "owners": 1,
+  "license": "Apache-2.0",
+  "features": [
+   "aws-auth",
+   "beta-apis",
+   "default",
+   "experimental-apis",
+   "native-tls",
+   "rustls-tls"
+  ],
+  "osv": []
+ },
+ "elasticsearch": {
+  "version": "9.1.0-alpha.1",
+  "release": "2025-08-08",
+  "downloads": 24270496,
+  "recent": 2125339,
+  "repo": "https://github.com/elastic/elasticsearch-rs",
+  "owners": 3,
+  "license": "Apache-2.0",
+  "features": [
+   "beta-apis",
+   "default",
+   "experimental-apis",
+   "native-tls",
+   "rustls-tls"
+  ],
+  "osv": []
+ },
+ "meilisearch-sdk": {
+  "version": "0.33.0",
+  "release": "2026-04-22",
+  "downloads": 1256197,
+  "recent": 361660,
+  "repo": "https://github.com/meilisearch/meilisearch-sdk",
+  "owners": 3,
+  "license": "MIT",
+  "features": [
+   "default",
+   "futures-unsend",
+   "jwt_aws_lc_rs",
+   "jwt_rust_crypto",
+   "reqwest",
+   "tls"
+  ],
+  "osv": []
+ },
+ "tantivy": {
+  "version": "0.27.0",
+  "release": "2026-10-17",
+  "downloads": 20815291,
+  "recent": 4954287,
+  "repo": "https://github.com/quickwit-oss/tantivy",
+  "owners": 2,
+  "license": "MIT",
+  "features": [
+   "columnar-zstd-compression",
+   "compare_hash_only",
+   "default",
+   "failpoints",
+   "jitexpr",
+   "lz4-compression",
+   "mmap",
+   "quickwit",
+   "stemmer",
+   "stopwords",
+   "unstable",
+   "zstd-compression"
+  ],
+  "osv": []
+ },
+ "influxdb2": {
+  "version": "0.5.2",
+  "release": "2024-07-22",
+  "downloads": 385539,
+  "recent": 38134,
+  "repo": "https://github.com/aprimadi/influxdb2",
+  "owners": 1,
+  "license": "MIT",
+  "features": [
+   "default",
+   "gzip",
+   "native-tls",
+   "rustls"
+  ],
+  "osv": []
+ },
+ "questdb-rs": {
+  "version": "7.2.0",
+  "release": "2026-10-21",
+  "downloads": 295635,
+  "recent": 82031,
+  "repo": "https://github.com/questdb/c-questdb-client",
+  "owners": 3,
+  "license": "Apache-2.0",
+  "features": [
+   "_arrow",
+   "_egress",
+   "_keystore-roots",
+   "_polars",
+   "_sender-http",
+   "_sender-qwp-udp",
+   "_sender-qwp-ws",
+   "_sender-tcp",
+   "_sync-sender",
+   "almost-all-features",
+   "arrow",
+   "arrow-egress",
+   "arrow-ingress",
+   "aws-lc-crypto",
+   "bigdecimal",
+   "chrono-timestamp",
+   "default",
+   "ffi-support",
+   "insecure-skip-verify",
+   "json-tests",
+   "live-server-tests",
+   "ndarray",
+   "polars",
+   "polars-egress",
+   "polars-ingress",
+   "ring-crypto",
+   "rust_decimal",
+   "sync-reader",
+   "sync-reader-qwp-ws",
+   "sync-reader-zstd",
+   "sync-sender",
+   "sync-sender-http",
+   "sync-sender-qwp-udp",
+   "sync-sender-qwp-ws",
+   "sync-sender-tcp",
+   "tls-key-log",
+   "tls-native-certs",
+   "tls-webpki-certs"
+  ],
+  "osv": []
+ },
+ "aws-sdk-s3": {
+  "version": "1.155.0",
+  "release": "2026-10-22",
+  "downloads": 100260350,
+  "recent": 26707714,
+  "repo": "https://github.com/awslabs/aws-sdk-rust",
+  "owners": 2,
+  "license": "Apache-2.0",
+  "features": [
+   "behavior-version-latest",
+   "default",
+   "default-https-client",
+   "gated-tests",
+   "http-02x",
+   "http-1x",
+   "legacy-https-client",
+   "legacy-test-util",
+   "rt-tokio",
+   "rustls",
+   "sigv4a",
+   "test-util"
+  ],
+  "osv": [
+   [
+    "GHSA-g59m-gf8j-gjf5",
+    [],
+    "2026-01-08",
+    "AWS SDK for Rust v1 adopted defense in depth enhancement for region parameter value"
+   ]
+  ]
+ },
+ "object_store": {
+  "version": "0.14.2",
+  "release": "2026-09-15",
+  "downloads": 100830232,
+  "recent": 25925558,
+  "repo": "https://github.com/apache/arrow-rs-object-store",
+  "owners": 5,
+  "license": "MIT/Apache-2.0",
+  "features": [
+   "aws",
+   "aws-base",
+   "aws-lc-rs",
+   "azure",
+   "azure-base",
+   "cloud-base",
+   "default",
+   "fs",
+   "gcp",
+   "gcp-base",
+   "http",
+   "http-base",
+   "integration",
+   "reqwest",
+   "ring",
+   "tokio"
+  ],
+  "osv": [
+   [
+    "GHSA-c2hf-vcmr-qjrf",
+    [
+     "CVE-2024-41178",
+     "RUSTSEC-2024-0358"
+    ],
+    "2024-07-23",
+    "Apache Arrow Rust Object Store: AWS WebIdentityToken exposure in log files"
+   ],
+   [
+    "RUSTSEC-2024-0358",
+    [
+     "CVE-2024-41178",
+     "GHSA-c2hf-vcmr-qjrf"
+    ],
+    "2024-07-23",
+    "Apache Arrow Rust Object Store: AWS WebIdentityToken exposure in log files"
+   ]
+  ]
+ },
+ "rust-s3": {
+  "version": "0.38.0",
+  "release": "2026-10-04",
+  "downloads": 10971275,
+  "recent": 1797771,
+  "repo": "https://github.com/durch/rust-s3",
+  "owners": 1,
+  "license": "MIT",
+  "features": [
+   "async-std-native-tls",
+   "async-std-rustls-tls",
+   "blocking",
+   "default",
+   "fail-on-err",
+   "http-credentials",
+   "sync",
+   "sync-native-tls",
+   "sync-native-tls-vendored",
+   "sync-rustls-tls",
+   "tags",
+   "tokio-native-tls",
+   "tokio-rustls-tls",
+   "tokio-rustls-tls-ring",
+   "with-async-std",
+   "with-async-std-hyper",
+   "with-tokio"
+  ],
+  "osv": []
+ },
+ "rdkafka": {
+  "version": "0.39.0",
+  "release": "2026-01-25",
+  "downloads": 41318071,
+  "recent": 8647217,
+  "repo": "https://github.com/fede1024/rust-rdkafka",
+  "owners": 6,
+  "license": "MIT",
+  "features": [
+   "cmake-build",
+   "cmake_build",
+   "curl",
+   "curl-static",
+   "default",
+   "dynamic-linking",
+   "dynamic_linking",
+   "external-lz4",
+   "external_lz4",
+   "gssapi",
+   "gssapi-vendored",
+   "libz",
+   "libz-static",
+   "naive-runtime",
+   "sasl",
+   "ssl",
+   "ssl-vendored",
+   "static-linking",
+   "zstd",
+   "zstd-pkg-config"
+  ],
+  "osv": []
+ },
+ "rskafka": {
+  "version": "0.6.0",
+  "release": "2025-03-20",
+  "downloads": 1510416,
+  "recent": 1003058,
+  "repo": "https://github.com/influxdata/rskafka/",
+  "owners": 3,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "compression-gzip",
+   "compression-lz4",
+   "compression-snappy",
+   "compression-zstd",
+   "default",
+   "full",
+   "transport-socks5",
+   "transport-tls",
+   "unstable-fuzzing"
+  ],
+  "osv": []
+ },
+ "async-nats": {
+  "version": "0.50.0",
+  "release": "2026-07-20",
+  "downloads": 50160825,
+  "recent": 6062504,
+  "repo": "https://github.com/nats-io/nats.rs",
+  "owners": 2,
+  "license": "Apache-2.0",
+  "features": [
+   "aws-lc-rs",
+   "chrono",
+   "compatibility_tests",
+   "crypto",
+   "default",
+   "experimental",
+   "fips",
+   "jetstream",
+   "kv",
+   "nkeys",
+   "nuid",
+   "object-store",
+   "ring",
+   "server_2_10",
+   "server_2_11",
+   "server_2_12",
+   "server_2_14",
+   "service",
+   "slow_tests",
+   "websockets"
+  ],
+  "osv": [
+   [
+    "GHSA-f5v5-ccqc-6w36",
+    [
+     "RUSTSEC-2023-0027"
+    ],
+    "2023-03-24",
+    "async-nats vulnerable to TLS certificate common name validation bypass"
+   ],
+   [
+    "RUSTSEC-2023-0027",
+    [
+     "GHSA-f5v5-ccqc-6w36"
+    ],
+    "2023-03-24",
+    "TLS certificate common name validation bypass"
+   ]
+  ]
+ },
+ "reqwest": {
+  "version": "0.13.5",
+  "release": "2026-09-08",
+  "downloads": 835175242,
+  "recent": 231063108,
+  "repo": "https://github.com/seanmonstar/reqwest",
+  "owners": 1,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "__native-tls",
+   "__native-tls-alpn",
+   "__rustls",
+   "__rustls-aws-lc-rs",
+   "__tls",
+   "blocking",
+   "brotli",
+   "charset",
+   "cookies",
+   "default",
+   "default-tls",
+   "deflate",
+   "form",
+   "gzip",
+   "hickory-dns",
+   "http2",
+   "http3",
+   "json",
+   "multipart",
+   "native-tls",
+   "native-tls-no-alpn",
+   "native-tls-vendored",
+   "native-tls-vendored-no-alpn",
+   "query",
+   "rustls",
+   "rustls-no-provider",
+   "socks",
+   "stream",
+   "system-proxy",
+   "zstd"
+  ],
+  "osv": []
+ },
+ "tonic": {
+  "version": "0.14.6",
+  "release": "2026-05-07",
+  "downloads": 441377956,
+  "recent": 101655254,
+  "repo": "https://github.com/hyperium/tonic",
+  "owners": 3,
+  "license": "MIT",
+  "features": [
+   "_tls-any",
+   "channel",
+   "codegen",
+   "default",
+   "deflate",
+   "gzip",
+   "router",
+   "server",
+   "tls-aws-lc",
+   "tls-connect-info",
+   "tls-native-roots",
+   "tls-ring",
+   "tls-webpki-roots",
+   "transport",
+   "zstd"
+  ],
+  "osv": [
+   [
+    "GHSA-4jwc-w2hc-78qv",
+    [
+     "CVE-2024-47609",
+     "RUSTSEC-2024-0376"
+    ],
+    "2024-10-01",
+    "Tonic has remotely exploitable denial of service vulnerability"
+   ],
+   [
+    "RUSTSEC-2024-0376",
+    [
+     "CVE-2024-47609",
+     "GHSA-4jwc-w2hc-78qv"
+    ],
+    "2024-10-01",
+    "Remotely exploitable Denial of Service in Tonic"
+   ]
+  ]
+ },
+ "hyper": {
+  "version": "1.12.0",
+  "release": "2026-10-06",
+  "downloads": 1044976034,
+  "recent": 249205839,
+  "repo": "https://github.com/hyperium/hyper",
+  "owners": 2,
+  "license": "MIT",
+  "features": [
+   "capi",
+   "client",
+   "default",
+   "ffi",
+   "full",
+   "http1",
+   "http2",
+   "nightly",
+   "server",
+   "tracing"
+  ],
+  "osv": [
+   [
+    "GHSA-5h46-h7hh-c6x9",
+    [
+     "CVE-2021-32714",
+     "RUSTSEC-2021-0079"
+    ],
+    "2021-07-12",
+    "Integer Overflow in Chunked Transfer-Encoding"
+   ],
+   [
+    "GHSA-6hfq-h8hq-87mf",
+    [
+     "CVE-2021-21299",
+     "RUSTSEC-2021-0020"
+    ],
+    "2021-08-25",
+    "HTTP Request Smuggling in hyper"
+   ],
+   [
+    "GHSA-9xjr-m6f3-v5wm",
+    [
+     "CVE-2016-10932",
+     "RUSTSEC-2016-0002"
+    ],
+    "2021-08-25",
+    "HTTPS MitM vulnerability due to lack of hostname verification"
+   ],
+   [
+    "GHSA-f3pg-qwvg-p99c",
+    [
+     "CVE-2021-32715",
+     "RUSTSEC-2021-0078"
+    ],
+    "2021-07-12",
+    "Lenient Parsing of Content-Length Header When Prefixed with Plus Sign"
+   ],
+   [
+    "GHSA-f67m-9j94-qv9j",
+    [
+     "RUSTSEC-2022-0022"
+    ],
+    "2022-06-16",
+    "Parser creates invalid uninitialized value"
+   ],
+   [
+    "GHSA-h3qr-rq2j-74w4",
+    [
+     "CVE-2020-35863",
+     "RUSTSEC-2020-0008"
+    ],
+    "2021-08-25",
+    "HTTP Request Smuggling in hyper"
+   ],
+   [
+    "GHSA-q89x-f52w-6hj2",
+    [
+     "CVE-2017-18587",
+     "RUSTSEC-2017-0002"
+    ],
+    "2021-08-25",
+    "Headers containing newline characters can split messages in hyper"
+   ],
+   [
+    "RUSTSEC-2016-0002",
+    [
+     "CVE-2016-10932",
+     "GHSA-9xjr-m6f3-v5wm"
+    ],
+    "2016-05-09",
+    "HTTPS MitM vulnerability due to lack of hostname verification"
+   ],
+   [
+    "RUSTSEC-2017-0002",
+    [
+     "CVE-2017-18587",
+     "GHSA-q89x-f52w-6hj2"
+    ],
+    "2017-01-23",
+    "headers containing newline characters can split messages"
+   ],
+   [
+    "RUSTSEC-2020-0008",
+    [
+     "CVE-2020-35863",
+     "GHSA-h3qr-rq2j-74w4"
+    ],
+    "2020-03-19",
+    "Flaw in hyper allows request smuggling by sending a body in GET requests"
+   ],
+   [
+    "RUSTSEC-2021-0020",
+    [
+     "CVE-2021-21299",
+     "GHSA-6hfq-h8hq-87mf"
+    ],
+    "2021-02-05",
+    "Multiple Transfer-Encoding headers misinterprets request payload"
+   ],
+   [
+    "RUSTSEC-2021-0078",
+    [
+     "CVE-2021-32715",
+     "GHSA-f3pg-qwvg-p99c"
+    ],
+    "2021-07-07",
+    "Lenient `hyper` header parsing of `Content-Length` could allow request smuggling"
+   ],
+   [
+    "RUSTSEC-2021-0079",
+    [
+     "CVE-2021-32714",
+     "GHSA-5h46-h7hh-c6x9"
+    ],
+    "2021-07-07",
+    "Integer overflow in `hyper`'s parsing of the `Transfer-Encoding` header leads to data loss"
+   ],
+   [
+    "RUSTSEC-2022-0022",
+    [
+     "GHSA-f67m-9j94-qv9j"
+    ],
+    "2022-05-10",
+    "Parser creates invalid uninitialized value"
+   ]
+  ]
+ },
+ "surrealdb": {
+  "version": "3.3.4",
+  "release": "2026-10-13",
+  "downloads": 1746940,
+  "recent": 568341,
+  "repo": "https://github.com/surrealdb/surrealdb",
+  "owners": 1,
+  "license": "non-standard",
+  "features": [
+   "allocation-tracking",
+   "allocator",
+   "arbitrary",
+   "cjk",
+   "default",
+   "http",
+   "jwks",
+   "kv-indxdb",
+   "kv-mem",
+   "kv-rocksdb",
+   "kv-surrealkv",
+   "kv-tikv",
+   "ml",
+   "native-tls",
+   "parse",
+   "protocol-grpc",
+   "protocol-http",
+   "protocol-ws",
+   "rustls",
+   "scripting"
+  ],
+  "osv": [
+   [
+    "GHSA-27vq-hv74-7cqp",
+    [
+     "CVE-2024-58356"
+    ],
+    "2024-12-16",
+    "SurrealDB has Silent Failure to Overwrite Table Definition of Relation Type"
+   ],
+   [
+    "GHSA-2cvj-g5r5-jrrg",
+    [
+     "CVE-2025-71394"
+    ],
+    "2025-04-10",
+    "SurrealDB has local file read of 2-column TSV files via analyzers "
+   ],
+   [
+    "GHSA-3633-g6mg-p6qq",
+    [
+     "CVE-2025-71395"
+    ],
+    "2025-04-11",
+    "SurrealDB memory exhaustion via string::replace using regex "
+   ],
+   [
+    "GHSA-3824-qmfq-2qv7",
+    [
+     "CVE-2025-71396"
+    ],
+    "2025-04-11",
+    "SurrealDB no JavaScript script function default timeout could facilitate DoS"
+   ],
+   [
+    "GHSA-3v2x-9xcv-2v2v",
+    [
+     "CVE-2026-63763"
+    ],
+    "2026-01-22",
+    "SurrealDB Affected by Confused Deputy Privilege Escalation through Future Fields and Funct"
+   ],
+   [
+    "GHSA-4m82-p8cx-f94j",
+    [],
+    "2026-07-01",
+    "SurrealDB: LIVE query subscriptions survive session state changes, bypassing access contro"
+   ],
+   [
+    "GHSA-4v76-cw68-4vc9",
+    [],
+    "2026-07-01",
+    "SurrealDB: Crafting malicious LIVE queries writes to the database, resulting in DoS, witho"
+   ],
+   [
+    "GHSA-4vgr-h27g-cf9p",
+    [],
+    "2026-07-01",
+    "SurrealDB: HTTP RPC Session Race Condition Allows Privilege Escalation"
+   ],
+   [
+    "GHSA-58j9-j2fj-v8f4",
+    [],
+    "2024-01-19",
+    "SurrealDB vulnerable to Uncontrolled CPU Consumption via WebSocket Interface"
+   ],
+   [
+    "GHSA-5q9x-554g-9jgg",
+    [
+     "CVE-2025-71398"
+    ],
+    "2025-04-11",
+    "SurrealDB bypass of deny-net flags via redirect results in server-side request forgery (SS"
+   ],
+   [
+    "GHSA-5qfp-32cf-69jh",
+    [],
+    "2026-07-01",
+    "SurrealDB: HTTP /rpc `sessions` method leaks attached session UUIDs, enabling full session"
+   ],
+   [
+    "GHSA-64f8-pjgr-9wmr",
+    [
+     "CVE-2024-58362"
+    ],
+    "2024-09-11",
+    "Untrusted Query Object Evaluation in RPC API"
+   ],
+   [
+    "GHSA-65rj-r9fh-jp2v",
+    [],
+    "2026-07-01",
+    "SurrealDB vulnerable to pre-auth memory amplification via unbounded `/sql` WebSocket frame"
+   ],
+   [
+    "GHSA-6g9v-7gq3-p2c6",
+    [
+     "CVE-2026-63748"
+    ],
+    "2026-07-01",
+    "SurrealDB: Authenticated callers can read fields hidden by field-level SELECT permissions "
+   ],
+   [
+    "GHSA-6r8p-hpg7-825g",
+    [
+     "CVE-2024-58370"
+    ],
+    "2024-01-18",
+    "Uncontrolled Recursion in SurrealQL Parsing"
+   ],
+   [
+    "GHSA-6vg3-hgrw-p5gf",
+    [],
+    "2026-07-01",
+    "SurrealDB has an Authorization Bypass via Composite Record-id Paths"
+   ],
+   [
+    "GHSA-6wqw-vhfr-9999",
+    [],
+    "2026-07-01",
+    "SurrealDB: Authenticated subscribers can read records hidden by SELECT permissions via LIV"
+   ],
+   [
+    "GHSA-6wr5-jmpr-mjcx",
+    [
+     "CVE-2024-58365"
+    ],
+    "2024-02-21",
+    "Uncaught Exception in Macro Expecting Native Function to Exist"
+   ],
+   [
+    "GHSA-848m-r628-vrxw",
+    [
+     "CVE-2026-63735"
+    ],
+    "2026-09-04",
+    "SurrealDB: Custom API route lets authenticated callers override namespace/database scope v"
+   ],
+   [
+    "GHSA-8rw6-p7m8-63jp",
+    [
+     "CVE-2026-63740"
+    ],
+    "2026-08-14",
+    "SurrealDB: Array element-level (field.*) SELECT permissions leak denied elements to record"
+   ],
+   [
+    "GHSA-8xff-473h-f863",
+    [
+     "CVE-2024-58364"
+    ],
+    "2024-02-21",
+    "Uncaught Exception Handling Parsing Errors on Line Terminators"
+   ],
+   [
+    "GHSA-9722-9j67-vjcr",
+    [
+     "CVE-2024-58367"
+    ],
+    "2024-10-08",
+    "SurrealDB: Improper Authorization in Select Permissions"
+   ],
+   [
+    "GHSA-97vg-427p-8hx5",
+    [
+     "CVE-2026-63743"
+    ],
+    "2026-07-01",
+    "SurrealDB: Port-specific --deny-net rules silently bypassed on HTTP redirect"
+   ],
+   [
+    "GHSA-98fx-66cf-fc7c",
+    [
+     "CVE-2026-63755"
+    ],
+    "2026-07-01",
+    "SurrealDB: Scraping a TABLE with no available PERMISSIONS to current auth level"
+   ],
+   [
+    "GHSA-c8jx-96c9-8xrp",
+    [],
+    "2026-07-01",
+    "SurrealDB: Field-level SELECT permissions bypassed via indexed COUNT fast paths"
+   ],
+   [
+    "GHSA-cc8f-fcx3-gpjr",
+    [],
+    "2026-06-19",
+    "SurrealDB: Arbitrary file read via DEFINE ANALYZER mapper() filter"
+   ],
+   [
+    "GHSA-ccj3-5p93-8p42",
+    [
+     "CVE-2025-71392"
+    ],
+    "2025-04-11",
+    "SurrealDB server-takeover via SurrealQL injection on backup import"
+   ],
+   [
+    "GHSA-f82j-v89j-mf86",
+    [],
+    "2026-07-01",
+    "SurrealDB: `RELATE` overwrites existing edge records without `UPDATE` permission"
+   ],
+   [
+    "GHSA-fpxg-5xmv-922m",
+    [
+     "CVE-2026-63751"
+    ],
+    "2026-07-01",
+    "SurrealDB has bypass of field-level SELECT permissions through JSON Patch `copy` and `move"
+   ],
+   [
+    "GHSA-fwg2-gr34-q3w8",
+    [
+     "CVE-2026-63761"
+    ],
+    "2026-07-01",
+    "SurrealDB: ES512 silently downgraded to ES384 due to jsonwebtoken crate limitation"
+   ],
+   [
+    "GHSA-gcwr-5mrf-fvch",
+    [
+     "CVE-2026-63758"
+    ],
+    "2026-07-01",
+    "SurrealDB: Authorization Bypass in KILL Statement Allows Termination of Other Users' Live "
+   ],
+   [
+    "GHSA-gh9f-6xm2-c4j2",
+    [
+     "CVE-2024-58363"
+    ],
+    "2024-07-11",
+    "SurrealDB vulnerable to Improper Authentication when Changing Databases as Scope User"
+   ],
+   [
+    "GHSA-h4f5-h82v-5w4r",
+    [
+     "CVE-2024-58357"
+    ],
+    "2024-11-22",
+    "SurrealDB has an Uncaught Exception in Function Generating Random Time"
+   ],
+   [
+    "GHSA-h4h3-3rfj-x6fq",
+    [],
+    "2026-06-19",
+    "SurrealDB: Indexed ORDER BY leaks the value ordering of a SELECT-restricted field"
+   ],
+   [
+    "GHSA-h5rg-8p7f-47g2",
+    [],
+    "2026-06-19",
+    "SurrealDB: SSRF via JWKS URL \u2014 Redirect Following in JWT Key Fetch"
+   ],
+   [
+    "GHSA-hv6h-hc26-q48p",
+    [
+     "CVE-2026-63738"
+    ],
+    "2026-06-19",
+    "SurrealDB: Field-level SELECT permissions bypassed via graph and reference traversals"
+   ],
+   [
+    "GHSA-jc55-246c-r88f",
+    [
+     "CVE-2024-58358"
+    ],
+    "2024-11-22",
+    "SurrealDB has an Uncaught Exception Handling Nonexistent Role"
+   ],
+   [
+    "GHSA-jm4v-58r5-66hj",
+    [
+     "CVE-2024-58369"
+    ],
+    "2024-01-18",
+    "Uncaught Exception in surrealdb"
+   ],
+   [
+    "GHSA-jv2j-mqmw-xvv5",
+    [],
+    "2026-06-19",
+    "SurrealDB: Denial of Service via deep operator chains"
+   ],
+   [
+    "GHSA-m24x-r6q3-2vp9",
+    [
+     "CVE-2024-58368"
+    ],
+    "2024-01-18",
+    "Uncaught Exception processing HTTP Headers in SurrealDB"
+   ],
+   [
+    "GHSA-m52v-24p8-654f",
+    [
+     "CVE-2024-58359"
+    ],
+    "2024-11-22",
+    "SurrealDB has an Uncaught Exception Sorting Tables by Random Order"
+   ],
+   [
+    "GHSA-m7rc-8w7m-r9qr",
+    [
+     "CVE-2025-71393"
+    ],
+    "2025-04-10",
+    "SurrealDB vulnerable to memory exhaustion via nested functions and scripts"
+   ],
+   [
+    "GHSA-pxw4-94j3-v9pf",
+    [
+     "CVE-2025-71397"
+    ],
+    "2025-04-11",
+    "SurrealDB CPU exhaustion via custom functions result in total DoS"
+   ],
+   [
+    "GHSA-q3gg-m8hr-h4x4",
+    [
+     "CVE-2024-58366"
+    ],
+    "2024-02-21",
+    "Externally Controlled Format String in Scripting Functions"
+   ],
+   [
+    "GHSA-q729-696q-g9pq",
+    [
+     "CVE-2026-63760"
+    ],
+    "2026-07-01",
+    "SurrealDB has Denial of Service in JSON parser due to nested objects"
+   ],
+   [
+    "GHSA-q8qp-67f9-wr3f",
+    [],
+    "2026-07-01",
+    "SurrealDB vulnerable to Denial of Service due to nested types annotations"
+   ],
+   [
+    "GHSA-qjrv-v6qp-x99x",
+    [
+     "CVE-2024-58361"
+    ],
+    "2024-10-08",
+    "SurrealDB has an Uncaught Exception Handling Parsing Errors on Empty Strings"
+   ],
+   [
+    "GHSA-rq86-9m6r-cm3g",
+    [
+     "CVE-2025-71391"
+    ],
+    "2025-04-10",
+    "SurrealDB has uncaught exception in Net module that leads to database crash"
+   ],
+   [
+    "GHSA-vjjx-rfw4-rmfc",
+    [
+     "CVE-2026-63746"
+    ],
+    "2026-07-01",
+    "SurrealDB: Graph traversal bypasses table SELECT permissions"
+   ],
+   [
+    "GHSA-whwg-vh4f-pmmf",
+    [
+     "CVE-2026-49997"
+    ],
+    "2026-07-01",
+    "SurrealDB: Edge PERMISSIONS FOR delete bypassed when a connected node is deleted"
+   ],
+   [
+    "GHSA-wjjj-24cx-f28g",
+    [],
+    "2026-07-01",
+    "SurrealDB has unauthenticated remote DoS via malformed RPC `use` call"
+   ],
+   [
+    "GHSA-wp87-mgvq-5j93",
+    [],
+    "2026-07-01",
+    "SurrealDB: USE NS/DB implicit creation bypasses DEFINE authorization"
+   ],
+   [
+    "GHSA-x5fr-7hhj-34j3",
+    [
+     "CVE-2023-54366",
+     "PYSEC-2026-3718"
+    ],
+    "2023-12-15",
+    "SurrealDB: Full Table Permissions by Default"
+   ],
+   [
+    "GHSA-xx7m-69ff-9crp",
+    [
+     "CVE-2026-63762"
+    ],
+    "2026-02-12",
+    "SurrealDB vulnerable to Denial of Service through scripting function memory edge case"
+   ]
+  ]
+ },
+ "deadpool": {
+  "version": "0.13.1",
+  "release": "2026-08-26",
+  "downloads": 155392885,
+  "recent": 44411307,
+  "repo": "https://github.com/deadpool-rs/deadpool",
+  "owners": 3,
+  "license": "MIT OR Apache-2.0",
+  "features": [
+   "default",
+   "managed",
+   "rt_async-std_1",
+   "rt_smol_2",
+   "rt_tokio_1",
+   "unmanaged"
+  ],
+  "osv": []
+ },
+ "bb8": {
+  "version": "0.9.1",
+  "release": "2025-11-24",
+  "downloads": 41652162,
+  "recent": 9858160,
+  "repo": "https://github.com/djc/bb8",
+  "owners": 1,
+  "license": "MIT",
+  "features": [
+   "default",
+   "parking_lot"
+  ],
+  "osv": []
+ }
+}

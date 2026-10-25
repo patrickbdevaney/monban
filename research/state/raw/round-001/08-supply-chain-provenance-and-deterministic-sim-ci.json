@@ -1,0 +1,1087 @@
+{
+ "nodes": [
+  {
+   "id": "sc.vet-import-sets",
+   "layer": "L4",
+   "domain": "N",
+   "type": "tool-measurement",
+   "title": "cargo-vet 0.10.3: import sets and measured coverage on a hyper+rustls+tokio lock",
+   "summary": "Own experiment 2026-10-24: a 94-crate Cargo.lock (tokio1, hyper1 server http1/http2, hyper-util, rustls0.23, tokio-rustls0.26, serde, serde_json, tracing) with the five public audit sets imported yields only 14 fully audited crates; 80 (85%) still need exemptions; remaining audit backlog 3.94M lines (aws-lc-sys 2.09M vendored C, windows-sys 335k+385k, ring 256k, tokio 155k, libc 136k). Imports alone cannot meet safe-to-deploy for a TLS server; publisher-trust (cargo vet trust) and first-party audits are required.",
+   "urls": [
+    "https://crates.io/crates/cargo-vet",
+    "https://github.com/mozilla/cargo-vet",
+    "https://github.com/mozilla/supply-chain",
+    "https://github.com/google/rust-crate-audits",
+    "https://github.com/bytecodealliance/wasmtime/blob/main/supply-chain/audits.toml",
+    "https://github.com/EmbarkStudios/rust-ecosystem",
+    "https://github.com/divviup/libprio-rs/blob/main/supply-chain/audits.toml",
+    "https://lwn.net/Articles/897435"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "One sample lockfile on one date; coverage is crate-version-specific (delta audits chain) and my 14/94 may rise as sets grow. Audit counts are lines in audits.toml, not independent proofs of review quality; LWN notes no way to verify the claimed auditor did the audit.",
+   "underclaim_risk": "Even partial coverage removes ~15% of crates and the trusted-publisher entries (mozilla 262, BA 165, ISRG 50, Embark 26) shrink the effective trust set; exemptions are a ratchet that can be driven to zero for new deps only.",
+   "specifics": "Import URLs: bytecode-alliance=raw.githubusercontent.com/bytecodealliance/wasmtime/main/supply-chain/audits.toml (778 audits,165 trusted); embark-studios=EmbarkStudios/rust-ecosystem/main/audits.toml (130,26); google=google/rust-crate-audits/main/audits.toml (2201 audits; google/supply-chain is aggregate mirror, byte-identical size); isrg=divviup/libprio-rs/main/supply-chain/audits.toml (245,50); mozilla=mozilla/supply-chain/main/audits.toml (1578 audits,262 trusted). Firefox config imports 5 with 96 exemptions; wasmtime imports embark,google,isrg,mozilla,spinframework with 80 exemptions. cargo-vet 0.10.3 (2026-10-22, Apache-2.0, 1001 stars). Built-in criteria safe-to-run / safe-to-deploy. `cargo vet suggest` flagged trusting publishers dtolnay(isrg/mozilla/BA trust), Darksonn(tokio), kennykerr(windows-sys), ctz(ring), rust-lang-owner(libc), djc(rustls)."
+  },
+  {
+   "id": "sc.vet-ci-gate",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "CI gate: cargo vet --locked with exemption ratchet and new-crate hard fail",
+   "summary": "Gate: `cargo vet --locked` must pass; supply-chain/config.toml exemptions count may only decrease (CI compares count against base branch); any crate newly appearing in Cargo.lock must have a full or delta audit or trusted-publisher entry within the same PR (no new exemptions). Coding agents may not edit supply-chain/ without a human-signed commit. Would have failed the 2026-08-20 arrayref->proc-macro1 injection because proc-macro1 was a brand-new unaudited crate.",
+   "urls": [
+    "https://mozilla.github.io/cargo-vet/",
+    "https://github.com/mozilla/cargo-vet"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The ratchet and new-crate rule are my design, not an observed practice; solo operator audit capacity is the real limit (3.9M-line backlog is not auditable by hand).",
+   "underclaim_risk": "For a solo dev the only scalable path is LLM-assisted delta audits on small crates plus excluding giant vendored C by policy (see sc.unsafe-budget).",
+   "specifics": "Pins: cargo-vet 0.10.3. Commands: `cargo vet --locked`; `cargo vet regenerate imports` weekly cron PR; script compares `grep -c \"^\\[\\[exemptions\" supply-chain/config.toml` base vs head (fail if head>base); script diffs Cargo.lock package set base vs head (fail if new name lacks audit/trusted entry). Pass criterion: exit 0 AND exemptions_head <= exemptions_base AND new_unaudited == 0."
+  },
+  {
+   "id": "sc.deny-audit-gate",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "CI gate: cargo-deny 0.20.2 + cargo-audit 0.22.2 policy file",
+   "summary": "cargo-deny checks advisories/bans/licenses/sources; cargo-audit scans Cargo.lock and (with cargo-auditable) deployed binaries. Precedent: s2n-quic deny.toml (yanked=deny, multiple-versions=deny with skip-tree for test deps, unknown-registry/unknown-git=deny, license allow-list) runs on every Cargo.toml/lock change plus a daily 17:00 UTC cron; hyper has a cargo-audit workflow. Own run: cargo-audit found 0 vulns but 1 unmaintained warning (rustls-pemfile 2.2.0, RUSTSEC-2025-0134, 2025-11-28) in the minimal server lock; cargo-deny flagged duplicate syn 2.0.119 + 3.0.9.",
+   "urls": [
+    "https://crates.io/crates/cargo-deny",
+    "https://github.com/EmbarkStudios/cargo-deny",
+    "https://github.com/rustsec/rustsec",
+    "https://github.com/aws/s2n-quic/blob/main/.github/config/cargo-deny.toml",
+    "https://github.com/aws/s2n-quic/blob/main/.github/workflows/dependencies.yml"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Advisory DBs only list known problems; 0 findings is not safety. RustSec has no malicious entries until after removal (arrayref was live 86 minutes).",
+   "underclaim_risk": "Informational advisories (unmaintained 282, unsound 215 of 1332) are strong early signals worth failing on.",
+   "specifics": "deny.toml: [advisories] yanked=\"deny\", (ignore entries need expiry; cargo-deny Unreleased adds advisories.ignore-expiry); [bans] multiple-versions=\"deny\" w/ explicit skip list, wildcards=\"deny\", deny=[openssl-sys, native-tls] if rustls-only policy; [sources] unknown-registry=\"deny\", unknown-git=\"deny\", allow-registry=[crates.io-index]; [licenses] allow=[Apache-2.0,MIT,ISC,BSD-3-Clause,Unicode-3.0,Zlib,OpenSSL,...]. CI: `cargo deny --locked check` on PR + daily cron; `cargo audit --deny warnings` on main + `cargo audit bin <artifact>` on release artifact; advisory-db fetched <24h old. Local versions installed: cargo-deny 0.20.2 (2026-07-09), cargo-audit 0.22.2 (2026-06-05; 13.8M downloads)."
+  },
+  {
+   "id": "sc.rustsec-volume",
+   "layer": "L4",
+   "domain": "N",
+   "type": "measurement",
+   "title": "RustSec/GHSA Rust advisory volume 2025-2026: triage cost is rising ~4-5x",
+   "summary": "RustSec advisory-db clone (HEAD 2026-10-24): 1332 advisories/967 crates; by id-year 2022:104 2023:126 2024:141 2025:172 2026:387. 2026 monthly (by advisory date): Jan10 Feb24 Mar48 Apr44 May46 Jun40 Jul22 Aug55 Sep42 Oct55(to 24th). GitHub reviewed Rust advisories (own count via API): 2025-01:11 2025-04:25 2025-07:22 2025-10:17 2026-01:32 2026-03:60 2026-05:82 2026-07:113 2026-08:18 2026-09:32 2026-10:24. Network-stack crates in 2026: wasmtime 41 (18 in Oct alone), quinn-proto 8, rustls 5, rustls-webpki 5, tokio 2, h2 1 (RUSTSEC-2026-0258 unbounded empty DATA frames 2026-08-17); pingora-core RUSTSEC-2026-0033/0034 request smuggling (2026-03-04). Implication: advisory-driven rebuilds are a weekly event, not an exception; CI must automate advisory SLA.",
+   "urls": [
+    "https://github.com/rustsec/advisory-db",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0343.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0348.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Counts conflate id-year vs date and GHSA vs RustSec duplicates; surge cause (LLM-assisted auditing) is inference from sibling evidence, not shown here.",
+   "underclaim_risk": "Peak-to-trough (113 -> 18 in a month) shows high variance; budget for bursts.",
+   "specifics": "Method: git clone advisory-db; grep date= in crates/*/RUSTSEC-2026-*.md; gh api \"/advisories?ecosystem=rust&type=reviewed&published=YYYY-MM-01..YYYY-MM-DD\". Sample 2026 transport-stack items: RUSTSEC-2026-0343 quinn-proto (2026-09-14, patched >=0.11.18), RUSTSEC-2026-0348 rustls brotli cert decompress 1GiB (2026-10-14, patched >=0.23.46), rmcp RUSTSEC-2026-0189/CVE-2026-42559 DNS rebinding (2026-04-29, >=1.4.0)."
+  },
+  {
+   "id": "sc.arrayref-incident",
+   "layer": "L4",
+   "domain": "N",
+   "type": "incident",
+   "title": "arrayref/internment/append-only-vec account-takeover injection, 2026-08-20 (RUSTSEC-2026-0260)",
+   "summary": "Three crates published new versions (arrayref 0.3.10 at 07:15 UTC, internment 0.8.7 07:34, append-only-vec 0.1.9 07:37) adding a dependency on typosquat `proc-macro1` whose build.rs downloaded a payload; removed after 86/90/107 minutes; arrayref 0.3.10 downloaded 2,285 times (<10% of traffic since most lockfiles pinned older). Six crate names deleted (proc-macro1, proc-macro-en, aovine, arone, aronenao, tinymember). Maintainer machine/credentials presumed compromised. This is the Rust analogue of xz-class trusted-maintainer compromise and was caught within ~90 minutes by reporting, not by tooling.",
+   "urls": [
+    "https://blog.rust-lang.org/2026/08/20/supply-chain-attack-on-arrayref",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0260.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Payload behaviour not disclosed in the post; my gate-effectiveness claims are reasoning, not tested against the incident.",
+   "underclaim_risk": "Window was only ~1.5 h; a 24-72h cooldown plus --locked would have fully avoided exposure for any pinned project.",
+   "specifics": "Gates that stop it for a locked project: cargo build --locked / no unreviewed `cargo update`; cargo-vet new-crate hard fail; lockfile-diff job listing new transitive crates; cargo-deny [bans] and build.rs network sandbox (bwrap/unshare -n) in CI; cooldown (sc.cooldown-policy)."
+  },
+  {
+   "id": "sc.crates-malicious-record",
+   "layer": "L4",
+   "domain": "N",
+   "type": "measurement",
+   "title": "crates.io malicious/typosquat record (RustSec categories=malicious)",
+   "summary": "RustSec categories=[\"malicious\"] advisories by advisory date: 2022:1 2023:28 2025:14 2026:32 (2024: 0). 42 mention typosquat. Named incidents: rustdecimal (RUSTSEC-2022-0042, 2022-05-10, impersonating rust_decimal); 2023-11-15 batch of Windows-themed typosquats (win-base64-rs, windows-service-rs, win_run_rs, monero-rpc-rs, acceptxmr-rs...); faster_log + async_println (published 2025-05-25 by rustguruman/dumbnbased, 8,424 downloads, removed 2025-09-24, runtime wallet-key stealers in log-packing path, per Rust blog/Socket); Polymarket credential-theft campaign Feb 2026 (tracings RUSTSEC-2026-0027 live ~9h; tracing_checks, tracing-check, polymarket-client-sdks...); Aug 2026 proc-macro1 family. Typosquats target names one edit away from top crates plus domain-hot ecosystems (crypto/trading).",
+   "urls": [
+    "https://github.com/rustsec/advisory-db",
+    "https://blog.rust-lang.org/2025/09/24/crates.io-malicious-crates-fasterlog-and-asyncprintln",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0027.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Counts are advisories (one campaign can be many).",
+   "underclaim_risk": "Removal-time is hours, but exposure of fresh `cargo add` by agents is the bigger risk.",
+   "specifics": "L5: pre-merge hook for any NEW dependency name: (1) exists on crates.io for >= 90 days and >= N downloads (E: N=100k), (2) edit-distance<=2 from top-1000 crates fails unless allow-listed, (3) crate owner set matches cargo-vet trusted publisher or manual approval."
+  },
+  {
+   "id": "sc.slopsquat-rates",
+   "layer": "L4",
+   "domain": "N",
+   "type": "measurement",
+   "title": "LLM package hallucination rates and slopsquatting incidents (no Rust data exists)",
+   "summary": "Spracklen et al. USENIX Security 2025: 16 LLMs, 576,000 Python/JS samples, >=5.2% commercial / 21.7% open-source hallucinated packages, 205,474 unique names; 58% of hallucinated names recur within 10 reruns, 43% on all 10. 2026 independent preprint (arXiv 2605.17062, Churilov): 199,845 paired prompts, 5 frontier models (Sonnet 4.6, Haiku 4.5, GPT-5.4-mini, Gemini 2.5 Pro, DeepSeek V3.2) 4.62%-6.10%; 127 names all five invent (109 PyPI, 18 npm), 53 still registrable. Incidents: react-codeshift (npm, Jan 2026, spread to 237 repos via cloned agent skills; defensively registered), huggingface-cli (>30k downloads in 3 months), unused-imports (233 dl/week Feb 2026); HalluSquatting (Jul 2026). NO crates.io-specific measurement found in either study (gap).",
+   "urls": [
+    "https://www.usenix.org/conference/usenixsecurity25/presentation/spracklen",
+    "https://www.alphaxiv.org/abs/2605.17062.md",
+    "https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "The 2026 replication is a single-author preprint; incident details (react-codeshift, huggingface-cli) are via CSA secondary notes. Rates are for PyPI/npm, not crates.io; crates.io flat namespace + smaller catalogue may differ.",
+   "underclaim_risk": "Rates compressed but non-zero (~5%) and repeatability (43%) is what makes it exploitable; agents with `cargo add` automation widen exposure.",
+   "specifics": "L5: (a) agent sandbox has NO network write to crates.io and `cargo add` is wrapped by a script that implements sc.crates-malicious-record rules; (b) CI diff gate (sc.vet-ci-gate); (c) measure OUR agent hallucination rate: seed 500 server-coding prompts, count non-existent crate names (cargo search/crates.io API 404) = acceptance metric tracked per model release (E)."
+  },
+  {
+   "id": "sc.cooldown-policy",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "Dependency update cooldown (no native Cargo support)",
+   "summary": "Neither Cargo nor crates.io has a native minimum-release-age as of 2026-10-24 (searched CHANGELOG/unstable.md). Dependabot supports cooldown {default-days, semver-major/minor/patch-days}, security updates bypass it (shipped Jul 2025); Renovate has minimumReleaseAge. Evidence for: arrayref malicious versions lived 86-107 min; tokio 1.54.0 was yanked ~2 days after release (RUSTSEC-2026-0384/CVE-2026-115567; 1.54.1 on 2026-10-21 = what my lock resolved). Evidence against blanket cooldown: advisories arrive ~45-55/month and security fixes must bypass.",
+   "urls": [
+    "https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference",
+    "https://nesbitt.io/2026/03/04/package-managers-need-to-cool-down"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Cooldown only protects against fast-detected compromises; a long-dwell compromise (xz: ~2 years) is unaffected.",
+   "underclaim_risk": "Costs almost nothing for a solo dev with --locked.",
+   "specifics": "dependabot.yml: package-ecosystem: cargo, cooldown: {default-days: 7, semver-patch-days: 3}, security PRs bypass automatically; human merge only; CI `cargo vet`. Pass: no Cargo.lock change lands < 72h after the crate version publish date (script queries crates.io API created_at) unless labeled security-advisory."
+  },
+  {
+   "id": "sc.unsafe-budget",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "Unsafe budget: cargo-geiger 0.13.0 measurements and per-crate ceiling gate",
+   "summary": "Own cargo-geiger run (0.13.0; 0.14.0 requires rustc>=1.97, no license field) on the 94-crate lock: unsafe expressions used/total: aws-lc-sys 701/10552, tokio 1.54.1 2394/3081, memchr 1992/2440, hashbrown 1343/1612, parking_lot_core 912/1343, aws-lc-rs 1000/1000, bytes 780/826, socket2 662/818, mio 171/686, httparse 256/345, hyper 1.12.0 119/136, h2 0.4.20 3/3, libc 76/859. Only 3 of 67 crates declare #![forbid(unsafe_code)] (rustls 0.23.46, rustls-pemfile, httpdate). So a transitive zero-unsafe gate is infeasible; the feasible gate is first-party forbid + per-dependency ceiling allowlist.",
+   "urls": [
+    "https://crates.io/crates/cargo-geiger",
+    "https://github.com/geiger-rs/cargo-geiger"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "geiger counts syntactic unsafe, not risk; counts are for the host cfg and --all-targets=false. Crate version drift changes numbers.",
+   "underclaim_risk": "hyper+h2+rustls themselves are near-unsafe-free (hyper 119 exprs; rustls 0): the unsafe mass is in tokio/memchr/bytes/hashbrown/aws-lc, all heavily used and fuzzed/Miri-tested upstream.",
+   "specifics": "Workspace Cargo.toml [workspace.lints.rust] unsafe_code=\"forbid\" for all first-party crates except one `*-sys-boundary` crate; CI: `cargo geiger --all-targets=false --output-format Json` -> compare to unsafe-allowlist.json {crate: max_unsafe_expr_used}; fail if a crate absent from allowlist has used-unsafe>0 or any ceiling is exceeded; allowlist edits require human review. Seed ceilings from the table above."
+  },
+  {
+   "id": "sc.auditable-sbom",
+   "layer": "L4",
+   "domain": "N",
+   "type": "tool",
+   "title": "cargo-auditable 0.7.7 embedded dependency list + SBOM attestation",
+   "summary": "cargo auditable build --release embeds the dependency tree as JSON in a linker section (<4 kB even for 400+ deps = 1/1000-1/10000 of binary); consumers: cargo-audit bin (>=0.17.3), trivy >=0.31, grype >=0.83, osv-scanner >=2.0.1, syft >=1.15. Adopted by Alpine, NixOS, openSUSE, Void, Ubuntu 26.04 (select pkgs), Chainguard rust image. Nightly can use -Z sbom (CARGO_BUILD_SBOM=true) for more accurate data. GitHub attest action supports SPDX/CycloneDX SBOM predicates (`gh attestation verify --predicate-type https://spdx.dev/Document/v2.3`).",
+   "urls": [
+    "https://github.com/rust-secure-code/cargo-auditable",
+    "https://crates.io/crates/cargo-auditable"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "The embedded list is what Cargo resolved, not what was audited; does not capture vendored C (aws-lc-sys) sub-components.",
+   "underclaim_risk": "Cheap and consumer-ecosystem is broad.",
+   "specifics": "Release build: `cargo auditable build --release --locked`; CI check `cargo audit bin target/release/<srv> --deny warnings`; attach CycloneDX via cargo-cyclonedx 0.5.9 and attest with actions/attest@v4."
+  },
+  {
+   "id": "sc.repro-build-experiment",
+   "layer": "L5",
+   "domain": "N",
+   "type": "experiment",
+   "title": "Reproducible Rust build: measured dir-independence, remap flags, and open gaps",
+   "summary": "Own experiment (rustc 1.88.0, same host/user): hyper1+tokio+rustls0.23(aws-lc-rs, C via cc) release build with lto=true, codegen-units=1, debug=1, --locked --offline. Same source built from two directories: naive builds differ (sha256 2b5f06cf.. vs 6f74c474..); with RUSTFLAGS=\"--remap-path-prefix=<srcdir>=/src --remap-path-prefix=$HOME/.cargo/registry/src=/cargo/registry --remap-path-prefix=$HOME/.rustup=/rustup\" the two builds are byte-identical (bb7b60e4..) even WITHOUT -Wl,--build-id=none; CARGO_TARGET_DIR location does not matter (same hash as naive original). ~33-42 s/build. Untested: different toolchain host, glibc/linker versions, CARGO_HOME, cross-machine, proc-macro/build.rs time stamps. Context: RELEASES.md lists a stabilization item for --remap-path-prefix under 1.97.0 (2026-07-09) and --remap-path-scope under 1.95.0 (2026-04-16); cargo -Ztrim-paths still unstable (no mention in Cargo CHANGELOG). Known amplifiers: codegen-units=16 + LTO, rustdoc nondeterminism with varying path lengths (Yocto), debuginfo embedding paths (reproducible-builds list 2024-08). NixOS minimal ISO: 1434/1501 (95.54%) paths reproducible in 2021 claim; full independent rebuild of 25.11 ISO by Engelen Dec 2025 but r13y checks still use binary cache.",
+   "urls": [
+    "https://github.com/rust-lang/rust/blob/master/RELEASES.md",
+    "https://lists.reproducible-builds.org/pipermail/rb-general/2024-August/003502.html",
+    "https://reproducible.nixos.org/nixos-iso-minimal-r13y/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Single host/toolchain; identical hash on one machine is necessary but not sufficient for independent-rebuilder reproducibility.",
+   "underclaim_risk": "Dir-independence is the most common practical break and is solved with three remap flags; cost is near zero.",
+   "specifics": "CI stage: build twice in distinct dirs (/build/a and /build/b) in a pinned container (digest-pinned image, rust-toolchain.toml channel=1.99.1), with RUSTFLAGS as above, `-C codegen-units=1 -C lto=fat`, SOURCE_DATE_EPOCH=$(git log -1 --format=%ct), `--locked`, `cargo vendor`+offline; pass: sha256(a)==sha256(b). Weekly: second independent rebuilder (different cloud/runner OS image) must match the published hash (store hash in attestation). Never ship from the same runner that attests without the double build."
+  },
+  {
+   "id": "sc.rustc-bootstrap-trust",
+   "layer": "L4",
+   "domain": "N",
+   "type": "measurement",
+   "title": "Bootstrapping rustc trust: mrustc status, DDC-equivalent evidence, MCP rejected",
+   "summary": "mrustc (thepowersgang, pushed 2026-10-13, 2548 stars): README states it is tested to fully bootstrap rustc 1.90.0 with a binary-equal 1.91.1 (a DDC-style equality check against the official binary of the next release), also supports 1.19/1.29/1.39/1.54/1.74; 1.19 not repeatable, later are; Debian/Ubuntu x86-64 Linux is the only fully bootstrap-tested target; codegen goes through C + gcc, so the trust root moves to C++ toolchain + gcc. rust-lang/compiler-team#925 (stop bumping bootstrap version every release; 2025-10-13) drew infra-burden objections 2026-02-13 and was closed 2026-08-06 => the N-1 bootstrap chain stays; dtolnay/bootstrap (pushed 2026-10-16) scripts a 16-step chain from mrustc to current stable. No published Wheeler-style DDC report for rustc found; StageX claims a full-source bootstrap from a 181-byte hex0 seed (self-reported, rustc packages included).",
+   "urls": [
+    "https://github.com/thepowersgang/mrustc",
+    "https://github.com/rust-lang/compiler-team/issues/925",
+    "https://github.com/dtolnay/bootstrap",
+    "https://git.distrust.co/public/presentations/src/branch/master/stagex/stagex.md"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "\"binary-equal 1.91.1\" is a README claim by the maintainer; I did not re-run it. DDC proves absence of trusting-trust only relative to assumptions about gcc/mrustc diversity.",
+   "underclaim_risk": "This exists and is recent (tested at 1.90 in 2026), so \"no independent rustc exists\" is stale: the gap is ~9 minor versions (1.90 -> 1.99.1) bridged by 9+ N-1 rebuilds.",
+   "specifics": "L5 (stretch, phase >= 3): release job `bootstrap-verify`: build rustc 1.99.x from source via mrustc->1.90 chain in a hermetic container; compare `rustc -vV` hash of resulting stage-2 compiler with distributed binary; publish hash in provenance. Not a day-1 gate; day-1 gate is rust-toolchain.toml pin + rustup component sha256 verification via a vendored manifest."
+  },
+  {
+   "id": "sc.slsa-attest",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "SLSA v1.2 Build L3 via GitHub reusable workflow + actions/attest@v4; crates.io trusted publishing",
+   "summary": "SLSA v1.2 Build track (status Approved): L1 provenance exists; L2 adds authentic + hosted; L3 adds unforgeable (signing key inaccessible to user build steps) + isolated (ephemeral, no platform secrets, no cache poisoning). GitHub guidance: L3 needs signing in a reusable workflow separate from the build job. actions/attest@v4 requires id-token:write, contents:read, attestations:write; verify with `gh attestation verify BIN -R org/repo`. crates.io trusted publishing (RFC 3691, July 2025) uses OIDC via rust-lang/crates-io-auth-action@v1; Jan 2026 added GitLab CI and an option to disable token publishing so only Trusted Publishing can publish. TigerBeetle release.yml precedent: top-level `permissions: {}`, a protected `release` environment, actions pinned by full commit SHA, OIDC for npm.",
+   "urls": [
+    "https://slsa.dev/spec/v1.2/build-requirements",
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+    "https://blog.rust-lang.org/2026/01/21/crates-io-development-update",
+    "https://github.com/tigerbeetle/tigerbeetle/blob/main/.github/workflows/release.yml",
+    "https://github.com/slsa-framework/slsa-github-generator"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "\"SLSA L3\" on GitHub-hosted runners trusts GitHub, its runner images, and Sigstore; it proves where/how built, not that source or deps are benign (xz source was legitimately built).",
+   "underclaim_risk": "Provenance + reproducible double-build removes the \"build host compromise\" class cheaply and is machine-verifiable by consumers.",
+   "specifics": "Workflow: build job (no id-token) uploads artifact; separate reusable `attest.yml` called with `permissions: {id-token: write, attestations: write, contents: read}`; all actions pinned by 40-char SHA; protected `release` environment with required reviewer; verification step in a clean container: `gh attestation verify ./srv -R <org>/<repo> --signer-workflow <org>/<repo>/.github/workflows/attest.yml`. Pass: verify exit 0 and double-build hashes equal. slsa-github-generator last push 2026-08-07 (604 stars)."
+  },
+  {
+   "id": "sc.sigstore-tuf-threshold",
+   "layer": "L4",
+   "domain": "N",
+   "type": "tool",
+   "title": "Update/signing stack: Sigstore Rekor v2, TUF (tough), threshold signing (FROST, threshold ML-DSA)",
+   "summary": "Sigstore Rekor v2 GA Oct 2025 (tile-based, Tessera; hashedrekord+dsse only; no SET so needs RFC3161 timestamp authority; cosign >=3.0.1/2.6.0, DSSE-to-Rekor-v2 needs cosign >=3.1.0; public-good default may still be v1). TUF client: tough 0.24.0 (2026-07-10, awslabs, 233 stars; spec follows TUF 1.0.0 with exceptions: delegated roles/TAP3/TAP4 historically unsupported); two high GHSAs published 2026-05-05 fixed in tough>=0.22.0/tuftool 0.15.0: GHSA-8m7c-8m39-rv4x (delegated-role signature threshold bypass via duplicated signature, CVE-2026-6966) and GHSA-4v58-8p28-2rq3 (missing delegated metadata validation, CVE-2026-6967) -- a TUF library with a threshold-bypass bug is itself a TCB item. Threshold signing: RFC 9591 FROST (June 2024, Informational) with Ed25519 ciphersuite yields standard RFC 8032 signatures; Zcash Foundation frost-core/frost-ed25519 3.0.0 (2026-04-23); Least Authority audit of the Zcash FROST demo completed 2025-04-29 (not of the library release). PQ threshold is research-stage: Quorus (ePrint 2025/1163, USENIX Sec 2026, honest majority, 37-136 rounds), ePrint 2026/013 (<=1MB/party up to 6 parties, Go impl), arXiv 2601.20917 (unreviewed), Pebble (Jul 2026); no production Rust crate found. Practical threshold today = TUF root/targets thresholds (k-of-n independent keys) rather than FROST.",
+   "urls": [
+    "https://blog.sigstore.dev/rekor-v2-ga/",
+    "https://crates.io/crates/tough",
+    "https://github.com/advisories/GHSA-8m7c-8m39-rv4x",
+    "https://github.com/advisories/GHSA-4v58-8p28-2rq3",
+    "https://www.rfc-editor.org/rfc/rfc9591.html",
+    "https://eprint.iacr.org/2025/1163",
+    "https://eprint.iacr.org/2026/013"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "CVE ids 2026-6966/6967 came from a search snippet; GHSA ids confirmed via GitHub API but not CVE mapping. FROST != PQ; ML-DSA threshold schemes unaudited.",
+   "underclaim_risk": "k-of-n TUF thresholds with offline hardware keys already give multi-party release approval without novel crypto.",
+   "specifics": "L5: update channel = TUF repo (tuftool 0.15+ for authoring, tough >= 0.24.0 pinned in client; cargo-vet audit of tough required because of 2026 bugs); root threshold 3-of-5, targets threshold 2-of-3, snapshot/timestamp online keys; clients reject rollback. Test: own negative tests replicating GHSA-8m7c duplicate-signature case against the client (must reject). Decision: FROST only if a single aggregated Ed25519 signature is a hard requirement; PQ signing of releases = ML-DSA/SLH-DSA single-key with multiple independent signatures (sibling PQC track)."
+  },
+  {
+   "id": "sc.gha-hardening",
+   "layer": "L5",
+   "domain": "N",
+   "type": "ci-gate",
+   "title": "GitHub Actions workflow hardening: zizmor, SHA pinning, minimal permissions, pull_request_target caution",
+   "summary": "Precedents: tj-actions/changed-files CVE-2025-30066 (GHSA-mrrh-fwg8-r2c3, 2025-03-15, secrets in logs); rustls CI pins by major tag (actions/checkout@v7) while TigerBeetle pins every action by full SHA and uses `permissions: {}` at top; s2n-quic security-review.yml uses pull_request_target with an explicit authorization job and a comment \"Do not check out or execute PR-controlled code before authorization\". zizmor 1.31.1 (2026-10-15, MIT, 6.8k stars) statically audits workflows.",
+   "urls": [
+    "https://github.com/zizmorcore/zizmor",
+    "https://github.com/advisories/GHSA-mrrh-fwg8-r2c3",
+    "https://github.com/aws/s2n-quic/blob/main/.github/workflows/security-review.yml",
+    "https://github.com/tigerbeetle/tigerbeetle/blob/main/.github/workflows/release.yml"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "Static linting does not cover runner-image compromise.",
+   "underclaim_risk": "Cheapest high-yield gate for an agent-edited repo: agents routinely edit workflows.",
+   "specifics": "Gate: `zizmor --pedantic .github/workflows` exit 0; CODEOWNERS requires human review for .github/ and supply-chain/ and deny.toml; every `uses:` pinned to 40-char SHA (grep gate); `permissions: {}` default; no pull_request_target + checkout of PR head."
+  },
+  {
+   "id": "sc.xz-lessons",
+   "layer": "L4",
+   "domain": "N",
+   "type": "incident",
+   "title": "xz CVE-2024-3094 lessons as CI gates",
+   "summary": "Backdoor logic lived in release tarball (modified build-to-host.m4) not in git; tests files carried the payload. Gate translations: build release from git tag only (never from upstream tarball), diff tarball vs `git archive` for every vendored C dependency (aws-lc-sys, ring), forbid autotools-generated artifacts not reproducible from source, require 2-person review on build scripts. Single-maintainer social capture is not stopped by any CI gate; mitigations are cargo-vet publisher trust and dependency minimization.",
+   "urls": [
+    "https://lists.openwrt.org/pipermail/openwrt-adm/2024-March/002581.html",
+    "https://www.offsec.com/blog/xz-backdoor/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Secondary sources only (no tukaani/Freund primary fetched).",
+   "underclaim_risk": "Tarball-vs-git parity is automatable and cheap for crates: `cargo package` contents vs git tree at the published commit (cargo publishes .cargo_vcs_info.json).",
+   "specifics": "Gate for vendored deps: `cargo vendor` then compare each crate source in crates.io tarball to upstream git tag (script using .cargo_vcs_info.json sha1); fail on mismatch not explained in an allowlist."
+  },
+  {
+   "id": "sc.build-system-alternatives",
+   "layer": "L3",
+   "domain": "N",
+   "type": "alternative-set",
+   "title": "Build/provenance substrate alternatives (enumerated before priors): pinned-container cargo, Nix, StageX, Bazel rules_rust",
+   "summary": "Options: (a) pinned container + cargo + remap flags (measured byte-identical across dirs, 35 s/build, own experiment); (b) Nix (nixpkgs 26.6k stars active; reproducibility of minimal ISO 95.5% paths in 2021 claim, full independent rebuild shown Dec 2025; sibling note: Nix/Lix local root privesc 2026-10-13 hits the build tool itself); (c) StageX (OCI-native, hex0-seeded 4-stage full-source bootstrap, --network=none, multi-maintainer signatures; self-reported, repos on Codeberg active June 2026); (d) Bazel rules_rust (850 stars, active 2026-10-23; hermetic but heavy for solo dev). Evidence does not support a winner beyond (a) as day-1; (c) is the only option with a bootstrap story that includes rustc.",
+   "urls": [
+    "https://github.com/NixOS/nixpkgs",
+    "https://git.distrust.co/public/presentations/src/branch/master/stagex/stagex.md",
+    "https://github.com/bazelbuild/rules_rust"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.5,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "StageX/Nix claims largely self-reported; I did not build with them.",
+   "underclaim_risk": "StageX may already give what (a) lacks (bootstrap) at near-zero cost if its rust package pins match 1.99.",
+   "specifics": "Decision-record input: reversal condition for (a)->(c): StageX publishes rust >= current stable with multi-party reproduction attestations; trial = rebuild our release binary inside stagex/pallet-rust and compare sha256 to (a)."
+  },
+  {
+   "id": "as.dst-harness-spec",
+   "layer": "L5",
+   "domain": "O",
+   "type": "harness-spec",
+   "title": "DST harness spec for an async Rust HTTP server (tokio + hyper + turmoil, sans-IO core)",
+   "summary": "Layered design from evidence: (1) protocol/WAL/authz core as sans-IO state machines (fn handle(Event)->Vec<Action>; no async, no clock reads) as in rustls/quinn-proto and Polar Signals (receive(msg)/tick(now), one PRNG, failure injection once at the message bus); (2) async shell on tokio current_thread with paused clock, hyper 1.12 server on turmoil::net::TcpListener (turmoil examples/axum is a working precedent), clients as turmoil hosts; (3) Storage trait with in-sim implementation modelling torn/lost/misdirected writes and fsync semantics (turmoil-fs 0.1.0 is 5 days old, 14 downloads = prototype only); (4) all entropy via injected Rng (rand_chacha 0.10 seeded from DST_SEED) and all time via Clock trait; (5) mad-turmoil 0.2.1 in sim binary only for dependency leakage + fastrand::seed; (6) TLS: do NOT run aws-lc/ring inside the sim (raw getrandom syscall bypasses libc interposition; see as.dst-entropy-leak); test TLS via rustls sans-IO state machine tests + fuzz + BoGo, and run the sim over plaintext HTTP/1.1+h2 or a deterministic test CryptoProvider; (7) Oracles: linearizability of the idempotent-write/WAL API (porcupine-rs 0.3.0 or Go Porcupine as S2 does), failed request => no state mutation, idempotency key => at-most-once side effect, bounded memory per connection/stream, framing consistency (no desync), authz decision monotonicity.",
+   "urls": [
+    "https://s2.dev/blog/dst",
+    "https://s2.dev/blog/linearizability",
+    "https://blog.polarsignals.com/blog/posts/2025/07/08/dst-rust",
+    "https://github.com/tokio-rs/turmoil/tree/main/examples/axum",
+    "https://github.com/s2-streamstore/mad-turmoil",
+    "https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/internals/vopr.md"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "No head-to-head evidence that this layering beats madsim/bach/Antithesis for a server; S2 used turmoil+mad-turmoil, Polar Signals chose state machines, TigerBeetle built bespoke; 17 notable bugs at S2 is a vendor count.",
+   "underclaim_risk": "Both S2 and Polar Signals report real data-loss/duplication/deadlock bugs found; effort to make dependencies deterministic was \"substantial\" but unquantified.",
+   "specifics": "Pins: tokio 1.54.1 (features test-util, rt), turmoil 0.7.2, mad-turmoil 0.2.1 (cfg(sim) only), rand 0.9/rand_chacha 0.10, porcupine-rs 0.3.0. Faults per seed (sampled from the seed): packet drop/reorder/partition/latency via turmoil, host crash+restart (state loss of unsynced storage), half-open sockets, slow-loris clients, request floods (rapid-reset, CONTINUATION, empty DATA analogues), clock skew via Clock trait, disk faults (torn write, fsync error, bit rot, lost write). clippy.toml disallowed-methods [Instant::now, SystemTime::now, thread::spawn, rand::thread_rng] and disallowed-types [HashMap, HashSet] (verified to fire) in all sim-reachable crates. CI gates: (G1) determinism meta-test: run seed S twice, hash full TRACE log, must match (S2 does this and it caught nondeterminism); (G2) entropy canary: `strace -f -e trace=getrandom,clock_gettime,gettimeofday -o t.log ./sim --seed S` must show 0 calls after init (or seccomp-kill filter); (G3) PR: >=200 seeds x 60 simulated seconds, 0 oracle failures; nightly: >=20,000 seeds (32-core box parallel single-threaded processes); every failing seed committed as regression test with git commit pinned (TigerBeetle: seed+commit reproduces). (G4) sim-vs-kernel conformance suite for each Storage/Net shim run against real kernel (turmoil real-uring-conformance feature is the pattern). (G5) fault-coverage assertions: each fault class must fire >=1 time in the first 1000 seeds (TigerBeetle: assert positive+negative cases occur)."
+  },
+  {
+   "id": "as.dst-entropy-leak",
+   "layer": "L4",
+   "domain": "O",
+   "type": "finding",
+   "title": "DST determinism hazards verified in source: aws-lc raw syscall, getrandom 0.2, rustls SecureRandom scope",
+   "summary": "Own source verification (registry sources, 2026-10-24): aws-lc-sys 0.46.0 crypto/rand_extra/urandom.c calls syscall(__NR_getrandom,...) directly => not interceptable by libc symbol overrides (mad-turmoil overrides getrandom/getentropy/clock_gettime at libc level). getrandom 0.2.17 on Linux uses raw syscall (util_libc::getrandom_syscall) => bypass; getrandom 0.3.4/0.4.3 call libc::getrandom (dlsym on non-musl, static on musl) => interposable only in some configurations. rustls 0.23.46 docs: SecureRandom is used for all randomness required by rustls \"but not necessarily randomness required by the underlying cryptography library\"; TimeProvider is injectable (time_provider.rs). Consequence: a rustls handshake inside a madsim/mad-turmoil-style sim is NOT deterministic by default; S2 documented HashMap RandomState as an unresolved dependency hazard.",
+   "urls": [
+    "https://github.com/aws/aws-lc",
+    "https://docs.rs/getrandom",
+    "https://github.com/s2-streamstore/mad-turmoil"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "I did not run a sim to demonstrate divergence; this is static inspection of versions in my local registry cache.",
+   "underclaim_risk": "Cheap to detect with strace/seccomp canary (as.dst-harness-spec G2).",
+   "specifics": "Files: aws-lc-sys-0.46.0/aws-lc/crypto/rand_extra/urandom.c:wrapper_getrandom lines ~181-189; getrandom-0.2.17/src/linux_android.rs:6; getrandom-0.3.4/src/backends/linux_android_with_fallback.rs; rustls-0.23.46/src/time_provider.rs, crypto/mod.rs:311 (trait SecureRandom)."
+  },
+  {
+   "id": "as.dst-ecosystem",
+   "layer": "L3",
+   "domain": "O",
+   "type": "tool-set",
+   "title": "Rust DST runtimes compared: turmoil family, madsim, bach, Antithesis, sans-IO",
+   "summary": "turmoil 0.7.2 (2026-04-24, MIT, 1282 stars, pushed 2026-10-20, 16.3M downloads; family: turmoil-net 0.1.0 2026-05-04, turmoil-fs 0.1.0 and turmoil-io-uring 0.1.0 both 2026-10-19 with 13-14 downloads; unstable-fs/unstable-io_uring features). madsim 0.2.34 (2025-10-11; last push 2026-02-16; replaces tokio via madsim-tokio 0.2.30 (2024-10, stale) and needs [patch.crates-io] forks of quanta/getrandom/tokio-retry/tokio-postgres/tokio-stream; RUSTFLAGS=\"--cfg madsim\"; RisingWave user). bach 0.2.0 (2026-09-28, 493k downloads, MIT, 15 stars; used by s2n-quic simulations). shuttle 0.9.8 (2026-10-20), loom 0.7.2 (crate 2024-04, repo push 2026-02). io_uring runtimes tokio-uring 0.5.0 (2024-05), monoio 0.2.4 (2024-08), glommio 0.9.0 (2024-03) are stale, which conflicts with thread-per-core io_uring server plans unless sim shims are written. Polar Signals considered madsim \"a good choice for existing Rust codebases\" but chose fresh state machines for control.",
+   "urls": [
+    "https://crates.io/crates/turmoil",
+    "https://crates.io/crates/madsim",
+    "https://crates.io/crates/bach",
+    "https://github.com/madsim-rs/madsim",
+    "https://github.com/camshaft/bach",
+    "https://github.com/tokio-rs/turmoil"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Download counts include CI traffic; star counts low for bach but used in AWS production-grade QUIC.",
+   "underclaim_risk": "turmoil is tokio-org maintained and active; the fs/io_uring shims signal intent but are unproven.",
+   "specifics": "Pick for tokio+hyper server: turmoil (matches hyper/axum example). Reversal conditions: if >2 deps need patched forks or raw-syscall entropy cannot be controlled => sans-IO + bach-style bespoke runtime; if kernel-level fidelity needed => Antithesis."
+  },
+  {
+   "id": "as.antithesis",
+   "layer": "L3",
+   "domain": "O",
+   "type": "vendor",
+   "title": "Antithesis: availability, pricing (unverified), agent loops, oracle mutation testing",
+   "summary": "Deterministic hypervisor (x86, single vCPU per sim, instruction-level determinism) testing whole containerised systems; $105M Series A Dec 2025 led by Jane Street; SDKs for Go/Java/C/C++/JS/Python/Rust/.NET; access starts by contacting support for a container registry + credentials (not self-serve); usage metered in core-hours (a wall-clock hour of testing \"generally 48 or more\" core-hours). Public pricing: current pricing page shows no price (Book a demo); an earlier snippet claimed $0.80/core-hour annual reserve ($7,000/core-year, 24-core minimum, on-demand burst $2.00/h) -- unverified/possibly stale (grade C). Evidence of value: SQLite WAL-reset data race (since 2010, fixed 3.51.3) found on first run in ~15 min by Claude-set-up Antithesis (blog 2026/wal-reset-bug); rqlite oracle-mutation study: 13 properties, 19 mutant injections, 46 runs, ~24 h cumulative, 11/13 falsified, 2 missed (agents classify survivors: never ran / ran unnoticed / unusable); agent loop with Snouty CLI, REST /command, Multiverse Debugger (Release 64). Turso runs it in addition to its own simulator to catch simulator bugs.",
+   "urls": [
+    "https://antithesis.com/pricing",
+    "https://antithesis.com/docs/configuration/usage/",
+    "https://antithesis.com/blog/2026/mutation-testing/",
+    "https://antithesis.com/blog/2026/wal-reset-bug/",
+    "https://antithesis.com/blog/2026/time-traveling-agents/",
+    "https://github.com/antithesishq/antithesis-sdk-rust"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Vendor blogs; no independent evaluation; cost unknown; closed service = trusted third party in the assurance chain.",
+   "underclaim_risk": "At 48 core-hours per wall-hour even a small budget buys massive exploration; and the oracle-mutation method is portable to our in-house DST.",
+   "specifics": "Treat as optional phase-3 add-on: nightly 1-2 h runs of the server container + Postgres with SDK assertions; adopt the oracle-mutation procedure in-house regardless (see as.oracle-mutation)."
+  },
+  {
+   "id": "as.oracle-mutation",
+   "layer": "L5",
+   "domain": "O",
+   "type": "ci-gate",
+   "title": "Oracle mutation gate: inject subtle bugs to prove each DST/Jepsen property can fail",
+   "summary": "From Antithesis (rqlite: 11/13 properties falsified by injected subtle bugs, 2 missed -> property/workload gap) and TigerBeetle (Jepsen found a query bug that all 4 query-running fuzzers incl. VOPR missed because the workload removed the probing dimension from the state space). A green DST run says nothing unless each invariant has been shown to fail on a seeded bug.",
+   "urls": [
+    "https://antithesis.com/blog/2026/mutation-testing/",
+    "https://tigerbeetle.com/blog/2025-06-06-fuzzer-blind-spots-meet-jepsen/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Antithesis numbers come from one system (rqlite); budget ~100 runs per mutation.",
+   "underclaim_risk": "Directly agent-executable: agent writes subtle bug patch, runs DST, records Falsified/Missed.",
+   "specifics": "Quarterly + on every new invariant: maintain mutants/ directory of >=1 subtle semantic bug per invariant (e.g., swap newest/oldest on snapshot restore; skip idempotency-key check on retry after crash; unflushed WAL ack). Acceptance: each invariant falsified by its mutant within 1000 seeds; surviving mutant => fix workload/oracle before merge. Pair with cargo-mutants for unit-level tests."
+  },
+  {
+   "id": "as.tigerbeetle-vopr",
+   "layer": "L4",
+   "domain": "O",
+   "type": "system",
+   "title": "TigerBeetle VOPR + CFO: deterministic sim practice and its documented blind spots",
+   "summary": "VOPR stubs clock/network/disk, seed+git commit reproduces any failure, injects dropped/reordered packets, partitions, corrupted reads/writes; assertions stay ON in production; sim.tigerbeetle.com live demo; CFO (continuous fuzzing orchestrator) runs on ~1,000 CPU cores total, pushing failing seeds to DevHub. Fuzzer practice (Nov 2025): run one fixed seed plus one random seed, print paste-able seed generated outside the process, bias toward valid/invalid boundary (plain random found 0 valid codes in 1e8 tries), assert statistical presence of positive and negative cases (200k runs thresholds), exhaustive enumeration for small spaces. Blind spot (June 2025): Jepsen (report v0.16.11, 2024 test) found a missing-results bug in Zig-Zag Merge Join probing, PR 2544 fix, fuzzer rewrite commit 73f13ee.",
+   "urls": [
+    "https://docs.tigerbeetle.com/about/vopr",
+    "https://tigerbeetle.com/blog/2025-06-06-fuzzer-blind-spots-meet-jepsen/",
+    "https://tigerbeetle.com/blog/2025-11-28-tale-of-four-fuzzers/",
+    "https://tigerbeetle.com/newsletters/2025-03-05-february-in-tigerland"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "\"One minute = days\" is a vendor claim; 1,000-core figure is Feb 2025.",
+   "underclaim_risk": "Heaviest public evidence that DST + assertions + Jepsen is complementary.",
+   "specifics": "Adopt: assertions-on-in-prod policy (debug_assert is not enough), seed+commit regression corpus, CFO-like nightly farm, plus external Jepsen-style review of the final server."
+  },
+  {
+   "id": "as.dst-failure-modes",
+   "layer": "L4",
+   "domain": "O",
+   "type": "failure-modes",
+   "title": "Known failure modes of DST (and mitigations)",
+   "summary": "1) Generator/workload blind spots: TigerBeetle Jepsen miss; Turso fsync-fault bug escaped DST because generators never produced the sync-replica fsync case (a formal tool found it in minutes). 2) Fidelity gap: simulator encodes an assumed disk/network/kernel model; Turso also runs Antithesis for bugs \"including bugs in the simulator itself\"; SpacetimeDB sim runtime README: no built-in disk/network sim, single shared clock across nodes masks cross-machine timing bugs, OS randomness not controlled. 3) Random-walk exploration is undirected (Eaton notes); rare states need swarm testing/biasing. 4) Dependency nondeterminism (S2: HashMap RandomState, threads, system time; our finding: raw getrandom syscalls). 5) Linearizability checker modelling error: S2 first violations were harness bugs (client continued after indefinite append failure); read model only compared last record so some violations undetectable. 6) Logic leaking into the non-simulated driver (Polar Signals). 7) Cost/time: Turso: DST \"takes way too much time\".",
+   "urls": [
+    "https://turso.tech/blog/the-final-boss-of-reliability",
+    "https://notes.eatonphil.com/2024-08-20-deterministic-simulation-testing.html",
+    "https://s2.dev/blog/linearizability",
+    "https://blog.polarsignals.com/blog/posts/2025/07/08/dst-rust"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Several are vendor self-reports; Turso item is a single anecdote.",
+   "underclaim_risk": "These are exactly the places where \"formally correct\" claims for the server would silently fail; each needs an explicit NOT-proven entry.",
+   "specifics": "Mitigations mapped to gates: G1/G2/G4/G5 in as.dst-harness-spec; as.oracle-mutation; real-kernel soak (tc netem + kill -9 + dm-flakey/dm-log-writes power-loss tests on a real VM) weekly; TLA+/P or Verus models for protocol-level liveness (sibling tracks)."
+  },
+  {
+   "id": "as.fdb-sim",
+   "layer": "L4",
+   "domain": "O",
+   "type": "system",
+   "title": "FoundationDB simulation (primary doc)",
+   "summary": "Flow-based deterministic single-process simulation of whole cluster; ~10:1 real:sim time factor; fault types include network/machine/datacenter failures and \"swizzle-clogging\"; tens of thousands of simulations nightly; ~1 trillion CPU-hours of simulation estimated total; doc states no limits of simulation. Original source of DST practice that TigerBeetle, S2, Antithesis cite.",
+   "urls": [
+    "https://apple.github.io/foundationdb/testing.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Page numbers are self-reported and undated.",
+   "underclaim_risk": "Existence proof at scale for a C++ database.",
+   "specifics": "Cycle-test style invariant (ring of key-value pairs under transactions) is a template for our idempotent-write oracle."
+  },
+  {
+   "id": "as.fuzz-gate",
+   "layer": "L5",
+   "domain": "O",
+   "type": "ci-gate",
+   "title": "Fuzzing gates: cargo-fuzz 0.13.2 smoke + CIFuzz + nightly + corpus, and the OSS-Fuzz gap for our stack",
+   "summary": "rustls CI: `cargo fuzz build; for t in $(cargo fuzz list); do cargo fuzz run $t -- -max_total_time=10; done` on every PR plus google/oss-fuzz CIFuzz action (fuzz-seconds 150) on pull_request and OSS-Fuzz continuous. s2n-quic restores a fuzz corpus in test/coverage jobs and uses bolero 0.13.7. OSS-Fuzz coverage of our HTTP stack (gh api google/oss-fuzz/projects, 2026-10-24): present: rustls (address+libfuzzer), httparse, tokio, wasmtime, ring; ABSENT: hyper (no fuzz dir at all), h2 (fuzz/ has fuzz_client, fuzz_e2e, fuzz_hpack but last touched 2023-11-15; not in OSS-Fuzz), quinn (fuzz targets packet/params/streamid/streams; not in OSS-Fuzz), pingora, http. OSS-Fuzz Rust projects use ASan+libFuzzer only. Versions: cargo-fuzz 0.13.2 (2026-06-09), libfuzzer-sys 0.4.13, arbitrary 1.5.0, LibAFL 0.16.1 (2026-08-11), afl 0.18.2 (AFL++ is AGPL-3.0), honggfuzz 0.5.62, bolero 0.13.7, ClusterFuzzLite (543 stars; last push 2026-02-12).",
+   "urls": [
+    "https://github.com/rustls/rustls/blob/main/.github/workflows/build.yml",
+    "https://github.com/rustls/rustls/blob/main/.github/workflows/cifuzz.yml",
+    "https://github.com/google/oss-fuzz/tree/master/projects",
+    "https://github.com/hyperium/h2/tree/master/fuzz",
+    "https://github.com/rust-fuzz/cargo-fuzz",
+    "https://github.com/AFLplusplus/LibAFL"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Absence from OSS-Fuzz does not mean unfuzzed (hyper may be covered via httparse and h2 via private fuzzing).",
+   "underclaim_risk": "H2/QUIC parsers are the 2026 bug hotspot and have stale/absent public fuzzing: we must own targets.",
+   "specifics": "Targets (first-party): http1_parse (structure-aware via arbitrary over a request grammar incl. smuggling mutations), h2_frames+hpack (state-aware sequences), h3/qpack if used, authz-token parse, config parse, WAL record decode, MCP JSON-RPC decode. PR: each target 10 s (-max_total_time=10) + CIFuzz 150 s with persisted corpus; nightly: 1 h/target with corpus minimization (`cargo fuzz cmin`), crash artifacts fail the build; weekly 12 h on bare metal. Pass: 0 crashes, 0 timeouts (-timeout=5), corpus coverage non-decreasing vs main (cargo fuzz coverage + llvm-cov), every target has a seed corpus from RFC 9112/9113 vectors + HTTP Garden/T-Reqs payloads. Plateau response: if edge coverage flat for 24 h, add dictionary (-dict), switch engine (LibAFL/honggfuzz) for 1 h, and run coverage-gap report to find unreachable branches (TigerBeetle trick: insert unreachable! in branch to check hit)."
+  },
+  {
+   "id": "as.fuzz-plateau",
+   "layer": "L4",
+   "domain": "O",
+   "type": "failure-modes",
+   "title": "Fuzzer plateau and blind-spot evidence",
+   "summary": "GitHub Security Lab (Dec 2025 report): 29 new vulnerabilities found in GStreamer in Dec 2024 despite ~7 years in OSS-Fuzz; causes: low coverage, missing fuzzers, unfuzzed dependencies, decoder-only focus. StorFuzz (ICSE 2026): diversifying saturated corpora found 50 new bugs in 7 OSS-Fuzz projects, some 14 years old. \"An Empirical Study of Fuzz Harness Degradation\" (FSE 2026, 510 OSS-Fuzz C/C++ projects): harnesses keep finding bugs without updates but individual cases degrade. 2021 OSS-Fuzz bug study: punctuated equilibria (spikes). OSS-Fuzz-gen (Google) generated targets for 160 C/C++ projects, max +29% line coverage, 30 bugs reported -- C/C++ only. TigerBeetle: plain random input found 0 valid codes in 1e8 attempts (needs structure-aware bias).",
+   "urls": [
+    "https://arxiv.org/abs/2505.06177",
+    "https://softsec.rub.de/publications/icse2026-storfuzz/",
+    "https://arxiv.org/abs/2103.11518",
+    "https://github.com/google/oss-fuzz-gen"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Mostly C/C++ evidence; Rust memory-safety bugs are rarer so plateau means logic/DoS bugs matter more.",
+   "underclaim_risk": "Plateau != safe; new bugs appear after years.",
+   "specifics": "Plateau metrics: edges-per-hour slope; corpus size; time since last new edge; target-level reachability report in CI summary."
+  },
+  {
+   "id": "as.http-diff-fuzz",
+   "layer": "L5",
+   "domain": "O",
+   "type": "harness-spec",
+   "title": "Differential HTTP fuzzing harness: HTTP Garden + T-Reqs against our parser (hyper/nginx/h2o as oracles)",
+   "summary": "HTTP Garden (narfindustries/http-garden; GPL-3.0; 944 stars; pushed 2026-05-28; DARPA-funded; Trail of Bits/Galois/Dartmouth): Docker-composed 35+ origin servers (incl. hyper, go_stdlib, nginx, h2o, aws_c_http, netty, node_stdlib, ...) and 14 transducers/proxies (envoy, haproxy, nginx_proxy, squid, varnish, ...). REPL `payload ... | transduce haproxy | fanout | grid` shows parsing disagreement; probe_quirks.py filters benign quirks; TROPHIES.md records found bugs (hyper fixed 2023-12-18). Not in Garden: pingora, quinn/h3. T-Reqs (MIT, grammar-based HTTP/1 fuzzer with mutation; 265 stars; last push 2024-10). Gudifu (RAID 2024) and WAFFLED (2025) are research alternatives. The Garden omits Microsoft because MSRC said smuggling is not a vulnerability.",
+   "urls": [
+    "https://github.com/narfindustries/http-garden",
+    "https://github.com/narfindustries/http-garden/blob/main/TROPHIES.md",
+    "https://github.com/bahruzjabiyev/t-reqs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Differential = disagreement, not correctness; two servers can agree and both be wrong; Garden is x86_64/AArch64 Linux Docker only.",
+   "underclaim_risk": "It already contains hyper+nginx+h2o+Go: an off-the-shelf multi-oracle for our parser.",
+   "specifics": "License handling: GPL-3.0 => run as external process/container, no code copying. Harness: add our server as a Garden target (APP_REPO/APP_BRANCH/APP_VERSION parametrisation), run nightly `garden.sh start --build ours hyper nginx h2o go_stdlib haproxy` and a generator (T-Reqs grammar or arbitrary-driven) feeding fanout; gate = every disagreement must be classified (quirk-allowlist in repo, entry reviewed) and strict rule: for any request ours ACCEPTS that >=2 of {nginx,hyper,go_stdlib,h2o} reject => fail (we are laxer than majority = desync risk). Also assert ours rejects all TROPHIES payloads that were smuggling vectors."
+  },
+  {
+   "id": "as.mutants-gate",
+   "layer": "L5",
+   "domain": "O",
+   "type": "ci-gate",
+   "title": "cargo-mutants 27.1.0 gate with measured baseline on a mature parser (httparse)",
+   "summary": "cargo-mutants 27.1.0 on httparse 1.10.1 (HEAD a0fa552e, 2026-06-30), 371 mutants: caught 160, missed 88, timeout 13, unviable 110; missed/(caught+missed+timeout) = 33.7% (baseline 14s build+10s test; -j12 --timeout-multiplier 3; 32-core box; wall 8m39s, exit code 3 because of timeouts). 30 of the 88 misses are in simd/neon.rs (aarch64 code that cannot execute on this x86 host); excluding it: missed 58/231 = 25.1%. Top survivors: parse_chunk_size arithmetic/guards (~15), parse_headers_iter_uninit, parse_method/parse_code/parse_reason, Status::is_complete/is_partial. Exit codes: 0 all viable mutants caught, 2 some missed, 3 timeouts, 4 baseline failing. Missed examples include deleting the b'A'..=b'Z' arm of is_method_token (lib.rs:61), i.e. a real test gap in a heavily fuzzed parser; many survivors are error-description strings and config-getter booleans (low value).",
+   "urls": [
+    "https://github.com/sourcefrog/cargo-mutants/blob/main/book/src/exit-codes.md",
+    "https://github.com/sourcefrog/cargo-mutants",
+    "https://github.com/seanmonstar/httparse"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "One crate; includes equivalent mutants and unreachable-arch code (neon); threshold values in spec are proposals (E).",
+   "underclaim_risk": "A mature, OSS-Fuzz-fuzzed parser still leaves ~25% of host-reachable mutants uncaught (parse_chunk_size alone ~15): mutation testing finds real gaps that coverage-guided fuzzing does not, so use ratchet + diff mode rather than absolute gates.",
+   "specifics": "PR: `cargo mutants --in-diff pr.diff --no-shuffle -j4 --timeout-multiplier 3` (--in-place in CI per docs); fail on exit 2 or 3 for security-critical crates (parser, authz, WAL, config) restricted to changed lines; per-crate `.cargo/mutants.toml` exclude_re for Debug/Display/description and cfg-unreachable arch modules; nightly full run with a RATCHET: missed/(caught+missed+timeout) must not exceed the stored per-crate baseline (first run records it; measured reference: a heavily fuzzed mature parser sits at 25-34%, so an absolute <20% initial gate would be unrealistic) and the target is to drive security-critical first-party crates below 10% [E] by triaging survivors into killed-by-test, equivalent (documented in mutants.toml) or accepted. Install via taiki-e/install-action. cargo-mutants 27.1.0 (2026-06-02, MIT, 1356 stars)."
+  },
+  {
+   "id": "as.miri-loom-shuttle",
+   "layer": "L4",
+   "domain": "O",
+   "type": "failure-modes",
+   "title": "Miri, loom, shuttle, sanitizers: coverage limits and CI use",
+   "summary": "Miri (rust-lang/miri, 6.7k stars, daily): single-threaded interpreter, no networking, little platform API/FFI support, unsupported syscalls error, cannot find bugs only in other thread schedules unless run with many seeds (default 64 in many-seeds mode), and a clean run is not a soundness proof. Precedents: hyper CI runs `cargo miri test --features http1,http2,client,server,nightly` with -Zmiri-disable-isolation; s2n-quic runs Miri only on s2n-quic-core and s2n-quic-platform. loom 0.7.2: no full C11 model, SeqCst treated as AcqRel (false alarms) and load-buffering executions not explored (unsound). shuttle 0.9.8 (AWS): randomized PCT scheduler, explicitly NOT sound, scales larger. Sanitizers are nightly-only (-Zsanitizer=address|thread|memory|leak..., typically with -Zbuild-std --target); s2n-quic runs ASan unit tests (RUSTFLAGS/RUSTDOCFLAGS=-Zsanitizer=address); OSS-Fuzz Rust uses ASan only.",
+   "urls": [
+    "https://github.com/rust-lang/miri",
+    "https://github.com/tokio-rs/loom",
+    "https://github.com/awslabs/shuttle",
+    "https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/sanitizer.html",
+    "https://github.com/hyperium/hyper/blob/master/.github/workflows/CI.yml"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Counting Miri in CI as memory-safety proof for async I/O code would overclaim: the I/O layer cannot run under Miri.",
+   "underclaim_risk": "Miri on parser/data-structure crates with unsafe is high-yield and cheap.",
+   "specifics": "Pinned nightly (date) in rust-toolchain for miri/sanitizers only. Gates: Miri on every crate containing `unsafe` (pure, no I/O): `MIRIFLAGS=\"-Zmiri-many-seeds=0..16 -Zmiri-strict-provenance\" cargo miri nextest run`; ASan nightly `RUSTFLAGS=-Zsanitizer=address cargo test -Zbuild-std --target x86_64-unknown-linux-gnu`; TSan weekly; loom only for first-party lock-free primitives (and treat pass as bug-finding only); shuttle for async protocol logic with >=10k iterations; each unsafe block must be reachable from a Miri test (cargo-llvm-cov region report)."
+  },
+  {
+   "id": "as.ai-redteam-ci",
+   "layer": "L5",
+   "domain": "O",
+   "type": "ci-gate",
+   "title": "Continuous AI red-team stage: agent attack harness against staging server",
+   "summary": "Two distinct harness classes: (1) LLM-app red-team libraries: promptfoo (MIT, 26k stars, CLI returns non-zero on failures to block merges), NVIDIA garak (Apache-2.0, 9.7k), microsoft/PyRIT (4.7k; Azure/PyRIT archived 2026-03 and moved), inspect_ai (UK AISI, MIT); no vendor publishes a standard ASR threshold (searched). (2) Web-exploit agent benchmarks usable as harness templates: CVE-Bench (uiuc-kang-lab, Apache-2.0, v2.1.0 2026-01-12, 40 critical CVE web-app tasks, 8 outcome classes: DoS, file access, RCE (/tmp/pwn), db modification, db access, admin login, privesc, outbound request; Docker-isolated; ICML 2025 spotlight); BountyBench stale (2025-07); AgentDojo (954 stars) for prompt-injection against tool-using agents. Antithesis publishes an agent debug loop (CLI + REST) but is a vendor service.",
+   "urls": [
+    "https://github.com/promptfoo/promptfoo",
+    "https://github.com/NVIDIA/garak",
+    "https://github.com/microsoft/PyRIT",
+    "https://github.com/UKGovernmentBEIS/inspect_ai",
+    "https://github.com/uiuc-kang-lab/cve-bench",
+    "https://github.com/ethz-spylab/agentdojo"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.55,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Vendor blogs recommend ASR gating but none gives a validated threshold; an agent failing to exploit in CI is weak evidence of safety (capability-limited attacker).",
+   "underclaim_risk": "CVE-Bench outcome taxonomy maps 1:1 to server assets (files, db, admin, SSRF, DoS) and is directly reusable as pass/fail oracles with canary files.",
+   "specifics": "Stage `redteam-nightly`: spin staging container (Docker, no egress except canary sink), plant canaries (/tmp/pwn, secret table, admin account, outbound listener), run N=20 agent episodes (model pinned, 50 tool calls, 30 min cap) per attack family (HTTP smuggling, SSRF, authz confusion, MCP tool-poisoning, DoS). Pass: 0 canary triggers; also record any episode that causes crash/OOM. Weekly: replay all prior successful exploits as regression suite. AgentDojo/garak run against the MCP-facing prompt surfaces: injection-success-rate must not exceed baseline stored per model version (threshold set by first measured run; E). No attacks against third-party targets (hard gate)."
+  },
+  {
+   "id": "as.jepsen-elle",
+   "layer": "L3",
+   "domain": "O",
+   "type": "tool",
+   "title": "Jepsen/Elle/Porcupine for the idempotency + WAL layer",
+   "summary": "Jepsen (Clojure; Knossos/Elle checkers) remains the external-review standard; TigerBeetle was tested in 2024 and the finding exposed fuzzer blind spots. S2 uses Porcupine (Go) inside its simulator; porcupine-rs 0.3.0 (2026-05-10, 673 downloads) is the Rust port; stateright 0.31.0 (2025-07) is a Rust model checker. No 2026 Jepsen report on a Rust server found in my search.",
+   "urls": [
+    "https://aphyr.com/posts/314-computational-techniques-in-knossos",
+    "https://s2.dev/blog/linearizability",
+    "https://crates.io/crates/porcupine-rs"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "porcupine-rs maturity unknown (673 downloads).",
+   "underclaim_risk": "Linearizability checking on recorded histories is cheap and independent of how the history was generated.",
+   "specifics": "Record every client op as start/end events with client_id/op_id (S2 pattern); model indefinite failures as nondeterministic (may-have-applied) and stop the client after an indefinite write failure (S2 lesson); check per-key linearizability of idempotent writes and read-your-writes of WAL commits."
+  },
+  {
+   "id": "as.conformance-suites",
+   "layer": "L4",
+   "domain": "O",
+   "type": "tool-set",
+   "title": "Protocol conformance/interop suites usable as gates",
+   "summary": "BoGo (BoringSSL runner) is run by rustls CI against ring, aws-lc-rs and aws-lc-rs-fips; rustls daily tests also check X25519MLKEM768 negotiation and ECH against live endpoints. QUIC: quic-interop-runner (295 stars, license NOASSERTION, active 2026-10-19), s2n-quic auto-updates required interop checks via PR. HTTP/2: h2spec (MIT, last push 2023-10, stale). HTTP/3: h3spec (BSD-3, 38 stars, 2026-10-03). Crypto vectors: C2SP/wycheproof (Apache-2.0, 3.1k stars, 2026-10-23). s2n-quic also runs duvet (RFC citation compliance coverage).",
+   "urls": [
+    "https://github.com/quic-interop/quic-interop-runner",
+    "https://github.com/summerwind/h2spec",
+    "https://github.com/kazu-yamamoto/h3spec",
+    "https://github.com/C2SP/wycheproof",
+    "https://github.com/awslabs/duvet"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "h2spec staleness means newer h2 attacks (CONTINUATION, MadeYouReset) are not covered.",
+   "underclaim_risk": "duvet-style requirement-to-test traceability is directly reusable for spec fidelity evidence.",
+   "specifics": "Gate: BoGo (if own TLS wrapper) + h2spec fork pinned + h3spec if H3 + Wycheproof JSON vectors for any crypto shim; duvet annotations on RFC 9110/9112/9113 requirement sentences with coverage report in CI (s2n-quic precedent)."
+  },
+  {
+   "id": "ci.stage-list",
+   "layer": "L5",
+   "domain": "N+O",
+   "type": "ci-pipeline",
+   "title": "Concrete CI stage list: tool + version + pass criterion",
+   "summary": "Ordered stages (all with --locked, pinned toolchain Rust 1.99.1 stable (2026-10-15) + dated nightly for Miri/sanitizers). Pass criteria marked [E] are proposals; others replicate observed practice.",
+   "urls": [],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Aggregate of precedent + proposals; not validated end-to-end as one pipeline, runtime budget untested.",
+   "underclaim_risk": "Every stage uses tools with active releases in the last 4 months.",
+   "specifics": "[\n {\n  \"stage\": \"S0 hygiene\",\n  \"tools\": \"rustfmt; clippy -D warnings (rustls: RUSTFLAGS=--deny warnings); typos; zizmor 1.31.1; workspace lint unsafe_code=forbid; clippy disallowed-methods/types in sim crates\",\n  \"pass\": \"0 warnings; every uses: pinned to SHA; no pull_request_target+PR checkout\"\n },\n {\n  \"stage\": \"S1 supply-chain\",\n  \"tools\": \"cargo build --locked; cargo-deny 0.20.2; cargo-audit 0.22.2 (--deny warnings); cargo-vet 0.10.3; cargo-geiger 0.13.0 (0.14.0 needs rustc>=1.97); cargo-shear 1.14.0 (unused deps)\",\n  \"pass\": \"deny exit 0; audit 0 vulns & 0 unmaintained/unsound in direct deps; vet passes with exemptions<=base and 0 new unaudited crates; geiger within allowlist ceilings\"\n },\n {\n  \"stage\": \"S2 tests\",\n  \"tools\": \"cargo-nextest 0.9.149; cargo-hack 0.6.45 feature powerset; MSRV check; cargo-semver-checks 0.51.0 (libs); cargo-llvm-cov 0.9.1\",\n  \"pass\": \"all green; coverage on parser/authz/WAL crates >= stored baseline (ratchet) [E]\"\n },\n {\n  \"stage\": \"S3 property\",\n  \"tools\": \"proptest 1.12.0 + proptest-state-machine 0.9.0 or bolero 0.13.7\",\n  \"pass\": \"256 cases/PR, 100k nightly; regressions files committed\"\n },\n {\n  \"stage\": \"S4 DST\",\n  \"tools\": \"tokio 1.54.1 + turmoil 0.7.2 + mad-turmoil 0.2.1 + rand_chacha 0.10 (+porcupine-rs 0.3.0)\",\n  \"pass\": \"G1 same-seed trace hash equal; G2 0 entropy/time syscalls after init; PR >=200 seeds, nightly >=20k seeds, 0 oracle violations; G5 each fault class fires\"\n },\n {\n  \"stage\": \"S5 fuzz\",\n  \"tools\": \"cargo-fuzz 0.13.2 (libfuzzer-sys 0.4.13, arbitrary 1.5.0); OSS-Fuzz CIFuzz; LibAFL 0.16.1 nightly\",\n  \"pass\": \"PR 10 s/target + CIFuzz 150 s: 0 crashes; nightly 1 h/target no new edges regress; coverage non-decreasing\"\n },\n {\n  \"stage\": \"S6 differential\",\n  \"tools\": \"HTTP Garden (GPL, external container) vs nginx/hyper/h2o/go_stdlib/haproxy\",\n  \"pass\": \"0 unclassified disagreements; ours never laxer than majority; all TROPHIES smuggling payloads rejected\"\n },\n {\n  \"stage\": \"S7 memory-model\",\n  \"tools\": \"Miri (nightly, many-seeds 0..16) on unsafe crates; ASan nightly; TSan weekly; shuttle 0.9.8; loom 0.7.2 on first-party lock-free code\",\n  \"pass\": \"0 UB reports; every unsafe block covered by a Miri test\"\n },\n {\n  \"stage\": \"S8 mutation\",\n  \"tools\": \"cargo-mutants 27.1.0 --in-diff on PR; nightly full on critical crates\",\n  \"pass\": \"exit 0 on diff; full-run missed-rate <= stored baseline (ratchet), target <10% on first-party critical crates [E]; reference: httparse 25-34% measured\"\n },\n {\n  \"stage\": \"S9 oracle-mutation\",\n  \"tools\": \"mutants/ patches per invariant + DST\",\n  \"pass\": \"each invariant falsified by its mutant within 1000 seeds\"\n },\n {\n  \"stage\": \"S10 conformance\",\n  \"tools\": \"BoGo, quic-interop-runner, h3spec, Wycheproof, duvet\",\n  \"pass\": \"required interop set (auto-updated) passes\"\n },\n {\n  \"stage\": \"S11 release\",\n  \"tools\": \"cargo auditable build; double build in two dirs with --remap-path-prefix x3; actions/attest@v4 in reusable workflow; gh attestation verify; cargo-cyclonedx 0.5.9; tuftool 0.15+/tough 0.24.0 metadata; crates.io trusted publishing for libs\",\n  \"pass\": \"sha256 equal across builds and independent rebuilder; attestation verifies with --signer-workflow; cargo audit bin clean; TUF thresholds met (3/5 root, 2/3 targets)\"\n },\n {\n  \"stage\": \"S12 AI red-team\",\n  \"tools\": \"promptfoo/garak/inspect_ai + CVE-Bench-style agent episodes\",\n  \"pass\": \"0 canary triggers in N=20 episodes/family; injection ASR <= stored baseline [E]\"\n },\n {\n  \"stage\": \"S13 watch (cron)\",\n  \"tools\": \"daily cargo audit on main and deployed binary; Dependabot cooldown 7 d with security bypass\",\n  \"pass\": \"critical advisory in a reachable dep => issue + fix SLA 24 h; high 72 h [E]\"\n }\n]"
+  }
+ ],
+ "edges": [
+  {
+   "src": "sc.vet-ci-gate",
+   "dst": "sc.vet-import-sets",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.vet-ci-gate",
+   "dst": "sc.arrayref-incident",
+   "type": "mitigates",
+   "note": "new unaudited transitive crate proc-macro1"
+  },
+  {
+   "src": "sc.deny-audit-gate",
+   "dst": "sc.rustsec-volume",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.cooldown-policy",
+   "dst": "sc.arrayref-incident",
+   "type": "mitigates",
+   "note": "86-107 min live window"
+  },
+  {
+   "src": "sc.slopsquat-rates",
+   "dst": "sc.crates-malicious-record",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.unsafe-budget",
+   "dst": "sc.vet-import-sets",
+   "type": "depends_on",
+   "note": "vendored C bulk (aws-lc-sys) outside vet imports"
+  },
+  {
+   "src": "sc.slsa-attest",
+   "dst": "sc.repro-build-experiment",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.slsa-attest",
+   "dst": "sc.xz-lessons",
+   "type": "mitigates",
+   "note": "build-host compromise only; not source compromise"
+  },
+  {
+   "src": "sc.sigstore-tuf-threshold",
+   "dst": "sc.slsa-attest",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.rustc-bootstrap-trust",
+   "dst": "sc.build-system-alternatives",
+   "type": "alternative_to",
+   "note": "StageX full-source bootstrap vs mrustc chain"
+  },
+  {
+   "src": "sc.build-system-alternatives",
+   "dst": "sc.repro-build-experiment",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "sc.auditable-sbom",
+   "dst": "sc.deny-audit-gate",
+   "type": "depends_on",
+   "note": "cargo audit bin"
+  },
+  {
+   "src": "as.dst-harness-spec",
+   "dst": "as.dst-entropy-leak",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "as.dst-harness-spec",
+   "dst": "as.dst-ecosystem",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "as.dst-harness-spec",
+   "dst": "as.dst-failure-modes",
+   "type": "conflicts_with",
+   "note": "fidelity gaps limit what DST proves"
+  },
+  {
+   "src": "as.dst-ecosystem",
+   "dst": "as.antithesis",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "as.tigerbeetle-vopr",
+   "dst": "as.fdb-sim",
+   "type": "depends_on",
+   "note": "inspired by"
+  },
+  {
+   "src": "as.oracle-mutation",
+   "dst": "as.dst-failure-modes",
+   "type": "mitigates",
+   "note": ""
+  },
+  {
+   "src": "as.http-diff-fuzz",
+   "dst": "as.fuzz-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "as.fuzz-gate",
+   "dst": "as.fuzz-plateau",
+   "type": "conflicts_with",
+   "note": "plateau caveat"
+  },
+  {
+   "src": "as.mutants-gate",
+   "dst": "as.oracle-mutation",
+   "type": "alternative_to",
+   "note": "unit-level vs system-level mutation"
+  },
+  {
+   "src": "as.ai-redteam-ci",
+   "dst": "as.antithesis",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.vet-ci-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.deny-audit-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.unsafe-budget",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.slsa-attest",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.dst-harness-spec",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.fuzz-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.http-diff-fuzz",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.mutants-gate",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.miri-loom-shuttle",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "as.ai-redteam-ci",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.gha-hardening",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "ci.stage-list",
+   "dst": "sc.cooldown-policy",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.rustsec-volume",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "depends_on",
+   "note": "sibling 04: GHSA counts 57 in 2026 vs my RustSec wasmtime 41"
+  },
+  {
+   "src": "sc.rustsec-volume",
+   "dst": "rec60-quinn-advisory-wave",
+   "type": "depends_on",
+   "note": "quinn-proto 8 RustSec in 2026"
+  },
+  {
+   "src": "sc.rustsec-volume",
+   "dst": "rec60-rustls-0.23.46-downgrade",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "sc.arrayref-incident",
+   "dst": "rec60-supply-chain-incidents",
+   "type": "depends_on",
+   "note": "same incident; I added Rust blog timeline + gate mapping"
+  },
+  {
+   "src": "sc.cooldown-policy",
+   "dst": "rec60-supply-chain-incidents",
+   "type": "depends_on",
+   "note": "tokio 1.54.0 yank"
+  },
+  {
+   "src": "as.dst-harness-spec",
+   "dst": "gap.no-assurance-claims",
+   "type": "fills_gap",
+   "note": ""
+  },
+  {
+   "src": "as.dst-failure-modes",
+   "dst": "practice-aws-lightweight-fm",
+   "type": "depends_on",
+   "note": "AWS also lists DST in lightweight FM practices"
+  },
+  {
+   "src": "as.miri-loom-shuttle",
+   "dst": "proof-kani-verify-rust-std",
+   "type": "alternative_to",
+   "note": "Kani proves bounded properties; Miri/loom/shuttle test"
+  },
+  {
+   "src": "as.http-diff-fuzz",
+   "dst": "rec60-header-accordions-qpack",
+   "type": "mitigates",
+   "note": "differential harness extended with H3/QPACK amplification cases"
+  },
+  {
+   "src": "as.fuzz-gate",
+   "dst": "rec60-h2-hyper-releases",
+   "type": "depends_on",
+   "note": "h2 unbounded empty DATA RUSTSEC-2026-0258"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Measure LLM crate-hallucination rate for Rust (crates.io) with current models and check which hallucinated names are registrable",
+   "layer": "L4",
+   "domain": "N",
+   "expected_info_gain": 0.7,
+   "reason": "Both published studies cover PyPI/npm only; agent-written Rust is our exact case"
+  },
+  {
+   "question": "Run a real turmoil+hyper+mad-turmoil sim with rustls/aws-lc and demonstrate (or refute) nondeterminism; test getrandom 0.3 dlsym interposition on glibc vs musl",
+   "layer": "L5",
+   "domain": "O",
+   "expected_info_gain": 0.7,
+   "reason": "I verified bypass paths statically only"
+  },
+  {
+   "question": "Cross-machine reproducibility test of the release binary (different glibc/linker/host, CARGO_HOME, proc-macro/build.rs heavy deps) and StageX rebuild comparison",
+   "layer": "L5",
+   "domain": "N",
+   "expected_info_gain": 0.6,
+   "reason": "My experiment is single-host"
+  },
+  {
+   "question": "Quantify cargo-vet delta-audit cost with LLM-assisted audits on hyper/h2/tokio/bytes deltas (precision of agent audits vs known advisories)",
+   "layer": "L4",
+   "domain": "N",
+   "expected_info_gain": 0.65,
+   "reason": "3.9M-line backlog needs a feasibility number for a solo operator"
+  },
+  {
+   "question": "Fetch and verify primary sources for xz postmortem (Freund oss-security post, tukaani page) and map each step to a CI gate",
+   "layer": "L3",
+   "domain": "N",
+   "expected_info_gain": 0.3,
+   "reason": "Used secondary sources"
+  },
+  {
+   "question": "Evaluate Antithesis current public pricing and Rust instrumentation constraints (x86, musl, io_uring, aws-lc) via docs pages",
+   "layer": "L4",
+   "domain": "O",
+   "expected_info_gain": 0.4,
+   "reason": "Pricing page rendered without prices; earlier snippet unverified"
+  },
+  {
+   "question": "Build the HTTP Garden target for hyper-based server and run T-Reqs to record disagreement baseline numbers vs nginx/h2o/go",
+   "layer": "L5",
+   "domain": "O",
+   "expected_info_gain": 0.6,
+   "reason": "Provides numeric acceptance baseline for differential gate"
+  },
+  {
+   "question": "Validate cargo-mutants missed-rate baselines on h2, quinn-proto state machines, rustls message parsing",
+   "layer": "L4",
+   "domain": "O",
+   "expected_info_gain": 0.5,
+   "reason": "Single data point (httparse) used for proposed thresholds"
+  },
+  {
+   "question": "Contrarian: evidence that SLSA L3/provenance would NOT have stopped any 2024-2026 Rust/npm incident; what fraction of incidents were build-host vs maintainer-credential compromise",
+   "layer": "L2",
+   "domain": "N",
+   "expected_info_gain": 0.5,
+   "reason": "Avoid overclaiming provenance value"
+  },
+  {
+   "question": "Power-loss/fsync real-kernel test rig (dm-log-writes/dm-flakey, QEMU) to calibrate the simulated-disk fault model",
+   "layer": "L5",
+   "domain": "O",
+   "expected_info_gain": 0.55,
+   "reason": "DST fidelity gap on durability"
+  }
+ ],
+ "protocol_implications": [
+  "Round-1 CI gates must be written as executable scripts with explicit numeric pass criteria; the repo should hold a ci/ directory whose gates agents cannot weaken (CODEOWNERS on ci/, supply-chain/, deny.toml, .github/).",
+  "Measure on our own stack: three of the highest-yield findings (14/94 vet coverage, geiger unsafe table, repro remap result, getrandom raw-syscall bypass) came from running tools locally, not from documents; future explorers should run tools when installable.",
+  "DST claims must carry a NOT-proven list: kernel fidelity, TLS/crypto-lib entropy, generator blind spots, simulated-disk model assumptions.",
+  "Advisory volume (45-55 RustSec/month in 2026; wasmtime 18 in Oct) implies an automated patch-rebuild-attest pipeline with SLAs is a core product capability, not a nice-to-have.",
+  "Prefer sans-IO protocol/WAL cores (testable by DST, fuzz, Miri, Kani) with a thin async shell; keep TLS/crypto libs outside the simulated boundary and test them with BoGo/Wycheproof/fuzz."
+ ],
+ "self_improvement": [
+  "Explorers lacked a shared graph.jsonl and queries.jsonl at start; dedupe relied on grepping sibling raw JSONs. Provide a node-id index file early.",
+  "WebSearch snippets repeatedly contained unverifiable numbers (pricing, CVE ids); a rule 'fetch the primary or run the tool' produced most of the high-grade nodes. Encode in the explorer prompt: prefer gh api / crates.io API / local tool runs.",
+  "Unauthenticated GitHub API rate limit (60/h) silently returned 'NA' rows; use gh CLI auth by default.",
+  "Give explorers a scratch toolchain path (cargo installs worked in /tmp scratch) and note machine core count (32) so measurement tasks are planned."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-001/08-supply-chain-provenance-and-deterministic-sim-ci.json",
+ "notes": {
+  "mutants": "cargo-mutants 27.1.0 on httparse 1.10.1 (HEAD a0fa552e, 2026-06-30), 371 mutants: caught 160, missed 88, timeout 13, unviable 110; missed/(caught+missed+timeout) = 33.7% (baseline 14s build+10s test; -j12 --timeout-multiplier 3; 32-core box; wall 8m39s, exit code 3 because of timeouts). 30 of the 88 misses are in simd/neon.rs (aarch64 code that cannot execute on this x86 host); excluding it: missed 58/231 = 25.1%. Top survivors: parse_chunk_size arithmetic/guards (~15), parse_headers_iter_uninit, parse_method/parse_code/parse_reason, Status::is_complete/is_partial.",
+  "date": "2026-10-24",
+  "vocabularies": [
+   "release engineering",
+   "SRE",
+   "testing practitioner",
+   "offensive/supply-chain security",
+   "cryptography (threshold/PQ)",
+   "distributed systems"
+  ],
+  "source_types": [
+   "repo CI configs",
+   "tool docs/READMEs",
+   "package registry APIs",
+   "advisory DB clones",
+   "conference/vendor blog talks",
+   "academic papers",
+   "own measurements"
+  ],
+  "contrarian": [
+   "DST/fuzz failure modes",
+   "vet coverage shortfall",
+   "provenance limits",
+   "hallucination rates compress but persist"
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+GHSA-x5hg-x4gv-j98m	-	2026-04-30	low	Ineffective TLS certificate hostname verification
+GHSA-x83w-23jp-g6pw	-	2026-04-30	medium	DLS not applied on documents linked by has_child or has_parent relation
+GHSA-22vx-2x23-98w6	-	2026-04-30	low	Improper authorization for Rollover Requests
+GHSA-2rjv-cv85-xhgm	-	2025-08-01	medium	Unauthorized data access on fields protected by field level security if field is a member of an object
+GHSA-rrmm-wq7q-h4v5	-	2025-08-01	medium	Unauthorized data access on fields protected by field masking for fields of type ip, geo_point, geo_shape, xy_point, xy_shape
+GHSA-83x9-vc3c-hghc	-	2026-04-30	low	Bypass of REST Layer Authorization Using Malformed Paths
+GHSA-8wx3-324g-w4qq	-	2023-10-16	high	OpenSearch uncontrolled resource consumption
+GHSA-72q2-gwwf-6hrv	CVE-2023-45807	2023-10-16	medium	OpenSearch Issue with tenant read-only permissions
+GHSA-c6wg-cm5x-rqvj	CVE-2023-25806	2023-02-28	medium	Time discrepancy in authentication responses
+GHSA-g8xc-6mf7-h28h	CVE-2023-31141	2023-05-08	medium	Issue with fine-grained access control during extremely rare race conditions
+GHSA-864v-6qj7-62qj	CVE-2023-23612	2023-01-24	medium	Issue with whitespace in JWT roles
+GHSA-wmx7-x4jp-9jgg	CVE-2022-41918	2022-11-15	medium	Issue with fine-grained access control of indices backing data streams
+GHSA-v3cg-7r9h-r2g6	CVE-2023-23613	2023-01-24	medium	Field-level security issue with .keyword fields
+GHSA-f4qr-f4xx-hjxw	CVE-2022-35980	2022-08-12	high	Improper Authorization of Index Containing Sensitive Information in OpenSearch

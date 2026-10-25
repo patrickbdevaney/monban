@@ -1,0 +1,1470 @@
+[
+ {
+  "i": 0,
+  "ghsa": "GHSA-hpqh-2wqx-7qp5",
+  "cve": "CVE-2021-32629",
+  "date": "2021-05-21",
+  "year": "2021",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "core cranelift",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Memory access due to code generation flaw in Cranelift module"
+ },
+ {
+  "i": 1,
+  "ghsa": "GHSA-q879-9g95-56mx",
+  "cve": "CVE-2021-39219",
+  "date": "2021-09-17",
+  "year": "2021",
+  "sev": "medium",
+  "impact": "OTHER",
+  "tags": "embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Wrong type for `Linker`-define functions when used across two `Engine`s"
+ },
+ {
+  "i": 2,
+  "ghsa": "GHSA-4873-36h9-wv49",
+  "cve": "CVE-2021-39218",
+  "date": "2021-09-17",
+  "year": "2021",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "core reftypes",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Out-of-bounds read/write and invalid free with `externref`s and GC safepoints in Wasmtime "
+ },
+ {
+  "i": 3,
+  "ghsa": "GHSA-v4cp-h94r-m7xf",
+  "cve": "CVE-2021-39216",
+  "date": "2021-09-17",
+  "year": "2021",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "core reftypes embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Use after free passing `externref`s to Wasm in Wasmtime"
+ },
+ {
+  "i": 4,
+  "ghsa": "GHSA-88xq-w8cq-xfg7",
+  "cve": "CVE-2022-23636",
+  "date": "2022-02-16",
+  "year": "2022",
+  "sev": "high",
+  "impact": "ESC",
+  "tags": "pooling reftypes",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Invalid drop of VMExternRef from partially-initialized instances in the pooling instance allocator "
+ },
+ {
+  "i": 5,
+  "ghsa": "GHSA-gwc9-348x-qwv2",
+  "cve": "CVE-2022-24791",
+  "date": "2022-03-31",
+  "year": "2022",
+  "sev": "high",
+  "impact": "ESC",
+  "tags": "core reftypes epoch",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Use after free with `externref`s and epoch interruption in Wasmtime"
+ },
+ {
+  "i": 6,
+  "ghsa": "GHSA-jqwc-c49r-4w2x",
+  "cve": "CVE-2022-31104",
+  "date": "2022-06-27",
+  "year": "2022",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "core cranelift x64 simd",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Miscompilation of `i8x16.swizzle` and `select` with v128 inputs"
+ },
+ {
+  "i": 7,
+  "ghsa": "GHSA-5fhj-g3p3-pq9g",
+  "cve": "CVE-2022-31146",
+  "date": "2022-07-20",
+  "year": "2022",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "core reftypes",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Use After Free with `externref`s in Wasmtime"
+ },
+ {
+  "i": 8,
+  "ghsa": "GHSA-7f6x-jwh5-m9r4",
+  "cve": "CVE-2022-31169",
+  "date": "2022-07-20",
+  "year": "2022",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "aarch64",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Miscompilation of constant values in division on AArch64"
+ },
+ {
+  "i": 9,
+  "ghsa": "GHSA-h84q-m8rr-3v9q",
+  "cve": "CVE-2022-39394",
+  "date": "2022-11-10",
+  "year": "2022",
+  "sev": "low",
+  "impact": "OTHER",
+  "tags": "capi embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Out of bounds write in `wasmtime_trap_code` C API function"
+ },
+ {
+  "i": 10,
+  "ghsa": "GHSA-wh6w-3828-g9qf",
+  "cve": "CVE-2022-39393",
+  "date": "2022-11-10",
+  "year": "2022",
+  "sev": "high",
+  "impact": "LEAK",
+  "tags": "pooling",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Data leakage between instances in the pooling allocator"
+ },
+ {
+  "i": 11,
+  "ghsa": "GHSA-44mr-8vmm-wjhg",
+  "cve": "CVE-2022-39392",
+  "date": "2022-11-10",
+  "year": "2022",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "core knob:zero-pages",
+  "emb": false,
+  "knob": [
+   "knob:zero-pages"
+  ],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Out of bounds read/write with zero-memory-pages configuration"
+ },
+ {
+  "i": 12,
+  "ghsa": "GHSA-xm67-587q-r2vw",
+  "cve": "CVE-2023-27477",
+  "date": "2023-03-08",
+  "year": "2023",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "core cranelift x64 simd",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Miscompilation of `i8x16.select` with the same inputs on x86_64"
+ },
+ {
+  "i": 13,
+  "ghsa": "GHSA-ff4p-7xrq-q5r8",
+  "cve": "CVE-2023-26489",
+  "date": "2023-03-08",
+  "year": "2023",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "core cranelift x64",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Guest-controlled out-of-bounds read/write on x86_64"
+ },
+ {
+  "i": 14,
+  "ghsa": "GHSA-ch89-5g45-qwc7",
+  "cve": "CVE-2023-30624",
+  "date": "2023-04-27",
+  "year": "2023",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "core",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Undefined Behavior in Rust runtime functions"
+ },
+ {
+  "i": 15,
+  "ghsa": "GHSA-gw5p-q8mj-p7gh",
+  "cve": "CVE-2023-41880",
+  "date": "2023-09-14",
+  "year": "2023",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "core cranelift x64 simd",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Miscompilation of wasm `i64x2.shr_s` instruction with constant input on x86_64"
+ },
+ {
+  "i": 16,
+  "ghsa": "GHSA-75hq-h6g9-h4q5",
+  "cve": "CVE-2024-30266",
+  "date": "2024-04-02",
+  "year": "2024",
+  "sev": "low",
+  "impact": "DOS-PANIC",
+  "tags": "core reftypes",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic when using a dropped extenref-typed element segment"
+ },
+ {
+  "i": 17,
+  "ghsa": "GHSA-7qmx-3fpx-r45m",
+  "cve": "CVE-2024-47813",
+  "date": "2024-10-09",
+  "year": "2024",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "embedder threads",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Race condition could lead to WebAssembly control-flow integrity and type safety violations"
+ },
+ {
+  "i": 18,
+  "ghsa": "GHSA-q8hx-mm92-4wvg",
+  "cve": "CVE-2024-47763",
+  "date": "2024-10-09",
+  "year": "2024",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "core tailcall",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Runtime crash when combining tail calls with stack traces"
+ },
+ {
+  "i": 19,
+  "ghsa": "GHSA-c2f5-jxjv-2hh8",
+  "cve": "CVE-2024-51745",
+  "date": "2024-11-05",
+  "year": "2024",
+  "sev": "low",
+  "impact": "POLICY",
+  "tags": "wasi-fs windows",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Wasmtime doesn't fully sandbox all the Windows device filenames"
+ },
+ {
+  "i": 20,
+  "ghsa": "GHSA-fm79-3f68-h2fc",
+  "cve": "CVE-2025-53901",
+  "date": "2025-07-18",
+  "year": "2025",
+  "sev": "low",
+  "impact": "DOS-PANIC",
+  "tags": "wasip1",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Host panic with `fd_renumber` WASIp1 function"
+ },
+ {
+  "i": 21,
+  "ghsa": "GHSA-vvp9-h8p2-xwfc",
+  "cve": "CVE-2025-61670",
+  "date": "2025-10-07",
+  "year": "2025",
+  "sev": "low",
+  "impact": "OTHER",
+  "tags": "capi embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Memory leak in C API with `externref` and `anyref` types"
+ },
+ {
+  "i": 22,
+  "ghsa": "GHSA-4h67-722j-5pmc",
+  "cve": "CVE-2025-62711",
+  "date": "2025-10-24",
+  "year": "2025",
+  "sev": "low",
+  "impact": "DOS-PANIC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Possible host crash with host-to-wasm component intrinsics"
+ },
+ {
+  "i": 23,
+  "ghsa": "GHSA-hc7m-r6v8-hg9q",
+  "cve": "CVE-2025-64345",
+  "date": "2025-11-11",
+  "year": "2025",
+  "sev": "low",
+  "impact": "OTHER",
+  "tags": "embedder threads",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Unsound API access to a WebAssembly shared linear memory"
+ },
+ {
+  "i": 24,
+  "ghsa": "GHSA-vc8c-j3xm-xj73",
+  "cve": "CVE-2026-24116",
+  "date": "2026-01-27",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC-nonexploitable",
+  "tags": "core cranelift x64 knob:signals-off-or-noguard",
+  "emb": false,
+  "knob": [
+   "knob:signals-off-or-noguard"
+  ],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Wasmtime segfault or unused out-of-sandbox load with `f64.copysign` operator on x86-64"
+ },
+ {
+  "i": 25,
+  "ghsa": "GHSA-243v-98vx-264h",
+  "cve": "CVE-2026-27572",
+  "date": "2026-02-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "component wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic adding excessive fields to a `wasi:http/types.fields` instance"
+ },
+ {
+  "i": 26,
+  "ghsa": "GHSA-xjhv-v822-pf94",
+  "cve": "CVE-2026-27195",
+  "date": "2026-02-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "embedder-async",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic when dropping a `[Typed]Func::call_async` future"
+ },
+ {
+  "i": 27,
+  "ghsa": "GHSA-852m-cvvp-9p4w",
+  "cve": "CVE-2026-27204",
+  "date": "2026-02-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "wasi",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Guest-controlled resource exhaustion in WASI implementations"
+ },
+ {
+  "i": 28,
+  "ghsa": "GHSA-394w-hwhg-8vgm",
+  "cve": "CVE-2026-35195",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Out-of-bounds write or crash when transcoding component model strings"
+ },
+ {
+  "i": 29,
+  "ghsa": "GHSA-hfr4-7c6c-48w2",
+  "cve": "CVE-2026-34983",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "low",
+  "impact": "OTHER",
+  "tags": "embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Use-after-free bug after cloning `wasmtime::Linker`"
+ },
+ {
+  "i": 30,
+  "ghsa": "GHSA-6wgr-89rj-399p",
+  "cve": "CVE-2026-34988",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "low",
+  "impact": "LEAK",
+  "tags": "pooling knob:guard0+reservation<4G",
+  "emb": false,
+  "knob": [
+   "knob:guard0+reservation<4G"
+  ],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Data leakage between pooling allocator instances"
+ },
+ {
+  "i": 31,
+  "ghsa": "GHSA-m9w2-8782-2946",
+  "cve": "CVE-2026-34945",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "low",
+  "impact": "LEAK",
+  "tags": "winch memory64",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Host data leakage with 64-bit tables and Winch"
+ },
+ {
+  "i": 32,
+  "ghsa": "GHSA-q49f-xg75-m9xw",
+  "cve": "CVE-2026-34946",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "winch",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Host panic when Winch compiler executes `table.fill`"
+ },
+ {
+  "i": 33,
+  "ghsa": "GHSA-qqfj-4vcm-26hv",
+  "cve": "CVE-2026-34944",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC-nonexploitable",
+  "tags": "core cranelift x64 knob:sse3-off+signals-off",
+  "emb": false,
+  "knob": [
+   "knob:sse3-off+signals-off"
+  ],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Wasmtime segfault or unused out-of-sandbox load with `f64x2.splat` operator on Cranelift x86-64"
+ },
+ {
+  "i": 34,
+  "ghsa": "GHSA-f984-pcp8-v2p7",
+  "cve": "CVE-2026-35186",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "winch",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Improperly masked return value from `table.grow` with Winch compiler backend"
+ },
+ {
+  "i": 35,
+  "ghsa": "GHSA-jxhv-7h78-9775",
+  "cve": "CVE-2026-34942",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic when transcoding misaligned component model UTF-16 strings"
+ },
+ {
+  "i": 36,
+  "ghsa": "GHSA-m758-wjhj-p3jq",
+  "cve": "CVE-2026-34943",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic when lifting `flags` component value"
+ },
+ {
+  "i": 37,
+  "ghsa": "GHSA-jhxm-h53p-jm7w",
+  "cve": "CVE-2026-34971",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "aarch64 memory64 knob:spectre-or-signals-off",
+  "emb": false,
+  "knob": [
+   "knob:spectre-or-signals-off"
+  ],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Miscompiled guest heap access enables sandbox escape on aarch64 Cranelift"
+ },
+ {
+  "i": 38,
+  "ghsa": "GHSA-xx5w-cvp6-jv83",
+  "cve": "CVE-2026-34987",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "winch",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Wasmtime with Winch compiler backend may allow a sandbox-escaping memory access"
+ },
+ {
+  "i": 39,
+  "ghsa": "GHSA-hx6p-xpx3-jvvv",
+  "cve": "CVE-2026-34941",
+  "date": "2026-04-09",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Heap OOB read in component model UTF-16 to latin1+utf16 string transcoding"
+ },
+ {
+  "i": 40,
+  "ghsa": "GHSA-p8xm-42r7-89xg",
+  "cve": "CVE-2026-44216",
+  "date": "2026-04-30",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "memory64 on-demand",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Panic when allocating a table exceeding the size of the host's address space"
+ },
+ {
+  "i": 41,
+  "ghsa": "GHSA-2r75-cxrj-cmph",
+  "cve": "CVE-2026-47261",
+  "date": "2026-05-21",
+  "year": "2026",
+  "sev": "high",
+  "impact": "POLICY",
+  "tags": "wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "WASI path_open(TRUNCATE) bypasses `FilePerms::WRITE` host restriction"
+ },
+ {
+  "i": 42,
+  "ghsa": "GHSA-3p27-qvp9-27qf",
+  "cve": "CVE-2026-54786",
+  "date": "2026-06-15",
+  "year": "2026",
+  "sev": "low",
+  "impact": "LEAK",
+  "tags": "wasip1",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Leak in WASIp1 `fd_renumber` implementation"
+ },
+ {
+  "i": 43,
+  "ghsa": "GHSA-4ch3-9j33-3pmj",
+  "cve": "CVE-2026-58494",
+  "date": "2026-06-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "POLICY",
+  "tags": "wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "WASI hard links and renames bypass wasmtime-wasi's FilePerms for destination"
+ },
+ {
+  "i": 44,
+  "ghsa": "GHSA-hgjw-h833-99q9",
+  "cve": "CVE-2026-115393",
+  "date": "2026-07-31",
+  "year": "2026",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Stores can mix up type indices between engines"
+ },
+ {
+  "i": 45,
+  "ghsa": "GHSA-2hw9-mc66-jc2q",
+  "cve": "CVE-2026-104855",
+  "date": "2026-07-31",
+  "year": "2026",
+  "sev": "low",
+  "impact": "ESC",
+  "tags": "epoch-or-fuel gc embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Preemption and traps during bulk operations enable breaking internal VM state"
+ },
+ {
+  "i": 46,
+  "ghsa": "GHSA-vqjp-4c8c-hfgg",
+  "cve": "CVE-2026-115392",
+  "date": "2026-08-20",
+  "year": "2026",
+  "sev": "high",
+  "impact": "ESC",
+  "tags": "wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Filesystem sandbox escape when paths or symlinks contain trailing slashes"
+ },
+ {
+  "i": 47,
+  "ghsa": "GHSA-x84v-gj2h-g759",
+  "cve": "CVE-2026-115391",
+  "date": "2026-08-20",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "cm-async wasi-fs-or-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Guest controlled-size host heap allocation through WASIp3 streams"
+ },
+ {
+  "i": 48,
+  "ghsa": "GHSA-j2g9-4prp-pf6h",
+  "cve": "CVE-2026-115387",
+  "date": "2026-09-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "wasmtime-wasi: guest can panic host through filesystem datetime overflow (wasip1, 2, 3)"
+ },
+ {
+  "i": 49,
+  "ghsa": "GHSA-c9gc-w9vx-w86p",
+  "cve": "CVE-2026-115388",
+  "date": "2026-09-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "wasmtime-wasi-http: outgoing HTTP body write allows guest-driven host memory exhaustion (DoS)"
+ },
+ {
+  "i": 50,
+  "ghsa": "GHSA-jqpg-j7w6-42pr",
+  "cve": "CVE-2026-115389",
+  "date": "2026-09-24",
+  "year": "2026",
+  "sev": "low",
+  "impact": "DOS-RES",
+  "tags": "component embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Dynamic record lifting can allocate beyond the hostcall fuel limit"
+ },
+ {
+  "i": 51,
+  "ghsa": "GHSA-m63x-6p34-q65x",
+  "cve": "CVE-2026-115390",
+  "date": "2026-09-24",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "fuel exceptions",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "`call_ref` and exception `catch` can drop some fuel accounting, leading to exponential fuel amplification"
+ },
+ {
+  "i": 52,
+  "ghsa": "GHSA-96f6-r43r-8c24",
+  "cve": "CVE-2026-115386",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "low",
+  "impact": "LEAK",
+  "tags": "wasip1 wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "fd_readdir copies uninitialized struct padding into guest memory"
+ },
+ {
+  "i": 53,
+  "ghsa": "GHSA-hw8m-q44c-ggrf",
+  "cve": "CVE-2026-115379",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "gc exceptions",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Rooting for GC values live across `try_call` may be missing, causing GC heap corruption"
+ },
+ {
+  "i": 54,
+  "ghsa": "GHSA-j366-h8gg-77pm",
+  "cve": "CVE-2026-115380",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "wasip1 fuel",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "WASI preview 0 implementation of `poll_oneoff` circumvents fuel consumption"
+ },
+ {
+  "i": 55,
+  "ghsa": "GHSA-gqmc-89g8-p25r",
+  "cve": "CVE-2026-115381",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "wasi",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Excessive allocated memory on the host when guests don't have stdio"
+ },
+ {
+  "i": 56,
+  "ghsa": "GHSA-w4qr-p94g-mjhv",
+  "cve": "CVE-2026-115382",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Wasmtime wasi:http implementation panics with a zero timeout supplied"
+ },
+ {
+  "i": 57,
+  "ghsa": "GHSA-cfhf-m2cr-62wj",
+  "cve": "CVE-2026-115383",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "ESC",
+  "tags": "gc exceptions",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Mis-typed WebAssembly tag imports can lead to GC heap corruption"
+ },
+ {
+  "i": 58,
+  "ghsa": "GHSA-32h6-97mm-8q3c",
+  "cve": "CVE-2026-115384",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Wasmtime component async-lifted callback result count is unvalidated, causing a native stack buffer overflow"
+ },
+ {
+  "i": 59,
+  "ghsa": "GHSA-mr2v-56j5-cmfc",
+  "cve": "CVE-2026-115385",
+  "date": "2026-10-02",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Guest can panic host through filesystem timestamp before the epoch on wasip3"
+ },
+ {
+  "i": 60,
+  "ghsa": "GHSA-m9f7-9w4p-gv38",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "high",
+  "impact": "ESC",
+  "tags": "wasi-fs",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Filesystem sandbox escape when renaming symlinks with trailing slashes"
+ },
+ {
+  "i": 61,
+  "ghsa": "GHSA-5qpp-g3j2-8frx",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "low",
+  "impact": "POLICY",
+  "tags": "wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Guests can send absolute-form HTTP requests to different hosts"
+ },
+ {
+  "i": 62,
+  "ghsa": "GHSA-w36r-2hch-9xp9",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "`wasi-http`: Request with long url before query parameter crashes host"
+ },
+ {
+  "i": 63,
+  "ghsa": "GHSA-54p9-vhhq-8f7q",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Overlapping string transcode in a fused adapter can panic"
+ },
+ {
+  "i": 64,
+  "ghsa": "GHSA-p79w-pv2r-29qp",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "low",
+  "impact": "UB",
+  "tags": "exceptions",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Exception tags can cause host data structures to be unaligned"
+ },
+ {
+  "i": 65,
+  "ghsa": "GHSA-q554-3cjc-rx7p",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-RES",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Component-model handle tables are capped only per instance and charged to no limit"
+ },
+ {
+  "i": 66,
+  "ghsa": "GHSA-63h4-6cx9-pjfj",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Panic viewing component model stream or future as the wrong type"
+ },
+ {
+  "i": 67,
+  "ghsa": "GHSA-vcg5-q8m5-8379",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "OTHER",
+  "tags": "cm-async embedder",
+  "emb": true,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Wasmtime may not properly enforce async-entrypoint requirement "
+ },
+ {
+  "i": 68,
+  "ghsa": "GHSA-93g3-36p8-x2gc",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Out-of-bounds zero-length stream writes can panic "
+ },
+ {
+  "i": 69,
+  "ghsa": "GHSA-3r89-v5mq-j5xf",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Host panic when component `call_async` is cancelled under some conditions"
+ },
+ {
+  "i": 70,
+  "ghsa": "GHSA-7v24-42x9-pxf7",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "component",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Panic on erroneous call-to-host from guest realloc call"
+ },
+ {
+  "i": 71,
+  "ghsa": "GHSA-5hhx-4wrr-3j9g",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Yielding in a component start function can lead to a host panic"
+ },
+ {
+  "i": 72,
+  "ghsa": "GHSA-m6w2-jwq2-cv2c",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Panic when invoking an async-lifted function via `call`"
+ },
+ {
+  "i": 73,
+  "ghsa": "GHSA-hmwq-g22x-qjw5",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Panic when pending calls are run after a trap"
+ },
+ {
+  "i": 74,
+  "ghsa": "GHSA-wjc8-633q-pwxr",
+  "cve": null,
+  "date": "2026-10-14",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "gc",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Stack overflow dropping a long chain of recursive types"
+ },
+ {
+  "i": 75,
+  "ghsa": "GHSA-r8xh-cgf7-392j",
+  "cve": null,
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "low",
+  "impact": "POLICY",
+  "tags": "wasi-http",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "wasi-http: Guests can add conflicting content lengths to messages"
+ },
+ {
+  "i": 76,
+  "ghsa": "GHSA-jxcf-8qw5-5c33",
+  "cve": null,
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "low",
+  "impact": "POLICY",
+  "tags": "wasi-http cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "wasi-http p3: forwarded trailers aren't checked against `is_forbidden_header` hook"
+ },
+ {
+  "i": 77,
+  "ghsa": "GHSA-9prg-84vf-g5fc",
+  "cve": null,
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "POLICY",
+  "tags": "wasi-http cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "wasi-http p3: Guests can set incorrect content-length for spliced response bodies"
+ },
+ {
+  "i": 78,
+  "ghsa": "GHSA-mghf-wjfp-p5xm",
+  "cve": "CVE-2026-115893",
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "aarch64",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Cranelift backend on aarch64 can jump to incorrect target on large Wasm `br_table` instruction"
+ },
+ {
+  "i": 79,
+  "ghsa": "GHSA-897f-g5gm-fmxm",
+  "cve": "CVE-2026-115889",
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "critical",
+  "impact": "ESC",
+  "tags": "core cranelift",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": true,
+   "M1_core+P2components(no fs,no async)": true,
+   "M2_M1+wasi-fs": true
+  },
+  "summary": "Bit-packing in Cranelift compiler causes silent overflow and miscompilation"
+ },
+ {
+  "i": 80,
+  "ghsa": "GHSA-9pvw-hwfg-92h5",
+  "cve": "CVE-2026-115892",
+  "date": "2026-10-19",
+  "year": "2026",
+  "sev": "medium",
+  "impact": "DOS-PANIC",
+  "tags": "cm-async",
+  "emb": false,
+  "knob": [],
+  "hit": {
+   "M0_core_only": false,
+   "M1_core+P2components(no fs,no async)": false,
+   "M2_M1+wasi-fs": false
+  },
+  "summary": "Panic lowering a host-created component model stream into a guest that expects a different payload type"
+ }
+]

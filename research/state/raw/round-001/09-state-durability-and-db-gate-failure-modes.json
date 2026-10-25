@@ -1,0 +1,1007 @@
+{
+ "nodes": [
+  {
+   "id": "sdg-embedded-store-selection",
+   "layer": "L2",
+   "domain": "F-STATE",
+   "type": "decision-approach",
+   "title": "Embedded durable store selection for single-node/household tier",
+   "summary": "No Rust-native embedded store has a clean 2026 crash-consistency record. SQLite (C, WAL) has the longest field record but a 14-year latent WAL-reset corruption bug (fixed 2026-03/04). redb and fjall each fixed power-loss/crash-recovery bugs in the last 3 months. LMDB is mature in C but its Rust binding heed had UB-at-open until 0.23 (2026-10-22). sled never left alpha. Choice should be made by running our own fault-injection harness, not by README claims; default candidate = SQLite WAL synchronous=FULL on >=3.53.0 / 3.51.3 / 3.50.7 / 3.44.6; alternative = redb with Durability::Immediate and check_integrity on open.",
+   "urls": [
+    "https://www.sqlite.org/wal.html",
+    "https://github.com/cberner/redb/releases",
+    "https://github.com/fjall-rs/fjall/issues/329"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "Alternatives enumerated independently: SQLite, redb 4.4.0, fjall 3.1.12, heed 0.23.0/LMDB 1.0.2, sled 1.0.0-alpha.124, rocksdb crate 0.25.0, libmdbx, turso 0.9.0-pre.1, canopydb 0.2.5, own WAL (TigerBeetle-style).",
+   "overclaim_risk": "Over: treating a recent clean release as evidence of absence of bugs; every store here has had silent-loss bugs fixed in 2026.",
+   "underclaim_risk": "Under: dismissing SQLite for Rust purity; SQLite is the only candidate with an adversarial multi-decade test suite and a documented fault model."
+  },
+  {
+   "id": "sdg-sqlite-wal",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "SQLite WAL: version, bug history, fault model",
+   "summary": "Latest 3.54.1 (2026-10-16). WAL-reset corruption bug present 3.7.0 (2010-07-21) through 3.51.2 (2026-01-09); fixed 3.51.3 (2026-03-13), mainline 3.53.0 (2026-04-09), backports 3.44.6 and 3.50.7; triggers only with >=2 connections writing/checkpointing at the same instant; SQLite says rate is at or below SSD-malfunction rate. WAL + synchronous=NORMAL: commits NOT durable on power loss (only checkpoint syncs); docs say run with FULL. 3.50.2 fixed frames-without-checksum after savepoint rollback with spill. 3.51.0 hardened against close() breaking POSIX locks. howtocorrupt: no fork() of connections, no unlink/rename of db or -wal, lying drives, NFS, copying live db. Single-process single-writer-connection architecture avoids the WAL-reset trigger entirely.",
+   "urls": [
+    "https://www.sqlite.org/wal.html",
+    "https://www.sqlite.org/howtocorrupt.html",
+    "https://www.sqlite.org/changes.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "L5: pin libsqlite3-sys bundling >=3.53.0 (or 3.51.3+); PRAGMA journal_mode=WAL; synchronous=FULL; one writer connection per process; wal_autocheckpoint tuned; no forking after open; backup only via VACUUM INTO / sqlite3_rsync / backup API.",
+   "overclaim_risk": "Over: 'SQLite is proven' - the WAL-reset bug lived 16 years undetected.",
+   "underclaim_risk": "Under: that bug needs concurrent writer/checkpointer connections; single-writer design is outside it."
+  },
+  {
+   "id": "sdg-redb",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "redb 4.4.0 crash-consistency record",
+   "summary": "redb 4.4.0 (2026-10-13), Apache-2.0/MIT, 14.2M downloads, README 'Stable and maintained', CoW B-trees, has fuzz/ (fuzz_redb) and AGENTS.md/CLAUDE.md. Release notes show a dense stream of durability fixes: 3.1.3 (2026-04-02) get_mut guard dropped after commit lost data; 4.0.0 accessor written after txn completed = data loss; 4.1.0 table rename/restore_savepoint corruption; 4.2.0 (2026-08-17) 'crash during recovery from an earlier crash could silently roll back or corrupt durably committed transactions', crashes while growing file leave it unopenable, commit() errors could risk corruption; 4.3.0 (2026-09-15) crash shortly after commit could silently roll back that commit if check_integrity() had previously repaired; 4.4.0 Durability::None commits lost on clean close after caught panic. Issue #1334 (2026-08-08): read paths never verify page checksums; 57/8224 single-byte flips panic/abort; #1330 silent corruption from unvalidated freed-page lists, closed by maintainer as 'check_integrity detects it'. #1102 (2025-12) reported partial cross-table loss after SIGKILL under default 1PC+C (not reproduced). #1101 Fedimint wasm 'All roots are corrupted'. 4.x also changed type-name/key encoding (TableTypeMismatch on upgrade). No RustSec advisories exist for redb.",
+   "urls": [
+    "https://github.com/cberner/redb/releases",
+    "https://github.com/cberner/redb/issues/1334",
+    "https://github.com/cberner/redb/issues/1330",
+    "https://github.com/cberner/redb/issues/1102",
+    "https://crates.io/crates/redb"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: if adopted pin =4.4.x, Durability::Immediate, two_phase_commit on for the WAL-of-record tables, check_integrity() in CI after every fault-injection run, wrap reads of untrusted/possibly-corrupt files in catch_unwind-free error paths (panic=abort would turn corruption into crash loops).",
+   "overclaim_risk": "Over: 'ACID, crash-safe by default' README claim; maintainer's own release notes contradict it for 2026.",
+   "underclaim_risk": "Under: bug density partly reflects AI-agent bug hunting finding real but exotic cases (crafted files, post-repair crash), not routine-path loss."
+  },
+  {
+   "id": "sdg-fjall",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "fjall 3.1.12 LSM: journal-before-flush fsync bug",
+   "summary": "fjall 3.1.12 (2026-10-03), Apache-2.0/MIT, 46 open issues. Issue #329 (opened 2026-10-01, fixed 3.1.11 on 2026-10-02): memtable flush fsynced the SST but not the journal first, so after power loss a cross-keyspace WriteBatch was non-atomic and get() disagreed with range() on the same key (repro on 3.1.10). Only power loss/OS crash with PersistMode::Buffer; process crash unaffected. Other 2026 fixes: #308 WriteBatch::commit did not poison DB on journal write failure (3.1.9), #287 concurrent clear()+ingest crash/corruption (3.1.10), #296/#304. Open: #311/#337 strict recovery mode to tell mid-journal corruption from torn tail; #339 'New write pipeline'. Evidence of a responsive maintainer (fix in ~1 day) and of an immature fault model.",
+   "urls": [
+    "https://github.com/fjall-rs/fjall/issues/329",
+    "https://github.com/fjall-rs/fjall/releases",
+    "https://crates.io/crates/fjall"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "specifics": "L5 acceptance test: power-loss simulator (retain fsynced files, truncate journal to last SyncAll) asserting multi-keyspace batch atomicity and get/range agreement.",
+   "underclaim_risk": "Under: write-heavy LSM may be better for log-structured audit data than B-tree stores."
+  },
+  {
+   "id": "sdg-lmdb-heed",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "LMDB 1.0.x / heed 0.23.0 / libmdbx",
+   "summary": "LMDB official (openldap, tags LMDB_1.0.0-1.0.2); Oct 2026 commits: ITS#10643 DUPSORT delete page-count fix, ITS#10642 alignment, ITS#10615 OpenBSD cache coherency; Aug ITS#10575 write_meta on Windows WRITEMAP. ALICE (OSDI14) found 1 LMDB vulnerability (atomicity of <200B overwrite; fdatasync vs file growth metadata) with no workaround. heed 0.23.0 (2026-10-22, MIT, now meilisearch/heed) is breaking: opening DBs can no longer cause UB; open heed issues #355 (double free with txns in heed3), #336 (heed3 encrypted parallel reads corrupt), #383 (stale reads on OpenBSD), #299 checksums missing. LMDB has no page checksums; crash-safety rests on 2 meta pages and OS honoring msync/fdatasync; mmap makes any bug in safe Rust bindings UB. RustSec: old lmdb crate unmaintained (RUSTSEC-2022-0001), lmdb-rs RUSTSEC-2023-0047. libmdbx (erthink) active 2026-10-22 claims to surpass LMDB.",
+   "urls": [
+    "https://github.com/LMDB/lmdb",
+    "https://github.com/meilisearch/heed/releases",
+    "https://www.usenix.org/system/files/conference/osdi14/osdi14-paper-pillai.pdf",
+    "https://rustsec.org/advisories/RUSTSEC-2022-0001.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-sled",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "sled: still alpha",
+   "summary": "crates.io max 1.0.0-alpha.124 (2024-10-11); repo pushed 2026-04-04; 172 open issues; issue #1351 (2021) 'always fsync on btrfs'. 17M downloads but no stable release in 5 years. Exclude from candidate set for state-of-record.",
+   "urls": [
+    "https://crates.io/crates/sled",
+    "https://github.com/spacejam/sled"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-rocksdb-turso",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "tool",
+   "title": "RocksDB (rust-rocksdb 0.25.0) and Turso (SQLite rewrite in Rust)",
+   "summary": "rust-rocksdb 0.25.0 (2026-08-16), C++ FFI, huge surface; RUSTSEC-2022-0046 (patched 0.19). RocksDB open issues include #14209 stale data in RowCache after best-effort recovery, #14370 checksum mismatch Windows. Turso (limbo) 0.9.0-pre.1 (2026-10-15) pre-1.0 with open corruption/data-loss issues (#7960 MVCC passive checkpoint stale table ID aliasing -> data loss; #7642; #7077); it runs deterministic simulation but is not a candidate for state-of-record. canopydb 0.2.5 (7k downloads) too immature.",
+   "urls": [
+    "https://crates.io/crates/rocksdb",
+    "https://github.com/tursodatabase/turso/issues/7960",
+    "https://github.com/facebook/rocksdb/issues/14209"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-alice-osdi14",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "paper",
+   "title": "ALICE (OSDI 2014): application crash vulnerabilities",
+   "summary": "Pillai et al. 11 apps, 60 vulnerabilities. Per-app counts (table, pdftotext verified): LevelDB1.10 10, LevelDB1.15 6, GDBM 5, HSQLDB 10, LMDB 1, SQLite rollback 1, SQLite WAL 0, PostgreSQL 1. SQLite default journal gave no durability then (doc misleading). Era caveat: 12 years old, ext3/ext4/btrfs only. Tool is a methodology: record syscalls, enumerate legal persistence-state reorderings, run checker.",
+   "urls": [
+    "https://www.usenix.org/system/files/conference/osdi14/osdi14-paper-pillai.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Over: using 2014 counts as 2026 evidence.",
+   "underclaim_risk": "Under: ALICE-style reorder enumeration still finds bugs (cf. fjall #329 is exactly a missing-ordering bug)."
+  },
+  {
+   "id": "sdg-power-osdi25",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "paper",
+   "title": "PoWER Never Corrupts (OSDI 2025)",
+   "summary": "LeBlanc et al. (UT Austin/MSR/MIT), Distinguished Artifact. Verus-verified CapybaraKV (persistent-memory KV) and Dafny CapybaraNS; crash-consistency via recoverability preconditions on storage API (PoWER), corruption-detection model that does not require co-located atomic checksums; verifies <1 min. Existence proof that crash-consistent storage can be Verus-verified; but targets PMem not Linux block files, so no drop-in for fjall/redb-style stores.",
+   "urls": [
+    "https://www.usenix.org/conference/osdi25/presentation/leblanc",
+    "https://people.csail.mit.edu/nickolai/papers/leblanc-power.pdf"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Over: reading it as verified file-backed WAL.",
+   "underclaim_risk": "Under: reusable PoWER pattern for a small verified append-only log in our own code (TCB = fs persistence model)."
+  },
+  {
+   "id": "sdg-jepsen-tigerbeetle",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "report",
+   "title": "Jepsen TigerBeetle 0.16.11 (2025-06-06): WAL/storage-fault lessons",
+   "summary": "Fault injection on superblock, WAL, grid: bit flips, misdirected-write chunk swaps, stale snapshot restores. Recovered in nearly all cases if a minority corrupted; bugs: unchecksummed sector padding/copy-number bits caused startup panics (#2681), reformatting a failed node lost 5 acked transfers (#2767; `tigerbeetle recover` in 0.16.43), WAL head corruption on a majority can brick cluster. No Strong Serializability violations from 0.16.26. Lessons: checksum every byte or validate explicitly, repair instead of assert on recoverable corruption, test at bit granularity.",
+   "urls": [
+    "https://jepsen.io/analyses/tigerbeetle-0.16.11"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-jepsen-nats",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "report",
+   "title": "Jepsen NATS 2.12.1 (2025-12-08): lazy fsync default loses acked writes",
+   "summary": "Default fsync every 2 minutes while acking immediately; Jepsen: ~30s of acked writes lost (131,418/930,005 messages) on correlated power failure (#7564); bit flips/truncation in .blk files lost 679,153 of 1,367,069 acked writes (#7549); snapshot-file corruption deleted streams (#7556); all unresolved at publication. Direct negative result for any 'ack before fsync' design.",
+   "urls": [
+    "https://jepsen.io/analyses/nats-2.12.1"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "specifics": "L5 invariant: acknowledged => fsynced (or replicated to quorum with fsynced follower); a config knob that weakens this must not exist in default profile."
+  },
+  {
+   "id": "sdg-fsyncgate",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "incident",
+   "title": "fsyncgate: failed fsync cannot be retried",
+   "summary": "2018 PostgreSQL finding: Linux may mark pages clean after write-back error so retried fsync reports success while data is lost. Postgres response: data_sync_retry=off (default) => PANIC on data-file flush failure then recover from WAL. recovery_init_sync_method=syncfs on Linux <5.8 may not report I/O errors. Rule for any custom WAL: fsync/fdatasync error => abort process, never retry, recover from log. Which embedded stores follow this rule is unverified (SQLite? redb? fjall?) - test target.",
+   "urls": [
+    "https://www.postgresql.org/docs/current/runtime-config-error-handling.html",
+    "https://lwn.net/Articles/752063/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-idempotency-draft",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "spec",
+   "title": "IETF draft-ietf-httpapi-idempotency-key-header-08",
+   "summary": "-08 published 2026-10-22, active HTTPAPI WG Standards Track, expires 2027-04-25, versions 00-08, no RFC number, no shepherd/AD shown. -07 was 2025-10-15. Key = Structured Field Item String (RFC 9651), UUID (RFC 9562) recommended. Same key different payload: SHOULD 422; concurrent duplicate: SHOULD 409; missing key: 400. Does not mandate storing/replaying responses; expiry policy optional. Security: validate keys, use composite cache key including client identity (else key-guessing reads other clients' cached entries). -08 changes: RFC refs updated, issue #48 retry text adopted (open).",
+   "urls": [
+    "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+    "https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-08"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: implement key scoping as (tenant, principal, method, route, key) + request-fingerprint hash; 422 on fingerprint mismatch, 409 while in flight, replay stored response (incl. 5xx per Stripe v1) for TTL>=24h; keys never logged raw.",
+   "overclaim_risk": "Over: citing it as a standard (it is a 4-year-old WG draft, 9 revisions).",
+   "underclaim_risk": "Under: de facto semantics (Stripe) are stable and can be implemented now."
+  },
+  {
+   "id": "sdg-stripe-idempotency",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "spec",
+   "title": "Stripe idempotency semantics as de facto reference",
+   "summary": "API v1: saves status code+body of first request after endpoint execution begins, replays incl. 500s; keys <=255 chars; prune >=24h; param mismatch errors; validation failures and concurrent-conflict responses are NOT saved (retryable); POST only. API v2: retries drive failed/partial work to completion. Source of the design the IETF draft codifies.",
+   "urls": [
+    "https://docs.stripe.com/api/idempotent_requests"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-exactly-once-boundary",
+   "layer": "L2",
+   "domain": "F-STATE",
+   "type": "principle",
+   "title": "Exactly-once side effects: what is and is not achievable",
+   "summary": "ACHIEVABLE: (1) exactly-once EFFECT when the effect and the dedup/checkpoint record commit in one atomic transaction in one store (DBOS transaction steps: 'records the outcome atomically in the same database transaction'; transactional outbox/inbox; Kafka EOS inside Kafka). (2) effectively-once when the downstream peer enforces an idempotency key (Stripe; Golem docs: 'external exactly-once requires the peer to enforce an idempotency key'; header alone insufficient). (3) at-most-once per attempt (Temporal maximumAttempts=1; AWS StepSemantics.AtMostOncePerRetry) at cost of possible zero executions. NOT ACHIEVABLE: exactly-once execution of an arbitrary external side effect across a crash between effect and journal write (Two-Generals class); every engine's recovery re-runs interrupted steps: Temporal (at-least-once activities, race when attempt exceeds StartToClose timeout), Conductor, Cloudflare Workflows (steps 'may be retried'), AWS durable SDK ('neither guarantees the step runs exactly once'), DBOS (interrupted step retried). Netherite paper: exactly-once not generally implementable, proposes causally-consistent commit. Also concurrent-resume race: k resumers => effect fires k times (arXiv 2608.03836, 36/40 cells).",
+   "urls": [
+    "https://docs.dbos.dev/python/tutorials/transaction-tutorial",
+    "https://learn.golem.cloud/develop/durability",
+    "https://temporal.io/blog/idempotency-and-durable-execution",
+    "https://docs.aws.amazon.com/durable-execution/patterns/best-practices/idempotency/",
+    "https://arxiv.org/abs/2103.00033"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "L5 invariant (SPEC_INVARIANTS): for each external effect class declare one of {tx-colocated, peer-idempotent(key), at-most-once, human-reconcile}; no effect class may be declared 'exactly-once' without tx-colocation or peer dedup proof. Effects not colocated must carry deterministic idempotency key generated INSIDE the journaled step.",
+   "overclaim_risk": "Over: vendor pages say 'exactly once' (Restate).",
+   "underclaim_risk": "Under: tx-colocated exactly-once is real and cheap when the app DB is the effect store."
+  },
+  {
+   "id": "sdg-temporal",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "system",
+   "title": "Temporal: semantics actually documented",
+   "summary": "Activities at-least-once by default; maximumAttempts=1 gives at-most-once; completed activities not re-executed on replay; recommended key workflowRunId+'-'+activityId; activity not atomic; overrun of Start-To-Close can start a second attempt while first may still write. No Jepsen analysis of Temporal found (jepsen.io list). Workflow code must be deterministic, NonDeterminismError on replay mismatch.",
+   "urls": [
+    "https://temporal.io/blog/idempotency-and-durable-execution",
+    "https://docs.temporal.io/activities"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-restate",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "system",
+   "title": "Restate: documented guarantees vs marketing",
+   "summary": "Key-concepts docs: journal of each step, idempotency-key header dedups requests, single-writer per virtual object key, cluster needs majority for log. Durable-agents page states 'Side effects are executed exactly once' with no idempotency caveat - overclaim relative to journal-after-effect crash window (docs fetched do not address that window). No third-party verification found.",
+   "urls": [
+    "https://docs.restate.dev/foundations/key-concepts",
+    "https://docs.restate.dev/ai/patterns/durable-agents"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Over: the exactly-once sentence.",
+   "underclaim_risk": "Under: single-writer-per-key + journal is a sound design; fetch of request-lifecycle page failed, crash-window text unseen."
+  },
+  {
+   "id": "sdg-dbos",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "system",
+   "title": "DBOS: checkpoint in app Postgres",
+   "summary": "Workflow inputs and step outputs in system DB (1 write per step +2 per workflow). 'Transaction' steps commit app writes and checkpoint in one DB transaction => exactly-once for effects on that DB. Non-DB steps: interrupted steps retried, must be idempotent. Closest to the AEGIS gate model because the gate already owns a Postgres transaction.",
+   "urls": [
+    "https://docs.dbos.dev/architecture",
+    "https://docs.dbos.dev/python/tutorials/transaction-tutorial"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-cloudflare-do-workflows",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "system",
+   "title": "Cloudflare Durable Objects (SQLite) and Workflows",
+   "summary": "DO SQLite storage: Storage Relay Service intercepts SQLite WAL via VFS; each commit forwarded to 5 followers in different data centers, confirmed at 3 acks; batches to object store every 10 s or 16 MB; PITR 30 days; output gates hold the response until writes confirmed, failed write replaces response with error and restarts DO; losing a confirmed write needs >=4 machines in 3 buildings. Docs silent on client-retry duplicates (needs idempotency key). Workflows: one SQLite DO per instance, memoized step cache keyed by step name, step.do result <=1 MiB, steps 'may be retried', logic outside steps may rerun, default 30 min step timeout. No independent verification found.",
+   "urls": [
+    "https://blog.cloudflare.com/sqlite-in-durable-objects/",
+    "https://developers.cloudflare.com/workflows/build/rules-of-workflows/",
+    "https://blog.cloudflare.com/building-workflows-durable-execution-on-workers/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.75,
+   "load_bearing": false,
+   "specifics": "Pattern worth copying: output gate = do not release response until the journal write is durable (cheap CoW-free atomicity of response vs state)."
+  },
+  {
+   "id": "sdg-jepsen-orkes",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "report",
+   "title": "Jepsen Orkes Conductor 5.3.2-5.5.0-rc2 (2026-10-20): durable workflow engine negative result",
+   "summary": "Orkes-funded. Serious: #5 acknowledged workflows abandoned RUNNING forever (fixed 5.5.0), #7 workflows deleted after failed write (5.5.0), #9 workflows marked COMPLETED though tasks never ran (5.5.0-rc2; fixed 5.5.6). Minor unresolved: startWorkflow success reported as failure (#6; risky for retries), null ids (#3). Conductor is at-least-once; tasks must be idempotent and commutative; concurrent execution of a task on multiple workers cannot be prevented; no output-consistency violations. Only Jepsen report on a durable workflow engine; single-task workflows only; Redis data loss observed, Postgres loss untested.",
+   "urls": [
+    "https://jepsen.io/analyses/orkes-conductor-5.3.2"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-resume-contract-arxiv",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "paper",
+   "title": "arXiv 2608.03836 'Resume Means Resume' (single-author, unrefereed, 2026-08)",
+   "summary": "RESUME contract (6 properties) with TLA+ model (7.4M states), TLAPS proof (196 obligations), Verus-verified REMIT recovery core. Finds LangGraph 1.2.9 re-executes durably recorded work after SIGKILL ('exactly-once across interrupts, at-least-once across crashes'), CrewAI 1.15.2 re-executes completed side-effect methods contrary to docs, pydantic-graph cannot resume mid-node, consume-once fails under concurrent resume (k racers fire effect k times; 36 of 40 cells). Scope: agent frameworks, not Temporal/DBOS. Model proofs cover reference semantics not production code.",
+   "urls": [
+    "https://arxiv.org/abs/2608.03836"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Over: verified claims apply to REMIT core only.",
+   "underclaim_risk": "Under: concurrency consume-once gap likely general; claim-in-shared-store gate is cheap."
+  },
+  {
+   "id": "sdg-cidr26-acdc",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "paper",
+   "title": "CIDR 2026 'Consistency and Correctness in Data-Oriented Workflow Systems' (Stonebraker, Zhou, Kraft, Li)",
+   "summary": "Argues durable execution is necessary but not sufficient; proposes AC/DC (atomic, consistent, durable, correct) for whole workflows; prototype supports both physical backout (DB transaction) and saga compensation; e-commerce experiment: transactional workflows faster at low contention, sagas higher throughput and fewer aborts under contention/long steps. Authors are DBOS-affiliated.",
+   "urls": [
+    "https://vldb.org/cidrdb/2026/consistency-and-correctness-in-data-oriented-workflow-systems.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "overclaim_risk": "Over: affiliated authors, abstract only read."
+  },
+  {
+   "id": "sdg-failed-request-no-mutation",
+   "layer": "L2",
+   "domain": "F-STATE",
+   "type": "decision-approach",
+   "title": "'Failed request => no state mutation': DB txn vs CoW write buffer vs saga",
+   "summary": "Evidence ranking: (a) single DB transaction per request is the strongest existence proof - PostgREST runs every request in one transaction (default READ COMMITTED), SET LOCAL ROLE + set_config(...,true), COMMIT unless error, all queries prepared. Limits that break the invariant even there: sequences/nextval and setval are never rolled back (PG docs), side effects outside DB, ambiguous commit when connection drops after COMMIT sent, 40001 serialization failures require whole-txn retry (docs), Jepsen found Postgres 12.3 serializable G2-item anomaly present since 2011 (fixed Aug 2020) and RDS Multi-AZ 17.4 Long Fork on reader endpoint. (b) In-process per-request CoW buffer (stage writes, flush at success) gives atomicity only for the buffered store and only if flush itself is atomic - reduces to (a) at flush; no independent verification evidence found for a CoW-buffer-as-isolation design; Cloudflare output gates are the closest production analogue (response held until storage ack). (c) Sagas: compensations are semantic not physical, need durable execution to guarantee they run (CIDR26); suitable for cross-system effects, not for local state. Conclusion: invariant must be stated as 'no committed DB mutation unless the request reached its commit point; external effects only after commit via outbox or idempotent key', with sequences and ambiguous commit explicitly carved out.",
+   "urls": [
+    "https://docs.postgrest.org/en/stable/references/transactions.html",
+    "https://www.postgresql.org/docs/current/functions-sequence.html",
+    "https://www.postgresql.org/docs/current/transaction-iso.html",
+    "https://jepsen.io/analyses/postgresql-12.3",
+    "https://jepsen.io/analyses/amazon-rds-for-postgresql-17.4"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5 invariant text: INV-NOMUT: for every request r with outcome != Committed, the set of durable user-visible rows changed by r is empty, modulo {sequence values, advisory-lock side effects, pg_stat counters}; proven by construction (one txn per request, no autonomous commits, no COMMIT from handler code), tested by DST with injected failure at every await point.",
+   "overclaim_risk": "Over: 'atomic request' claims ignoring ambiguous commit and sequences.",
+   "underclaim_risk": "Under: single-txn-per-request is cheap and well-evidenced."
+  },
+  {
+   "id": "sdg-jepsen-postgres",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "type": "report",
+   "title": "Jepsen PostgreSQL 12.3 (2020) and Amazon RDS for PostgreSQL 17.4 (2025-04-29)",
+   "summary": "12.3: serializable G2-item anomalies from SSI conflict-detection bug (txid attribution across 3 concurrent txns), present since 2011 in 9.5.22/10.13/11.8/12.3/13, patched Aug 2020. RDS 17.4 Multi-AZ clusters (db.m6id.large, gp3): Long Fork / G-nonadjacent on reader endpoint in healthy clusters, all versions 13.15-17.4; cause (AWS, 2025-05-03): primary orders visibility by in-memory lock, secondaries by WAL order. Mitigation: safety-critical reads on writer, or include a write.",
+   "urls": [
+    "https://jepsen.io/analyses/postgresql-12.3",
+    "https://jepsen.io/analyses/amazon-rds-for-postgresql-17.4"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.8,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-rls-plan-cache-family",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "threat",
+   "title": "RLS plan-cache / role-change CVE family (2016-2026)",
+   "summary": "Recurring bug class: cached or inlined plans keep applying policies of a prior role after user-id changes. CVE-2016-2193 (pub 2016-04-11), CVE-2023-2455 (2023-06-09, inlining; 14.8/15.3), CVE-2024-10976 (2024-11-14; subquery/WITH/security-invoker view/SQL function; 17.1/16.5/15.9/14.14/13.17/12.21; CVSS ~4.2-5.4 per source), CVE-2026-14666 (published 2026-08-13; cached RLS policies survive role membership/attribute/db-ownership changes; fixed 18.6/17.11/16.15/15.19/14.24; CVSS 4.2 AV:N/AC:H/PR:L; stale policies persist until invalidation or connection end). All need role switching inside one backend session with plan reuse - exactly what SET ROLE + pooled connections do. CVE-2023-39418 (MERGE skips UPDATE/SELECT policies, 15.4). All verified in cveawg.mitre.org.",
+   "urls": [
+    "https://www.postgresql.org/support/security/CVE-2026-14666/",
+    "https://www.postgresql.org/support/security/CVE-2024-10976/",
+    "https://cveawg.mitre.org/api/cve/CVE-2026-14666",
+    "https://cveawg.mitre.org/api/cve/CVE-2023-2455"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "L5: never change role on a connection that will run prepared/cached statements for another principal; one backend session = one principal for its lifetime OR use SET LOCAL ROLE only inside a txn on a connection whose plan cache is invalidated (DISCARD PLANS/ DEALLOCATE ALL) - and still treat as defense-in-depth not primary gate. Pin Postgres >= 18.6/17.11/16.15 (and subscribe to security list).",
+   "overclaim_risk": "Over: CVSS 4.2 understates impact for a multi-tenant gate (confidentiality of other tenants' rows).",
+   "underclaim_risk": "Under: exploitation needs app-specific plan reuse pattern; no public exploitation found."
+  },
+  {
+   "id": "sdg-rls-leaky-stats",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "threat",
+   "title": "Leaky-operator / optimizer-statistics side channel past RLS and column grants",
+   "summary": "Planner can run user-supplied (non-leakproof) operators over statistics derived from hidden rows: CVE-2017-7484 (pub 2017-05-12), CVE-2019-10130 (2019-07-30), CVE-2024-4317 (2024-05-09, pg_stats_ext views), CVE-2025-8713 (2025-08-14; leaky operator reads MCV/histogram of data in view or RLS-hidden rows; 14-17). PG docs: policy expressions are evaluated before user conditions, but leakproof functions may be pushed ahead; referential-integrity and unique checks always bypass RLS (covert channel). One new instance every ~2-3 years.",
+   "urls": [
+    "https://cveawg.mitre.org/api/cve/CVE-2025-8713",
+    "https://cveawg.mitre.org/api/cve/CVE-2019-10130",
+    "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-sje-rls-2026",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "threat",
+   "title": "Self-join elimination dropped RLS quals (pre-release, fixed 2026-09-29)",
+   "summary": "Planner commit 2ebf25e7d (2026-08-28) 'Perform join removal by editing the query's jointree' regressed SJE to merge RTEs with different securityQuals; a role with column-level SELECT plus a default (non-security_invoker) view on same table could see other tenants' rows. Never in a released tag (18.6 not affected); fix dca6a9e32 (2026-09-29) 'Prevent self-join elimination when RTEs' checkAsUser fields differ' with new rowsecurity regress tests. Initial SJE landed 2025-02-17. Lesson: new planner optimizations are a recurring RLS-bypass source; enable_self_join_elimination is USERSET so not an enforceable control. Written up first as an unrefereed 'SJE-RLS-001' report (pgsql-hackers attachment 204873, status 2026-09-08, author unnamed).",
+   "urls": [
+    "https://github.com/postgres/postgres/commit/dca6a9e32",
+    "https://github.com/postgres/postgres/commit/2ebf25e7d70a8fce31ace78d723fa9271ab8af72",
+    "https://www.postgresql.org/message-id/attachment/204873/report.md"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.7,
+   "load_bearing": false,
+   "specifics": "L5: CI differential test: run RLS regression corpus (rowsecurity.sql from the pinned PG minor) plus our own tenant-isolation property tests against each new PG minor and against master/beta before upgrading."
+  },
+  {
+   "id": "sdg-rls-misconfig-empirical",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "incident",
+   "title": "RLS as sole gate fails in practice: agent-created tables",
+   "summary": "UpGuard (2026-10-14): 16,326 Supabase databases with publicly readable tables among ~300k candidate domains; tables created via API (as coding agents do) do not get RLS by default; >half show PII indicators. CVE-2025-48757 (pub 2025-05-30): Lovable-generated apps with insufficient RLS (CWE-863; vendor disputes). Supabase making explicit Data API grants default for new projects from 2026-05-30, all projects 2026-10-30 (per secondary report). Bytebase list of 16 footguns: owner bypass without FORCE, USING without WITH CHECK, FK/unique errors leaking cross-tenant existence, matviews/COPY outside RLS, permissive policies OR-ed. Argues for default-deny at the grant layer plus gateway-owned allowlist.",
+   "urls": [
+    "https://www.upguard.com/blog/everything-everywhere-systemic-data-exposure-in-supabase-apps",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-48757",
+    "https://www.bytebase.com/blog/postgres-row-level-security-footguns/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Over: sample is publicly-reachable Supabase endpoints, not general Postgres.",
+   "underclaim_risk": "Under: AI-agent-written schemas will increase base rate for any system that relies on developer-set policies."
+  },
+  {
+   "id": "sdg-pgdoc-rls-caveats",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "spec",
+   "title": "PostgreSQL docs: RLS caveat list",
+   "summary": "Superuser/BYPASSRLS always bypass; owners bypass unless FORCE; TRUNCATE and REFERENCES not covered; no policy => default deny; RI checks always bypass (covert channel); policy runs before user quals except leakproof functions; policy subqueries can leak under READ COMMITTED races (needs FOR SHARE/ACCESS EXCLUSIVE); UPDATE of non-visible rows silently affects 0 rows; row_security=off for dumps. Docs say nothing on poolers or plan caching - the CVE family above fills that gap.",
+   "urls": [
+    "https://www.postgresql.org/docs/current/ddl-rowsecurity.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-txn-pooling-session-leak",
+   "layer": "L2",
+   "domain": "H-DATA-GATE",
+   "type": "threat",
+   "title": "Transaction-pooling session-state leak class (SET ROLE / GUC / advisory locks)",
+   "summary": "In transaction pooling the backend is reassigned between clients; session state set by one principal can reach the next. PgBouncer docs: SET/RESET 'Never' safe in transaction mode, server_reset_query (DISCARD ALL) not run in transaction pooling, track_extra_parameters default tracks session_authorization, search_path (PG18+) etc but not role. PgDog open issues: #1850 (2026-10-18) search_path/statement_timeout/TimeZone leak to next client via SET inside txn, multi-statement queries, set_config(), DO blocks; #1341 (2026-08-11, v0.1.52) SET ROLE leaks current_user because RESET ALL skips GUC_NO_RESET_ALL role (fix PR #1444 adds RESET SESSION AUTHORIZATION); #1407 session advisory locks leak. Supavisor PR #1113 (merged 2026-07-22) adds opt-in txn_mode_leak_action detecting session SET, set_config(..,false), DISCARD, session advisory locks, LISTEN, WITH HOLD cursors, temp tables, LOAD (default 'ignore'). Safe pattern: all identity via SET LOCAL / set_config(...,true) inside an explicit txn; ban session-level state at the protocol/AST layer; or avoid third-party pooler by owning the pool in the gateway.",
+   "urls": [
+    "https://www.pgbouncer.org/features.html",
+    "https://www.pgbouncer.org/config.html",
+    "https://github.com/pgdogdev/pgdog/issues/1850",
+    "https://github.com/pgdogdev/pgdog/issues/1341",
+    "https://github.com/supabase/supavisor/pull/1113"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "specifics": "L5 invariant INV-NOSESSIONSTATE: after any statement the backend's session-level GUC/role/lock/prepared state equals the pool baseline; enforced by (1) rejecting non-LOCAL SET, set_config(,,false), DISCARD, LISTEN, advisory session locks, WITH HOLD, temp tables, LOAD at AST level, (2) DISCARD ALL + RESET SESSION AUTHORIZATION on check-in, (3) canary test: client A sets everything, client B asserts baseline."
+  },
+  {
+   "id": "sdg-pgbouncer",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "tool",
+   "title": "PgBouncer 1.26.1 (2026-10-14): CVE record",
+   "summary": "C, single-threaded, 4.4k stars. 12 CVEs listed in NEWS.md since 2025-04: CVE-2025-2291 (8.1, VALID UNTIL ignored, 1.24.1), CVE-2025-12819 (7.5, unauthenticated SQL via search_path StartupMessage when track_extra_parameters has search_path + auth_user + unqualified auth_query, fixed 1.25.1 2025-12-03), CVE-2026-6664..6667 (1.25.2 2026-05-08; SCRAM int overflow crash, stack overflow, null deref, KILL_CLIENT authz), CVE-2026-6668/6669/19888 (1.26.0 2026-09-23; unbounded loops/DoS pre-auth), CVE-2026-107348/107349/107350 (1.26.1 2026-10-14; 107350 CVSS 8.8: second StartupMessage during SCRAM lets a user who knows any auth_file password log in as any SCRAM user incl. admins/superuser, 1.17.0-1.26.0). 1.26.0 tracks search_path by default and 1.26.1 notes search_path-tracking bugs remain. Protocol-level prepared statements since 1.21.0 (2023-10-16), max_prepared_statements default 200. CVEs verified in cveawg: 2025-2291, 2025-12819, 2026-19888, 2026-107349, 2026-107350.",
+   "urls": [
+    "https://raw.githubusercontent.com/pgbouncer/pgbouncer/master/NEWS.md",
+    "https://cveawg.mitre.org/api/cve/CVE-2026-107350",
+    "https://cveawg.mitre.org/api/cve/CVE-2025-12819"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: if PgBouncer is used it must sit on a private socket reachable only by the gateway (auth bypass CVEs then require gateway compromise); pin >=1.26.1; do not enable track_extra_parameters=search_path with auth_user.",
+   "underclaim_risk": "Under: auth CVEs assume attacker reaches the pooler; behind a gateway-only socket the exposure collapses to gateway compromise."
+  },
+  {
+   "id": "sdg-pgdog-supavisor-pgcat",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "tool",
+   "title": "PgDog / Supavisor / pgcat status 2026-10-24",
+   "summary": "PgDog v0.1.62 (2026-10-16), Rust, AGPL-3.0, 5.6k stars, 272 open issues, pre-1.0, open role/GUC leak bugs (above); AGPL is a licensing constraint for embedding. Supavisor v2.10.0-rc.0 (2026-10-24), Elixir, Apache-2.0, multi-tenant; open #319 'brings down infrastructure after role modification' (2024); opt-in leak detection. pgcat: last push 2025-02-27, last release 0.2.5 2024-11-11, MIT, issue #946 (2025-12-23) nobody answers security contact => treat as unmaintained. None has published GitHub security advisories (gh api returned empty). None is a security boundary; each is a connection multiplexer.",
+   "urls": [
+    "https://github.com/pgdogdev/pgdog",
+    "https://github.com/supabase/supavisor",
+    "https://github.com/postgresml/pgcat/issues/946"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.85,
+   "load_bearing": false
+  },
+  {
+   "id": "sdg-compile-time-extraction",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "tool",
+   "title": "Compile-time query extraction: sqlx 0.9.0 / sqlc 1.31.1 / pg_query 6.2.1",
+   "summary": "sqlx 0.9.0 (2026-05-06; 172M downloads): query! macros check against live DB or .sqlx offline data; repo moving to github.com/transact-rs because not maintained by LaunchBadge for years; Cargo.lock untracked; MSRV 1.94; generic-plan nullability inference is a breaking change. RUSTSEC-2024-0363 (GHSA-xmrp-424f-vfpx, 2024-08-15): value >4 GiB overflows u32 length prefix, enabling protocol-level query smuggling (DEF CON 32 Gerste talk); patched 0.8.1; mitigation = body size limits. sqlc 1.31.1 (2026-04-22, MIT): Go built-in stable, Rust only via community plugin sqlc-gen-sqlx (beta, Postgres). pg_query 6.2.1 (2026-09-30, MIT) wraps libpg_query 17-6.2.5 (Postgres's real parser, PG17 grammar; libpg_query 18.1.0 for PG18 exists but crate not yet on it); GHSA-6ggm-xmc9-8ffg heap OOB write/read in pg_query_normalize fixed in 17-6.2.4 / crate 6.2.1 - C parser in-process is memory-unsafe TCB. Alternatives: sqlparser 0.63.0 (pure Rust, different grammar => parser differential vs Postgres), tokio-postgres 0.7.18 (RUSTSEC-2026-0178/0179/0180, malicious-server DoS only), pgwire 0.42.1 (server-side protocol framework).",
+   "urls": [
+    "https://github.com/launchbadge/sqlx/blob/main/CHANGELOG.md",
+    "https://rustsec.org/advisories/RUSTSEC-2024-0363.html",
+    "https://github.com/pganalyze/pg_query.rs/blob/main/CHANGELOG.md",
+    "https://docs.sqlc.dev/en/v1.31.1/reference/language-support.html",
+    "https://crates.io/crates/pgwire"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "specifics": "L5: build.rs/xtask extracts every SQL literal, runs pg_query parse + fingerprint, emits allowlist.json committed and hashed; runtime refuses any Parse message whose fingerprint is not in allowlist; sqlx offline data checked in CI against a pinned PG minor."
+  },
+  {
+   "id": "sdg-sql-allowlist-bypass",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "threat",
+   "title": "SQL allowlist/validator bypasses are common; protocol-level enforcement preferred",
+   "summary": "CVE-2026-85620 (pub 2026-09-04; Postgres MCP Pro 0.3.0): restricted-mode function-name validation not applied to RangeFunction nodes in FROM, so pg_read_file reachable. Third-party forbql issue #22: column-alias lists bypass column allowlists (unverified). Postgres has no built-in allowlist enforcement; the old 2ndQuadrant sqlfirewall is ~2018 vintage. Gate design should key on fingerprinted statement identity (allowlist of prepared statements, parameters only) not on AST inspection of arbitrary text, and DB-side least privilege must hold even if the gate is bypassed.",
+   "urls": [
+    "https://cveawg.mitre.org/api/cve/CVE-2026-85620",
+    "https://github.com/forbxpg/forbql/issues/22"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-sql-equivalence-verif",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "type": "paper",
+   "title": "Verified/automated SQL equivalence 2024-26: what exists, what it does not give",
+   "summary": "VeriEQL (OOPSLA 2024, arXiv 2403.03193): bounded SMT equivalence with integrity constraints, ~24k benchmarks, found bugs in MySQL/Calcite. SQLSolver (SIGMOD 2024) and QED decide unbounded fragments; Cosette older. On SQLEquiQuest SQLSolver supports ~30% of pairs and VeriEQL 2.8%; early SQLSolver version once wrongly proved a pair. arXiv 2609.09978 (S. Cohen, 2026-09-09) gives computable small-model bounds for set/bag-mixed CQs making bounded search complete for fragments; arXiv 2607.09251 SQL-RewriteBench: all 7 tested rewrite methods negative on correctness-gated score. Mechanized semantics: Coq SQL-with-nulls (Cheney/Ricciotti), HoTTSQL, DBCert (OOPSLA 2022). None verify PostgreSQL's actual semantics, authorization, or RLS; all target optimizer rewrites. Use: equivalence-check our own query rewrites (e.g., tenant-predicate injection) in CI on the supported fragment; do not claim proof of query authorization.",
+   "urls": [
+    "https://arxiv.org/abs/2403.03193",
+    "https://arxiv.org/abs/2609.09978",
+    "https://arxiv.org/abs/2607.09251",
+    "https://arxiv.org/abs/2412.05561"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "Over: 'provably correct SQL' - bounded checkers' 'checked' is not proof; fragment coverage small.",
+   "underclaim_risk": "Under: a small injected-predicate rewrite (AND tenant_id = $1) is inside decidable fragments; per-rewrite proof is feasible."
+  },
+  {
+   "id": "sdg-db-gate-residual-risk",
+   "layer": "L4",
+   "domain": "H-DATA-GATE",
+   "type": "analysis",
+   "title": "Residual-risk quantification for the DB gate",
+   "summary": "Base rates from verified primary data: (1) Postgres RLS-related confidentiality CVEs 2016-2026: 2016-2193, 2017-7484, 2019-10130, 2023-2455, 2023-39418, 2024-4317, 2024-10976, 2025-8713, 2026-14666 = 9 in ~10.5 yr => ~0.9/yr, CVSS 3.1-5.4, all authenticated, mostly need role switching + plan reuse or crafted operators; plus one pre-release planner regression (SJE, 2026-08-28 to 2026-09-29, 32 days in master). (2) PgBouncer: 12 CVEs in ~18 months, 4 auth/authz-relevant (2025-2291, 2025-12819, 2026-6667, 2026-107350). (3) Pooler session-state leak: 3 open bugs on PgDog in 2 months. (4) Gateway-side wrongness: sqlx RUSTSEC-2024-0363 (1 in 5 yr), pg_query heap OOB (1). Architecture implication: independent layers - (a) gateway statement allowlist by fingerprint, parameters only; (b) per-principal role with column grants and default-deny, no ambient owner; (c) RLS as defense-in-depth keyed on SET LOCAL txn-scoped claims; (d) no shared mutable pooler session state; (e) pin and canary every PG minor with RLS regression corpus. Assuming layer failures independent with per-layer annual compromise p~0.1-0.3 (assumption, not measured), joint ~1e-2..1e-3/yr per tenant boundary; correlation via shared planner/role-cache bugs is the main reason not to trust independence. Unmeasured: real-world exploitation rate of these CVEs (no public exploit reports found).",
+   "urls": [
+    "https://www.postgresql.org/support/security/",
+    "https://raw.githubusercontent.com/pgbouncer/pgbouncer/master/NEWS.md"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.5,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Over: product-of-probabilities.",
+   "underclaim_risk": "Under: all RLS CVEs rated Medium; none exploited in the wild per sources seen."
+  },
+  {
+   "id": "sdg-l5-crash-harness",
+   "layer": "L5",
+   "domain": "F-STATE",
+   "type": "artifact",
+   "title": "L5: storage crash/fault-injection harness acceptance gate",
+   "summary": "Spec: wrap storage in a recording VFS/fs shim (ALICE-style) that logs write/fsync/rename/ftruncate; enumerate persistence-state prefixes and reorderings between fsyncs; add bit-granularity corruption (flip each bit of header/padding, misdirected-write chunk swaps, stale-block restores as in Jepsen TigerBeetle); inject fsync EIO and require abort-not-retry (fsyncgate); after each state run recovery + invariant checker: (i) every acked commit present, (ii) multi-table batch atomic, (iii) get==range, (iv) no panic on any corrupt byte (Result::Err Corrupted only), (v) idempotent recovery (crash during recovery). Gate: 0 violations over N=10^5 crash states per candidate store in CI nightly; candidate stores that fail are excluded. Acceptance mirrors the concrete bugs found in 2026: fjall #329, redb 4.2.0 crash-during-recovery, redb #1334.",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-l5-db-gate-invariants",
+   "layer": "L5",
+   "domain": "H-DATA-GATE",
+   "type": "artifact",
+   "title": "L5: DB gate invariants and CI gates",
+   "summary": "INV-ALLOW: gateway forwards only Parse messages whose pg_query fingerprint is in the committed allowlist; Bind parameters only; no Query ('simple') messages, no COPY, no multi-statement. INV-NOSESSIONSTATE (see txn-pooling node). INV-ROLE: each request runs as SET LOCAL ROLE <tenant-class role> inside BEGIN..COMMIT, authenticator NOINHERIT, no BYPASSRLS, no table-owner connections, FORCE ROW LEVEL SECURITY on all tenant tables, column-level GRANTs only, REVOKE ALL on schema public from PUBLIC. INV-NOMUT as above. INV-IDEMP: idempotency record (tenant,key,fingerprint,status,response) inserted in the same txn as the effect. CI: (1) RLS regression corpus + tenant-isolation property test (two tenants, random statements, assert no cross-read/write) on pinned PG minor and on PG beta; (2) pooler canary leak test; (3) allowlist drift check; (4) cargo-deny/audit for sqlx, pg_query, pgwire, tokio-postgres RustSec; (5) PG minor version >= 18.6/17.11. Acceptance: all green; any new CVE on list blocks release.",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true
+  },
+  {
+   "id": "sdg-l5-idempotency-store",
+   "layer": "L5",
+   "domain": "F-STATE",
+   "type": "artifact",
+   "title": "L5: idempotency store spec",
+   "summary": "Table idem(tenant, principal, key, fp BYTEA, state ENUM(in_flight,done), status INT, body BYTEA, created TIMESTAMPTZ, PRIMARY KEY(tenant,principal,key)). Algorithm in one txn: INSERT ... ON CONFLICT DO NOTHING; if conflict: compare fp -> 422 on mismatch, state in_flight -> 409, done -> replay. Effect rows + UPDATE state=done in same txn as response storage. TTL >= 24h per Stripe; purge job. Retry loop handles 40001 by re-running whole handler. External effects: transactional outbox row in same txn; dispatcher uses deterministic key derived from (tenant,key,effect_index). Test: kill -9 at every await point (DST) and assert at-most-one effect row per (tenant,key,effect_index).",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true
+  }
+ ],
+ "edges": [
+  {
+   "src": "sdg-sqlite-wal",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-redb",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-fjall",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-lmdb-heed",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-sled",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-rocksdb-turso",
+   "dst": "sdg-embedded-store-selection",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-alice-osdi14",
+   "dst": "sdg-l5-crash-harness",
+   "type": "depends_on",
+   "note": "methodology"
+  },
+  {
+   "src": "sdg-jepsen-tigerbeetle",
+   "dst": "sdg-l5-crash-harness",
+   "type": "depends_on",
+   "note": "bit-granularity fault injection"
+  },
+  {
+   "src": "sdg-fsyncgate",
+   "dst": "sdg-l5-crash-harness",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-jepsen-nats",
+   "dst": "sdg-embedded-store-selection",
+   "type": "conflicts_with",
+   "note": "ack-before-fsync defaults"
+  },
+  {
+   "src": "sdg-power-osdi25",
+   "dst": "sdg-embedded-store-selection",
+   "type": "fills_gap",
+   "note": "verified storage exists only for PMem"
+  },
+  {
+   "src": "sdg-l5-crash-harness",
+   "dst": "sdg-embedded-store-selection",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-idempotency-draft",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "standardized_by",
+   "note": "draft-ietf-httpapi-idempotency-key-header-08 (2026-10-22)"
+  },
+  {
+   "src": "sdg-stripe-idempotency",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-exactly-once-boundary",
+   "dst": "sdg-l5-idempotency-store",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-temporal",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-restate",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-dbos",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-cloudflare-do-workflows",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-jepsen-orkes",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-resume-contract-arxiv",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "depends_on",
+   "note": "evidence for boundary"
+  },
+  {
+   "src": "sdg-restate",
+   "dst": "sdg-exactly-once-boundary",
+   "type": "conflicts_with",
+   "note": "marketing says exactly-once"
+  },
+  {
+   "src": "sdg-dbos",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "alternative_to"
+  },
+  {
+   "src": "sdg-cidr26-acdc",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-jepsen-postgres",
+   "dst": "sdg-failed-request-no-mutation",
+   "type": "conflicts_with",
+   "note": "DB txn guarantees weaker than assumed"
+  },
+  {
+   "src": "sdg-failed-request-no-mutation",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-rls-plan-cache-family",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "depends_on",
+   "note": "same root: role change within a session"
+  },
+  {
+   "src": "sdg-rls-plan-cache-family",
+   "dst": "sdg-db-gate-residual-risk",
+   "type": "cve",
+   "note": "CVE-2016-2193; CVE-2023-2455; CVE-2024-10976; CVE-2026-14666"
+  },
+  {
+   "src": "sdg-rls-leaky-stats",
+   "dst": "sdg-db-gate-residual-risk",
+   "type": "cve",
+   "note": "CVE-2017-7484; CVE-2019-10130; CVE-2024-4317; CVE-2025-8713"
+  },
+  {
+   "src": "sdg-sje-rls-2026",
+   "dst": "sdg-db-gate-residual-risk",
+   "type": "cve",
+   "note": "pre-release; commits 2ebf25e7d / dca6a9e32"
+  },
+  {
+   "src": "sdg-pgbouncer",
+   "dst": "sdg-db-gate-residual-risk",
+   "type": "cve",
+   "note": "CVE-2025-12819; CVE-2026-107350; CVE-2026-6667"
+  },
+  {
+   "src": "sdg-pgdog-supavisor-pgcat",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-pgbouncer",
+   "dst": "sdg-txn-pooling-session-leak",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-pgdoc-rls-caveats",
+   "dst": "sdg-rls-plan-cache-family",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-rls-misconfig-empirical",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "mitigates",
+   "note": "default-deny grants + gateway allowlist"
+  },
+  {
+   "src": "sdg-compile-time-extraction",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-sql-allowlist-bypass",
+   "dst": "sdg-compile-time-extraction",
+   "type": "conflicts_with",
+   "note": "text/AST allowlists bypassed; use fingerprint allowlist"
+  },
+  {
+   "src": "sdg-sql-equivalence-verif",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "fills_gap",
+   "note": "only for rewrite checks"
+  },
+  {
+   "src": "sdg-txn-pooling-session-leak",
+   "dst": "sdg-l5-db-gate-invariants",
+   "type": "mitigates"
+  },
+  {
+   "src": "sdg-l5-db-gate-invariants",
+   "dst": "sdg-db-gate-residual-risk",
+   "type": "mitigates"
+  },
+  {
+   "src": "sdg-fsyncgate",
+   "dst": "sdg-sqlite-wal",
+   "type": "depends_on"
+  },
+  {
+   "src": "sdg-failed-request-no-mutation",
+   "dst": "sdg-embedded-store-selection",
+   "type": "depends_on"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Test fsync-failure handling (EIO on fsync => abort, no retry) in SQLite, redb, fjall, LMDB via fault-injecting VFS; which follow fsyncgate rule?",
+   "layer": "L4",
+   "domain": "F-STATE",
+   "expected_info_gain": 0.8,
+   "reason": "Unverified claim; decisive for store selection."
+  },
+  {
+   "question": "Restate request-lifecycle and journaling docs plus source (restate-server, Bifrost log): exact crash window semantics of ctx.run; any independent test?",
+   "layer": "L4",
+   "domain": "F-STATE",
+   "expected_info_gain": 0.6,
+   "reason": "fetch failed; marketing exactly-once claim unresolved."
+  },
+  {
+   "question": "Temporal/Restate/DBOS deterministic-simulation or Jepsen-style third-party tests; is there any verification beyond Orkes Jepsen?",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "expected_info_gain": 0.6,
+   "reason": "only one Jepsen report on a workflow engine found."
+  },
+  {
+   "question": "Postgres txn-pooling-safe tenant identity: measured behavior of SET LOCAL ROLE + prepared statements + plan cache across role switches on PG 17.11/18.6 (CVE-2026-14666 reproducer); does DISCARD PLANS suffice?",
+   "layer": "L4",
+   "domain": "H-DATA-GATE",
+   "expected_info_gain": 0.8,
+   "reason": "Core of gate design; no reproducer located."
+  },
+  {
+   "question": "pgwire (sunng87) as server-side proxy: Parse/Bind-only enforcement feasibility, fuzzing record, unsafe share; alternatives: pgcat-fork, custom on postgres-protocol crate",
+   "layer": "L3",
+   "domain": "H-DATA-GATE",
+   "expected_info_gain": 0.7,
+   "reason": "Only crates.io metadata checked."
+  },
+  {
+   "question": "Column-grant least privilege failure modes: views vs column GRANT vs CVE-2025-8713/2024-4317; security_barrier/leakproof status; PG 18 changes",
+   "layer": "L4",
+   "domain": "H-DATA-GATE",
+   "expected_info_gain": 0.5,
+   "reason": "Only CVE-level coverage."
+  },
+  {
+   "question": "SQLite-in-process vs Postgres for the household tier: litestream 0.5.x durability semantics, sqlite3_rsync, Jepsen-style evidence on replication",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "expected_info_gain": 0.5,
+   "reason": "Litestream version only noted."
+  },
+  {
+   "question": "USENIX FAST 2024-26 and EuroSys crash-consistency papers on Linux fs semantics (ext4/xfs/btrfs torn write, atomic write support in Linux 6.11+ O_ATOMIC/RWF_ATOMIC) usable to drop double-write/WAL cost",
+   "layer": "L3",
+   "domain": "F-STATE",
+   "expected_info_gain": 0.6,
+   "reason": "Search surfaced no FAST 2025 paper; needs direct program browse."
+  },
+  {
+   "question": "Deterministic simulation of DB gate: turmoil/madsim against Postgres proxy; TigerBeetle VOPR-style fault model reuse",
+   "layer": "L5",
+   "domain": "W-ASSURE",
+   "expected_info_gain": 0.5,
+   "reason": "Bridge to W-ASSURE."
+  },
+  {
+   "question": "Postgres planner features as RLS risk surface: audit of other optimizations (join removal, partition pruning, MERGE, inheritance) for securityQuals handling since 2023",
+   "layer": "L4",
+   "domain": "H-DATA-GATE",
+   "expected_info_gain": 0.7,
+   "reason": "SJE regression suggests a pattern."
+  }
+ ],
+ "protocol_implications": [
+  "Primary-data tooling beats LLM-summarizing fetchers: use cveawg.mitre.org/api/cve/<id>, `gh api` (authenticated) for releases/issues/commits/advisory-db, crates.io API, raw GitHub files; WebFetch summaries omitted or distorted details several times (e.g. Restate crash window, CVSS numbers).",
+  "Every L3 CVE/crate/RFC id in this file was fetched from a primary source on 2026-10-24 except where grade is C/E.",
+  "Treat vendor 'exactly once' wording as E until the effect/store colocation is stated.",
+  "Open PG-minor canary: spec requires pinning RLS regression corpus per minor."
+ ],
+ "self_improvement": [
+  "state/queries.jsonl and graph.jsonl did not exist at round start, so section 8a/dedup checks relied only on _queries.log (empty at start, 424 lines by end); create empty files and define append-with-flock so siblings can be read atomically.",
+  "WebSearch returns LLM-paraphrased snippets with weak recall for crate-level topics (returned nothing for fjall/sled); prefer gh api search/issues and crates.io API; add this to explorer boilerplate.",
+  "Unauthenticated GitHub API rate limit (60/h) is hit after ~10 calls; instruct agents to use `gh api` (authenticated) from the start.",
+  "WebFetch's small model sometimes returns 'page does not mention' for content it truncated; require agents to cross-check load-bearing claims with curl of raw sources.",
+  "Add a CVE-existence helper script (cveawg.mitre.org) to the harness so identifier verification (section 11) is one call."
+ ],
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-001/09-state-durability-and-db-gate-failure-modes.json",
+ "sources_note": "60+ sources fetched; see urls per node. Date of research 2026-10-24."
+}

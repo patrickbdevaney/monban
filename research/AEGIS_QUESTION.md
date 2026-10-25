@@ -223,6 +223,29 @@ current-round logs, and graph/seen/queries state. Mandatory use per stage:
 If the script errors, fix nothing in it. Log the error in `state/self_improvement.md` and fall back to grep against
 `state/raw/` and `state/graph.jsonl`, stating that you did.
 
+## 0e. MACHINE SAFETY (2026-10-25, after the round-2 explorers crashed the laptop from memory exhaustion)
+
+The research runs on the operator's laptop: 31 GiB RAM, about 13 GB free disk, and other long-running loops sharing it.
+Parallel explorers compiling Rust benchmarks (wasmtime and similar) at the same time exhausted RAM and crashed the
+machine. Binding rules for every agent:
+
+- **Wrap every heavy command** in `/home/patrickd/aegis/research/tools/heavy.sh <command...>`. Heavy means: cargo
+  build/bench/run/install, rustup/toolchain/elan/Lean installs, load generators, crash simulators, anything over about
+  1 GB RAM or 1 min of CPU. The wrapper:
+  - runs one heavy job at a time machine-wide
+  - caps memory at 6 GB
+  - runs at nice 15 with a 30-minute timeout
+  - refuses when under 10 GB of disk is free
+  Never bypass it. Never run `cargo` directly.
+- **Disk.** Each explorer gets at most 1.5 GB in total, including `target/` dirs.
+  - Reuse an existing `target/` dir rather than creating a second one.
+  - Delete your `target/` when your measurement is recorded.
+  - No Lean Mathlib download, no model weights, and no Docker images over 500 MB.
+- **If an experiment can't fit these limits,** don't run it. Record it in your output as an **implementation-phase
+  spike** with its exact protocol: setup, commands, expected measurement, decision it informs. Measured numbers from
+  primary sources are acceptable substitutes, graded accordingly.
+- Never install system packages (`apt`, `sudo`).
+
 ## 1. The questions (score each separately)
 
 - **W-THREAT.** What actually breaks middle-tier servers, and what changes when attackers are LLM agents?

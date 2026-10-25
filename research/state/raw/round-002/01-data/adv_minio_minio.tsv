@@ -1,0 +1,27 @@
+GHSA-xh8f-g2qw-gcm7	CVE-2026-42600	2026-04-25	medium	Path Traversal via msgpack Body in `ReadMultiple` Storage-REST Endpoint
+GHSA-hv4r-mvr4-25vw	CVE-2026-41145	2026-04-14	high	Unauthenticated Object Write via Query-String Credential Signature Bypass in Unsigned-Trailer Uploads
+GHSA-9c4q-hq6p-c237	CVE-2026-40344	2026-04-11	high	Unauthenticated Object Write via Missing Signature Verification in Snowball Auto-Extract
+GHSA-h749-fxx7-pwpg	CVE-2026-39414	2026-04-07	high	DoS via Unbounded Memory Allocation in S3 Select CSV Parsing
+GHSA-3rh2-v3gr-35p9	CVE-2026-34204	2026-03-27	high	SSE Metadata Injection via Replication Headers
+GHSA-jv87-32hw-hh99	CVE-2026-33419	2026-03-20	medium	LDAP login brute-force via user enumeration and missing rate limit
+GHSA-5cx5-wh4m-82fh	CVE-2026-33322	2026-03-19	medium	JWT Algorithm Confusion in OIDC Authentication
+GHSA-jjjj-jwhf-8rgr	CVE-2025-62506	2025-10-16	high	Privilege Escalation via Session Policy Bypass in Service Accounts and STS
+GHSA-wg47-6jq2-q2hh	CVE-2025-31489	2025-04-03	high	incomplete signature validation for unsigned-trailer uploads
+GHSA-wc79-7x8x-2p58	CVE-2025-27414	2025-02-28	medium	SFTP authentication bypass due to improperly trusted SSH key
+GHSA-cwq8-g58r-32hg	CVE-2024-55949	2024-12-15	critical	Privilege escalation in IAM import API
+GHSA-95fr-cm4m-q5p9	CVE-2024-36107	2024-05-28	medium	Information disclosure in GetObject with If-Modified-Since, If-Unmodified-Since headers
+GHSA-xx8w-mq23-29g4	CVE-2024-24747	2024-01-31	high	Implicit allow for Access keys to inherit `admin:UpdateServiceAccount` allows for privilege escalation
+GHSA-6xvq-wj2x-3h3q	CVE-2023-28432	2023-03-21	critical	Information Disclosure in Cluster Deployment
+GHSA-2pxw-r47w-4p8c	CVE-2023-28434	2023-03-21	critical	Privilege Escalation on Linux/MacOS
+GHSA-w23q-4hw3-2pp6	CVE-2023-28433	2023-03-21	critical	Privilege Escalation on Windows via Path separator manipulation
+GHSA-9wfv-wmf7-6753	CVE-2023-27589	2023-03-13	medium	Denial of access by an admin privileged user for root credential
+GHSA-c8fc-mjj8-fc63	CVE-2023-25812	2023-02-21	high	Privilege escalation allowing DELETE on resources on object locked buckets under Governance mode
+GHSA-gr9v-6pcm-rqvg	CVE-2022-35919	2022-07-29	high	Authenticated requests for server update admin API allows path traversal
+GHSA-qrpr-r3pw-f636	CVE-2022-31028	2022-06-03	high	Possible DDOS by establishing keep-alive connections with anonymous HTTP clients
+GHSA-2j69-jjmg-534q	CVE-2022-24842	2022-04-12	high	Unprivileged user is able to create service accounts for root or other admin users
+GHSA-j6jc-jqqc-p6cx	CVE-2021-43858	2021-12-27	high	User privilege escalation in AddUser() admin API
+GHSA-v64v-g97p-577c	CVE-2021-41137	2021-10-13	high	Bypassing policy restrictions on regular users 
+GHSA-xr7r-7gpj-5pgp	CVE-2021-21390	2021-03-17	medium	Chunked body signature check not always applied
+GHSA-hq5j-6r98-9m8v	CVE-2021-21362	2021-03-04	medium	Bypassing readOnly policy by creating a temporary 'mc share upload' URL
+GHSA-m4qq-5f7c-693q	CVE-2021-21287	2021-01-30	medium	MinIO Browser API SSRF vulnerability 
+GHSA-xv4r-vccv-mg4w	CVE-2020-11012	2020-04-23	high	MinIO Admin API security issue

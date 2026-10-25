@@ -1,0 +1,370 @@
+{
+ "raw_file": "/home/patrickd/aegis/research/state/raw/round-001/12-identifier-calibration-seed-and-prior-claims.json",
+ "checked_date": "2026-10-24",
+ "nodes": [
+  {
+   "id": "cal-mcp-2026-07-28",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "MCP revision 2026-07-28 EXISTS (GA 2026-07-28); headers real; sessions removed",
+   "summary": "Spec dir + GA release tag (2026-07-28T16:47:49Z; RC 2026-05-29). Mcp-Method (all requests), Mcp-Name (tools/call, resources/read, prompts/get), Mcp-Param-{Name} via x-mcp-header (int/string/bool only) are REQUIRED (SEP-2243). MRTR: InputRequiredResult resultType=input_required with inputRequests/inputResponses (SEP-2322). Origin MUST validate -> 403. Closing SSE response stream = cancellation. DIFFERS from PDF1: protocol sessions/Mcp-Session-Id, initialize handshake and SSE resumability (Last-Event-ID) are REMOVED (SEP-2567, SEP-2575); CR/LF prohibition applies to x-mcp-header annotation NAME, header VALUES with control chars are base64-sentinel encoded not rejected.",
+   "urls": [
+    "https://github.com/modelcontextprotocol/modelcontextprotocol/releases/tag/2026-07-28",
+    "https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/basic/transports/streamable-http.mdx",
+    "https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/changelog.mdx"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "Spec is new (3 months); SDK/client adoption unmeasured here",
+   "underclaim_risk": "Treating whole PDF1 MCP description as invented would be wrong; core is accurate",
+   "specifics": "verdict exists-but-differs in session semantics"
+  },
+  {
+   "id": "cal-spargio",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "spargio EXISTS: experimental single-author io_uring runtime",
+   "summary": "crates.io spargio 0.5.13 (2026-03-18, 23 versions, first 2026-02-27, MIT, 1,373 downloads); GitHub soumyarupsarkar/spargio created 2026-02-26, 5 stars, 1 contributor, last push 2026-03-18 (~7 months stale). README: 'still experimental ... Use for evaluation only'. Work-stealing + msg_ring; spargio::boundary exists; Linux 6.0+ rec, 5.18+ msg_ring (matches PDF1).",
+   "urls": [
+    "https://crates.io/crates/spargio",
+    "https://github.com/soumyarupsarkar/spargio"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "existence != suitability",
+   "underclaim_risk": "Not hallucinated despite seed flag",
+   "specifics": "maintenance risk: single maintainer, stale, self-declared eval-only"
+  },
+  {
+   "id": "cal-kverus",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "KVerus arXiv 2605.03822 EXISTS (ASE 2026); no crate",
+   "summary": "Title 'KVerus: Scalable and Resilient Formal Verification Proof Generation for Rust Code', Liu, Wan, Wang, Wang, Huang, Wei; submitted 2026-05-05, v2 2026-08-02, cs.SE, accepted ASE 2026. Research system (retrieval-augmented, Verus). crates.io 'kverus' does NOT exist; no released tool verified here. PDF1 usage as embedded trusted build step is an extrapolation.",
+   "urls": [
+    "https://arxiv.org/abs/2605.03822"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "paper != shippable tool",
+   "underclaim_risk": "",
+   "specifics": "exists-but-differs (paper vs tool)"
+  },
+  {
+   "id": "cal-aip",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "AIP = Agent Identity Protocol arXiv 2603.24775 EXISTS; PDF1 latency figures partly wrong",
+   "summary": "Sunil Prakash, 2026-03-25, v1 only, cs.CR, single-author preprint, github.com/sunilp/aip, Apple M3 Max. MATCH: compact 0.049 ms Rust / 0.189 ms Python; +0.22 ms real MCP HTTP overhead; 340-380 B per block; X-AIP-Token header; max_depth default 3; chained mode = Biscuit. NOT FOUND: '135 us 3-hop' and '324 us 6-hop'; paper reports Rust chained verify depth3=0.516 ms, depth5=0.745 ms (Python 0.315/0.447), max depth tested 5. PDF1 gate '<300 us depth-5' contradicts paper. crates.io 'aip' = unrelated Google AIP-160/193 crate (aip-rs).",
+   "urls": [
+    "https://arxiv.org/abs/2603.24775",
+    "https://arxiv.org/html/2603.24775v1",
+    "https://crates.io/crates/aip"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.95,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "unreviewed single-author preprint",
+   "underclaim_risk": "protocol is real",
+   "specifics": "exists-but-differs"
+  },
+  {
+   "id": "cal-wasmtime-13467",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "wasmtime #13467 EXISTS: an ISSUE (question), not PR/design",
+   "summary": "'How to limit guest code execution rate?' by matthew-a-thomas, opened 2026-05-23, closed 2026-08-25, 8 comments. Hobbyist question; maintainers (cfallin, fitzgen) advise wallclock-based combinator using fuel/epochs only to regain control; no endorsed fuel-rate API. Does not support PDF1's epoch_deadline_callback recipe as an established pattern.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/issues/13467"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "exists; actual content = usage question"
+  },
+  {
+   "id": "cal-x402-volume",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "x402 '165M transactions' NOT FOUND in any primary source; figures vary 75M-200M+ with heavy wash caveats",
+   "summary": "x402.org widget (fetched 2026-10-24): last-30-days 75.41M tx, $24.24M volume, 94.06K buyers, 22K sellers; identical values appear in Wayback snapshots dated 2026-03-02 and 2026-06-06, so widget may be static/stale. Visa (Sheffield)/Artemis adjusted: ~$19M, ~134M tx since May 2025 (data as of 2026-04-21, excludes wash/test). Artemis: wash avg 63.94% of tx 2025-11-09..2026-02-07, peak 90.21%; top 1% buyers (~4,000 wallets) = ~90% adjusted volume. Major Matters tracker >200M raw (June 2026), Artemis: >95% protocol signaling. Chainalysis: >138M Base tx, 87% < $0.10. gitbook FAQ cited by PDF1 contains no such number.",
+   "urls": [
+    "https://www.x402.org",
+    "https://thedefiant.io/news/infrastructure/visa-s-sheffield-pegs-adjusted-x402-volume-at-19m",
+    "https://glenbrook.com/payments_news/the-x402-foundation-activated-a-27-year-old-internet-code-200-million-transactions-later-the-real-volume-is-still-tiny/",
+    "https://x402.gitbook.io/x402/faq"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.8,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "Transaction counts are not economic demand",
+   "underclaim_risk": "x402 is real and has Foundation + Rust impls",
+   "specifics": "secondary reports of Artemis/Visa; primary Artemis dashboard not fetched"
+  },
+  {
+   "id": "cal-rfc-9680",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "RFC 9680 = Antitrust Guidelines for IETF Participants (Oct 2024), NOT Merkle Tree Certificates",
+   "summary": "RFC 9680 Informational, Halpern and Daley, October 2024. MTC is draft-ietf-plants-merkle-tree-certs-07 (2026-10-07), also draft-davidben-tls-merkle-tree-certs-10 (2026-02-18); not an RFC as of 2026-10-24.",
+   "urls": [
+    "https://www.rfc-editor.org/rfc/rfc9680.txt",
+    "https://datatracker.ietf.org/doc/draft-ietf-plants-merkle-tree-certs/"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.99,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "specifics": "misattribution confirmed"
+  },
+  {
+   "id": "cal-crates-existence",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "All cited crates exist except kverus; versions/dates",
+   "summary": "pgwire 0.41.1 pub 2026-09-29 (latest 0.42.1 2026-10-21); wasmtime 49.0.0 2026-09-21 (latest 50.0.0 2026-10-20); biscuit-auth 6.0.0 2025-07-16 latest; redb 4.4.0; rusqlite 0.41.0 2026-10-24; pg_query 6.2.1; madsim 0.2.34 (2025-10-11); x402-rs 0.12.5 (2026-01-21); rustls 0.23.46 (0.24 dev); rustls-post-quantum 0.3.0-dev.2 (stable 0.2.0 2024-12); aws-lc-rs 1.18.2; quinn 0.11.12; hyper 1.12.0; tokio-uring 0.5.0 (2024-05, stale); monoio 0.2.4 (2024-08, stale); glommio 0.9.0 (2024-03). None yanked at cited versions. builtin/builtin_macros not on crates.io but are verus repo dirs; 'cranelift_isle_veri' not a crate but wasmtime repo has cranelift/isle/veri.",
+   "urls": [
+    "https://crates.io/api/v1/crates/pgwire",
+    "https://crates.io/api/v1/crates/wasmtime"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.97,
+   "actionability": 0.6,
+   "load_bearing": true
+  },
+  {
+   "id": "cal-uring-370k",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "tokio-uring 370k vs monoio 270k = one 2023 GitHub comment",
+   "summary": "quinn issue #915 (Completion-based I/O) comment by Icelk 2023-02-04; no hardware/workload stated; tokio-uring 0.5.0 and monoio 0.2.4 both stale since 2024. Not a benchmark.",
+   "urls": [
+    "https://github.com/quinn-rs/quinn/issues/915#issuecomment-1416763716"
+   ],
+   "evidence_grade": "D",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true
+  },
+  {
+   "id": "cal-verus-z3",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "PDF1 'Z3 4.12.5' outdated; Verus main pins Z3 4.16.0; cvc5 experimental confirmed",
+   "summary": "get-z3.sh z3_version=4.16.0; CODE.md says Z3 and experimentally cvc5.",
+   "urls": [
+    "https://github.com/verus-lang/verus/blob/main/source/tools/get-z3.sh"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": false
+  },
+  {
+   "id": "cal-pdf2",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "PDF2 identifiers: few, one misattributed",
+   "summary": "'IBM/Meta/Vatican Adversarial ML Survey (2024)': arXiv 'Adversarial Training: A Survey' 2410.15042 exists (2024-10-19) but authors Mengnan Zhao, Lihe Zhang, Jingwen Ye, Huchuan Lu, Baocai Yin, Xinchao Wang; attribution false. Krustlet exists, last push 2023-10-02 (dormant). OWASP/MITRE ATLAS/NIST items and Upwind not primary-checked (E). No RFC/CVE/benchmark numbers in PDF2.",
+   "urls": [
+    "https://arxiv.org/abs/2410.15042",
+    "https://github.com/krustlet/krustlet"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false
+  },
+  {
+   "id": "cal-misc-pdf1",
+   "layer": "L4",
+   "domain": "K",
+   "type": "calibration",
+   "title": "Other PDF1 identifiers resolve",
+   "summary": "pg_query.rs #75 (SQL parser benchmark, open, 2026-02-11); quinn #915; vaultwarden discussion 7675 (rustls aws-lc-rs X25519MLKEM768); SAFE paper (OpenReview 2NqssmiXLu not fetchable behind challenge; paper = 'Automated Proof Generation for Rust Code via Self-Evolution', ICLR 2025, arXiv 2410.15756); MDPI Future Internet 'Computational Jurisprudence' DOI 10.3390/fi18080437 (2026-08-16, Crossref); Biscuit 2.0 post, AWS-LC FIPS ML-KEM blog, HN 44980865 return 200. TrueFoundry blog: banner '~10ms ... 350+ RPS on 1 vCPU' (PDF1 says 300+), vendor marketing, no SSE-degradation figure.",
+   "urls": [
+    "https://github.com/pganalyze/pg_query.rs/issues/75",
+    "https://arxiv.org/abs/2410.15756",
+    "https://www.truefoundry.com/blog/mcp-streamable-http-wire-protocol"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false
+  }
+ ],
+ "edges": [
+  {
+   "src": "cal-aip",
+   "dst": "cal-crates-existence",
+   "type": "relates",
+   "note": "biscuit-auth 6.0.0 base"
+  },
+  {
+   "src": "cal-x402-volume",
+   "dst": "cal-rfc-9680",
+   "type": "same_calibration_batch"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Primary Artemis/Dune x402 dashboard: current adjusted vs raw transaction and USD volume, wash share, as of Oct 2026",
+   "layer": "L4",
+   "domain": "K",
+   "expected_info_gain": 0.5,
+   "reason": "only secondary reports reached"
+  },
+  {
+   "question": "Is the x402.org last-30-days widget static (identical in Mar/Jun/Oct snapshots)?",
+   "layer": "L4",
+   "domain": "K",
+   "expected_info_gain": 0.3,
+   "reason": "widget values equal across snapshots"
+  },
+  {
+   "question": "Does KVerus have a public repo/artifact and what is its pass rate on Verus benchmarks vs AutoVerus/SAFE?",
+   "layer": "L4",
+   "domain": "verification",
+   "expected_info_gain": 0.6,
+   "reason": "paper only; no crate"
+  },
+  {
+   "question": "Primary check of OWASP AI/LLM Top 10, MITRE ATLAS, NIST items cited by PDF2",
+   "layer": "L4",
+   "domain": "K",
+   "expected_info_gain": 0.2,
+   "reason": "unchecked"
+  }
+ ],
+ "hallucination_rates": {
+  "PDF1": {
+   "checkable_identifiers": 37,
+   "nonexistent": 0,
+   "exists_but_differs": 3,
+   "note": "cranelift_isle_veri as crate, KVerus as tool, MCP session semantics; numeric/factual claims checked: 12, not found 2 (165M, 135/324us), differs 3 (Z3 version, 300 vs 350 RPS/sources, depth-5 gate), anecdotal 1",
+   "identifier_existence_hallucination_rate": "0/37 (0%)",
+   "numeric_claim_failure_rate": "2 not found + 3 differ of 12 (~42% off)"
+  },
+  "seed_conversation": {
+   "checkable": 9,
+   "wrong": 2,
+   "detail": "RFC 9680 wrong, 165M unfounded; 7 flagged-suspicious items (MCP 2026-07-28, spargio, KVerus, AIP, #13467, pgwire 0.41.1, tokio-uring figure) all resolve; suspicion flags were mostly false alarms for existence"
+  },
+  "PDF2": {
+   "checkable": 6,
+   "misattributed": 1,
+   "unchecked": 3
+  }
+ },
+ "protocol_implications": [
+  "Identifier existence in prior text is reliable here but numbers drift: verify quantitative claims against the paper table, not the abstract.",
+  "Seed \u26a0 flags were wrong for existence; keep verifying content, not just existence.",
+  "Crates.io API needs a User-Agent; OpenReview and MDPI block bots (use Crossref/search fallbacks)."
+ ],
+ "self_improvement": [
+  "Add a numeric-claim reconciliation step (claim vs source table) to calibration targets.",
+  "Pre-register wash/test caveat check for any on-chain volume stat."
+ ],
+ "calibration_table": [
+  [
+   "MCP 2026-07-28",
+   "spec rev with Mcp-* headers",
+   "exists",
+   "GA 2026-07-28; sessions removed",
+   "github.com/modelcontextprotocol/modelcontextprotocol/releases/tag/2026-07-28",
+   "2026-10-24"
+  ],
+  [
+   "spargio",
+   "io_uring runtime",
+   "exists",
+   "experimental, stale since 2026-03",
+   "crates.io/crates/spargio",
+   "2026-10-24"
+  ],
+  [
+   "KVerus 2605.03822",
+   "LLM proof loop",
+   "exists-but-differs",
+   "paper (ASE 2026), no crate",
+   "arxiv.org/abs/2605.03822",
+   "2026-10-24"
+  ],
+  [
+   "AIP 2603.24775",
+   "Agent Identity Protocol",
+   "exists-but-differs",
+   "real; 135/324us not in paper",
+   "arxiv.org/abs/2603.24775",
+   "2026-10-24"
+  ],
+  [
+   "wasmtime #13467",
+   "rate-limit design basis",
+   "exists-but-differs",
+   "issue/question, closed 2026-08-25",
+   "github.com/bytecodealliance/wasmtime/issues/13467",
+   "2026-10-24"
+  ],
+  [
+   "x402 165M",
+   "tx count",
+   "not-found",
+   "75.41M/30d; 134M adjusted; >200M raw; wash 64% avg",
+   "x402.org",
+   "2026-10-24"
+  ],
+  [
+   "RFC 9680",
+   "Merkle Tree Certs",
+   "wrong",
+   "IETF antitrust guidelines",
+   "rfc-editor.org/rfc/rfc9680",
+   "2026-10-24"
+  ],
+  [
+   "pgwire 0.41.1",
+   "crate",
+   "exists",
+   "2026-09-29; latest 0.42.1",
+   "crates.io/crates/pgwire",
+   "2026-10-24"
+  ],
+  [
+   "wasmtime 49",
+   "crate",
+   "exists",
+   "2026-09-21; latest 50.0.0",
+   "crates.io/crates/wasmtime",
+   "2026-10-24"
+  ],
+  [
+   "tokio-uring 370k vs monoio 270k",
+   "benchmark",
+   "exists-but-differs",
+   "single 2023 comment",
+   "quinn#915",
+   "2026-10-24"
+  ]
+ ]
+}

@@ -1,0 +1,18 @@
+2026-07-10		medium		Connection created for the wrong upstream for forward_auth + reverse_proxy
+2026-10-13	CVE-2026-55458	low	CWE-444	RFC 7230 §6.1 compliance issue / Hop-by-hop headers that leak through
+2026-06-08	CVE-2026-52844	high	CWE-22,CWE-284	Windows `file_server` path authorization bypass via encoded backslash
+2026-06-08	CVE-2026-52845	high	CWE-287,CWE-290,CWE-444	FastCGI header normalization bypass in `forward_auth copy_headers`
+2026-07-10	CVE-2026-77281	medium	CWE-94,CWE-178,CWE-770	Three vulnerabilities in Caddy v2.11.3: rewrite placeholder re-expansion, unbounded body buffer DoS, and fileHidden case-sensitivity bypass
+2026-06-08	CVE-2026-52846	medium	CWE-116	stripHTML template function bypass in github.com/caddyserver/caddy
+2026-05-13	CVE-2026-45135	high	CWE-20,CWE-176,CWE-178	Unsafe Unicode Handling in FastCGI splitPos Allows Execution of Non-PHP Files
+2026-05-13		high	CWE-917	Caddy CVE-2026-30852 Fix Bypass
+2026-05-13	CVE-2026-45692	medium	CWE-187,CWE-863	Remote Admin Authorization Bypass in `/config` API via Array Index Normalization
+2026-05-13		medium	CWE-863	Remote Admin Authorization Bypass on PKI Endpoints via Prefix-Based Path Matching
+2026-03-06	CVE-2026-30851	high	CWE-287,CWE-345	Caddy forward_auth copy_headers Does Not Strip Client-Supplied Headers, Allowing Identity Injection and Privilege Escalation
+2026-03-06	CVE-2026-30852	medium	CWE-74,CWE-200	vars_regexp double-expands user input, leaking env vars and files
+2026-02-23	CVE-2026-27585	medium		Improper sanitization of glob characters in file matcher may lead to bypassing security protections
+2026-02-23	CVE-2026-27586	high		mTLS client authentication silently fails open when CA certificate file is missing or malformed
+2026-02-23	CVE-2026-27587	medium		Caddy: MatchPath %xx (escaped-path) branch skips case normalization, enabling path-based route/auth bypass
+2026-02-23	CVE-2026-27588	medium		Caddy: MatchHost becomes case-sensitive for large host lists (>100), enabling host-based route/auth bypass
+2026-02-23	CVE-2026-27589	medium	CWE-352	cross-origin config application via local admin API /load (caddy)
+2026-02-23	CVE-2026-27590	high		Unicode case-folding length expansion causes incorrect split_path index (SCRIPT_NAME/PATH_INFO confusion) in FastCGI transport

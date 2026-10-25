@@ -1,0 +1,1 @@
+AEGIS round 1 — 2026-10-24 — +345 nodes (333 explorer + 12 verifier), 18 merged into 16 clusters, +363 edges, 736 URLs, 473 queries (direction_diversity 0.262), mechanical_novelty 1.0 (trivial, first round), singletons 311/327 (strict 232), queue 144 (129 open), 13 predictions, 41 draft rules; not saturated

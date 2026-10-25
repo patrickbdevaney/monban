@@ -1,0 +1,5 @@
+# progress 08 (crash-consistency experiment)
+- Harness built: work/shim/shim.c (LD_PRELOAD op trace), work/wl (Rust workload+oracle: redb 4.4.0, fjall 3.1.12, heed 0.23.0, rusqlite 0.41 bundled SQLite 3.54.0, canopydb 0.2.5, controls wal naive/walcrc), work/crashsim.py (ALICE-style replay: policies dropall/all/subset/prefix; ns regimes full/journal/fsfile/strict). Results -> work/results.jsonl (3 seeds, N=300, 400 cuts).
+- Positive control (naive no-fsync log) fails massively; negative control (walcrc) 0 violations -> oracle can fail & can pass.
+- Early result: redb imm: 0 violations under journal/fsfile regimes; lost_ack only in POSIX-strict regime (db.redb created, file fsynced, parent dir never fsynced).
+- Sources so far: LWN 1009298 (RWF_ATOMIC merged 6.13 [not 6.11], direct IO only, segments_max=1); docs.kernel.org ext4 atomic_writes (since 6.13 single fsblock; bigalloc multi-block; no software fallback; DIO only); VLDB'24 'When Amnesia Strikes' LazyFS (p3017-ramos): 20 scenarios, 8 new bugs, systems PG/etcd/ZK/Redis/LevelDB/PebblesDB/LN; none of redb/fjall/LMDB/SQLite tested -> gap. LazyFS repo needs libfuse3-dev (absent here).

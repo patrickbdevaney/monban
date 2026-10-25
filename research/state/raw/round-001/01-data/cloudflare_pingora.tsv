@@ -1,0 +1,8 @@
+2026-10-20	CVE-2026-105299	high	CWE-345,CWE-346	Pingora forwards client-nominated Connection headers to HTTP/1 upstreams, allowing ACL bypass in specific chained deployments
+2026-10-20	CVE-2026-105298	medium	CWE-436	Pingora HTTP/2 :authority and Host header mismatch enables cache poisoning and host-based access control bypass
+2026-10-20	CVE-2026-105297	high	CWE-400,CWE-770	Pingora HTTP/2 server memory exhaustion through unbounded default header-list and concurrent-stream limits
+2026-03-05	CVE-2026-2836	high		Cache poisoning via insecure-by-default cache key
+2026-03-05	CVE-2026-2835	critical	CWE-444	HTTP Request Smuggling via HTTP/1.0 and Transfer-Encoding Misparsing
+2026-03-05	CVE-2026-2833	critical	CWE-444	HTTP Request Smuggling via Premature Upgrade
+2025-09-17	CVE-2025-8671	high		Pingora update for MadeYouReset HTTP/2 vulnerability
+2025-06-20	CVE-2025-4366	high	CWE-444	Request Smuggling Vulnerability in Pingora

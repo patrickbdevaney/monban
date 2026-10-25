@@ -1,0 +1,9 @@
+2026-07-14	CVE-2026-12707	high		Unbounded path event queue growth via peer-driven source connection ID rotation
+2026-07-14	CVE-2026-12523	high		Resource exhaustion in HTTP/3 and QPACK
+2026-06-19	CVE-2026-11941	medium	CWE-416	Use-after-free in connection ID iterator FFI functions
+2025-08-07	CVE-2025-7054	high	CWE-835	Infinite loop triggered by connection ID retirement
+2025-06-17	CVE-2025-4820	medium	CWE-770	Incorrect congestion window growth by optimistic ACK
+2025-06-17	CVE-2025-4821	high	CWE-770	Incorrect congestion window growth by invalid ACK ranges
+2024-03-12	CVE-2024-1410	low	CWE-400	Unbounded storage of information related to connection ID retirement in quiche
+2024-03-12	CVE-2024-1765	medium	CWE-400,CWE-770	Unlimited resource allocation by QUIC CRYPTO frames flooding
+2023-12-12	CVE-2023-6193	medium	CWE-400	Unbounded queuing of path validation messages in cloudflare-quiche

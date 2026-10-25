@@ -1,0 +1,4 @@
+2026-08-17		low	CWE-400	h2 unbounded empty DATA frames
+2021-07-07	CVE-2021-32715	low	CWE-444	Lenient Parsing of Content-Length Header When Prefixed with Plus Sign
+2021-07-07	CVE-2021-32714	medium	CWE-190	Integer Overflow in Chunked Transfer-Encoding
+2021-02-05	CVE-2021-21299	medium		Multiple Transfer-Encoding headers misinterprets request payload

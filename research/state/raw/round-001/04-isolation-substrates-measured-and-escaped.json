@@ -1,0 +1,848 @@
+{
+ "explorer": "04-isolation-substrates-measured-and-escaped",
+ "round": 1,
+ "date": "2026-10-24",
+ "nodes": [
+  {
+   "id": "iso-glue-not-boundary-pattern",
+   "layer": "L2",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Escapes cluster in glue, not in the core isolation primitive",
+   "summary": "Across 2022-2026 advisories for Wasmtime, WAMR, Wasmer, Firecracker, Cloud Hypervisor, Kata, Deno and KVM, sandbox breaks fall into five groups: (a) JIT or codegen miscompiles; (b) host filesystem path handling (symlinks, trailing slashes, TRUNCATE); (c) component-model or hostcall ABI glue; (d) virtio device emulation in VMMs; (e) orchestration and policy layers (Kata annotations). Hardware virtualization and the Wasm bounds model are rarely the failure point themselves. The glue around them is.",
+   "specifics": "Wasmtime 2026: 57 advisories. About 3 are fs-sandbox escapes, 5 critical are codegen or ABI bugs, and about 15 are guest-triggered host panics. Kata 2026: at least 6 critical or high guest-to-host bugs via virtiofs, annotations and Dragonball virtio. Cloud Hypervisor: CVE-2026-45782 (UAF in virtio-blk). Firecracker: CVE-2026-5747 (virtio-pci OOB write).",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories",
+    "https://github.com/kata-containers/kata-containers/security/advisories",
+    "https://github.com/firecracker-microvm/firecracker/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "This classification is my own (E-level synthesis over B-level data). Counts depend on each project's disclosure policy: gVisor publishes no GHSA, so it can look cleaner than it is.",
+   "underclaim_risk": "Someone could read 'the core primitive is sound' as 'Wasm or VMs are fine'. In practice the glue ships with the primitive and cannot be avoided.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wasmtime-ghsa-record-2021-2026",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Wasmtime security advisory record: 81 GHSAs, 57 of them in 2026",
+   "summary": "Full GHSA list pulled via the GitHub API on 2026-10-24. Before 2026, Wasmtime averaged about 4-8 advisories a year. In 2026 it published 57 (5 critical, 3 high, 37 medium, 12 low), driven by LLM-assisted auditing and the new component-model-async/WASIp3 surface.",
+   "specifics": "By year: 2021: 4. 2022: 8 (3 high). 2023: 4 (1 critical, CVE-2023-26489, x86_64 OOB). 2024: 4. 2025: 4 (all low). 2026: 57. Critical 2026: CVE-2026-34971 (aarch64 Cranelift miscompile; memory64 plus spectre mitigations off; CVSS4 9.0; affected 32.0.0-43.0.0); CVE-2026-34987 (Winch sandbox-escaping access); CVE-2026-115384 (async-lifted callback result count unvalidated, native stack buffer overflow, KeenLab); CVE-2026-115889 (Cranelift bit-packing overflow miscompile); CVE-2026-115893 (aarch64 br_table wrong target). High: CVE-2026-115392 and GHSA-m9f7-9w4p-gv38 (fs escape via trailing-slash symlinks), CVE-2026-47261 (path_open TRUNCATE bypasses FilePerms). Fuel bypasses: CVE-2026-115390, -115380, -115389. Pooling data leaks: CVE-2022-39393 (high), CVE-2026-34988 (low). Raw JSON: state/raw/round-001/04-data/wasmtime_ghsa.json.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-jhxm-h53p-jm7w"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.95,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "A high advisory count partly reflects good disclosure hygiene and auditing intensity, not only weakness. Many medium advisories are DoS panics.",
+   "underclaim_risk": "The 'Rust plus fuzzing means Wasmtime is basically escape-proof' prior is refuted: there were 5 critical escapes or overflows in 10 months.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "repo": "gh:bytecodealliance/wasmtime",
+   "version": "50.0.0 (2026-10-20); LTS 48.0.7, 36.0.19",
+   "license": "Apache-2.0",
+   "cve_count": 81,
+   "fuzzed": true
+  },
+  {
+   "id": "wasmtime-llm-audit-sprint-2026-04",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Bytecode Alliance LLM-driven audit sprint (April 2026)",
+   "summary": "A multi-agent LLM harness (Kashiwa/UCSD, Fallin/F5, Holley/Mozilla, plus Akamai) found 11 of the 12 advisories in the 2026-04-09 batch in a 3-week sprint. Returns diminished after week 1, and no new unique issues appeared after week 2. LLM bug-hunting is now a tier-1 requirement for new features. This is an existence proof that AI auditing finds escapes that fuzzing plus a stale verification model missed.",
+   "specifics": "11 LLM-found: 2 critical, 7 moderate, 2 low. Areas: Winch 4, Cranelift 2, component-model strings 3. The x86-64 Cranelift backend was not affected by either critical.",
+   "urls": [
+    "https://bytecodealliance.org/articles/wasmtime-security-advisories",
+    "https://cosmonic.com/blog/2026-05-12-wasmtime-new-security-frontier/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Saturation after 2 weeks reflects one harness and one model generation, not exhaustion of bugs: 46 more advisories followed from April to October.",
+   "underclaim_risk": "This is the attacker's capability too. Time-to-exploit for Wasm runtime bugs should be assumed to be days.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "cranelift-veriisle-ci",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "method",
+   "title": "VeriISLE / Crocus: SMT verification of Cranelift lowering rules, now merge-gating in CI",
+   "summary": "ASPLOS 2024 (Crocus) and OOPSLA 2025 (ASL-derived aarch64 semantics) verify ISLE lowering rules with cvc5 and z3. On wasmtime main as of 2026-10-23, the 'ISLE verifier full check' job runs whenever *.isle files change and appears in the final CI success-gate needs list. Coverage is skewed: the configs are aarch64, aarch64-fast, opt, opt-fast and only an x64 iadd base case. The verification model went stale at 32.0.0. Once it was updated, it flagged the same aarch64 bug (CVE-2026-34971) that the LLMs found.",
+   "specifics": "DOIs 10.1145/3617232.3624862 (ASPLOS'24: 3 known bugs reproduced including a 9.9 CVE, 2 new) and 10.1145/3764383 (OOPSLA'25). CI: .github/workflows/main.yml, job isle_veri_full_check, 360-minute timeout, shared SMT cache. Trusted computing base: ISA specs (ASL for aarch64), the ISLE semantics, the SMT solvers, and hand-written specs. NOT proven: x86-64 lowering (beyond iadd), the register allocator, the runtime, the WASI and component glue, and Winch.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/isle/veri/README.md",
+    "https://dl.acm.org/doi/abs/10.1145/3617232.3624862",
+    "https://doi.org/10.1145/3764383"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "'Cranelift is verified' overclaims. Only rule-level lowering is verified, mostly for aarch64, and the 2026-10 critical CVE-2026-115889 (bit-packing) shows unverified paths remain.",
+   "underclaim_risk": "This is a production existence proof of continuous SMT verification of a JIT backend, rare among Wasm and JS engines (V8 has nothing equivalent).",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "tool": "VeriISLE (cvc5+z3)",
+   "tcb": "ASL/hand specs, ISLE semantics, SMT solvers",
+   "property": "per-rule semantic equivalence of lowering"
+  },
+  {
+   "id": "clir-cranelift-fuzzer-2026",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "CLIR fuzzer found 24 Cranelift bugs in 72 hours (arXiv 2606.26977)",
+   "summary": "Liveness-driven, structure-aware fuzzing found 24 bugs across x86-64, aarch64, s390x and riscv64 (21 confirmed, 9 fixed). That is 8x more than cranelift-fuzzgen and 24x more than wasm-smith. It is a negative result for the claim that OSS-Fuzz coverage is enough.",
+   "specifics": "Cao et al., submitted 2026-06-25. Abstract-level data; the CVE mapping is not stated.",
+   "urls": [
+    "https://arxiv.org/abs/2606.26977"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wasmtime-memory64-spectre-config",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Wasmtime hardening config: wasm32 memories only, Spectre mitigations and signals-based traps on, x86_64 tier-1, Winch off",
+   "summary": "Both 2026 aarch64 critical escapes required either memory64 or disabled Spectre mitigations or signals-based traps. aarch64-linux is Tier 2. memory64 forces software bounds checks: about 110% overhead in the VMIL'24 measurements versus 12.7% with two-level guard pages. Winch had 4 of the 11 April bugs.",
+   "specifics": "Config: Config::wasm_memory64(false); keep spectre mitigations (default) and signals_based_traps(true); strategy Cranelift (not Winch); target x86_64-unknown-linux-gnu; consider disabling wasm_gc, component-model-async and exceptions unless needed (newest surface, most 2026 advisories); epoch_interruption(true); consume_fuel(false) as a security bound; PoolingAllocationConfig with explicit totals and a small max_memory_size (e.g. 64 MiB), memory_protection_keys(Auto) on x86_64 Linux. Pin the LTS line (48.x, MSRV 1.95, support to about 2028-08), and gate CI on RustSec/GHSA with a 72h upgrade SLO.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-jhxm-h53p-jm7w",
+    "https://docs.wasmtime.dev/stability-tiers.html",
+    "https://docs.wasmtime.dev/stability-release.html",
+    "https://home.cit.tum.de/~engelke/pubs/2410-vmil.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Disabling features shrinks the attack surface but does not remove codegen-bug risk on x86_64 (CVE-2023-26489 was x86_64).",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wasmtime-pooling-local-bench",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "benchmark",
+   "title": "LOCAL measurement: Wasmtime 36.0.19 instantiation, density and teardown (i9-14900HX, Linux 6.17)",
+   "summary": "This explorer's own run. A tiny module (1 page of memory, a data segment, a loop) was instantiated, called and dropped 100k times on a single thread. On-demand allocation: p50 23.2 us, p99 32.7 us, p99.9 2.0 ms. Pooling: p50 6.9 us, p99 14.6 us, p99.9 34.7 us. Pooling+MPK: p50 7.1 us, p99 15.2 us. With 10k live instances, RSS was about 7.1 KiB per instance (the floor; real handlers add their heap). Teardown: pooling 4.4 us vs on-demand 16.9 us. An epoch tick (10 ms) interrupted an infinite loop at 11.2 ms with Trap::Interrupt.",
+   "specifics": "Code: state/raw/round-001/04-bench/src/main.rs; output run1.txt. Laptop with background load, so p99.9 tails are noisy. MPK gave no latency win at 1000 slots; its benefit is virtual-address density (more slots than about 32k), not speed.",
+   "urls": [
+    "file:///home/patrickd/aegis/research/state/raw/round-001/04-bench/run1.txt"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Microbenchmark only: no WASI, no component model (canonical ABI cost is excluded), tiny module. A real Rust-to-wasm handler would likely be 50 KiB-2 MiB resident.",
+   "underclaim_risk": "The 2022 '5 us instantiate' vendor claim is broadly reproduced (6.9 us p50) on 2026 hardware.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "nanvix-same-hw-coldstart-2026",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "benchmark",
+   "title": "Same-hardware cold-start and density comparison: Firecracker, Cloud Hypervisor, gVisor, Unikraft, Hyperlight, process (Nanvix paper, 2026)",
+   "summary": "arXiv 2604.11669 (Imperial/MSR/UChicago/Azure, 2026-04-14). Setup: bare-metal 2x10-core Xeon, hyperthreading and frequency scaling off, 32 GiB, Ubuntu 24.04 kernel 6.8. Workload: a Rust HTTP echo server; cold start includes network setup and serving the first request; 1000 iterations.",
+   "specifics": "Cold start p50/p99 (ms): Firecracker v1.12.0 1055/1098; Cloud Hypervisor v45 1048/1070; Unikraft 0.12.3 on QEMU 8.2.2 321/348; gVisor 20250505 161/1186; Nanvix 27.9/41.3; Hyperlight 7.68/22.4; Linux process 3.32/18.8; Firecracker from snapshot 69/84; Cloud Hypervisor from snapshot 41/118. Instances per 1 GiB: FC 20, CLH 9, UK 18, gVisor 43, FC-S 104, CLH-S 104, Nanvix 134, Hyperlight 552, process 1646. Warm HTTP round trip p50 (us): FC 240, CLH 195, gVisor 387, Hyperlight 207, process 121. Huawei-trace peak RPS with keepalive 0: FC 43, gVisor 8.6, Hyperlight 862, process 4310.",
+   "urls": [
+    "https://arxiv.org/abs/2604.11669"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "The authors are Nanvix proponents. Network/TAP setup dominates the microVM numbers. The Firecracker spec's 125 ms boot-to-init measures a different interval.",
+   "underclaim_risk": "Real microVM end-to-end cold start is about 1 s without snapshots, not the '125 ms' often quoted.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "firecracker-spec-numbers",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "system",
+   "title": "Firecracker: specified overheads and 2026 advisories",
+   "summary": "SPECIFICATION.md (M5D.metal with hyperthreading off, and M6G.metal): VMM startup 8 CPU-ms (6-60 ms wall, about 12 ms typical); at most 5 MiB VMM overhead for 1 vCPU/128 MiB; at most 125 ms from InstanceStart to /sbin/init with a minimal kernel; >95% of bare-metal CPU; 14.5 Gbps per emulation core; +0.06 ms network latency. 2026 advisories: CVE-2026-5747 (high, virtio-pci OOB write) and CVE-2026-1386 (jailer symlink host file overwrite).",
+   "specifics": "v1.17.0 (2026-09-10), Apache-2.0. The trusted computing base includes KVM: see CVE-2026-53359 (Januscape).",
+   "urls": [
+    "https://github.com/firecracker-microvm/firecracker/blob/main/SPECIFICATION.md",
+    "https://github.com/firecracker-microvm/firecracker/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "The spec numbers exclude network setup and the application.",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "repo": "gh:firecracker-microvm/firecracker",
+   "version": "1.17.0",
+   "license": "Apache-2.0",
+   "cve_count": 2
+  },
+  {
+   "id": "kvm-januscape-cve-2026-53359",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "CVE-2026-53359 'Januscape': guest-to-host escape in the KVM/x86 shadow MMU",
+   "summary": "A use-after-free in the KVM shadow MMU, shared by Intel and AMD, latent for about 16 years. It was used as a kvmCTF 0-day and earned the $250k full-escape tier. The PoC appears to require nested virtualization exposed to the guest. Fix commit 81ccda30b4e8. Every KVM-based substrate (Firecracker, Cloud Hypervisor, Kata, Hyperlight-on-KVM, gVisor-KVM) inherits this trusted computing base.",
+   "specifics": "Disclosed on oss-sec 2026/q3/64 (July 2026) by Hyunwoo Kim. The author also notes /dev/kvm is 0666 on some distributions, which makes it a local privilege escalation path.",
+   "urls": [
+    "https://seclists.org/oss-sec/2026/q3/64"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Exploitation details are unpublished, and the nested-virtualization requirement is inferred.",
+   "underclaim_risk": "This refutes the claim that 'hardware virtualization equals no escapes'. VM escapes are rarer than JIT bugs, but they exist.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "kata-2026-escapes",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "Kata Containers 2026: cluster of critical guest-to-host and policy escapes",
+   "summary": "13 GHSAs. 2026 criticals include CVE-2026-47243 (virtiofs guest-root to host-root), CVE-2026-24834, CVE-2026-24054 (host block device hotplug), CVE-2026-41326 and CVE-2026-50540. Highs include CVE-2026-93417 (Dragonball virtio-blk VM escape) and CVE-2026-86072 (annotation bind-mounts any host path).",
+   "specifics": "Kata 4.3.1 (2026-10-21). The lesson is that the orchestration and policy layer around a VM is a large attack surface.",
+   "urls": [
+    "https://github.com/kata-containers/kata-containers/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "gvisor-record-and-overhead",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "system",
+   "title": "gVisor: escape record opaque, measured syscall overhead",
+   "summary": "No GHSAs are published on the repo. The project assigns CVEs only for issues that cross the boundary. Secondary sources claim no public full escape through both the Sentry and the host seccomp layer (unverified, grade C/D). Systrap (seccomp RET_TRAP) has been the default platform since mid-2023. Ant production data: about 800 ns per syscall vs 70 ns native, and 70% of apps saw <1% overhead. Nanvix measured a 161 ms p50 but 1186 ms p99 cold start, and 43 instances per GiB.",
+   "specifics": "release-20261019.0. Syscall-heavy workloads: Redis 56-95% and SQLite insert 125% overhead (secondhand, KubeBlocks).",
+   "urls": [
+    "https://gvisor.dev/security/",
+    "https://gvisor.dev/blog/2021/12/02/running-gvisor-in-production-at-scale-in-ant/",
+    "https://gvisor.dev/docs/architecture_guide/platforms"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.6,
+   "actionability": 0.5,
+   "load_bearing": false,
+   "overclaim_risk": "'No escapes' may reflect the disclosure policy rather than robustness.",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "hyperlight-microvm",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "system",
+   "title": "Hyperlight: device-less micro-VMs at about 1-8 ms cold start, 552 per GiB",
+   "summary": "Microsoft (CNCF sandbox). It hands the guest a linear memory slice plus a vCPU, with no virtual devices and no guest OS boot. The guest is an app bundled with a tiny kernel, optionally Wasm via hyperlight-wasm. Vendor figures: 1-2 ms VM create, versus Wasmtime sandbox start under 0.03 ms. Nanvix same-hardware measurement: 7.68 ms p50 including HTTP, 552 instances per GiB. One low GHSA (2026-08, ELF header arithmetic DoS).",
+   "specifics": "hyperlight v0.18.0 (2026-10-14), hyperlight-wasm v0.15.0 (2026-09-04), Apache-2.0. Trusted computing base: KVM, mshv or WHP, plus the host-side Rust VMM. Pre-1.0.",
+   "urls": [
+    "https://opensource.microsoft.com/blog/2024/11/07/introducing-hyperlight-virtual-machine-based-security-for-functions-at-scale/",
+    "https://github.com/hyperlight-dev/hyperlight/security/advisories",
+    "https://arxiv.org/abs/2604.11669"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "The low CVE count reflects youth and little scrutiny. It is pre-1.0.",
+   "underclaim_risk": "It offers a hardware boundary at roughly 1000x Wasm instantiation cost but about 100x cheaper than a booted microVM. That is a real middle tier.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24",
+   "repo": "gh:hyperlight-dev/hyperlight",
+   "version": "0.18.0",
+   "license": "Apache-2.0",
+   "cve_count": 1
+  },
+  {
+   "id": "v8-isolates-security-posture",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "system",
+   "title": "V8 isolates / workerd: high exploit frequency, heap sandbox not yet a boundary",
+   "summary": "60% of Chrome in-the-wild exploits from 2021 to 2023 were in V8, about half of them in the JIT (v8.dev, 2024-04-04). In 2026 so far, 4 of 7 Chrome in-the-wild 0-days are V8 (CVE-2026-3910, -11645, -85046, -87491). The heap sandbox costs about 1% and its VRP pays up to $20k, but Chromium triage still says it is 'not considered a security boundary'. Multiple 2026 bypass reports exist (e.g. issues 498294040 S1 and 520468012). The workerd README states: 'workerd is not a hardened sandbox ... run it inside ... a virtual machine.' Cloudflare's production stack adds cordons by trust tier, namespaces plus seccomp, a frozen Date.now, no threads, dynamic process isolation, and a patch gap under 24 h.",
+   "specifics": "workerd v1.20261025.1. Per-isolate memory is 'a couple MB' (Cloudflare 2020, grade D). No independent isolate-density benchmark was found (a gap).",
+   "urls": [
+    "https://v8.dev/blog/sandbox",
+    "https://labs.cloudsecurityalliance.org/research/csa-research-note-chrome-v8-zeroday-2026-20260915-csa-styled/",
+    "https://github.com/cloudflare/workerd",
+    "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/",
+    "https://cloud.google.com/blog/topics/threat-intelligence/2025-zero-day-review"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.6,
+   "load_bearing": true,
+   "overclaim_risk": "Browser 0-days are under 10% of the 2025 total (GTIG). Server-side isolates face different attackers.",
+   "underclaim_risk": "Cloudflare's multi-layer design is an existence proof that isolates can work at hyperscale with enough defense in depth and a fast patching apparatus.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wamr-wasmer-records",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "WAMR and Wasmer advisory records",
+   "summary": "WAMR: 8 GHSAs, including CVE-2026-54914 (critical heap overflow in WASI poll_oneoff), CVE-2026-54912 (high, fast-interpreter loader overflow) and CVE-2025-43853 (high, uvwasi symlink fs escape). WAMR is written in C, and its last release was 2.4.5 (2026-06-29). Wasmer: 9 GHSAs, including CVE-2023-51661 (high, filesystem sandbox not enforced), CVE-2024-38358 (symlink bypass), and 7 in 2026-10 (atomic wait/notify bounds checks, unbounded host allocation). WasmEdge: 1 (CVE-2025-69261).",
+   "specifics": "Raw JSON: 04-data/*.json.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasm-micro-runtime/security/advisories",
+    "https://github.com/wasmerio/wasmer/security/advisories"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wasi-resource-isolation-attack-usenix25",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "WASI resource-isolation attacks degrade co-tenants by 93-99% (USENIX Security 2025)",
+   "summary": "Yu et al. (HIT), testing Wasmtime 24.0.0 and Wasmer 4.3.2. Malicious instances abusing WASI fs and IO calls (fsync, file ops, large reads and writes, /dev) cut host I/O throughput by 93-99% while using only 0.09-10% CPU, so fuel and CPU accounting miss it entirely. /dev/urandom throughput dropped 92%.",
+   "specifics": "arXiv 2509.11242, USENIX Sec 2025, pp. 1111-1128.",
+   "urls": [
+    "https://arxiv.org/abs/2509.11242"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "Memory-safety isolation is not performance isolation. 'Wasm = multi-tenant safe' ignores the noisy-neighbor and DoS axis.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "fuel-not-a-security-bound",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Fuel vs epoch: epoch is about 2x cheaper, and fuel accounting has had bypasses",
+   "summary": "Wasmtime PR #3699 (2022-01-19): epoch interruption is about twice as fast as fuel on control-flow-heavy code such as SpiderMonkey.wasm, but it is non-deterministic. 2026 advisories show fuel can be circumvented or amplified (CVE-2026-115390 exponential via call_ref/catch; CVE-2026-115380 WASIp0 poll_oneoff; CVE-2026-115389 hostcall lifting beyond the fuel limit). A local measurement interrupted an infinite loop about 1.2 ms after the epoch tick.",
+   "specifics": "Recommended setup: epoch ticks at 1-10 ms from a timer thread, a per-request deadline in ticks, plus a wall-clock watchdog, plus a ResourceLimiter. Use fuel only when deterministic replay is needed, never as the DoS bound.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/pull/3699",
+    "https://docs.wasmtime.dev/examples-interrupting-wasm.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "crash-isolation-semantics",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "What survives a panic, trap, OOM or infinite loop (measured)",
+   "summary": "Local tests on Wasmtime 36.0.19. (1) A host-function panic during a guest call is caught via catch_unwind inside Wasmtime and re-raised to the embedder; the embedder can catch it with catch_unwind if panic=unwind. Panics inside non-catching libcalls abort the process (traphandlers.rs). (2) A guest OOB access gives Trap::MemoryOutOfBounds, and the same instance stays callable afterwards, so its state may be inconsistent: discard the store. (3) memory.grow past the ResourceLimiter returns -1. (4) An infinite loop ends with Trap::Interrupt via epoch. Teardown with pooling: 4.4 us per store (madvise reset). For native fork-per-request: fork+exit+wait takes 124 us p50 from a small parent but 33 ms from a parent with 1 GiB resident, so prefork must fork from a small zygote.",
+   "specifics": "Code: 04-bench/src/bin/forkpanic.rs, run2.txt. About 15 of the 2026 Wasmtime advisories are 'guest can panic host'. With panic=abort, each one becomes a whole-server DoS.",
+   "urls": [
+    "file:///home/patrickd/aegis/research/state/raw/round-001/04-bench/run2.txt",
+    "https://github.com/bytecodealliance/wasmtime/blob/main/crates/wasmtime/src/runtime/vm/traphandlers.rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "The test used a single store and module. Async and fiber paths were not tested.",
+   "underclaim_risk": "Per-request Store plus catch_unwind gives PHP-like 'request dies, server lives' semantics at about 7 us.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "rust-type-system-not-adversarial-boundary",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Safe Rust is not a security boundary against adversarial code",
+   "summary": "On 2026-10-24, rust-lang/rust has 166 open issues labeled I-unsound. #25860 (implied bounds plus variance) has been open since 2015-05-28. The cve-rs crate (5.4k stars) demonstrates memory corruption in 100% safe Rust. Capability-typed APIs in native Rust are therefore sound against buggy but benign code and unsound against malicious or prompt-injected code.",
+   "specifics": "Mitigations for first-party code: #![forbid(unsafe_code)] in handler crates, clippy disallowed_methods/types for std::fs, std::net, std::process and std::env, cargo-deny allowlists, plus OS-level seccomp/Landlock as a backstop.",
+   "urls": [
+    "https://github.com/rust-lang/rust/issues/25860",
+    "https://github.com/Speykious/cve-rs"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.9,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Exploiting a soundness hole deliberately requires intent. Accidental triggers are rare.",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "landlock-seccomp-self-sandbox",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "method",
+   "title": "Process self-sandboxing: seccomp-bpf plus Landlock ABI 1-11",
+   "summary": "Kernel docs list Landlock ABIs 1 to 11: v4 adds TCP bind/connect, v6 adds abstract-unix and signal scoping, v8 adds TSYNC, v10 adds UDP, v11 adds NO_NEW_PRIVS. Gaps: chdir, stat, chmod, chown and fcntl are not restrictable, and rulesets nest at most 16 layers. This is the backstop layer for both the native and the Wasm designs. It does not stop cross-tenant attacks inside one process.",
+   "specifics": "Use the highest available ABI with best-effort fallback. Use seccomp allowlists generated from strace of the integration tests.",
+   "urls": [
+    "https://docs.kernel.org/userspace-api/landlock.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "ebpf-not-tenant-substrate",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "eBPF is not a tenant-code substrate",
+   "summary": "The verifier has a long LPE history: CVE-2020-8835, CVE-2021-31440, CVE-2021-3600, CVE-2021-33200, CVE-2022-23222. Distributions disable unprivileged BPF. eBPF is fine as an operator-written XDP pre-filter, but wrong as a sandbox for third-party handlers.",
+   "specifics": "",
+   "urls": [
+    "https://www.zerodayinitiative.com/blog/2021/5/26/cve-2021-31440-an-incorrect-bounds-calculation-in-the-linux-kernel-ebpf-verifier",
+    "https://access.redhat.com/security/cve/cve-2021-3600"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.4,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "cheri-status-2026",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "system",
+   "title": "CHERI and CHERIoT: not deployable for VPS servers in 2026",
+   "summary": "The CHERIoT 1.0 spec was released 2025-11-03. It is microcontroller-class: SCI ICENI, Ibex core at 250 MHz. Morello remains a research board, with purecap overhead of 1.4-2.0x in an interpreter study and immature toolchains. No x86 or server-class CHERI silicon exists. It is a watch item, not a substrate.",
+   "specifics": "",
+   "urls": [
+    "https://cheriot.org/sail/specification/release/2025/11/03/cheriot-1.0.html",
+    "https://arxiv.org/pdf/2308.05076",
+    "https://arxiv.org/pdf/2407.04757"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.2,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "Don't dismiss it. CHERI gives the strongest in-process compartmentalization model, worth revisiting when Arm or RISC-V server parts ship.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "unikernel-hardening-gaps",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "Unikernels: basic mitigations missing; slow cold start under a stock VMM",
+   "summary": "x41 D-Sec (2022) and NCC Group (2019) found ASLR, W^X and stack canaries missing or flawed across several unikernels. Unikraft 0.12.3 on QEMU took 321 ms to cold-start in Nanvix's measurement. Unikraft 0.21.0 (2026-05-20) has no GHSAs published.",
+   "specifics": "",
+   "urls": [
+    "https://x41-dsec.de/news/missing-or-weak-mitigations-in-various-unikernels/",
+    "https://www.nccgroup.com/research/assessing-unikernel-security/"
+   ],
+   "evidence_grade": "C",
+   "confidence": 0.65,
+   "actionability": 0.3,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "spectre-posture-matrix",
+   "layer": "L2",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Spectre and side-channel posture per substrate",
+   "summary": "Wasmtime: call_indirect and br_table masked; dynamic memories get bounds-check masking; aarch64 csdb off by default; guard-page (static) memories rely on page faults. Swivel (USENIX Sec 2021) showed in-process Wasm cannot fully stop cross-tenant Spectre; separate processes block it except for cross-process branch-predictor poisoning. V8 and Cloudflare rely on timer freezing, no SharedArrayBuffer or threads, and process isolation on anomaly. VMs: the hypervisor plus CPU microcode, but SMT siblings must not be shared across tenants (Nanvix notes the same). Conclusion: secret-bearing tenants of different principals should not share a process. Use cordons, one process per tenant group, and SMT-aware core pinning.",
+   "specifics": "",
+   "urls": [
+    "https://docs.wasmtime.dev/security.html",
+    "https://arxiv.org/pdf/2102.12730",
+    "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "No 2024-2026 public cross-tenant Spectre exploit against Wasmtime serverless was found.",
+   "underclaim_risk": "The absence of a public exploit is not safety. Transient-execution attacks keep appearing.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "isolation-decision-table-by-provenance",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Decision table: isolation substrate keyed by code provenance and threat model",
+   "summary": "(P1) First-party code in the server's repo, human- or agent-written but passing verifiers; threat is bugs, not malice. Run native Rust handlers in-process under capability-typed contexts with #![forbid(unsafe_code)], clippy disallowed std::fs/net/process, panic=unwind, catch_unwind plus a per-request arena or Store at the request boundary, a whole-server seccomp+Landlock policy, and a supervisor restart. Wasm adds 7-23 us per request plus ABI cost and a large glue CVE surface without removing the dominant bug class (logic and authz). (P2) Semi-trusted: agent-generated plugins or handlers not human-reviewed, or code exposed to prompt injection. Run Wasmtime components in-process with the hardening config from wasmtime-memory64-spectre-config, no WASI fs preopens, host-mediated capabilities with I/O budgets, a fresh Store per request discarded on any trap, all inside the seccomp/Landlock'd worker process. (P3) Third-party, multi-tenant, mutually distrusting: Wasm or isolates inside per-cordon worker processes (grouped by trust tier) with namespaces, seccomp and Landlock, no shared memory or threads, coarse timers, a patch SLO under 72 h. Never Wasm-only. For high-value tenants, one microVM per tenant (Firecracker snapshot about 69 ms, Hyperlight about 8 ms) with nested virt disabled and /dev/kvm restricted. (P4) Arbitrary native or agent tool execution (shell, Python, npm): microVM (Firecracker or Cloud Hypervisor from snapshot) or gVisor. Never Wasm or in-process.",
+   "specifics": "Reversal conditions: (a) if Wasmtime goes 12 months with no critical escape on the x86_64 tier-1 config and VeriISLE x64 coverage exceeds 80% of lowering rules, P3 can drop the per-cordon process split for low-value tenants; (b) if Hyperlight 1.0 ships with under 2 ms cold start and an independent audit, it replaces Wasm-in-process for P2; (c) if server-class CHERI ships, revisit P1/P2 in-process compartments.",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "This is a synthesis (grade E) built on B/A nodes. The numbers are from heterogeneous hardware.",
+   "underclaim_risk": "Over-isolating first-party code costs density and DX for little security gain. The operator's 'PHP miracle' comes mostly from per-request state discard, not from a VM boundary.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  },
+  {
+   "id": "wasm-vs-native-verdict",
+   "layer": "L2",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Verdict: Wasm is the right boundary for untrusted or semi-trusted code, not for first-party code; it is never sufficient alone for third-party code",
+   "summary": "Evidence: (1) Wasm escapes recur at about 5 criticals a year in 2026 under LLM auditing, and the glue (WASI fs, component ABI) is the main surface. (2) Safe-Rust capabilities are not adversarially sound (166 I-unsound issues). (3) Per-request Wasm costs 7 us p50 pooled and about 7 KiB minimum RSS (local), so density is excellent. (4) Crash containment is equivalent in both designs once catch_unwind and a per-request Store or arena are used. For first-party code, Wasm buys authority confinement (imports only), which can be approximated natively with capability-typed contexts plus lints plus an OS sandbox. For agent-written code under injection risk, the Wasm boundary is worth its cost.",
+   "specifics": "",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.7,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Treating Wasm as 'absolute isolation' is refuted by 2026 data.",
+   "underclaim_risk": "Rejecting Wasm entirely ignores that it is the cheapest boundary (about 1000x cheaper than Hyperlight) that holds against non-JIT-exploit-capable adversaries.",
+   "first_seen_round": 1,
+   "last_verified": "2026-10-24"
+  }
+ ],
+ "edges": [
+  {
+   "src": "wasmtime-ghsa-record-2021-2026",
+   "dst": "iso-glue-not-boundary-pattern",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "kata-2026-escapes",
+   "dst": "iso-glue-not-boundary-pattern",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "wamr-wasmer-records",
+   "dst": "iso-glue-not-boundary-pattern",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "wasmtime-llm-audit-sprint-2026-04",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "explains",
+   "note": "2026 spike"
+  },
+  {
+   "src": "cranelift-veriisle-ci",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "mitigates",
+   "note": "would have caught CVE-2026-34971 if model current"
+  },
+  {
+   "src": "clir-cranelift-fuzzer-2026",
+   "dst": "cranelift-veriisle-ci",
+   "type": "complements",
+   "note": ""
+  },
+  {
+   "src": "wasmtime-memory64-spectre-config",
+   "dst": "wasmtime-ghsa-record-2021-2026",
+   "type": "mitigates",
+   "note": "removes preconditions of CVE-2026-34971"
+  },
+  {
+   "src": "wasmtime-pooling-local-bench",
+   "dst": "wasm-vs-native-verdict",
+   "type": "supports",
+   "note": "cost side"
+  },
+  {
+   "src": "nanvix-same-hw-coldstart-2026",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "supports",
+   "note": "microVM/Hyperlight costs"
+  },
+  {
+   "src": "firecracker-spec-numbers",
+   "dst": "nanvix-same-hw-coldstart-2026",
+   "type": "conflicts_with",
+   "note": "different measurement interval (boot-to-init vs first HTTP response)"
+  },
+  {
+   "src": "kvm-januscape-cve-2026-53359",
+   "dst": "firecracker-spec-numbers",
+   "type": "cve",
+   "note": "KVM TCB"
+  },
+  {
+   "src": "kvm-januscape-cve-2026-53359",
+   "dst": "hyperlight-microvm",
+   "type": "cve",
+   "note": "KVM TCB"
+  },
+  {
+   "src": "hyperlight-microvm",
+   "dst": "wasmtime-pooling-local-bench",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "gvisor-record-and-overhead",
+   "dst": "firecracker-spec-numbers",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "v8-isolates-security-posture",
+   "dst": "wasmtime-pooling-local-bench",
+   "type": "alternative_to",
+   "note": ""
+  },
+  {
+   "src": "wasi-resource-isolation-attack-usenix25",
+   "dst": "fuel-not-a-security-bound",
+   "type": "supports",
+   "note": ""
+  },
+  {
+   "src": "wasi-resource-isolation-attack-usenix25",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "constrains",
+   "note": "no WASI fs preopens for tenants"
+  },
+  {
+   "src": "fuel-not-a-security-bound",
+   "dst": "wasmtime-memory64-spectre-config",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "crash-isolation-semantics",
+   "dst": "wasm-vs-native-verdict",
+   "type": "supports",
+   "note": "crash containment parity"
+  },
+  {
+   "src": "rust-type-system-not-adversarial-boundary",
+   "dst": "wasm-vs-native-verdict",
+   "type": "supports",
+   "note": "native insufficient for adversarial code"
+  },
+  {
+   "src": "landlock-seccomp-self-sandbox",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "depends_on",
+   "note": "backstop in all rows"
+  },
+  {
+   "src": "spectre-posture-matrix",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "constrains",
+   "note": "cross-principal no shared process"
+  },
+  {
+   "src": "ebpf-not-tenant-substrate",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "excluded_from",
+   "note": ""
+  },
+  {
+   "src": "cheri-status-2026",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "reversal_condition",
+   "note": ""
+  },
+  {
+   "src": "unikernel-hardening-gaps",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "excluded_from",
+   "note": ""
+  },
+  {
+   "src": "wasm-vs-native-verdict",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "implies",
+   "note": ""
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Measure Wasmtime component-model (WIT, wasi:http) per-request cost and RSS for a realistic Rust handler (serde JSON, 200 KB code) vs native Rust handler on same box; quantify canonical-ABI overhead per call and per KB payload.",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.8,
+   "reason": "local bench covered only core-wasm tiny module; DX/perf decision hinges on component cost"
+  },
+  {
+   "question": "Independent per-isolate memory and creation latency for V8 isolates (workerd standalone, deno_core, isolated-vm) on the same hardware as the Wasmtime bench.",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.6,
+   "reason": "no independent isolate density benchmark found"
+  },
+  {
+   "question": "What fraction of Wasmtime 2026 advisories affect a minimal config (x86_64, Cranelift, wasm32, no GC/async/exceptions/memory64, no WASI fs)? Classify all 57 by feature flag precondition.",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.85,
+   "reason": "determines residual risk of the hardened config"
+  },
+  {
+   "question": "Hyperlight threat model, audit status and 1.0 roadmap; measured host-call (guest->host) latency; mshv vs KVM TCB.",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.6,
+   "reason": "candidate P2/P3 substrate replacing in-process Wasm"
+  },
+  {
+   "question": "seccomp-bpf filter overhead and Landlock check overhead per syscall on Linux 6.x for an HTTP server hot path (measured).",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.5,
+   "reason": "backstop layer cost unquantified"
+  },
+  {
+   "question": "Does any 2025-2026 paper demonstrate cross-instance Spectre leakage in Wasmtime pooling (shared process) with current mitigations?",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.55,
+   "reason": "spectre posture rests on 2021 Swivel"
+  },
+  {
+   "question": "Process-per-tenant zygote design: measured fork-from-zygote + seccomp install + Landlock restrict latency and CoW memory sharing (vs Wasm pooling 7us).",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.6,
+   "reason": "native P1/P3 alternative cost"
+  }
+ ],
+ "protocol_implications": [
+  "Default handler substrate for first-party code is native Rust with capability-typed context + per-request arena + catch_unwind; Wasm is reserved for semi-trusted/agent-generated and third-party code.",
+  "Any Wasm tenant code runs inside a seccomp+Landlock'd worker process grouped by trust cordon; never Wasm-only for mutually distrusting principals (workerd README, 5 Wasmtime criticals in 2026).",
+  "Invariant ISO-1: a Store (or native request arena) that observed a trap/panic is never reused; each request gets a fresh one.",
+  "Invariant ISO-2: no guest has ambient filesystem; all I/O is host-mediated through capabilities with per-request byte/op budgets (USENIX Sec'25 resource attacks).",
+  "Invariant ISO-3: CPU bound = epoch deadline + wall-clock watchdog; fuel is never the DoS bound.",
+  "Build profile must be panic=unwind for the server binary (or handlers isolated in processes), else every 'guest can panic host' advisory is a full-server DoS.",
+  "CI gate: RustSec/GHSA watch on wasmtime/hyper/etc. with a 72h patch SLO; pin Wasmtime LTS (48.x) and run the advisory regression corpus.",
+  "Wasmtime config pin: x86_64 tier-1 only, Cranelift, wasm_memory64(false), spectre mitigations + signals-based traps on, Winch off, unneeded proposals (gc, component-model-async, exceptions) off.",
+  "Do not expose nested virtualization or world-writable /dev/kvm on hosts running microVM tenants (CVE-2026-53359).",
+  "Benchmark protocol must report cold start as time-to-first-response including network setup; vendor boot-to-init numbers are not comparable."
+ ],
+ "self_improvement": [
+  "gh api repos/<owner>/<repo>/security-advisories gives complete, structured GHSA lists with severity, credits and dates in one call. It was the highest-yield needle tactic in this run, and siblings should use it per repo instead of web search.",
+  "A local microbenchmark on the operator's own hardware (cargo build plus 100 lines) turned vendor D-grade claims into A-grade data in under 10 minutes. Future explorers on perf questions should run one when the toolchain exists.",
+  "Note that the local rustc is 1.88 while Wasmtime 50 needs 1.97. The repo plan must pin a toolchain via rust-toolchain.toml."
+ ],
+ "predictions": [
+  {
+   "id": "pred-wasmtime-adv-2027h1",
+   "claim": "Wasmtime publishes >=10 additional GHSAs between 2026-10-25 and 2027-04-30, at least 1 rated critical",
+   "resolve_by": "2027-04-30",
+   "how_to_check": "gh api repos/bytecodealliance/wasmtime/security-advisories",
+   "p": 0.8,
+   "source_node": "wasmtime-ghsa-record-2021-2026"
+  }
+ ],
+ "sources": [
+  "https://github.com/bytecodealliance/wasmtime/security/advisories",
+  "https://bytecodealliance.org/articles/wasmtime-security-advisories",
+  "https://cosmonic.com/blog/2026-05-12-wasmtime-new-security-frontier/",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-jhxm-h53p-jm7w",
+  "https://github.com/firecracker-microvm/firecracker/security/advisories",
+  "https://github.com/wasmerio/wasmer/security/advisories",
+  "https://github.com/bytecodealliance/wasm-micro-runtime/security/advisories",
+  "https://github.com/cloudflare/workerd/security/advisories",
+  "https://github.com/hyperlight-dev/hyperlight/security/advisories",
+  "https://github.com/cloud-hypervisor/cloud-hypervisor/security/advisories",
+  "https://github.com/kata-containers/kata-containers/security/advisories",
+  "https://github.com/denoland/deno/security/advisories",
+  "https://cloud.google.com/blog/topics/threat-intelligence/2025-zero-day-review",
+  "https://labs.cloudsecurityalliance.org/research/csa-research-note-chrome-v8-zeroday-2026-20260915-csa-styled/",
+  "https://v8.dev/blog/sandbox",
+  "https://arxiv.org/abs/2604.11669",
+  "https://opensource.microsoft.com/blog/2024/11/07/introducing-hyperlight-virtual-machine-based-security-for-functions-at-scale/",
+  "https://github.com/firecracker-microvm/firecracker/blob/main/SPECIFICATION.md",
+  "https://home.cit.tum.de/~engelke/pubs/2410-vmil.pdf",
+  "https://docs.wasmtime.dev/security.html",
+  "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/",
+  "https://gvisor.dev/security/",
+  "https://github.com/bytecodealliance/wasmtime/blob/main/cranelift/isle/veri/README.md",
+  "https://dl.acm.org/doi/abs/10.1145/3617232.3624862",
+  "https://arxiv.org/abs/2606.26977",
+  "https://github.com/bytecodealliance/wasmtime/pull/3699",
+  "https://bytecodealliance.org/articles/wasmtime-10-performance",
+  "https://cheriot.org/sail/specification/release/2025/11/03/cheriot-1.0.html",
+  "https://arxiv.org/abs/2509.11242",
+  "https://arxiv.org/abs/2509.09400",
+  "https://docs.kernel.org/userspace-api/landlock.html",
+  "https://seclists.org/oss-sec/2026/q3/64",
+  "https://gvisor.dev/blog/2021/12/02/running-gvisor-in-production-at-scale-in-ant/",
+  "https://docs.wasmtime.dev/stability-release.html",
+  "https://docs.wasmtime.dev/stability-tiers.html",
+  "https://docs.wasmtime.dev/api/wasmtime/struct.PoolingAllocationConfig.html",
+  "https://github.com/cloudflare/workerd",
+  "https://github.com/rust-lang/rust/issues/25860",
+  "https://github.com/Speykious/cve-rs",
+  "https://x41-dsec.de/news/missing-or-weak-mitigations-in-various-unikernels/",
+  "https://arxiv.org/pdf/2102.12730",
+  "https://www.zerodayinitiative.com/blog/2021/5/26/cve-2021-31440-an-incorrect-bounds-calculation-in-the-linux-kernel-ebpf-verifier"
+ ],
+ "notes": "Blind research per \u00a70a: prior_treatments and seed_conversation not opened. Local bench artifacts in 04-bench/ (run1.txt, run2.txt). Raw GHSA JSON in 04-data/."
+}

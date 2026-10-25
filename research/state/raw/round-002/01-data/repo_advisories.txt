@@ -1,0 +1,114 @@
+== tursodatabase/libsql count=0
+== tursodatabase/turso count=0
+== cockroachdb/cockroach count=0
+== yugabyte/yugabyte-db count=0
+== pingcap/tidb count=1
+== apple/foundationdb count=0
+== scylladb/scylladb count=2
+GHSA-ww5v-p45p-3vhq	CVE-2023-33972	2023-09-27	high	Privilege escalation from having CREATE access on a keyspace to full permission on a table
+== pgvector/pgvector count=0
+== meilisearch/meilisearch count=0
+== redpanda-data/redpanda count=0
+== valkey-io/valkey count=12
+GHSA-jcj7-v34w-v9vv	-	2026-08-31	high	Use-after-free in the RDMA pending-data handler when a client
+GHSA-fq2f-crmw-q97r	-	2026-08-31	high	Unauthenticated use-after-free of the Lua interpreter state in Valkey (script debugger com
+GHSA-mvcj-73cw-22m4	CVE-2026-63639	2026-07-22	high	UAF in stream deserialization may lead to remote code execution
+GHSA-53mc-f3m3-99vh	CVE-2026-56684	2026-07-22	high	UAF in Valkey with TLS may lead to remote code execution
+GHSA-93p9-5vc7-8wgr	CVE-2026-27623	2026-02-23	high	Pre-Authentication DOS from malformed RESP request
+GHSA-c677-q3wr-gggq	CVE-2026-21863	2026-02-23	medium	Remote DoS with malformed Valkey Cluster bus message
+GHSA-p876-p7q5-hv2m	CVE-2025-67733	2026-02-23	high	RESP Protocol Injection via Lua error_reply
+GHSA-9rfg-jx7v-52p6	CVE-2025-49844	2025-10-03	high	Lua Use-After-Free may lead to remote code execution
+GHSA-24vm-hv6g-2mj5	CVE-2025-21605	2025-04-28	high	DoS Vulnerability due to unlimited growth of output buffers abused by unauthenticated clie
+GHSA-p4rf-xgfj-c2gq	CVE-2024-31228	2024-11-11	medium	Denial-of-service due to unbounded pattern matching
+GHSA-3864-2g29-c6pm	CVE-2024-31227	2024-11-11	medium	Denial-of-service due to malformed ACL selectors
+GHSA-cjwh-fcpr-v5r7	CVE-2024-31449	2024-11-11	high	Lua library commands may lead to stack overflow and potential RCE
+== nats-io/nats-server count=36
+GHSA-q59r-vq66-pxc2	CVE-2026-58207	2026-06-29	high	Remote crash via integer overflow in Connz pagination
+GHSA-p957-7v2w-g93g	CVE-2026-58208	2026-06-29	medium	MQTT-over-WebSocket Path Can Crash WebSocket-Only JetStream Servers Before MQTT Is Enabled
+GHSA-7qmq-8cc4-hxwg	CVE-2026-58209	2026-06-29	medium	MQTT retained and QoS replay bypass subscribe deny filters
+GHSA-r72h-j7qq-v6qg	CVE-2026-58210	2026-06-29	high	MQTT partial CONNECT packets can exhaust pre-auth memory
+GHSA-hmmp-q8cx-v964	CVE-2026-58211	2026-06-29	medium	`no_auth_user` pre-CONNECT fast path bypasses user connection restrictions
+GHSA-g33f-6538-grxh	CVE-2026-58212	2026-06-29	high	Pre-auth panic and server hang via malformed JWT issuer (missing Ed25519 length check in n
+GHSA-qrcv-3558-gj4f	CVE-2026-58213	2026-06-29	high	MQTT SUBSCRIBE Protocol Injection via Leaf Node/Route Forwarding allows arbitrary NATS com
+GHSA-4g68-3pwx-5vfj	CVE-2026-58214	2026-06-29	medium	MQTT subscribe ACL bypass via $MQTT.deliver.pubrel prefix (incomplete fix for CVE-2026-332
+GHSA-p3j5-5hrq-p75h	CVE-2026-58254	2026-06-29	medium	Incomplete fix for CVE-2026-33249: Leaf node connections bypass Nats-Trace-Dest permission
+GHSA-3g5q-cfh2-cq67	CVE-2026-58250	2026-06-29	high	Pre-auth server crash via double INFO in leafnode handshake — incomplete fix for CVE-2026-
+GHSA-jx8g-9g95-6322	CVE-2026-58251	2026-06-29	medium	Queue Subscribe Authz Bypass 
+GHSA-wh7g-5m82-pmhr	CVE-2026-58252	2026-06-29	medium	Subscribe Authz Bypass via Wildcard-Overlap
+== qdrant/qdrant count=3
+GHSA-frc7-44gm-99qq	-	2026-10-22	critical	Internal gRPC API does not require authentication by default in distributed mode
+GHSA-3gph-6c29-p29v	-	2026-10-05	high	Read-only API key and JWTs accepted on internal gRPC API when enforce_internal_auth is ena
+GHSA-f632-vm87-2m2f	CVE-2026-25628	2026-02-05	high	Arbitrary file write via `/logger` endpoint
+== opensearch-project/security count=14
+GHSA-x5hg-x4gv-j98m	-	2026-04-30	low	Ineffective TLS certificate hostname verification
+GHSA-x83w-23jp-g6pw	-	2026-04-30	medium	DLS not applied on documents linked by has_child or has_parent relation
+GHSA-22vx-2x23-98w6	-	2026-04-30	low	Improper authorization for Rollover Requests
+GHSA-2rjv-cv85-xhgm	-	2025-08-01	medium	Unauthorized data access on fields protected by field level security if field is a member 
+GHSA-rrmm-wq7q-h4v5	-	2025-08-01	medium	Unauthorized data access on fields protected by field masking for fields of type ip, geo_p
+GHSA-83x9-vc3c-hghc	-	2026-04-30	low	Bypass of REST Layer Authorization Using Malformed Paths
+GHSA-8wx3-324g-w4qq	-	2023-10-16	high	OpenSearch uncontrolled resource consumption
+GHSA-72q2-gwwf-6hrv	CVE-2023-45807	2023-10-16	medium	OpenSearch Issue with tenant read-only permissions
+GHSA-c6wg-cm5x-rqvj	CVE-2023-25806	2023-02-28	medium	Time discrepancy in authentication responses
+GHSA-g8xc-6mf7-h28h	CVE-2023-31141	2023-05-08	medium	Issue with fine-grained access control during extremely rare race conditions
+GHSA-864v-6qj7-62qj	CVE-2023-23612	2023-01-24	medium	Issue with whitespace in JWT roles
+GHSA-v3cg-7r9h-r2g6	CVE-2023-23613	2023-01-24	medium	Field-level security issue with .keyword fields
+== neo4j/neo4j count=0
+== influxdata/influxdb count=0
+== minio/minio count=27
+GHSA-xh8f-g2qw-gcm7	CVE-2026-42600	2026-04-25	medium	Path Traversal via msgpack Body in `ReadMultiple` Storage-REST Endpoint
+GHSA-hv4r-mvr4-25vw	CVE-2026-41145	2026-04-14	high	Unauthenticated Object Write via Query-String Credential Signature Bypass in Unsigned-Trai
+GHSA-9c4q-hq6p-c237	CVE-2026-40344	2026-04-11	high	Unauthenticated Object Write via Missing Signature Verification in Snowball Auto-Extract
+GHSA-h749-fxx7-pwpg	CVE-2026-39414	2026-04-07	high	DoS via Unbounded Memory Allocation in S3 Select CSV Parsing
+GHSA-3rh2-v3gr-35p9	CVE-2026-34204	2026-03-27	high	SSE Metadata Injection via Replication Headers
+GHSA-jv87-32hw-hh99	CVE-2026-33419	2026-03-20	medium	LDAP login brute-force via user enumeration and missing rate limit
+GHSA-5cx5-wh4m-82fh	CVE-2026-33322	2026-03-19	medium	JWT Algorithm Confusion in OIDC Authentication
+GHSA-jjjj-jwhf-8rgr	CVE-2025-62506	2025-10-16	high	Privilege Escalation via Session Policy Bypass in Service Accounts and STS
+GHSA-wg47-6jq2-q2hh	CVE-2025-31489	2025-04-03	high	incomplete signature validation for unsigned-trailer uploads
+GHSA-wc79-7x8x-2p58	CVE-2025-27414	2025-02-28	medium	SFTP authentication bypass due to improperly trusted SSH key
+GHSA-cwq8-g58r-32hg	CVE-2024-55949	2024-12-15	critical	Privilege escalation in IAM import API
+GHSA-95fr-cm4m-q5p9	CVE-2024-36107	2024-05-28	medium	Information disclosure in GetObject with If-Modified-Since, If-Unmodified-Since headers
+== redis/redis count=47
+GHSA-c8h9-259x-jff4	CVE-2026-25243	2026-05-05	high	Invalid Memory Access in Redis RESTORE Command May Lead to Remote Code Execution
+GHSA-8ghh-qpmp-7826	CVE-2026-23631	2026-05-05	medium	Lua Use-After-Free may lead to remote code execution
+GHSA-93m2-935m-8rj3	CVE-2026-23479	2026-05-05	high	Use-After-Free in unblock client flow may lead to remote code execution
+GHSA-jhjx-x4cf-4vm8	CVE-2025-62507	2025-11-02	high	Bug in XACKDEL may lead to stack overflow and potential RCE
+GHSA-4789-qfc9-5f9q	CVE-2025-49844	2025-10-03	critical	Lua Use-After-Free may lead to remote code execution
+GHSA-m8fj-85cg-7vhp	CVE-2025-46817	2025-10-03	high	Lua library commands may lead to integer overflow and potential RCE
+GHSA-4c68-q8q8-3g4f	CVE-2025-46819	2025-10-03	medium	Out of bound read due to a bug in LUA
+GHSA-qrv7-wcrx-q5jp	CVE-2025-46818	2025-10-03	medium	Running Lua function as a different user
+GHSA-2r7g-8hpc-rpq9	-	2025-07-06	high	Multi-bulk commands sent by clients can lead to DoS
+GHSA-rp2m-q4j6-gr43	CVE-2025-32023	2025-07-06	high	Out of bounds write in hyperloglog commands leads to RCE
+GHSA-5453-q98w-cmvm	CVE-2025-27151	2025-05-27	medium	redis-check-aof may lead to stack overflow and potential RCE
+GHSA-r67f-p999-2gff	CVE-2025-21605	2025-04-23	high	Redis DoS Vulnerability due to unlimited growth of output buffers abused by unauthenticate
+== quickwit-oss/tantivy count=1
+GHSA-7pph-m7rw-cqhv	-	2026-10-16	high	Tantivy columnar dictionary length truncation can lead to out-of-bounds writes and code ex
+== timescale/timescaledb count=4
+GHSA-hcfx-29v5-2rcw	-	2026-08-06	high	TimescaleDB 2.7.0 through 2.29.0 missing permission checks in chunk management functions
+GHSA-vgp2-jj5c-828m	CVE-2026-29089	2026-03-03	high	TimescaleDB 2.23.0 through 2.25.1 uses untrusted search path during extension upgrade
+GHSA-44jh-j22r-33wq	CVE-2023-25149	2023-02-14	high	TimescaleDB 2.8.0 through 2.9.2 has incorrect access control
+== mongodb/mongo count=0
+== questdb/questdb count=0
+== surrealdb/surrealdb count=79
+GHSA-p296-7pr4-87rr	-	2026-10-19	high	deny-funcs capability bypass via method-style invocations on the streaming engine (day-one
+GHSA-pm86-cc75-q463	-	2026-10-19	high	Use-after-free in `surrealdb-core` KV backends via `affinitypool::spawn_local` leak amplif
+GHSA-3vw5-j55x-486h	-	2026-09-28	medium	Record users can read another tenant's records through RETURN … FETCH
+GHSA-w5v9-jc5f-5rmc	-	2026-09-28	critical	Cross-tenant access for system users through the Surreal-NS / Surreal-DB headers and the R
+GHSA-vx2p-7hhm-wv62	-	2026-09-28	critical	Cross-tenant access through the Surreal-NS / Surreal-DB headers with Basic authentication
+GHSA-x6mm-9295-rvph	-	2026-10-19	medium	Incorrect authorization: the streaming index planner exposes restricted-field matches thro
+GHSA-2jj6-v2fq-rwpp	-	2026-09-28	medium	COMPUTED fields expose values hidden by field-level SELECT permissions
+GHSA-pm6c-q8rh-92m8	-	2026-09-28	medium	Field-level SELECT permissions bypassed in LIVE query projections via `$before` / `$after`
+GHSA-jm88-9wvx-6h4q	-	2026-09-28	medium	Field-level SELECT permissions bypassed in LIVE query WHERE clauses via `$before` / `$afte
+GHSA-84w9-87hm-mxqx	-	2026-09-28	medium	Denial of Service via non-ASCII header values in embedded JavaScript
+GHSA-jj89-wvrw-c4gp	-	2026-09-28	medium	Surrealism module output buffering bypasses the module memory limit
+GHSA-4w65-7h3j-p29h	-	2026-09-28	medium	REFERENCE ON DELETE CASCADE bypasses an edge table's PERMISSIONS FOR delete
+== grpc/grpc-go count=7
+GHSA-2v4p-qf9q-27wj	CVE-2026-84445	2026-08-25	high	Denial of Service (DoS) via crash due to missing `:authority` and `Host` headers in gRPC-G
+GHSA-qc2q-p7wx-3px3	CVE-2026-84303	2026-08-19	medium	xDS RBAC HTTP Filter bypass via mixed-case Header Matching and gRFC A41 validation evasion
+GHSA-vp52-pcj8-j9qc	CVE-2026-84304	2026-08-19	high	Heap Memory Exhaustion (OOM) via HTTP/2 DATA Frame Fragmentation in gRPC-Go
+GHSA-hrxh-6v49-42gf	-	2026-07-15	high	xDS RBAC and HTTP/2 Vulnerabilities
+GHSA-p77j-4mvh-x3m3	CVE-2026-33186	2026-03-17	critical	Authorization bypass via missing leading slash in :path
+GHSA-xr7q-jx4m-x55m	-	2024-07-03	low	Private tokens could appear in logs if context containing gRPC metadata is logged
+GHSA-m425-mq94-257g	CVE-2023-44487	2023-10-25	high	gRPC-Go HTTP/2 Rapid Reset vulnerability
+== hyperium/hyper count=4
+GHSA-q83h-524g-xf6h	-	2026-08-17	low	h2 unbounded empty DATA frames
+== seanmonstar/reqwest count=0
