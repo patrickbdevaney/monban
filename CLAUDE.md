@@ -44,4 +44,5 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
 
 ## Claims
 Say which rung a claim reached (ARCHITECTURE §4.1). Proofs cover models, not the Rust code, unless a gate log
-says otherwise. Laptop performance numbers are provisional.
+says otherwise. Laptop performance numbers are provisional. hyper, h2, tokio, rustls, the AWS-LC C code and the
+Rust compiler are trusted, not verified: never describe them as proven (SECURITY_CLAIMS.md).
