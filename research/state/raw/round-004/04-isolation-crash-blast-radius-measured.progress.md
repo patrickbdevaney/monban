@@ -46,3 +46,5 @@ Work dir: state/raw/round-004/04-work/
 ## 04:35 MAIN MATRIX DONE (740 cells = 5 trials x 148, 0 driver errors). Aggregates: 04-work/analysis/agg_main.json, blast_table.md
 Headline (pooled healthy failures per injected fault, 1% rate): panic: all ~0 (catch_unwind works). abort/segv: native 9.3-9.7 (socket-activated) vs 24.2-24.4 (no SA); wasm/fork/cordon ~0. loop: native 3.3 + throughput x0.009; wasm 0 but p99 x35 and rps x0.15 (4-thread pool HOL, 100 ms epoch); fork 0, p99 x3.4, rps x0.48. oom: native 2.8; others ~0 (cordon 0.1). fdleak: native 68 (gray failure, no restart, rps x0.07), cordon 47, cordon-recycle(50) 0.02, fork 0. poison: native 97, cordon 87, wasmreuse 93, cordon-recycle 19, wasm-fresh 0, fork 0.
 Recovery (exec+init of restarted server) p50 1.3-1.9 ms. Small cordon EOF failures (<=0.22/fault) concentrated in trial 2 at loadavg 100-350: likely wall-clock watchdog false positives on CPU-starved healthy requests.
+
+## 04:45 DONE. Raw JSON written: 04-isolation-crash-blast-radius-measured.json (19 nodes, 31 edges, 5 seeds, 35 sources).

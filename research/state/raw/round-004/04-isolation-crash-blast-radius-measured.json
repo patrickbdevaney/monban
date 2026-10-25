@@ -1,0 +1,827 @@
+{
+ "explorer": "04-isolation-crash-blast-radius-measured",
+ "round": 4,
+ "date": "2026-10-25",
+ "target": "W-ISOLATION L3->L5 crash containment under injected faults",
+ "nodes": [
+  {
+   "id": "r4i04.blast-radius-table",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Measured blast-radius table: healthy-request failures per injected fault, 7 fault classes x 7 substrates x 3 rates (+PHP-FPM control)",
+   "summary": "Own fault-injection experiment (740 cells, 0 driver errors). Healthy failures per injected fault at 1% rate (pooled over 5 trials): PANIC: native 0.0, wasm 0.0, fork 0.0, cordon 0.007. ABORT: native(socket-activated) 9.338, native(no SA) 24.365, wasm 0.014, fork 0, cordon 0. SEGV: native 9.709 / no-SA 24.169, wasm/fork/cordon 0. LOOP: native 3.257 with throughput x0.009; wasm 0 failures but p99 x34.724, rps x0.147; fork 0, p99 x3.37, rps x0.484. OOM: native 2.797, others ~0. FDLEAK: native 68.345, cordon(no recycle) 47.426, cordon(max_requests=50) 0.02, fork 0. POISON (C8 state leak): native 96.669, cordon 86.716, wasm instance reuse 92.581, cordon-recycle 19.068, fresh wasm instance 0, fork 0. PHP-FPM 8.4 control (3 trials): 0 healthy failures for all 7 classes (segv/abort kill only the worker, memory_limit/fd/global state torn down per request). Substrates achieving PHP parity on all expressible classes: fork-per-request (7/7) and fresh Wasm instance (6/6; fd leak not expressible by an M0 guest). Native in-process: 1/7 (panic only).",
+   "specifics": "Baselines (no fault, medians of 5): native p50 622us p99 1389us 22.6k rps; wasm fresh-instance p50 760 p99 1378 21.1k rps; fork-per-request p50 1890 p99 2565 8.2k rps; cordon (4 prefork workers) p50 530 p99 5623 24.1k rps; PHP-FPM p50 1690 p99 2200 9.1k rps (different handler work: crc32). Watchdogs: wasm epoch 100 ms wall, fork ITIMER_REAL 100 ms, cordon supervisor 100 ms wall kill, outer liveness 2 s no-success -> restart. Per-request caps: RLIMIT_AS 512 MiB per native process, RLIMIT_NOFILE 256, Wasm ResourceLimiter 16 MiB. Table file state/raw/round-004/04-work/analysis/blast_table.md; aggregates state/raw/round-004/04-work/analysis/agg_main.json; raw per-request logs state/raw/round-004/04-work/fi/logs/main/t<trial>-<substrate>-<fault>-<rate>.req.tsv (i, fault, start_us, end_us, err) + .srv.log; summary rows state/raw/round-004/04-work/fi/logs/main/results.jsonl; PHP state/raw/round-004/04-work/php/logs/. Harness source state/raw/round-004/04-work/fi (finat, fiwasm, guest, fidriver), binaries+sha256 state/raw/round-004/04-work/bin. Hardware/conditions: i9-14900HX laptop, Linux 6.17.0-14, server taskset to 1 core (core 2), clients on cores 4-7, closed loop conc 16, n=3000/trial, 5 interleaved trials (shuffled order per trial), Wasmtime 48.0.7, rustc 1.98; machine shared with other research loops (loadavg 7-350 during trials; recorded per cell). Numbers tagged MEASURED.",
+   "urls": [],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Toy handler (~30us CPU) and Unix-socket transport; real handlers with large heaps change fork cost and OOM timing. Latency columns are contaminated by external load on a shared laptop (only counts are robust). Per-fault blast saturates at high rates for leak classes (use healthy_fail_rate there). One machine, one kernel.",
+   "underclaim_risk": "Zero-blast results for wasm/fork are exact counts over 148-759 injected faults per cell; the qualitative ordering (native 1/7, cordon 3/7, cordon-recycle ~5/7, wasm-fresh 6/6, fork 7/7, PHP 7/7) is unlikely to change with hardware.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.php-fpm-measured-control",
+   "layer": "L4",
+   "domain": "R+S",
+   "type": "result",
+   "title": "PHP-FPM measured control: 0 healthy failures per fault across 7 fault classes; the 'PHP miracle' quantified",
+   "summary": "php:8.4-fpm-alpine (89.7 MB image), pm=static 4 workers, request_terminate_timeout=1s, memory_limit=64M, pinned to 1 core, 1 GiB, 3 interleaved trials, n=2000 (loop n=600). Healthy failures: 0 for panic(uncaught exception), abort, segv, loop, oom, fdleak, poison at 1% and 5%. Costs: segv/abort p99 x1.3-2.0, rps x0.75-0.92 at 1-5%; oom (memory_limit) p99 x8.9-17.9, rps x0.44-0.15; loop p99 1.03 s (seconds-granularity terminate timeout), rps x0.025 at 1%. Container memory 11.2 MiB for master+4 workers. Mechanism: per-request teardown in the language runtime (resources closed, globals reset, memory_limit soft cap) plus process kill for signals.",
+   "specifics": "Raw: state/raw/round-004/04-work/php/logs/*.req.tsv, results.jsonl, *.srv.log (FPM logs show \"execution timed out ... terminating\" and \"exited on signal 11\"). Driver: state/raw/round-004/04-work/php/fcgi_driver.py (own minimal FastCGI client). Core dumps disabled with --ulimit core=1:1 (see coredump node); with Ubuntu apport pipe segv p99 was 104 ms in smoke run. MEASURED.",
+   "urls": [
+    "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_children.c",
+    "https://github.com/php/php-src/blob/master/sapi/fpm/www.conf.in"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.7,
+   "load_bearing": true,
+   "overclaim_risk": "Different handler work (crc32 in PHP vs FNV loop); PHP extensions in C (not exercised) would turn segv-in-extension into worker loss same as here, and APCu/opcache shared memory would reintroduce cross-request state.",
+   "underclaim_risk": "Prior map node said no public quantified data existed; this is now a measured existence proof that the PHP model reaches 0 blast for all 7 classes at ~1.7 ms p50 on one core.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.coredump-pipe-hang",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "Crash recovery is dominated by the core-dump pipeline: apport pipe + core_pipe_limit makes every crashing worker hang ~100 ms; RLIMIT_CORE=0 does not help",
+   "summary": "Measured: with Ubuntu default core_pattern (|/usr/share/apport/apport ...) and core_pipe_limit=10, each SIGSEGV/SIGABRT worker stayed alive ~100 ms (cordon watchdog SIGKILLed 67/68 crashed workers, status=9); cordon p99 104 ms and capacity loss 1/4 per crash; PHP-FPM segv p99 104 ms. man core(5): RLIMIT_CORE is not enforced for piped dumps, and with core_pipe_limit>0 the kernel waits for the helper. Fix measured: prctl(PR_SET_DUMPABLE,0) -> cordon segv p99 104 ms -> 2.4 ms, rps 555 -> 16.7k; for PHP --ulimit core=1:1 (RLIMIT_CORE=1 pipe special case) -> p99 104 -> 4.7 ms.",
+   "specifics": "L5 invariant: every crash-contained worker/child/sandbox process MUST set PR_SET_DUMPABLE=0 (also blocks ptrace and makes /proc/<pid> root-owned) or RLIMIT_CORE=1, and the golden systemd unit sets LimitCORE=1 or the host disables apport; CI gate checks crash recovery p99 < 5 ms. Logs: state/raw/round-004/04-work/fi/logs/dbg/, smoke3/. MEASURED.",
+   "urls": [
+    "https://man7.org/linux/man-pages/man5/core.5.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.95,
+   "load_bearing": false,
+   "overclaim_risk": "Hang length depends on distro helper (apport/systemd-coredump) and load; servers on hosts without a pipe helper do not see it.",
+   "underclaim_risk": "This single default silently converts zero-blast substrates into 25%-capacity-loss-per-crash substrates and also feeds a crash-oracle attacker a fresh timing channel.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.socket-activation-crash-blast",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Supervisor-held listening socket (socket activation) cuts in-process crash blast radius 2-2.6x; restart (exec+init) p50 1.3-1.9 ms",
+   "summary": "Native in-process server crash (abort/segv): healthy failures per crash 9.338-9.709 when the supervisor holds the listening socket and passes it as fd 3, vs 24.365-24.169 when the server binds its own socket (1% rate); at 0.1%: 10.5-12.3 vs 31.3-32.3. Failures are the in-flight + already-accepted requests (EOF), not refused connects. Restart-to-first-success p50 1.3-1.9 ms.",
+   "specifics": "Mechanism: connections queue in the kernel backlog while the server is down (0pointer: 'If a service dies its listening socket stays around'). Residual = requests accepted into the in-process queue; bound it by accepting only when a worker is idle. MEASURED (fi/logs/main/*native*).",
+   "urls": [
+    "https://0pointer.de/blog/projects/socket-activation.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "Unix-socket backlog; TCP behaviour similar but SYN backlog limits differ.",
+   "underclaim_risk": "Cheap mechanism that also enables zero-downtime upgrade.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.gray-failure-fdleak",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "Resource-leak faults are gray failures: liveness watchdogs never fire, the server degrades instead of crashing",
+   "summary": "fd leak (64 fds/fault, RLIMIT_NOFILE 256): native in-process 68.345 healthy failures per fault, throughput x0.073, p99 x16.553, almost no restarts (accept/open EMFILE but some requests still succeed, so the 2 s no-success liveness check never trips). Cordon without recycle 47.426/fault; with max_requests=50 0.02; fork 0; PHP 0.",
+   "specifics": "L5: per-request resource ledger (fds, sockets, DB conns) released at request end by the substrate, not the handler; worker recycle (max_requests or RSS/fd high-water mark, FPM pm.max_requests / Apache MaxConnectionsPerChild / uWSGI reload-on-rss analogs) as backstop; health check must be a success-RATE SLO, not a binary liveness probe. MEASURED.",
+   "urls": [
+    "https://httpd.apache.org/docs/2.4/mod/mpm_common.html",
+    "https://uwsgi-docs.readthedocs.io/en/latest/Options.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "Leak size per fault chosen to bite fast.",
+   "underclaim_risk": "Same pattern applies to DB connection leaks (ac.principle-cancel-equals-crash).",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.state-leak-c8-measured",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "Cross-request state poisoning (C8) measured: reuse of any long-lived context leaks to ~all later requests; recycle only bounds it",
+   "summary": "One poisoning request corrupts later responses: native 820.333 wrong answers per poisoning at 0.1% (until restart, i.e. forever), cordon 241.833, Wasm instance reuse 382.833, cordon with max_requests=50 24.75 (~half the recycle window x workers), fresh Wasm instance per request 0 (1 stray failure in 5 trials), fork 0, PHP 0. This is also the primitive behind cross-user data leaks (a global cache keyed without principal).",
+   "specifics": "Industry convergence (fetched): Fastly Compute starts a fresh sandbox per request by default and warns that with reusable sandboxes \"global variables may persist\"; wasmtime serve defaults max_instance_reuse_count 1 for WASIp2 but 128 (and 16 concurrent) for WASIp3; Wasmtime maintainers called new reset paths \"a big hazard ... anything gotten wrong is a CVE\" (#14313). GHSA-6wgr-89rj-399p (2026-04-09) is a real pooling-allocator cross-instance linear-memory leak in specific configs. MEASURED + B sources.",
+   "urls": [
+    "https://www.fastly.com/documentation/guides/compute/developer-guides/sandbox-lifecycle/",
+    "https://github.com/bytecodealliance/wasmtime/issues/14313",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-6wgr-89rj-399p"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": true,
+   "overclaim_risk": "Poison here is deliberate; accidental poisoning rates in real code unknown.",
+   "underclaim_risk": "Wrong answers are silent (no error status), so production monitoring would not see them.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.runaway-cpu-tax-1vcpu",
+   "layer": "L4",
+   "domain": "E-W-PERF",
+   "type": "result",
+   "title": "On 1 vCPU every runaway (loop/OOM) costs its full timeout in CPU; pool-bounded substrates add head-of-line blocking",
+   "summary": "loop at 1%: throughput x0.484 fork, x0.147 wasm (4-thread pool, 100 ms epoch), x0.171 cordon (4 workers), x0.009 native (threads lost until 2 s watchdog), PHP x0.025 (1 s granularity). p99 x3.37 fork vs x34.724 wasm: fork has no pool bound so healthy requests only share CPU, while a looping guest pins 1 of 4 pool slots for 100 ms. OOM similar: wasm 16 MiB limiter fails fast (p99 x5.228), cordon touching 512 MiB p99 x9.963.",
+   "specifics": "Expected CPU loss per second = fault_rate x rps x timeout. At 100 rps and 0.1% runaway with 100 ms timeout: 1% of a core; with 1 s (PHP granularity): 10%. L5: per-request CPU budget enforced by deterministic fuel (Wasmtime consume_fuel; docs: epoch is non-deterministic, fuel deterministic) or CPU-time timers (ITIMER_PROF/RLIMIT_CPU), default 10-50 ms for P2; pool size >= 4x expected runaway concurrency; memory cap fail-fast (small per-request limit) rather than large RLIMIT_AS. MEASURED.",
+   "urls": [
+    "https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "External load inflated latency in trial 2.",
+   "underclaim_risk": "An attacker can trigger runaways deliberately; this is the cost model for CPU-exhaustion DoS (bridge to W-ABUSE budgets).",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.crash-oracle-respawn",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "Zero-blast fork/prefork substrates are crash oracles: respawn-without-exec keeps the address layout, enabling BROP-style probing (~4,000 requests)",
+   "summary": "Blind ROP (Bittau et al., IEEE S&P 2014) needs a server that restarts after a crash with the same memory layout; nginx 1.4.0 and MySQL were exploited in ~4,000 requests within minutes. Fork-without-exec makes ASLR ineffective (Baumann et al., HotOS'19 'A fork() in the road'); Android zygote weakens ASLR for every app (Lee et al., 'From Zygote to Morula'; Morula pre-exec pool costs ~13 MB/app). nginx master respawns workers by fork. PHP-FPM's emergency_restart_threshold reload path calls execvp (fresh layout) but defaults to 0 (off). Our measured fork/cordon substrates have 0 blast per crash, which makes each crash a free probe.",
+   "specifics": "L5: (1) workers/zygotes are spawned by exec (posix_spawn/fexecve of the server binary; cost measured as server restart 1.3-1.9 ms) and re-exec the zygote every N crashes; (2) per-principal crash budget: a client/tenant whose requests crash > k in window T is shed (same accounting bucket as cancellation/Rapid-Reset, cf. ac.principle-cancel-equals-crash); (3) pool-wide escalation like FPM emergency_restart_threshold / Erlang supervisor intensity (default 1 restart per 5 s, escalate). Applies to native P1 handlers too (memory-safety bugs in unsafe deps).",
+   "urls": [
+    "https://www.scs.stanford.edu/brop/",
+    "https://www.microsoft.com/en-us/research/publication/a-fork-in-the-road",
+    "https://tc.gtisc.gatech.edu/cs8803/2014/r/morula.pdf",
+    "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_process_ctl.c",
+    "https://github.com/nginx/nginx/blob/master/src/os/unix/ngx_process.c",
+    "https://www.erlang.org/doc/system/sup_princ.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.8,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "BROP needs a memory-corruption bug in native code; fresh Wasm instances have no host-layout oracle unless the bug is in Wasmtime itself.",
+   "underclaim_risk": "Crash-respawn oracles are a direct inversion of the blast-radius metric: the better a substrate contains crashes, the cheaper probing becomes unless crashes are rate-limited per principal.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.wasmtime-guest-host-abort-rate",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "analysis",
+   "title": "Guest-triggerable host aborts: in-process Wasm inherits the native-abort blast radius at 0.7-3.9 known bugs/yr",
+   "summary": "Recomputed from the 81-GHSA snapshot (re-pulled 2026-10-25, 0 new): guest-triggerable DOS-PANIC (host panic/abort) advisories: M0 (core, Cranelift x86_64) 2 in 2024-26 = 0.71/yr [0.08,2.57]; M1 (+P2 components, non-fs WASI, wasi-http) 11 in 2024-26 = 3.91/yr [1.95,6.99], 2026 alone 8.6/yr. Example GHSA-q8hx-mm92-4wvg (2024-10-09): tail calls + stack traces -> \"deterministic process abort\" with Rust >=1.81; GHSA-75hq-h6g9-h4q5 (2024-04-02) host panic from dropped externref segment. Each such bug turns a contained trap into a whole-process crash, i.e. the measured native abort row (9.3/fault with socket activation, 24/fault without) for every concurrent request in that process.",
+   "specifics": "Script state/raw/round-004/04-work/adv/recompute.py, output recomputed_rates.json; current list adv_now.tsv. Implication: the Wasm host process must itself be a supervised, socket-activated cordon with per-tenant scope, and panic=unwind does not save it (abort paths). RECOMPUTED.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-q8hx-mm92-4wvg",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-75hq-h6g9-h4q5",
+    "https://github.com/bytecodealliance/wasmtime/security/advisories"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Hand classification from r2 (+-3-5 advisories); 2026 surge reflects the LLM audit sprint, not necessarily a stationary rate.",
+   "underclaim_risk": "Measured in-process blast results for wasm (0/fault) silently assume no such bug; this is the term that makes them non-zero.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.m0-escape-rate-denominators",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "analysis",
+   "title": "M0 Wasmtime escape rate with explicit denominators: 2.21/yr long-run, 0.36/yr 2024-26, 1.23/yr 2026",
+   "summary": "Exploitable sandbox escapes (impact ESC, guest-triggerable, not embedder-only) hitting M0: 12 in 2021-05-21..2026-10-25 (5.43 y) = 2.21/yr, Poisson 95% [1.14,3.86]; 1 in 2024-01-01..2026-10-25 (2.81 y) = 0.36/yr [0.00,1.98] (GHSA-897f-g5gm-fmxm, 2026-10-19); 2026 YTD 1 in 0.81 y = 1.23/yr [0.02,6.84]. M1 adds GHSA-394w, GHSA-hx6p (2024-26: 3 = 1.07/yr [0.21,3.11]); M2 (+wasi-fs) 5 = 1.78/yr. Info-leak class M0: GHSA-6wgr (pooling, config-dependent). The r3 band 0.36-2.0/yr is confirmed except the long-run end is 2.21/yr when the window starts at the first advisory (5.43 y, not 5.8 y).",
+   "specifics": "Denominator choice matters 6x; use 2.21/yr as the planning rate (conservative, includes the 2021-23 reftypes/SIMD era) and 0.36/yr as the optimistic bound. RECOMPUTED from round-002 07-data/classified.json.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-897f-g5gm-fmxm"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.8,
+   "load_bearing": true,
+   "overclaim_risk": "Published advisories only; the classification is one explorer's.",
+   "underclaim_risk": "Unknown 0-days not counted; LLM-assisted auditing raised 2026 discovery rate.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.kernelctf-reachability-under-allowlist",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "analysis",
+   "title": "kernelCTF LPE exploits 2023-26: 72% need user namespaces; all 111 need a syscall/socket family a tight worker allowlist denies",
+   "summary": "google/security-research pocs/linux/kernelctf metadata (138 entries, 111 unique CVEs; by CVE year 2023 37, 2024 33, 2025 27, 2026 13 => ~33 exploited LPEs/yr against hardened kernels): 80 (72%) require userns; the 31 without userns need CONFIG_TLS/kTLS ULP via setsockopt (11), BPF (7), AF_UNIX GC/OOB (4: CVE-2023-4622, CVE-2024-36972, CVE-2025-40214, CVE-2026-53361), io_uring (3), perf_event_open (3), AF_ALG crypto sockets (3), vsock (1), net_sched (1). A worker filter with no socket/socketpair/setsockopt/sendmsg/recvmsg/bpf/perf_event_open/io_uring_*, clone flags filtered (no CLONE_NEWUSER), clone3 -> ENOSYS, blocks all 111 by syscall reachability (own mapping). Edera (2020-25): 42 userns-gated CVEs, nf_tables 43%.",
+   "specifics": "Residual planning rate for kernel LPE reachable through such an allowlist: point 0.17/yr (basic-syscall LPEs 2014-26: futex CVE-2014-3153, StackRot CVE-2023-3269 class), rule-of-three upper 0.88/yr (0 of 111 in ~3.4 y). Bridge to W-TRANSPORT: kTLS (CONFIG_TLS) is the single largest non-userns kernelCTF surface (11), so kTLS offload must never be reachable from sandboxed workers. Data state/raw/round-004/04-work/kctf/ (metadata json + summary.txt). RECOMPUTED.",
+   "urls": [
+    "https://github.com/google/security-research/tree/master/pocs/linux/kernelctf",
+    "https://edera.dev/stories/user-namespaces-are-not-a-security-boundary"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.65,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "kernelCTF is bounty-selected (favours exploitable, reachable bugs); reachability mapping is mine from kernel_config fields, not per-exploit syscall traces.",
+   "underclaim_risk": "Shows the OS sandbox is not a weak layer when the allowlist is tight; most kernel LPE volume is behind userns and exotic socket families.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.expected-loss-ranking-p2",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "analysis",
+   "title": "Expected-loss ranking for P2 (agent-generated) code: Wasm alone ~ fork-native >> Wasm inside an OS sandbox (one order of magnitude)",
+   "summary": "MODELLED, n-day attacker. Persistent attacker P(>=1 exploitable window/yr) = 1-exp(-lambda): Wasm-in-process alone (M0) 30-89%; fork-per-request native with seccomp+Landlock allowlist (kernel 0.17-0.88/yr) 16-59%; Wasm escape AND kernel LPE chained (Wasm in a sandboxed cordon or Wasm inside a fork child) 0.25-10.6% (Wasm patch lag 1-7 d, kernel 14 d; 60 d kernel lag -> 1.0-30%). Opportunistic exposure fraction F=lambda*L/365: 0.10-4.2% / 0.65-3.4% / 0.0006-0.14%. Answer to the brief: yes, an OS sandbox around Wasm changes the ranking: Wasm alone ranks last or tied with fork-native; Wasm+OS sandbox ranks first. But inside one cordon, requests of different principals are separated only by Wasm, so cross-principal risk inside a shared cordon equals the Wasm-alone row.",
+   "specifics": "Script state/raw/round-004/04-work/analysis/expected_loss.py -> expected_loss.json. Cost side (MEASURED): fork-per-request p50 1.89 ms vs fresh Wasm 0.76 ms, 8.2k vs 21.1k rps on 1 core; crash containment equal (both 0 blast); fork also contains fd-leak class. Hence P2 golden = Wasm-per-request inside a per-tenant sandboxed cordon; P2 handling cross-principal data in one cordon = Wasm-in-fork or per-principal cordon.",
+   "urls": [],
+   "evidence_grade": "E",
+   "confidence": 0.55,
+   "actionability": 0.85,
+   "load_bearing": true,
+   "overclaim_risk": "Independence of Wasm and kernel bug arrival assumed; 0-day attackers not modelled (they defeat single layers outright); rates from small counts.",
+   "underclaim_risk": "Patch lag for the Wasm layer is under our control (Cloudflare reports <24 h for V8); at 1-day lag even Wasm alone has F=0.1-0.6%.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.provenance-substrate-decision-table",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Provenance -> substrate decision table with measured inputs and reversal conditions (amends R-ISO-1)",
+   "summary": "P1 first-party (verified, no unsafe in handler crates): native in-process + catch_unwind + per-request arena/ledger + socket-activated supervised process + per-principal crash budget; measured blast: panic 0, oom/abort/segv 2.5-9.7 per fault, fdleak/poison unbounded -> REQUIRE per-request resource ledger and no mutable globals (lint: no static mut/OnceCell-with-interior-mutability in handler crates). P2 agent-generated / prompt-injectable: fresh Wasm instance per request (M0 config, max reuse 1, fuel 10-50 ms, 16 MiB) inside a per-tenant cordon process under seccomp+Landlock, PR_SET_DUMPABLE=0, socket activation, exec-spawned; measured blast 0 for 6/6 classes, p50 0.76 ms; residual = host-abort bugs (0.7-3.9/yr) and Wasm escape within the cordon. P2 handling cross-principal data in one cordon, or needing native libraries: fork-per-request from an exec-spawned zygote (+ optional Wasm inside) under seccomp/Landlock with clone-flag filter; blast 0 for 7/7, p50 1.9 ms, 8.2k rps/core. P3 multi-tenant third party: per-tenant cordon processes (exec-spawned) + Wasm, or microVM (Firecracker <=125 ms boot, <=5 MiB VMM overhead, cited) when native. P4 arbitrary native code: microVM/gVisor only.",
+   "specifics": "REVERSAL CONDITIONS: (R1) if M0 Wasmtime exploitable escapes exceed 3/yr for two consecutive years, or our Wasmtime patch lag cannot be held <=7 d, move P2 to fork-per-request(+Wasm) by default. (R2) if a kernel LPE reachable through the worker allowlist appears (any kernelCTF entry needing only the allowed syscalls), add a microVM tier for P3 and re-audit the allowlist. (R3) if per-request fork p50 overhead on target hardware falls below 0.3 ms (e.g. lean zygote, CLONE_INTO_CGROUP spawn) the P2 default flips to fork+Wasm. (R4) if Wasmtime ships a first-class audited Instance::reset, instance reuse may be allowed for P2 only with a CI poison test passing. (R5) if P1 handlers cannot be kept free of mutable globals/unsafe, P1 moves to cordon-recycle (max_requests) or fresh Wasm. Measured density at 1 GiB (toy handler floor, MEASURED+r2): fresh Wasm instances ~19.9k (52 KB/instance component, r2) capped by ~31k VA slots of 4 GiB+32 MiB guard; fork children ~5-10k concurrent (0.1-0.2 MB each); cordon workers ~1,000 (1.0 MB RSS each, here); PHP-FPM ~2.8 MiB per worker (11.2 MiB for master+4). Extends isolation-decision-table-by-provenance (r1, E) with A/B inputs.",
+   "urls": [
+    "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/SPECIFICATION.md",
+    "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Decision mixes measured containment with modelled breach rates (E); one hardware platform.",
+   "underclaim_risk": "R-ISO-1 direction survives, but with two binding amendments it lacked: per-tenant cordon scope and the crash-oracle/coredump/socket-activation controls.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.isolation-fault-ci-gate",
+   "layer": "L5",
+   "domain": "E-W-ASSURE",
+   "type": "artifact",
+   "title": "Isolation fault-injection harness spec usable as a CI gate (acceptance thresholds per fault class and provenance tier)",
+   "summary": "Harness: closed-loop client + supervisor that owns the listening socket; server pinned to 1 CPU (taskset) with loadavg recorded; fault taxonomy {panic, abort, segv, loop, oom, fdleak, poison} injected by a deterministic seeded selector at {0.1%, 1%, 5%}; >=5 interleaved trials, n>=3000, conc 16; per-request log (i, fault, start_us, end_us, err in {ok, connect, write, EOF, timeout, wrong-answer}); oracle = handler output recomputed by the client (detects silent poisoning). ACCEPTANCE (golden, P2 and P3 tiers): healthy failures per injected fault <= 0.05 for every class at 1% (pooled over trials, crash-attributable errors only: connect/EOF/wrong; timeouts reported separately); wrong answers == 0; p99 inflation <= 1.5x for panic/abort/segv/poison and <= 5x for loop/oom with the configured CPU budget; throughput >= 0.5x baseline at 1% loop with budget 10 ms; crash recovery p99 <= 5 ms (dumpable off); cross-request poison count == 0. P1 tier: panic blast == 0; abort/segv blast <= 12 per fault (socket activation mandatory); fdleak/poison must be 0 via the ledger/no-global lints, else fail.",
+   "specifics": "Reference implementation and numbers: state/raw/round-004/04-work/fi (Rust, ~600 LOC: finat native/fork/cordon, fiwasm Wasmtime 48.0.7, fidriver), runner scripts/run_matrix.py + run_all.sh (heavy.sh), aggregation analysis/aggregate.py. Measured pass/fail today: fork PASS all; fresh-Wasm PASS all expressible (fdleak N/A) except loop p99 (x35 at 100 ms epoch: needs 10 ms fuel budget or bigger pool); cordon FAIL fdleak/poison without recycle; native FAIL abort/segv/loop/oom/fdleak/poison for P2. Seccomp gap found while building the harness: allowing clone/clone3 unfiltered in a zygote filter lets children create user namespaces (72% of kernelCTF exploits need userns) -> gate also runs a negative test: child attempting clone(CLONE_NEWUSER), socket(AF_INET), setsockopt(TCP_ULP), bpf, io_uring_setup must be killed/ENOSYS.",
+   "urls": [
+    "https://man7.org/linux/man-pages/man2/clone.2.html"
+   ],
+   "evidence_grade": "A",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": true,
+   "overclaim_risk": "Thresholds are set from one machine; CI runners are noisy (use counts, not latency, as hard gates).",
+   "underclaim_risk": "Same harness doubles as a regression test for Wasmtime upgrades (host-abort bugs show up as abort-class blast).",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.wasmtime-serve-reuse-defaults",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "type": "result",
+   "title": "wasmtime serve defaults to instance reuse for WASIp3 (128 serial / 16 concurrent); a trap then hits unrelated requests",
+   "summary": "src/commands/serve.rs: max_instance_reuse_count defaults to 1 for WASIp2 and 128 for WASIp3; max_instance_concurrent_reuse_count 1 / 16. PR #11807 (merged 2025-10-20) lists the disadvantage verbatim: \"the blast radius of bugs in the guest is larger; a trap can affect unrelated requests, and a security flaw could leak state across requests.\" Issue #14313 (closed 2026-09): user-side reset 2.5-5.5x calls/s vs reinstantiate for 256 KiB guests (crossover ~0.5 MiB), maintainer refused new reset paths as CVE hazard. Our measurement: instance reuse leaks poisoned state to 93/fault at 1%.",
+   "specifics": "Golden pin: if wasi-http/P3 hosting is ever enabled, pass --max-instance-reuse-count 1 and --max-instance-concurrent-reuse-count 1 (or embedder equivalent) and gate with the poison test. Fastly reusable sandboxes are likewise opt-in.",
+   "urls": [
+    "https://github.com/bytecodealliance/wasmtime/blob/main/src/commands/serve.rs",
+    "https://github.com/bytecodealliance/wasmtime/pull/11807",
+    "https://github.com/bytecodealliance/wasmtime/issues/14313",
+    "https://github.com/bytecodealliance/wasmtime/issues/9542"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.9,
+   "load_bearing": false,
+   "overclaim_risk": "Only matters if WASIp3/serve is used.",
+   "underclaim_risk": "A default flip in a future release would silently change isolation semantics; pin explicitly.",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.v8-isolate-oom-process-fatal",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "failure",
+   "title": "V8 isolate OOM is process-fatal unless the embedder handles NearHeapLimitCallback; isolate density does not imply OOM containment",
+   "summary": "v8-isolate.h (ResourceConstraints): if GCs do not help and the NearHeapLimitCallback does not raise the limit, \"V8 will crash with V8::FatalProcessOutOfMemory\". Node workers return +16 MB and exit only the worker; Supabase edge-runtime terminates the isolate via the callback. workerd handling not verified (code search found none in jsg/io paths). Contrast with measured Wasm: 16 MiB limiter -> memory.grow returns -1 -> guest traps, 0 blast.",
+   "specifics": "If a V8 substrate is ever considered (optional d), its blast-radius row for OOM equals the native abort row unless per-isolate near-heap handling is proven by the CI gate.",
+   "urls": [
+    "https://chromium.googlesource.com/v8/v8.git/+/main/include/v8-isolate.h",
+    "https://chromium.googlesource.com/v8/node/+/refs/heads/fuchsia/src/node_worker.cc",
+    "https://github.com/supabase/edge-runtime/issues/354"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.7,
+   "actionability": 0.6,
+   "load_bearing": false,
+   "overclaim_risk": "Production platforms (Cloudflare) clearly handle this; claim is about default embedder behaviour.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.fork-cost-skeptic",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "type": "source",
+   "title": "Skeptic of process-per-request: fork is slow, unscalable and insecure by default (HotOS'19), but measured cost at a lean zygote is 1.1-1.3 ms/request on 1 core",
+   "summary": "Baumann, Appavoo, Krieger, Roscoe, 'A fork() in the road' (HotOS 2019): fork+exec time grows with parent size, posix_spawn ~0.5 ms flat (i7-6850K), Chrome fork delays up to 100 ms, fork not thread-safe, inherits secrets/fds by default, defeats ASLR without exec. Our measurement (2 MB zygote, 1 core, 16 concurrent): fork-per-request p50 1.89 ms vs fresh Wasm 0.76 ms vs native 0.62 ms; 8.2k vs 21.1k vs 22.6k rps => ~0.08 ms of extra CPU per request at saturation, ~1.1 ms extra latency under 16-way queueing. Two-sided: the 'process per request is unaffordable' claim is false for a lean zygote at household scale (8k rps/core), and the 'fork is free' claim is false (2.6x throughput cost vs Wasm, more with large zygote heaps: r2 measured 0.7 ms fork at 64 MB, 1.5 ms at 256 MB).",
+   "specifics": "Design consequence: zygote must stay lean (<10 MB private), single-threaded, secret-free (no TLS keys or DB creds mapped; pass per-request capabilities by fd), exec-spawned, and children get a second stacked seccomp filter forbidding fork/clone.",
+   "urls": [
+    "https://www.microsoft.com/en-us/research/publication/a-fork-in-the-road",
+    "https://www.bu.edu/rhcollab/files/2019/04/fork-in-the-road.pdf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.8,
+   "load_bearing": false,
+   "overclaim_risk": "Our zygote is a toy.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.crash-loop-damping-baselines",
+   "layer": "L3",
+   "domain": "R+S",
+   "type": "method",
+   "title": "Crash-loop damping semantics across incumbents: FPM emergency_restart (SIGSEGV/SIGBUS ring), Erlang intensity/period 1/5 s, uWSGI min-worker-lifetime 60 s, Apache MaxConnectionsPerChild",
+   "summary": "php-src fpm_children.c: on child exit by SIGSEGV or SIGBUS only, record timestamp in a ring of N; if all N within emergency_restart_interval -> whole-master reload (execvp). Defaults 0/0 (off); pm.max_requests default 0 (sample config 500); request_terminate_timeout 0. Erlang supervisor: intensity 1, period 5 s default; exceed -> terminate children and escalate. uWSGI: harakiri, max-requests, reload-on-rss, min-worker-lifetime 60 s. Apache: MaxConnectionsPerChild 0 default, documented as leak limiter. None of them is per-principal: an attacker crashing workers is indistinguishable from a bug.",
+   "specifics": "L5 parameters for the golden supervisor: per-principal crash budget 3 crashes / 60 s then 429 for 10 min; pool escalation 10 crashes / 10 s -> re-exec zygote (fresh ASLR) and alert; worker recycle max_requests 1000 or fd/RSS high-water; all defaults ON (incumbents ship them OFF).",
+   "urls": [
+    "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_children.c",
+    "https://github.com/php/php-src/blob/master/sapi/fpm/php-fpm.conf.in",
+    "https://www.erlang.org/doc/system/sup_princ.html",
+    "https://uwsgi-docs.readthedocs.io/en/latest/Options.html",
+    "https://httpd.apache.org/docs/2.4/mod/mpm_common.html"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.85,
+   "actionability": 0.85,
+   "load_bearing": false,
+   "overclaim_risk": "",
+   "underclaim_risk": "Defaults-off is itself a finding (cf. gap.insecure-defaults).",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  },
+  {
+   "id": "r4i04.seccomp-clone-flag-gap",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "type": "artifact",
+   "title": "Zygote seccomp must filter clone flags and deny clone3; children need a stacked no-fork filter",
+   "summary": "Building the harness exposed that a zygote allowlist containing clone/clone3/fork (needed to spawn children; also present in the r2 zygote recipe base list) is inherited by children, so request code can create user namespaces (CLONE_NEWUSER) - the precondition of 80/111 kernelCTF exploits. clone3 passes flags in a struct seccomp cannot inspect, so it must return ENOSYS (glibc falls back to clone). CLONE_INTO_CGROUP (Linux 5.7, clone3 only) would allow per-request memory.max cgroups but conflicts with clone3 denial in children; do it in the zygote only.",
+   "specifics": "Filter for zygote: clone allowed only if (flags & (CLONE_NEWUSER|CLONE_NEWNS|CLONE_NEWNET|CLONE_NEWPID|CLONE_NEWIPC|CLONE_NEWUTS|CLONE_NEWCGROUP))==0; clone3 -> ERRNO(ENOSYS); unshare/setns denied. Child after fork: stack a second filter denying clone/clone3/fork/vfork/execve*/socket*/setsockopt/sendmsg/recvmsg/bpf/perf_event_open/io_uring_*/ptrace/process_vm_*. Landlock before seccomp (ordering verified in r2).",
+   "urls": [
+    "https://man7.org/linux/man-pages/man2/clone.2.html",
+    "https://github.com/google/security-research/tree/master/pocs/linux/kernelctf"
+   ],
+   "evidence_grade": "B",
+   "confidence": 0.75,
+   "actionability": 0.95,
+   "load_bearing": false,
+   "overclaim_risk": "Kernel may disable unprivileged userns globally (Ubuntu AppArmor restriction), masking the gap.",
+   "underclaim_risk": "",
+   "first_seen_round": 4,
+   "explorer": "04-isolation-crash-blast-radius-measured",
+   "pillar": "W-ISOLATION",
+   "last_verified": "2026-10-25"
+  }
+ ],
+ "edges": [
+  {
+   "src": "r4i04.blast-radius-table",
+   "dst": "isolation-decision-inputs-table",
+   "type": "extends",
+   "note": "adds fault-injection blast radius per substrate (new instrument: experiment vs microbench)"
+  },
+  {
+   "src": "r4i04.blast-radius-table",
+   "dst": "zygote-sandbox-recipe-measured",
+   "type": "extends",
+   "note": "zygote recipe measured under 7 injected fault classes"
+  },
+  {
+   "src": "r4i04.blast-radius-table",
+   "dst": "crash-isolation-semantics",
+   "type": "extends",
+   "note": "trap containment confirmed at system level with concurrent healthy load"
+  },
+  {
+   "src": "r4i04.blast-radius-table",
+   "dst": "wasmtime-pooling-local-bench",
+   "type": "extends",
+   "note": "pooled fresh-instance substrate under faults"
+  },
+  {
+   "src": "r4i04.php-fpm-measured-control",
+   "dst": "hist-php-sharednothing-mechanism",
+   "type": "extends",
+   "note": "first quantified PHP-FPM crash-containment numbers; refutes \"no public measurements\" gap"
+  },
+  {
+   "src": "r4i04.php-fpm-measured-control",
+   "dst": "r4i04.blast-radius-table",
+   "type": "supports",
+   "note": "control row"
+  },
+  {
+   "src": "r4i04.coredump-pipe-hang",
+   "dst": "r4i04.blast-radius-table",
+   "type": "depends_on",
+   "note": "harness sets dumpable=0; without it crash rows degrade"
+  },
+  {
+   "src": "r4i04.socket-activation-crash-blast",
+   "dst": "r4i04.provenance-substrate-decision-table",
+   "type": "supports",
+   "note": "P1 requirement"
+  },
+  {
+   "src": "r4i04.gray-failure-fdleak",
+   "dst": "ac.principle-cancel-equals-crash",
+   "type": "extends",
+   "note": "resource leak = gray failure; request-scoped ledger"
+  },
+  {
+   "src": "r4i04.state-leak-c8-measured",
+   "dst": "r4i04.wasmtime-serve-reuse-defaults",
+   "type": "supports",
+   "note": "measured leak under reuse"
+  },
+  {
+   "src": "r4i04.state-leak-c8-measured",
+   "dst": "skeptic-small-reservation-pooling-recipe",
+   "type": "extends",
+   "note": "GHSA-6wgr pooling leak + measured app-level leak"
+  },
+  {
+   "src": "r4i04.crash-oracle-respawn",
+   "dst": "zygote-sandbox-recipe-measured",
+   "type": "conflicts_with",
+   "note": "fork-from-zygote without exec keeps layout -> BROP oracle"
+  },
+  {
+   "src": "r4i04.crash-oracle-respawn",
+   "dst": "r4i04.crash-loop-damping-baselines",
+   "type": "depends_on",
+   "note": "mitigation via per-principal crash budget"
+  },
+  {
+   "src": "r4i04.wasmtime-guest-host-abort-rate",
+   "dst": "wasmtime-advisory-share-by-config",
+   "type": "extends",
+   "note": "host-abort DoS rate recomputed with denominators"
+  },
+  {
+   "src": "r4i04.m0-escape-rate-denominators",
+   "dst": "wasmtime-advisory-share-by-config",
+   "type": "extends",
+   "note": "escape rate per year with explicit windows/CIs"
+  },
+  {
+   "src": "r4i04.m0-escape-rate-denominators",
+   "dst": "cranelift-default-config-escape-2026-10",
+   "type": "supports",
+   "note": "the one 2024-26 M0 escape"
+  },
+  {
+   "src": "r4i04.kernelctf-reachability-under-allowlist",
+   "dst": "landlock-seccomp-self-sandbox",
+   "type": "extends",
+   "note": "quantifies kernel LPE surface removed by allowlist"
+  },
+  {
+   "src": "r4i04.expected-loss-ranking-p2",
+   "dst": "r4i04.m0-escape-rate-denominators",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4i04.expected-loss-ranking-p2",
+   "dst": "r4i04.kernelctf-reachability-under-allowlist",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4i04.expected-loss-ranking-p2",
+   "dst": "wasm-vs-native-verdict",
+   "type": "extends",
+   "note": "quantifies \"Wasm never sufficient alone\"; adds per-tenant cordon condition"
+  },
+  {
+   "src": "r4i04.provenance-substrate-decision-table",
+   "dst": "isolation-decision-table-by-provenance",
+   "type": "extends",
+   "note": "A/B inputs + reversal conditions; amends R-ISO-1"
+  },
+  {
+   "src": "r4i04.provenance-substrate-decision-table",
+   "dst": "r4i04.expected-loss-ranking-p2",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4i04.provenance-substrate-decision-table",
+   "dst": "r4i04.blast-radius-table",
+   "type": "depends_on",
+   "note": ""
+  },
+  {
+   "src": "r4i04.isolation-fault-ci-gate",
+   "dst": "cc.l5-crash-harness-spec",
+   "type": "alternative_to",
+   "note": "sibling CI gate (process crash containment vs storage crash consistency)"
+  },
+  {
+   "src": "r4i04.isolation-fault-ci-gate",
+   "dst": "r4i04.blast-radius-table",
+   "type": "depends_on",
+   "note": "thresholds from measurements"
+  },
+  {
+   "src": "r4i04.v8-isolate-oom-process-fatal",
+   "dst": "v8-isolates-security-posture",
+   "type": "extends",
+   "note": "OOM containment dimension"
+  },
+  {
+   "src": "r4i04.fork-cost-skeptic",
+   "dst": "zygote-sandbox-recipe-measured",
+   "type": "extends",
+   "note": "system-level cost under load"
+  },
+  {
+   "src": "r4i04.crash-loop-damping-baselines",
+   "dst": "hist-erlang-crash-domain-vm",
+   "type": "extends",
+   "note": "supervision intensity semantics"
+  },
+  {
+   "src": "r4i04.seccomp-clone-flag-gap",
+   "dst": "zygote-sandbox-recipe-measured",
+   "type": "conflicts_with",
+   "note": "r2 base allowlist includes SYS_clone3 unfiltered"
+  },
+  {
+   "src": "r4i04.runaway-cpu-tax-1vcpu",
+   "dst": "r4i04.isolation-fault-ci-gate",
+   "type": "supports",
+   "note": "CPU budget thresholds"
+  },
+  {
+   "src": "r4i04.kernelctf-reachability-under-allowlist",
+   "dst": "r4i04.seccomp-clone-flag-gap",
+   "type": "supports",
+   "note": "userns precondition share"
+  }
+ ],
+ "seeds": [
+  {
+   "question": "Implementation spike: rerun the CI gate with fuel-based 10 ms CPU budget and a 64-slot Wasm pool; does loop p99 inflation drop from x35 to <=5x on 1 core?",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.6,
+   "reason": "only failing gate cell for fresh Wasm",
+   "from_node": "r4i04.runaway-cpu-tax-1vcpu"
+  },
+  {
+   "question": "Implementation spike: exec-spawned zygote (posix_spawn of server binary) + CLONE_INTO_CGROUP per-request memory.max: measure p50 overhead vs plain fork and OOM blast",
+   "layer": "L5",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.55,
+   "reason": "reversal condition R3 and crash-oracle mitigation cost",
+   "from_node": "r4i04.provenance-substrate-decision-table"
+  },
+  {
+   "question": "Trace actual syscalls of each no-userns kernelCTF exploit (AF_UNIX 4, TLS 11) to confirm 0/111 reachability through the worker allowlist",
+   "layer": "L4",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.5,
+   "reason": "kernel residual rate is the weakest number in the expected-loss model",
+   "from_node": "r4i04.kernelctf-reachability-under-allowlist"
+  },
+  {
+   "question": "Does workerd/Deno handle V8 NearHeapLimitCallback per isolate (OOM blast radius of V8 substrate)?",
+   "layer": "L3",
+   "domain": "E-W-ISOLATION",
+   "expected_info_gain": 0.3,
+   "reason": "optional substrate d left unmeasured",
+   "from_node": "r4i04.v8-isolate-oom-process-fatal"
+  },
+  {
+   "question": "Per-principal crash budget: what thresholds stop BROP (~4,000 probes) without false positives under the measured bug-rate of P1 handlers?",
+   "layer": "L5",
+   "domain": "E-W-ABUSE",
+   "expected_info_gain": 0.45,
+   "reason": "crash oracle is the inverse of zero blast radius",
+   "from_node": "r4i04.crash-oracle-respawn"
+  }
+ ],
+ "notes": {
+  "queries_logged": 25,
+  "skeptic_or_contrarian_queries": 11,
+  "skeptic_share": 0.44,
+  "novelty_gate": "6 queries checked: all NOVEL (best 0.10-0.27); 8 topics checked: all NOVEL (best 0.28)",
+  "DUP_skipped": 0,
+  "NEAR_DUP_rewritten": 0,
+  "new_nodes": 19,
+  "reused_ids_via_edges": [
+   "isolation-decision-inputs-table",
+   "zygote-sandbox-recipe-measured",
+   "crash-isolation-semantics",
+   "wasmtime-pooling-local-bench",
+   "hist-php-sharednothing-mechanism",
+   "ac.principle-cancel-equals-crash",
+   "skeptic-small-reservation-pooling-recipe",
+   "wasmtime-advisory-share-by-config",
+   "cranelift-default-config-escape-2026-10",
+   "landlock-seccomp-self-sandbox",
+   "wasm-vs-native-verdict",
+   "isolation-decision-table-by-provenance",
+   "cc.l5-crash-harness-spec",
+   "v8-isolates-security-posture",
+   "hist-erlang-crash-domain-vm"
+  ],
+  "machine_safety": "All builds and runs under tools/heavy.sh (one at a time). Shared r2 target reused; toolchain/lock drift forced a partial wasmtime recompile (+~0.4 GB in the shared dir); my unwind profile dir and fiwasm artifacts deleted after measurement; binaries archived in 04-work/bin (14 MB). 04-work total 74 MB. Docker image php:8.4-fpm-alpine 89.7 MB. Disk free 27 GB.",
+  "contamination": "Laptop shared with other loops (loadavg 7-350, xtask at ~1900% CPU at times). Counts robust; latency medians noisy; trial 2 worst. Harness bug: orphaned cordon workers accumulated in trials 1-2 (idle, 0% CPU); fixed for trials 3-5.",
+  "not_done": "V8/deno_core substrate (d) not measured (no prebuilt <500 MB checked; time). Hyperlight/Firecracker only cited.",
+  "R-ISO-1 verdict": "Direction unchanged (provenance-keyed), evidence upgraded E->B for the containment inputs; amendments: per-tenant cordon scope for P2, exec-spawn + crash budget, dumpable=0, socket activation, reuse=1 pins, clone-flag filter; reversal conditions R1-R5."
+ },
+ "sources": [
+  "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_children.c",
+  "https://github.com/php/php-src/blob/master/sapi/fpm/fpm/fpm_process_ctl.c",
+  "https://github.com/php/php-src/blob/master/sapi/fpm/www.conf.in",
+  "https://github.com/php/php-src/blob/master/sapi/fpm/php-fpm.conf.in",
+  "https://github.com/bytecodealliance/wasmtime/issues/14313",
+  "https://github.com/bytecodealliance/wasmtime/issues/9542",
+  "https://github.com/bytecodealliance/wasmtime/pull/11807",
+  "https://github.com/bytecodealliance/wasmtime/blob/main/src/commands/serve.rs",
+  "https://docs.rs/wasmtime/latest/wasmtime/struct.PoolingAllocationConfig.html",
+  "https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html",
+  "https://docs.wasmtime.dev/security.html",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-q8hx-mm92-4wvg",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-75hq-h6g9-h4q5",
+  "https://github.com/bytecodealliance/wasmtime/security/advisories/GHSA-6wgr-89rj-399p",
+  "https://github.com/google/security-research/tree/master/pocs/linux/kernelctf",
+  "https://edera.dev/stories/user-namespaces-are-not-a-security-boundary",
+  "https://synacktiv.com/publications/old-bug-shallow-bug-exploiting-ubuntu-at-pwn2own-vancouver-2023",
+  "https://man7.org/linux/man-pages/man5/core.5.html",
+  "https://man7.org/linux/man-pages/man2/clone.2.html",
+  "https://www.bu.edu/rhcollab/files/2019/04/fork-in-the-road.pdf",
+  "https://www.scs.stanford.edu/brop/",
+  "https://tc.gtisc.gatech.edu/cs8803/2014/r/morula.pdf",
+  "https://chromium.googlesource.com/v8/v8.git/+/main/include/v8-isolate.h",
+  "https://chromium.googlesource.com/v8/node/+/refs/heads/fuchsia/src/node_worker.cc",
+  "https://github.com/supabase/edge-runtime/issues/354",
+  "https://0pointer.de/blog/projects/socket-activation.html",
+  "https://www.erlang.org/doc/system/sup_princ.html",
+  "https://uwsgi-docs.readthedocs.io/en/latest/Options.html",
+  "https://httpd.apache.org/docs/2.4/mod/mpm_common.html",
+  "https://github.com/nginx/nginx/blob/master/src/os/unix/ngx_process.c",
+  "https://blog.cloudflare.com/mitigating-spectre-and-other-security-threats-the-cloudflare-workers-security-model/",
+  "https://www.fastly.com/documentation/guides/compute/developer-guides/sandbox-lifecycle/",
+  "https://usenix.org/conference/usenixsecurity20/presentation/ghavamnia",
+  "https://raw.githubusercontent.com/firecracker-microvm/firecracker/main/SPECIFICATION.md"
+ ],
+ "protocol_implications": [
+  "R-ISO-1 amend: P2 Wasm cordons are per-tenant (cross-principal data in a shared cordon -> Wasm-in-fork); reversal conditions R1-R5 attached.",
+  "New golden invariants: PR_SET_DUMPABLE=0 (or RLIMIT_CORE=1) on all crash-contained processes; supervisor-held listening socket; exec-spawned workers/zygotes; per-principal crash budget; max_instance_reuse=1; zygote clone-flag filter + stacked child filter; per-request fuel/CPU budget 10-50 ms.",
+  "Add isolation fault-injection CI gate (r4i04.isolation-fault-ci-gate) next to the storage crash gate; hard gates on counts (blast <=0.05/fault, wrong answers 0), soft gates on latency.",
+  "P1 native handlers require a per-request resource ledger and a no-mutable-global lint; otherwise measured fdleak/poison blast is unbounded.",
+  "kTLS (CONFIG_TLS) must not be reachable from sandboxed workers (11 kernelCTF LPEs) - bridge to W-TRANSPORT kTLS decision."
+ ],
+ "self_improvement": [
+  "Harness pkill-by-socket-path cleanup broke under socket activation (args became fd:3) and a pkill pattern matched the agent's own shell; future harnesses should spawn servers in their own process group and kill(-pgid).",
+  "Shared-laptop contention (loadavg up to 350) makes latency gates meaningless; heavy.sh serializes only heavy jobs, not other loops. Record loadavg per cell and gate on counts.",
+  "Reusing another round's target dir still triggered a partial wasmtime rebuild because the toolchain was not recorded in a rust-toolchain file; benches should commit rust-toolchain + Cargo.lock."
+ ],
+ "baselines": [
+  {
+   "substrate": "cordon",
+   "trials": 5,
+   "p50_med": 530,
+   "p99_med": 5623,
+   "rps_med": 24131,
+   "pss_kb_med": 684,
+   "rss_kb_med": 6204,
+   "nproc": 5
+  },
+  {
+   "substrate": "cordon-recycle",
+   "trials": 5,
+   "p50_med": 606,
+   "p99_med": 4482,
+   "rps_med": 19774,
+   "pss_kb_med": 691,
+   "rss_kb_med": 6232,
+   "nproc": 5
+  },
+  {
+   "substrate": "fork",
+   "trials": 5,
+   "p50_med": 1890,
+   "p99_med": 2565,
+   "rps_med": 8200,
+   "pss_kb_med": 344,
+   "rss_kb_med": 3808,
+   "nproc": 17
+  },
+  {
+   "substrate": "native",
+   "trials": 5,
+   "p50_med": 622,
+   "p99_med": 1389,
+   "rps_med": 22568,
+   "pss_kb_med": 566,
+   "rss_kb_med": 2148,
+   "nproc": 1
+  },
+  {
+   "substrate": "native-nosa",
+   "trials": 5,
+   "p50_med": 685,
+   "p99_med": 1477,
+   "rps_med": 21228,
+   "pss_kb_med": 559,
+   "rss_kb_med": 2148,
+   "nproc": 1
+  },
+  {
+   "substrate": "wasm",
+   "trials": 5,
+   "p50_med": 760,
+   "p99_med": 1378,
+   "rps_med": 21064,
+   "pss_kb_med": 8637,
+   "rss_kb_med": 10376,
+   "nproc": 1
+  },
+  {
+   "substrate": "wasmreuse",
+   "trials": 5,
+   "p50_med": 617,
+   "p99_med": 1346,
+   "rps_med": 23052,
+   "pss_kb_med": 8628,
+   "rss_kb_med": 10388,
+   "nproc": 1
+  }
+ ]
+}

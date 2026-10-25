@@ -33,3 +33,4 @@ plan: (a) elan+lean v4.35.0 into scratchpad via heavy.sh (no Mathlib); (b) build
 13 Guagliardo-Libkin PVLDB 11(1) formal SQL semantics w/ nulls; arXiv 2003.11331 SQL-with-nulls formalization
 14 arXiv 2609.06500 CAPMAS (macaroon plaintext caveat collusion) — to verify
 15 cedar-spec 301bdd2 sparse clone (code read); nanoda_lib/lean4export/lean4lean repos Apache-2.0 active Oct 2026
+## 04:55 DONE: raw JSON + 01-nodes.jsonl written
