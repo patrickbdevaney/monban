@@ -1,0 +1,5 @@
+{"id":"P2-config-001","crates":["aegis-config"],
+ "spec_refs":["F8 interfaces/F8-config.schema.json","F1#CFG-1..4","F1#INV-NONEMPTY","DEVIATIONS X-2 (parse via aegis_canon::parse_json)"],
+ "oracles":["crates/aegis-config tests: schema-conformance corpus, 1e6 random-mutation totality loop (1e7 on CI), oversize 3x => LKG"],
+ "acceptance":{"cmd":"ci/heavy.sh cargo test -p aegis-config --release","must":"all pass; totality loop 0 panics; every F8 constraint has a reject test"},
+ "write_scope":["crates/aegis-config/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
