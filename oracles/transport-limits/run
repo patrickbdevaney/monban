@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Transport resource-limit conformance (TBI-4, TBI-7, TBI-8) measured against the running server with the public
+# HTTP/2 benchmarking tool h2load (nghttp2 1.69.0, pinned Alpine image built from ./Dockerfile).
+#   run --subject <binary>   subject must accept: --plain --port P --body-mib N [--no-wrapper]; vhost 127.0.0.1
+#   run --self-test          the same stall check against the subject started with --no-wrapper must FAIL
+# Checks (cleartext h2, prior knowledge, loopback):
+#   stall    10 conns x 100 streams of a 4 MiB body with a zero stream window (-w 0): every stream must be ended by
+#            the server within stall_ms (10 s) + 3 s slack, and server RSS must stay under 10 x 16 MiB + 32 MiB.
+#   healthy  during the stall run, a fresh client gets 200 within 2 s every second.
+#   streams  one connection asking for 1,000 concurrent streams completes all requests (advertised cap respected).
+#   conns    300 connections x 10 requests complete with 0 errors.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; IMG=aegis-h2load:1.69.0
+docker image inspect $IMG >/dev/null 2>&1 || docker build -q -t $IMG "$HERE" >/dev/null || { echo "TRANSPORT-LIMITS: FAIL (cannot build $IMG)"; exit 1; }
+h2load() { docker run --rm --network host $IMG h2load "$@" 2>&1; }
+
+selftest=0; subj=""
+case "${1:-}" in
+  --self-test) selftest=1; subj="${2:-$HERE/../../target/release/transport-subject}";;
+  --subject) subj="$2";;
+  *) echo "usage: run --subject <binary> | --self-test [binary]"; exit 2;;
+esac
+[ -x "$subj" ] || subj="$(cd "$OLDPWD" 2>/dev/null && realpath "$subj")"
+[ -x "$subj" ] || { echo "TRANSPORT-LIMITS: FAIL (no subject binary)"; exit 1; }
+
+start() {  # $1 = extra flag
+  port=$((20000 + RANDOM % 20000))
+  "$subj" --plain --port $port --body-mib 4 $1 >/dev/null 2>&1 & pid=$!
+  for _ in $(seq 50); do curl -s -o /dev/null --http2-prior-knowledge "http://127.0.0.1:$port/" && return 0; sleep 0.1; done
+  echo "TRANSPORT-LIMITS: FAIL (subject did not start)"; kill $pid 2>/dev/null; exit 1
+}
+rss_mb() { awk '/VmRSS/ {printf "%d", $2/1024}' /proc/$pid/status 2>/dev/null || echo 0; }
+
+stall_check() {  # sets: stall_wall stall_done peak_rss healthy_fail
+  local t0 t1 out
+  healthy_fail=0; peak_rss=0
+  ( for _ in $(seq 25); do
+      c=$(curl -s -o /dev/null -m 2 -w "%{http_code}" --http2-prior-knowledge "http://127.0.0.1:$port/" || echo 000)
+      [ "$c" = 200 ] || echo HEALTHY_FAIL; sleep 1
+    done ) > "$tmp/healthy" &
+  hp=$!
+  ( while kill -0 $pid 2>/dev/null; do r=$(rss_mb); echo "$r"; sleep 0.5; done ) > "$tmp/rss" &
+  rp=$!
+  t0=$(date +%s.%N)
+  out=$(h2load -c 10 -m 100 -w 0 -W 16 -n 1000 -T 30 "http://127.0.0.1:$port/big")
+  t1=$(date +%s.%N)
+  kill $rp 2>/dev/null; wait $hp 2>/dev/null
+  stall_wall=$(python3 -c "print(round($t1-$t0,1))")
+  stall_timeouts=$(grep -oE '[0-9]+ timeout' <<<"$out" | grep -oE '^[0-9]+' || echo 999)
+  peak_rss=$(sort -n "$tmp/rss" | tail -1); peak_rss=${peak_rss:-0}
+  healthy_fail=$(grep -c HEALTHY_FAIL "$tmp/healthy" || true)
+}
+
+tmp=$(mktemp -d); trap 'kill $pid 2>/dev/null; rm -rf "$tmp"' EXIT
+if [ $selftest = 1 ]; then
+  start --no-wrapper; stall_check; kill $pid
+  if python3 -c "import sys; sys.exit(0 if $stall_wall <= 13 and $stall_timeouts == 0 else 1)"; then
+    echo "TRANSPORT-LIMITS SELF-TEST: FAIL (stalled streams were reaped without the wrapper: ${stall_wall}s, ${stall_timeouts} timeouts)"; exit 1
+  fi
+  echo "TRANSPORT-LIMITS SELF-TEST: PASS (without the wrapper stalled streams are never reaped: ${stall_wall}s, ${stall_timeouts} client timeouts)"; exit 0
+fi
+
+start ""; bad=""
+stall_check
+python3 -c "import sys; sys.exit(0 if $stall_wall <= 13 and $stall_timeouts == 0 else 1)" || bad="$bad; stall: ${stall_wall}s wall, ${stall_timeouts} timeouts (want ≤13 s, 0)"
+[ "$peak_rss" -le 192 ] || bad="$bad; stall RSS peak ${peak_rss} MiB > 192"
+[ "$healthy_fail" -eq 0 ] || bad="$bad; healthy client failed ${healthy_fail}x during stall"
+out=$(h2load -c 1 -m 1000 -n 2000 "http://127.0.0.1:$port/")
+grep -qE "2000 succeeded, 0 failed" <<<"$out" || bad="$bad; streams: $(grep -E '^requests:' <<<"$out")"
+out=$(h2load -c 300 -n 3000 "http://127.0.0.1:$port/")
+grep -qE "3000 succeeded, 0 failed" <<<"$out" || bad="$bad; conns: $(grep -E '^requests:' <<<"$out")"
+kill -0 $pid 2>/dev/null || bad="$bad; subject died"
+summary="stall ${stall_wall}s/${stall_timeouts} timeouts, peak RSS ${peak_rss} MiB, healthy failures ${healthy_fail}"
+[ -z "$bad" ] && echo "TRANSPORT-LIMITS: PASS ($summary; 1000-stream conn and 300 conns clean)" || { echo "TRANSPORT-LIMITS: FAIL ($summary$bad)"; exit 1; }
