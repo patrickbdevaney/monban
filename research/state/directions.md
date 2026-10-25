@@ -314,3 +314,68 @@ Note: the highest yields came from **changing the instrument** (executing tools 
 - **Still productive:**
   - Executed tooling against the golden lock: geiger/vet/deny reruns on each lock change are CI, not research.
   - Bridge hunts that pair one invariant with ≥10 instances (cancellation this round, cross-request state in round 2): keep one per round.
+
+## Round 4 (2026-10-25)
+
+- Queries: 334 (merged from `state/raw/round-004/_queries.log`). Distinct 4-axis cells: 111, so **direction_diversity = 0.332** (round 3: 0.366). With the vocabulary axis: 153 cells, **0.458**.
+- The forum-mining explorer (switching economics) logged 114 queries in only 8 cells, and 94 of them are intra-label near-dups (J ≥ 0.5): per-thread fetch strings such as "HN item <id>", not distinct directions. Without it: 220 queries, 103 cells, **0.468**.
+- 60 of 111 cells are new (129 of 153 five-axis cells); 47% of queries landed in an unused cell (round 3: 70%). Pillar labels are now canonical per target (one W-* pillar each, as round-3 proposal 4 asked), so this number is lower than round 3 partly because the inflation is gone.
+- novelty_gate: intra-round query dup rate 0.069 (round 3: 0.003), entirely from the forum explorer. Cross-explorer near-dups (J ≥ 0.5): 0. Prior-round near-dups: 6 (CISA bad-practices page, wasmtime advisory pull, Redis ACL docs, PG advisory list, CMVP #5314, Firecracker SPECIFICATION.md). All six were re-reads to verify a specific claim, which §0d allows.
+- mechanical_novelty (`novelty_gate.py metrics --round 4`) = **0.909** (URL novelty binding; query 0.982, node 0.960, axis-cell 0.958).
+
+### Axis value totals (round 4)
+
+- **source_type**: forum 101, repo-advisory 70, spec-rfc 48, web-other 37, cve-incident 32, vendor-doc 24, paper 19, benchmark 3
+- **stance**: proponent 175, skeptic-negative 125, attacker 34 (proponent 52%, down from 69%: the round-3 stance quota worked)
+- **era**: 2025-26 286, historical 22, last-60d 26
+- **vocab**: PL-formal 67, economics 59, systems 53, offensive 49, standards-policy 32, cryptography 32, network-SRE 25, database 9, web-dev 8
+- **scale**: unspecified 251, enterprise 35, government 28, household 12, hyperscaler 8
+
+### Yield per explorer direction (round 4; new non-merged L4/L5 nodes per query)
+
+| explorer target | queries | cells | new nodes | new L4/L5 | per query | instrument |
+|---|---|---|---|---|---|---|
+| non-us-national-pqc-crypto-regimes | 16 | 6 | 20 | 17 | 1.06 | primary PDFs via curl + pdftotext (DE/FR/EN/JA), IANA CSV |
+| fips-golden-version-triangle-one-lock | 9 | 4 | 9 | 8 | 0.89 | executed cargo resolver + FIPS handshake probe |
+| lean-check-lowering-and-token-proofs | 23 | 13 | 20 | 19 | 0.83 | first Lean toolchain execution, 6-checker gate, negative control |
+| write-path-lowering-differential-oracle | 15 | 6 | 11 | 11 | 0.73 | executed write oracle on PG/SQLite/Valkey/Redis |
+| dx-capability-sdk-mutants-real-axum-async | 13 | 8 | 12 | 9 | 0.69 | 32 mutants x 4 shapes compiled on real axum; trybuild gate |
+| uu-incident-dataset-outage-root-causes | 19 | 7 | 16 | 11 | 0.58 | hand-coded incident dataset (172 rows) from bulk APIs |
+| isolation-crash-blast-radius-measured | 25 | 18 | 19 | 14 | 0.56 | 740-cell fault-injection experiment + PHP-FPM control |
+| mcp-gateway-conformance-corpus-executed | 17 | 8 | 8 | 8 | 0.47 | 43-case corpus executed against 5 implementations |
+| bridge-canonical-identity-one-owner | 34 | 16 | 17 | 13 | 0.38 | executed cross-crate differential (12 parsers) + OSV ledger |
+| safety-critical-certification-assurance-historical | 31 | 10 | 16 | 11 | 0.35 | standards + certificates + pdftotext of primary PDFs |
+| calibration-two-sided-top-findings-r3 | 18 | 9 | 3 | 3 | 0.17 | 13 revisions; re-executed cooldown; scorecard of 34 predictions |
+| switching-economics-practitioner-forums | 114 | 8 | 12 | 2 | 0.02 | HN Algolia / Lemmy / Discourse / GitHub GraphQL coding (L1-L3 by design) |
+
+Note: executed instruments again dominate yield. The economics explorer's low L4/L5 ratio is expected: its output is demand evidence (L1-L3). Judge it on whether it changes a decision. It does: R-GAP-1 positioning (§1 of the draft).
+
+### Cell coverage, round 4 (count of queries per cell, top)
+
+`W-GAP|forum|skeptic-negative|2025-26` 52, `W-GAP|forum|proponent|2025-26` 43, `W-THREAT|cve-incident|proponent|2025-26` 12, `W-GAP|repo-advisory|proponent|2025-26` 12, `T-SAFETY-CERT|web-other|proponent|2025-26` 10, `W-AGENT-PROTOCOL|repo-advisory|attacker|2025-26` 10, `W-BRIDGE|cve-incident|skeptic-negative|2025-26` 9, `W-DATA-GATE|vendor-doc|proponent|2025-26` 8, `W-PQC|spec-rfc|proponent|2025-26` 7, `W-FORMAL|repo-advisory|skeptic-negative|last-60d` 6, plus 101 cells with ≤6 each (full map in the scratchpad `r4_cells.json`, mirrored by `state/queries.jsonl` cell fields).
+
+### Redundant directions (flag for meta-optimizer)
+
+- **Forum thread fetches logged as queries.** 94 near-dup lines from one explorer. Log one query per search strategy and count thread fetches separately, or they swamp the diversity metric.
+- **Same recomputation twice.** The Wasmtime M0 escape rate was recomputed independently by explorers 04 and 12 (merged with same-as). The aws-lc-fips-sys 0.13.11 advisory exposure was found by 03 and 12 (merged). The 2026 Lean soundness record was compiled by 01 and 09 (merged). The planner should give a calibration target the explicit list of numbers other targets will touch.
+- **Contradicting range.** 03 and 12 both stated the aws-lc-rs FIPS window, and they disagree (1.15.2-1.17.1 vs 1.15.1-1.17.2). The verifier settled it for 03 (1.17.2 yanked).
+
+### Thin / empty cells (cheapest new directions)
+
+- **benchmark** source type: 3 queries. Most measurements were own experiments, not literature, which is fine; a real 1-vCPU VPS is still the missing instrument (q3-001/q3-002).
+- **hyperscaler** scale 8, **household** 12. **database** vocab 9 (outside the write-path explorer). **last-60d** era 26.
+- **Pillars with no round-4 target:** W-STATE (0 new nodes), W-ABUSE (0), W-PERF (1), W-OPS (1, though outage classes from explorer 11 land on ops rules), W-SUPPLY (6, via the FIPS lock and calibration only).
+- **Non-English primaries:** first use this round (DE, FR, JA, ZH, KO press). Chinese primaries (OSCCA GM/T, GB/T 38636) are still thin.
+
+### Retired / exhausted directions (after round 4)
+
+- **Retired:**
+  - **Lean feasibility.** The toolchain was executed, the footprint measured (712 MB Init-only, paranoid 4 min / 1.0 GB) and the gate built. What remains is proof work, which is implementation.
+  - **FIPS version triangle.** Resolved as empty at the floor; two lock profiles. Re-open only on an AWS-LC 4/5 certificate or a rustls 0.24 release.
+  - **Crash blast-radius literature.** Measured. What remains are gate spikes: fuel budget, CLONE_INTO_CGROUP.
+  - **Practitioner forum mining on proxy selection.** Demand criteria are counted. Reddit/lobste.rs are walled; procurement documents are the next instrument (q4-003), not more forums.
+  - **National PQC regimes outside China.** The matrix is filled from primaries. Only BSI 2027 / ANSSI qualification text / ECCG ACM v3 final remain as dated deltas.
+  - **Safety-critical certification history.** No regulator credits code proofs. Only DO-330 primary text and quantified DO-333 credit remain (low expected info gain).
+- **Still productive:**
+  - Executed differentials and oracles: lowering read/write, identity canonicalization, MCP corpus, FIPS probe.
+  - Calibration against raw logs. It caught reproducibility gaps in the threat-ledger script and 9 stale grade tags in the draft.

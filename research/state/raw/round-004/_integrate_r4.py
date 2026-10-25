@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""AEGIS round-3 integrator: dedup vs round-1 state, verifier grades, append graph/edges/seen/queries,
-rebuild frontier queue, predictions. Deterministic. Inputs: raw/round-002/*.json (+ .structured.json for
-explorers 05 and 11 whose raw files were truncated by the crash), _verify_r2_verdicts.json, _verify_r2_missed.json.
-Run once:  python3 -I _integrate_r2.py  (refuses to run twice: checks graph for first_seen_round==2)."""
-import json, glob, os, re, sys, collections
+"""AEGIS round-4 integrator: dedup vs rounds 1-3 state, verifier grades, append graph/edges/seen/queries,
+rebuild frontier queue, predictions (+ score fields from explorer 12's scorecard). Deterministic.
+Inputs: raw/round-004/[0-9][0-9]-*.json, _verify_r4_verdicts.json, _verify_r4_missed.json (both re-keyed by the
+integrator from the workflow journal), _queries.log.
+Run once:  python3 -I _integrate_r4.py [--dry]  (refuses to run twice: checks graph for round-4 records).
+Derived from _integrate_r3.py."""
+import json, glob, os, re, sys, collections, tempfile
 sys.path.insert(0, '/home/patrickd/aegis/research/tools')
-from novelty_gate import toks, jac, nscore  # same tokenizer as the gate
+from novelty_gate import toks, jac  # same tokenizer as the gate
 
-R = 3
+R = 4
 DATE = '2026-10-24'          # per integrator brief (last_verified value); wall clock is 2026-10-25
 ROOT = '/home/patrickd/aegis/research'
 ST = ROOT + '/state'
-RAW = ST + '/raw/round-003'
-SCR = '/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad'
+RAW = ST + '/raw/round-004'
+SCR = '/tmp/claude-1000/-home-patrickd/b4045317-3a36-45b5-8cfe-a4b20991f0b0/scratchpad/r4'
 DRY = '--dry' in sys.argv
 
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
-def canon(u):  # META §8 form (gh:owner/repo for repo roots), identical to round-1 integrator
+def canon(u):  # META §8 form (gh:owner/repo for repo roots), identical to rounds 1-3
     try: p = urlsplit(u.strip())
     except ValueError: return u.strip()
     host = (p.hostname or '').lower()
@@ -48,12 +50,21 @@ def jl(path):
             if line: out.append(json.loads(line))
     return out
 
+def write_atomic(path, lines):
+    d = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=d, prefix='.tmp_')
+    with os.fdopen(fd, 'w') as f:
+        for x in lines: f.write(json.dumps(x, ensure_ascii=False) + '\n')
+    os.replace(tmp, path)
+
 PMAP = {'W-DATA': 'W-DATA-GATE', 'W-AGENT': 'W-AGENT-PROTOCOL', 'W-ISOLATE': 'W-ISOLATION', 'W-AUTH': 'W-AUTHZ',
         'W-PARSE': 'W-TRANSPORT', 'W-WASM': 'W-ISOLATION', 'W-PROOF': 'W-FORMAL', 'W-BRIDGE': 'W-BRIDGE'}
 def pillar(dom):
     dom = dom or ''
     if dom.startswith('C-CRYPTO'): return 'W-PQC'
     if dom.startswith('K-CALIBRATION'): return 'K-CALIBRATION'
+    if dom.startswith('T-SAFETY-CERT'): return 'T-SAFETY-CERT'
+    if dom.startswith('R+S'): return 'R-HISTORY'
     m = re.search(r'W-[A-Z]+(?:-[A-Z]+)*', dom)
     if not m: return 'W-?' + dom
     p = m.group(0)
@@ -62,25 +73,16 @@ def pillar(dom):
     return PMAP.get(p, p)
 
 # ---------------- load existing state ----------------
-
-# ---------------- load existing state ----------------
 G = {}
 for n in jl(ST + '/graph.jsonl'): G[n['id']] = n          # last record wins
 if any(n.get('first_seen_round') == R or n.get('revision_round') == R for n in G.values()):
-    sys.exit('round 3 already integrated; refusing to append twice')
+    sys.exit('round 4 already integrated; refusing to append twice')
 E_old = jl(ST + '/edges.jsonl')
 E_keys = {(e['src'], e['dst'], e['type']) for e in E_old}
 seen_old = {}
 for s in jl(ST + '/seen.jsonl'): seen_old[s['canon']] = s
 
-# ---------------- load round-3 explorer output ----------------
-EXTRA_SEEDS = {'09': [  # explorer 09 raw JSON lost its seeds key; restored from the relayed compact findings
- ('Runtime-verify tonic Server default effective SETTINGS_MAX_CONCURRENT_STREAMS and async-graphql axum behaviour (text/plain POST, GET mutation, body cap) under heavy.sh', 'L4', 'W-TRANSPORT/ingress', .5, 'Two source-read defaults findings (B/C) that could become CVE-class defaults; cheap implementation-phase spike'),
- ('Does hyper/axum/tonic routing canonicalize :path/URI before tower authz layers (Rust analogue of grpc-go CVE-2026-33186)? Differential test h2 :path variants', 'L4', 'W-TRANSPORT/ingress', .45, 'Only spec-differential class not covered by budgets; no Rust evidence either way'),
- ('MCP streamable HTTP and A2A as ingress front ends: SSE session resumption, Origin/DNS-rebinding rules, per-session budgets from the MCP spec and CVEs', 'L4', 'W-AGENT-PROTOCOL', .4, 'SSE budget class maps directly to MCP transport; agent-swarm reconnect storms unmeasured'),
- ('Outbound egress guard design for webhook delivery/callback registration: IP pinning at connect, redirect policy, NAT64/6to4 handling, Rust crates (reqwest resolver hooks, ssrf-safe connectors)', 'L3', 'W-ABUSE', .4, 'Highest-count 2026 webhook CVE class and outside ingress; uncovered in map'),
- ('Formal/Kani feasibility for a ~1k-LOC RFC 6455 frame codec and the 349-LOC Standard Webhooks verifier', 'L4', 'W-FORMAL', .35, 'Smallest candidate parsers for the first machine-checked ingress modules'),
-]}
+# ---------------- load round-4 explorer output ----------------
 files = {}
 for f in sorted(glob.glob(RAW + '/[0-9][0-9]-*.json')):
     b = os.path.basename(f)
@@ -100,78 +102,87 @@ for pre, (b, o) in sorted(files.items()):
         edges.append({'src': e['src'], 'dst': e['dst'], 'type': e['type'], 'note': e.get('note', ''), 'evidence_url': '', 'origin': f'explorer-{pre}', 'round': R})
     for s in o.get('seeds', []):
         s = dict(s); s['from_explorer'] = pre; seeds.append(s)
-    for q, l, d, g, r in EXTRA_SEEDS.get(pre, []):
-        seeds.append({'question': q, 'layer': l, 'domain': d, 'expected_info_gain': g, 'reason': r, 'from_explorer': pre})
 
-V = json.load(open(RAW + '/_verify_r3_verdicts.json'))
-VM = json.load(open(RAW + '/_verify_r3_missed.json'))
+V = json.load(open(RAW + '/_verify_r4_verdicts.json'))
+VM = json.load(open(RAW + '/_verify_r4_missed.json'))
 for vn in VM['vnodes']:
     n = dict(vn); n['domain'] = vn['pillar']; n['explorer'] = vn['found_by']; n['specifics'] = ''
-    n['overclaim_risk'] = 'Verifier-sourced; single verification pass.'; n['underclaim_risk'] = ''
+    n['overclaim_risk'] = 'Verifier-sourced; single verification pass; integrator did not re-fetch.'; n['underclaim_risk'] = ''
     explorer_of[n['id']] = 'V' + vn['found_by'][-2:]
     nodes.append(n)
 
 # ---------------- integrator dedup decisions ----------------
-SAME_AS = [  # (round-3 node, canonical existing node, note)
- ('zd.l4-config-push-outage', 'r2e11.cloudflare-2025-11-18', 'same incident (Cloudflare 2025-11-18); r3 adds lessons validate-then-swap/canary/kill switch; verifier: root cause was a ClickHouse permission change doubling query output, not an operator push'),
- ('sc3.arrayref-trust-model-gap', 'sc.arrayref-incident', 'same incident RUSTSEC-2026-0260; r3 adds 86-107 min live window, proc-macro1 build.rs delivery and the cargo-vet publisher-trust gap'),
+SAME_AS = [  # (round-4 node, canonical node, note)
+ ('sc.lean-kernel-soundness-2026', 'r4e01.lean-kernel-soundness-2026-record', 'same subject (2026 Lean kernel soundness record: #14576/#14577, 4.32.1/4.32.2 fixes) found by explorers 01 and 09; 09 adds the oss-security 2026-08-02 advisory (CVSS 7.1, fix first in nightly-2026-07-29, nanoda+leanchecker also accepted)'),
+ ('r4i04.m0-escape-rate-denominators', 'wasmtime-advisory-share-by-config', 'same recomputation (12 M0 escapes / 5.43 y = 2.21/yr, 0.36/yr 2024-26) done independently by explorers 04 and 12; 12 adds the aarch64 critical GHSA-mghf'),
+ ('r4tri.cmvp-pin-carries-advisories', 'ops.fips-module-boundary-pin', 'same finding (fips-sys 0.13.11 inside RUSTSEC-2026-0042/0043; reachability via rustls nil by source reading) found by explorers 03 and 12'),
 ]
-REFINES = [  # (src refines dst) cross-explorer / cross-round
- ('sc3.rustls-advisory-batch-2026-10', 'rec60-rustls-0.23.46-downgrade'), ('r3pq.hrr-acceptance-test', 'rec60-rustls-0.23.46-downgrade'),
- ('r3e11.quinn-proto-0.11.18-19', 'crate-quinn'), ('r3e09.grpc-defect-classes', 'dpf-upstream-http-grpc'),
- ('r3e11.wasi-http-host-side-framing-batch', 'wasmtime-minimal-config-pin'), ('ac.i07-wasmtime-cancel-advisories', 'wasmtime-advisory-share-by-config'),
- ('r3e07-tls-handshake-floor', 'w02.handshake-pq-cost'), ('r3e11.tokio-1.54-regression-and-asyncfd', 'w02.pingora-tokio-panic'),
- ('v3.aws-lc-rs-fips-sys-range', 'crate-aws-lc-rs'), ('v3.cve-2026-14666-session-persistence', 'irl-l5-q1012-role-plan-cache-gate'),
- ('v3.cve-2026-14666-session-persistence', 'sdg-rls-plan-cache-family'), ('v3.go81199-sigalgs-cert-trigger', 'r3pq.go127-mldsa-middlebox'),
- ('v3.typed-authz-ctx-prior-art', 'dx.sdk-design-space-matrix'), ('v3.claw-swe-shared-task-pool', 'dx.claw-swe-rust-agentic'),
- ('v3.nginx-quic-bpf-live-upgrade-limits', 'zd.l4-quic-across-processes'), ('v3.iceoryx2-fosdem-2026', 'w02.shm-crate-landscape'),
- ('w02.norm-copy-cost-measured', 'w02.ingress-design-verdict'), ('irl-l5-q1012-role-plan-cache-gate', 'sdg-rls-plan-cache-family'),
+REFINES = [
+ ('r4e01.lean-kernel-soundness-2026-record', 'vfg-lean-kernel-soundness-bugs-2026'), ('sc.lean-kernel-soundness-2026', 'vfg-lean-kernel-soundness-bugs-2026'),
+ ('l4.releases-snapshot-2026-10-25', 'r3e11.osv-snapshot-2026-10-25'), ('l4.mcp-spec-latest-revision-2026-10-25', 'rec60-mcp-2026-07-28'),
+ ('r4tri.tested-env-only-al2023', 'fips-cmvp-mlkem-modules'), ('r4tri.golden-lock-no-pq-feature', 'dpf-rustls-pq-driver-inheritance'),
+ ('sdg-rls-plan-cache-family', 'sdg-sje-rls-2026'), ('dx.r4-prior-art-capability-crates', 'v3.typed-authz-ctx-prior-art'),
+ ('uu11.cfg-push-class', 'r2e11.cloudflare-2025-11-18'), ('r4i04.wasmtime-serve-reuse-defaults', 'wasmtime-minimal-config-pin'),
+ ('v4.cooldown-holds-vulnerable-webpki', 'sc3.l5-cooldown-security-bypass'), ('v4.pingora-userinfo-authority-reject', 'r4e07.invariant-canon-one-owner'),
+ ('v4.mcp-conformance-suite-open-gaps', 'l4.conformance-suite-gap-origin-only'), ('v4.mcp-default-off-dns-rebinding-cves', 'l4.defaults-vs-configurable-matrix'),
+ ('v4.lake-check-sorryax-manifest', 'r4e01.l5-proof-ci-gate'), ('v4.native-decide-unverifiable-external', 'r4e01.native-decide-aux-axiom-naming'),
+ ('v4.pg-onconflict-rls-second-report', 'wpo-pg-onconflict-where-peek'), ('v4.cve-2017-15099-onconflict-precedent', 'wpo-pg-onconflict-where-peek'),
+ ('v4.redis-acl-side-channels-search-prefix', 'wpo-redis-write-path-acl'), ('v4.rustls-024-dev-and-awslc-window-detail', 'r4tri.separate-fips-lock-decision'),
+ ('v4.wasmtime-panic-abort-toolchain-split', 'r4i04.wasmtime-guest-host-abort-rate'), ('v4.nginx-rift-conditional-exploitability', 'econ.security-incident-no-switch'),
+ ('v4.pq-hybrid-invisible-default', 'econ.differentiators-absent'), ('v4.ingress-migration-distro-channel', 'econ.who-switches-first'),
+ ('v4.pikeos-eal5plus-ceiling', 'sc.cc-eal6-eal7-real-evals'), ('v4.whatwg-914-bidi-deno-divergence', 'r4e07.whatwg-914-rust-url-divergence'),
+ ('v4.lean-soundness-threat-is-build-supply-chain', 'r4e01.lean-kernel-soundness-2026-record'),
 ]
-CONTRADICTS = [  # (src, dst, note)
- ('v3.aws-lc-rs-fips-sys-range', 'ops.fips-module-boundary-pin', 'explorer-12 lever "any aws-lc-rs >=1.15,<1.18" is wrong: 1.17.3 needs fips-sys ^0.13.16, 1.17.4 ^0.13.17; safe range 1.15.2-1.17.2'),
- ('v3.claw-swe-shared-task-pool', 'dx.swebench-multilingual-rust', 'same Rust task pool; not independent corroboration'),
- ('r3e11.tokio-1.54-regression-and-asyncfd', 'sc3.rustls-advisory-batch-2026-10', 'overlap, not contradiction: both report RUSTSEC-2026-0384/0386; r3e11 adds 1.54.0 yanked and no 1.52.x backport'),
- ('r3pq.hrr-acceptance-test', 'dpf-rustls-pq-driver-inheritance', 'default 0.23.46 server follows client group order: an X25519-first client gets classical; PQ only by HRR under pq-required kx_groups'),
- ('ac.counter-hypothesis-one-txn-outbox', 'sdg-failed-request-no-mutation', 'one-txn+outbox closes ~5 of 15 cancellation instances; INV-NOMUT needs NC1-NC8'),
+CONTRADICTS = [
+ ('r4tri.yanked-1.17.2', 'ops.fips-module-boundary-pin', 'the r4 calibration revision states aws-lc-rs 1.15.1-1.17.2; 1.17.2 is yanked (2026-07-17) and fails to compile with fips-sys <=0.13.15, so the 0.13.11 window is 1.15.2-1.17.1 (verifier: crates.io)'),
+ ('r4e10.golden-tls-kex-profiles', 'r4tri.fips-handshake-verdicts', 'FIPS-KX-1 = [SECP256R1MLKEM768, SECP256R1, SECP384R1] lacks SecP384r1MLKEM1024 (0x11ED), the group r4e10 picks as the universal compliance group (ASD rejects 768 after 2030; BSI intends 0x11EB/0x11ED); the FIPS listener list gains 0x11ED once rustls supports it'),
+ ('r4e01.lake-check-paranoid-six-kernels', 'v4.lean-checker-disagreement-15908', '"all 6 checkers accept" holds for our own prelude only; on the #15908 adversarial export the checkers disagreed, so acceptance is not evidence of independence'),
+ ('v4.lean-checker-disagreement-15908', 'r4e01.from-export-prelude-trust-hole', 'overstated: lean4lean, con-leche and con-ron also rejected the exploit, not only comparator-style prelude matching'),
+ ('econ.security-incident-no-switch', 'v4.nginx-rift-conditional-exploitability', 'confounder: Rift needs a non-default rewrite config + ASLR bypass, and the thread contained switching-interest comments'),
 ]
-BRIDGES = [  # integrator cross-explorer edges (type, note): the round-3 bridges
- ('ac.l5-inv-nomut-c', 'irl-l5-backend-refinement-contract', 'precondition_for', 'BRIDGE pooled-connection hygiene: NC3 checkin predicate (ReadyForQuery I, no outstanding replies) is a precondition of the tenant role/GUC binding the lowering theorem trusts'),
- ('ac.i01-sqlx-4393-begin-cancel', 'irl-l5-q1012-role-plan-cache-gate', 'related', 'BRIDGE: q1012 shows SET LOCAL ROLE + plan cache correct on clean connections; sqlx#4393 shows a cancelled BEGIN leaves a pooled conn inside the previous principal\'s txn: both gates are needed'),
- ('r3e05.tenuo-cel-attenuation-bypass', 'irl-empty-or-widening-family', 'related', 'BRIDGE checker-vs-evaluator class: leaf-only evaluation + syntactic subsumption checker (Tenuo) and dropped empty sub-expressions (SQLAlchemy or_()) both widen authority silently; fix = evaluate the full conjunction in one canonical evaluator, Or([])=FALSE'),
- ('irl-l5-unsound-lowering-denylist', 'r3e09.grpc-defect-classes', 'related', 'BRIDGE canonical identity: grpc-go :path authz bypass and SQL collation/LIKE tenant collisions are one class (policy compares a non-canonical form); one canonicalization owner per identity, binary collation everywhere'),
- ('r3pq.prefer-pq-feature-pitfall', 'sc3.l5-ci-gate-list', 'constrains', 'BRIDGE supply chain x PQC: lockfile/feature audit must assert prefer-post-quantum on every rustls in Cargo.lock (default-features=false is silently classical)'),
- ('sc3.cooldown-executed-cargo-198', 'r3pq.hrr-acceptance-test', 'related', 'BRIDGE: a 14-day cooldown resolved rustls 0.23.45 (RUSTSEC-2026-0349 PQ downgrade); the HRR acceptance test is the behavioural backstop when cooldown and security floors disagree'),
- ('w02.ipc-hop-cost-1core', 'r3e07-defender-stage-cost-table', 'quantifies', 'BRIDGE perf budget: 4.8 us UDS hop vs ~424-848 us full TLS handshake: adapter IPC is <1% of a new-connection request but ~100x a cached key lookup'),
- ('ac.attacker-chosen-cancel-instant', 'r3e07-tls-handshake-floor', 'related', 'BRIDGE abuse x atomicity: an RST-timed cancel costs the attacker one frame but forces a discard-on-cancel reconnect (NC3, TLS+SCRAM); must be charged (NC4) or it is a reconnect amplifier against the ~1.1k full-handshake/s floor'),
- ('zd.l4-config-push-outage', 'r3e09.L5-per-frontend-budget-table', 'related', 'BRIDGE fail-closed config: validate-then-swap with last-known-good (reload) + CI fails any effective unbounded limit (ingress); defaults are the bug (tonic streams None, async-graphql limits None, Pingora 105297)'),
- ('zd.l5-upgrade-protocol', 'ac.l5-inv-nomut-c', 'related', 'BRIDGE drain = cancellation: UP-4 drain deadline cancels in-flight requests; NC2 commit-point latch decides which complete; one T_drain bound for both'),
- ('r3e09.webhook-defect-classes', 'dx.l5-decision-sdk-shape', 'constrains', 'raw-body signatures need Exchange-level raw bytes: the typed Ctx must expose a verified-before-parse capability instead of only a normalized body'),
- ('r3e11.cross-stack-bug-classes-sep-oct-2026', 'r3e09.core-vs-per-frontend-matrix', 'supports', 'BRIDGE: trailers, H3->H1 bridging, validator/handler divergence and unbounded sizes recur across 7 stacks in 6 weeks; all are core-once classes (I-ONE-PARSE = one canonical parse handed to policy and handler)'),
- ('r3e05.everparse-cborrs-2026-10', 'irl-l5-lean-lowering-theorems', 'related', 'BRIDGE proof pattern: token (verified CBOR parser + core-Lean T1-T6) and data plane (Lowering.lean) share "verified parser + core-Lean semantics theorem + DRT to Rust" on one toolchain (Lean core, no Mathlib)'),
- ('sc3.repro-ablation-golden', 'zd.l5-upgrade-protocol', 'related', 'BRIDGE release identity: binary hash depends on toolchain and auditable mode; the upgrade protocol signature-checks B against the attested digest before spawn'),
- ('ops.fips-module-boundary-pin', 'sc3.golden-lock-gate-run', 'conflicts_with', 'BRIDGE FIPS x golden lock: the executed golden lock resolved aws-lc-rs 1.18.2 / aws-lc-sys 0.46 (unvalidated v4 line); the FIPS golden needs aws-lc-rs 1.15.2-1.17.2 + aws-lc-fips-sys =0.13.11 and must still satisfy rustls 0.23.46'),
- ('r3e07-L5-budget-invariants-additions', 'ac.l5-inv-nomut-c', 'related', 'BRIDGE one ledger: NC4 (pre-debit, never refund, charge cancellations) and I8 aggregate expensive-tier budget are the same admission ledger'),
- ('dx.exp-error-signal', 'sc3.l5-new-crate-intake', 'related', 'BRIDGE agents weaken boundaries when tools suggest it (rustc "make the field public"; cargo add of hallucinated crates): deny agent edits to sdk/** and route cargo add through the intake gate'),
- ('irl-l5-differential-oracle-harness', 'ac.l5-cancel-sweep-harness', 'related', 'BRIDGE executed oracles beat reading: both harnesses found bugs in code written to be safe (hardened SQLite lowering; 3 unreleased driver fixes); run both against real PG in nightly CI'),
- ('w02.L5-adapter-oop-threshold-table', 'ac.principle-cancel-equals-crash', 'related', 'BRIDGE out-of-process adapters make cancel-equals-crash cheap: killing a helper resets all driver state; costs 4.8 us/hop + 250-615 us respawn'),
+BRIDGES = [  # (src, dst, type, note): integrator cross-explorer edges, round 4
+ ('r4e01.exact-vs-refines-not-witness', 'wpo-pg-onconflict-where-peek', 'related', 'BRIDGE engine bugs break the adapter contract from both sides: PG BUG #19645 (partition pruning drops matching rows = completeness) and ON CONFLICT WHERE evaluated before RLS (side-effect soundness) are engine-level; the two-sided DRT (leak=0 AND miss=0) and the write oracle re-run on every engine bump, and upsert WHERE carries no user expressions'),
+ ('r4e01.not-absent-permits-spec-gap', 'wpo-inv-write-subset', 'related', 'BRIDGE one three-valued reference: the absent-field NOT widening (Mongo $ne) and the write pre/post-image W1 Pred clause need the same Option-Bool reference evaluator; make the IR reference three-valued before freezing W1-W7'),
+ ('r4tri.fips-handshake-verdicts', 'r4e10.rustls-secp384r1mlkem1024-gap', 'constrains', 'BRIDGE FIPS x jurisdiction: the FIPS provider does not refuse X25519MLKEM768, so every compliance profile is an explicit kx_groups allowlist; the one group all non-China regimes accept (0x11ED) is missing from rustls 0.23.46, so a custom SupportedKxGroup or upstream PR is on the critical path for gov profiles'),
+ ('r4tri.no-co-resolvable-lock', 'r4c12.repo-ghsa-osv-blindspot', 'related', 'BRIDGE audit gates: the cmvp lock fails cargo-audit by design (0042/0043/0349) while repo-only GHSAs pass every lock; the advisory gate needs both a reachability-justified expiring ignore list and a repo-GHSA poll (G10)'),
+ ('v4.cmvp-lock-carries-rustsec-0349', 'r3pq.hrr-acceptance-test', 'constrains', 'BRIDGE: the cmvp lock (rustls 0.23.43) predates the 0349 fix; server-side pq-required kx_groups plus frozen HRR verdicts are its only mitigation, so the HRR acceptance test runs against both lock profiles'),
+ ('r4e01.native-decide-aux-axiom-naming', 'sc.implication-checker-qualification-arguments', 'supports', 'BRIDGE proof-gate qualification: axiom allowlist (not denylist), native_decide ban, known-false-proof corpus (#14484/#14576/#15908) and the 6-checker paranoid run form one TQL-5-style qualification argument for the Lean checker'),
+ ('r4e01.l5-proof-ci-gate', 'sc.do330-tql-verification-tools', 'related', 'BRIDGE: an executed CI gate with PASS on the golden and FAIL on a negative control, logs kept, is the TQL-5 user-context evidence DO-330 asks of a verification tool whose output replaces other verification'),
+ ('r4i04.gray-failure-fdleak', 'uu11.worker-exhaustion-class', 'supports', 'BRIDGE durability: the measured fd-leak gray failure (68 healthy failures per fault; liveness never trips) is the lab twin of the 10.6% field class (ProxySQL LimitNOFILE clamp, php-fpm worker exhaustion); rlimit preflight (UP-4) + per-request resource ledger + recycling + success-rate SLO cover both'),
+ ('r4i04.crash-loop-damping-baselines', 'uu11.l5-pool-floor-and-rule-guards', 'related', 'BRIDGE one control-plane floor: per-principal crash budgets, zygote re-exec escalation and the OPS-1 min-healthy floor are one rule: neither crash recovery nor operator action may drop below ceil(f*N) healthy workers'),
+ ('r4i04.kernelctf-reachability-under-allowlist', 'io-uring-security-record', 'constrains', 'BRIDGE kernel surface: kTLS (CONFIG_TLS, 11 kernelCTF LPEs), BPF (7) and io_uring (3) must be unreachable from sandboxed workers; kTLS offload is at most a front-process option, never inside a worker sandbox'),
+ ('r4e07.hyper-h2-authority-host-unchecked', 'l4.defaults-vs-configurable-matrix', 'related', 'BRIDGE listener gate = CANON-6: MCP SDKs ship Host/Origin checks default-off or absent and hyper/h2 never compare Host with :authority; one core authority canonicalizer + binding check (421/400) serves both, regardless of SDK defaults'),
+ ('r4e07.origin-allowlist-tuple', 'l4.ts-modern-vs-legacy-transport-gap', 'related', 'BRIDGE: the modern stateless MCP handler drops Origin middleware; the core Origin owner (parsed tuple vs configured tuples, no regex) sits below every handler era'),
+ ('r4e07.json-parser-dup-key-matrix', 'l5.listener-gate-delta-2026-07-28', 'related', 'BRIDGE header/body consistency (-32020) needs one JSON owner: simd-json/sonic-rs first-wins vs serde last-wins lets body method and header disagree across parsers; parse once with a duplicate-rejecting visitor'),
+ ('econ.differentiators-absent', 'r4e10.matrix-jurisdiction-requirements', 'related', 'BRIDGE demand: PQ/formal are absent from forum selection criteria but mandated top-down by BSI/ANSSI/ASD/EO 14412 dates; position assurance as invisible defaults for builders and as profile evidence for regulated buyers'),
+ ('econ.security-incident-no-switch', 'uu11.negative-result-ledger-completeness', 'related', 'BRIDGE: critical CVEs did not produce stated switching (0/101) and no coded outage cause was memory corruption (0/160); adoption rides on migration parity and ops ergonomics, durability on operational invariants'),
+ ('sc.cc-formal-requirements', 'r4e01.l5-theorem-status-table', 'related', 'BRIDGE buyer credit: CC EAL7 and SP 800-53 SA-17(1) credit a formal policy model + correspondence argument, which is what the checked Lean models (Combine, Token T1-T5, Lowering T1-T5) are; code-level proofs exceed what regulators credit'),
+ ('dx.r4-async-cancel-neutralization', 'ac.l5-inv-nomut-c', 'related', 'BRIDGE: the SDK Tx Drop guard neutralizes timeout/select! cancels, but mem::forget defeats it and async rollback cannot run in Drop; host-side NC3 discard-on-cancel at pool checkin is the backstop the SDK guard cannot be'),
+ ('r4i04.state-leak-c8-measured', 'crs-l5-invariant-text', 'supports', 'BRIDGE CRS C8 measured: any reused long-lived context leaks to nearly all later requests (native 820, Wasm reuse 383 wrong answers per poisoning at 0.1%); a fresh instance per request is the only zero; pin wasmtime serve reuse to 1'),
+ ('r4e01.combine-failclosed-first-check', 'r4c12.stale-grade-list-2026-10-25', 'supports', 'BRIDGE epistemics: r2 graded combine_failclosed A with no Lean file, and the draft carried 9 stale grade tags; rule: no proof claim above C without file path + gate log, and the integrator greps draft tags on every downgrade'),
+ ('r4i04.seccomp-clone-flag-gap', 'r4e01.bwrap-apparmor-blocks-lake-check', 'related', 'BRIDGE userns both ways: Ubuntu 24.04 restricts unprivileged userns (blocking the lake sandbox) and 72% of kernelCTF LPEs need userns; workers deny CLONE_NEW*, while CI provisions a bwrap AppArmor profile rather than running unsandboxed'),
+ ('uu11.l5-config-lkg-canary-rule', 'r4e07.ci-gate-canon-property', 'related', 'BRIDGE totality: CFG-1 (config parse never panics) and CANON (canonicalizer total + idempotent, reject not repair) are the same proof obligation shape on two inputs (operator-fed and attacker-fed): Kani totality harness + fuzz, one rung'),
 ]
 
 ids_new = {n['id'] for n in nodes}
 ids_all = set(G) | ids_new
-for a, b, _ in SAME_AS: assert a in ids_new and b in G, (a, b)
+for a, b, _ in SAME_AS: assert a in ids_new and b in ids_all, (a, b)
 for a, b in REFINES: assert a in ids_all and b in ids_all, (a, b)
 for a, b, _ in CONTRADICTS: assert a in ids_all and b in ids_all, (a, b)
 for a, b, _, _ in BRIDGES: assert a in ids_all and b in ids_all, (a, b)
 miss_v = [k for k in V if k not in ids_new]
 assert not miss_v, miss_v
+for m in VM['missed']:
+    assert not m['absorbed'] or m['absorbed'] in ids_all, m['absorbed']
 
 # ---------------- apply verdicts; split new vs revision of existing ids ----------------
 new_nodes, revisions = [], []
 for n in nodes:
     n['grade_explorer'] = n.get('evidence_grade'); n['confidence_explorer'] = n.get('confidence')
     if n['id'] in V:
-        g, c, d, note = V[n['id']]
+        g, c, d, note, vurls = V[n['id']]
         n['evidence_grade'] = g; n['confidence'] = c; n['verify'] = {'status': 'two-sided', 'direction': d, 'note': note, 'round': R}
+        if vurls: n['verify']['urls'] = vurls
     elif n['explorer'].startswith('verifier'):
         n['verify'] = {'status': 'verifier-sourced', 'direction': 'new', 'note': 'promoted from verifier missed-list', 'round': R}
     else:
@@ -198,21 +209,38 @@ for n in nodes:
 
 def revise(i, **kw):
     base = next((r for r in revisions if r['id'] == i), None) or G[i]
-    rev = dict(base); rev.update(kw); rev['revision_round'] = R; rev['revision_by'] = 'integrator-r3'; rev['last_verified'] = DATE
+    rev = dict(base)
+    if base not in revisions:
+        rev['grade_before_revision'] = base.get('evidence_grade'); rev['confidence_before_revision'] = base.get('confidence')
+    if 'correction' in kw and base in revisions and base.get('correction') and base.get('revision_round') == R:
+        kw['correction'] = base['correction'] + ' || ' + kw['correction']
+    rev.update(kw); rev['revision_round'] = R
+    rev['revision_by'] = (base.get('revision_by') + '+integrator-r4') if base in revisions else 'integrator-r4'
+    rev['last_verified'] = DATE
     if base in revisions: revisions.remove(base)
     revisions.append(rev)
-revise('crate-aws-lc-rs', correction='RESOLVED r3: aws-lc-fips-sys =0.13.11 vendors AWS-LC FIPS 3.1.0 (CMVP #5298/#5314, ML-KEM approved, ML-DSA not); only aws-lc-rs 1.15.2-1.17.2 accept fips-sys ^0.13.1 (1.17.3 needs ^0.13.16, 1.17.4 ^0.13.17, 1.18 needs 0.14.x). See ops.fips-module-boundary-pin (r3 revision), v3.aws-lc-rs-fips-sys-range.', evidence_grade='A', confidence=0.85)
-revise('abuse-pow-economics-calc', correction='Superseded r3 by measurement: native SHA-256 62-89 MH/s single thread (not 2.3 MH/s), 1.1-3.4 GH/s multi-thread, in-browser ~150 kH/s; asymmetry 430-860x single-thread. See r3e07-pow-asymmetry-measured.', superseded_by='r3e07-pow-asymmetry-measured')
-revise('abuse-L5-admission-pipeline-1vcpu', correction='r3 simulator: r2 default parameters fail C1-C4 under a 10k-IP solver swarm (human failure 99.1%, verified success 59.7%); replaced by r3e07-L5-tuned-default-table (D) with fresh-session class, aggregate expensive-tier budgets and handshake reservation.', superseded_by='r3e07-L5-tuned-default-table')
-revise('sdg-rls-plan-cache-family', correction='r3: CVE-2026-14666 fix 1974acf23 (no regression test) and an executed q1012 reproducer on 17.11/19rc1 (SET LOCAL ROLE + statement cache safe on patched minors; session-level set_config leaks). Advisory: stale policies persist until invalidation or session end, so recycle pooled connections after the minor upgrade.')
-revise('v.cargo-min-publish-age-rfc3923', correction='r3 dates via gh api: RFC 3923 PR created 2026-02-23, merged 2026-05-18; stabilization PR #17335 merged 2026-08-28 (milestone 1.100.0); r1 recorded PR creation as acceptance. Executed on 1.98.0 nightly: 14-day window resolves 6 known advisories on the golden lock.')
-revise('sc.slopsquat-rates', correction='r3: Rust data exists (arXiv 2606.08444, Internetware 2026): headline 22.23% counts std items; re-extraction gives 6.1% of use-roots (0.7-3.0% of samples), 272 unregistered names. See sc3.slopsquat-rust-study-2606.')
-revise('w02.ingress-design-verdict', correction='r3: copy cost measured (zero-copy Bytes 0 userspace copies, owned codec +0.58-0.72 ms per 10 MB at 1 core); core object must be an Exchange with a message stream; L4/PROXY handling separate below L7; WebTransport and permessage-deflate deferred from golden v1 (r3e09.ring1-verdict-amendment, w02.norm-copy-cost-measured).')
-revise('inv-attenuation-monotonicity', correction='r3 counterexample: Tenuo 0.3.3 (cel feature) leaf-only evaluation + syntactic subsumption checker accepts widening children (r3e05.tenuo-cel-attenuation-bypass, A). Golden form: evaluate the conjunction of every caveat in the chain; monotonicity is then List.all_append (r3e05.l5-token-wire-format-lean).')
-revise('dpf-rustls-pq-driver-inheritance', correction='r3: only with the prefer-post-quantum feature; rustls 0.23.46 with default-features=false orders X25519 first (319 B ClientHello, classical). Server side follows client order (r3pq.prefer-pq-feature-pitfall, r3pq.hrr-acceptance-test).')
-revise('sc.cooldown-policy', correction='r3 executed: native cargo cooldown exists (stable in 1.100.0); a blanket 14-day window on the golden lock resolved rustls 0.23.45 and 6 advisories and broke exact pins. Policy: 7 days + audited security-advisory bypass (sc3.l5-cooldown-security-bypass).')
-revise('rec60-rustls-0.23.46-downgrade', correction='r3 server-side verdicts executed (r3pq.hrr-acceptance-test): the default 0.23.46 server follows client group order, so an X25519-first client negotiates classical; pq-required kx_groups=[X25519MLKEM768] yields HRR 0x11EC or alert 40.')
-revise('dpf-l5-adapter-isolation', correction='r3: out-of-process hop measured 4.8 us (UDS) / 2.1 us (futex ring) per call on one pinned laptop core vs 0.02-0.05 us in process; placement by unsafe/C-binding count first, hop budget second (w02.L5-adapter-oop-threshold-table, C).')
+
+revise('irl-l5-lean-lowering-theorems', evidence_grade='A', confidence=0.9, correction='r4 executed under Lean 4.35.0@eb6cafb: the as-written r3 draft had 3 elaboration errors besides its declared sorry; with proofs fixed (definitions byte-identical) T1-T5 check, lower_sound_full is closed (axioms propext/Classical.choice/Quot.sound; 6 checkers accept). Grade A is for the MODEL only: one row, mini WHERE, no joins/casts/NULL literals; Exact is a hypothesis real engines violate (PG BUG #19645). See r4e01.lower-sound-full-proved, r4e01.lowering-r3-draft-failed-check, r4e01.l5-theorem-status-table.')
+revise('vfg-policy-tristate-failclosed-invariant', confidence=0.9, correction='r4: no Lean file existed behind the r2 "proven in Lean" grade; Combine.lean was first written and checked in r4 (4 theorems: empty=>deny, any error=>deny, allow iff unanimous, never returns error; r4e01.combine-failclosed-first-check). Grade A now rests on the r4 gate log; mapping module crash/timeout to Error is a host obligation (DST).')
+revise('r3e05.l5-token-wire-format-lean', evidence_grade='A', confidence=0.9, correction='r4: transcribed and checked in core Lean (16 theorems): T1-T5 checked, HMAC a universally quantified parameter (no axiom); T6 only from an assumed codec roundtrip; verify does not check mint shape (WellMinted hypothesis). Forced spec decisions D1 segment-prefix resources (/t1 vs /t10), D2 op-bitmask subset, D3 depth checked at verify time (caveats after mint prefix <= minted depth), D4 missing argument denies. A for the model; Rust verifier, CBOR codec, constant-time compare and EUF-CMA are outside (r4e01.token-T1-T6-checked, r4e01.token-spec-sharpenings).')
+revise('r3e05.l5-token-decision', correction='r4: the token model behind Tier L is checked in Lean (T1-T5); D1/D3/D4 need ratification at spec freeze; fuzz target F6 (append beyond depth) added (r4e01.token-spec-sharpenings).')
+revise('vfg-proof-ci-gate-spec', correction='r4: executed as ci/gate.sh + ci/axiom_audit.py (PASS on golden 245 s/1.0 GB, FAIL on negative control). The ofReduceBool/trustCompiler grep denylist is stale: Lean 4.35 deleted both (PR #14953) and native_decide now adds per-theorem <thm>._native.native_decide.ax_N_M axioms, so only an allowlist {propext, Classical.choice, Quot.sound} works; ban native_decide outright (external checkers cannot check native evaluation). The kernel accepts sorryAx, so the axiom audit is the sorry gate; lake check needs a lake-manifest.json; Ubuntu 24.04 AppArmor blocks the bwrap sandbox (exit 1 looks like a proof rejection). See r4e01.l5-proof-ci-gate, r4e01.native-decide-aux-axiom-naming, v4.lake-check-sorryax-manifest.')
+revise('vfg-toolchain-pin-footprint-table', correction='r4 measured: with lakefile.toml and zero requires the golden needs only an Init-only Lean subset (712 MB + elan 13 MB; lakefile.lean pulls Lean+Lake oleans, +1.46 GB); Std/Batteries not needed; cold build 2.23 s / 546 MB, lake check 72.6 s / 1.0 GB, lake check --paranoid 228-245 s / ~1.0 GB over 58,609 declarations (CI only; a 1 GB VPS cannot run it). Carving is unsupported upstream: re-verify per pin (r4e01.lakefile-toml-init-only, r4e01.lean-build-footprint-measured).')
+revise('vfg-lean-multikernel-paranoid-check', correction='r4: all 6 checkers (paranoid kernel, lean4lean via export, nanoda, con-leche, con-ron, default kernel) accept the golden package; the r2 lean4lean "incompatible header" arises only when run on .olean directly. On the #15908 adversarial export the checkers DISAGREED (3 rejected, 2 accepted): acceptance is evidence only for our own prelude; --from-export only on exports we built; third-party proofs via comparator with our own challenge file (r4e01.lake-check-paranoid-six-kernels, v4.lean-checker-disagreement-15908).')
+revise('cedar-lean-proofs-2026-10', correction='r4: the TPE soundness import closure is 159 modules / 41,282 LOC and includes Cedar.Data.Int64 (native_decide x2); 26 native_decide uses repo-wide (16 UnitTest, 8 SymCC Ext, 2 Int64); Cedar CI runs only lake build, no axiom audit; #print axioms after a build is still an over-budget spike (r4e01.cedar-tpe-closure-native-decide, B).')
+revise('isolation-decision-table-by-provenance', correction='r4 amended by measurement (r4i04.provenance-substrate-decision-table, B; r4i04.blast-radius-table): direction unchanged. P1 native + catch_unwind + resource ledger + no mutable globals + supervisor-held socket + crash budget; P2 fresh M0 Wasm instance per request (reuse 1, fuel 10-50 ms, 16 MiB) inside a PER-TENANT cordon with seccomp+Landlock, dumpable=0, exec-spawned; P2 handling several principals or native libs = fork-per-request from an exec-spawned zygote; reversal conditions R1-R5.')
+revise('hist-php-sharednothing-mechanism', evidence_grade='B', confidence=0.75, correction='r4: first measured numbers (own experiment): PHP-FPM 0 healthy failures for all 7 fault classes at 1% and 5%; segv/abort p99 x1.3-2.0, oom p99 x9-18, loop throughput x0.025 (r4i04.php-fpm-measured-control). The "no public crash-isolation measurements" gap is closed by our own control, not by literature.')
+revise('zygote-sandbox-recipe-measured', correction='r4: the base allowlist passes clone/clone3 unfiltered, so children could create user namespaces (72% of kernelCTF LPEs need userns): filter clone flags (no CLONE_NEW*), clone3 -> ENOSYS, deny unshare/setns, stack a no-fork child filter; and spawn workers/zygotes by exec, because respawn-without-exec keeps the layout and makes a zero-blast fork server a BROP crash oracle (r4i04.seccomp-clone-flag-gap, r4i04.crash-oracle-respawn).')
+revise('r3pq.cnsa2-tls-profile', correction='r4: pure ML-KEM-1024 is NON-CONFORMANT in France (ANSSI-PG-083 v3.00, 2026-03-20) and only hybrid-recommended by BSI TR-02102 (2026-01) and ECCG ACM v3 draft, so the pure CNSA profile is an opt-in US-NSS profile, not the golden default; universal gov group = SecP384r1MLKEM1024 (r4e10.golden-tls-kex-profiles, r4e10.anssi-pg083-pure-nonconformant).')
+revise('crate-rustls-pq', correction='r4: rustls 0.23.46 aws_lc_rs::kx_group lacks SECP384R1MLKEM1024 (0x11ED), the hybrid every non-China jurisdiction accepts (r4e10.rustls-secp384r1mlkem1024-gap, B; check rustls-post-quantum / later releases).')
+revise('v3.aws-lc-rs-fips-sys-range', correction='r4: aws-lc-rs 1.17.2 is yanked (2026-07-17) and does not compile with fips-sys <=0.13.15; the window for fips-sys 0.13.11 is 1.15.2-1.17.1; safest pin =1.15.3 (contemporaneous with 0.13.11; 1.15.4 exists) (r4tri.yanked-1.17.2, A).')
+revise('ops.fips-module-boundary-pin', correction='r4 integrator: the aws-lc-rs range in the r4 calibration revision (1.15.1-1.17.2) is superseded by r4tri.yanked-1.17.2 (1.15.2-1.17.1). No lock satisfies rustls >=0.23.44 together with fips-sys 0.13.11 (r4tri.no-co-resolvable-lock, A): the cmvp lock is rustls =0.23.43 + aws-lc-rs =1.15.3 + fips-sys =0.13.11 and carries RUSTSEC-2026-0042/0043 (fips-sys 0.13.0-0.13.11), 0349 (PQ downgrade, client side), 0285/0346/0348 and webpki 0382; a direct fips-sys pin beside rustls 0.23.46 yields a silent decoy lock (r4tri.fips-sys-decoy-lock); CMVP #5298/#5314 tested OEs are Amazon Linux 2023 only (r4tri.tested-env-only-al2023).')
+revise('dx.l5-decision-sdk-shape', superseded_by='dx.r4-l5-decision-update', correction='r4: superseded by measurement on real axum 0.8.9 + tokio 1.54.1: the scoped-adapter form (B2: Routes-only registration, for<\'r> ScopedHandler<\'r,E>, borrowed Ctx<\'r>) compile-rejects 25/32 mutants vs owned extractors 16/32 and plain axum 3/32; owned FromRequestParts handles are \'static+Send and escape by spawn/static/leak (8/8). Residual after lint: B2 {M15,M16} semantic. Streaming/SSE/WS/body extraction and a Detached capability remain open (dx.r4-l5-decision-update, B).')
+revise('irl-l5-backend-refinement-contract', correction='r4: Refines is insufficient once Not is in the IR (checked counterexample neverEq; real instance PG BUG #19645, partition pruning with a nondeterministic collation drops matching rows). Contract becomes two-sided for any adapter exposing negation: leak_cases=0 AND miss_cases=0, else the IR type check rejects Not for that adapter; the schema gate refuses partition keys whose opclass/collation differs from the column (r4e01.exact-vs-refines-not-witness, A).')
+revise('irl-l5-unsound-lowering-denylist', correction='r4: write path executed (PG 17.11/19rc1, SQLite 3.45.3, Valkey 9.1.2, Redis 8.10.2): upsert/REPLACE/MERGE on a non-tenant arbiter captured other tenants\' rows 261/300; SET tenant 110-113/300; SQLite authorizer misses REPLACE implicit deletes; ON CONFLICT WHERE runs before RLS. Extended by wpo-l5-write-denylist (B) and INV-WRITE-SUBSET W1-W7.')
+revise('gap.unserved-combination', correction='r4 demand side: PQ, formal assurance and compliance are not stated switching criteria in 56 practitioner selection threads (econ.differentiators-absent, C; confounded by PQ already being an invisible library default); agent-infra builders are the only segment stating hardening criteria (econ.who-switches-first, D). The gap stands; positioning must lead with migration parity, ops ergonomics and credential isolation, with assurance as an invisible default.')
+revise('threat-ledger-middle-tier-2023-2026', correction='r4: non-adversarial counterpart coded from 160 known-cause middle-tier outages (uu11.outage-class-frequency-table, C): config/data push 17.5%, latent bug 12.5%, fd/worker exhaustion 10.6%, capacity 9.4%, retry storm 6.9%, dependency 6.9%, DNS 6.2%, reload 5%, cert 5%; 0 memory-corruption or parser-differential causes. Durability needs operational invariants the attacker ledger does not list.')
+revise('sdg-pgdoc-rls-caveats', correction='r4: executed on 17.11/19rc1: ON CONFLICT DO UPDATE WHERE f(t.col) evaluates a non-leakproof function on another tenant\'s row before the RLS conflict check, contradicting the docs claim that policy quals run before user quals; two independent pgsql-hackers reports (2026-09-25, 2026-10-06 with patch); precedent CVE-2017-15099 (wpo-pg-onconflict-where-peek, v4.pg-onconflict-rls-second-report).')
 
 # ---------------- clusters / singletons ----------------
 par = {i: i for i in ids_all}
@@ -233,7 +261,6 @@ for e in all_new_edges:
     if e['src'] in ids_all and e['dst'] in ids_all and grp(e['src']) != grp(e['dst']):
         xlinked.add(e['src']); xlinked.add(e['dst'])
 strict_singletons = [n for n in singletons if n['id'] not in xlinked]
-# cross-explorer near-duplicate scan among round-3 new nodes (title+summary Jaccard)
 nt = [(n['id'], explorer_of.get(n['id']), toks(n.get('title', '') + ' ' + n.get('summary', ''))) for n in new_nodes]
 xdup = []
 for i in range(len(nt)):
@@ -269,15 +296,9 @@ for n in nodes:
         if not u or not re.match(r'(https?|file)://', u): continue
         c = canon(u); urlmap[c]['nodes'].add(n['id']); urlmap[c]['raw'] = urlmap[c]['raw'] or u
         if n['explorer'].startswith('verifier'): urlmap[c]['explorers'].add(n['explorer'])
-VERIFIER_URLS = ['https://github.com/sfackler/rust-postgres/pull/1374', 'https://github.com/sfackler/rust-postgres/issues/1394', 'https://github.com/diesel-rs/diesel_async/pull/305',
- 'https://github.com/golang/go/issues/74831', 'https://github.com/oxidecomputer/dropshot/pull/701', 'https://github.com/oxidecomputer/omicron/pull/3140',
- 'https://docs.rs/crate/shmem-ipc/latest', 'https://github.com/hydroid7/iceoryx2', 'https://fosdem.org/2026/events/attachments/M7TKVG-meet-iceoryx2/slides/262419/fosdem-mi_tra9vup.pdf',
- 'https://arxiv.org/html/2606.08444v2', 'https://arxiv.org/html/2601.02060v1', 'https://osv.dev/vulnerability/CVE-2026-33186', 'https://www.postgresql.org/support/security/CVE-2026-14666/',
- 'https://libraries.io/cargo/typesec-agent', 'https://rust-digger.code-maven.com/crates/policy-core', 'https://docs.rs/typesec-agent/0.13.1', 'https://docs.rs/crate/capsec/latest',
- 'https://snyk.io/blog/type-level-security/', 'https://crates.io/api/v1/crates/aws-lc-rs/versions', 'https://crates.io/api/v1/crates/aws-lc-fips-sys/versions',
- 'https://github.com/rustls/rustls/issues/3214', 'https://github.com/golang/go/issues/81199', 'https://nginx.org/en/docs/http/ngx_http_v3_module.html']
-for u in VERIFIER_URLS:
-    c = canon(u); urlmap[c]['explorers'].add('verifier'); urlmap[c]['raw'] = urlmap[c]['raw'] or u
+for k, v in V.items():
+    for u in v[4]:
+        c = canon(u); urlmap[c]['explorers'].add('verifier'); urlmap[c]['raw'] = urlmap[c]['raw'] or u
 seen_new = [c for c in urlmap if c not in seen_old]
 seen_re = [c for c in urlmap if c in seen_old]
 
@@ -285,12 +306,12 @@ seen_re = [c for c in urlmap if c in seen_old]
 def classify(q, axes):
     t = (q + ' ' + axes).lower()
     src = ('paper' if re.search(r'arxiv|paper|osdi|sosp|usenix|pldi|popl|ccs|ndss|icse|thesis|\bpdf\b|vldb|eprint', t) else
-           'spec-rfc' if re.search(r'rfc|draft|spec|datatracker|ietf|w3c|nist|fips|standard|cnsa|sep-|primary-law|eur-lex|regulation', t) else
+           'spec-rfc' if re.search(r'rfc|draft|spec|datatracker|ietf|w3c|nist|fips|standard|cnsa|sep-|primary-law|eur-lex|regulation|do-178|do-33|tr-02102|ism|itsp', t) else
            'repo-advisory' if re.search(r'ghsa|advisor|github|issue|repo|crate|release|changelog|rustsec|gh ', t) else
            'cve-incident' if re.search(r'cve|kev|incident|exploit|attack|breach|oss-security|compromis|postmortem|outage', t) else
            'benchmark' if re.search(r'bench|latency|throughput|rps|measure|own-experiment|perf|rss', t) else
            'vendor-doc' if re.search(r'blog|vendor|docs|cloudflare|aws|google|microsoft|stripe', t) else
-           'forum' if re.search(r'forum|reddit|hacker news|lobste|discussion|mailing|lkml', t) else
+           'forum' if re.search(r'forum|reddit|hacker news|\bhn\b|lobste|lemmy|discussion|mailing|lkml|discourse', t) else
            'talk' if re.search(r'talk|slides|def ?con|black ?hat|conference', t) else 'web-other')
     stance = ('skeptic-negative' if re.search(r'contrarian|negative|skeptic|critique|fail|limit|overhype|bypass|pitfall|footgun|wrong|doesn.t|not |prosecutor', t) else
               'attacker' if re.search(r'attack|exploit|offens|escape|smuggl|poison|offsec', t) else 'proponent')
@@ -299,20 +320,20 @@ def classify(q, axes):
     vocab = ('PL-formal' if re.search(r'pl-formal|formal|lean|verus|kani|proof|tla|smt|coq|f\*', t) else
              'cryptography' if re.search(r'crypto|pqc|mlkem|ml-kem|tls|fips|cmvp|stek|ticket', t) else
              'offensive' if re.search(r'offens|attack|exploit|offsec|cve|ghsa|bypass|smuggl', t) else
-             'standards-policy' if re.search(r'standards|policy|gov|law|regulat|cra|fedramp|nist|ssdf', t) else
-             'network-SRE' if re.search(r'sre|ops|systemd|kernel|network|queueing|cdn|load', t) else
-             'economics' if re.search(r'econom|cost|pricing|market|payment|x402', t) else
+             'standards-policy' if re.search(r'standards|policy|gov|law|regulat|cra|fedramp|nist|ssdf|certif|do-178|eal', t) else
+             'network-SRE' if re.search(r'sre|ops|systemd|kernel|network|queueing|cdn|load|outage|incident', t) else
+             'economics' if re.search(r'econom|cost|pricing|market|payment|x402|switch|migrat|adopt', t) else
              'database' if re.search(r'database|db-|sql|redis|mongo|kafka|store|wal|fsync', t) else
              'web-dev' if re.search(r'web-dev|practitioner|api|browser|framework', t) else 'systems')
-    scale = ('government' if re.search(r'gov|fedramp|fips|cnsa|nist', t) else 'household' if re.search(r'household|vps|1 ?vcpu|laptop', t) else
-             'hyperscaler' if re.search(r'hyperscal|cloudflare|aws|google|cdn', t) else 'enterprise' if re.search(r'enterprise', t) else 'unspecified')
+    scale = ('government' if re.search(r'gov|fedramp|fips|cnsa|nist|bsi|anssi|asd|cccs', t) else 'household' if re.search(r'household|vps|1 ?vcpu|laptop|selfhost|self-host|homelab', t) else
+             'hyperscaler' if re.search(r'hyperscal|cloudflare|aws|google|cdn', t) else 'enterprise' if re.search(r'enterprise|k8s|kubernetes|ingress', t) else 'unspecified')
     return src, stance, era, vocab, scale
-LABEL2PILLAR = {'dataplane-ir-lowering-soundness': 'W-DATA-GATE+W-FORMAL', 'modularity-ipc-and-normalization-copy-spike': 'W-PERF',
- 'pq-authentication-and-hrr-acceptance': 'W-PQC', 'supply-chain-executed-on-golden-pins': 'W-SUPPLY', 'golden-lock': 'W-SUPPLY',
- 'authz-token-format-code-level': 'W-AUTHZ', 'bridge-async-cancellation-failure-atomicity': 'W-BRIDGE',
- 'abuse-economics-and-swarm-simulation': 'W-ABUSE', 'dx-agent-checkable-handler-surface': 'W-DX',
- 'ingress-nonhttp-frontends-defect-classes': 'W-TRANSPORT-INGRESS', 'zero-downtime-reload-and-scaleout-state': 'W-OPS+W-PERF',
- 'uu-adjacent-fields-and-unused-sources': 'W-UNKNOWN', 'calibration-two-sided-could-flip-decisions': 'K-CALIBRATION'}
+LABEL2PILLAR = {'lean-check-lowering-and-token-proofs': 'W-FORMAL', 'write-path-lowering-differential-oracle': 'W-DATA-GATE',
+ 'fips-golden-version-triangle-one-lock': 'W-PQC', 'isolation-crash-blast-radius-measured': 'W-ISOLATION',
+ 'dx-capability-sdk-mutants-real-axum-async': 'W-DX', 'mcp-gateway-conformance-corpus-executed': 'W-AGENT-PROTOCOL',
+ 'bridge-canonical-identity-one-owner': 'W-BRIDGE', 'switching-economics-practitioner-forums': 'W-GAP',
+ 'safety-critical-certification-assurance-historical': 'T-SAFETY-CERT', 'non-us-national-pqc-crypto-regimes': 'W-PQC',
+ 'uu-incident-dataset-outage-root-causes': 'W-THREAT', 'calibration-two-sided-top-findings-r3': 'K-CALIBRATION'}
 prior_Q = jl(ST + '/queries.jsonl')
 prior_q = [toks(q.get('query', '')) for q in prior_Q]
 prior_cells = {q.get('cell') for q in prior_Q}
@@ -322,7 +343,6 @@ for line in open(RAW + '/_queries.log', errors='replace'):
     p = line.rstrip('\n').split('\t')
     if len(p) < 2 or not p[1].strip(): continue
     lab, q, axes = p[0], p[1], (p[2] if len(p) > 2 else '')
-    if lab == 'golden-lock': lab = 'supply-chain-executed-on-golden-pins'
     src, stance, era, vocab, scale = classify(q, axes)
     pl = LABEL2PILLAR.get(lab, '?')
     Q.append({'round': R, 'label': lab, 'query': q, 'axes': axes, 'pillar': pl, 'source_type': src, 'stance': stance, 'era': era,
@@ -347,51 +367,37 @@ direction_diversity5 = len(cells5) / len(Q)
 new_cells = [c for c in cells if c not in prior_cells]
 new_cells5 = [c for c in cells5 if c not in prior_cells5]
 q_in_new_cells = sum(cells[c] for c in new_cells) / len(Q)
+per_label_cells = {lab: (sum(1 for x in Q if x['label'] == lab), len({x['cell'] for x in Q if x['label'] == lab}),
+                         sum(1 for x in Q if x['label'] == lab and x['near_dup_of'])) for lab in LABEL2PILLAR}
 
 yl = {}
-for lab in sorted(set(LABEL2PILLAR) - {'golden-lock'}):
+for lab in sorted(LABEL2PILLAR):
     nq = sum(1 for x in Q if x['label'] == lab)
     nn = [n for n in new_nodes if n['explorer'].endswith(lab)]
-    revs = sum(1 for r in revisions if str(r.get('revision_by', '')).endswith(lab))
+    revs = sum(1 for r in revisions if lab in str(r.get('revision_by', '')))
     l45 = sum(1 for n in nn if n.get('layer') in ('L4', 'L5') and not n['merged_into'])
     yl[lab] = (nq, len(nn), l45, (round(l45 / nq, 2) if nq else None), revs)
 
 # ---------------- frontier queue ----------------
 Qold = jl(ST + '/frontier_queue.jsonl')
 DONE_IDS = {  # id: (status, resolved_by)
- 'q2-001': ('done', 'w02.ipc-hop-cost-1core, w02.redis-presign-shaped-ops, w02.helper-process-rss-spawn, w02.L5-adapter-oop-threshold-table (laptop core; 1-vCPU VPS rerun is a new seed)'),
- 'q2-016': ('done', 'w02.norm-copy-cost-measured, w02.ingress-design-verdict-measured-update'),
- 'q1-002': ('done', 'r3e09.ring1-verdict-amendment, r3e09.core-vs-per-frontend-matrix, w02.norm-copy-cost-measured, w02.ipc-hop-cost-1core'),
- 'q1-012': ('done', 'irl-l5-q1012-role-plan-cache-gate (patched minors; unpatched 17.10 control is a new seed)'),
- 'q2-011': ('partial', 'irl-l5-lean-lowering-theorems (unchecked, T4 sorry), irl-l5-differential-oracle-harness, irl-l5-backend-refinement-contract'),
- 'q2-002': ('done', 'r3pq.hrr-acceptance-test, r3pq.rustls-kx-client-order'),
- 'q1-043': ('done', 'r3pq.header-limit-table, r3pq.hpack-large-token-literal'),
- 'q1-073': ('done', 'r3pq.composite-mldsa-status-sizes'),
- 'q1-103': ('partial', 'r3pq.chrome-cqrp-testing (ML-DSA private PKI from Chrome 150); Firefox/Apple plans: r3pq.apple-mtc-policy-absent'),
- 'q1-124': ('partial', 'r3pq.mtc-server-obligations (MTC draft-07 status; KVerus/io_uring parts open)'),
- 'q1-028': ('done', 'sc3.slopsquat-rust-study-2606 (agent-loop installable rate is a new seed)'),
- 'q1-052': ('partial', 'sc3.repro-ablation-golden (same host only; cross-host open)'),
- 'q1-092': ('done', 'sc3.repro-ablation-golden (1.98.0/1.99.1 identical, 1.93.1 differs)'),
- 'q1-077': ('done', 'sc3.incident-gate-matrix (C), sc3.slsa-scope-limit'),
- 'q1-127': ('partial', 'sc3.xz-window-cooldown-limit (research.swtch timeline; Freund post not fetched)'),
- 'q1-132': ('done', 'r3e11.tokio-1.54-regression-and-asyncfd, sc3.rustls-advisory-batch-2026-10'),
- 'q1-022': ('partial', 'r3e05.spike-cedar-lean-vs-rust (protocol only; over budget)'),
- 'q1-034': ('done', 'r3e05.everparse-cborrs-2026-10 (crate name to confirm)'),
- 'q1-044': ('done', 'r3e05.cedar-no-delegation-rfc (negative)'),
- 'q1-060': ('done', 'r3e05.draft-niyikiza-aat-01, r3e05.draft-asor-wimse-dt-02'),
- 'q1-064': ('done', 'r3e05.alt-space-token-formats (none found; T1-T5 would be first)'),
- 'q1-131': ('partial', 'r3e05.code-level-token-verifier-table (crates.io ucan still 0.4.0)'),
- 'q2-019': ('done', 'ops.fips-module-boundary-pin r3 revision, v3.aws-lc-rs-fips-sys-range (no AWS-LC 4 cert; 0.13.11 = 3.1.0)'),
- 'q2-018': ('partial', 'r3e07-gcra-eviction-churn (own GCRA, not governor 0.10.4)'),
- 'q2-063': ('partial', 'r3e07-r2-defaults-collapse, r3e07-pow-ladder-negative (simulation, not field data)'),
- 'q1-014': ('partial', 'dx.claw-swe-rust-agentic, dx.swebench-multilingual-rust, dx.fpeval-probe-corrections (no head-to-head trial)'),
- 'q2-004': ('partial', 'zd.l4-stek-continuity (rustls TicketRotator lifetimes); SNI binding still open'),
- 'q1-117': ('partial', 'r3e11.osv-snapshot-2026-10-25'),
- 'q1-134': ('partial', 'r3e09.grpc-defect-classes (GHSA-7gpj = CVE-2026-105297), r3e09.ws-upgrade-smuggling'),
- 'q2-064': ('partial', 'r3e11.osv-snapshot-2026-10-25 (no hyper/h2 advisories 2026-08-25..10-25)'),
- 'q2-058': ('done', 'ac.l5-inv-nomut-c, ac.counter-hypothesis-one-txn-outbox'),
- 'q1-025': ('partial', 'r3e11.ai-found-bug-flood-vendor-posture'),
- 'q1-046': ('partial', 'ops.fips-module-boundary-pin r3 (AWS-LC 4 Comment Resolution 2026-10-22)'),
+ 'q1-013': ('done', 'r4i04.blast-radius-table, r4i04.php-fpm-measured-control (7 fault classes x 7 substrates x 3 rates; laptop, counts robust, latency contaminated)'),
+ 'q2-008': ('done', 'l5.mcp-lc-corpus-runnable, l5.mcp-lc-passrate-matrix (43 cases vs py/ts/rmcp/agentgateway/docker-mcp)'),
+ 'q3-004': ('done', 'r4tri.no-co-resolvable-lock, r4tri.separate-fips-lock-decision (triangle empty at the floor; two lock profiles)'),
+ 'q3-006': ('partial', 'wpo-inv-write-subset, wpo-l5-write-oracle-harness, wpo-l5-write-denylist (PG/SQLite/Redis executed; Mongo updateMany and MySQL open as new seeds)'),
+ 'q3-012': ('done', 'dx.r4-real-axum-mutant-scores, dx.r4-owned-extractor-static-escape, dx.r4-scoped-adapter-hrtb'),
+ 'q3-020': ('done', 'r4e01.lower-sound-full-proved, r4e01.lean-build-footprint-measured (no Batteries needed)'),
+ 'q2-011': ('partial', 'r4e01.lower-sound-full-proved (model checked), irl-l5-differential-oracle-harness (refinement tested); per-adapter proof remains out of reach'),
+ 'q1-038': ('partial', 'econ.criteria-frequency, econ.deal-breakers (HN/Lemmy/GitHub/Discourse; reddit and lobste.rs walled)'),
+ 'q2-051': ('done', 'r4e01.lake-check-paranoid-six-kernels, r4e01.lean-build-footprint-measured (228-245 s / 1.0 GB over 58,609 declarations; lean4lean works via export)'),
+ 'q1-024': ('partial', 'r4e10.rustls-secp384r1mlkem1024-gap (absent in 0.23.46); pure ML-KEM-1024 under #5314 still open'),
+ 'q1-046': ('partial', 'r4tri.tested-env-only-al2023 (MIP 2026-10-24: AWS-LC 4 Comment Resolution, AWS-LC 5 Pending Review)'),
+ 'q3-067': ('partial', 'r4e01.cedar-tpe-closure-native-decide (closure includes Int64 native_decide; #print axioms over budget)'),
+ 'q3-045': ('partial', 'r4e07.diff-corpus-executed (matchit on raw path misses /admin/), r4e07.invariant-canon-one-owner (authz on matched route id)'),
+ 'q3-060': ('partial', 'uu11.cfg-push-class, uu11.lifecycle-operator-class (Fastly 2021 / GCP 2025 Service Control not individually fetched)'),
+ 'q2-070': ('partial', 'v4.mcp-default-off-dns-rebinding-cves (Ruby SDK CVE-2026-63118, Java SDK CVE-2026-35568)'),
+ 'q3-100': ('done', 'r4e01.l5-pinned-toolchain-lakefile (v4.35.0 @ eb6cafb, tarball sha256 pinned)'),
+ 'q1-048': ('partial', 'r4i04.kernelctf-reachability-under-allowlist, r4i04.seccomp-clone-flag-gap'),
 }
 for m in Qold:
     if m['id'] in DONE_IDS:
@@ -402,12 +408,13 @@ for s in seeds:
     items.append({'question': s['question'], 'layer': s.get('layer'), 'domain': s.get('domain', ''), 'expected_info_gain': float(s.get('expected_info_gain', .5)),
                   'reason': s.get('reason', ''), 'sources': [f"explorer-{s['from_explorer']}"], 'kind': 'seed'})
 for mm in VM['missed']:
-    items.append({'question': mm['text'], 'layer': 'L4', 'domain': mm.get('domain', ''), 'expected_info_gain': float(mm.get('eig', .4)),
+    items.append({'question': mm['text'], 'layer': 'L4', 'domain': mm.get('domain', ''), 'expected_info_gain': float(mm.get('eig', .35)),
                   'reason': 'verifier missed-list', 'sources': [f"verifier-{mm['explorer']}"], 'kind': 'missed', 'absorbed_into': mm.get('absorbed')})
 INTEGRATOR_SEEDS = [
- ('Resolve the golden version triangle: rustls 0.23.46 (security floor) + aws-lc-rs 1.15.2-1.17.2 + aws-lc-fips-sys =0.13.11 for the FIPS golden, vs the executed golden lock that resolved aws-lc-rs 1.18.2; does a lock exist that satisfies the rustls floor, prefer-post-quantum and the CMVP pin at once?', 'L5', 'W-PQC', .7, 'Bridge 04x12: FIPS pin and golden lock conflict (integrator)'),
- ('One executable spec for data-plane filters: unify Lowering.lean eval, the Python reference evaluator and a Cedar TPE residual->Pred translation as the DRT oracle for every adapter', 'L5', 'W-FORMAL', .5, 'Bridge 01x05: three separate semantic artefacts can diverge (verifier missed)'),
- ('Swarm simulator v2: replace cpu_scale=0.5 with a measured 1-vCPU rustls full/resumed handshake cost, add TLS resumption share, IPv6 /64 key churn and RST-timed cancel storms (NC4 charging)', 'L5', 'W-ABUSE', .65, 'Bridge 06x07: cancellations and resumption missing from the admission model'),
+ ('Two-sided lowering oracle: add a miss oracle (miss_cases) and re-run SQLite/PG/Redis hardened lowerings, including PG 18.6 partition pruning with a nondeterministic collation (BUG #19645); does any hardened lowering miss rows?', 'L5', 'W-DATA-GATE', .55, 'Bridge 01x02: the two-sided R-DB-7 contract has no executed miss oracle yet (integrator)'),
+ ('Add slow-upstream (10x latency), oversize-config and retry-storm faults to the r4 isolation fault harness so UP-1..6 and CFG-1..4 are gated on the same substrate matrix and 1-core box', 'L5', 'W-ASSURE', .5, 'Bridge 04x11: one fault harness for crash and outage classes (integrator)'),
+ ('Known-false-proof regression corpus for the Lean gate (#14484, #14576, #15908 export, a native_decide control, a sorry control): 100% rejected on every toolchain bump, run in CI', 'L5', 'W-FORMAL', .5, 'Bridge 01x09: TQL-5-style qualification evidence (integrator)'),
+ ('Run the r4 identity differential (07-work/diffh) against the MCP SDK listener paths (rmcp, TS createMcpHandler, py) to measure Host/:authority/Origin canonicalization disagreements end to end', 'L4', 'W-AGENT-PROTOCOL', .45, 'Bridge 06x07: listener gate and CANON-6 share one owner (integrator)'),
 ]
 for q, l, d, g, r in INTEGRATOR_SEEDS:
     items.append({'question': q, 'layer': l, 'domain': d, 'expected_info_gain': g, 'reason': r, 'sources': ['integrator'], 'kind': 'integrator'})
@@ -446,49 +453,59 @@ k = 0
 for m in allq:
     m.pop('_t', None); m.pop('_has_open', None)
     if not m.get('id'):
-        k += 1; m['id'] = f'q3-{k:03d}'
+        k += 1; m['id'] = f'q4-{k:03d}'
 
 # ---------------- predictions ----------------
 PRED = [
- ('pred-chrome-mtc-default-2027', 'Chrome Stable verifies publicly-trusted MTCs by default (CQRS launched) by 2027-12-31', '2027-12-31', 'Chrome release notes / chromerootprogram cqrp pages', .55, 'r3pq.pq-auth-posture-decision'),
- ('pred-cab-mldsa-ballot-2027', 'CA/B Forum adopts a ballot permitting ML-DSA in publicly-trusted TLS server certificates by 2027-12-31', '2027-12-31', 'cabforum.org ballots', .2, 'r3pq.cab-sc106-withdrawn'),
- ('pred-rustls-trust-anchor-ids', 'rustls releases trust anchor IDs support (PR #3376 or successor) in a crates.io release by 2027-06-30', '2027-06-30', 'rustls release notes', .65, 'r3pq.mtc-server-obligations'),
- ('pred-sqlx-cancel-fix-release', 'sqlx publishes a crates.io release containing f1e94ec (cancelled Pool::begin fix, #4394) by 2027-01-31', '2027-01-31', 'crates.io sqlx versions + transact-rs/sqlx changelog', .6, 'ac.i01-sqlx-4393-begin-cancel'),
- ('pred-tokio-postgres-1374', 'rust-postgres PR #1374 (drop guard for server-side state on cancel) is merged by 2027-03-31', '2027-03-31', 'github.com/sfackler/rust-postgres/pull/1374', .5, 'ac.i02-tokio-postgres-1374-leak'),
- ('pred-wasmtime-cm-async-cancel-adv', 'At least one further Wasmtime advisory whose trigger is dropping/cancelling a component-model-async call is published between 2026-10-25 and 2027-04-30', '2027-04-30', 'gh api repos/bytecodealliance/wasmtime/security-advisories', .55, 'ac.i07-wasmtime-cancel-advisories'),
- ('pred-pg-14666-regress-test', 'PostgreSQL adds a regression test covering role-change invalidation of RLS plans (CVE-2026-14666 class) by 2027-06-30', '2027-06-30', 'git log src/test/regress for plancache/rowsecurity role tests', .35, 'irl-cve-2026-14666-fix-anatomy'),
- ('pred-webtrans-h3-rfc', 'draft-ietf-webtrans-http3 is published as an RFC by 2027-06-30', '2027-06-30', 'datatracker.ietf.org/doc/draft-ietf-webtrans-http3', .35, 'r3e09.webtransport-defect-classes'),
- ('pred-tenuo-cel-advisory', 'Tenuo publishes a fix or security advisory for CEL attenuation validation by 2027-01-31 (after private report)', '2027-01-31', 'github.com/tenuo-ai/tenuo releases / security advisories', .45, 'r3e05.tenuo-cel-attenuation-bypass'),
- ('pred-awslc4-cmvp-2027q1', 'CMVP issues a certificate for AWS-LC FIPS 4.x (currently Comment Resolution, 2026-10-22) by 2027-03-31', '2027-03-31', 'CMVP Modules In Process list / certificate search', .5, 'ops.fips-module-boundary-pin'),
+ ('pred-pg-onconflict-rls-order-fix', 'PostgreSQL commits a fix that evaluates the ON CONFLICT DO UPDATE/SELECT WHERE clause only after the RLS conflict check (or fixes the PG19 DO SELECT view exposure) by 2027-01-31', '2027-01-31', 'git log REL_19_STABLE/master for nodeModifyTable.c ExecOnConflictUpdate/Select; pgsql-hackers threads', .65, 'wpo-pg-onconflict-where-peek'),
+ ('pred-rustls-secp384r1mlkem1024', 'A rustls crates.io release exposes SECP384R1MLKEM1024 (0x11ED) in its aws-lc-rs kx_group module by 2027-06-30', '2027-06-30', 'docs.rs rustls latest crypto::aws_lc_rs::kx_group', .6, 'r4e10.rustls-secp384r1mlkem1024-gap'),
+ ('pred-bsi-tr02102-2027-hybrid-groups', 'The 2027 edition of BSI TR-02102-2 lists SecP256r1MLKEM768 and SecP384r1MLKEM1024 as recommended TLS 1.3 groups (and not X25519MLKEM768) by 2027-03-31', '2027-03-31', 'bsi.bund.de TR-02102-2 PDF', .7, 'r4e10.bsi-tr02102-2026'),
+ ('pred-osv-cedar-ghsa-m84h', 'OSV returns GHSA-m84h-6f26-p3p7 (cedar-policy >=4.3,<4.13) with affected crates.io ranges by 2026-11-30', '2026-11-30', 'curl https://api.osv.dev/v1/vulns/GHSA-m84h-6f26-p3p7', .6, 'r4c12.repo-ghsa-osv-blindspot'),
+ ('pred-simd-json-481-fix', 'simd-json publishes a crates.io release fixing lone-surrogate decoding to U+0000 (issue #481 / PR #482) by 2027-01-31', '2027-01-31', 'simd-lite/simd-json releases and issue #481', .65, 'r4e07.json-parser-dup-key-matrix'),
+ ('pred-mcp-conformance-32020-failure', 'The MCP conformance suite grades a -32020 header/body mismatch violation as a FAILURE (issue #553 / PR #555 merged) by 2027-01-31', '2027-01-31', 'github.com/modelcontextprotocol/conformance issue 553', .7, 'v4.mcp-conformance-suite-open-gaps'),
+ ('pred-wasmtime-m0-3in12', 'At least 3 M0-class (x86_64 Cranelift core-Wasm, default config) Wasmtime sandbox escapes are published between 2026-10-25 and 2027-10-25', '2027-10-25', 'gh api repos/bytecodealliance/wasmtime/security-advisories, classify per r2 M0 rules', .15, 'wasmtime-advisory-share-by-config'),
+ ('pred-ngcc-round2', 'China NICCS announces NGCC public-key round-2 candidates by 2027-06-30', '2027-06-30', 'niccs.org.cn NGCC notices', .55, 'r4e10.china-ngcc-round1'),
+ ('pred-ingress-nginx-traefik-share', 'RKE2 stable ships Traefik (not ingress-nginx) as the default ingress controller by 2027-03-31', '2027-03-31', 'rancher/rke2 release notes', .7, 'v4.ingress-migration-distro-channel'),
 ]
-old_pid = {p['id'] for p in jl(ST + '/predictions.jsonl')}
+old_preds = jl(ST + '/predictions.jsonl')
+old_pid = {p['id'] for p in old_preds}
 PRED = [p for p in PRED if p[0] not in old_pid]
+SC = {s['id']: s for s in json.load(open(RAW + '/12-calibration-two-sided-top-findings-r3.json')).get('predictions_scorecard', [])}
+n_scored = 0
+for p in old_preds:
+    s = SC.get(p['id'])
+    if s:
+        p['status'] = s.get('status_2026_10_25'); p['last_checked'] = '2026-10-25'; p['suggested_p'] = s.get('suggested_p')
+        p['score_evidence'] = s.get('evidence'); p['scored_round'] = R; n_scored += 1
+new_preds = [{'id': pid, 'claim': claim, 'resolve_by': by, 'how_to_check': how, 'p': p, 'source_node': src, 'made_round': R, 'made_date': '2026-10-25', 'status': 'pending', 'last_checked': '2026-10-25'} for pid, claim, by, how, p, src in PRED]
 
 # ---------------- write ----------------
 by_layer = collections.Counter(n.get('layer') for n in new_nodes)
 by_pl = collections.Counter((n['pillar'], n.get('layer')) for n in new_nodes)
 grades = collections.Counter(n['evidence_grade'] for n in new_nodes)
-dirs = collections.Counter(n['verify']['direction'] for n in nodes)
+dirs = collections.Counter(n['verify']['direction'] for n in nodes if n['verify']['status'] == 'two-sided')
 summary = dict(new_nodes=len(new_nodes), explorer_new=len([n for n in new_nodes if not n['explorer'].startswith('verifier')]),
                verifier_nodes=len(VM['vnodes']), revisions=len(revisions), revision_ids=[r['id'] for r in revisions], merged_same_as=len(merged_new), edges=len(edges), bridges=n_bridges,
                edges_by_origin=dict(collections.Counter(e['origin'].split('-')[0] for e in edges)),
-               singletons=len(singletons), strict_singletons=len(strict_singletons), by_layer=dict(by_layer), grades=dict(grades),
+               singletons=len(singletons), strict_singletons=len(strict_singletons), strict_ids=[n['id'] for n in strict_singletons], by_layer=dict(by_layer), grades=dict(grades),
                verify_dirs=dict(dirs), sampled=sum(1 for n in nodes if n['verify']['status'] == 'two-sided'), urls_total=len(urlmap),
                urls_new=len(seen_new), urls_reseen=len(seen_re), queries=len(Q), cells=len(cells), new_cells=len(new_cells), cells5=len(cells5), new_cells5=len(new_cells5),
                q_share_in_new_cells=round(q_in_new_cells, 3),
                direction_diversity=round(direction_diversity, 3), direction_diversity_5axis=round(direction_diversity5, 3),
                queue=len(allq), queue_open=sum(1 for m in allq if m['status'] == 'open'), queue_partial=sum(1 for m in allq if m['status'] == 'partial'),
                queue_done=sum(1 for m in allq if m['status'] == 'done'), queue_absorbed=sum(1 for m in allq if m['status'] == 'absorbed'),
-               merged_into_old_queue=n_into_old, predictions=len(PRED), yields=yl,
+               merged_into_old_queue=n_into_old, predictions_new=len(new_preds), predictions_scored=n_scored, yields=yl, per_label_cells=per_label_cells,
                axis_counts={k: dict(collections.Counter(x[k] for x in Q)) for k in ('source_type', 'stance', 'era', 'pillar', 'vocab', 'scale')},
                by_pillar_layer={f'{a}|{b}': c for (a, b), c in sorted(by_pl.items())}, cross_near_dups=[p for p in nd_pairs if p[0] != p[1]],
+               intra_near_dups=len([p for p in nd_pairs if p[0] == p[1]]),
                prior_round_near_dups=[(x['label'], x['max_prior_round_jaccard'], x['query'], x.get('prior_round_near_dup_of')) for x in Q if x['max_prior_round_jaccard'] >= .5],
                top_cells=cells.most_common(15), xdup_nodes=xdup[:15])
-json.dump(summary, open(SCR + '/r3_summary.json', 'w'), indent=1, default=list)
-json.dump({'cells': dict(cells), 'cells5': dict(cells5), 'new_cells': new_cells}, open(SCR + '/r3_cells.json', 'w'), indent=1)
-json.dump([{k: m.get(k) for k in ('id', 'score', 'status', 'question', 'resolved_by', 'sources', 'layer', 'domain')} for m in allq], open(SCR + '/r3_queue_view.json', 'w'), indent=1)
+os.makedirs(SCR, exist_ok=True)
+json.dump(summary, open(SCR + '/r4_summary.json', 'w'), indent=1, default=list)
+json.dump({'cells': dict(cells), 'cells5': dict(cells5), 'new_cells': new_cells}, open(SCR + '/r4_cells.json', 'w'), indent=1)
+json.dump([{k: m.get(k) for k in ('id', 'score', 'status', 'question', 'resolved_by', 'sources', 'layer', 'domain')} for m in allq], open(SCR + '/r4_queue_view.json', 'w'), indent=1)
 if DRY:
-    print(json.dumps({k: v for k, v in summary.items() if k not in ('by_pillar_layer', 'cross_near_dups', 'axis_counts', 'revision_ids')}, indent=1, default=list)); sys.exit(0)
+    print(json.dumps({k: v for k, v in summary.items() if k not in ('by_pillar_layer', 'cross_near_dups', 'axis_counts', 'revision_ids', 'strict_ids', 'prior_round_near_dups', 'per_label_cells')}, indent=1, default=list)); sys.exit(0)
 with open(ST + '/graph.jsonl', 'a') as f:
     for n in new_nodes + revisions: f.write(json.dumps(n, ensure_ascii=False) + '\n')
 with open(ST + '/edges.jsonl', 'a') as f:
@@ -502,9 +519,6 @@ with open(ST + '/seen.jsonl', 'a') as f:
         f.write(json.dumps(rec) + '\n')
 with open(ST + '/queries.jsonl', 'a') as f:
     for x in Q: f.write(json.dumps(x, ensure_ascii=False) + '\n')
-with open(ST + '/frontier_queue.jsonl', 'w') as f:
-    for m in allq: f.write(json.dumps(m, ensure_ascii=False) + '\n')
-with open(ST + '/predictions.jsonl', 'a') as f:
-    for pid, claim, by, how, p, src in PRED:
-        f.write(json.dumps({'id': pid, 'claim': claim, 'resolve_by': by, 'how_to_check': how, 'p': p, 'source_node': src, 'made_round': R, 'made_date': '2026-10-25'}) + '\n')
-print(json.dumps({k: v for k, v in summary.items() if k not in ('by_pillar_layer', 'cross_near_dups', 'axis_counts', 'revision_ids')}, indent=1, default=list))
+write_atomic(ST + '/frontier_queue.jsonl', allq)
+write_atomic(ST + '/predictions.jsonl', old_preds + new_preds)
+print(json.dumps({k: v for k, v in summary.items() if k not in ('by_pillar_layer', 'cross_near_dups', 'axis_counts', 'revision_ids', 'strict_ids', 'prior_round_near_dups', 'per_label_cells')}, indent=1, default=list))
