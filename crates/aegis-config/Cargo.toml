@@ -12,6 +12,7 @@ layer = 2
 
 [dependencies]
 aegis-types = { workspace = true }
+aegis-canon = { workspace = true }
 
 [lints]
 workspace = true
