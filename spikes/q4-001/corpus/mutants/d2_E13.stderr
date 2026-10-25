@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> mutants/d2_E13.rs:20:20
+   |
+20 |         ctx.detach(&tx, AuditJob { key: 7 })?;
+   |             ------ ^^^ expected `&Tx<'_, Committed>`, found `&Tx<'_, Open>`
+   |             |
+   |             arguments to this method are incorrect
+   |
+   = note: expected reference `&Tx<'_, Committed>`
+              found reference `&Tx<'_, Open>`
+note: method defined here
+  --> $WORKSPACE/f7x/src/d2.rs
+   |
+   |     pub fn detach<J: Job>(&self, _after: &Tx<'r, Committed>, job: J) -> Result<(), SdkError> {
+   |            ^^^^^^

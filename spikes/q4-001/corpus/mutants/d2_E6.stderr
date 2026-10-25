@@ -1,0 +1,12 @@
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E6.rs:20:9
+   |
+19 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             --                        --- `ctx` is a reference that is only valid in the method body
+   |             |
+   |             lifetime `'m` defined here
+20 |         STASH.with(|s| *s.borrow_mut() = Some(ctx));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `ctx` escapes the method body here
+   |         argument requires that `'m` must outlive `'static`

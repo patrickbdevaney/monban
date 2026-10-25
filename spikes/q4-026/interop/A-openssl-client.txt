@@ -1,0 +1,33 @@
+$ openssl s_client -connect 127.0.0.1:18443 -tls1_3 -groups SecP384r1MLKEM1024 
+verify error:num=18:self-signed certificate
+Peer signature type: ecdsa_secp384r1_sha384
+Negotiated TLS1.3 group: SecP384r1MLKEM1024
+Verification error: self-signed certificate
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Protocol: TLSv1.3
+    Protocol  : TLSv1.3
+    Protocol  : TLSv1.3
+hello from rustls 0x11ED
+
+$ openssl s_client -connect 127.0.0.1:18443 -tls1_3 -groups X25519:SecP384r1MLKEM1024 -msg
+verify error:num=18:self-signed certificate
+Peer signature type: ecdsa_secp384r1_sha384
+Negotiated TLS1.3 group: SecP384r1MLKEM1024
+Verification error: self-signed certificate
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Protocol: TLSv1.3
+    Protocol  : TLSv1.3
+    Protocol  : TLSv1.3
+HTTP/1.0 200 OK
+hello from rustls 0x11ED
+
+$ openssl s_client -connect 127.0.0.1:18443 -tls1_3 -groups SecP384r1MLKEM1024:X25519MLKEM768 
+verify error:num=18:self-signed certificate
+Peer signature type: ecdsa_secp384r1_sha384
+Negotiated TLS1.3 group: SecP384r1MLKEM1024
+Verification error: self-signed certificate
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Protocol: TLSv1.3
+    Protocol  : TLSv1.3
+    Protocol  : TLSv1.3
+hello from rustls 0x11ED

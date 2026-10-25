@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d2_E12b.rs:24:46
+   |
+19 |     fn handle<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<&'static str, SdkError> {
+   |               -- lifetime `'r` defined here
+...
+24 |         ctx.detach(&done, KeepPrincipal { p: ctx.principal() })?;
+   |                                              ^^^^^^^^^^^^^^^ this usage requires that `'r` must outlive `'static`

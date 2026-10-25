@@ -1,0 +1,1035 @@
+{
+ "mariadb": {
+  "families": {
+   "mariadb U update SET .. WHERE lowerQ RETURNING | plain id PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | plain id PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UPG upsert on global-key table (must refuse or be W-safe) | plain id PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 1200,
+    "illformed": 1200,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_nopad_bin": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_nopad_bin": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant utf8mb4_nopad_bin": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant VARBINARY": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant VARBINARY": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant VARBINARY": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 0,
+    "examples": []
+   }
+  },
+  "schema_gate_demo": {
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_bin (PAD SPACE)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_bin (PAD SPACE)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant utf8mb4_bin (PAD SPACE)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 17,
+    "E": 27,
+    "blocked": 10,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 10,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 53,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `tenant`, `x`",
+      "violation": "W4: RETURNING row of tenant 'acme '"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 53,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `tenant`, `x`",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 43,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING `id`, `tenant`, `x`",
+      "violation": "W4: RETURNING row of tenant 'acme '"
+     }
+    ]
+   },
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant utf8mb4_general_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 86,
+    "E": 141,
+    "blocked": 55,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 55,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 1,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `tenant`, `x`",
+      "violation": "W4: RETURNING row of tenant 'ACME'"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 1,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `tenant`, `x`",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme ",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme ",
+       "row": {
+        "id": 25,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) SELECT ?, ?, ?, ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE CAST(`tenant` AS BINARY) = CAST(? AS BINARY) AND `id` = ?) RETURNING `id`, `tenant`, `x`",
+      "error": "1062 (23000): Duplicate entry 'acme -25' for key 'PRIMARY'",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     }
+    ]
+   },
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant default uca1400_ai_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK, tenant default uca1400_ai_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK, tenant default uca1400_ai_ci": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 107,
+    "E": 176,
+    "blocked": 69,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 69,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "\u00df",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "\u00df",
+       "row": {
+        "id": 46,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) SELECT ?, ?, ?, ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE CAST(`tenant` AS BINARY) = CAST(? AS BINARY) AND `id` = ?) RETURNING `id`, `x`",
+      "error": "1062 (23000): Duplicate entry '\u00df-46' for key 'PRIMARY'",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "\u00df",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "\u00df",
+       "row": {
+        "id": 2,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) SELECT ?, ?, ?, ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE CAST(`tenant` AS BINARY) = CAST(? AS BINARY) AND `id` = ?) RETURNING `id`, `x`",
+      "error": "1062 (23000): Duplicate entry '\u00df-2' for key 'PRIMARY'",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 1,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `tenant`, `x`",
+      "violation": "W4: RETURNING row of tenant 'ACME'"
+     }
+    ]
+   },
+   "mariadb U update SET .. WHERE lowerQ RETURNING | composite PK nopad_bin + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb D delete WHERE lowerQ RETURNING | composite PK nopad_bin + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "mariadb UP upsert composite arbiter (tenant,id) | composite PK nopad_bin + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 528,
+    "E": 817,
+    "blocked": 289,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 289,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "ss",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "ss",
+       "row": {
+        "id": 40,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x"
+       ],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING `id`, `x`",
+      "violation": "W4: RETURNING row is not a tenant-t pre/post image"
+     },
+     {
+      "op": "upsert",
+      "tenant": "ss",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "ss",
+       "row": {
+        "id": 40,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x"
+       ],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`) RETURNING `id`, `x`",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "evil",
+      "req": {
+       "dialect": "mariadb",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "evil",
+       "row": {
+        "id": 30,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO `t` (`tenant`, `id`, `grp`, `x`, `y`) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`), `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`, `x`",
+      "violation": "W4: RETURNING row is not a tenant-t pre/post image"
+     }
+    ]
+   }
+  },
+  "total": {
+   "cases": 10800,
+   "W1": 0,
+   "W2": 0,
+   "W4": 0,
+   "E": 0,
+   "blocked": 0,
+   "refused": 1769,
+   "illformed": 1769,
+   "errors_wellformed": 0,
+   "examples": [],
+   "W7": 0
+  },
+  "bad": {}
+ },
+ "cockroachdb": {
+  "families": {
+   "crdb U update SET .. WHERE lowerQ RETURNING | plain id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb D delete WHERE lowerQ RETURNING | plain id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb UPG upsert on global-key table (must refuse or be W-safe) | plain id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 1200,
+    "illformed": 1200,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb U update SET .. WHERE lowerQ RETURNING | composite PK (tenant,id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb D delete WHERE lowerQ RETURNING | composite PK (tenant,id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb UP upsert composite arbiter (tenant,id) | composite PK (tenant,id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb U update SET .. WHERE lowerQ RETURNING | collated tenant en_u_ks_level2, id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb D delete WHERE lowerQ RETURNING | collated tenant en_u_ks_level2, id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb UPG upsert on global-key table (must refuse or be W-safe) | collated tenant en_u_ks_level2, id PK": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 1200,
+    "illformed": 1200,
+    "errors_wellformed": 0,
+    "examples": []
+   }
+  },
+  "schema_gate_demo": {
+   "crdb U update SET .. WHERE lowerQ RETURNING | composite PK, tenant collate en_u_ks_level2": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb D delete WHERE lowerQ RETURNING | composite PK, tenant collate en_u_ks_level2": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb UP upsert composite arbiter (tenant,id) | composite PK, tenant collate en_u_ks_level2": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 51,
+    "blocked": 0,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 0,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 1,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\", \"y\" = excluded.\"y\" WHERE \"t\".\"tenant\"::text = excluded.\"tenant\"::text COLLATE \"C\" RETURNING \"id\", \"tenant\", \"x\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "Acme",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "Acme",
+       "row": {
+        "id": 52,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x"
+       ],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\" WHERE \"t\".\"tenant\"::text = excluded.\"tenant\"::text COLLATE \"C\" RETURNING \"id\", \"tenant\", \"x\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 57,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO NOTHING RETURNING \"id\", \"tenant\", \"x\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     }
+    ]
+   },
+   "crdb U update SET .. WHERE lowerQ RETURNING | composite PK + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 111,
+    "illformed": 111,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb D delete WHERE lowerQ RETURNING | composite PK + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 0,
+    "blocked": 0,
+    "refused": 0,
+    "illformed": 0,
+    "errors_wellformed": 0,
+    "examples": []
+   },
+   "crdb UP upsert composite arbiter (tenant,id) | composite PK + second UNIQUE(id)": {
+    "cases": 1200,
+    "W1": 0,
+    "W2": 0,
+    "W4": 0,
+    "E": 817,
+    "blocked": 817,
+    "refused": 118,
+    "illformed": 118,
+    "errors_wellformed": 817,
+    "examples": [
+     {
+      "op": "upsert",
+      "tenant": "ss",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "ss",
+       "row": {
+        "id": 40,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x"
+       ],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\" WHERE \"t\".\"tenant\"::text = excluded.\"tenant\"::text COLLATE \"C\" RETURNING \"id\", \"x\"",
+      "error": "ERROR 23505: duplicate key value violates unique constraint \"t_id_key\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "evil",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "evil",
+       "row": {
+        "id": 30,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [
+        "x",
+        "y"
+       ],
+       "returning": [
+        "id",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\", \"y\" = excluded.\"y\" WHERE \"t\".\"tenant\"::text = excluded.\"tenant\"::text COLLATE \"C\" RETURNING \"id\", \"x\"",
+      "error": "ERROR 23505: duplicate key value violates unique constraint \"t_id_key\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     },
+     {
+      "op": "upsert",
+      "tenant": "acme",
+      "req": {
+       "dialect": "postgres",
+       "table": "t",
+       "tenant_field": "tenant",
+       "key": [
+        "tenant",
+        "id"
+       ],
+       "op": "upsert",
+       "tenant": "acme",
+       "row": {
+        "id": 59,
+        "grp": "g1",
+        "x": "N",
+        "y": "n"
+       },
+       "update": [],
+       "returning": [
+        "id",
+        "tenant",
+        "x"
+       ]
+      },
+      "sql": "INSERT INTO \"t\" (\"tenant\", \"id\", \"grp\", \"x\", \"y\") VALUES ($1, $2, $3, $4, $5) ON CONFLICT (\"tenant\", \"id\") DO NOTHING RETURNING \"id\", \"tenant\", \"x\"",
+      "error": "ERROR 23505: duplicate key value violates unique constraint \"t_id_key\"",
+      "violation": "E: effect differs from the Lean model (post-state or RETURNING set)"
+     }
+    ]
+   }
+  },
+  "total": {
+   "cases": 10800,
+   "W1": 0,
+   "W2": 0,
+   "W4": 0,
+   "E": 0,
+   "blocked": 0,
+   "refused": 2851,
+   "illformed": 2851,
+   "errors_wellformed": 0,
+   "examples": [],
+   "W7": 0
+  },
+  "bad": {}
+ }
+}

@@ -1,0 +1,18 @@
+[package]
+name = "q3008"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+tokio = { version = "=1.53.3", features = ["rt", "time", "macros", "net"] }
+tokio-postgres = { version = "=0.7.18", default-features = false, features = ["runtime"] }
+tokio-postgres-rustls = { version = "=0.14.0", features = ["aws-lc-rs"] }
+rustls = { version = "=0.23.45", default-features = false, features = ["aws_lc_rs", "std", "tls12"] }
+rustls-pemfile = "=2.2.0"
+libc = "0.2"
+
+[profile.release]
+debug = false

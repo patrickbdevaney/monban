@@ -1,0 +1,14 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running tests/runtime.rs (target/debug/deps/runtime-dc4767b908552e5f)
+
+running 7 tests
+test detached_job_after_session_revocation ... ok
+test session_revoked_mid_stream_fails_closed_in_d1_and_d2 ... ok
+test tenant_binding_holds_in_all_designs ... ok
+test cap_revoked_mid_ws_session ... ok
+test d1_body_sse_ws_run_in_static_task_without_leak ... ok
+test d2_all_four_features_with_per_step_ctx ... ok
+test d3_all_four_features_via_handler_spawn ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

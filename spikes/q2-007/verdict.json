@@ -1,0 +1,19 @@
+{
+  "id": "q2-007",
+  "question": "Do the default stores survive a double fault (crash during recovery) and an fsync EIO without losing an acknowledged write?",
+  "flips_if": "SQLite FULL fails -> redb default (or vice versa)",
+  "measured": {
+    "harness": "oracles/crash-harness (LD_PRELOAD tracer, persistence-model image enumeration), laptop i7 Legion 5, 2026-10-25",
+    "images": {"main": 9790, "eio": 710, "double_fault": 9360},
+    "sqlite_wal_full": "0 lost acks across main, EIO and double-fault stages (SQLite 3.53.2 via rusqlite 0.40.2 bundled)",
+    "redb_2pc": "0 lost acks with the bootstrap parent-directory fsync; 111/780 images lose acks without it",
+    "controls": "WAL+NORMAL loses acks in 624/790 images; ack-before-fsync 680/800; EIO-as-success caught at all 4 positions",
+    "new_failure_mode": "if the first fsync fails during WAL conversion, SQLite silently falls back to rollback-journal mode although PRAGMA journal_mode returned 'wal'; acked writes are then lost unless the store re-reads journal_mode/synchronous after the first write and refuses to serve"
+  },
+  "verdict": "keep",
+  "decision_effect": "SQLite WAL synchronous=FULL single writer stays the default store; redb 2PC stays the pure-Rust option. New mandatory aegis-state startup assertions: (1) after the first committed write, re-read PRAGMA journal_mode = 'wal' and synchronous = 2 (FULL), else refuse to serve; (2) create store files via temp file + rename + parent-directory fsync; (3) fsync the parent directory at bootstrap before serving; (4) any fsync error is fatal for the store (no retry-then-ack).",
+  "rung": "R1 executed (measurement grade A for the model; one host, reduced image count)",
+  "reproduce": "oracles/crash-harness/run ; oracles/crash-harness/run --self-test ; full size: HEAVY_TIMEOUT=7200 oracles/crash-harness/run --full --jobs 16",
+  "limits": "Reduced image count (19,860 of ~170k full); one EIO per run; double fault one level deep; raw syscalls/io_uring bypass the tracer (Rust subjects need --cfg rustix_use_libc); persistence model is ext4-like, other filesystems not covered.",
+  "date": "2026-10-25"
+}

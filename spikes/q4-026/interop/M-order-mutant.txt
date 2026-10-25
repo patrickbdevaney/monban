@@ -1,0 +1,12 @@
+== M: order mutant server (ML-KEM secret first) -- must FAIL with every peer
+-- OpenSSL 3.5.9 s_client -groups SecP384r1MLKEM1024:
+283B35A408770000:error:0A000119:SSL routines:tls_get_more_records:decryption failed or bad record mac:ssl/record/methods/tls_common.c:873:
+283B35A408770000:error:0A000139:SSL routines::record layer failure:ssl/record/rec_layer_s3.c:698:
+Negotiated TLS1.3 group: SecP384r1MLKEM1024
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+-- Go 1.26.10 client:
+client handshake error: local error: tls: bad record MAC
+-- mutant server log:
+rustls server listening on :18448, kx_groups=[0x11ED], TLS1.3 only, ECDSA-P384 cert
+[127.0.0.1:48226] connection error: received fatal alert: BadRecordMac
+[127.0.0.1:48236] connection error: cannot decrypt peer's message

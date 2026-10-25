@@ -1,0 +1,18 @@
+== E1: Go crypto/tls server  <-  kx11ed rustls client
+rustls client handshake OK with 127.0.0.1:18446: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_128_GCM_SHA256) version=Some(TLSv1_3)
+  < HTTP/1.0 200 OK
+  < 
+  < hello from go crypto/tls 0x11ED
+  (51 bytes of application data received)
+-- go server log:
+go go1.26.10, crypto/tls, CurvePreferences=[SecP384r1MLKEM1024 0x11ed]
+server handshake OK: group=SecP384r1MLKEM1024 (0x11ed) suite=TLS_AES_128_GCM_SHA256; got "GET / HTTP/1.0\r\n"
+
+== E2: kx11ed rustls server  <-  Go crypto/tls client
+go go1.26.10, crypto/tls, CurvePreferences=[SecP384r1MLKEM1024 0x11ed]
+client handshake OK: group=SecP384r1MLKEM1024 (0x11ed) suite=TLS_AES_128_GCM_SHA256
+response: "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\nhello from rustls 0x11ED\n"
+-- rustls server log:
+rustls server listening on :18447, kx_groups=[0x11ED], TLS1.3 only, ECDSA-P384 cert
+[127.0.0.1:55924] handshake OK: group=SecP384r1MLKEM1024 (0x11ED) suite=Some(TLS13_AES_128_GCM_SHA256) version=Some(TLSv1_3)
+[127.0.0.1:55924] received 18 bytes: Some("GET / HTTP/1.0")

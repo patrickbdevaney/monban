@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E9.rs:13:86
+   |
+10 | ...am<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |       -- lifetime `'r` defined here
+...
+13 | ... let g = std::sync::Arc::new(ctx.grant::<SELECT>()?); let g2 = g.clone(); tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; drop(g2); });
+   |                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ argument requires that `'r` must outlive `'static`

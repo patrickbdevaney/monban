@@ -1,0 +1,330 @@
+{
+ "mutants": {
+  "E1": {
+   "class": "Granted moved into tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E1.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E1.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E1.rs"
+    }
+   }
+  },
+  "E2": {
+   "class": "whole Ctx moved into tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E2.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E2.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E2.rs"
+    }
+   }
+  },
+  "E3": {
+   "class": "SSE producer task: tenant db handle + grant moved into tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E3.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E3.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E3.rs"
+    }
+   }
+  },
+  "E4": {
+   "class": "Ctx cloned, clone moved into tokio::spawn, original keeps serving",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E4.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E4.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E4.rs"
+    }
+   }
+  },
+  "E5": {
+   "class": "Granted stored in static OnceLock",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E5.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E5.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E5.rs"
+    }
+   }
+  },
+  "E6": {
+   "class": "Ctx stashed in thread_local RefCell (no Sync needed)",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E6.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E6.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E6.rs"
+    }
+   }
+  },
+  "E7": {
+   "class": "Granted sent over a typed channel to a long-lived consumer (static Sender)",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E7.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E7.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E7.rs"
+    }
+   }
+  },
+  "E8": {
+   "class": "Ctx sent over a channel as Box<dyn Any + Send>",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E8.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E8.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E8.rs"
+    }
+   }
+  },
+  "E9": {
+   "class": "Granted wrapped in Arc, Arc clone moved into tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E9.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E9.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E9.rs"
+    }
+   }
+  },
+  "E10": {
+   "class": "Box::leak(Granted) to &'static, then tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E10.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E10.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E10.rs"
+    }
+   }
+  },
+  "E11": {
+   "class": "detached job keeps the request's Granted (instead of re-deriving at run time)",
+   "cases": {
+    "d1": {
+     "na": "D1 has no detached-job API: nothing borrowed from 'r can outlive the connection; every attempt reduces to E1/E3 (rejected)"
+    },
+    "d2": {
+     "file": "mutants/d2_E11.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E11.rs"
+    }
+   }
+  },
+  "E12": {
+   "class": "detached job keeps the request's tenant db handle",
+   "cases": {
+    "d1": {
+     "na": "D1 has no detached-job API: nothing borrowed from 'r can outlive the connection; every attempt reduces to E1/E3 (rejected)"
+    },
+    "d2": {
+     "file": "mutants/d2_E12.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E12.rs"
+    }
+   }
+  },
+  "E12b": {
+   "class": "detached job keeps the request's &Principal (Sync, so only the lifetime can stop it)",
+   "cases": {
+    "d1": {
+     "na": "D1 has no detached-job API: nothing borrowed from 'r can outlive the connection; every attempt reduces to E1/E3 (rejected)"
+    },
+    "d2": {
+     "file": "mutants/d2_E12b.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E12b.rs"
+    }
+   }
+  },
+  "E13": {
+   "class": "detached job enqueued before the transaction commits (effect before commit)",
+   "cases": {
+    "d1": {
+     "na": "D1 has no detached-job API: nothing borrowed from 'r can outlive the connection; every attempt reduces to E1/E3 (rejected)"
+    },
+    "d2": {
+     "file": "mutants/d2_E13.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E13.rs"
+    }
+   }
+  },
+  "E14": {
+   "class": "WS session reuses the first message's Granted for every later message (no per-message re-derivation)",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E14.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E14.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E14.rs"
+    }
+   }
+  },
+  "E15": {
+   "class": "open Tx<Open> held across streamed chunks (writes after the response head is committed)",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E15.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E15.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E15.rs"
+    }
+   }
+  },
+  "E16": {
+   "class": "Tx used after commit",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E16.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E16.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E16.rs"
+    }
+   }
+  },
+  "E17": {
+   "class": "handler forges a Granted (struct literal) instead of asking the host",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E17.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E17.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E17.rs"
+    }
+   }
+  },
+  "E18": {
+   "class": "unsafe transmute of Granted<'r> to Granted<'static>, then spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E18.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_E18.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_E18.rs"
+    }
+   }
+  },
+  "E19": {
+   "class": "WS outbound half moved into a spawned task that keeps writing with the session's capabilities",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_E19.rs"
+    },
+    "d2": {
+     "na": "D2 exposes no outbound handle to move: replies are return values of on_message; the nearest attempt is E2/E3 (rejected)"
+    },
+    "d3": {
+     "file": "mutants/d3_E19.rs"
+    }
+   }
+  },
+  "C1": {
+   "class": "CONTROL: std::thread::scope borrowing a Granted (joined before the scope ends)",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_C1.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_C1.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_C1.rs"
+    }
+   }
+  },
+  "C2": {
+   "class": "CONTROL: plain data (ids, strings) moved into tokio::spawn",
+   "cases": {
+    "d1": {
+     "file": "mutants/d1_C2.rs"
+    },
+    "d2": {
+     "file": "mutants/d2_C2.rs"
+    },
+    "d3": {
+     "file": "mutants/d3_C2.rs"
+    }
+   }
+  }
+ },
+ "strict": {
+  "S1": {
+   "class": "naive spawn producer for a streamed body using F7 Ctx<'r>/&D",
+   "file": "mutants/d3strict_S1.rs"
+  },
+  "S2": {
+   "class": "naive SSE ticker task holding only the Granted",
+   "file": "mutants/d3strict_S2.rs"
+  },
+  "S3": {
+   "class": "naive WS task holding Ctx for the session",
+   "file": "mutants/d3strict_S3.rs"
+  },
+  "S4": {
+   "class": "naive detached audit task after commit using F7 Ctx<'r>",
+   "file": "mutants/d3strict_S4.rs"
+  }
+ }
+}

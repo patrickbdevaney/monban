@@ -76,8 +76,11 @@ pub struct Op {
 /// case-insensitive or nondeterministic collations break it (`refines_necessary`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Collation {
-    /// Byte-wise / deterministic (PG "C" or deterministic ICU, SQLite BINARY, Redis keys).
+    /// Byte-wise, deterministic and NO-PAD (PG "C" or deterministic ICU, SQLite BINARY, MariaDB
+    /// utf8mb4_nopad_bin / VARBINARY, Redis keys). Trailing-space-padding `*_bin` collations are `PadSpace`.
     Binary,
+    /// Binary but compares with trailing-space padding (MariaDB/MySQL utf8mb4_bin): 'acme ' = 'acme'.
+    PadSpace,
     /// SQLite NOCASE, MySQL *_ci, citext and similar.
     CaseInsensitive,
     /// Nondeterministic ICU or anything else not byte-wise.
@@ -101,34 +104,43 @@ pub struct Schema {
     pub columns: Vec<Column>,
     /// Columns a caller may read or return.
     pub permitted: Vec<Field>,
+    /// Every unique index (including the primary key) as its column list. `prefix` marks an index that covers
+    /// only a prefix of some column (e.g. MySQL `tenant(3)`).
+    pub unique_indexes: Vec<UniqueIndex>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UniqueIndex {
+    pub fields: Vec<Field>,
+    pub prefix: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SchemaError {
     UnknownField(Field),
-    NotOverNullable(Field),
+    /// `Not` is only sound on exact adapters (`refines_insufficient_for_not3`).
+    NotRequiresExact,
     TenantFieldNullable,
     /// Tenant or key column with a non-binary collation (W3, `refines_necessary`).
     NonBinaryCollation(Field),
     TenantFieldWritten,
     ReturningNotPermitted(Field),
+    /// Upsert needs the table's ONLY unique index to be exactly (tenant, key columns), full-length (W3, q4-005):
+    /// engines such as MariaDB arbitrate on any unique index, so a second one lets an upsert land on a foreign row.
+    UpsertArbiterNotTenantScoped,
     CollectionMismatch,
 }
 
-fn has_nullable_not(p: &Pred, s: &Schema) -> Option<Field> {
+fn has_not(p: &Pred) -> bool {
     match p {
-        Pred::Not(inner) => {
-            let mut rs = Vec::new();
-            inner.reads(&mut rs);
-            rs.into_iter().find(|f| s.columns.iter().any(|c| c.field == *f && c.nullable))
-        }
-        Pred::And(a, b) | Pred::Or(a, b) => has_nullable_not(a, s).or_else(|| has_nullable_not(b, s)),
-        _ => None,
+        Pred::Not(_) => true,
+        Pred::And(a, b) | Pred::Or(a, b) => has_not(a) || has_not(b),
+        _ => false,
     }
 }
 
 /// Static check an `Op` must pass before any adapter sees it. Total: never panics.
-pub fn check_schema(op: &Op, s: &Schema) -> Result<(), SchemaError> {
+pub fn check_schema(op: &Op, s: &Schema, fidelity: Fidelity) -> Result<(), SchemaError> {
     if op.collection != s.collection {
         return Err(SchemaError::CollectionMismatch);
     }
@@ -152,8 +164,24 @@ pub fn check_schema(op: &Op, s: &Schema) -> Result<(), SchemaError> {
     if let Some(f) = op.returning.iter().find(|f| !s.permitted.contains(f)) {
         return Err(SchemaError::ReturningNotPermitted(*f));
     }
-    if let Some(f) = has_nullable_not(&op.filter, s) {
-        return Err(SchemaError::NotOverNullable(f));
+    if op.kind == OpKind::Upsert {
+        let mut want: Vec<Field> =
+            s.columns.iter().filter(|c| c.key || c.field == s.tenant_field).map(|c| c.field).collect();
+        want.sort_unstable();
+        let ok = match s.unique_indexes.as_slice() {
+            [only] => {
+                let mut got = only.fields.clone();
+                got.sort_unstable();
+                !only.prefix && got == want && got.contains(&s.tenant_field) && got.len() >= 2
+            }
+            _ => false,
+        };
+        if !ok {
+            return Err(SchemaError::UpsertArbiterNotTenantScoped);
+        }
+    }
+    if fidelity != Fidelity::Exact && has_not(&op.filter) {
+        return Err(SchemaError::NotRequiresExact);
     }
     Ok(())
 }
@@ -161,9 +189,10 @@ pub fn check_schema(op: &Op, s: &Schema) -> Result<(), SchemaError> {
 /// What a backend can guarantee for the lowering-soundness theorem (Lean `Backend.Exact` vs `Backend.Refines`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Fidelity {
-    /// rows(render(lowerQ t p)) = reference rows. Required for golden adapters exposing `Not`.
+    /// rows(render(lowerQ t p)) = {x | refQ3 t p x} (`rows_exact3`). Required for adapters accepting `Not`.
+    /// Every rendered atom must yield UNKNOWN on a NULL column (so `In []` is never rendered as constant FALSE).
     Exact,
-    /// rows ⊆ reference rows (never leaks; may miss).
+    /// rows ⊆ reference rows for `Not`-free predicates (never leaks; may miss).
     Refines,
 }
 
@@ -190,7 +219,7 @@ mod tests {
             tenant_field: 0,
             columns: vec![
                 Column { field: 0, name: "tenant".into(), nullable: false, collation: Collation::Binary, key: true },
-                Column { field: 1, name: "title".into(), nullable: false, collation: Collation::Binary, key: false },
+                Column { field: 1, name: "title".into(), nullable: false, collation: Collation::Binary, key: true },
                 Column {
                     field: 2,
                     name: "archived_at".into(),
@@ -200,6 +229,7 @@ mod tests {
                 },
             ],
             permitted: vec![1, 2],
+            unique_indexes: vec![UniqueIndex { fields: vec![0, 1], prefix: false }],
         }
     }
 
@@ -209,22 +239,34 @@ mod tests {
     }
 
     #[test]
-    fn rejects_not_over_nullable_and_tenant_writes() {
+    fn not_needs_exact_and_tenant_writes_rejected() {
         let s = schema();
-        assert_eq!(
-            check_schema(&op(Pred::Not(Box::new(Pred::Eq(2, Value::Int(0))))), &s),
-            Err(SchemaError::NotOverNullable(2))
-        );
-        assert_eq!(check_schema(&op(Pred::Not(Box::new(Pred::Eq(1, Value::Int(0))))), &s), Ok(()));
+        let not_null = op(Pred::Not(Box::new(Pred::Eq(2, Value::Int(0)))));
+        assert_eq!(check_schema(&not_null, &s, Fidelity::Exact), Ok(()));
+        assert_eq!(check_schema(&not_null, &s, Fidelity::Refines), Err(SchemaError::NotRequiresExact));
+        assert_eq!(check_schema(&op(Pred::Eq(2, Value::Int(0))), &s, Fidelity::Refines), Ok(()));
         let mut w = op(Pred::Tt);
         w.kind = OpKind::Update;
         w.writes = vec![(0, Value::Int(1))];
-        assert_eq!(check_schema(&w, &s), Err(SchemaError::TenantFieldWritten));
+        assert_eq!(check_schema(&w, &s, Fidelity::Exact), Err(SchemaError::TenantFieldWritten));
         let mut ci = schema();
         if let Some(c) = ci.columns.first_mut() {
             c.collation = Collation::CaseInsensitive;
         }
-        assert_eq!(check_schema(&op(Pred::Tt), &ci), Err(SchemaError::NonBinaryCollation(0)));
+        assert_eq!(check_schema(&op(Pred::Tt), &ci, Fidelity::Exact), Err(SchemaError::NonBinaryCollation(0)));
+        if let Some(c) = ci.columns.first_mut() {
+            c.collation = Collation::PadSpace;
+        }
+        assert_eq!(check_schema(&op(Pred::Tt), &ci, Fidelity::Exact), Err(SchemaError::NonBinaryCollation(0)));
+        let mut up = op(Pred::Tt);
+        up.kind = OpKind::Upsert;
+        assert_eq!(check_schema(&up, &s, Fidelity::Exact), Ok(()));
+        let mut two = schema();
+        two.unique_indexes.push(UniqueIndex { fields: vec![1], prefix: false });
+        assert_eq!(check_schema(&up, &two, Fidelity::Exact), Err(SchemaError::UpsertArbiterNotTenantScoped));
+        let mut pre = schema();
+        pre.unique_indexes = vec![UniqueIndex { fields: vec![0, 1], prefix: true }];
+        assert_eq!(check_schema(&up, &pre, Fidelity::Exact), Err(SchemaError::UpsertArbiterNotTenantScoped));
         assert_eq!(Pred::or_n(vec![]), Pred::Ff);
         assert_eq!(Pred::and_n(vec![]), Pred::Tt);
     }

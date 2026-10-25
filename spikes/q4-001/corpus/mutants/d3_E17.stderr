@@ -1,0 +1,12 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+  --> mutants/d3_E17.rs:11:17
+   |
+11 |         let g = OwnedGranted::<INSERT>(PhantomData);
+   |                 ^^^^^^^^^^^^
+   |
+   = note: a struct named `OwnedGranted` exists in another namespace
+note: constructor is not visible here due to private fields
+  --> $WORKSPACE/f7x/src/d3.rs
+   |
+   | pub struct OwnedGranted<const K: u8>(PhantomData<()>);
+   |                                      ^^^^^^^^^^^^^^^ private field

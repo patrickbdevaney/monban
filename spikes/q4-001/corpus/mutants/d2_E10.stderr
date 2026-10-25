@@ -1,0 +1,7 @@
+error: lifetime may not live long enough
+  --> mutants/d2_E10.rs:19:16
+   |
+18 |     fn next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |             -- lifetime `'m` defined here
+19 |         let g: &'static Granted<'_, DataCap<SELECT>> = Box::leak(Box::new(ctx.grant::<SELECT>()?)); tokio::spawn(async move { tokio:...
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ type annotation requires that `'m` must outlive `'static`

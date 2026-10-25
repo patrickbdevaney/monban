@@ -1,0 +1,5 @@
+error[E0599]: no method named `clone` found for struct `f7x::Ctx<'r>` in the current scope
+  --> mutants/d1_E4.rs:13:26
+   |
+13 |             let c2 = ctx.clone();
+   |                          ^^^^^ method not found in `f7x::Ctx<'r>`

@@ -1,0 +1,29 @@
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E3.rs:20:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Event>, SdkError> {
+   |           --                        --- `ctx` is a reference that is only valid in the method body
+   |           |
+   |           lifetime `'m` defined here
+19 | ...   let g = ctx.grant::<SELECT>()?;
+20 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `ctx` escapes the method body here
+   |       argument requires that `'m` must outlive `'static`
+
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E3.rs:20:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Event>, SdkError> {
+   |                                                   --  - let's call the lifetime of this reference `'1`
+   |                                                   |
+   |                                                   `db` is a reference that is only valid in the method body
+19 | ...   let g = ctx.grant::<SELECT>()?;
+20 | ...   tokio::spawn(async move { tokio::time::sleep(std::time::Duration::from_millis(5)).await; if let Ok(mut tx) = db.begin() { let _ = db.run(&mut tx, &g, Op::select(0)); } });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `db` escapes the method body here
+   |       argument requires that `'1` must outlive `'static`
+
+help: replace `'m` with `'static`

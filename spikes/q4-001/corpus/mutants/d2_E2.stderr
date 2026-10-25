@@ -1,0 +1,12 @@
+error[E0521]: borrowed data escapes outside of method
+  --> mutants/d2_E2.rs:19:9
+   |
+18 | ...n next<'m, D: Db<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Chunk>, SdkError> {
+   |           --                        --- `ctx` is a reference that is only valid in the method body
+   |           |
+   |           lifetime `'m` defined here
+19 | ...   tokio::spawn(async move { let c = ctx; tokio::time::sleep(std::time::Duration::from_millis(5)).await; let _ = c.grant::<SELECT>(); });
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |       |
+   |       `ctx` escapes the method body here
+   |       argument requires that `'m` must outlive `'static`

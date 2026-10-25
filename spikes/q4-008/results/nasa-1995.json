@@ -1,0 +1,1376 @@
+{
+ "source": "nasa-1995",
+ "format": "clf",
+ "static_site_signatures": false,
+ "files": 2,
+ "meta": {
+  "file_errors": [],
+  "raw_lines": 3461613,
+  "excluded_nonhttp": 1828,
+  "unparsed_log_lines": 1,
+  "attack_client_ips": 661
+ },
+ "request_line_shapes": {
+  "ok": 3455074,
+  "http09": 4710,
+  "nonhttp": 1828
+ },
+ "methods": {
+  "GET": 3451645,
+  "HEAD": 7917,
+  "POST": 222,
+  "-": 1828
+ },
+ "attack_exclusions": {
+  "scanner_session_ip": 88932,
+  "http09_or_malformed": 4710,
+  "nonhttp_request_line": 1828,
+  "absolute_or_asterisk_form": 62,
+  "target_signature": 18
+ },
+ "detector_vs_reference_disagreements": {
+  "examples": []
+ },
+ "forbidden_ascii_chars_path": {
+  "'\"'": 22,
+  "'>'": 19,
+  "'<'": 15,
+  "'`'": 3,
+  "'|'": 3,
+  "']'": 1,
+  "'^'": 1,
+  "'['": 1
+ },
+ "forbidden_ascii_chars_query": {},
+ "raw": {
+  "lines": 3459784,
+  "unique_targets": 31674,
+  "ref_reject_lines": 77765,
+  "pct_ref_reject": 2.2477,
+  "ref_308_lines": 168958,
+  "pct_ref_308": 4.8835,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 64,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 64,
+    "pct_sole": 0.0018,
+    "unique_targets": 9,
+    "pct_unique": 0.0284,
+    "examples": [
+     ":/facilities/tour.html",
+     "",
+     "http://www.ksc.nasa.gov:80/shuttle/countdown/",
+     "www.ksc.nasa.gov",
+     "htbin/cdt_clock.pl",
+     " //www.umcc.umich.edu"
+    ]
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_slash": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_backslash": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/shuttle%5Ccountdown%5Cliftoff.html"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 32,
+    "pct_lines": 0.0009,
+    "sole_cause_lines": 32,
+    "pct_sole": 0.0009,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/shuttle/countdown/video/%25livevideo.jpeg"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 2,
+    "pct_unique": 0.0063,
+    "examples": [
+     "/history/apollo/apollo-13/apollo-13.html%0D",
+     "/history/apollo/apollo-13/apollo-13-info.html%0D"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_nonascii": {
+    "lines": 8,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 8,
+    "pct_unique": 0.0253,
+    "examples": [
+     "/shuttle/countdown/dy \\x80?shuttle%20tracking",
+     "/shuttle/countdown/dy \\x80?tracking%20station",
+     "/shuttle/resources/orbiters/\\x86b\\xd7\\t\\x0c",
+     "/shuttle/missions/sts-65/mission-sts-65.htmlh\\xfe\\xa7\\x8f\\x8a\\xa0\\x8f\\x92\\x9e\\x8e\\x87|\\x0c\\x10\\x12|(\\xad",
+     "/L\\xee\\x18\\x80\\xfe\\xeeN^NuNV",
+     "/ksc.html\\x82"
+    ]
+   },
+   "p.backslash": {
+    "lines": 31,
+    "pct_lines": 0.0009,
+    "sole_cause_lines": 31,
+    "pct_sole": 0.0009,
+    "unique_targets": 22,
+    "pct_unique": 0.0695,
+    "examples": [
+     "/shuttle/missions/sts-69/\\\\www.pic.net",
+     "/shuttle/missions/sts-71/images/http:\\\\\\\\www.mca.com",
+     "/history/\\\\",
+     "/\\\\\\\\espnet.sportszone.com",
+     "/HISTORY/APOLLO/HTTP:\\\\\\\\POPULARMECHANICS.COM",
+     "/\\\\\\\\www.isisnet.com/home/newnetscape.html"
+    ]
+   },
+   "p.semicolon": {
+    "lines": 6,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 5,
+    "pct_sole": 0.0001,
+    "unique_targets": 6,
+    "pct_unique": 0.0189,
+    "examples": [
+     "/shuttle/missions;",
+     "/history/apollo/apollo-13/apo;;p-13.html",
+     "/history/apollo/apollo-13/.nasa.gov/history/apollo/apollo-13/apo;;p-13.html",
+     "/shuttle/missions/missions.html;",
+     "/history/apo;;o/apollo-13/apollo-13.html",
+     "/history/a[p;;p/apollo.html"
+    ]
+   },
+   "p.space": {
+    "lines": 1986,
+    "pct_lines": 0.0574,
+    "sole_cause_lines": 1967,
+    "pct_sole": 0.0569,
+    "unique_targets": 738,
+    "pct_unique": 2.33,
+    "examples": [
+     "/shuttle/missions/sts-67/images/images.html  ",
+     "/news/sci.space.news/archive/sci-space-news-26-feb-1994-07.txt  ",
+     "/history/history.html                                                 hqpao/hqpao_home.html",
+     "/news/sci.space.news/34  ",
+     "/shuttle/missions/missions.html Shuttle Launches from Kennedy Space Center",
+     "/news/sci.space.news/archive/sci-space-news-11-feb-1995-23.txt  "
+    ]
+   },
+   "p.fragment": {
+    "lines": 298,
+    "pct_lines": 0.0086,
+    "sole_cause_lines": 298,
+    "pct_sole": 0.0086,
+    "unique_targets": 267,
+    "pct_unique": 0.843,
+    "examples": [
+     "/shuttle/technology/sts-newsref/mission_profile.html#aoa_abort",
+     "/shuttle/technology/sts-newsref/mission_profile.html#rtls_abort",
+     "/shuttle/technology/sts-newsref/sts_overview.html#sts_program",
+     "/shuttle/technology/sts-newsref/sts_asm.html#gear_mods",
+     "/shuttle/technology/sts-newsref/et.html#et-lox",
+     "/shuttle/technology/sts-newsref/sts-acronyms.html#sts-newsref"
+    ]
+   },
+   "p.raw_ctrl": {
+    "lines": 6,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 3,
+    "pct_sole": 0.0001,
+    "unique_targets": 6,
+    "pct_unique": 0.0189,
+    "examples": [
+     "/shuttle/mis\\x04s/sts-62/mission-sts-62.html",
+     "/shuttle/resources/orbiters/\\x86b\\xd7\\t\\x0c",
+     "/shuttle/missions/sts-70/movies/\\x7f",
+     "/shuttle/missions/sts-65/mission-sts-65.htmlh\\xfe\\xa7\\x8f\\x8a\\xa0\\x8f\\x92\\x9e\\x8e\\x87|\\x0c\\x10\\x12|(\\xad",
+     "/L\\xee\\x18\\x80\\xfe\\xeeN^NuNV",
+     "/\\x08\\x08\\x08"
+    ]
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 88,
+    "pct_lines": 0.0025,
+    "sole_cause_lines": 73,
+    "pct_sole": 0.0021,
+    "unique_targets": 39,
+    "pct_unique": 0.1231,
+    "examples": [
+     "/`",
+     "/shuttle/missions/sts-71/images/file:C|/HTTPD/HTDOCS/IMAGES/WEEYE.GIF",
+     "/images/\"",
+     "/images\"",
+     "/history/apollo/apollo-13/apollo-13.html>",
+     "/history/apollo/apollo.html\""
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 155,
+    "pct_lines": 0.0045,
+    "sole_cause_lines": 155,
+    "pct_sole": 0.0045,
+    "unique_targets": 15,
+    "pct_unique": 0.0474,
+    "examples": [
+     "/shuttle/countdown/./video/livevideo.gif",
+     "/.",
+     "/./",
+     "/mdss/srqa/../MDSS.html",
+     "/shuttle/countdown/./video/livevideo2.gif",
+     "/shuttle/countdown/./video/livevideo.jpeg"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 1261,
+    "pct_lines": 0.0364,
+    "sole_cause_lines": 1230,
+    "pct_sole": 0.0356,
+    "unique_targets": 148,
+    "pct_unique": 0.4673,
+    "examples": [
+     "/://spacelink.msfc.nasa.gov",
+     "//images/NASA-logosmall.gi",
+     "//elv/elvpage.htm",
+     "//elv/bakgro.gif",
+     "//elv/elvhead3.gif",
+     "//elv/endball.gif"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 169026,
+    "pct_lines": 4.8854,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1287,
+    "pct_unique": 4.0633,
+    "examples": [
+     "/history/apollo/",
+     "/shuttle/countdown/",
+     "/history/",
+     "/software/",
+     "/software/winvn/",
+     "/shuttle/missions/"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.no_eq": {
+    "lines": 73875,
+    "pct_lines": 2.1352,
+    "sole_cause_lines": 71547,
+    "pct_sole": 2.068,
+    "unique_targets": 21835,
+    "pct_unique": 68.9367,
+    "examples": [
+     "/cgi-bin/imagemap/countdown?99,176",
+     "/cgi-bin/imagemap/countdown?102,174",
+     "/cgi-bin/imagemap/countdown?103,146",
+     "/cgi-bin/imagemap/countdown?99,173",
+     "/cgi-bin/imagemap/countdown?102,210",
+     "/cgi-bin/imagemap/countdown?103,175"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 11,
+    "pct_lines": 0.0003,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 10,
+    "pct_unique": 0.0316,
+    "examples": [
+     "/htbin/wais.pl?observe+shuttle+%26+MIR",
+     "/htbin/wais.pl?thrust+%26+staurn",
+     "/htbin/wais.pl?thrust+%26+staturn",
+     "/htbin/wais.pl?at%26t",
+     "/htbin/wais.pl?mission+%26+times",
+     "/htbin/wais.pl?STS%3D69"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_plus": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 4,
+    "pct_unique": 0.0126,
+    "examples": [
+     "/htbin/wais.pl?launch+%2B+next",
+     "/htbin/wais.pl?total%2Bsquare%2Bfeet",
+     "/htbin/wais.pl?earth+%2Bpictures",
+     "/htbin/wais.pl?access%2Bconstruction"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/htbin/wais.pl?%252A%252Ejpg"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 4,
+    "pct_unique": 0.0126,
+    "examples": [
+     "/htbin/wais.pl?sts-71%0D",
+     "/cgi-bin/BrokerQuery.pl?query=oms%04%06%06&host=titan04.ksc.nasa.gov%3A8501&caseflag=on&wordflag=on&errorflag=0&opaqueflag=on&descflag=on&verbose=on&maxresultfl",
+     "/htbin/wais.pl?%7Fpayload",
+     "/htbin/wais.pl?weather%0D"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/htbin/wais.pl?sts%A7%E7+launch"
+    ]
+   },
+   "q.plus": {
+    "lines": 2262,
+    "pct_lines": 0.0654,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 1749,
+    "pct_unique": 5.5219,
+    "examples": [
+     "/htbin/wais.pl?sts+71",
+     "/htbin/wais.pl?Apollo+11",
+     "/htbin/wais.pl?shuttle+and+earth+and+jpg",
+     "/htbin/wais.pl?blast+sound",
+     "/htbin/wais.pl?Win+Vn",
+     "/htbin/wais.pl?orbit+sts-71"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/htbin/wais.pl?Space%20Shutt;e"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.space": {
+    "lines": 29,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 9,
+    "pct_unique": 0.0284,
+    "examples": [
+     "/htbin/wais.pl?orbit sts71",
+     "/htbin/wais.pl?Wake Shield",
+     "/htbin/wais.pl?Space Acceleration Measurement System",
+     "/htbin/wais.pl?Spaceborne Imaging Radar-C",
+     "/htbin/wais.pl?Millimeter Wave Atmospheric Sounder",
+     "/htbin/wais.pl?satellite pictures"
+    ]
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.dup_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 29,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 9,
+    "pct_unique": 0.0284,
+    "examples": [
+     "/%7Eadverts/ibm/ad1/banner.gif",
+     "/history/apollo/publications/sp-350/sp-350.txt%7E",
+     "/shuttle/missions/sts-missions-flown.txt%7E",
+     "/%7Emol",
+     "/%7Edowns/home.html",
+     "/%7Edowns/launchup.gif"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 75,
+    "pct_lines": 0.0022,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/images/b%3acables.jpg"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 168960,
+   "400 query: pair must be exactly name=value": 73875,
+   "400 path: forbidden character X": 2104,
+   "400 path: empty segment": 1257,
+   "400 path: query/fragment in path kind": 298,
+   "400 path: dot segment": 155,
+   "400 path: not origin-form": 64,
+   "400 path: ambiguous percent-escape X": 37,
+   "400 query: forbidden character X": 4,
+   "400 query: ambiguous percent-escape X": 1
+  }
+ },
+ "benign": {
+  "lines": 3366062,
+  "unique_targets": 30955,
+  "ref_reject_lines": 75651,
+  "pct_ref_reject": 2.2475,
+  "ref_308_lines": 164645,
+  "pct_ref_308": 4.8913,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_slash": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_backslash": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 1,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/shuttle%5Ccountdown%5Cliftoff.html"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 32,
+    "pct_lines": 0.001,
+    "sole_cause_lines": 32,
+    "pct_sole": 0.001,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/shuttle/countdown/video/%25livevideo.jpeg"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 2,
+    "pct_unique": 0.0065,
+    "examples": [
+     "/history/apollo/apollo-13/apollo-13.html%0D",
+     "/history/apollo/apollo-13/apollo-13-info.html%0D"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_nonascii": {
+    "lines": 5,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 2,
+    "pct_sole": 0.0001,
+    "unique_targets": 5,
+    "pct_unique": 0.0162,
+    "examples": [
+     "/shuttle/resources/orbiters/\\x86b\\xd7\\t\\x0c",
+     "/shuttle/missions/sts-65/mission-sts-65.htmlh\\xfe\\xa7\\x8f\\x8a\\xa0\\x8f\\x92\\x9e\\x8e\\x87|\\x0c\\x10\\x12|(\\xad",
+     "/L\\xee\\x18\\x80\\xfe\\xeeN^NuNV",
+     "/ksc.html\\x82",
+     "/facts\\xe9faq12.html"
+    ]
+   },
+   "p.backslash": {
+    "lines": 29,
+    "pct_lines": 0.0009,
+    "sole_cause_lines": 29,
+    "pct_sole": 0.0009,
+    "unique_targets": 21,
+    "pct_unique": 0.0678,
+    "examples": [
+     "/shuttle/missions/sts-69/\\\\www.pic.net",
+     "/shuttle/missions/sts-71/images/http:\\\\\\\\www.mca.com",
+     "/history/\\\\",
+     "/\\\\\\\\espnet.sportszone.com",
+     "/HISTORY/APOLLO/HTTP:\\\\\\\\POPULARMECHANICS.COM",
+     "/\\\\\\\\www.isisnet.com/home/newnetscape.html"
+    ]
+   },
+   "p.semicolon": {
+    "lines": 6,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 5,
+    "pct_sole": 0.0001,
+    "unique_targets": 6,
+    "pct_unique": 0.0194,
+    "examples": [
+     "/shuttle/missions;",
+     "/history/apollo/apollo-13/apo;;p-13.html",
+     "/history/apollo/apollo-13/.nasa.gov/history/apollo/apollo-13/apo;;p-13.html",
+     "/shuttle/missions/missions.html;",
+     "/history/apo;;o/apollo-13/apollo-13.html",
+     "/history/a[p;;p/apollo.html"
+    ]
+   },
+   "p.space": {
+    "lines": 1846,
+    "pct_lines": 0.0548,
+    "sole_cause_lines": 1832,
+    "pct_sole": 0.0544,
+    "unique_targets": 689,
+    "pct_unique": 2.2258,
+    "examples": [
+     "/shuttle/missions/sts-67/images/images.html  ",
+     "/news/sci.space.news/archive/sci-space-news-26-feb-1994-07.txt  ",
+     "/history/history.html                                                 hqpao/hqpao_home.html",
+     "/news/sci.space.news/34  ",
+     "/shuttle/missions/missions.html Shuttle Launches from Kennedy Space Center",
+     "/news/sci.space.news/archive/sci-space-news-11-feb-1995-23.txt  "
+    ]
+   },
+   "p.fragment": {
+    "lines": 294,
+    "pct_lines": 0.0087,
+    "sole_cause_lines": 294,
+    "pct_sole": 0.0087,
+    "unique_targets": 266,
+    "pct_unique": 0.8593,
+    "examples": [
+     "/shuttle/technology/sts-newsref/mission_profile.html#aoa_abort",
+     "/shuttle/technology/sts-newsref/mission_profile.html#rtls_abort",
+     "/shuttle/technology/sts-newsref/sts_overview.html#sts_program",
+     "/shuttle/technology/sts-newsref/sts_asm.html#gear_mods",
+     "/shuttle/technology/sts-newsref/et.html#et-lox",
+     "/shuttle/technology/sts-newsref/sts-acronyms.html#sts-newsref"
+    ]
+   },
+   "p.raw_ctrl": {
+    "lines": 6,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 3,
+    "pct_sole": 0.0001,
+    "unique_targets": 6,
+    "pct_unique": 0.0194,
+    "examples": [
+     "/shuttle/mis\\x04s/sts-62/mission-sts-62.html",
+     "/shuttle/resources/orbiters/\\x86b\\xd7\\t\\x0c",
+     "/shuttle/missions/sts-70/movies/\\x7f",
+     "/shuttle/missions/sts-65/mission-sts-65.htmlh\\xfe\\xa7\\x8f\\x8a\\xa0\\x8f\\x92\\x9e\\x8e\\x87|\\x0c\\x10\\x12|(\\xad",
+     "/L\\xee\\x18\\x80\\xfe\\xeeN^NuNV",
+     "/\\x08\\x08\\x08"
+    ]
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 62,
+    "pct_lines": 0.0018,
+    "sole_cause_lines": 49,
+    "pct_sole": 0.0015,
+    "unique_targets": 33,
+    "pct_unique": 0.1066,
+    "examples": [
+     "/`",
+     "/shuttle/missions/sts-71/images/file:C|/HTTPD/HTDOCS/IMAGES/WEEYE.GIF",
+     "/images/\"",
+     "/images\"",
+     "/history/apollo/apollo.html\"",
+     "/history/apollo/apollo-13/apollo-13.html</a"
+    ]
+   },
+   "p.dot_segment": {
+    "lines": 142,
+    "pct_lines": 0.0042,
+    "sole_cause_lines": 142,
+    "pct_sole": 0.0042,
+    "unique_targets": 15,
+    "pct_unique": 0.0485,
+    "examples": [
+     "/shuttle/countdown/./video/livevideo.gif",
+     "/.",
+     "/./",
+     "/mdss/srqa/../MDSS.html",
+     "/shuttle/countdown/./video/livevideo2.gif",
+     "/shuttle/countdown/./video/livevideo.jpeg"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 1236,
+    "pct_lines": 0.0367,
+    "sole_cause_lines": 1205,
+    "pct_sole": 0.0358,
+    "unique_targets": 146,
+    "pct_unique": 0.4717,
+    "examples": [
+     "/://spacelink.msfc.nasa.gov",
+     "//images/NASA-logosmall.gi",
+     "//elv/elvpage.htm",
+     "//elv/bakgro.gif",
+     "//elv/elvhead3.gif",
+     "//elv/endball.gif"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 164713,
+    "pct_lines": 4.8933,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1258,
+    "pct_unique": 4.064,
+    "examples": [
+     "/history/apollo/",
+     "/shuttle/countdown/",
+     "/history/",
+     "/software/",
+     "/software/winvn/",
+     "/shuttle/missions/"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.no_eq": {
+    "lines": 72031,
+    "pct_lines": 2.1399,
+    "sole_cause_lines": 69788,
+    "pct_sole": 2.0733,
+    "unique_targets": 21381,
+    "pct_unique": 69.0712,
+    "examples": [
+     "/cgi-bin/imagemap/countdown?99,176",
+     "/cgi-bin/imagemap/countdown?102,174",
+     "/cgi-bin/imagemap/countdown?103,146",
+     "/cgi-bin/imagemap/countdown?99,173",
+     "/cgi-bin/imagemap/countdown?102,210",
+     "/cgi-bin/imagemap/countdown?103,175"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 10,
+    "pct_lines": 0.0003,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 9,
+    "pct_unique": 0.0291,
+    "examples": [
+     "/htbin/wais.pl?observe+shuttle+%26+MIR",
+     "/htbin/wais.pl?thrust+%26+staurn",
+     "/htbin/wais.pl?thrust+%26+staturn",
+     "/htbin/wais.pl?mission+%26+times",
+     "/htbin/wais.pl?STS%3D69",
+     "/htbin/wais.pl?B%26K"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_plus": {
+    "lines": 4,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 4,
+    "pct_unique": 0.0129,
+    "examples": [
+     "/htbin/wais.pl?launch+%2B+next",
+     "/htbin/wais.pl?total%2Bsquare%2Bfeet",
+     "/htbin/wais.pl?earth+%2Bpictures",
+     "/htbin/wais.pl?access%2Bconstruction"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 3,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 3,
+    "pct_unique": 0.0097,
+    "examples": [
+     "/htbin/wais.pl?sts-71%0D",
+     "/htbin/wais.pl?%7Fpayload",
+     "/htbin/wais.pl?weather%0D"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/htbin/wais.pl?sts%A7%E7+launch"
+    ]
+   },
+   "q.plus": {
+    "lines": 2183,
+    "pct_lines": 0.0649,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0001,
+    "unique_targets": 1699,
+    "pct_unique": 5.4886,
+    "examples": [
+     "/htbin/wais.pl?sts+71",
+     "/htbin/wais.pl?Apollo+11",
+     "/htbin/wais.pl?shuttle+and+earth+and+jpg",
+     "/htbin/wais.pl?blast+sound",
+     "/htbin/wais.pl?Win+Vn",
+     "/htbin/wais.pl?orbit+sts-71"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 1,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/htbin/wais.pl?Space%20Shutt;e"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.space": {
+    "lines": 28,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 9,
+    "pct_unique": 0.0291,
+    "examples": [
+     "/htbin/wais.pl?orbit sts71",
+     "/htbin/wais.pl?Wake Shield",
+     "/htbin/wais.pl?Space Acceleration Measurement System",
+     "/htbin/wais.pl?Spaceborne Imaging Radar-C",
+     "/htbin/wais.pl?Millimeter Wave Atmospheric Sounder",
+     "/htbin/wais.pl?satellite pictures"
+    ]
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.dup_name": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.alabel_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 27,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 9,
+    "pct_unique": 0.0291,
+    "examples": [
+     "/%7Eadverts/ibm/ad1/banner.gif",
+     "/history/apollo/publications/sp-350/sp-350.txt%7E",
+     "/shuttle/missions/sts-missions-flown.txt%7E",
+     "/%7Emol",
+     "/%7Edowns/home.html",
+     "/%7Edowns/launchup.gif"
+    ]
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 73,
+    "pct_lines": 0.0022,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/images/b%3acables.jpg"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 164647,
+   "400 query: pair must be exactly name=value": 72031,
+   "400 path: forbidden character X": 1938,
+   "400 path: empty segment": 1232,
+   "400 path: query/fragment in path kind": 294,
+   "400 path: dot segment": 142,
+   "400 path: ambiguous percent-escape X": 37,
+   "400 query: forbidden character X": 4
+  }
+ }
+}

@@ -1,0 +1,15 @@
+[package]
+name = "isofi"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "isofi"
+path = "src/main.rs"
+
+[dependencies]
+# Pin: newest wasmtime that is >=7 days old on 2026-10-25 (49.0.3, 2026-10-14). 49.0.4 (2026-10-19) and
+# 50.0.0 (2026-10-20) become lock-age eligible on 2026-10-26 / 2026-10-27; see README "Pin".
+wasmtime = { version = "=49.0.3", default-features = false, features = ["cranelift", "pooling-allocator", "runtime", "std"] }
+libc = "=0.2.191"

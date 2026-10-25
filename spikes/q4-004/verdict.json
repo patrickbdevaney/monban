@@ -1,0 +1,51 @@
+{
+  "id": "q4-004",
+  "question": "3VL Lean re-proof: can the IR expose `Not` over nullable fields with a provable guarantee (exact agreement of the SQL lowering with a three-valued policy reference)?",
+  "flips_if": "q4-004 3VL Lean re-proof — fails → reject Not over nullable (F4)",
+  "measured": {
+    "lean": "leanprover/lean4:v4.35.0 (eb6cafb), core only, no require; package = copy of spec/ + new root AegisIR/ThreeValued.lean (Lowering/Token/Combine/Vacuity definitions and statements byte-identical; one comment in Lowering.lean edited)",
+    "proof_gate": "AEGIS_NO_SANDBOX=1 ci/heavy.sh ci/gate.sh spikes/q4-004/lean -> exit 0, PROOF GATE: PASS; 0 sorry; 64 theorems audited, AXIOM GATE: PASS (all ThreeValued theorems use only propext, Classical.choice, Quot.sound); lake check --paranoid: Lean paranoid, lean4lean (58656 decls), nanoda, con-leche (58659), con-ron (58659), Lean default kernels all accept; STATEMENT GATE: PASS (117 declarations) against a spike-local re-frozen ledger",
+    "ledger_diff_vs_spec": "22 added entries (19 theorems, 3 defs), 0 changed, 0 removed (ledger-diff.txt); the inList comment edit is hash-neutral",
+    "hardware": "developer laptop (proof checking only; no performance claim)",
+    "theorems_proved": [
+      "lower_exact3 : B.Exact -> ∀ p, sql3 B r (lower p) = eval3 r p",
+      "lowerQ_exact3 : B.Exact -> keeps B r (lowerQ tf t p) = refQ3 tf t r p",
+      "rows_exact3 : B.Exact -> db.filter (keeps B · (lowerQ tf t p)) = db.filter (refQ3 tf t · p)",
+      "eval3_sound : eval3 r p = some b -> eval r p = b   (all p, NOT included)",
+      "refQ3_imp_refQ : refQ3 tf t r p = true -> refQ tf t r p = true",
+      "eval3_pos_complete / eval3_pos_iff / refQ3_pos_eq : p.positive -> (eval3 r p = some true <-> eval r p = true), refQ3 = refQ",
+      "eval3_total : (∀ f ∈ readsOf p, (r f).isSome) -> eval3 r p = some (eval r p)",
+      "not_absent_gap : r f = none -> eval r (not (eq f v)) = true ∧ eval3 r (not (eq f v)) = none",
+      "sql3_inList_nil, eval3_isIn_nil : In [] = (r f).map (fun _ => false)  (FALSE if present, UNKNOWN if NULL)",
+      "inList_nil_not_const_false : r f = none -> sql3 (lower (not (isIn f []))) = none = eval3 …, but sql3 (not (lit false)) = some true",
+      "lower_sound_pos3 : B.Refines -> p.positive -> sql3 B r (lower p) = some true -> eval3 r p = some true",
+      "refines_insufficient_for_not3 : neverEq keeps row1 under not (eq 1 5) while eval3 = some false",
+      "exact3_nonvacuous_null / exact3_nonvacuous_present : vacuity witnesses (NULL nullable field: keeps = refQ3 = false, refQ = true; present: keeps = refQ3 = true)",
+      "k3and_some_some, k3or_some_some : helper lemmas"
+    ]
+  },
+  "verdict": "flip",
+  "decision_effect": {
+    "summary": "Adopt the three-valued reference as the policy semantics (`⟦p⟧(x) := eval3 x p = some true`, i.e. SQL WHERE semantics ARE the policy). Under it, Not over nullable fields is exact on Backend.Exact adapters, so F4 stops rejecting it by nullability and instead gates Not by adapter fidelity. The 2-valued `eval` stays in Lowering.lean as a derived, strictly-more-permissive bound (eval3_sound) and identical on NOT-free predicates (eval3_pos_iff), so no existing Not-free policy changes meaning.",
+    "F4_rule_new": "check_schema: remove the `has_nullable_not` check (SchemaError::NotOverNullable). New rule, enforced where the op is bound to an adapter: an `Op` whose filter contains `Pred::Not` anywhere is accepted only by an adapter whose `fidelity()` is `Fidelity::Exact`; a `Fidelity::Refines` adapter must reject it (new `SchemaError::NotRequiresExact`; `refines_insufficient_for_not`, `refines_insufficient_for_not3`). Every rendered atom (eq/in/range/prefix, incl. class-mismatch constant atoms and `In []`) must evaluate to UNKNOWN when its column is NULL (`CASE WHEN col IS NULL THEN NULL ELSE … END` or an engine-native NULL-propagating form); rendering `In []` as constant FALSE is forbidden (`inList_nil_not_const_false`). Non-SQL adapters (document/KV stores) must implement eval3 (missing field ⇒ UNKNOWN ⇒ `NOT` stays non-matching, e.g. Mongo `$ne` must be guarded with `$exists: true, $ne: null`). Doc comment on `Fidelity::Exact` becomes: `rows(render(lowerQ t p)) = {x | refQ3 t p x} (lowerQ_exact3). Required for adapters accepting Not.` TenantFieldNullable and NonBinaryCollation are unchanged.",
+    "SPEC_E_clause_new": "**Lowering soundness.** Policy semantics are three-valued: ⟦p⟧(x) := eval3(x, p) = some true, where an absent/NULL field makes every atom UNKNOWN and connectives are Kleene (`eval3`, `refQ3`). ∀ pred p (NOT included), tenant t, row x: Backend.Exact(engine) ⇒ sql3(render(lowerQ(t,p)), x) = eval3(x, tenant = t ∧ p) (`lower_exact3`, `lowerQ_exact3`); hence rows(render(lowerQ(t,p)), db) = {x ∈ db | x.tenant = t ∧ ⟦p⟧(x)} (`rows_exact3`: no leak, no miss). Under Refines only, NOT-free predicates satisfy rows ⊆ {x | x.tenant = t ∧ ⟦p⟧(x)} (`lower_sound_pos3`, `lowerQ_sound`); NOT requires Exact (`refines_insufficient_for_not3`), so F4 admits `Not` only on Fidelity::Exact adapters, over nullable and non-nullable fields alike. Relation to the two-valued reference `eval` (absent ⇒ atom false): 3VL is never more permissive (`eval3_sound`, `refQ3_imp_refQ`), coincides on NOT-free predicates (`eval3_pos_iff`, `refQ3_pos_eq`) and on rows where every read field is present (`eval3_total`); they differ exactly on NOT over an absent field, where 2VL permits and 3VL denies (`not_absent_gap`): a policy `NOT (f = v)` does not match rows whose f is NULL. `In []` is FALSE on a present column and UNKNOWN on NULL (`sql3_inList_nil`); a constant-FALSE rendering is not exact under NOT (`inList_nil_not_const_false`). Coarser engine equality (NOCASE, affinity, nondeterministic ICU) breaks soundness (`refines_necessary`), so tenant and key columns must use a binary/deterministic collation (schema gate). **Checked:** lower_sound_pos, lowerQ_sound, refines_necessary, lower_sound_full, lowerQ_sound_full, not_absent_permits, lower_exact3, lowerQ_exact3, rows_exact3, eval3_sound, refQ3_imp_refQ, eval3_pos_iff, refQ3_pos_eq, eval3_total, not_absent_gap, sql3_inList_nil, inList_nil_not_const_false, lower_sound_pos3, refines_insufficient_for_not3; vacuity witnesses in Vacuity.lean and ThreeValued.lean (exact3_nonvacuous_null/present). Executed contract (oracles/lowering-read): leak = 0 ∧ widen = 0 ∧ miss = 0 against `refQ3` (permit3 = model; GAP vs the 2VL `refQ` is reported as information only), ≥100k cases per ENGINE_PIN. `q4-004.three-valued-reference` A.",
+    "ledger_additions": "Add spikes/q4-004/lean/AegisIR/ThreeValued.lean as spec/AegisIR/ThreeValued.lean, add \"AegisIR.ThreeValued\" to lakefile roots, re-freeze (python3 -I ci/statements.py freeze spec): defs eval3, refQ3, readsOf; theorems lower_exact3, lowerQ_exact3, rows_exact3, eval3_sound, refQ3_imp_refQ, eval3_pos_complete, eval3_pos_iff, refQ3_pos_eq, eval3_total, not_absent_gap, sql3_inList_nil, eval3_isIn_nil, inList_nil_not_const_false, lower_sound_pos3, refines_insufficient_for_not3, exact3_nonvacuous_null, exact3_nonvacuous_present, k3and_some_some, k3or_some_some (all under namespace AegisIR.ThreeValued). Existing 95 entries unchanged.",
+    "inList_comment_fix": "Lowering.lean SqlExpr.inList comment: `-- rendered as (f = v1 OR f = v2 ...) ; [] ⇒ FALSE` -> `-- (f = v1 OR f = v2 ...); [] ⇒ FALSE on a non-NULL column, UNKNOWN on NULL (sql3_inList_nil)`. Comment-only; statement hashes unchanged (verified). The definition is right; the comment was incomplete (BACKLOG item / oracle D6). The reference renderer already follows the definition.",
+    "oracle_follow_up": "oracles/lowering-read: make the gating `permit` set refQ3 (port eval3 = sql3 over the exact backend); GAP vs refQ becomes informational; `--miss-vs-policy` should then PASS with gap = 0 by lower_exact3."
+  },
+  "rung": "R4 (Lean, kernel-checked by 6 checkers) for the model; the Rust renderer/adapters are not covered beyond the executed oracle (R2)",
+  "reproduce": [
+    "cd /home/patrickd/aegis",
+    "AEGIS_NO_SANDBOX=1 ci/heavy.sh ci/gate.sh spikes/q4-004/lean   # expect PROOF GATE: PASS",
+    "python3 -I ci/statements.py freeze spikes/q4-004/lean && diff spec/STATEMENTS.sha256 spikes/q4-004/lean/STATEMENTS.sha256   # only '>' lines",
+    "rm -rf spikes/q4-004/lean/.lake"
+  ],
+  "limits": [
+    "Proofs are about the Lean model (Pred/sql3/Backend), not the Rust aegis-data-ir code nor any engine; Backend.Exact per engine stays a TCB item discharged by the executed oracle.",
+    "Semantic change for policy authors: under 3VL `NOT (f = v)` does not match rows where f is NULL. The IR has no IS NULL atom, so 'f != v or f is missing' is not expressible; adding an `isNull` atom is a follow-up (not proved here).",
+    "The current F4 check_schema does not consult adapter fidelity at all: a Refines adapter given Not over a NON-nullable field is already unsound in the model (refines_insufficient_for_not); the proposed rule fixes this, the present one does not.",
+    "Spike-local STATEMENTS.sha256 was re-frozen for step 5 to pass; the meaningful check is ledger-diff.txt (pure additions).",
+    "AEGIS_NO_SANDBOX=1: lake check ran without bwrap sandbox (first-party sources only), as on CI-on-laptop."
+  ],
+  "date": "2026-10-25"
+}
