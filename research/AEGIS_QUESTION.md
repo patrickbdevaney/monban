@@ -80,6 +80,58 @@ What this means for every agent:
 - Use Opus where judgment is deep (formal methods, threat modeling, architecture tradeoffs, synthesis) and Sonnet for
   breadth.
 
+## 0b. OPERATOR STEER: ambidextrous, modular, lean (2026-10-24, added mid-run; applies from round 2 and to synthesis)
+
+> "one of the files i gave shows an architecture with an aegis-db-gate. and postgresql rls and sqlite embedded. but we are trying to build a server backend that ambidextrously handles modularly all database types, frontend ingress and all addressable concerns for being the future infrastructure of the web. make sure we don't simply overfit on those two and we have thhe lean optimal best stack."
+
+What this requires:
+- **Data plane is backend-agnostic.** Postgres + RLS and embedded SQLite are two adapters among many, not the design.
+  - Research the general mediation model first: typed operation allowlists, capability-scoped data access, a policy
+    enforcement point in the server for backends with no native row security, and native enforcement (RLS, grants, IAM
+    conditions) where it exists.
+  - Cover each family with its own injection/authz failure modes, drivers (Rust maturity, async, TLS/PQC support), wire
+    protocols and pooling:
+    - relational: Postgres, MySQL/MariaDB, SQLite/libSQL/Turso, distributed SQL such as CockroachDB/Yugabyte/TiDB,
+      SQL Server
+    - document: MongoDB
+    - KV/cache: Redis/Valkey, FoundationDB, DynamoDB
+    - wide-column: Cassandra/Scylla
+    - graph
+    - vector: pgvector, Qdrant
+    - search: OpenSearch, Meilisearch, Tantivy
+    - time series
+    - object storage: S3-compatible
+    - streams/queues: Kafka/Redpanda, NATS
+    - upstream HTTP/gRPC services
+  - Find the smallest uniform abstraction that does NOT lose per-backend safety. Candidates include a query-capability IR,
+    per-adapter allowlists generated at build time, and a WIT/trait data interface.
+  - Cover how adapters are added without growing the TCB: out-of-process adapters, sandboxed adapters, feature-gated
+    compile-time modules.
+- **Ingress is protocol-agnostic.** In scope:
+  - HTTP/1.1/2/3, WebSockets/WebTransport, SSE
+  - gRPC/Connect, GraphQL (and its DoS/complexity risks)
+  - MCP, A2A, webhooks (signature verification)
+  - static assets, reverse-proxy/load-balancer mode, TCP/UDP stream proxying
+  - browser-driving agents
+  The design question is one protocol-normalization core with pluggable front ends, versus per-protocol stacks.
+- **Lean is a hard constraint, not a nice-to-have.** The minimal core must be small, auditable and provable. Everything
+  else is an optional module with an explicit TCB, size and attack-surface cost. Measure:
+  - binary size
+  - dependency count
+  - unsafe LOC
+  - idle RSS
+  Compare against nginx, Caddy, Pingora, Envoy and HAProxy. Prefer designs where an unused module adds zero code to the
+  running server.
+- **Modularity mechanism is a research question:**
+  - compile-time features
+  - Wasm components
+  - out-of-process plugins over a capability IPC
+  - dynamic loading (likely rejected; say why)
+  Weigh it against assurance (each extension point is a trust boundary needing a spec).
+- The planner gives rounds 2+ at least one target on the data-plane abstraction across backend families and one on
+  protocol-agnostic ingress + modularity/leanness. Synthesis must present the data plane and ingress as modular layers,
+  with Postgres/SQLite as examples only.
+
 ## 1. The questions (score each separately)
 
 - **W-THREAT.** What actually breaks middle-tier servers, and what changes when attackers are LLM agents?
