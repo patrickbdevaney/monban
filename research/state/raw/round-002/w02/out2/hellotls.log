@@ -1,7 +1,0 @@
-Up 4 seconds
-[hellotls] idle: RSS_kB=5864 PSS_kB=3821 nproc=1 cg_anon_kB=256 cg_file_kB=1268 cg_current_kB=1820
-[hellotls] 1k-idle-TLS-conns: RSS_kB=17896 PSS_kB=15911 nproc=1 cg_anon_kB=11848 cg_file_kB=1404 cg_current_kB=17400
-[hellotls] h2+tls c64: req/s=53005.6545 p99=7.2081 ms server_cpu_us=7814182
-[hellotls] hs x25519: group=x25519 handshakes=27098 secs=8.01 hs/s=3384.7 client_cpu_ms_per_hs=0.216 p50ms=3.57 p99ms=17.79 wire_bytes_per_hs rx(server->client)=731 tx(client->server)=351  server_cpu_us_per_hs=254814e-3
-[hellotls] hs mlkem: group=mlkem handshakes=24456 secs=8.01 hs/s=3054.0 client_cpu_ms_per_hs=0.293 p50ms=3.94 p99ms=19.04 wire_bytes_per_hs rx(server->client)=1819 tx(client->server)=1535  server_cpu_us_per_hs=292927e-3
-[hellotls] final: RSS_kB=15520 PSS_kB=13507 nproc=1 cg_anon_kB=8992 cg_file_kB=1672 cg_current_kB=11652

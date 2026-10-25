@@ -1,6 +1,0 @@
-Up 4 seconds
-[pingora] idle: RSS_kB=7032 PSS_kB=5024 nproc=1 cg_anon_kB=564 cg_file_kB=3760 cg_current_kB=4948
-[pingora] 1k-idle-conns: RSS_kB=37436 PSS_kB=35431 nproc=1 cg_anon_kB=30736 cg_file_kB=3872 cg_current_kB=39044
-[pingora] after-close: RSS_kB=37296 PSS_kB=35358 nproc=1 cg_anon_kB=30640 cg_file_kB=3872 cg_current_kB=35132
-[pingora] h1 plain c64: req/s=74640.6890 p99=4.8248 ms server_cpu_us=9828404 Status code distribution:   [200] 746626 responses  
-[pingora] final: RSS_kB=39792 PSS_kB=37825 nproc=1 cg_anon_kB=32908 cg_file_kB=3988 cg_current_kB=37764
