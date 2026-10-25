@@ -39,7 +39,9 @@ fn main() -> ExitCode {
         Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
         _ => {
-            eprintln!("usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check> [--self-test]");
+            eprintln!(
+                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check> [--self-test]"
+            );
             return ExitCode::from(2);
         }
     };

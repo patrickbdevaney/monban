@@ -57,3 +57,10 @@
 - canon-diff: opaque path octets that pass UTF-8+NFC (zero-width, bidi overrides, BOM, fullwidth) are accepted; only
   dangerous behind path-folding upstreams (CANON-8 per-upstream folding profile must reject them for such upstreams).
 - lowering-read: PG/Redis engines not re-run after the refQ3 switch.
+
+## Config (from P2-config-001)
+- F8 route `path` pattern admits `..`, `//`, `;` which aegis-canon rejects at request time → such routes are dead.
+  Add a check-config cross-check: route path must itself pass `canon_path` unchanged (spec-author decision; reject).
+- Route id capped at 2^53−1 (I-JSON safe range); empty `authz` ⇒ Deny; 1 MiB cap also applies to the effective form.
+- aegis-config carries its own SHA-256 (FIPS 180-4 vectors); aegis-audit uses aws-lc-rs — consolidate on aws-lc-rs
+  if aegis-config may take that dependency (it is L2 pure; keep in-crate unless the TCB ledger prefers one impl).
