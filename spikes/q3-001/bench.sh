@@ -22,13 +22,14 @@ for ((r=0; r<REPS; r++)); do
     s0=$(grep "^cpu$SC " /proc/stat)
     taskset -c "$SC" "$B" server --port $PORT --group $1 --mode $2 --tickets $4 --secs $SECS --warm $WARM --label "$5 rep=$r" > /tmp/hs.srv.$$ &
     sp=$!; sleep 0.3
+    ( sleep $((WARM+SECS/2)); cat /sys/devices/system/cpu/cpu$SC/cpufreq/scaling_cur_freq > /tmp/hs.frq.$$ ) &
     taskset -c "$CC" "$B" client --addr 127.0.0.1:$PORT --group $1 --mode $2 --resume $3 --threads $TH --secs $((SECS+WARM)) > /tmp/hs.cli.$$
-    wait $sp
+    wait
     s1=$(grep "^cpu$SC " /proc/stat)
-    printf '%s\n' "$(cat /tmp/hs.srv.$$ | sed "s/}\$/,\"case\":\"$5\",\"rep\":$r,\"core_stat_before\":\"$s0\",\"core_stat_after\":\"$s1\"}/")" >> "$OUT"
+    printf '%s\n' "$(cat /tmp/hs.srv.$$ | sed "s/}\$/,\"case\":\"$5\",\"rep\":$r,\"core_stat_before\":\"$s0\",\"core_stat_after\":\"$s1\",\"freq_mid_khz\":$(cat /tmp/hs.frq.$$),\"loadgen\":\"local cores $CC\"}/")" >> "$OUT"
     cat /tmp/hs.cli.$$ >> "$OUT"
     PORT=$((PORT+1))
   done
 done
 ctx end >> "$OUT"
-rm -f /tmp/hs.srv.$$ /tmp/hs.cli.$$
+rm -f /tmp/hs.srv.$$ /tmp/hs.cli.$$ /tmp/hs.frq.$$

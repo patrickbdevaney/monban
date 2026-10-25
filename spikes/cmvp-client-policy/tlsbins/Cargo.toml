@@ -1,0 +1,52 @@
+# cmvp-client-policy spike: tiny binaries for the fips_client_policy gate self-test. Own workspace.
+# Floor profile (rustls 0.23.46 + aws-lc-rs 1.18.2), NOT the cmvp lock (rustls =0.23.43 / aws-lc-rs =1.15.3 /
+# aws-lc-fips-sys =0.13.11) - see ../README.md. Build only via ../run.sh (ci/heavy.sh).
+[package]
+name = "tlsbins"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[features]
+default = []
+# The AEGIS feature that gates every rustls client (egress guard, upstream H2, ACME, mTLS origin pulls).
+tls-client = []
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+
+[lib]
+path = "src/lib.rs"
+
+# cmvp shape, mode "compiled-out": server only.
+[[bin]]
+name = "srv_only"
+# Client code present in the source and the crate graph but unreachable from main (LTO removes it).
+[[bin]]
+name = "dead_client"
+required-features = ["tls-client"]
+# cmvp shape, mode "pq-only": client built only by the blessed constructor (kx=[SECP256R1MLKEM768], resumption off).
+[[bin]]
+name = "pq_client"
+required-features = ["tls-client"]
+# Negative: default client (classical groups listed, in-memory session store = key-share prediction store).
+[[bin]]
+name = "bad_client"
+required-features = ["tls-client"]
+# Negative: PQ-only groups but resumption store left at default (store kept, PSK offered).
+[[bin]]
+name = "bad_resume"
+required-features = ["tls-client"]
+
+[profile.release]
+# = /home/patrickd/aegis/Cargo.toml [profile.release], except strip: the gate inspects the unstripped artifact (and
+# the linker map of the stripped one); run.sh shows strip="symbols" yields the same code.
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "none"
+debug = false
+incremental = false

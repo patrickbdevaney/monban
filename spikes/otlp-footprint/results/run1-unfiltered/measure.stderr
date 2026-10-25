@@ -1,0 +1,3 @@
+collector:
+     11 POST /v1/metrics
+     15 POST /v1/traces

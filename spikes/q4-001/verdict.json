@@ -1,0 +1,42 @@
+{
+  "id": "q4-001",
+  "question": "B2 streaming/SSE/WS/detached: can a capability-scoped handler stream a body, run SSE, hold a WebSocket and spawn a detached job without a request-scoped capability (Granted<'r,C>, Ctx<'r>, TenantDb<'r>) escaping into a 'static task?",
+  "flips_if": "leaky `'static` needed → host-owned stream capability",
+  "measured": {
+    "conditions": "laptop (grade-B ceiling), rustc 1.99.1 (repo rust-toolchain), tokio 1.53.3 current-thread, trybuild 1.0.122; all 30 locked crates >= 11 days old (results/lock-age.txt); 2026-10-25",
+    "artifact": "spikes/q4-001: f7x = mirror of frozen F7 surface.rs (same type shapes and variance) + D1/D2/D3 extensions + mock host; corpus = baselines, runtime oracle, 65 trybuild cases",
+    "designs": {
+      "D1_borrowing_host_driven": "handler returns `impl Future + Send + 'r` over Ctx<'r>, &'r D and a host-owned Sink<'r>/WsSession<'r>; host runs it inside one connection task that owns the scope",
+      "D2_host_owned_stream_capability": "handler `open` returns a 'static generator/session (plain data); host re-derives principal and mints a fresh Ctx<'m> + db per step/message (higher-ranked 'm); detached = 'static Job value enqueued only with &Tx<'r, Committed>, run later with fresh Ctx<'j>",
+      "D3_naive_spawn_static": "handler tokio::spawns a producer; needs owned Arc-backed 'static OwnedCtx/OwnedGranted/OwnedDb (the leaky hatch)"
+    },
+    "baselines": "a/b/c compile and run in D1, D2, D3; d runs in D2 and D3, D1 has no way to express it (nothing borrowed from 'r outlives the connection). Every host driver future is Send + 'static and ran through tokio::spawn",
+    "d3_strict": "4/4 naive-spawn baselines written against F7 types are compile-rejected (3x E0521, 1x future-not-Send because the generic D is not Sync). The naive idiom really does need a leak",
+    "escape_mutants_rejected_at_compile_time": {
+      "set": "E1-E12, E12b, E19: Granted/Ctx/db/WS sink moved into spawn, cloned, put in a static OnceLock or thread_local, sent over a channel (typed or Any), wrapped in Arc, Box::leak'ed, kept inside a detached job",
+      "D1": "11/11 applicable (E11/E12/E12b n/a)",
+      "D2": "13/13 applicable (E19 n/a; E12 rejected by E0277 D: !Send/!Sync, which hides the lifetime error; E12b shows the lifetime check on its own)",
+      "D3": "0/14"
+    },
+    "all_mutants_rejected": {
+      "D1": "14/16 (accepted: E14 a grant held for the whole WS session, E15 a Tx<Open> held across streamed chunks)",
+      "D2": "19/19",
+      "D3": "3/20 (E16 use-after-commit, E17 forge, E18 unsafe)"
+    },
+    "lint_tier": "E18 (unsafe transmute) is rejected only by #![forbid(unsafe_code)] in all three designs; every other rejection is a type or borrow error",
+    "controls": "C1 (std::thread::scope borrowing a Granted) and C2 (plain data moved into spawn) compile in all designs: 6/6, so there is no over-rejection",
+    "runtime_oracle": "7/7 tests pass. One capability revoked mid-WS-session: D1 baseline and D2 stop (err:Denied); D1 with the E14 pattern keeps reading ['a','a','a']. Session revoked mid-stream: D1 and D2 fail closed (Unavailable after 1 message). Detached job after the session is revoked: D2 run_jobs denies it; D3 with the E11 pattern still lands the write",
+    "ci_cost": "cold build + 7 runtime tests + 65 trybuild cases: trybuild phase 12.2 s (wall 20 min was dominated by waiting for the machine-wide heavy lock); peak target/ 508 MB, deleted"
+  },
+  "verdict": "keep",
+  "decision_effect": "No leaky 'static is needed, so the §3.12 'Reverse' trigger (q4-001) did not fire and B2 stands. Two non-leaky designs work. The F7 streaming extension should take the host-driven shape (D2), the only design that covers all four features and also rejects a stale grant across messages and a transaction held open across the response. Proposed F7 extension text (sync, core/alloc only, app crates stay tokio-free):\n\n/// One pull of a host-driven stream.\npub enum Step<T> { Item(T), Idle, Done }\n\n/// Host-owned generator. 'static so it can hold no request-scoped capability; the host mints a fresh Ctx<'m> and db view for every step, after re-checking the session.\npub trait StreamGen: Send + 'static {\n    type Item: Send + 'static;\n    fn next<'m, D: TenantDb<'m>>(&mut self, ctx: Ctx<'m>, db: &D) -> Result<Step<Self::Item>, SdkError>;\n}\npub trait BodyHandler: Send + Sync + 'static {\n    type Gen: StreamGen<Item = Chunk>;\n    fn open<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Gen, SdkError>;\n}\npub trait SseHandler: Send + Sync + 'static {\n    type Gen: StreamGen<Item = Event>;\n    fn open<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D, last_event_id: Option<u64>) -> Result<Self::Gen, SdkError>;\n}\npub enum WsReply { Send(Vec<WsMsg>), Close }\npub trait WsSession: Send + 'static {\n    fn on_message<'m, D: TenantDb<'m>>(&mut self, ctx: Ctx<'m>, db: &D, msg: &WsMsg) -> Result<WsReply, SdkError>;\n}\npub trait WsHandler: Send + Sync + 'static {\n    type Session: WsSession;\n    fn open<'r, D: TenantDb<'r>>(&self, ctx: Ctx<'r>, db: &D) -> Result<Self::Session, SdkError>;\n}\n/// Detached job: a 'static value; the host runs it later with a freshly minted job-scoped Ctx<'j> and denies it if the originating session was revoked.\npub trait Job: Send + 'static {\n    fn run<'j, D: TenantDb<'j>>(self, ctx: Ctx<'j>, db: &D) -> Result<(), SdkError>;\n}\nimpl<'r> Ctx<'r> {\n    /// Only after commit (INV-NOMUT-C): requires the committed-transaction proof.\n    pub fn detach<J: Job>(&self, after: &Tx<'r, Committed>, job: J) -> Result<(), SdkError>;\n}\n\nHost obligations (F7 docs plus an adapter-host oracle): mint Ctx/db per step, message and job, never once per session; re-check session liveness before each step and fail closed (Unavailable); drop or deny queued jobs whose session is revoked; idle/step budget per stream. Chunk/Event/WsMsg are SDK newtypes (bytes / {id, data} / text|binary). Clippy ban list unchanged (spawn family, Box::leak, mem::forget, OnceLock/static Mutex). D1 (borrowing Sink<'r>) is not frozen: it also has no 'static escape but accepts E14/E15 and cannot detach. Not applied to F7 by this spike (spec author re-freezes).",
+  "rung": "R3 (compiler-enforced capability boundary, trybuild corpus with stderr snapshots and pass controls) for the escape claims; R1 (executed runtime oracle, with accepted mutants E14/E11 as violating positive controls) for the revocation and freshness claims; laptop, grade B",
+  "reproduce": [
+    "cd spikes/q4-001 && python3 -I gen_mutants.py   # regenerates corpus/mutants/*.rs (expected.txt is the locked measurement)",
+    "/home/patrickd/aegis/ci/heavy.sh ./verify.sh     # cold build, runtime oracle (7 tests) + trybuild in lock mode (65 cases)",
+    "/home/patrickd/aegis/ci/heavy.sh ./measure.sh    # re-measure: every case as compile_fail, TRYBUILD=overwrite; per-case outcome in results/measure.raw.log",
+    "rm -rf target"
+  ],
+  "limits": "Mirror, not the real aegis-sdk: Granted/Ctx have no public constructor, so the host had to live in the same crate. Mirror deviations: Ctx::grant, an Endowment, a concrete Rows type through a Db<'r> bound, a Tx pending buffer. Variance and Clone/constructor privacy match surface.rs. The mock host is not axum and has no real sockets; WS/SSE are modelled as message lists and backpressure as a yield. One rustc (1.99.1). The mutants were written by the same author as the designs (n=20 ids x 3 designs), so do not read the counts as a general rejection rate. tokio is present in the mutant crates on purpose (worst case). Clippy tier not run. E12 (D2) is rejected by Send/Sync before lifetime, and d3strict_S1 by not-Send. D2 costs: generators are explicit state machines with no async/await inside a handler, and an SSE generator has to re-query per step (no long-held cursor), which may cost latency or DB load for high-rate streams (not measured). 'Idle' wake-ups need a host change-feed or timer (not built). D1's freshness gap is semantic, not an escape: a host could close it at runtime by re-checking grants inside TenantDb::run, but that weakens 'Granted is proof'.",
+  "date": "2026-10-25"
+}

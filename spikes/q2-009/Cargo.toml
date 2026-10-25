@@ -1,0 +1,31 @@
+# Spike q2-009: window-0 stall harness for the AEGIS transport wrapper.
+# Not a workspace member; own Cargo.lock. Pins are the golden lock-targets (supply-chain/lock-targets.toml,
+# re-verified 2026-10-25) for hyper/h2/tokio; others resolve from the local offline cache.
+# Build ONLY via ci/heavy.sh with CARGO_TARGET_DIR=spikes/q2-009/target (see README "Reproduce").
+[package]
+name = "q2-009-stall"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "q2009"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "net", "time", "macros", "io-util", "sync", "signal"] }
+h2 = { version = "=0.4.20" }
+hyper = { version = "=1.12.0", features = ["http2", "server"] }
+hyper-util = { version = "=0.1.21", features = ["tokio"] }
+http-body-util = { version = "=0.1.5" }
+http = { version = "=1.5.0" }
+bytes = { version = "=1.12.1" }
+
+[profile.release]
+codegen-units = 1
+opt-level = 2
+incremental = false
+debug = false
+panic = "abort"

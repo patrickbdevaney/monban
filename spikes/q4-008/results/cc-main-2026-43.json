@@ -1,0 +1,1444 @@
+{
+ "source": "cc-main-2026-43",
+ "format": "cc",
+ "static_site_signatures": false,
+ "files": 1,
+ "meta": {
+  "file_errors": [],
+  "raw_lines": 989955,
+  "status_2": 825747,
+  "status_3": 100921,
+  "status_5": 2360,
+  "status_4": 60924,
+  "status_6": 1,
+  "status_8": 2
+ },
+ "request_line_shapes": {},
+ "methods": {},
+ "attack_exclusions": {
+  "target_signature": 1197
+ },
+ "detector_vs_reference_disagreements": {
+  "examples": []
+ },
+ "forbidden_ascii_chars_path": {},
+ "forbidden_ascii_chars_query": {},
+ "raw": {
+  "lines": 989955,
+  "unique_targets": 913268,
+  "ref_reject_lines": 51908,
+  "pct_ref_reject": 5.2435,
+  "ref_308_lines": 378421,
+  "pct_ref_308": 38.2261,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_slash": {
+    "lines": 474,
+    "pct_lines": 0.0479,
+    "sole_cause_lines": 464,
+    "pct_sole": 0.0469,
+    "unique_targets": 474,
+    "pct_unique": 0.0519,
+    "examples": [
+     "/webcan-working-party-updates/saturday-23rd-september---canal-house-entrance-to-the-canal-%28what3words-%2F%2F%2Ffork.loves.glue%29.--",
+     "/webcan-working-party-updates/saturday-23rd-september---canal-house-entrance-to-the-canal-(what3words-%2F%2F%2Ffork.loves.glue).--",
+     "/click/64393e6e2bfa817b634acee0/180019/286636/63398/https%3A%2F%2Fgotrendlin.com%2F",
+     "/click/649d68742bfa812ded4965b2/179362/301341/62894/https%3A%2F%2Fquniza.com%2F",
+     "/click/650bf1e12bfa811e074e04d4/180150/286636/63359/https%3A%2F%2Fgotrendlin.com%2F",
+     "/click/6515364f2bfa8177ce101f77/180180/283277/6523/https%3A%2F%2Fdigitalgenics.co%2F"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 4,
+    "pct_lines": 0.0004,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0004,
+    "unique_targets": 4,
+    "pct_unique": 0.0004,
+    "examples": [
+     "/entrevistes/l%5C%27entrevista/francesc-miralles/",
+     "/event/a_landscape_in_less_then_10_pieces_st_john%5C%27s_church",
+     "/event/a_quilter%5C%27s_eye_on_the_western_isles_st__leonard%5C%27s_cep_academy",
+     "/shop/event/a_quilter%5C%27s_eye_on_the_western_isles_st__leonard%5C%27s_cep_academy"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 35,
+    "pct_lines": 0.0035,
+    "sole_cause_lines": 32,
+    "pct_sole": 0.0032,
+    "unique_targets": 35,
+    "pct_unique": 0.0038,
+    "examples": [
+     "/pt/recursos/caracter%C3%ADsticas/projeto/Compartilhar-projeto-com-membros%3B-gerenciar-direitos-de-acesso./",
+     "/topshelfnerdspodcast/tag/Fate%2FGrand+Order+THE+MOVIE+Divine+Realm+of+the+Round+Table%3A+Camelot+Wandering%3BAgateram",
+     "/document%3As_italia%3Agenerale%3Bvoto.domicilio.assistito%3Bcapacita.deambulazione.impedita.sensibilmente.ridotta%3Bcertificato.medico",
+     "/procedure%3As_italia%3Aautenticazione%3Bsottoscrizioni%3Bdomanda?source=551",
+     "/procedure%3As_italia%3Aconvivenza.fatto%3Bcostituzione%3Bdichiarazione",
+     "/procedure%3As_italia%3Anumerazione.civica%3Bassegnazione%3Bdomanda"
+    ]
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 103,
+    "pct_lines": 0.0104,
+    "sole_cause_lines": 94,
+    "pct_sole": 0.0095,
+    "unique_targets": 103,
+    "pct_unique": 0.0113,
+    "examples": [
+     "/2026-2/bieten/9319/Nike%20Damen%20Laufschuhe%20ZoomX%20Vaporfly%20Next%25%204%20Gr.%2039%20-%20US%208",
+     "/FSDEDEV/media/documents/Running%2520a%2520practice/Practice%2520standards/Flyer-General-Practice-Patient-Charter.pdf",
+     "/FSDEDEV/media/documents/Running%2520a%2520practice/Practice%2520standards/Poster-General-Practice-Patient-Charter.pdf",
+     "/2026/01/27/b%C3%B4nus-50%25-cassino-recarga/",
+     "/2026/01/27/cassino-b%C3%B4nus-de-50%25-no-primeiro-dep%C3%B3sito/",
+     "/casino-bonus-200%25/"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 8,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 8,
+    "pct_sole": 0.0008,
+    "unique_targets": 7,
+    "pct_unique": 0.0008,
+    "examples": [
+     "/dataaire-%0Alibrary/",
+     "/players/%1BpSipi%1Bp/Bowling?l=hu",
+     "/players/a%1Bpr/Backgammon?s=s",
+     "/tags/text%0Asustainable%20growth",
+     "/kits/%0Aee2000/ee2000.html",
+     "/page/%09bertanggung-jawab"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 28223,
+    "pct_lines": 2.8509,
+    "sole_cause_lines": 22698,
+    "pct_sole": 2.2928,
+    "unique_targets": 28174,
+    "pct_unique": 3.085,
+    "examples": [
+     "/ru/%D1%83%D0%BC%D0%BD%D1%8B%D0%B9-%D0%B4%D0%BE%D0%BC/",
+     "/%D8%A7%D9%87%D9%85%D9%8A%D8%A9-%D8%AA%D8%B9%D9%84%D9%85-%D8%A7%D9%84%D9%84%D8%BA%D8%A9-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9/",
+     "/ar/%D8%A7%D9%81%D8%B6%D9%84-%D8%A7%D9%84%D8%B1%D9%88%D8%A7%D9%8A%D8%A7%D8%AA-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D9%87-%D9%84%D9%84%D9%85%D8",
+     "/ar/%D8%A7%D9%87%D9%85%D9%8A%D8%A9-%D8%AA%D8%B9%D9%84%D9%85-%D8%A7%D9%84%D9%84%D8%BA%D8%A9-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9-%D9%84%D",
+     "/administracion/icon-resen%CC%83as/",
+     "/p/6721877-Casa-en-Venta-en-Las-Garzas-Casa-c/4-dor-%7C-C/pileta-y-Vista-al-mar-%7C-Las-Garzas-Jos%C3%A9-Ignacio-%7C-Venta"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.backslash": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.semicolon": {
+    "lines": 846,
+    "pct_lines": 0.0855,
+    "sole_cause_lines": 840,
+    "pct_sole": 0.0849,
+    "unique_targets": 846,
+    "pct_unique": 0.0926,
+    "examples": [
+     "/fiquemaisribeiraopreto/museu-historico-da-faculdade-de-medicina/attachment/museuusp/;",
+     "/de/wmOffers/category/page:1;export:excel",
+     "/de/wmOffers/category/page:3;export:csv",
+     "/de/wmOffers/page:11;export:excel",
+     "/de/wmOffers/page:22;export:excel",
+     "/en/wmOffers/category/page:3;export:csv"
+    ]
+   },
+   "p.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.dot_segment": {
+    "lines": 2,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 2,
+    "pct_unique": 0.0002,
+    "examples": [
+     "/players/%F0%9D%93%9C%F0%9D%93%BB.%F0%9D%93%96%F0%9D%93%B8%F0%9D%93%B8%F0%9D%93%AD/Reversi",
+     "/view/%E0%B8%97%E0%B8%B3%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%88%E0%B8%B1%E0%B8%9A%E0%B8%A3%E0%B8%9E.%E0%B9%80%E0%B8%A5%E0%B8%AD%E0%B8%A5"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 5540,
+    "pct_lines": 0.5596,
+    "sole_cause_lines": 111,
+    "pct_sole": 0.0112,
+    "unique_targets": 5507,
+    "pct_unique": 0.603,
+    "examples": [
+     "/category/dental-wellness//",
+     "/privacy-policy//",
+     "/service-category/general-dental//",
+     "//robots.txt",
+     "/%E0%B8%9A%E0%B8%97%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1/",
+     "/%CF%87%CE%AC%CE%BD%CF%84%CE%BC%CF%80%CE%BF%CE%BB/%CF%80%CF%8E%CF%82-%CE%BD%CE%B1-%CE%B4%CE%B9%CE%B1%CE%B2%CE%AC%CE%B6%CE%B5%CE%B9%CF%82-%CF%84%CE%B1-live-%CF%8"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 400697,
+    "pct_lines": 40.4763,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 383571,
+    "pct_unique": 41.9998,
+    "examples": [
+     "/material/100-wool/",
+     "/material/70-nz-wool-30-bamboo-silk/",
+     "/material/80-nz-wool-20-viscose-blend/",
+     "/material/leather/",
+     "/material/nz-wool-viscose/",
+     "/pages/bespoke-carpets-dubai/"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 864,
+    "pct_lines": 0.0873,
+    "sole_cause_lines": 734,
+    "pct_sole": 0.0741,
+    "unique_targets": 864,
+    "pct_unique": 0.0946,
+    "examples": [
+     "/agent-directory/?&paged=2?&package=",
+     "/tickets/?&gclid=Cj0KCQiAkMDiBRDNARIsACKP1FHKBMyzbLViDBQnCOjYcdb_0NaE1LQkacpmCmIyR62bM82-yfoEhv0aAkqSEALw_wcB&gclsrc=aw.ds",
+     "/catalogsearch/advanced/result/?&manufacturer%5B%5D=5",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1058782",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1121209",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1302720"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 4704,
+    "pct_lines": 0.4752,
+    "sole_cause_lines": 4463,
+    "pct_sole": 0.4508,
+    "unique_targets": 4636,
+    "pct_unique": 0.5076,
+    "examples": [
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA1LTA3JmlkPTE0MTgx",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTE1JmlkPTE2NDI4",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTE0NTM4",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTEwMDMw",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTEyOTE2",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTExLTE2JmlkPTEyODcx"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 1989,
+    "pct_lines": 0.2009,
+    "sole_cause_lines": 926,
+    "pct_sole": 0.0935,
+    "unique_targets": 1963,
+    "pct_unique": 0.2149,
+    "examples": [
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xMzI2Nw==",
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xNTIwNg==",
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xOTAzMA==",
+     "/?YWN0aW9uPWdjYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMTItMjQmaWQ9Njc3Nw==",
+     "/?YWN0aW9uPWljYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMDYtMTUmaWQ9NjQ2Ng==",
+     "/?YWN0aW9uPWljYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMDYtMTUmaWQ9ODc4NA=="
+    ]
+   },
+   "q.empty_name": {
+    "lines": 5,
+    "pct_lines": 0.0005,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0004,
+    "unique_targets": 5,
+    "pct_unique": 0.0005,
+    "examples": [
+     "/index.pl?act=SUBJ&subj=%D0%A4%D0%B5%D0%BB%D1%8C%D0%B4%D1%88%D0%B5%D1%80%D1%81%D0%BA%D0%BE-%D0%B0%D0%BA%D1%83%D1%88%D0%B5%D1%80%D1%81%D0%BA%D0%B8%D0%B5%20%D0%BA",
+     "/embed/JDMDL39rswY?=JDMDL39rswY",
+     "/pubs/afp/issues/2017/0601/p717-s1.html?ref=popsugar.com&=___psv__p_49405497__t_w_",
+     "/bmla/BMLPics/?node=Seclusion%201.jpg&=",
+     "/bmla/images/?node=newlogo5.png&="
+    ]
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 5684,
+    "pct_lines": 0.5742,
+    "sole_cause_lines": 2348,
+    "pct_sole": 0.2372,
+    "unique_targets": 5672,
+    "pct_unique": 0.6211,
+    "examples": [
+     "/deposits?DealerId=894006~30~FO&DealerName=Adrian%20Brien%20Ford%20%26%20FPV&VehicleType=demo&Make=Ford&Model=Ranger&ModelDescription=RANGER%202025.25%20WILDTRA",
+     "/?group=sides-%26-more",
+     "/index.cfm?module=mysite&redirect_url=http%3A%2F%2Fwww.energywest.com.au%2Fpslink.cfm%3Frefer%3Ddiscounts&message_id=0",
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/request-a-quote?details=Hello%2C+I%27d+like+more+information+about+TERMINATION%2C95MM2+XLPE%2CALU+UG+%26+ABC%2C11KV+%28sku%3A+RN4943%29",
+     "/plan-your-day/information/staying-safe/?url=https%3A%2F%2Fwww.visitsealife.com%2Fsydney%2Fplan-your-day%2Fbefore-you-visit%2Fstaying-safe%2F&data=04%7C01%7CMad"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 113,
+    "pct_lines": 0.0114,
+    "sole_cause_lines": 63,
+    "pct_sole": 0.0064,
+    "unique_targets": 113,
+    "pct_unique": 0.0124,
+    "examples": [
+     "/?utm_source=beehiiv&amp%3Butm_medium=newsletter&amp%3Butm_campaign=QBBRSR75NI&amp%3Butm_content=viral_tweet_may14&amp%3B_bhiiv=opp_750ebe6d-aea2-40a7-b9e8-c588",
+     "/cgi-bin/ez-cart/cart.cgi?account=X381088;v=2.0;action=checkout;return_url=%2Fez-catalog%3Flayout%3Dsystem%253Alayout_0100.xsl%3Bv%3D2.0%3Baccount%3DX381088%3Bs",
+     "/cgi-bin/ez-cart/cart.cgi?account=X381088;v=2.0;return_url=%2Fez-catalog%3Flayout%3Dsystem%253Alayout_0100.xsl%3Bv%3D2.0%3Baccount%3DX381088%3Bsearch%3D28%3Blim",
+     "/en/our-equipment/elja-4?type=%27nvOpzp%3B%20AND%201%3D1%20OR%20%28%3C%27%22%3EiKO%29%29%2C",
+     "/en/services/crane-hire?type=%27nvOpzp%3B%20AND%201%3D1%20OR%20%28%3C%27%22%3EiKO%29%29%2C%27",
+     "/ru/site/change_language?lang=ru&return=a%3A7%3A%7Bi%3A0%3Bs%3A13%3A%22cms%2Fpost%2Fview%22%3Bs%3A42%3A%22ru%2Fpost%2F21%2Fnews%2Fkak_zarabatyva_t_na_gudmax%22%"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 679,
+    "pct_lines": 0.0686,
+    "sole_cause_lines": 424,
+    "pct_sole": 0.0428,
+    "unique_targets": 679,
+    "pct_unique": 0.0743,
+    "examples": [
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/share-widget?w=poi&o=t&u=https%3A%2F%2Fwww.google.com%2Fsearch%3Fved%3D1t%3A260882%26q%3DSal%25C3%25A3o%2BT%25C3%25A9rreo%2BCentro%2Bde%2BCultura%2BRaul%2Bde%2",
+     "/cadastro/?key=U2FsdGVkX18%2BkrfIG0Sf9k04hE0O98zKM6FP6XaG%2BBkSgnTqcrJi%2Bqj9gCDD2MnsPWSTZbYfhEUPGYiyG4SXE8FJOfNAPHH9rVIbyLHJziVsd%2FlK0wmvrmxyaCV3tetKlKjuVC3ku",
+     "/g-talent/validez_certificado?h=urylBsWngG3Xb8%2FAEyeHBI8LSJ08d0z0vTSBE%2BSXGRYQPnGkdM%2Bgm14xSOj2Zs%2Bk",
+     "/WAF/VERIFY/CAPTCHA?info=hCcCS%2FDxRQ7kRF4NOtr8JaOppcH58JciTOG4BTNgMIrbx%2FbfXxyK9jz%2BOy9xON8uiWFhJHYy&from=%2F",
+     "/WAF/VERIFY/CAPTCHA?info=hCcCS%2FDxRQ7kRF4NOtr8JaCvpMD%2B8pQiTOG4BTNgMIoiP9CYKKLkKaIIN3Iwo8z0kfT5JHYy&from=%2F"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 3568,
+    "pct_lines": 0.3604,
+    "sole_cause_lines": 718,
+    "pct_sole": 0.0725,
+    "unique_targets": 3568,
+    "pct_unique": 0.3907,
+    "examples": [
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/__superjs/challenge?u=%2Findex.php%3Fmain_page%3Dredirect%26action%3Durl%26goto%3Dnokia.bg%252Ffind-products%252Fall-phones%252Fnokia-n9",
+     "/site/redirecionamento.php?link=https%3A%2F%25pafikabpasangkayu010.weebly.com%2F&p=livrariadoinfinito",
+     "/share-widget?w=poi&o=t&u=https%3A%2F%2Fwww.google.com%2Fsearch%3Fved%3D1t%3A260882%26q%3DSal%25C3%25A3o%2BT%25C3%25A9rreo%2BCentro%2Bde%2BCultura%2BRaul%2Bde%2",
+     "/ppgadm/en/user/setLocale/pt_BR?source=%2Fppgadm%2Fen%2Fsearch%2Fsearch%3Fquery%3Dtrabalho%2520remoto%2520gest%25C3%25A3o%2520p%25C3%25BAblica%2520racionalidade",
+     "/processoscoletivos/en/user/setLocale/en?source=periodicos.ufes.br%2Fprocessoscoletivos%2Fen%2Flogin%3Fsource%3D%252Fprocessoscoletivos%252Fen%252Findex"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 29,
+    "pct_lines": 0.0029,
+    "sole_cause_lines": 16,
+    "pct_sole": 0.0016,
+    "unique_targets": 29,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/es/fundicion/aglomerante-de-caja-fria-de-poliuretano/buscador-de-productos/consultar-informacion-del-producto?product=ISOCURE%20AL%20440%20%2F%20%0D%0A%20ISOCU",
+     "/es/fundicion/aglomerante-de-caja-fria-de-poliuretano/buscador-de-productos/consultar-informacion-del-producto?product=ISOCURE%20333%20%2F%0D%0AISOCURE%20633&cH",
+     "/es/fundicion/sistemas-aglomerantes-para-no-bake/buscador-de-productos/consultar-informacion-del-producto?product=KERNFIX%20HB%2096%2F200%20%2F%0D%0AHOTFIX%2081",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0AWJ%204000&cHash=3557b04895d7b93ad5ee7658c7d169",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0D%0ATC%206500&cHash=41e81c772e17251643a4b3f9ad1",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0D%0ATC%205000&cHash=6aa0dae60f6860e63d3fc907e5f"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 3257,
+    "pct_lines": 0.329,
+    "sole_cause_lines": 2136,
+    "pct_sole": 0.2158,
+    "unique_targets": 3255,
+    "pct_unique": 0.3564,
+    "examples": [
+     "/programmfoto-downloads-detail/rohrauer-gespraeche-20?file=files/downloads/presse/2026/20261011%20Rohrauer%20Gespr%C3%A4ch_11%20Oktober%202026.zip&cid=3967",
+     "/service/nachschau/detail/329.html?file=files/downloads/presse/2024/20240323_Ein%20ehrenwertes%20Haus_23%20M%C3%A4rz%202024.zip&cid=3087",
+     "/dissertations/analitik-kimya?l=%C4%9E",
+     "/dissertations/arxeologiya?l=%C3%96",
+     "/dissertations/arxitektur?l=%D0%AC",
+     "/dissertations/arxiv?l=%C3%96"
+    ]
+   },
+   "q.plus": {
+    "lines": 4401,
+    "pct_lines": 0.4446,
+    "sole_cause_lines": 3060,
+    "pct_sole": 0.3091,
+    "unique_targets": 4399,
+    "pct_unique": 0.4817,
+    "examples": [
+     "/?s=Logbuch+der+gegenwart",
+     "/KOMISSA/home/createAusstattungHtml?table=createSerienmaessigeAusstattung&article=PP+TA+16055+plus%2CPP+TA+20055+plus%2CPP+TA+23071+plus%2CPP+TA+24080+plus%2CPP",
+     "/KOMISSA/home/createAusstattungHtml?table=createTechnischeDaten&article=TA+14045%2F2+PT%2CTA+18045%2F2+PT%2CTA+18053%2F2+PT%2CTA+20053%2F2+PT%2CTA+23065%2F2+PT%",
+     "/search?type=product&q=collins+and+co",
+     "/recently-sold?agent=Anthony+Trovato&page=2",
+     "/recently-sold?agent=Michael+White&page=3"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 1261,
+    "pct_lines": 0.1274,
+    "sole_cause_lines": 181,
+    "pct_sole": 0.0183,
+    "unique_targets": 1237,
+    "pct_unique": 0.1354,
+    "examples": [
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=11;&sortby=0;",
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=14;&sortby=0;",
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=17;&sortby=0;",
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=1;&sortby=0;",
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=22;&sortby=0;",
+     "/gptr/our-research/publications?searchmode=anyword&searchtext=&topic=25;&sortby=0;"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.dup_name": {
+    "lines": 1769,
+    "pct_lines": 0.1787,
+    "sole_cause_lines": 1289,
+    "pct_sole": 0.1302,
+    "unique_targets": 1769,
+    "pct_unique": 0.1937,
+    "examples": [
+     "/de/immobilien/?availabilities%5B%5D=active&availabilities%5B%5D=taken&availabilities%5B%5D=reserved&salestypes%5B%5D=buy",
+     "/itswp-admin/?action=logout&redirect_to=https%3A%2F%2Fitsadate.club&_wpnonce=881c828592&redirect_to=https%3A%2F%2Fitsadate.club",
+     "/col/col260537/index.html?number=SDA20&vc_xxgkarea=11370000004502198Q&number=SDA20",
+     "/col/col310912/index.html?number=SD02020601&vc_xxgkarea=11370000MB28468513&number=SD02020601",
+     "/apps/1220574/hierarchy-for-jira-custom-issue-structure-jira-tree-view?tab=overview&utm_medium=website&utm_source=upscale%20website&utm_campaign=upsc_h4j_produc",
+     "/lp/534248B2-D731-463F-9321-ACCB1136C3FD/119v?_=&cp=1&pageGroupId=agent_lp&_="
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 19,
+    "pct_lines": 0.0019,
+    "sole_cause_lines": 19,
+    "pct_sole": 0.0019,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": [
+     "/",
+     "/robots.txt"
+    ]
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 280,
+    "pct_lines": 0.0283,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 210,
+    "pct_unique": 0.023,
+    "examples": [
+     "/medusa_en/login_externo.php",
+     "/anndcf16876054",
+     "/anndcf16876054/ann1981/issues?type=all&sort=leastupdate&state=closed&labels=0&milestone=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?type=mentioned&sort=leastupdate&state=open&labels=0&milestone=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?type=all&sort=leastupdate&state=open&labels=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?lang=gl-ES"
+    ]
+   },
+   "h.alabel_ok": {
+    "lines": 2061,
+    "pct_lines": 0.2082,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1957,
+    "pct_unique": 0.2143,
+    "examples": [
+     "/",
+     "/robots.txt",
+     "/adatvedelmi-nyilatkozat.html",
+     "/mediaajanlat.html",
+     "/%E3%81%8A%E8%A9%A6%E3%81%97%E3%81%8B%E3%81%A3%EF%BC%81-%E9%81%93%E3%81%AE%E9%A7%85-20140825/",
+     "/%E3%81%AA%E3%81%8B%E3%81%84%E5%90%9B%E3%81%AE%E5%AD%A6%E3%82%B9%E3%82%A4%E3%83%83%E3%83%81-2018-0604/"
+    ]
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 1,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0001,
+    "examples": [
+     "/robots.txt%5bEND,NE,R=permanent%5d"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 383820,
+   "400 path: ambiguous percent-escape X": 28831,
+   "400 query: ambiguous percent-escape X": 9704,
+   "400 query: pair must be exactly name=value": 6673,
+   "400 query: forbidden character X": 3828,
+   "400 query: duplicate name": 1295,
+   "400 path: forbidden character X": 845,
+   "400 query: empty pair": 815,
+   "400 path: empty segment": 111,
+   "host: 400 authority: host: label not LDH": 19,
+   "400 query: empty name": 4
+  }
+ },
+ "benign": {
+  "lines": 988758,
+  "unique_targets": 912087,
+  "ref_reject_lines": 51835,
+  "pct_ref_reject": 5.2424,
+  "ref_308_lines": 378347,
+  "pct_ref_308": 38.2649,
+  "clauses": {
+   "p.not_origin_form": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_slash": {
+    "lines": 474,
+    "pct_lines": 0.0479,
+    "sole_cause_lines": 464,
+    "pct_sole": 0.0469,
+    "unique_targets": 474,
+    "pct_unique": 0.052,
+    "examples": [
+     "/webcan-working-party-updates/saturday-23rd-september---canal-house-entrance-to-the-canal-%28what3words-%2F%2F%2Ffork.loves.glue%29.--",
+     "/webcan-working-party-updates/saturday-23rd-september---canal-house-entrance-to-the-canal-(what3words-%2F%2F%2Ffork.loves.glue).--",
+     "/click/64393e6e2bfa817b634acee0/180019/286636/63398/https%3A%2F%2Fgotrendlin.com%2F",
+     "/click/649d68742bfa812ded4965b2/179362/301341/62894/https%3A%2F%2Fquniza.com%2F",
+     "/click/650bf1e12bfa811e074e04d4/180150/286636/63359/https%3A%2F%2Fgotrendlin.com%2F",
+     "/click/6515364f2bfa8177ce101f77/180180/283277/6523/https%3A%2F%2Fdigitalgenics.co%2F"
+    ]
+   },
+   "p.enc_backslash": {
+    "lines": 4,
+    "pct_lines": 0.0004,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0004,
+    "unique_targets": 4,
+    "pct_unique": 0.0004,
+    "examples": [
+     "/entrevistes/l%5C%27entrevista/francesc-miralles/",
+     "/event/a_landscape_in_less_then_10_pieces_st_john%5C%27s_church",
+     "/event/a_quilter%5C%27s_eye_on_the_western_isles_st__leonard%5C%27s_cep_academy",
+     "/shop/event/a_quilter%5C%27s_eye_on_the_western_isles_st__leonard%5C%27s_cep_academy"
+    ]
+   },
+   "p.enc_semicolon": {
+    "lines": 35,
+    "pct_lines": 0.0035,
+    "sole_cause_lines": 32,
+    "pct_sole": 0.0032,
+    "unique_targets": 35,
+    "pct_unique": 0.0038,
+    "examples": [
+     "/pt/recursos/caracter%C3%ADsticas/projeto/Compartilhar-projeto-com-membros%3B-gerenciar-direitos-de-acesso./",
+     "/topshelfnerdspodcast/tag/Fate%2FGrand+Order+THE+MOVIE+Divine+Realm+of+the+Round+Table%3A+Camelot+Wandering%3BAgateram",
+     "/document%3As_italia%3Agenerale%3Bvoto.domicilio.assistito%3Bcapacita.deambulazione.impedita.sensibilmente.ridotta%3Bcertificato.medico",
+     "/procedure%3As_italia%3Aautenticazione%3Bsottoscrizioni%3Bdomanda?source=551",
+     "/procedure%3As_italia%3Aconvivenza.fatto%3Bcostituzione%3Bdichiarazione",
+     "/procedure%3As_italia%3Anumerazione.civica%3Bassegnazione%3Bdomanda"
+    ]
+   },
+   "p.enc_nul": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_pct": {
+    "lines": 96,
+    "pct_lines": 0.0097,
+    "sole_cause_lines": 87,
+    "pct_sole": 0.0088,
+    "unique_targets": 96,
+    "pct_unique": 0.0105,
+    "examples": [
+     "/2026-2/bieten/9319/Nike%20Damen%20Laufschuhe%20ZoomX%20Vaporfly%20Next%25%204%20Gr.%2039%20-%20US%208",
+     "/FSDEDEV/media/documents/Running%2520a%2520practice/Practice%2520standards/Flyer-General-Practice-Patient-Charter.pdf",
+     "/FSDEDEV/media/documents/Running%2520a%2520practice/Practice%2520standards/Poster-General-Practice-Patient-Charter.pdf",
+     "/2026/01/27/b%C3%B4nus-50%25-cassino-recarga/",
+     "/2026/01/27/cassino-b%C3%B4nus-de-50%25-no-primeiro-dep%C3%B3sito/",
+     "/casino-bonus-200%25/"
+    ]
+   },
+   "p.enc_ctrl": {
+    "lines": 8,
+    "pct_lines": 0.0008,
+    "sole_cause_lines": 8,
+    "pct_sole": 0.0008,
+    "unique_targets": 7,
+    "pct_unique": 0.0008,
+    "examples": [
+     "/dataaire-%0Alibrary/",
+     "/players/%1BpSipi%1Bp/Bowling?l=hu",
+     "/players/a%1Bpr/Backgammon?s=s",
+     "/tags/text%0Asustainable%20growth",
+     "/kits/%0Aee2000/ee2000.html",
+     "/page/%09bertanggung-jawab"
+    ]
+   },
+   "p.enc_nonascii": {
+    "lines": 28219,
+    "pct_lines": 2.854,
+    "sole_cause_lines": 22694,
+    "pct_sole": 2.2952,
+    "unique_targets": 28170,
+    "pct_unique": 3.0885,
+    "examples": [
+     "/ru/%D1%83%D0%BC%D0%BD%D1%8B%D0%B9-%D0%B4%D0%BE%D0%BC/",
+     "/%D8%A7%D9%87%D9%85%D9%8A%D8%A9-%D8%AA%D8%B9%D9%84%D9%85-%D8%A7%D9%84%D9%84%D8%BA%D8%A9-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9/",
+     "/ar/%D8%A7%D9%81%D8%B6%D9%84-%D8%A7%D9%84%D8%B1%D9%88%D8%A7%D9%8A%D8%A7%D8%AA-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D9%87-%D9%84%D9%84%D9%85%D8",
+     "/ar/%D8%A7%D9%87%D9%85%D9%8A%D8%A9-%D8%AA%D8%B9%D9%84%D9%85-%D8%A7%D9%84%D9%84%D8%BA%D8%A9-%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9-%D9%84%D",
+     "/administracion/icon-resen%CC%83as/",
+     "/p/6721877-Casa-en-Venta-en-Las-Garzas-Casa-c/4-dor-%7C-C/pileta-y-Vista-al-mar-%7C-Las-Garzas-Jos%C3%A9-Ignacio-%7C-Venta"
+    ]
+   },
+   "p.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.backslash": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.semicolon": {
+    "lines": 846,
+    "pct_lines": 0.0856,
+    "sole_cause_lines": 840,
+    "pct_sole": 0.085,
+    "unique_targets": 846,
+    "pct_unique": 0.0928,
+    "examples": [
+     "/fiquemaisribeiraopreto/museu-historico-da-faculdade-de-medicina/attachment/museuusp/;",
+     "/de/wmOffers/category/page:1;export:excel",
+     "/de/wmOffers/category/page:3;export:csv",
+     "/de/wmOffers/page:11;export:excel",
+     "/de/wmOffers/page:22;export:excel",
+     "/en/wmOffers/category/page:3;export:csv"
+    ]
+   },
+   "p.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.dot_segment": {
+    "lines": 2,
+    "pct_lines": 0.0002,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 2,
+    "pct_unique": 0.0002,
+    "examples": [
+     "/players/%F0%9D%93%9C%F0%9D%93%BB.%F0%9D%93%96%F0%9D%93%B8%F0%9D%93%B8%F0%9D%93%AD/Reversi",
+     "/view/%E0%B8%97%E0%B8%B3%E0%B8%9B%E0%B8%B2%E0%B8%81%E0%B8%81%E0%B8%A3%E0%B8%B0%E0%B8%88%E0%B8%B1%E0%B8%9A%E0%B8%A3%E0%B8%9E.%E0%B9%80%E0%B8%A5%E0%B8%AD%E0%B8%A5"
+    ]
+   },
+   "p.empty_segment": {
+    "lines": 5540,
+    "pct_lines": 0.5603,
+    "sole_cause_lines": 111,
+    "pct_sole": 0.0112,
+    "unique_targets": 5507,
+    "pct_unique": 0.6038,
+    "examples": [
+     "/category/dental-wellness//",
+     "/privacy-policy//",
+     "/service-category/general-dental//",
+     "//robots.txt",
+     "/%E0%B8%9A%E0%B8%97%E0%B8%84%E0%B8%A7%E0%B8%B2%E0%B8%A1/",
+     "/%CF%87%CE%AC%CE%BD%CF%84%CE%BC%CF%80%CE%BF%CE%BB/%CF%80%CF%8E%CF%82-%CE%BD%CE%B1-%CE%B4%CE%B9%CE%B1%CE%B2%CE%AC%CE%B6%CE%B5%CE%B9%CF%82-%CF%84%CE%B1-live-%CF%8"
+    ]
+   },
+   "p.trailing_slash_308": {
+    "lines": 400612,
+    "pct_lines": 40.5167,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 383498,
+    "pct_unique": 42.0462,
+    "examples": [
+     "/material/100-wool/",
+     "/material/70-nz-wool-30-bamboo-silk/",
+     "/material/80-nz-wool-20-viscose-blend/",
+     "/material/leather/",
+     "/material/nz-wool-viscose/",
+     "/pages/bespoke-carpets-dubai/"
+    ]
+   },
+   "q.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.empty_pair": {
+    "lines": 858,
+    "pct_lines": 0.0868,
+    "sole_cause_lines": 728,
+    "pct_sole": 0.0736,
+    "unique_targets": 858,
+    "pct_unique": 0.0941,
+    "examples": [
+     "/agent-directory/?&paged=2?&package=",
+     "/tickets/?&gclid=Cj0KCQiAkMDiBRDNARIsACKP1FHKBMyzbLViDBQnCOjYcdb_0NaE1LQkacpmCmIyR62bM82-yfoEhv0aAkqSEALw_wcB&gclsrc=aw.ds",
+     "/catalogsearch/advanced/result/?&manufacturer%5B%5D=5",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1058782",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1121209",
+     "/15/DetalhesVeiculo.aspx?&veiculo=1302720"
+    ]
+   },
+   "q.no_eq": {
+    "lines": 4703,
+    "pct_lines": 0.4756,
+    "sole_cause_lines": 4462,
+    "pct_sole": 0.4513,
+    "unique_targets": 4635,
+    "pct_unique": 0.5082,
+    "examples": [
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA1LTA3JmlkPTE0MTgx",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTE1JmlkPTE2NDI4",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTE0NTM4",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTEwMDMw",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTA2LTExJmlkPTEyOTE2",
+     "/?YWN0aW9uPW91dGxvb2sma2V5PWltaWNfc2F2ZV9ldmVudCZlZGF0ZT0yMDI2LTExLTE2JmlkPTEyODcx"
+    ]
+   },
+   "q.multi_eq": {
+    "lines": 1982,
+    "pct_lines": 0.2005,
+    "sole_cause_lines": 920,
+    "pct_sole": 0.093,
+    "unique_targets": 1956,
+    "pct_unique": 0.2145,
+    "examples": [
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xMzI2Nw==",
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xNTIwNg==",
+     "/?YWN0aW9uPW91dGxvb2tsaXZlJmtleT1pbWljX3NhdmVfZXZlbnQmZWRhdGU9MjAyNi0xMi0yNCZpZD0xOTAzMA==",
+     "/?YWN0aW9uPWdjYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMTItMjQmaWQ9Njc3Nw==",
+     "/?YWN0aW9uPWljYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMDYtMTUmaWQ9NjQ2Ng==",
+     "/?YWN0aW9uPWljYWxlbmRhciZrZXk9aW1pY19zYXZlX2V2ZW50JmVkYXRlPTIwMjYtMDYtMTUmaWQ9ODc4NA=="
+    ]
+   },
+   "q.empty_name": {
+    "lines": 5,
+    "pct_lines": 0.0005,
+    "sole_cause_lines": 4,
+    "pct_sole": 0.0004,
+    "unique_targets": 5,
+    "pct_unique": 0.0005,
+    "examples": [
+     "/index.pl?act=SUBJ&subj=%D0%A4%D0%B5%D0%BB%D1%8C%D0%B4%D1%88%D0%B5%D1%80%D1%81%D0%BA%D0%BE-%D0%B0%D0%BA%D1%83%D1%88%D0%B5%D1%80%D1%81%D0%BA%D0%B8%D0%B5%20%D0%BA",
+     "/embed/JDMDL39rswY?=JDMDL39rswY",
+     "/pubs/afp/issues/2017/0601/p717-s1.html?ref=popsugar.com&=___psv__p_49405497__t_w_",
+     "/bmla/BMLPics/?node=Seclusion%201.jpg&=",
+     "/bmla/images/?node=newlogo5.png&="
+    ]
+   },
+   "q.bad_pct": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.enc_amp_eq": {
+    "lines": 5660,
+    "pct_lines": 0.5724,
+    "sole_cause_lines": 2340,
+    "pct_sole": 0.2367,
+    "unique_targets": 5648,
+    "pct_unique": 0.6192,
+    "examples": [
+     "/deposits?DealerId=894006~30~FO&DealerName=Adrian%20Brien%20Ford%20%26%20FPV&VehicleType=demo&Make=Ford&Model=Ranger&ModelDescription=RANGER%202025.25%20WILDTRA",
+     "/?group=sides-%26-more",
+     "/index.cfm?module=mysite&redirect_url=http%3A%2F%2Fwww.energywest.com.au%2Fpslink.cfm%3Frefer%3Ddiscounts&message_id=0",
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/request-a-quote?details=Hello%2C+I%27d+like+more+information+about+TERMINATION%2C95MM2+XLPE%2CALU+UG+%26+ABC%2C11KV+%28sku%3A+RN4943%29",
+     "/plan-your-day/information/staying-safe/?url=https%3A%2F%2Fwww.visitsealife.com%2Fsydney%2Fplan-your-day%2Fbefore-you-visit%2Fstaying-safe%2F&data=04%7C01%7CMad"
+    ]
+   },
+   "q.enc_semicolon": {
+    "lines": 113,
+    "pct_lines": 0.0114,
+    "sole_cause_lines": 63,
+    "pct_sole": 0.0064,
+    "unique_targets": 113,
+    "pct_unique": 0.0124,
+    "examples": [
+     "/?utm_source=beehiiv&amp%3Butm_medium=newsletter&amp%3Butm_campaign=QBBRSR75NI&amp%3Butm_content=viral_tweet_may14&amp%3B_bhiiv=opp_750ebe6d-aea2-40a7-b9e8-c588",
+     "/cgi-bin/ez-cart/cart.cgi?account=X381088;v=2.0;action=checkout;return_url=%2Fez-catalog%3Flayout%3Dsystem%253Alayout_0100.xsl%3Bv%3D2.0%3Baccount%3DX381088%3Bs",
+     "/cgi-bin/ez-cart/cart.cgi?account=X381088;v=2.0;return_url=%2Fez-catalog%3Flayout%3Dsystem%253Alayout_0100.xsl%3Bv%3D2.0%3Baccount%3DX381088%3Bsearch%3D28%3Blim",
+     "/en/our-equipment/elja-4?type=%27nvOpzp%3B%20AND%201%3D1%20OR%20%28%3C%27%22%3EiKO%29%29%2C",
+     "/en/services/crane-hire?type=%27nvOpzp%3B%20AND%201%3D1%20OR%20%28%3C%27%22%3EiKO%29%29%2C%27",
+     "/ru/site/change_language?lang=ru&return=a%3A7%3A%7Bi%3A0%3Bs%3A13%3A%22cms%2Fpost%2Fview%22%3Bs%3A42%3A%22ru%2Fpost%2F21%2Fnews%2Fkak_zarabatyva_t_na_gudmax%22%"
+    ]
+   },
+   "q.enc_plus": {
+    "lines": 678,
+    "pct_lines": 0.0686,
+    "sole_cause_lines": 424,
+    "pct_sole": 0.0429,
+    "unique_targets": 678,
+    "pct_unique": 0.0743,
+    "examples": [
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/share-widget?w=poi&o=t&u=https%3A%2F%2Fwww.google.com%2Fsearch%3Fved%3D1t%3A260882%26q%3DSal%25C3%25A3o%2BT%25C3%25A9rreo%2BCentro%2Bde%2BCultura%2BRaul%2Bde%2",
+     "/cadastro/?key=U2FsdGVkX18%2BkrfIG0Sf9k04hE0O98zKM6FP6XaG%2BBkSgnTqcrJi%2Bqj9gCDD2MnsPWSTZbYfhEUPGYiyG4SXE8FJOfNAPHH9rVIbyLHJziVsd%2FlK0wmvrmxyaCV3tetKlKjuVC3ku",
+     "/g-talent/validez_certificado?h=urylBsWngG3Xb8%2FAEyeHBI8LSJ08d0z0vTSBE%2BSXGRYQPnGkdM%2Bgm14xSOj2Zs%2Bk",
+     "/WAF/VERIFY/CAPTCHA?info=hCcCS%2FDxRQ7kRF4NOtr8JaOppcH58JciTOG4BTNgMIrbx%2FbfXxyK9jz%2BOy9xON8uiWFhJHYy&from=%2F",
+     "/WAF/VERIFY/CAPTCHA?info=hCcCS%2FDxRQ7kRF4NOtr8JaCvpMD%2B8pQiTOG4BTNgMIoiP9CYKKLkKaIIN3Iwo8z0kfT5JHYy&from=%2F"
+    ]
+   },
+   "q.enc_pct": {
+    "lines": 3557,
+    "pct_lines": 0.3597,
+    "sole_cause_lines": 712,
+    "pct_sole": 0.072,
+    "unique_targets": 3557,
+    "pct_unique": 0.39,
+    "examples": [
+     "/login?backUrl=request-a-quote%3Fdetails%3DHello%252C%2BI%2527d%2Blike%2Bmore%2Binformation%2Babout%2BCLAMP%252CTAPPING%252C0-20MM%2BCOND%252CSTICK%2BOP%252CALU",
+     "/__superjs/challenge?u=%2Findex.php%3Fmain_page%3Dredirect%26action%3Durl%26goto%3Dnokia.bg%252Ffind-products%252Fall-phones%252Fnokia-n9",
+     "/site/redirecionamento.php?link=https%3A%2F%25pafikabpasangkayu010.weebly.com%2F&p=livrariadoinfinito",
+     "/share-widget?w=poi&o=t&u=https%3A%2F%2Fwww.google.com%2Fsearch%3Fved%3D1t%3A260882%26q%3DSal%25C3%25A3o%2BT%25C3%25A9rreo%2BCentro%2Bde%2BCultura%2BRaul%2Bde%2",
+     "/ppgadm/en/user/setLocale/pt_BR?source=%2Fppgadm%2Fen%2Fsearch%2Fsearch%3Fquery%3Dtrabalho%2520remoto%2520gest%25C3%25A3o%2520p%25C3%25BAblica%2520racionalidade",
+     "/processoscoletivos/en/user/setLocale/en?source=periodicos.ufes.br%2Fprocessoscoletivos%2Fen%2Flogin%3Fsource%3D%252Fprocessoscoletivos%252Fen%252Findex"
+    ]
+   },
+   "q.enc_nul_ctrl": {
+    "lines": 29,
+    "pct_lines": 0.0029,
+    "sole_cause_lines": 16,
+    "pct_sole": 0.0016,
+    "unique_targets": 29,
+    "pct_unique": 0.0032,
+    "examples": [
+     "/es/fundicion/aglomerante-de-caja-fria-de-poliuretano/buscador-de-productos/consultar-informacion-del-producto?product=ISOCURE%20AL%20440%20%2F%20%0D%0A%20ISOCU",
+     "/es/fundicion/aglomerante-de-caja-fria-de-poliuretano/buscador-de-productos/consultar-informacion-del-producto?product=ISOCURE%20333%20%2F%0D%0AISOCURE%20633&cH",
+     "/es/fundicion/sistemas-aglomerantes-para-no-bake/buscador-de-productos/consultar-informacion-del-producto?product=KERNFIX%20HB%2096%2F200%20%2F%0D%0AHOTFIX%2081",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0AWJ%204000&cHash=3557b04895d7b93ad5ee7658c7d169",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0D%0ATC%206500&cHash=41e81c772e17251643a4b3f9ad1",
+     "/foundry/inotec-inorganic-binder-system/product-finder/inquiry-product-information?product=INOTEC%20PROMOTOR%20%0D%0ATC%205000&cHash=6aa0dae60f6860e63d3fc907e5f"
+    ]
+   },
+   "q.enc_nonascii": {
+    "lines": 3257,
+    "pct_lines": 0.3294,
+    "sole_cause_lines": 2136,
+    "pct_sole": 0.216,
+    "unique_targets": 3255,
+    "pct_unique": 0.3569,
+    "examples": [
+     "/programmfoto-downloads-detail/rohrauer-gespraeche-20?file=files/downloads/presse/2026/20261011%20Rohrauer%20Gespr%C3%A4ch_11%20Oktober%202026.zip&cid=3967",
+     "/service/nachschau/detail/329.html?file=files/downloads/presse/2024/20240323_Ein%20ehrenwertes%20Haus_23%20M%C3%A4rz%202024.zip&cid=3087",
+     "/dissertations/analitik-kimya?l=%C4%9E",
+     "/dissertations/arxeologiya?l=%C3%96",
+     "/dissertations/arxitektur?l=%D0%AC",
+     "/dissertations/arxiv?l=%C3%96"
+    ]
+   },
+   "q.plus": {
+    "lines": 4388,
+    "pct_lines": 0.4438,
+    "sole_cause_lines": 3057,
+    "pct_sole": 0.3092,
+    "unique_targets": 4386,
+    "pct_unique": 0.4809,
+    "examples": [
+     "/?s=Logbuch+der+gegenwart",
+     "/KOMISSA/home/createAusstattungHtml?table=createSerienmaessigeAusstattung&article=PP+TA+16055+plus%2CPP+TA+20055+plus%2CPP+TA+23071+plus%2CPP+TA+24080+plus%2CPP",
+     "/KOMISSA/home/createAusstattungHtml?table=createTechnischeDaten&article=TA+14045%2F2+PT%2CTA+18045%2F2+PT%2CTA+18053%2F2+PT%2CTA+20053%2F2+PT%2CTA+23065%2F2+PT%",
+     "/search?type=product&q=collins+and+co",
+     "/recently-sold?agent=Anthony+Trovato&page=2",
+     "/recently-sold?agent=Michael+White&page=3"
+    ]
+   },
+   "q.semicolon": {
+    "lines": 1245,
+    "pct_lines": 0.1259,
+    "sole_cause_lines": 166,
+    "pct_sole": 0.0168,
+    "unique_targets": 1221,
+    "pct_unique": 0.1339,
+    "examples": [
+     "/?C=M;O=A",
+     "/forum/index.php?PHPSESSID=fea41e61e8820e26c7ae1031bc2a288f&board=15.0;wap2",
+     "/forum/index.php?PHPSESSID=1e130d65c16ec927a2bbf737939ab12a&board=16.0;wap2",
+     "/forum/index.php?PHPSESSID=6579597c1e70133928186f1195c6545a&board=18.0;sort=subject",
+     "/forum/index.php?PHPSESSID=6579597c1e70133928186f1195c6545a&board=18.30;sort=subject",
+     "/forum/index.php?PHPSESSID=4de94ed3dc7f0a9773f5faf9df0b6c19&board=19.0;sort=starter"
+    ]
+   },
+   "q.raw_nonascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.space": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.fragment": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.raw_ctrl": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.other_forbidden_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "q.dup_name": {
+    "lines": 1769,
+    "pct_lines": 0.1789,
+    "sole_cause_lines": 1289,
+    "pct_sole": 0.1304,
+    "unique_targets": 1769,
+    "pct_unique": 0.194,
+    "examples": [
+     "/de/immobilien/?availabilities%5B%5D=active&availabilities%5B%5D=taken&availabilities%5B%5D=reserved&salestypes%5B%5D=buy",
+     "/itswp-admin/?action=logout&redirect_to=https%3A%2F%2Fitsadate.club&_wpnonce=881c828592&redirect_to=https%3A%2F%2Fitsadate.club",
+     "/col/col260537/index.html?number=SDA20&vc_xxgkarea=11370000004502198Q&number=SDA20",
+     "/col/col310912/index.html?number=SD02020601&vc_xxgkarea=11370000MB28468513&number=SD02020601",
+     "/apps/1220574/hierarchy-for-jira-custom-issue-structure-jira-tree-view?tab=overview&utm_medium=website&utm_source=upscale%20website&utm_campaign=upsc_h4j_produc",
+     "/lp/534248B2-D731-463F-9321-ACCB1136C3FD/119v?_=&cp=1&pageGroupId=agent_lp&_="
+    ]
+   },
+   "h.userinfo": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ip_literal": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_port": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.non_ascii": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.too_long": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.trailing_dot": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.ipv4_noncanonical": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.underscore": {
+    "lines": 19,
+    "pct_lines": 0.0019,
+    "sole_cause_lines": 19,
+    "pct_sole": 0.0019,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": [
+     "/",
+     "/robots.txt"
+    ]
+   },
+   "h.label_not_ldh_other": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.reserved_rldh": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.bad_alabel": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.uppercase_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "h.port_nondefault": {
+    "lines": 280,
+    "pct_lines": 0.0283,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 210,
+    "pct_unique": 0.023,
+    "examples": [
+     "/medusa_en/login_externo.php",
+     "/anndcf16876054",
+     "/anndcf16876054/ann1981/issues?type=all&sort=leastupdate&state=closed&labels=0&milestone=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?type=mentioned&sort=leastupdate&state=open&labels=0&milestone=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?type=all&sort=leastupdate&state=open&labels=0&assignee=46720",
+     "/anndcf16876054/ann1981/issues?lang=gl-ES"
+    ]
+   },
+   "h.alabel_ok": {
+    "lines": 2061,
+    "pct_lines": 0.2084,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1957,
+    "pct_unique": 0.2146,
+    "examples": [
+     "/",
+     "/robots.txt",
+     "/adatvedelmi-nyilatkozat.html",
+     "/mediaajanlat.html",
+     "/%E3%81%8A%E8%A9%A6%E3%81%97%E3%81%8B%E3%81%A3%EF%BC%81-%E9%81%93%E3%81%AE%E9%A7%85-20140825/",
+     "/%E3%81%AA%E3%81%8B%E3%81%84%E5%90%9B%E3%81%AE%E5%AD%A6%E3%82%B9%E3%82%A4%E3%83%83%E3%83%81-2018-0604/"
+    ]
+   },
+   "h.ipv4_ok": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.enc_unreserved_repaired": {
+    "lines": 0,
+    "pct_lines": 0.0,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 0,
+    "pct_unique": 0.0,
+    "examples": []
+   },
+   "p.lowercase_hex_repaired": {
+    "lines": 1,
+    "pct_lines": 0.0001,
+    "sole_cause_lines": 0,
+    "pct_sole": 0.0,
+    "unique_targets": 1,
+    "pct_unique": 0.0001,
+    "examples": [
+     "/robots.txt%5bEND,NE,R=permanent%5d"
+    ]
+   }
+  },
+  "ref_reasons_top": {
+   "308 path: trailing slash, X": 383737,
+   "400 path: ambiguous percent-escape X": 28820,
+   "400 query: ambiguous percent-escape X": 9684,
+   "400 query: pair must be exactly name=value": 6665,
+   "400 query: forbidden character X": 3800,
+   "400 query: duplicate name": 1295,
+   "400 path: forbidden character X": 845,
+   "400 query: empty pair": 809,
+   "400 path: empty segment": 111,
+   "host: 400 authority: host: label not LDH": 19,
+   "400 query: empty name": 4
+  }
+ }
+}

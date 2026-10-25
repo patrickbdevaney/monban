@@ -1,0 +1,2737 @@
+{
+ "threshold_pct": 0.1,
+ "modern": [
+  "secrepo-2024-2026",
+  "cc-main-2026-43"
+ ],
+ "era": [
+  "secrepo-2017-2023",
+  "nasa-1995"
+ ],
+ "totals": {
+  "secrepo-2024-2026": {
+   "raw": {
+    "lines": 2279367,
+    "pct_ref_reject": 2.7407,
+    "pct_ref_308": 3.335,
+    "unique_targets": 64131
+   },
+   "benign": {
+    "lines": 1654694,
+    "pct_ref_reject": 1.9595,
+    "pct_ref_308": 1.0941,
+    "unique_targets": 29630
+   }
+  },
+  "cc-main-2026-43": {
+   "raw": {
+    "lines": 989955,
+    "pct_ref_reject": 5.2435,
+    "pct_ref_308": 38.2261,
+    "unique_targets": 913268
+   },
+   "benign": {
+    "lines": 988758,
+    "pct_ref_reject": 5.2424,
+    "pct_ref_308": 38.2649,
+    "unique_targets": 912087
+   }
+  },
+  "secrepo-2017-2023": {
+   "raw": {
+    "lines": 3646443,
+    "pct_ref_reject": 3.9942,
+    "pct_ref_308": 1.8024,
+    "unique_targets": 65635
+   },
+   "benign": {
+    "lines": 3165265,
+    "pct_ref_reject": 2.4368,
+    "pct_ref_308": 1.6105,
+    "unique_targets": 41790
+   }
+  },
+  "nasa-1995": {
+   "raw": {
+    "lines": 3459784,
+    "pct_ref_reject": 2.2477,
+    "pct_ref_308": 4.8835,
+    "unique_targets": 31674
+   },
+   "benign": {
+    "lines": 3366062,
+    "pct_ref_reject": 2.2475,
+    "pct_ref_308": 4.8913,
+    "unique_targets": 30955
+   }
+  }
+ },
+ "clauses": {
+  "p.not_origin_form": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.4486,
+    "pct_sole": 0.4223,
+    "pct_unique": 2.2937,
+    "lines": 10225
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.05,
+    "pct_sole": 0.0488,
+    "pct_unique": 0.163,
+    "lines": 1824
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0018,
+    "pct_unique": 0.0284,
+    "lines": 64
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.too_long": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.bad_pct": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.001,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.0249,
+    "lines": 23
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0034,
+    "lines": 1
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0017,
+    "pct_unique": 0.0381,
+    "lines": 64
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0017,
+    "pct_unique": 0.055,
+    "lines": 56
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0001,
+   "decision": "keep reject"
+  },
+  "p.enc_slash": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0031,
+    "pct_sole": 0.0021,
+    "pct_unique": 0.0889,
+    "lines": 71
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0034,
+    "lines": 1
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0479,
+    "pct_sole": 0.0469,
+    "pct_unique": 0.0519,
+    "lines": 474
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0479,
+    "pct_sole": 0.0469,
+    "pct_unique": 0.052,
+    "lines": 474
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0007,
+    "pct_sole": 0.0007,
+    "pct_unique": 0.0259,
+    "lines": 27
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0006,
+    "pct_sole": 0.0006,
+    "pct_unique": 0.0239,
+    "lines": 18
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0479,
+   "decision": "keep reject"
+  },
+  "p.enc_backslash": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0035,
+    "pct_sole": 0.0032,
+    "pct_unique": 0.0374,
+    "lines": 80
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0035,
+    "pct_sole": 0.0032,
+    "pct_unique": 0.0439,
+    "lines": 58
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0004,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0004,
+    "lines": 4
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0004,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0004,
+    "lines": 4
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0234,
+    "pct_sole": 0.0163,
+    "pct_unique": 0.7572,
+    "lines": 852
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0256,
+    "pct_sole": 0.0182,
+    "pct_unique": 1.1199,
+    "lines": 809
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "max_modern_benign_pct": 0.0035,
+   "decision": "keep reject"
+  },
+  "p.enc_semicolon": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.0078,
+    "lines": 5
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0035,
+    "pct_sole": 0.0032,
+    "pct_unique": 0.0038,
+    "lines": 35
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0035,
+    "pct_sole": 0.0032,
+    "pct_unique": 0.0038,
+    "lines": 35
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0076,
+    "lines": 7
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0072,
+    "lines": 5
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0035,
+   "decision": "keep reject"
+  },
+  "p.enc_nul": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0165,
+    "pct_sole": 0.0162,
+    "pct_unique": 0.0172,
+    "lines": 376
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.enc_pct": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0113,
+    "pct_sole": 0.0092,
+    "pct_unique": 0.2573,
+    "lines": 257
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0095,
+    "pct_sole": 0.0078,
+    "pct_unique": 0.3071,
+    "lines": 157
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0104,
+    "pct_sole": 0.0095,
+    "pct_unique": 0.0113,
+    "lines": 103
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0097,
+    "pct_sole": 0.0088,
+    "pct_unique": 0.0105,
+    "lines": 96
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0092,
+    "pct_sole": 0.008,
+    "pct_unique": 0.2163,
+    "lines": 336
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0092,
+    "pct_sole": 0.0079,
+    "pct_unique": 0.2848,
+    "lines": 290
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0009,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.0032,
+    "lines": 32
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.001,
+    "pct_sole": 0.001,
+    "pct_unique": 0.0032,
+    "lines": 32
+   },
+   "max_modern_benign_pct": 0.0097,
+   "decision": "keep reject"
+  },
+  "p.enc_ctrl": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0007,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.0187,
+    "lines": 16
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0034,
+    "lines": 2
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0008,
+    "pct_sole": 0.0008,
+    "pct_unique": 0.0008,
+    "lines": 8
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0008,
+    "pct_sole": 0.0008,
+    "pct_unique": 0.0008,
+    "lines": 8
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0091,
+    "pct_sole": 0.0006,
+    "pct_unique": 0.4754,
+    "lines": 333
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0057,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.4283,
+    "lines": 181
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0063,
+    "lines": 4
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0065,
+    "lines": 4
+   },
+   "max_modern_benign_pct": 0.0008,
+   "decision": "keep reject"
+  },
+  "p.enc_nonascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0332,
+    "pct_sole": 0.0322,
+    "pct_unique": 0.1216,
+    "lines": 757
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0299,
+    "pct_sole": 0.0297,
+    "pct_unique": 0.1114,
+    "lines": 494
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 2.8509,
+    "pct_sole": 2.2928,
+    "pct_unique": 3.085,
+    "lines": 28223
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 2.854,
+    "pct_sole": 2.2952,
+    "pct_unique": 3.0885,
+    "lines": 28219
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0622,
+    "pct_sole": 0.0566,
+    "pct_unique": 0.4114,
+    "lines": 2269
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0699,
+    "pct_sole": 0.064,
+    "pct_unique": 0.5958,
+    "lines": 2213
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 2.854,
+   "decision": "flip"
+  },
+  "p.raw_nonascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0788,
+    "pct_sole": 0.0773,
+    "pct_unique": 0.3508,
+    "lines": 1797
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0987,
+    "pct_sole": 0.0969,
+    "pct_unique": 0.4759,
+    "lines": 1633
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0115,
+    "pct_sole": 0.0115,
+    "pct_unique": 0.1706,
+    "lines": 421
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.012,
+    "pct_sole": 0.012,
+    "pct_unique": 0.2656,
+    "lines": 380
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0253,
+    "lines": 8
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0162,
+    "lines": 5
+   },
+   "max_modern_benign_pct": 0.0987,
+   "decision": "keep reject"
+  },
+  "p.backslash": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0011,
+    "pct_sole": 0.0003,
+    "pct_unique": 0.0327,
+    "lines": 25
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0015,
+    "lines": 4
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0024,
+    "lines": 4
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0009,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.0695,
+    "lines": 31
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0009,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.0678,
+    "lines": 29
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.semicolon": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0046,
+    "pct_sole": 0.0038,
+    "pct_unique": 0.0515,
+    "lines": 104
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0005,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0169,
+    "lines": 8
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0855,
+    "pct_sole": 0.0849,
+    "pct_unique": 0.0926,
+    "lines": 846
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0856,
+    "pct_sole": 0.085,
+    "pct_unique": 0.0928,
+    "lines": 846
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0342,
+    "pct_sole": 0.0197,
+    "pct_unique": 0.4434,
+    "lines": 1247
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0025,
+    "pct_sole": 0.0013,
+    "pct_unique": 0.1125,
+    "lines": 79
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0189,
+    "lines": 6
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0194,
+    "lines": 6
+   },
+   "max_modern_benign_pct": 0.0856,
+   "decision": "keep reject"
+  },
+  "p.space": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0516,
+    "pct_sole": 0.0515,
+    "pct_unique": 1.1381,
+    "lines": 1881
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0594,
+    "pct_sole": 0.0593,
+    "pct_unique": 1.7875,
+    "lines": 1880
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0574,
+    "pct_sole": 0.0569,
+    "pct_unique": 2.33,
+    "lines": 1986
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0548,
+    "pct_sole": 0.0544,
+    "pct_unique": 2.2258,
+    "lines": 1846
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.fragment": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0049,
+    "pct_sole": 0.0049,
+    "pct_unique": 0.0488,
+    "lines": 179
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0057,
+    "pct_sole": 0.0057,
+    "pct_unique": 0.0766,
+    "lines": 179
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0086,
+    "pct_sole": 0.0086,
+    "pct_unique": 0.843,
+    "lines": 298
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0087,
+    "pct_sole": 0.0087,
+    "pct_unique": 0.8593,
+    "lines": 294
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.raw_ctrl": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0189,
+    "lines": 6
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0194,
+    "lines": 6
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.other_forbidden_ascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0053,
+    "pct_sole": 0.0037,
+    "pct_unique": 0.1201,
+    "lines": 121
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0012,
+    "pct_unique": 0.0337,
+    "lines": 30
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0049,
+    "pct_sole": 0.0027,
+    "pct_unique": 0.1691,
+    "lines": 177
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0037,
+    "pct_sole": 0.0013,
+    "pct_unique": 0.2106,
+    "lines": 118
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0025,
+    "pct_sole": 0.0021,
+    "pct_unique": 0.1231,
+    "lines": 88
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0015,
+    "pct_unique": 0.1066,
+    "lines": 62
+   },
+   "max_modern_benign_pct": 0.0018,
+   "decision": "keep reject"
+  },
+  "p.dot_segment": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.003,
+    "pct_sole": 0.0021,
+    "pct_unique": 0.0671,
+    "lines": 68
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.0067,
+    "lines": 3
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0002,
+    "lines": 2
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0002,
+    "lines": 2
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0009,
+    "pct_sole": 0.0007,
+    "pct_unique": 0.0259,
+    "lines": 34
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0006,
+    "pct_sole": 0.0006,
+    "pct_unique": 0.0048,
+    "lines": 19
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0045,
+    "pct_sole": 0.0045,
+    "pct_unique": 0.0474,
+    "lines": 155
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0042,
+    "pct_sole": 0.0042,
+    "pct_unique": 0.0485,
+    "lines": 142
+   },
+   "max_modern_benign_pct": 0.0002,
+   "decision": "keep reject"
+  },
+  "p.empty_segment": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.9903,
+    "pct_sole": 0.9642,
+    "pct_unique": 12.9672,
+    "lines": 22573
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.5453,
+    "pct_sole": 0.5434,
+    "pct_unique": 22.241,
+    "lines": 9023
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.5596,
+    "pct_sole": 0.0112,
+    "pct_unique": 0.603,
+    "lines": 5540
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.5603,
+    "pct_sole": 0.0112,
+    "pct_unique": 0.6038,
+    "lines": 5540
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 1.8257,
+    "pct_sole": 1.7126,
+    "pct_unique": 9.6564,
+    "lines": 66572
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.2597,
+    "pct_sole": 0.2524,
+    "pct_unique": 3.3429,
+    "lines": 8219
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0364,
+    "pct_sole": 0.0356,
+    "pct_unique": 0.4673,
+    "lines": 1261
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0367,
+    "pct_sole": 0.0358,
+    "pct_unique": 0.4717,
+    "lines": 1236
+   },
+   "max_modern_benign_pct": 0.5603,
+   "decision": "flip"
+  },
+  "q.too_long": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.empty_pair": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0006,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0172,
+    "lines": 13
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0004,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0236,
+    "lines": 7
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0873,
+    "pct_sole": 0.0741,
+    "pct_unique": 0.0946,
+    "lines": 864
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0868,
+    "pct_sole": 0.0736,
+    "pct_unique": 0.0941,
+    "lines": 858
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0049,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0259,
+    "lines": 178
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0003,
+    "pct_sole": 0.0003,
+    "pct_unique": 0.012,
+    "lines": 11
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0868,
+   "decision": "keep reject"
+  },
+  "q.no_eq": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.1357,
+    "pct_sole": 0.1003,
+    "pct_unique": 0.5957,
+    "lines": 3094
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0074,
+    "pct_sole": 0.0056,
+    "pct_unique": 0.0844,
+    "lines": 122
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.4752,
+    "pct_sole": 0.4508,
+    "pct_unique": 0.5076,
+    "lines": 4704
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.4756,
+    "pct_sole": 0.4513,
+    "pct_unique": 0.5082,
+    "lines": 4703
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0913,
+    "pct_sole": 0.0382,
+    "pct_unique": 0.6399,
+    "lines": 3330
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.01,
+    "pct_sole": 0.0082,
+    "pct_unique": 0.2321,
+    "lines": 317
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 2.1352,
+    "pct_sole": 2.068,
+    "pct_unique": 68.9367,
+    "lines": 73875
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 2.1399,
+    "pct_sole": 2.0733,
+    "pct_unique": 69.0712,
+    "lines": 72031
+   },
+   "max_modern_benign_pct": 0.4756,
+   "decision": "flip"
+  },
+  "q.multi_eq": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.7824,
+    "pct_sole": 0.0029,
+    "pct_unique": 0.6346,
+    "lines": 17833
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 1.0245,
+    "pct_sole": 0.0,
+    "pct_unique": 0.6784,
+    "lines": 16952
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.2009,
+    "pct_sole": 0.0935,
+    "pct_unique": 0.2149,
+    "lines": 1989
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.2005,
+    "pct_sole": 0.093,
+    "pct_unique": 0.2145,
+    "lines": 1982
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 1.6652,
+    "pct_sole": 0.0085,
+    "pct_unique": 28.2227,
+    "lines": 60721
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 1.8607,
+    "pct_sole": 0.0,
+    "pct_unique": 43.3333,
+    "lines": 58896
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 1.0245,
+   "decision": "flip"
+  },
+  "q.empty_name": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0002,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.0047,
+    "lines": 5
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0005,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0005,
+    "lines": 5
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0005,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.0005,
+    "lines": 5
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0015,
+    "lines": 4
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0005,
+   "decision": "keep reject"
+  },
+  "q.bad_pct": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0031,
+    "lines": 3
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0015,
+    "lines": 3
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.enc_amp_eq": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.2367,
+    "pct_sole": 0.012,
+    "pct_unique": 1.3285,
+    "lines": 5396
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.2304,
+    "pct_sole": 0.0,
+    "pct_unique": 0.6277,
+    "lines": 3812
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.5742,
+    "pct_sole": 0.2372,
+    "pct_unique": 0.6211,
+    "lines": 5684
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.5724,
+    "pct_sole": 0.2367,
+    "pct_unique": 0.6192,
+    "lines": 5660
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.1241,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.5393,
+    "lines": 4524
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.1245,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.5432,
+    "lines": 3941
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0003,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0316,
+    "lines": 11
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0003,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0291,
+    "lines": 10
+   },
+   "max_modern_benign_pct": 0.5724,
+   "decision": "flip"
+  },
+  "q.enc_semicolon": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.1476,
+    "pct_sole": 0.0003,
+    "pct_unique": 0.8545,
+    "lines": 3365
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.1667,
+    "pct_sole": 0.0,
+    "pct_unique": 0.351,
+    "lines": 2759
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0114,
+    "pct_sole": 0.0064,
+    "pct_unique": 0.0124,
+    "lines": 113
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0114,
+    "pct_sole": 0.0064,
+    "pct_unique": 0.0124,
+    "lines": 113
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.121,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.3413,
+    "lines": 4414
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.1344,
+    "pct_sole": 0.0,
+    "pct_unique": 0.3948,
+    "lines": 4254
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.1667,
+   "decision": "flip"
+  },
+  "q.enc_plus": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0024,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0327,
+    "lines": 54
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0034,
+    "lines": 1
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0686,
+    "pct_sole": 0.0428,
+    "pct_unique": 0.0743,
+    "lines": 679
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0686,
+    "pct_sole": 0.0429,
+    "pct_unique": 0.0743,
+    "lines": 678
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.008,
+    "pct_sole": 0.0008,
+    "pct_unique": 0.1508,
+    "lines": 293
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0018,
+    "pct_sole": 0.0005,
+    "pct_unique": 0.0909,
+    "lines": 57
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0126,
+    "lines": 4
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0129,
+    "lines": 4
+   },
+   "max_modern_benign_pct": 0.0686,
+   "decision": "keep reject"
+  },
+  "q.enc_pct": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0143,
+    "pct_sole": 0.0089,
+    "pct_unique": 0.3119,
+    "lines": 325
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.3604,
+    "pct_sole": 0.0725,
+    "pct_unique": 0.3907,
+    "lines": 3568
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.3597,
+    "pct_sole": 0.072,
+    "pct_unique": 0.39,
+    "lines": 3557
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0036,
+    "pct_sole": 0.0004,
+    "pct_unique": 0.096,
+    "lines": 132
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0006,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0455,
+    "lines": 19
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.3597,
+   "decision": "flip"
+  },
+  "q.enc_nul_ctrl": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0008,
+    "pct_sole": 0.0002,
+    "pct_unique": 0.0234,
+    "lines": 18
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0029,
+    "pct_sole": 0.0016,
+    "pct_unique": 0.0032,
+    "lines": 29
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0029,
+    "pct_sole": 0.0016,
+    "pct_unique": 0.0032,
+    "lines": 29
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0075,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.2422,
+    "lines": 274
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0056,
+    "pct_sole": 0.0,
+    "pct_unique": 0.2824,
+    "lines": 177
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0126,
+    "lines": 4
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0097,
+    "lines": 3
+   },
+   "max_modern_benign_pct": 0.0029,
+   "decision": "keep reject"
+  },
+  "q.enc_nonascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0084,
+    "pct_sole": 0.0005,
+    "pct_unique": 0.0764,
+    "lines": 192
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.329,
+    "pct_sole": 0.2158,
+    "pct_unique": 0.3564,
+    "lines": 3257
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.3294,
+    "pct_sole": 0.216,
+    "pct_unique": 0.3569,
+    "lines": 3257
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0044,
+    "pct_sole": 0.0009,
+    "pct_unique": 0.1051,
+    "lines": 159
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0016,
+    "pct_sole": 0.0,
+    "pct_unique": 0.1244,
+    "lines": 52
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "max_modern_benign_pct": 0.3294,
+   "decision": "flip"
+  },
+  "q.plus": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.025,
+    "pct_sole": 0.0118,
+    "pct_unique": 0.1731,
+    "lines": 570
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0126,
+    "pct_sole": 0.0126,
+    "pct_unique": 0.0067,
+    "lines": 209
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.4446,
+    "pct_sole": 0.3091,
+    "pct_unique": 0.4817,
+    "lines": 4401
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.4438,
+    "pct_sole": 0.3092,
+    "pct_unique": 0.4809,
+    "lines": 4388
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0247,
+    "pct_sole": 0.0076,
+    "pct_unique": 0.2179,
+    "lines": 899
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.009,
+    "pct_sole": 0.0079,
+    "pct_unique": 0.0646,
+    "lines": 284
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0654,
+    "pct_sole": 0.0001,
+    "pct_unique": 5.5219,
+    "lines": 2262
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0649,
+    "pct_sole": 0.0001,
+    "pct_unique": 5.4886,
+    "lines": 2183
+   },
+   "max_modern_benign_pct": 0.4438,
+   "decision": "flip"
+  },
+  "q.semicolon": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.8481,
+    "pct_sole": 0.0011,
+    "pct_unique": 0.8748,
+    "lines": 19331
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 1.0879,
+    "pct_sole": 0.0,
+    "pct_unique": 0.9416,
+    "lines": 18001
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.1274,
+    "pct_sole": 0.0183,
+    "pct_unique": 0.1354,
+    "lines": 1261
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.1259,
+    "pct_sole": 0.0168,
+    "pct_unique": 0.1339,
+    "lines": 1245
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 1.7001,
+    "pct_sole": 0.0358,
+    "pct_unique": 29.792,
+    "lines": 61994
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 1.8407,
+    "pct_sole": 0.0003,
+    "pct_unique": 43.0079,
+    "lines": 58264
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0032,
+    "lines": 1
+   },
+   "max_modern_benign_pct": 1.0879,
+   "decision": "flip"
+  },
+  "q.raw_nonascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0005,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0094,
+    "lines": 12
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0009,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0076,
+    "lines": 34
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0048,
+    "lines": 2
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.space": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0015,
+    "lines": 1
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0024,
+    "lines": 1
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0008,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0284,
+    "lines": 29
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0008,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0291,
+    "lines": 28
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.fragment": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.raw_ctrl": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.other_forbidden_ascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0348,
+    "pct_sole": 0.0225,
+    "pct_unique": 0.6222,
+    "lines": 794
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0925,
+    "pct_sole": 0.016,
+    "pct_unique": 0.7511,
+    "lines": 3373
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0017,
+    "pct_sole": 0.0003,
+    "pct_unique": 0.0885,
+    "lines": 54
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "q.dup_name": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0064,
+    "pct_sole": 0.0021,
+    "pct_unique": 0.1606,
+    "lines": 146
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0001,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0034,
+    "lines": 2
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.1787,
+    "pct_sole": 0.1302,
+    "pct_unique": 0.1937,
+    "lines": 1769
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.1789,
+    "pct_sole": 0.1304,
+    "pct_unique": 0.194,
+    "lines": 1769
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0751,
+    "pct_sole": 0.0169,
+    "pct_unique": 1.2661,
+    "lines": 2740
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0003,
+    "pct_sole": 0.0001,
+    "pct_unique": 0.0096,
+    "lines": 10
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.1789,
+   "decision": "flip"
+  },
+  "h.userinfo": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.ip_literal": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.bad_port": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.non_ascii": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.too_long": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.trailing_dot": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.ipv4_noncanonical": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.underscore": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0019,
+    "pct_sole": 0.0019,
+    "pct_unique": 0.0,
+    "lines": 19
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0019,
+    "pct_sole": 0.0019,
+    "pct_unique": 0.0,
+    "lines": 19
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0019,
+   "decision": "keep reject"
+  },
+  "h.label_not_ldh_other": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.reserved_rldh": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "h.bad_alabel": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 0.0,
+    "pct_sole": 0.0,
+    "pct_unique": 0.0,
+    "lines": 0
+   },
+   "max_modern_benign_pct": 0.0,
+   "decision": "keep reject"
+  },
+  "p.trailing_slash_308": {
+   "secrepo-2024-2026/raw": {
+    "pct_lines": 4.2786,
+    "pct_sole": 0.0,
+    "pct_unique": 5.0724,
+    "lines": 97524
+   },
+   "secrepo-2024-2026/benign": {
+    "pct_lines": 2.2863,
+    "pct_sole": 0.0,
+    "pct_unique": 3.4155,
+    "lines": 37831
+   },
+   "cc-main-2026-43/raw": {
+    "pct_lines": 40.4763,
+    "pct_sole": 0.0,
+    "pct_unique": 41.9998,
+    "lines": 400697
+   },
+   "cc-main-2026-43/benign": {
+    "pct_lines": 40.5167,
+    "pct_sole": 0.0,
+    "pct_unique": 42.0462,
+    "lines": 400612
+   },
+   "secrepo-2017-2023/raw": {
+    "pct_lines": 3.5209,
+    "pct_sole": 0.0,
+    "pct_unique": 29.6808,
+    "lines": 128389
+   },
+   "secrepo-2017-2023/benign": {
+    "pct_lines": 3.5183,
+    "pct_sole": 0.0,
+    "pct_unique": 44.4867,
+    "lines": 111364
+   },
+   "nasa-1995/raw": {
+    "pct_lines": 4.8854,
+    "pct_sole": 0.0,
+    "pct_unique": 4.0633,
+    "lines": 169026
+   },
+   "nasa-1995/benign": {
+    "pct_lines": 4.8933,
+    "pct_sole": 0.0,
+    "pct_unique": 4.064,
+    "lines": 164713
+   },
+   "max_modern_benign_pct": 40.5167,
+   "decision": "already 308"
+  }
+ },
+ "disagreements": {
+  "secrepo-2024-2026": {
+   "examples": []
+  },
+  "cc-main-2026-43": {
+   "examples": []
+  },
+  "secrepo-2017-2023": {
+   "examples": []
+  },
+  "nasa-1995": {
+   "examples": []
+  }
+ }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "q3-001",
+  "question": "TLS 1.3 handshake capacity of one $5 1-vCPU KVM core (full/resumed x X25519/hybrid; steal, kernel), incl. reject-after-full-TLS (429) rate",
+  "flips_if": "hybrid >1.3x -> R-PERF-1; <500 full hs/s -> S0.5 retune",
+  "measured": {
+    "label": "N95 1-core stand-in, not a KVM VPS; grade <=B",
+    "hardware": "kamrui: Intel N95 (4 Gracemont cores, no SMT), bare metal, kernel 6.17.0-41-generic, governor powersave (intel_pstate), server core clock 1.40-1.55 GHz under load; steal 0 jiffies; loadavg 0.44 at start (Forgejo idle)",
+    "conditions": "rustls 0.23.46 + aws-lc-rs 1.18.2, TLS 1.3, ECDSA-P256 cert, single-threaded poll(2) server pinned to core 3, 24-thread load generator on cores 0-2 (same package), loopback TCP, 2 session tickets/conn, 5 reps ABBA x 8 s; bands = min-max (median)",
+    "full_hs_per_s": {"X25519": "948-1045 (1022)", "X25519MLKEM768": "910-927 (924)", "SecP256r1MLKEM768": "813-843 (832)"},
+    "resumed_hs_per_s": {"X25519": "998-1029 (1018)", "X25519MLKEM768": "836-884 (869)", "SecP256r1MLKEM768": "761-820 (795)"},
+    "reject_after_full_tls_429_per_s": {"X25519": "980-1040 (1037)", "X25519MLKEM768": "872-916 (906)", "SecP256r1MLKEM768": "816-845 (829)"},
+    "reject_after_full_tls_no_tickets_per_s": {"X25519": "1080-1132 (1107)", "X25519MLKEM768": "978-986 (981)", "SecP256r1MLKEM768": "858-903 (881)"},
+    "server_cpu_us_per_full_hs": {"X25519": "955-1037 (974)", "X25519MLKEM768": "1079-1098 (1083)", "SecP256r1MLKEM768": "1185-1230 (1200)"},
+    "hybrid_ratio_X25519MLKEM768": {"full": "1.11 (1.04-1.15)", "resumed": "1.17 (1.13-1.23)", "reject": "1.14 (1.07-1.19)"},
+    "hybrid_ratio_SecP256r1MLKEM768": {"full": "1.23 (1.14-1.29)", "resumed": "1.28 (1.22-1.35)", "reject": "1.25 (1.16-1.27)"},
+    "resumed_over_full": "1.01 X25519, 1.06 X25519MLKEM768 (PSK-DHE + 2 new tickets: resumption is not cheaper server-side)",
+    "laptop_contrast": "i9-14900HX, contended (loadavg 10-40), provisional: X25519 full 113-137 us/hs (125), X25519MLKEM768 139 us/hs, ratio 1.11 (0.99-1.26); N95 is ~7.8x slower per handshake"
+  },
+  "verdict": "keep",
+  "decision_effect": "R-PERF-1 / BENCH_PLAN W2 'hybrid <=1.3x X25519' unchanged (X25519MLKEM768 1.11x full, <=1.23x worst band). S0.5 unchanged (>=813 full hs/s per core on the stand-in; thin margin: the 50% reservation leaves ~410-520 full hs/s). Not a trigger but a correction for the spec author: ARCHITECTURE s6 household row should read 'N95 1-core stand-in (B, not a KVM VPS): ~0.98-1.04k req/s 429-after-full-TLS X25519, ~0.87-0.92k X25519MLKEM768 (1.08-1.13k / ~0.98k without tickets); real-KVM value unmeasured, expected between this floor and the E-graded 3.1-3.7k / 2.7-3.3k'; the laptop x 0.5 scale factor is not supported (N95 factor ~0.13). Optional: send no session tickets on connections that are being refused (saves 6-8%). Watch item: SecP256r1MLKEM768 resumed/no-ticket bands reach 1.32-1.35x.",
+  "rung": "measurement grade B (single LAN stand-in host, bare-metal N95, co-located load generator); not a T1 KVM result",
+  "reproduce": "cd spikes/q3-001 && CARGO_TARGET_DIR=$PWD/target ../../ci/heavy.sh cargo build --release --offline && scp target/release/hsbench bench.sh kamrui:aegis-spike-q3/ && ssh kamrui 'cd ~/aegis-spike-q3 && ./bench.sh ./hsbench kamrui-hs.jsonl 3 0-2 5 8 24' && scp kamrui:aegis-spike-q3/kamrui-hs.jsonl . && python3 -I summarize.py kamrui-hs.jsonl",
+  "limits": "Not a KVM guest (no hypervisor, no steal, no neighbours, no SMT sibling); N95 under powersave at ~1.5 GHz is likely slower than a typical $5 vCPU, so absolutes are a pessimistic floor and ratios are what transfers. Load generator shares the package (clock, L2). Loopback TCP only; single-threaded poll server, not the AEGIS tokio stack; ECDSA-P256 cert only. Remote-load-generator variant contaminated by another agent's CI jobs on kamrui and not used. Laptop contrast contended; its SecP256r1MLKEM768 rows invalid.",
+  "date": "2026-10-25"
+}

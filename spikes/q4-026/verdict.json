@@ -1,0 +1,35 @@
+{
+  "id": "q4-026",
+  "question": "0x11ED KxGroup interop + FIPS-boundary check",
+  "flips_if": "interop fails -> P-UNIVERSAL fallback (P-BSI-ALT minus 0x11ED + pure ML-KEM-1024)",
+  "measured": {
+    "hardware": "laptop i9-14900HX, Linux 6.17, loopback TCP + in-memory (laptop, grade-B ceiling); 2026-10-25",
+    "implementation": "spikes/q4-026/src/kx.rs, 253 lines, rustls 0.23.46 public SupportedKxGroup/ActiveKeyExchange API on aws-lc-rs 1.18.2 (aws-lc-sys 0.46.0, non-FIPS) ECDH P-384 + ML-KEM-1024; wire format per RFC 10024 (ex draft-ietf-tls-ecdhe-mlkem-05) 4.1/4.2/4.3: share = P-384 point(97)||ML-KEM(1568) = 1665 B both directions; secret = ECDH x(48)||ML-KEM ss(32) = 80 B (classical FIRST, opposite of X25519MLKEM768)",
+    "interop": {
+      "rustls_server<-openssl_3.5.9_client": "PASS (direct; multi-group; HRR from X25519 to 0x11ED)",
+      "openssl_3.5.9_server<-rustls_client": "PASS (s_server groups [0x11ED] and [X25519MLKEM768,0x11ED]; 'Shared groups: SecP384r1MLKEM1024')",
+      "go_1.26.10_server<-rustls_client": "PASS (CurveID 0x11ed)",
+      "rustls_server<-go_1.26.10_client": "PASS",
+      "boringssl": "NOT TESTED (no readily available build)",
+      "order_mutant(ML-KEM-first secret)": "FAILS vs OpenSSL (bad record mac), Go (bad record MAC), rustls (DecryptError): interop check can go red"
+    },
+    "kat": "10/10 composite client-side KATs (RFC 5903 sec 8.2 P-384 + NIST ACVP ML-KEM-1024 decapsulation tc 96-105, incl. 5 implicit-rejection): secret == girx||k; no published 0x11ED vector exists (RFC 10024 has none)",
+    "negative": "15/15 handshake negative cases alert, 0 panics: malformed/short/long client share, bad point prefix, off-curve point, ek coefficient>=q -> server alert 47; wrong-length ciphertext (1567/0/1569), bad server point -> client alert 47; empty key_exchange (wire rewrite) -> alert 50 (rustls codec); same-length ct bitflip -> DecryptError at Finished. ACVP encapsulationKeyCheck: 5/5 invalid ek -> server alert 47, 5/5 valid accepted. Fuzz 3000 inputs: 0 panics, 0 accepted",
+    "selftest": "41 pass / 0 fail",
+    "build": "20 s, peak RSS 0.39 GB, target/ 124 MB (deleted)",
+    "fips_boundary": "document check (grade C): CMVP #5298/#5314 (AWS-LC FIPS 3.1.0) list ML-KEM KeyGen+EncapDecap for ML-KEM-1024 (FIPS 203 sec 7.2/7.3) and KAS-ECC-SSC SP800-56Ar3 P-384 ephemeralUnified, KDA HKDF (shared secret 224-2048 bits; Z'=640 bits) as approved; SP 800-227 (Sept 2025) sec 4.6.2 eq.(14) approves the SP 800-56C KDM combiner if at least one input is approved (here both are); tested OE Amazon Linux 2023 only"
+  },
+  "verdict": "keep",
+  "decision_effect": "No flip. P-UNIVERSAL stays [0x11ED SecP384r1MLKEM1024] and P-BSI-ALT stays [0x11ED, 0x11EB]; the fallback (P-BSI-ALT minus 0x11ED + pure ML-KEM-1024) is NOT triggered. ARCHITECTURE 3.2 '0x11ED is AEGIS-owned' stands, with src/kx.rs as the seed for aegis-tls::kx::SecP384r1MlKem1024. Interop requirement 'OpenSSL 3.5+ and BoringSSL' is met for OpenSSL 3.5.9 (+ Go 1.26 as second independent stack); BoringSSL remains a Phase-6 gate item. FIPS: 0x11ED is inside the AWS-LC FIPS 3.1.0 approved boundary (both components approved; combiner approved by SP 800-227 4.6.2), so P-UNIVERSAL may claim FIPS on the cmvp build (AL2023 only, P-PQ5 module identity) -- spec author may add SECP384R1MLKEM1024 to the FIPS listener list in F12 with new verdict rows (not applied by this spike). Note for the cmvp lock: aws-lc-rs 1.15.3 lacks kem::DecapsulationKey::new, so the KAT constructor must be cfg-gated there.",
+  "rung": "R2 (executed against two independent TLS implementations) for interop; grade B (laptop) for measurements; grade C (documents only) for the FIPS-boundary answer",
+  "reproduce": [
+    "cd spikes/q4-026 && CARGO_TARGET_DIR=$PWD/target ../../ci/heavy.sh cargo build --offline",
+    "./target/debug/kx11ed selftest",
+    "docker build -t aegis-q4026-openssl -f interop/Dockerfile.openssl interop",
+    "ci/heavy.sh docker build -t aegis-q4026-gotls interop/go",
+    "see README 'Reproduce' for the exact s_server/s_client/Go/mutant commands",
+    "rm -rf target"
+  ],
+  "limits": "Laptop loopback, one run per case. No published composite KAT (component vectors used; client side only). BoringSSL not tested. rustls maps all kx errors to illegal_parameter (RFC's internal_error case unreachable). FIPS answer is desk-only: no aws-lc-fips-sys build, no config.fips(), cmvp lock (rustls 0.23.43/aws-lc-rs 1.15.3) source-inspected not compiled. Intermediate component secrets not zeroized. Kani share-parsing harness (Phase-6 gate) not written.",
+  "date": "2026-10-25"
+}
