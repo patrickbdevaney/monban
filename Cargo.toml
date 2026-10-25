@@ -37,6 +37,18 @@ aegis-types = { path = "crates/aegis-types" }
 aegis-wasm = { path = "crates/aegis-wasm" }
 aegis-sdk = { path = "sdk/aegis-sdk" }
 
+# Third-party floors (REPO_LAYOUT §1). Lock targets: supply-chain/lock-targets.toml. 7-day cooldown via
+# `cargo xtask lock-age`; security bypasses only through supply-chain/exceptions.toml.
+tokio = { version = "1.53.3", default-features = false }   # target 1.54.1 once ≥7 d old (2026-10-28)
+hyper = { version = "1.12.0", default-features = false }
+h2 = { version = "0.4.20", default-features = false }
+http = { version = "1.5.0", default-features = false, features = ["std"] }
+http-body-util = { version = "0.1.5", default-features = false }
+rustls = { version = "0.23.46", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum", "std"] }
+rustls-webpki = { version = "0.103.16", default-features = false }   # security floor (RUSTSEC-2026-0382); cooldown bypass ledgered
+tokio-rustls = { version = "0.26.6", default-features = false }
+aws-lc-rs = { version = "1.18.2", default-features = false, features = ["aws-lc-sys"] }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_debug_implementations = "warn"
