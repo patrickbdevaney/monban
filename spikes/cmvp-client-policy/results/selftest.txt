@@ -1,0 +1,13 @@
+srv_only                     expect PASS  compiled-out  got PASS  compiled-out  exit 0  ok
+pq_client                    expect PASS  pq-only       got PASS  pq-only       exit 0  ok
+bad_client                   expect FAIL  -             got FAIL  -             exit 1  ok
+bad_resume                   expect FAIL  -             got FAIL  -             exit 1  ok
+dead_client                  expect FAIL  -             got FAIL  -             exit 1  ok
+mut_srv_feature_on           expect FAIL  -             got FAIL  -             exit 1  ok
+mut_srv_stripped             expect ERROR -             got ERROR -             exit 2  ok
+mut_srv_client_bin           expect FAIL  -             got FAIL  -             exit 1  ok
+mut_pq_no_probe              expect FAIL  -             got FAIL  -             exit 1  ok
+mut_pq_bad_probe             expect FAIL  -             got FAIL  -             exit 1  ok
+mut_pq_clippy_dirty          expect FAIL  -             got FAIL  -             exit 1  ok
+mut_pq_second_suppression    expect FAIL  -             got FAIL  -             ok
+self-test mismatches: 0

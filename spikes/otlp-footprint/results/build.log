@@ -4,3 +4,9 @@ heavy.sh: waiting for the heavy-job lock (one at a time)...
 == build metrics+logs
 == build metrics+logs+otlp
 == build metrics+logs+otlp-grpc
+total 24164
+-rwxrwxr-x 1 patrickd patrickd 4124888 Oct 25 09:46 hello-base
+-rwxrwxr-x 1 patrickd patrickd 4173888 Oct 25 09:46 hello-metrics
+-rwxrwxr-x 1 patrickd patrickd 4706728 Oct 25 09:46 hello-metrics+logs
+-rwxrwxr-x 1 patrickd patrickd 5851224 Oct 25 09:46 hello-metrics+logs+otlp
+-rwxrwxr-x 1 patrickd patrickd 5870280 Oct 25 09:47 hello-metrics+logs+otlp-grpc

@@ -1,0 +1,26 @@
+artifact sha256 bytes nm_client nm_server map_client map_server
+srv_only 443c46fcf1e92240 5431872 0 98 0 116
+srv_only.stripped 68dfbe8161f8b945 3467800 0 0 0 116
+dead_client 5b79740a1af9ddf7 5432088 0 98 0 116
+pq_client b50c0c621eec7146 5742712 151 95 175 112
+pq_client.stripped 8dc4842a2d85c8f8 3722656 0 0 175 112
+bad_client 5b5aad572ff4abed 5743880 143 95 167 112
+bad_resume 2ab7adb8bdc8385d 5742032 143 95 167 112
+
+# .text sha256 (strip=none vs strip=symbols builds differ in bytes; linked symbol set identical modulo crate-hash back-refs)
+srv_only none=811d9fcf655a94b7 symbols=c1983e4cbbb6a5a1 symbol-set-diff-after-normalising=18
+pq_client none=f282e56d2b72c46e symbols=97c741a72884e8e7 symbol-set-diff-after-normalising=18
+
+# sample client symbols in pq_client (nm -C)
+  <alloc::sync::Arc<rustls::client::client_conn::ClientConfig>>::drop_slow
+  <core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<rustls::msgs::handshake::PresharedKeyBinder>, <rustls::client::ech::EchState>::grease_psk::{closure#0}>, core::result::Result<core::convert::Infallible, rustls::error::Error>> as core::iter::traits::iterator::Iterator>::next
+  core::panicking::assert_failed::<rustls::client::client_conn::EarlyDataState, rustls::client::client_conn::EarlyDataState>
+  core::ptr::drop_glue::<core::option::Option<rustls::client::common::ClientAuthDetails>>
+  core::ptr::drop_glue::<rustls::client::client_conn::connection::ClientConnection>
+  core::ptr::drop_glue::<rustls::client::ech::EchState>
+  core::ptr::drop_glue::<rustls::client::handy::cache::ClientSessionMemoryCache>
+  core::ptr::drop_glue::<rustls::client::handy::cache::ServerData>
+  core::ptr::drop_glue::<rustls::client::hs::ClientHelloInput>
+  core::ptr::drop_glue::<rustls::client::hs::ClientSessionValue>
+  core::ptr::drop_glue::<rustls::client::hs::ExpectServerHello>
+  core::ptr::drop_glue::<rustls::client::hs::ExpectServerHelloOrHelloRetryRequest>

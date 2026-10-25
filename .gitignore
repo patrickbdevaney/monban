@@ -15,3 +15,7 @@ spec/negative-control/.lake/
 gates/out/
 __pycache__/
 **/.lake/
+spikes/otlp-footprint/bins/
+spikes/cmvp-client-policy/out/
+spikes/q3-008/certs/
+*.map
