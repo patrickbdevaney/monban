@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# AEGIS oracle: crash harness (INV-DURABLE). Contract: oracles/README.md. Last line: CRASH-HARNESS: PASS|FAIL (...).
+#   ./run                     reduced run (default; < 10 min on the laptop)
+#   ./run --full              research-size run (CI/VPS job; see README)
+#   ./run --self-test         mutations that must be caught
+#   ./run --subject '<cmd> {dir}'   plug in a store speaking the subject protocol (README)
+#   --keep-build              keep rust/target (default: deleted at exit, laptop disk rule)
+# The whole run (build + simulation) holds the machine-wide heavy-job lock via ci/heavy.sh.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ -z "${AEGIS_CRASH_UNDER_HEAVY:-}" ]; then
+  exec env AEGIS_CRASH_UNDER_HEAVY=1 HEAVY_TIMEOUT="${HEAVY_TIMEOUT:-1800}" "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+keep=0; args=()
+for x in "$@"; do if [ "$x" = "--keep-build" ]; then keep=1; else args+=("$x"); fi; done
+cleanup() { [ "$keep" = 1 ] || rm -rf "$HERE/rust/target"; rm -rf "$HERE/.work/probe" "$HERE/.work/probe.log"*; }
+trap cleanup EXIT
+if ! cargo build --release --locked --quiet --manifest-path "$HERE/rust/Cargo.toml" --target-dir "$HERE/rust/target" >&2; then
+  echo "CRASH-HARNESS: FAIL (build of the reference subjects / tracing shim failed)"; exit 1
+fi
+python3 -I "$HERE/crashsim.py" "${args[@]}"

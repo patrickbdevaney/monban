@@ -1,0 +1,724 @@
+{
+ "_comment": "MCP listener/gateway corpus: the 43 cases of research round-004 06-corpus/corpus_expected.json (= the 33-case r2 advisory manifest l5.conformance-manifest + 10 cases N01..N10 for MCP 2026-07-28) plus token-passthrough, which research executed but left out of the 43. `executable` says whether THIS stdlib oracle can run it black-box; 'needs --x' means it runs only when that option is given (the self-test supplies all of them except --subject-pid). Machine-checkable expectations live in mcp_corpus.py next to each case and implement `expected` literally; every reject additionally requires HTTP 4xx and zero upstream handler invocations.",
+ "profile": {
+  "protocol_versions": {
+   "legacy": "2025-11-25",
+   "modern": "2026-07-28"
+  },
+  "auth": {
+   "scheme": "Bearer JWT",
+   "alg": "HS256",
+   "secret": "aegis-oracle-test-secret-NOT-FOR-PRODUCTION",
+   "iss": "https://issuer.oracle.test",
+   "aud": "the full route URL (RFC 8707 resource), e.g. http://127.0.0.1:PORT/mcp"
+  },
+  "allowed_hosts": [
+   "127.0.0.1:PORT",
+   "localhost:PORT"
+  ],
+  "allowed_origins": [
+   "http://127.0.0.1:PORT",
+   "http://localhost:PORT"
+  ],
+  "upstream": "the oracle's mock upstream (tool `echo` with argument `x`); every request it receives counts as one handler invocation",
+  "routes": {
+   "--subject": "route 1",
+   "--subject-url2": "route 2, own audience",
+   "--subject-redir-url": "route whose upstream is <mock>/redir (307 to a second origin)",
+   "--subject-multi-url": "route multiplexing two upstreams that both expose `echo`"
+  }
+ },
+ "cases": [
+  {
+   "id": "host-allowlist-required",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-w48q-cv73-mx4w",
+    "GHSA-9h52-p55h-vw2f",
+    "GHSA-xw59-hvm2-8pj6",
+    "GHSA-8jxr-pr72-r468",
+    "GHSA-46gc-mwh4-cc5r",
+    "GHSA-vcc9-3xgm-p9v4",
+    "GHSA-7h6f-8rq9-53cw"
+   ],
+   "basis": "SPEC MUST(Origin->403) + Host practice(421/403)",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "reject 4xx on evil Host, evil Origin, and Host+Origin rebind-shape; handler counter unchanged",
+   "research_manifest_expect": "POST with Host: evil.example to loopback listener -> 403, no handler call",
+   "research_status_vs_2026_07_28": "KEEP (Origin MUST unchanged in 2026-07-28 streamable-http)"
+  },
+  {
+   "id": "reject-text-plain-post",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-89xv-2j6f-qhc8",
+    "GHSA-hp8w-r5wh-cw9q"
+   ],
+   "basis": "CSRF simple-request",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "text/plain cross-site POST -> 4xx, no session minted, no handler",
+   "research_manifest_expect": "POST Content-Type text/plain, any Origin -> 415 or 403, handler not invoked",
+   "research_status_vs_2026_07_28": "KEEP; under modern the required Mcp-Method/MCP-Protocol-Version headers force preflight (add N09)"
+  },
+  {
+   "id": "no-wildcard-cors",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-hv2w-8mjj-jw22"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "no ACAO '*' and no reflected evil origin on preflight or POST",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "ws-origin-check",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-vj7q-gjh5-988w"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "yes",
+   "expected": "Upgrade with evil Origin never 101",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "KEEP only if listener has WS; all 14 targets NA (no WS surface)"
+  },
+  {
+   "id": "host-allowlist-required;h2-authority",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-89vp-x53w-74fx"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "no: needs an h2c client (no stdlib HTTP/2; research used python h2). Pending: Rust or hand-rolled HPACK probe",
+   "expected": "h2c :authority evil -> 4xx",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "KEEP; split into own id"
+  },
+  {
+   "id": "proxy-token-required",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-7f8r-222p-6f5g"
+   ],
+   "basis": "ADVISORY inspector",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: MCP Inspector proxy specific (research: DROP from listener corpus)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP from listener corpus (Inspector-proxy-specific); replaced by unauth-listener-refused"
+  },
+  {
+   "id": "absent-origin-fail-closed",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-wmjf-2m46-2352"
+   ],
+   "basis": "AEGIS hardening (not spec MUST)",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "no Origin + ambient cookie + Sec-Fetch-Site cross-site -> 4xx",
+   "research_manifest_expect": "no Origin + ambient credential -> 403; no Origin + bearer -> allowed",
+   "research_status_vs_2026_07_28": "KEEP as AEGIS-only; spec only requires rejecting PRESENT invalid Origin; 13/14 FAIL"
+  },
+  {
+   "id": "token-not-to-app-origin",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-6x67-4w4w-9f3w"
+   ],
+   "basis": "ADVISORY inspector UI",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: Inspector UI specific (research: DROP)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP (client/UI-specific)"
+  },
+  {
+   "id": "session-principal-binding",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-jpw9-pfvf-9f58",
+    "GHSA-hqg7-qjgg-q779"
+   ],
+   "basis": "ADVISORY; spec 2025-11-25 SHOULD bind",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "yes",
+   "expected": "Bob presenting Alice session id -> 4xx",
+   "research_manifest_expect": "session minted by A used by B -> 404, A's state unchanged",
+   "research_status_vs_2026_07_28": "MODIFY -> state-handle-principal-binding: 2026-07-28 removes Mcp-Session-Id; spec 'State Handle Hijacking': MUST NOT treat possession of handle as authentication; keep legacy variant while serving <=2025-11-25"
+  },
+  {
+   "id": "session-route-pin",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-mvgg-jvj2-4frq"
+   ],
+   "basis": "ADVISORY GHSA-mvgg",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "needs --subject-url2",
+   "expected": "session from route X on route Y -> 404",
+   "research_manifest_expect": "session from route X on route Y -> 404",
+   "research_status_vs_2026_07_28": "MODIFY -> handle-route-pin for sealed requestState/task handles"
+  },
+  {
+   "id": "task-cross-principal-404",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-hvrp-rf83-w775",
+    "GHSA-22jm-h49p-29qw"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: needs tasks extension + two principals (research: not executed)",
+   "expected": "B get/cancel A task -> 404",
+   "research_manifest_expect": "B get/cancel A's task -> 404",
+   "research_status_vs_2026_07_28": "MODIFY: tasks moved to extension io.modelcontextprotocol/tasks (SEP-2663); tasks/list removed; tasks/get+tasks/update remain"
+  },
+  {
+   "id": "id-collision-two-clients",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-345p-7cg4-v4c7",
+    "GHSA-jm63-cq47-j5jp"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "each client gets its own result for the same JSON-RPC id",
+   "research_manifest_expect": "two clients same JSON-RPC id concurrently -> each gets own result",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "token-wrong-audience-401",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-rvq5-wwqv-78pq",
+    "GHSA-w4fh-qvv9-3v23"
+   ],
+   "basis": "SPEC MUST NOT accept tokens not issued for the server",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "only aud-correct token accepted; aud-other/omitted/expired/wrong-iss/nbf/alg=none/HS256-confusion/tampered -> 401",
+   "research_manifest_expect": "valid token aud=other -> 401 invalid_token",
+   "research_status_vs_2026_07_28": "KEEP (strengthened: security_best_practices Token Passthrough)"
+  },
+  {
+   "id": "oauth-issuer-pin",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-6qxp-vccf-f47h",
+    "GHSA-qx49-fqc8-xw99"
+   ],
+   "basis": "SPEC MUST (RFC 9207 iss, SEP-2468)",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: client-side (AS mix-up)",
+   "expected": "-",
+   "research_manifest_expect": "AS metadata issuer != pinned -> abort, no credentials sent",
+   "research_status_vs_2026_07_28": "KEEP but CLIENT-side; belongs to client harness (conformance auth/iss-* client scenarios exist)"
+  },
+  {
+   "id": "resource-mismatch",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-33f5-2c5q-wgwj"
+   ],
+   "basis": "client",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: client-side (PRM.resource)",
+   "expected": "-",
+   "research_manifest_expect": "PRM.resource != URL -> abort",
+   "research_status_vs_2026_07_28": "KEEP client-side (conformance auth/resource-mismatch)"
+  },
+  {
+   "id": "ssrf-resolved-address",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-c9xm-49cp-xcr9",
+    "GHSA-5p52-q7pq-9fq2",
+    "GHSA-625j-rw87-4ghr"
+   ],
+   "basis": "SPEC SHOULD",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: needs attacker-controlled egress targets (research: spike)",
+   "expected": "-",
+   "research_manifest_expect": "hostname resolving to 127.0.0.1/169.254.169.254 at connect -> blocked; DNS rebinding between check and connect -> blocked",
+   "research_status_vs_2026_07_28": "KEEP; needs attacker-controlled target; spike"
+  },
+  {
+   "id": "redirect-strip-headers",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-6prh-2h8m-c8cw",
+    "GHSA-5h93-6whr-6q8j",
+    "GHSA-9g45-5xwm-f3wc",
+    "GHSA-f6mc-jg3x-vq53"
+   ],
+   "basis": "ADVISORY; SPEC SHOULD not blindly follow redirects",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "needs --subject-redir-url",
+   "expected": "cross-origin redirect never followed with credentials",
+   "research_manifest_expect": "302 to other origin -> Authorization/custom headers/body absent",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "json-case-variant-reject",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-wvj2-96wp-fq3f"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "Method / TOOLS/CALL rejected, handler untouched",
+   "research_manifest_expect": "{\"Method\":..} -> -32700/-32600, policy sees same as backend",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "json-dup-nul-reject",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-q382-vc8q-7jhj",
+    "GHSA-hxx3-f8cg-r974"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "duplicate method key / NUL key -> reject (not last-wins)",
+   "research_manifest_expect": "duplicate key or NUL key -> reject",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "json-bom-reject",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-9v4w-3mqh-6vmm"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "BOM body rejected or normalised before policy",
+   "research_manifest_expect": "BOM-prefixed body -> reject or normalise before policy",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "policy-fail-closed",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-vpfq-5j3m-j36r",
+    "GHSA-g7gq-2r4g-3qw8"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "1e1000 name, non-JSON content-type -> deny",
+   "research_manifest_expect": "1e1000 name / non-JSON content-type -> deny, middleware still runs",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "toolname-collision",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-qg99-jrvf-j9fh",
+    "GHSA-m5m2-mrxf-7j7q"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "needs --subject-multi-url",
+   "expected": "duplicate/case-variant names rejected at registration",
+   "research_manifest_expect": "case-variant/shadow name -> rejected at registration",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "unauth-listener-refused",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-g879-4j4f-6vj7"
+   ],
+   "basis": "ADVISORY GHSA-g879; spec SHOULD authenticate",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "tools/list without credential -> 401/403 in default build",
+   "research_manifest_expect": "construct listener without authenticator -> error",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "path-allowlist",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-mqq5-qh4g-2g8g"
+   ],
+   "basis": "ADVISORY docker",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: container launcher specific (research: DROP)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP from listener corpus (container-launcher specific)"
+  },
+  {
+   "id": "scheme-allowlist",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-6pq5-p7fc-7xhq"
+   ],
+   "basis": "ADVISORY docker",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: launcher specific (research: DROP)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP (launcher)"
+  },
+  {
+   "id": "verify-default-on",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-6m8f-w97w-99h7"
+   ],
+   "basis": "ADVISORY docker",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: launcher specific (research: DROP)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP (launcher); read: docker-mcp v0.44.2 default true"
+  },
+  {
+   "id": "argv-injection",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-r2xf-7jw5-pjg6"
+   ],
+   "basis": "ADVISORY docker",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: launcher specific (research: DROP)",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "DROP (launcher)"
+  },
+  {
+   "id": "openapi-traversal",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-v2x6-wwfw-r2rq",
+    "GHSA-h7hp-2f8r-9g9c"
+   ],
+   "basis": "ADVISORY agentgateway",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: needs an OpenAPI backend (research: not executed, spike)",
+   "expected": "traversal params -> upstream 0 requests",
+   "research_manifest_expect": "param ../, ..\\, %2e%2e, repeated separators -> upstream receives 0 requests",
+   "research_status_vs_2026_07_28": "KEEP; not executed (needs openapi backend; spike)"
+  },
+  {
+   "id": "session-table-bound",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-9pj6-vhgr-3mwh",
+    "GHSA-84m7-p3x7-pcfv",
+    "GHSA-2hm9-qff2-hrpj"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "needs --subject-pid",
+   "expected": "N unauth initialize -> bounded, TTL reclaimed",
+   "research_manifest_expect": "10^5 unauth initialize -> memory bounded, entries reclaimed by TTL",
+   "research_status_vs_2026_07_28": "DROP for modern (no sessions); KEEP for legacy compat window; add bounded-handle-store for MRTR/tasks"
+  },
+  {
+   "id": "cache-bound",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-4432-vg92-fqh6"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "needs --subject-pid",
+   "expected": "varied unauth requests -> bounded memory",
+   "research_manifest_expect": "unauth varied requests -> cache size bounded",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "body-cap-413",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-fmmv-w9g8-j3gc",
+    "GHSA-4x8c-5vv7-973f",
+    "GHSA-f897-62hf-6gxq"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "64MiB body -> 413 before buffering",
+   "research_manifest_expect": "body > cap or batch > N -> 413 before buffering",
+   "research_status_vs_2026_07_28": "KEEP"
+  },
+  {
+   "id": "amplification-bound",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-46jr-4wx8-v453"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "200k-deep nesting rejected, server alive",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "KEEP (depth proxy only)"
+  },
+  {
+   "id": "oauth-state-bound",
+   "set": "advisory-33",
+   "advisories": [
+    "GHSA-2gjv-f568-6cxp"
+   ],
+   "basis": "ADVISORY",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "no: client-side",
+   "expected": "-",
+   "research_manifest_expect": "see advisory",
+   "research_status_vs_2026_07_28": "KEEP client-side"
+  },
+  {
+   "id": "N01-header-mismatch-protocol-version",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC MUST 400+-32020",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "MCP-Protocol-Version header != _meta -> 400 HeaderMismatch",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N02-missing-mcp-method-header",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC MUST",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "missing Mcp-Method -> 400 -32020",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N03-mcp-name-mismatch",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC MUST",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "Mcp-Name != params.name -> 400 -32020",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD (gateway header/body differential: if gateway routes on header)"
+  },
+  {
+   "id": "N04-unsupported-protocol-version",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC MUST",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "unknown version -> 400 -32022 listing supported",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N05-no-session-id-issued",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC SEP-2567",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "no Mcp-Session-Id header on any response",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N06-removed-ping",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC SEP-2575",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "ping -> 404 + -32601",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD (also logging/setLevel, roots/list_changed, resources/subscribe)"
+  },
+  {
+   "id": "N07-get-endpoint-removed",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC SEP-2575",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "GET -> 405/404",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD (replaces GET SSE listener, Last-Event-ID)"
+  },
+  {
+   "id": "N08-initialize-under-modern",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "conformance server-stateless",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "initialize -> 404 -32601",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N09-simple-request-cannot-reach-modern",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC SEP-2243 consequence",
+   "eras": [
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "text/plain w/o MCP headers -> 400/415",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "ADD"
+  },
+  {
+   "id": "N10-delete-session-legacy",
+   "set": "spec-2026-07-28",
+   "advisories": [],
+   "basis": "SPEC 2025-11-25",
+   "eras": [
+    "legacy"
+   ],
+   "executable": "yes",
+   "expected": "DELETE ends session, reuse 404",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "KEEP only for legacy window"
+  },
+  {
+   "id": "token-passthrough",
+   "set": "extra",
+   "advisories": [],
+   "basis": "SPEC MUST NOT (2026-07-28 authorization / security best practices: Token Passthrough)",
+   "eras": [
+    "legacy",
+    "modern"
+   ],
+   "executable": "yes",
+   "expected": "client Authorization/Cookie/X-Api-Key never reach the upstream; request itself succeeds",
+   "research_manifest_expect": null,
+   "research_status_vs_2026_07_28": "implemented in research corpus_ext.py but absent from corpus_expected.json (the 43)"
+  }
+ ]
+}

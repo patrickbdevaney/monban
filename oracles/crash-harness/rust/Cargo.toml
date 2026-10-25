@@ -1,0 +1,15 @@
+# Own workspace (excluded from the main AEGIS workspace via its `exclude = ["oracles", ...]`).
+# Built ONLY through ../run, which runs under ci/heavy.sh.
+[workspace]
+resolver = "3"
+members = ["shim", "refstore"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[profile.release]
+opt-level = 2
+debug = false
+codegen-units = 16
+panic = "unwind"

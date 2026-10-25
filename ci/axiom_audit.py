@@ -18,8 +18,20 @@ if os.path.exists(man):
     pk = json.load(open(man)).get("packages", [])
     if pk: fail.append(f"manifest has dependencies {[p.get('name') for p in pk]} (golden policy: none; Mathlib forbidden)")
 roots = [r for lib in cfg["lean_lib"] for r in lib["roots"]]
+# Scan EVERY .lean module in the package, not just the roots: an axiom or `sorry` in an imported helper module is
+# still in the trusted closure (known-false-proofs case `hidden-axiom`).
+mods = []
+for dp, dn, fn in os.walk(proj):
+    dn[:] = [d for d in dn if not d.startswith(".") and d != "negative-control"]
+    for f in fn:
+        if f.endswith(".lean") and not (dp == proj and f.startswith("lakefile")):
+            mods.append(".".join(os.path.relpath(os.path.join(dp, f[:-5]), proj).split(os.sep)))
+lib = os.path.join(proj, ".lake", "build", "lib", "lean")
+for m in mods:
+    if not os.path.exists(os.path.join(lib, *m.split(".")) + ".olean"):
+        fail.append(f"{m}: module not in the build closure (make it a root or delete it; unbuilt sources are unaudited)")
 names = []
-for r in roots:
+for r in sorted(set(mods)):
     path = os.path.join(proj, *r.split(".")) + ".lean"
     src = open(path).read()
     nocomment = re.sub(r"/-.*?-/", "", src, flags=re.S)
@@ -34,9 +46,10 @@ for r in roots:
         if m: ns.append(m.group(1)); continue
         m = re.match(r"\s*end\s+(\S+)", line)
         if m and ns and ns[-1] == m.group(1): ns.pop(); continue
-        m = re.match(r"\s*(?:private\s+)?(?:theorem|lemma)\s+([^\s(:{\[]+)", line)
+        # Attributes, docstring-free modifiers and visibility may precede the keyword on the same line.
+        m = re.match(r"\s*(?:@\[[^\]]*\]\s*)*(?:(?:private|protected|noncomputable|nonrec|partial)\s+)*(?:theorem|lemma)\s+([^\s(:{\[]+)", line)
         if m: names.append(((".".join(ns) + ".") if ns else "") + m.group(1))
-audit = "\n".join(f"import {r}" for r in roots) + "\n" + "\n".join(f"#print axioms {n}" for n in names) + "\n"
+audit = "\n".join(f"import {r}" for r in sorted(set(mods))) + "\n" + "\n".join(f"#print axioms {n}" for n in names) + "\n"
 af = os.path.join(proj, ".lake", "Audit.lean"); os.makedirs(os.path.dirname(af), exist_ok=True)
 open(af, "w").write(audit)
 env = dict(os.environ, LEAN_PATH=os.path.join(proj, ".lake", "build", "lib", "lean"))

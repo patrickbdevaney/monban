@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# AEGIS oracle: cancel sweep (INV-NOMUT-C NC1/NC2/NC3/NC5 + NC4, CRS C5). Contract: oracles/README.md.
+#   ./run [--seeds N] [--modes drop,rst,timeout,stage_timeout,crash]   reference model (default 200 seeds)
+#   ./run --self-test                                                   mutations that must be caught
+#   ./run --subject '<cmd>'                                             external subject (README event protocol)
+# Last line: CANCEL-SWEEP: PASS|FAIL (...). Runs under ci/heavy.sh (simulation = heavy job by repo rule).
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ -z "${AEGIS_CANCEL_UNDER_HEAVY:-}" ]; then
+  exec env AEGIS_CANCEL_UNDER_HEAVY=1 "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+exec python3 -I "$HERE/cancelsweep.py" "$@"

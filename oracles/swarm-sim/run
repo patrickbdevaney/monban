@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# SWARM-SIM oracle entry point (oracles/README.md contract). ADVISORY (record_only). Stdlib Python, isolated mode.
+# The full panel takes ~1-2 min: run it through ci/heavy.sh.
+set -u
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I -B "$here/swarm_oracle.py" "$@"

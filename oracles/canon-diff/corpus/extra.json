@@ -1,0 +1,31 @@
+{
+ "_comment": "Hand-written by the porter (not research). Fills gaps of research_corpus.json: query kind, CANON-6 request binding grid, Unicode-lowercasing traps, %25 double-decode, NBSP cookies. The request grid is the cartesian product proto x authority x host-list x sni x origin, built by canon_diff.py with `vhosts` embedded in every input.",
+ "vhosts": {
+  "example.com": ["https://example.com"],
+  "api.example.com": ["https://example.com", "https://api.example.com"],
+  "xn--fa-hia.de": ["https://xn--fa-hia.de"],
+  "example.com:8443": ["https://example.com:8443"]
+ },
+ "request_grid": {
+  "proto": ["h1", "h2"],
+  "scheme": ["https"],
+  "authority": ["example.com", "EXAMPLE.com", "example.com:443", "example.com:8443", "example.com:0443", "example.com:", "example.com.", "user@example.com", "user:pw@example.com", "evil.example", "api.example.com", "xn--fa-hia.de", "fa\u00df.de", "[::1]", "ex%61mple.com", "\u212aexample.com"],
+  "host_lists": ["none", "same", "same-upper", "other", "dup-same", "dup-other", "userinfo"],
+  "sni": [null, "example.com", "EXAMPLE.COM", "evil.example", "api.example.com", "example.com.", "\u212aexample.com"],
+  "origin": [null, "https://example.com", "https://EXAMPLE.com:443", "https://evil.example", "null", "https://api.example.com", "https://example.com@evil.example", "https://example.com.evil.example", "http://example.com", "https://example.com:8443"]
+ },
+ "request_cleartext": [
+  {"proto": "h1", "scheme": "http", "sni": null, "authority": null, "host": ["example.com:80"], "origin": null},
+  {"proto": "h1", "scheme": "http", "sni": "example.com", "authority": null, "host": ["example.com"], "origin": null},
+  {"proto": "h1", "scheme": "http", "sni": null, "authority": null, "host": ["example.com:443"], "origin": null}
+ ],
+ "paths": ["/", "/%2561dmin", "/%25", "/admin%252F", "/a%5Cb", "/a%5cb", "/admin\u00a0", "/\uff0fadmin", "/admin%7e", "/admin%7E", "/~admin", "/a/b/c", "/a/b/", "/A%2f", "/%41%42", "/%e2%80%8b", "/a:b@c", "/a,b", "/admin%3f", "/admin%23", "/\u212aelvin", "/admin%0a", "/admin%7f"],
+ "hosts": ["\u212aelvin.example", "EXAMPLE\u212a.com", "\u0130stanbul.com", "xn--mnchen-3ya.de", "XN--MNCHEN-3YA.DE", "xn--a.example", "xn--ls8h.la", "ab--cd.com", "a.b.c.d.e", "1.2.3.4", "1.2.3.04", "1.2.3.256", "01.2.3.4", "1.2.3", "0x7f000001", "example.0x", "-example.com", "example-.com", "a..b", ".example.com", "localhost", "LOCALHOST"],
+ "origins": ["https://\u212aelvin.example", "https://user@example.com", "https://example.com:8443", "https://example.com:65536", "wss://example.com", "https://example.com#", "https:/example.com", "https:///example.com", " https://example.com", "https://example.com "],
+ "cookies": ["a=1; b=2", "a=1;b=2", "a=1;  b=2", "a=1; ", "a=1;; b=2", "\u00a0sid=x", "sid=x;\u00a0sid=y", "sid=\u00a0x", "SID=a; sid=b", "__Secure-x=1", "sid=a\\b", "sid=a b"],
+ "queries": ["", "a=1", "a=1&b=2", "a=1;b=2", "a=1&a=2", "a=1&%61=2", "a+b=1", "a=1+2", "a=%41%2f", "a=%2B", "a=%26b=2", "a=%3D", "a", "a=", "=1", "a=1&&b=2", "a=1&", "a=%00", "a=%zz", "a=\u00e9", "a=%C3%A9", "a=b/c?d", "redirect=https://evil.example/", "a=1&A=2"],
+ "json_docs": ["{\"Role\":\"admin\",\"role\":\"user\"}", "{\"a\":{\"b\":{\"c\":1}}}", "[]", "{}", "\"s\"", "1", "-0.0", "1E2", "1e300", "[1.5,2.25]", "{\"x\":\"\\u00e9\"}"],
+ "headers": [["Host: example.com", "Accept: a", "Accept: b"], ["Host: example.com", "Content-Length: 05"], ["Host: example.com", "Content-Length: 5", "Transfer-Encoding: chunked"], ["Host: example.com", "Transfer-Encoding: Chunked"], ["Host: example.com", "X: a", " continued"], ["Host: example.com", "X: caf\u00e9"], ["Host:", "X: y"], ["Host: example.com", "X-Role: admin", "x-role: user"]],
+ "tenants": ["\u212a", "k", "acme-corp", "-acme", "acme-", "a"],
+ "ctypes": ["multipart/form-data; boundary=aaa; boundary=bbb", "multipart/form-data; BOUNDARY=a; boundary=b", "application/json;charset=utf-8", "application/json;  charset=utf-8", "application/json; Charset=UTF-8"]
+}
