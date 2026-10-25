@@ -6,10 +6,12 @@
 //!   cargo xtask lock-age [--min-days N] [--self-test]
 //!   cargo xtask repo-advisories [--self-test]
 //!   cargo xtask fips-lock --profile cmvp [--self-test]
+//!   cargo xtask metrics-check [--self-test]
 #![forbid(unsafe_code)]
 
 mod json;
 mod lock;
+mod metrics;
 
 use json::Json;
 use std::collections::{BTreeMap, BTreeSet};
@@ -34,9 +36,10 @@ fn main() -> ExitCode {
             lock_age(days, self_test)
         }
         Some("repo-advisories") => repo_advisories(self_test),
+        Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
         _ => {
-            eprintln!("usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock> [--self-test]");
+            eprintln!("usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check> [--self-test]");
             return ExitCode::from(2);
         }
     };

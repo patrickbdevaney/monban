@@ -117,6 +117,7 @@ dependencies = [
 name = "aegis-config"
 version = "0.0.0"
 dependencies = [
+ "aegis-canon",
  "aegis-types",
 ]
 
