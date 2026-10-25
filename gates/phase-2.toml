@@ -104,9 +104,10 @@ selftest = "oracles/tlog-verify/run --self-test"
 
 [[gate]]
 name = "upgrade"
-cmd = "oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4"
+cmd = "cargo build --release --locked -q -p upgrade-subject && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100"
 selftest = "oracles/upgrade-harness/run --self-test"
 heavy = true
+remote = true   # timing-sensitive: fails under unrelated CPU saturation on the laptop (load 76–135 measured)
 
 [[gate]]
 name = "acme-cert"
