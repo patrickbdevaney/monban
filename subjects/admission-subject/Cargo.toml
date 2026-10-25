@@ -1,0 +1,19 @@
+[package]
+name = "admission-subject"
+description = "Oracle subject: exposes aegis-admission over the admission-props JSON-lines event protocol. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# Zero external dependencies: JSON via the small strict parser in src/json.rs.
+[dependencies]
+aegis-admission = { workspace = true }
+aegis-budget = { workspace = true }
+
+[lints]
+workspace = true
