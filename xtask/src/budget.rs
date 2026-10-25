@@ -540,9 +540,54 @@ pub fn unsafe_lines(src: &str) -> u64 {
         .count() as u64
 }
 
-/// Starts the binary with no arguments and reads VmRSS after 1 s. Exits before then → not applicable.
+/// Writes a minimal serving setup (self-signed P-256 cert via the openssl CLI, one loopback listener, one route,
+/// admin on loopback) into `dir` and returns the arguments to start aegis with. None if openssl is missing.
+fn serving_args(dir: &Path) -> Option<Vec<String>> {
+    std::fs::create_dir_all(dir).ok()?;
+    let (key, crt, cfg) = (dir.join("key.pem"), dir.join("cert.pem"), dir.join("aegis.json"));
+    let ok = Command::new("openssl")
+        .args(["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "2"])
+        .args(["-subj", "/CN=budget.test", "-addext", "subjectAltName=DNS:budget.test"])
+        .arg("-keyout")
+        .arg(&key)
+        .arg("-out")
+        .arg(&crt)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success());
+    if !ok {
+        return None;
+    }
+    let pid = std::process::id();
+    let port = 20_000 + (pid % 20_000) as u16;
+    let doc = format!(
+        r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:{port}","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}}],"admin":{{"bind":"127.0.0.1:{}"}},"vhosts":[{{"host":"budget.test","routes":[{{"id":1,"path":"/","to":{{"upstream":"127.0.0.1:9"}},"authz":"allow-all"}}]}}]}}"#,
+        port + 1
+    );
+    std::fs::write(&cfg, doc).ok()?;
+    let s = |p: &Path| p.display().to_string();
+    Some(vec![
+        "--config".into(),
+        s(&cfg),
+        "--cert".into(),
+        s(&crt),
+        "--key".into(),
+        s(&key),
+        "--audit-dir".into(),
+        s(&dir.join("audit")),
+    ])
+}
+
+/// Starts the binary serving a minimal config (falls back to no arguments if openssl is unavailable) and reads
+/// VmRSS after 1.5 s. If it exits before then the criterion is not applicable.
 fn idle_rss(bin: &Path, root: &Path) -> Runtime {
+    let scratch = root.join("target").join("xtask-budget-run");
+    let _ = std::fs::remove_dir_all(&scratch);
+    let args = serving_args(&scratch).unwrap_or_default();
     let mut child = match Command::new(bin)
+        .args(&args)
+        .env_remove("NOTIFY_SOCKET")
         .current_dir(root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -552,9 +597,14 @@ fn idle_rss(bin: &Path, root: &Path) -> Runtime {
         Ok(c) => c,
         Err(e) => return Runtime::NotApplicable(format!("cannot start binary: {e}")),
     };
-    std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(Duration::from_millis(1500));
     if let Ok(Some(st)) = child.try_wait() {
-        return Runtime::NotApplicable(format!("binary exits: fail-closed boot, {st}"));
+        let why = if args.is_empty() {
+            "fail-closed boot (no openssl for a test config)"
+        } else {
+            "exited with the test config"
+        };
+        return Runtime::NotApplicable(format!("binary exits: {why}, {st}"));
     }
     let status = std::fs::read_to_string(format!("/proc/{}/status", child.id())).unwrap_or_default();
     let _ = child.kill();
