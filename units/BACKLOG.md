@@ -64,3 +64,12 @@
 - Route id capped at 2^53−1 (I-JSON safe range); empty `authz` ⇒ Deny; 1 MiB cap also applies to the effective form.
 - aegis-config carries its own SHA-256 (FIPS 180-4 vectors); aegis-audit uses aws-lc-rs — consolidate on aws-lc-rs
   if aegis-config may take that dependency (it is L2 pure; keep in-crate unless the TCB ledger prefers one impl).
+
+## Audit (from P2-audit-001)
+- ML-DSA-87 checkpoint cosignature verified only by Rust tests (Go 1.26 has ML-DSA internal-only): add an
+  independent verifier (e.g. OpenSSL 3.5 `pkeyutl -verify` with ML-DSA-87) to oracles/tlog-verify.
+- Cosignature uses signed-note escape type 0xff + "aegis-mldsa87-note-v1" without a timestamp: not interoperable
+  with C2SP witnesses (timestamped ML-DSA-44). Revisit when a witness standard for ML-DSA-87 exists.
+- Log restart from existing tiles (resume at size N) belongs to aegis-state; in-memory hash store grows ~64 B/entry.
+- Admin path: a checkpoint failure leaves the event in the log (published later) — log may record an attempted but
+  unapplied action, never the reverse. Document in the audit-failure policy.
