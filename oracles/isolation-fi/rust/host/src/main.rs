@@ -33,6 +33,9 @@ use wasmtime::*;
 use work::*;
 
 const EPOCH_TICK_MS: u64 = 10;
+// Host state that a guest-triggerable host bug can corrupt (fault class hostpoison). It lives as long as the host
+// process: for the fork+Wasm path that is one request, for a cordon every later request it serves.
+static HOST_CORRUPT: AtomicBool = AtomicBool::new(false);
 
 fn die(msg: &str) -> ! {
     eprintln!("isofi: {msg}");
@@ -114,7 +117,8 @@ fn engine(fuel: bool, epoch: bool, pool: bool) -> Engine {
     Engine::new(&c).unwrap_or_else(|e| die(&format!("engine: {e}")))
 }
 
-fn load(eng: &Engine, guest: &str) -> InstancePre<Lim> {
+fn load(eng: &Engine, guest: &str) -> (InstancePre<Lim>, bool) {
+    let mut compiled = true;
     // Restart cost: like the AEGIS design (locally precompiled .cwasm), a compiled artifact produced by this host
     // is cached next to the guest (ISOFI_CWASM_DIR) and reused on respawn; never bytes from elsewhere.
     let m = match std::env::var("ISOFI_CWASM_DIR") {
@@ -135,6 +139,7 @@ fn load(eng: &Engine, guest: &str) -> InstancePre<Lim> {
                 }
                 m
             } else {
+                compiled = false;
                 // SAFETY: the file was written by this same binary/engine config (hash-keyed) in a private dir
                 unsafe { Module::deserialize_file(eng, &p) }.unwrap_or_else(|e| die(&format!("cwasm: {e}")))
             }
@@ -148,9 +153,13 @@ fn load(eng: &Engine, guest: &str) -> InstancePre<Lim> {
                 // stands in for a guest-triggerable host/runtime bug that takes the host process down
                 std::process::abort();
             }
+            if code == 2 {
+                // stands in for a guest-triggerable host bug that silently corrupts host state
+                HOST_CORRUPT.store(true, Ordering::SeqCst);
+            }
         })
         .unwrap_or_else(|e| die(&format!("linker: {e}")));
-    linker.instantiate_pre(&m).unwrap_or_else(|e| die(&format!("pre: {e}")))
+    (linker.instantiate_pre(&m).unwrap_or_else(|e| die(&format!("pre: {e}"))), compiled)
 }
 
 type Handle = TypedFunc<(u32, u32), u32>;
@@ -180,6 +189,7 @@ fn read_req(s: &mut UnixStream) -> std::io::Result<(u32, u32)> {
 fn reply(s: &mut UnixStream, id: u32, h: u32) -> std::io::Result<()> {
     let mut o = [0u8; 8];
     o[0..4].copy_from_slice(&id.to_le_bytes());
+    let h = if HOST_CORRUPT.load(Ordering::SeqCst) { h ^ 0x5a5a } else { h };
     o[4..8].copy_from_slice(&h.to_le_bytes());
     s.write_all(&o)
 }
@@ -207,6 +217,10 @@ fn proc_limits() {
         // ARCHITECTURE R-ISO-5: dumpable=0 (avoids the apport core-pipe hang, r4i04.coredump-pipe-hang)
         libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0);
     }
+}
+
+fn abs_path(p: &str) -> String {
+    std::fs::canonicalize(p).ok().and_then(|x| x.to_str().map(|s| s.to_string())).unwrap_or_else(|| die("--data must exist"))
 }
 
 // ------------------------------------------------------------------------------------------------ sandbox
@@ -287,14 +301,15 @@ fn sandbox(data: &str, allow_fork: bool, tsync: bool) {
 // ------------------------------------------------------------------------------------------------ serve: cordon
 fn serve_cordon(a: &Args) {
     let guest = a.req("guest");
-    let data = a.req("data");
+    // absolute path: Landlock is scoped to its parent directory (a relative path would yield an empty rule set)
+    let data = abs_path(&a.req("data"));
     let threads: usize = a.n("threads", 64);
     let budget = parse_budget(&a.s("budget", "epoch"));
     let ticks = (a.n::<u64>("epoch-ms", 100) / EPOCH_TICK_MS).max(1);
     let mutation = a.s("mutation", "none");
     proc_limits();
     let eng = engine(matches!(budget, Budget::Fuel(_)), true, true);
-    let pre = load(&eng, &guest);
+    let (pre, _) = load(&eng, &guest);
     let e2 = eng.clone();
     std::thread::spawn(move || loop {
         std::thread::sleep(Duration::from_millis(EPOCH_TICK_MS));
@@ -373,7 +388,8 @@ fn child_itimer(ms: u64) {
 }
 fn serve_forkwasm(a: &Args) {
     let guest = a.req("guest");
-    let data = a.req("data");
+    // absolute path: Landlock is scoped to its parent directory (a relative path would yield an empty rule set)
+    let data = abs_path(&a.req("data"));
     let budget = parse_budget(&a.s("budget", "epoch"));
     let ms: u64 = a.n("epoch-ms", 100);
     let pool = a.s("pool", "ondemand") == "pool";
@@ -382,7 +398,14 @@ fn serve_forkwasm(a: &Args) {
     proc_limits();
     // zygote: single-threaded; Engine, compiled Module and InstancePre live here and are inherited by every child
     let eng = engine(matches!(budget, Budget::Fuel(_)), nofork, pool);
-    let pre = load(&eng, &guest);
+    let (pre, compiled) = load(&eng, &guest);
+    if compiled && std::env::var("ISOFI_CWASM_DIR").is_ok() && std::env::var("ISOFI_REEXEC").is_err() {
+        // In-process compilation leaves Cranelift heap in the zygote and every fork copies its page tables
+        // (measured: ~40% slower forks). Re-exec once so the zygote starts from the cached precompiled module.
+        use std::os::unix::process::CommandExt;
+        let err = Command::new("/proc/self/exe").args(std::env::args().skip(1)).env("ISOFI_REEXEC", "1").exec();
+        die(&format!("re-exec: {err}"));
+    }
     if nofork {
         let e2 = eng.clone();
         std::thread::spawn(move || loop {
@@ -455,7 +478,7 @@ fn serve_forkwasm(a: &Args) {
 fn calibrate(a: &Args) {
     let guest = a.req("guest");
     let eng = engine(true, false, true);
-    let pre = load(&eng, &guest);
+    let (pre, _) = load(&eng, &guest);
     let big = 1u64 << 40;
     let mut hf = Vec::new();
     let mut ht = Vec::new();
@@ -502,7 +525,7 @@ fn forkcost(a: &Args) {
     let pool = a.s("pool", "ondemand") == "pool";
     let fuel: u64 = a.n("fuel", 0);
     let eng = engine(fuel > 0, false, pool);
-    let pre = load(&eng, &guest);
+    let (pre, compiled) = load(&eng, &guest);
     let b = if fuel > 0 { Budget::Fuel(fuel) } else { Budget::None };
     // warm the code paths and (for pool) one slot
     for i in 0..200u32 {
@@ -556,7 +579,7 @@ fn forkcost(a: &Args) {
     let d99 = pct(&mut fwasm, 0.99) - pct(&mut inproc, 0.99);
     let maps = std::fs::read_to_string("/proc/self/maps").map(|s| s.lines().count()).unwrap_or(0);
     println!(
-        "{{\"n\":{n},\"pool\":{pool},\"fuel\":{fuel},\"inproc_fresh_instance_us\":{},\"fork_exit_wait_us\":{},\"fork_wasm_us\":{},\"fork_overhead_vs_fresh_us\":{{\"p50\":{d50:.1},\"p99\":{d99:.1}}},\"child_failures\":{bad},\"zygote_vmrss_kb\":{},\"zygote_vmsize_kb\":{},\"zygote_vmas\":{maps}}}",
+        "{{\"n\":{n},\"pool\":{pool},\"fuel\":{fuel},\"compiled_in_zygote\":{compiled},\"inproc_fresh_instance_us\":{},\"fork_exit_wait_us\":{},\"fork_wasm_us\":{},\"fork_overhead_vs_fresh_us\":{{\"p50\":{d50:.1},\"p99\":{d99:.1}}},\"child_failures\":{bad},\"zygote_vmrss_kb\":{},\"zygote_vmsize_kb\":{},\"zygote_vmas\":{maps}}}",
         p(&mut inproc),
         p(&mut fexit),
         p(&mut fwasm),
@@ -576,7 +599,8 @@ fn fault_code(s: &str) -> u32 {
         "oom" => F_OOM,
         "poison" => F_POISON,
         "hostabort" => F_HOSTABORT,
-        _ => die("fault: none|panic|abort|segv|loop|oom|poison|hostabort"),
+        "hostpoison" => F_HOSTPOISON,
+        _ => die("fault: none|panic|abort|segv|loop|oom|poison|hostabort|hostpoison"),
     }
 }
 fn splitmix(mut x: u64) -> u64 {
@@ -801,15 +825,23 @@ fn drive(a: &Args) {
         v.sort();
         v
     };
+    // censoring: a fault is only scored if some healthy request was issued after it ended (end-of-run tail excluded)
+    let last_healthy_start = healthy.iter().map(|r| r.2).max().unwrap_or(0);
     let mut unrecovered = 0usize;
+    let mut censored = 0usize;
     let mut rec: Vec<f64> = Vec::new();
     for r in &injected {
+        if r.3 > last_healthy_start {
+            censored += 1;
+            continue;
+        }
         let k = oks.partition_point(|&t| t < r.3);
         match oks.get(k) {
             Some(&t) => rec.push((t - r.3) as f64),
             None => unrecovered += 1,
         }
     }
+    let rec_samples: Vec<u64> = rec.iter().map(|x| *x as u64).collect();
     let rec_p50 = pct(&mut rec, 0.5);
     let rec_p99 = pct(&mut rec, 0.99);
     let ev = events.lock().map(|e| e.clone()).unwrap_or_default();
@@ -826,7 +858,7 @@ fn drive(a: &Args) {
     let la = std::fs::read_to_string("/proc/loadavg").unwrap_or_default();
     let j = |x: f64| if x.is_finite() { format!("{x:.0}") } else { "null".to_string() };
     println!(
-        "{{\"cmd\":{:?},\"fault\":\"{fname}\",\"rate\":{rate},\"seed\":{seed},\"issued\":{},\"injected\":{},\"injected_ok\":{inj_ok},\"healthy\":{},\"healthy_fail\":{hfail},\"healthy_wrong\":{wrong},\"blast_per_fault\":{:.4},\"p50_us\":{},\"p99_us\":{},\"recovery_p50_us\":{},\"recovery_p99_us\":{},\"unrecovered\":{unrecovered},\"restarts\":{},\"watchdog\":{wd},\"restart_recovery_p99_us\":{},\"wall_us\":{wall},\"rps\":{:.0},\"err_hist\":{:?},\"loadavg\":\"{}\"}}",
+        "{{\"cmd\":{:?},\"fault\":\"{fname}\",\"rate\":{rate},\"seed\":{seed},\"issued\":{},\"injected\":{},\"injected_ok\":{inj_ok},\"healthy\":{},\"healthy_fail\":{hfail},\"healthy_wrong\":{wrong},\"blast_per_fault\":{:.4},\"p50_us\":{},\"p99_us\":{},\"recovery_p50_us\":{},\"recovery_p99_us\":{},\"unrecovered\":{unrecovered},\"censored\":{censored},\"recovery_us\":{:?},\"restarts\":{},\"watchdog\":{wd},\"restart_recovery_p99_us\":{},\"wall_us\":{wall},\"rps\":{:.0},\"err_hist\":{:?},\"loadavg\":\"{}\"}}",
         cmd,
         recs.len(),
         injected.len(),
@@ -836,6 +868,7 @@ fn drive(a: &Args) {
         j(p99),
         j(rec_p50),
         j(rec_p99),
+        rec_samples,
         ev.len(),
         j(pct(&mut rrec, 0.99)),
         recs.len() as f64 / (wall as f64 / 1e6),

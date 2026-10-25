@@ -1,0 +1,58 @@
+{
+  "id": "q4-006",
+  "question": "Fuel + 64-slot pool loop gate + VPS fork-cost run: which isolation path is the default for multi-principal P2 handlers, the fresh-Wasm cordon or fork+Wasm?",
+  "flips_if": "decides fresh-Wasm cordon vs fork+Wasm as multi-principal P2 default",
+  "measured": {
+    "harness": "oracles/isolation-fi/rust (isofi, same commit; binaries sha256 in data/binaries.sha256); Wasmtime 49.0.3 (default-features=false: cranelift, pooling-allocator, runtime, std; default 4 GiB reservation + 32 MiB guard; ResourceLimiter 16 MiB); guest = round-004 M0 handler (FNV over 4 KiB, 36 us laptop / 64 us N95); closed loop, 16 concurrent clients, n=3000 per cell; server pinned to 1 core; supervisor-held listening socket; PR_SET_DUMPABLE=0; Landlock + seccomp installed; precompiled module cached locally (fork zygote re-execs after a first compile)",
+    "hosts": {
+      "laptop": "i9-14900HX, Linux 6.17.0-14; server on core 2, clients on cores 4-7; 5 interleaved trials per cell; machine shared with other agents' work (1-min load 7-14, recorded per cell)",
+      "kamrui_vps_standin": "Intel N95 (4 cores), Linux 6.17.0-41, glibc 2.42; laptop-built binaries; server on core 1, clients on cores 2-3; 3 trials; LAN box used as a VPS stand-in, not a real VPS"
+    },
+    "budgets": "F2 = fuel 15,000,000 units = 2.0 ms of guest work on the laptop (7.44M fuel/ms) and 3.5 ms on the N95 (4.26M fuel/ms), about 58x one healthy request (258,234 fuel). F10 = fuel 75,000,000 (about 10 ms on the laptop). Wall-clock backstop: epoch (cordon) or ITIMER_REAL (fork child), 100 ms",
+    "a_loop_gate_laptop": {
+      "baseline_rps": {"cordon": 20480, "fork_wasm": 5200},
+      "healthy_p99_x_and_rps_x_at_1pct_loop": {
+        "E4: epoch-only 100 ms, 4 threads (research config)": "p99 x34.2 (48.2 ms), rps x0.163",
+        "E64: epoch-only, 64-slot pool, 64 threads": "p99 x4.95, rps x0.234",
+        "F4-2: fuel 2 ms, 4 threads": "p99 x2.79, rps x0.759",
+        "F64-10: fuel 10 ms, 64 slots": "p99 x4.56, rps x0.323",
+        "F64-2: fuel 2 ms, 64 slots": "p99 x3.06 (4.7 ms), rps x0.718",
+        "FW-E: fork+Wasm, ITIMER 100 ms only": "p99 x2.73, rps x0.637",
+        "FW-F10: fork+Wasm, fuel 10 ms": "p99 x2.50, rps x0.649",
+        "FW-F2: fork+Wasm, fuel 2 ms": "p99 x1.60, rps x0.898"
+      },
+      "at_5pct_loop": "F64-2 p99 x7.03, rps x0.339; FW-F2 p99 x2.14, rps x0.643; E4 p99 x69, rps x0.039",
+      "healthy_p50_us_at_0_1_5pct": {"E4": [783, 685, 3357], "F64-2": [722, 675, 1053], "FW-F2": [3039, 3012, 3023]},
+      "model": "throughput ratio ~= c / (c + r*B), where c = per-request cost on the core (cordon 48.8 us, fork 192 us), r = loop rate and B = CPU burned per runaway request. Predicted vs measured: F64-2 0.71 vs 0.72; F64-10 0.33 vs 0.32; FW-F2 0.90 vs 0.90; FW-F10 0.66 vs 0.65. Passing the 0.5x gate at 1% needs B <= 100*c",
+      "finding": "The research x35 reproduces (x34.2). The fix is a small fuel budget: about 2 ms (~58x the handler) passes. A 10 ms budget fails the throughput gate (x0.32) even with 64 slots. The 64-slot pool alone (epoch-only) cuts p99 from x34 to x5 but leaves throughput at x0.23, which fails"
+    },
+    "b_fork_wasm": {
+      "fork_cost_microbench": {
+        "method": "the zygote holds Engine + Module + InstancePre; per request: fork, the child instantiates + runs one healthy call + _exit, the parent waitpid. 3000 iterations per run, medians of 5 (laptop) / 3 (N95) runs, pinned to one core",
+        "laptop_cwasm_zygote": "fresh instance in-process 47-53 us p50; fork+exit+wait 57-63 us p50 / 199-200 us p99; fork+Wasm request 149-152 us p50 / 363-403 us p99; overhead vs fresh instance +99-102 us p50, +304-321 us p99",
+        "kamrui_N95_cwasm_zygote": "fresh instance 93-106 us p50; fork+exit+wait 142-156 us p50 / 322 us p99; fork+Wasm request 311-316 us p50 / 545-546 us p99; overhead vs fresh instance +205-223 us p50, +301-351 us p99",
+        "module_compiled_inside_zygote": "zygote RSS 11.7-11.9 MiB vs 5.7-6.0 MiB with cwasm; fork+Wasm +43-44 us p50 (laptop) / +68-84 us p50 (N95) slower. The zygote must load the precompiled module, not compile it",
+        "pool_vs_ondemand": "no material difference (the 258 GiB pooling reservation is a single VMA)"
+      },
+      "fault_gate_laptop_1pct (5 trials pooled)": "healthy failures per fault: 0 for panic, abort, segv, loop, oom, poison, hostabort and hostpoison (134-160 faults per class); wrong answers 0; service-gap p99: panic 0.57, abort 0.65, segv 0.60, loop 2.31, oom 3.91, poison 0.77, hostabort 0.63, hostpoison 0.60 ms; loop throughput x0.89; oom throughput x0.79",
+      "fault_gate_kamrui_1pct (3 trials pooled)": "abort, loop, poison, hostabort, hostpoison: 0 healthy failures, 0 wrong; service-gap p99 1.5-1.7 ms, except loop at 6.78 ms (per trial 6.8 / 7.1 / 3.8 ms); loop throughput x0.91; baseline 2,234 rps (cordon 7,478)"
+    },
+    "c_fresh_wasm_cordon": {
+      "fault_gate_laptop_1pct (F64-2, 5 trials pooled)": "healthy failures per fault 0 for panic, abort, segv, loop, oom, poison; wrong 0; service-gap p99: panic 0.09, abort 0.10, segv 0.08, loop 1.13, oom 1.20, poison 0.09 ms; loop throughput x0.71; oom throughput x0.50. An earlier 5-trial run of the same configuration (before the hostpoison class was added; 1-min load 15-19) measured the oom service-gap p99 at 6.6 ms, with a per-trial median of 4.9 ms. Treat cordon oom recovery as marginal",
+      "host_faults (one cordon process serves many requests)": "hostabort: 11.0 healthy failures per fault at 1% (7.0 at 5%), restart service-gap p99 6.2 ms, throughput x0.60. hostpoison: 103.5 wrong answers per fault at 1%; the corrupted host state persists until the cordon restarts. N95: hostabort 11.3 per fault (21 ms gap), hostpoison 101.8 wrong answers per fault",
+      "fault_gate_kamrui_1pct": "abort, loop, poison: 0 failures, 0 wrong, service-gap p99 0.24-1.27 ms; loop throughput x0.84"
+    },
+    "gate_results_at_1pct": {
+      "criteria": "<=0.05 crash-attributable healthy failures per fault; 0 wrong answers; recovery p99 <=5 ms (service gap: end of the faulting request to the next healthy success); throughput >=0.5x at 1% loop",
+      "fork_wasm_F2": "laptop: PASS on every criterion for the 6 Phase-5 guest classes and both host classes. N95: PASS except loop recovery (6.8 ms pooled p99, over the gate in 2 of 3 trials)",
+      "fresh_wasm_cordon_F2_64_slots": "guest classes: PASS on the laptop (oom recovery marginal across runs: 1.2 ms vs 6.6 ms) and on the N95 for the classes measured there. Host classes: FAIL (11 healthy failures and 100 wrong answers per fault). In a per-principal cordon that damage stays with one principal; in a cordon shared by principals, other principals get failures and wrong answers",
+      "cordon_epoch_only_or_fuel_10ms": "FAIL loop throughput (x0.16-0.32)"
+    }
+  },
+  "verdict": "flip",
+  "decision_effect": "ARCHITECTURE section 3.6, row 'P2, multi-principal data'. Replace 'co-equal default candidates ... Decided in Phase 1 by q4-006 ...' with: 'default: fork+Wasm (fork child of an exec-spawned, single-threaded zygote that holds Engine + locally precompiled Module + InstancePre and no compiler state; fresh instance in the child; per-route fuel budget + ITIMER_REAL wall bound; Landlock + seccomp installed in the zygote). Alternative: one fresh-Wasm cordon per principal. A cordon shared by principals is not allowed. Acceptance (oracles/isolation-fi): 0 healthy failures and 0 wrong answers per fault on the 6 guest classes plus hostabort and hostpoison; recovery p99 <=5 ms; loop throughput >=0.5x. Measured cost: +0.10 ms p50 per request (laptop) and +0.21 ms (N95) over a fresh instance; 0.25-0.30x the cordon's throughput for a 36-64 us handler on one core.' Reversal: fork+Wasm overhead >0.3 ms p50 on the q3-001 real 1-vCPU VPS, or the loop recovery gate cannot be met there ⇒ one cordon per principal. The P2 single-tenant row keeps the fresh instance in a per-tenant cordon, with three amendments. (1) Replace 'fuel 10-50 ms' with 'fuel budget per route <= 50x the route's p50 handler cost (default 15M units, about 2 ms for a ~40 us handler); the 100 ms epoch stays the wall-clock DoS bound'. (2) Add 'cordon oom service gap is marginal (1.2-6.6 ms p99 across runs with 16 MiB memories); Phase 5 must hold it under 5 ms'. (3) Add hostpoison to the Phase-5 fault classes. Section 3.6 'Reverse' R3 ('fork overhead <0.3 ms → fork+Wasm default') is met at p50 on both hosts and is borderline at p99 (0.30-0.35 ms).",
+  "rung": "R1 executed (measurement grade B: laptop + LAN stand-in for a VPS; counts exact, latencies provisional)",
+  "reproduce": "spikes/q4-006/measure.sh (one heavy.sh job: builds oracles/isolation-fi/rust into spikes/q4-006/target, calibrates, runs the loop, fi and forkcost phases; TRIALS=5 used; deletes target/ and .work/). LAN: LANDIR=<dir> spikes/q4-006/measure.sh copies isofi, guest.wasm, data.bin and run_spike.py to <dir>; on the host: `python3 -I run_spike.py ./isofi guest.wasm $PWD/data.bin data forkcost 3 1` and `python3 -I run_spike.py ./isofi guest.wasm $PWD/data.bin data lan 3 1 2,3`. Summaries: python3 -I spikes/q4-006/analyze.py spikes/q4-006/data (and data-kamrui). Oracle: oracles/isolation-fi/run ; oracles/isolation-fi/run --self-test",
+  "limits": "Toy handler over a Unix socket on one pinned core. Fork cost grows with zygote RSS (research: 33 ms p50 with a 1 GiB parent; this zygote is 5.8 MiB). The N95 is not a $5 KVM VPS (no steal time, no virtualised page-table cost); q3-001 must repeat forkcost + the lan phase on a real 1-vCPU VPS. The laptop was shared with other agents during the runs. 'Recovery' is defined as the service gap, stricter than restart-only recovery, and it scales with the path's own latency (fork p50 7 ms on the N95). The host faults are simulated through a host function (abort(), or a flag that corrupts later replies); real Wasmtime bugs can be worse (memory disclosure before a crash). Fuel per ms depends on code shape (a tight x+1 loop burned 48M fuel/ms in a first build, against 7.4M for handler work), so budgets need per-route calibration. Wasmtime 49.0.3 was used because 49.0.4 (published 2026-10-19) and 50.0.0 (2026-10-20) are still under the 7-day lock age. 49.0.3 is below the >=49.0.4 security floor (GHSA-897f) and runs only first-party test guests; bump the lock on or after 2026-10-27. The fork child inherits the zygote's Landlock + seccomp; the child-only denylist (socket, bpf, io_uring and others) was not installed. The oracle's reduced run is 1 trial per cell and retries a cell once when it fails only a timing gate (G3/G4).",
+  "date": "2026-10-25"
+}

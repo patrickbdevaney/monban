@@ -1,0 +1,504 @@
+{
+ "lan": {
+  "E4|abort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 95,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 2085,
+   "p99_us": 3971,
+   "rps": 7534,
+   "recovery_p99_us_max": 258,
+   "recovery_p99_us_med": 205,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 220,
+   "recovery_p50_us_pooled": 15,
+   "loadavg1_range": [
+    2.59,
+    6.19
+   ],
+   "rps_x": 0.996,
+   "p99_x": 1.03
+  },
+  "E4|hostabort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 91,
+   "healthy_fail": 997,
+   "blast_per_fault": 10.956,
+   "wrong": 0,
+   "p50_us": 2108,
+   "p99_us": 8657,
+   "rps": 5517,
+   "recovery_p99_us_max": 12574,
+   "recovery_p99_us_med": 12170,
+   "unrecovered": 0,
+   "restarts": 85,
+   "censored": 0,
+   "recovery_p99_us_pooled": 12170,
+   "recovery_p50_us_pooled": 6158,
+   "loadavg1_range": [
+    1.04,
+    5.25
+   ],
+   "rps_x": 0.729,
+   "p99_x": 2.24
+  },
+  "E4|hostpoison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 102,
+   "healthy_fail": 8666,
+   "blast_per_fault": 84.9608,
+   "wrong": 8666,
+   "p50_us": 1433,
+   "p99_us": 3456,
+   "rps": 7356,
+   "recovery_p99_us_max": 0,
+   "recovery_p99_us_med": null,
+   "unrecovered": 101,
+   "restarts": 0,
+   "censored": 1,
+   "loadavg1_range": [
+    1.51,
+    6.01
+   ],
+   "rps_x": 0.972,
+   "p99_x": 0.9
+  },
+  "E4|loop|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 81,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 3781,
+   "p99_us": 45950,
+   "rps": 2552,
+   "recovery_p99_us_max": 345,
+   "recovery_p99_us_med": 209,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 6,
+   "recovery_p99_us_pooled": 334,
+   "recovery_p50_us_pooled": 156,
+   "loadavg1_range": [
+    1.51,
+    6.19
+   ],
+   "rps_x": 0.337,
+   "p99_x": 11.9
+  },
+  "E4|none|0.0": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 0,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 2090,
+   "p99_us": 3861,
+   "rps": 7567,
+   "recovery_p99_us_max": 0,
+   "recovery_p99_us_med": null,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "loadavg1_range": [
+    2.59,
+    5.16
+   ],
+   "rps_x": 1.0,
+   "p99_x": 1.0
+  },
+  "E4|poison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 96,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 2079,
+   "p99_us": 4120,
+   "rps": 7555,
+   "recovery_p99_us_max": 221,
+   "recovery_p99_us_med": 210,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 210,
+   "recovery_p50_us_pooled": 130,
+   "loadavg1_range": [
+    1.04,
+    6.19
+   ],
+   "rps_x": 0.998,
+   "p99_x": 1.07
+  },
+  "F64-2|abort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 89,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 1845,
+   "p99_us": 4618,
+   "rps": 7522,
+   "recovery_p99_us_max": 289,
+   "recovery_p99_us_med": 247,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 247,
+   "recovery_p50_us_pooled": 124,
+   "loadavg1_range": [
+    2.59,
+    5.25
+   ],
+   "rps_x": 1.006,
+   "p99_x": 1.0
+  },
+  "F64-2|hostabort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 95,
+   "healthy_fail": 1072,
+   "blast_per_fault": 11.2842,
+   "wrong": 0,
+   "p50_us": 2436,
+   "p99_us": 12390,
+   "rps": 4352,
+   "recovery_p99_us_max": 21322,
+   "recovery_p99_us_med": 13648,
+   "unrecovered": 0,
+   "restarts": 87,
+   "censored": 0,
+   "recovery_p99_us_pooled": 21266,
+   "recovery_p50_us_pooled": 9486,
+   "loadavg1_range": [
+    1.11,
+    5.25
+   ],
+   "rps_x": 0.582,
+   "p99_x": 2.68
+  },
+  "F64-2|hostpoison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 85,
+   "healthy_fail": 8652,
+   "blast_per_fault": 101.7882,
+   "wrong": 8652,
+   "p50_us": 1212.5,
+   "p99_us": 2332.0,
+   "rps": 7464,
+   "recovery_p99_us_max": 0,
+   "recovery_p99_us_med": null,
+   "unrecovered": 85,
+   "restarts": 0,
+   "censored": 0,
+   "loadavg1_range": [
+    1.51,
+    5.25
+   ],
+   "rps_x": 0.998,
+   "p99_x": 0.5
+  },
+  "F64-2|loop|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 76,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 2084,
+   "p99_us": 6753,
+   "rps": 6277,
+   "recovery_p99_us_max": 1322,
+   "recovery_p99_us_med": 1266,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 2,
+   "recovery_p99_us_pooled": 1266,
+   "recovery_p50_us_pooled": 178,
+   "loadavg1_range": [
+    1.51,
+    5.25
+   ],
+   "rps_x": 0.839,
+   "p99_x": 1.46
+  },
+  "F64-2|none|0.0": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 0,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 1852,
+   "p99_us": 4623,
+   "rps": 7478,
+   "recovery_p99_us_max": 0,
+   "recovery_p99_us_med": null,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "loadavg1_range": [
+    1.11,
+    5.25
+   ],
+   "rps_x": 1.0,
+   "p99_x": 1.0
+  },
+  "F64-2|poison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 85,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 1862,
+   "p99_us": 4660,
+   "rps": 7496,
+   "recovery_p99_us_max": 251,
+   "recovery_p99_us_med": 238,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 238,
+   "recovery_p50_us_pooled": 130,
+   "loadavg1_range": [
+    1.11,
+    6.01
+   ],
+   "rps_x": 1.002,
+   "p99_x": 1.01
+  },
+  "FW-F2|abort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 75,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 6991,
+   "p99_us": 10505,
+   "rps": 2175,
+   "recovery_p99_us_max": 1616,
+   "recovery_p99_us_med": 1549,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 2,
+   "recovery_p99_us_pooled": 1549,
+   "recovery_p50_us_pooled": 335,
+   "loadavg1_range": [
+    1.11,
+    6.01
+   ],
+   "rps_x": 0.974,
+   "p99_x": 1.04
+  },
+  "FW-F2|hostabort|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 92,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 6951,
+   "p99_us": 10370,
+   "rps": 2179,
+   "recovery_p99_us_max": 1841,
+   "recovery_p99_us_med": 1526,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 1668,
+   "recovery_p50_us_pooled": 334,
+   "loadavg1_range": [
+    1.11,
+    5.16
+   ],
+   "rps_x": 0.975,
+   "p99_x": 1.03
+  },
+  "FW-F2|hostpoison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 91,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 6871,
+   "p99_us": 10179,
+   "rps": 2220,
+   "recovery_p99_us_max": 2062,
+   "recovery_p99_us_med": 1559,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 2,
+   "recovery_p99_us_pooled": 1567,
+   "recovery_p50_us_pooled": 354,
+   "loadavg1_range": [
+    1.51,
+    5.25
+   ],
+   "rps_x": 0.994,
+   "p99_x": 1.01
+  },
+  "FW-F2|loop|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 99,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 7079,
+   "p99_us": 11702,
+   "rps": 2034,
+   "recovery_p99_us_max": 7080,
+   "recovery_p99_us_med": 6784,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 2,
+   "recovery_p99_us_pooled": 6784,
+   "recovery_p50_us_pooled": 1383,
+   "loadavg1_range": [
+    2.59,
+    6.19
+   ],
+   "rps_x": 0.91,
+   "p99_x": 1.16
+  },
+  "FW-F2|none|0.0": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 0,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 6883,
+   "p99_us": 10110,
+   "rps": 2234,
+   "recovery_p99_us_max": 0,
+   "recovery_p99_us_med": null,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "loadavg1_range": [
+    2.59,
+    5.16
+   ],
+   "rps_x": 1.0,
+   "p99_x": 1.0
+  },
+  "FW-F2|poison|0.01": {
+   "trials": 3,
+   "driver_errors": 0,
+   "injected": 87,
+   "healthy_fail": 0,
+   "blast_per_fault": 0.0,
+   "wrong": 0,
+   "p50_us": 6910,
+   "p99_us": 10726,
+   "rps": 2199,
+   "recovery_p99_us_max": 2076,
+   "recovery_p99_us_med": 1556,
+   "unrecovered": 0,
+   "restarts": 0,
+   "censored": 0,
+   "recovery_p99_us_pooled": 1578,
+   "recovery_p50_us_pooled": 354,
+   "loadavg1_range": [
+    2.59,
+    6.19
+   ],
+   "rps_x": 0.984,
+   "p99_x": 1.06
+  }
+ },
+ "forkcost": {
+  "ondemand/compiled-in-zygote": {
+   "inproc_fresh_instance_us": {
+    "p50": 129.4,
+    "p99": 242.6
+   },
+   "fork_exit_wait_us": {
+    "p50": 173.4,
+    "p99": 357.6
+   },
+   "fork_wasm_us": {
+    "p50": 394.4,
+    "p99": 650.2
+   },
+   "fork_overhead_vs_fresh_us": {
+    "p50": 264.9,
+    "p99": 407.6
+   },
+   "zygote_vmrss_kb": 11860.0
+  },
+  "ondemand/cwasm": {
+   "inproc_fresh_instance_us": {
+    "p50": 105.7,
+    "p99": 232.7
+   },
+   "fork_exit_wait_us": {
+    "p50": 141.6,
+    "p99": 322.3
+   },
+   "fork_wasm_us": {
+    "p50": 310.6,
+    "p99": 545.9
+   },
+   "fork_overhead_vs_fresh_us": {
+    "p50": 204.9,
+    "p99": 300.8
+   },
+   "zygote_vmrss_kb": 5848.0
+  },
+  "pool/compiled-in-zygote": {
+   "inproc_fresh_instance_us": {
+    "p50": 110.2,
+    "p99": 225.0
+   },
+   "fork_exit_wait_us": {
+    "p50": 182.6,
+    "p99": 339.4
+   },
+   "fork_wasm_us": {
+    "p50": 383.7,
+    "p99": 634.3
+   },
+   "fork_overhead_vs_fresh_us": {
+    "p50": 273.6,
+    "p99": 409.3
+   },
+   "zygote_vmrss_kb": 11892.0
+  },
+  "pool/cwasm": {
+   "inproc_fresh_instance_us": {
+    "p50": 93.2,
+    "p99": 194.7
+   },
+   "fork_exit_wait_us": {
+    "p50": 155.7,
+    "p99": 321.7
+   },
+   "fork_wasm_us": {
+    "p50": 315.5,
+    "p99": 544.7
+   },
+   "fork_overhead_vs_fresh_us": {
+    "p50": 222.5,
+    "p99": 351.3
+   },
+   "zygote_vmrss_kb": 5968.0
+  }
+ }
+}

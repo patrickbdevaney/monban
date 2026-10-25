@@ -44,6 +44,10 @@ pub extern "C" fn handle(id: u32, fault: u32) -> u32 {
             host_fault(1);
             work(id, GOOD_SALT, DATA)
         },
+        F_HOSTPOISON => unsafe {
+            host_fault(2);
+            work(id, GOOD_SALT, DATA)
+        },
         _ => {
             let s = unsafe { SALT };
             work(id, s, DATA)

@@ -13,6 +13,7 @@ pub const F_OOM: u32 = 5;
 pub const F_FDLEAK: u32 = 6; // not expressible by an M0 guest (no fd imports); kept for code parity
 pub const F_POISON: u32 = 7;
 pub const F_HOSTABORT: u32 = 8;
+pub const F_HOSTPOISON: u32 = 9; // guest-triggerable host-state corruption (host-side analog of poison)
 #[inline(never)]
 pub fn work(id: u32, salt: u32, data: &[u8]) -> u32 {
     let mut h: u32 = 0x811c_9dc5 ^ salt ^ id.wrapping_mul(2654435761);
