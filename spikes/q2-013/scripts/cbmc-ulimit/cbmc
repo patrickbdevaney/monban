@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Wrapper placed first on PATH: caps CBMC's address space so allocation fails inside CBMC (std::bad_alloc ->
+# CBMC's own "Out of memory" handling, exit 6: the exact #4905 path) instead of a cgroup SIGKILL.
+ulimit -v "${CBMC_VLIMIT_KB:-400000}"
+exec "$HOME/aegis-ci/cbmc/usr/bin/cbmc" "$@"

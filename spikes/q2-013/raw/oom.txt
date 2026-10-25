@@ -1,0 +1,4 @@
+Terminated
+cgroup-150M: kani_exit=143 | VERIFICATION:- FAILED  | CBMC failed CBMC appears to have run out of memory. You may want to rerun your proof in an environment with additional memory or use stubbing to reduce the size of the code the verifier reasons about.  | 
+ulimit-400M: kani_exit=1 | VERIFICATION:- FAILED  | Out of memory CBMC failed CBMC appears to have run out of memory. You may want to rerun your proof in an environment with additional memory or use stubbing to reduce the size of the code the verifier reasons about.  | HEAVY rc=1 wall_s=35.263245694 cgroup_peak_bytes=391524352 memmax=6442450944 oom_events=oom_kill 0
+control-6G: kani_exit=124 |  |  | HEAVY rc=124 wall_s=1500.074375697 cgroup_peak_bytes=2091995136 memmax=6442450944 oom_events=oom_kill 0

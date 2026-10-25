@@ -1,0 +1,90 @@
++ CI=/home/patrickd/aegis-ci
++ export RUSTUP_HOME=/home/patrickd/aegis-ci/rustup CARGO_HOME=/home/patrickd/aegis-ci/cargo PATH=/home/patrickd/aegis-ci/cargo/bin:/home/patrickd/aegis-ci/cbmc/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
++ RUSTUP_HOME=/home/patrickd/aegis-ci/rustup
++ CARGO_HOME=/home/patrickd/aegis-ci/cargo
++ PATH=/home/patrickd/aegis-ci/cargo/bin:/home/patrickd/aegis-ci/cbmc/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
++ KANI_SHA=9461e07af7ec929f050aa4192f29363c9be07779
++ VERUS_TAG=release/0.2026.10.18.7d82994
++ VERUS_ZIP=verus-0.2026.10.18.7d82994-x86-linux.zip
++ mkdir -p /home/patrickd/aegis-ci/dl /home/patrickd/aegis-ci/src
++ '[' '!' -x /home/patrickd/aegis-ci/cargo/bin/rustup ']'
++ curl -sSf https://sh.rustup.rs -o /home/patrickd/aegis-ci/dl/rustup-init.sh
++ sh /home/patrickd/aegis-ci/dl/rustup-init.sh -y --no-modify-path --profile minimal --default-toolchain none
+info: downloading installer
+info: profile set to minimal
+info: default host tuple is x86_64-unknown-linux-gnu
+info: skipping toolchain installation
+
+
+Rust is installed now. Great!
+
+To get started you need Cargo's bin directory 
+(/home/patrickd/aegis-ci/cargo/bin) in your PATH
+environment variable. This has not been done automatically.
+
+To configure your current shell, you need to source
+the corresponding env file under /home/patrickd/aegis-ci/cargo.
+
+Consider running the right command for your shell (note the leading DOT):
+. "/home/patrickd/aegis-ci/cargo/env" # For sh/ash/dash/pdksh/bash
+cargo:rerun-if-env-changed=CC_x86_64-unknown-linux-gnu
+CC_x86_64-unknown-linux-gnu = None
+cargo:rerun-if-env-changed=CC_x86_64_unknown_linux_gnu
+CC_x86_64_unknown_linux_gnu = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_unknown_linux_gnu
+CFLAGS_x86_64_unknown_linux_gnu = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-unknown-linux-gnu
+CFLAGS_x86_64-unknown-linux-gnu = None
++ '[' '!' -d /home/patrickd/aegis-ci/verus ']'
++ curl -sSL -o /home/patrickd/aegis-ci/dl/verus-0.2026.10.18.7d82994-x86-linux.zip https://github.com/verus-lang/verus/releases/download/release/0.2026.10.18.7d82994/verus-0.2026.10.18.7d82994-x86-linux.zip
++ sha256sum /home/patrickd/aegis-ci/dl/verus-0.2026.10.18.7d82994-x86-linux.zip
++ tee /home/patrickd/aegis-ci/dl/verus-0.2026.10.18.7d82994-x86-linux.zip.sha256
+e9af03732d4bdd32b93a8fcf471706739c24c1473fa5086618d96c47237845dd  /home/patrickd/aegis-ci/dl/verus-0.2026.10.18.7d82994-x86-linux.zip
++ mkdir -p /home/patrickd/aegis-ci/verus
++ cd /home/patrickd/aegis-ci/verus
++ unzip -q /home/patrickd/aegis-ci/dl/verus-0.2026.10.18.7d82994-x86-linux.zip
++ '[' '!' -d /home/patrickd/aegis-ci/cbmc ']'
++ curl -sSL -o /home/patrickd/aegis-ci/dl/cbmc.deb https://github.com/diffblue/cbmc/releases/download/cbmc-6.11.0/ubuntu-24.04-cbmc-6.11.0-Linux.deb
++ sha256sum /home/patrickd/aegis-ci/dl/cbmc.deb
++ tee /home/patrickd/aegis-ci/dl/cbmc.deb.sha256
+b3721aa541038384d7801ea3aeabbcddc3e8845ac8f1cbff637cf8dec7481ac8  /home/patrickd/aegis-ci/dl/cbmc.deb
++ mkdir -p /home/patrickd/aegis-ci/cbmc
++ dpkg-deb -x /home/patrickd/aegis-ci/dl/cbmc.deb /home/patrickd/aegis-ci/cbmc
++ cbmc --version
+6.11.0 (cbmc-6.11.0)
++ '[' '!' -d /home/patrickd/aegis-ci/src/kani ']'
++ git clone -q https://github.com/model-checking/kani.git /home/patrickd/aegis-ci/src/kani
++ cd /home/patrickd/aegis-ci/src/kani
++ git checkout -q 9461e07af7ec929f050aa4192f29363c9be07779
++ git submodule update --init --depth 1
+Submodule 'charon' (https://github.com/AeneasVerif/charon) registered for path 'charon'
+Submodule 'firecracker' (https://github.com/firecracker-microvm/firecracker.git) registered for path 'firecracker'
+Submodule 'tests/perf/s2n-quic' (https://github.com/aws/s2n-quic) registered for path 'tests/perf/s2n-quic'
+Cloning into '/home/patrickd/aegis-ci/src/kani/charon'...
+Cloning into '/home/patrickd/aegis-ci/src/kani/firecracker'...
+Cloning into '/home/patrickd/aegis-ci/src/kani/tests/perf/s2n-quic'...
+From https://github.com/AeneasVerif/charon
+ * branch            962e40b0d732e7d011520f08ef1e8c540ec75131 -> FETCH_HEAD
+Submodule path 'charon': checked out '962e40b0d732e7d011520f08ef1e8c540ec75131'
+From https://github.com/firecracker-microvm/firecracker
+ * branch            cd36c699f3cb3d531289aadee26c45c1306edcfc -> FETCH_HEAD
+Submodule path 'firecracker': checked out 'cd36c699f3cb3d531289aadee26c45c1306edcfc'
+From https://github.com/aws/s2n-quic
+ * branch            b0a09202be1c7e4676dfecf78390fbb23f3bdbd3 -> FETCH_HEAD
+Submodule path 'tests/perf/s2n-quic': checked out 'b0a09202be1c7e4676dfecf78390fbb23f3bdbd3'
++ git log -1 '--format=%H %cI %s'
+9461e07af7ec929f050aa4192f29363c9be07779 2026-10-14T09:05:40Z Automatic toolchain upgrade to nightly-2026-10-12 (#5002)
++ git merge-base --is-ancestor 16c774cf47ec80f01a7681091aa89162040c1204 HEAD
++ echo 'PR4910 merge commit IS ancestor'
+PR4910 merge commit IS ancestor

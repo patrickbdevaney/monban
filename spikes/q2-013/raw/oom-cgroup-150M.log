@@ -1,0 +1,119 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: Found the following unsupported constructs:
+             - caller_location (1)
+             - foreign function (1)
+         
+         Verification will fail if one or more of these constructs is reachable.
+         See https://model-checking.github.io/kani/rust-feature-support.html for more details.
+
+warning: 2 warnings emitted
+
+Checking harness oom_with_real_bug...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/oom__RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 1 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 2 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 3 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 4 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 5 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 6 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 7 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 8 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 9 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 10 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 11 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 12 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 13 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 14 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 15 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 16 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 17 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 18 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 19 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 20 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 21 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 22 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 23 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 24 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 25 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 26 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 27 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 28 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 29 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 30 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 31 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.1 iteration 1 file oom.rs line 12 column 5 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 1 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 2 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 3 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 4 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 5 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 6 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 7 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 8 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 9 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 10 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 11 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 12 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 13 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 14 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 15 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 16 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 17 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 18 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 19 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 20 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 21 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 22 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 23 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 24 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 25 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+Unwinding loop _RNvCsd5CGZycRn8B_3oom17oom_with_real_bug.0 iteration 26 file oom.rs line 14 column 9 function oom_with_real_bug thread 0
+
+CBMC failed
+VERIFICATION:- FAILED
+CBMC appears to have run out of memory. You may want to rerun your proof in an environment with additional memory or use stubbing to reduce the size of the code the verifier reasons about.
+
+Manual Harness Summary:
+Verification failed for - oom_with_real_bug
+Complete - 0 successfully verified harnesses, 1 failures, 1 total.
+Command exited with non-zero status 1
+	Command being timed: "kani oom.rs --harness oom_with_real_bug --exact"
+	User time (seconds): 7.88
+	System time (seconds): 0.29
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:08.34
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 185108
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 53
+	Minor (reclaiming a frame) page faults: 38172
+	Voluntary context switches: 281
+	Involuntary context switches: 1059
+	Swaps: 0
+	File system inputs: 4536
+	File system outputs: 2664
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

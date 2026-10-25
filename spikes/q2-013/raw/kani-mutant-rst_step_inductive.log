@@ -1,0 +1,416 @@
+Kani Rust Verifier 0.68.0 (standalone)
+CBMC 6.11.0
+warning: use of an unstable feature
+ --> <crate attribute>:1:12
+  |
+1 | #![feature(register_tool)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: requested on the command line with `--force-warn unstable-features`
+
+warning: 1 warning emitted
+
+Checking harness proofs::rst_step_inductive...
+CBMC 6.11.0 (cbmc-6.11.0)
+CBMC version 6.11.0 (cbmc-6.11.0) 64-bit x86_64 linux
+Reading GOTO program from file /home/patrickd/aegis-ci/work/q2-013/budget_mutant__RNvNtCsgb6fSv199sE_13budget_mutant6proofs18rst_step_inductive.out
+Generating GOTO Program
+Adding CPROVER library (x86_64)
+Removal of function pointers and virtual functions
+Generic Property Instrumentation
+Running with 16 object bits, 48 offset bits (user-specified)
+Starting Bounded Model Checking
+aborting path on assume(false) at file /home/patrickd/aegis-ci/rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs line 2609 column 19 function core::num::<impl u64>::saturating_mul thread 0
+Runtime Symex: 0.0304191s
+size of program expression: 787 steps
+slicing removed 382 assignments
+Generated 81 VCC(s), 21 remaining after simplification
+Runtime Postprocess Equation: 0.000375229s
+Passing problem to propositional reduction
+converting SSA
+Runtime Convert SSA: 0.00752079s
+Running propositional reduction
+Post-processing
+Runtime Post-process: 1.2758e-05s
+Solving with CaDiCaL 3.0.0
+3012 variables, 11082 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0026872s
+Runtime decision procedure: 0.0104861s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+3013 variables, 11083 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0343867s
+Runtime decision procedure: 0.034542s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+3014 variables, 11084 clauses
+SAT checker: instance is SATISFIABLE
+Runtime Solver: 0.0300657s
+Runtime decision procedure: 0.0302742s
+Running propositional reduction
+Solving with CaDiCaL 3.0.0
+3015 variables, 11085 clauses
+SAT checker: instance is UNSATISFIABLE
+Runtime Solver: 0.483391s
+Runtime decision procedure: 0.48348s
+
+RESULTS:
+Check 1: RstBucket::on_rst.assertion.1
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 2: core::num::<impl u64>::saturating_mul.unreachable.1
+	 - Status: SUCCESS
+	 - Description: "unreachable code"
+	 - Location: ../../rustup/toolchains/nightly-2026-10-12-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/num/uint_macros.rs:2609:19 in function core::num::<impl u64>::saturating_mul
+
+Check 3: RstBucket::refill.assertion.1
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget_mutant.rs:22:18 in function RstBucket::refill
+
+Check 4: proofs::rst_step_inductive.assertion.1
+	 - Status: FAILURE
+	 - Description: "assertion failed: b.inv()"
+	 - Location: budget_mutant.rs:68:9 in function proofs::rst_step_inductive
+
+Check 5: proofs::rst_step_inductive.assertion.2
+	 - Status: SUCCESS
+	 - Description: "assertion failed: b.tokens <= before.tokens"
+	 - Location: budget_mutant.rs:70:13 in function proofs::rst_step_inductive
+
+Check 6: proofs::rst_step_inductive.assertion.3
+	 - Status: SUCCESS
+	 - Description: "assertion failed: b.last_ns == before.last_ns"
+	 - Location: budget_mutant.rs:71:13 in function proofs::rst_step_inductive
+
+Check 7: proofs::rst_step_inductive.assertion.4
+	 - Status: SUCCESS
+	 - Description: "attempt to subtract with overflow"
+	 - Location: budget_mutant.rs:73:26 in function proofs::rst_step_inductive
+
+Check 8: proofs::rst_step_inductive.assertion.5
+	 - Status: SUCCESS
+	 - Description: "attempt to multiply with overflow"
+	 - Location: budget_mutant.rs:73:26 in function proofs::rst_step_inductive
+
+Check 9: proofs::rst_step_inductive.assertion.6
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget_mutant.rs:74:21 in function proofs::rst_step_inductive
+
+Check 10: proofs::rst_step_inductive.assertion.7
+	 - Status: SUCCESS
+	 - Description: "attempt to add with overflow"
+	 - Location: budget_mutant.rs:74:80 in function proofs::rst_step_inductive
+
+Check 11: proofs::rst_step_inductive.assertion.8
+	 - Status: SUCCESS
+	 - Description: "assertion failed: (b.tokens as u128) + if ok { SCALE as u128 } else { 0 } <= before.tokens as
+u128 + minted"
+	 - Location: budget_mutant.rs:74:13 in function proofs::rst_step_inductive
+
+Check 12: RstBucket::inv.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 13: RstBucket::inv.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 14: RstBucket::inv.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 15: RstBucket::inv.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 16: RstBucket::inv.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 17: RstBucket::inv.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:19:33 in function RstBucket::inv
+
+Check 18: RstBucket::on_rst.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 19: RstBucket::on_rst.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 20: RstBucket::on_rst.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 21: RstBucket::on_rst.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 22: RstBucket::on_rst.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 23: RstBucket::on_rst.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:31:12 in function RstBucket::on_rst
+
+Check 24: pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+
+Check 25: pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+
+Check 26: pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+
+Check 27: pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+
+Check 28: pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+
+Check 29: pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+
+Check 30: RstBucket::on_rst.pointer_dereference.7
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 31: RstBucket::on_rst.pointer_dereference.8
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 32: RstBucket::on_rst.pointer_dereference.9
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 33: RstBucket::on_rst.pointer_dereference.10
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 34: RstBucket::on_rst.pointer_dereference.11
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 35: RstBucket::on_rst.pointer_dereference.12
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:31:35 in function RstBucket::on_rst
+
+Check 36: RstBucket::refill.pointer_dereference.1
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 37: RstBucket::refill.pointer_dereference.2
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 38: RstBucket::refill.pointer_dereference.3
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 39: RstBucket::refill.pointer_dereference.4
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 40: RstBucket::refill.pointer_dereference.5
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 41: RstBucket::refill.pointer_dereference.6
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:21:19 in function RstBucket::refill
+
+Check 42: RstBucket::refill.pointer_dereference.7
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 43: RstBucket::refill.pointer_dereference.8
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 44: RstBucket::refill.pointer_dereference.9
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 45: RstBucket::refill.pointer_dereference.10
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 46: RstBucket::refill.pointer_dereference.11
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 47: RstBucket::refill.pointer_dereference.12
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:22:24 in function RstBucket::refill
+
+Check 48: RstBucket::refill.pointer_dereference.13
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 49: RstBucket::refill.pointer_dereference.14
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 50: RstBucket::refill.pointer_dereference.15
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 51: RstBucket::refill.pointer_dereference.16
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 52: RstBucket::refill.pointer_dereference.17
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 53: RstBucket::refill.pointer_dereference.18
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:25:23 in function RstBucket::refill
+
+Check 54: RstBucket::refill.pointer_dereference.19
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 55: RstBucket::refill.pointer_dereference.20
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 56: RstBucket::refill.pointer_dereference.21
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 57: RstBucket::refill.pointer_dereference.22
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 58: RstBucket::refill.pointer_dereference.23
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 59: RstBucket::refill.pointer_dereference.24
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:25:9 in function RstBucket::refill
+
+Check 60: RstBucket::refill.pointer_dereference.25
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer NULL"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+Check 61: RstBucket::refill.pointer_dereference.26
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer invalid"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+Check 62: RstBucket::refill.pointer_dereference.27
+	 - Status: SUCCESS
+	 - Description: "dereference failure: deallocated dynamic object"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+Check 63: RstBucket::refill.pointer_dereference.28
+	 - Status: SUCCESS
+	 - Description: "dereference failure: dead object"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+Check 64: RstBucket::refill.pointer_dereference.29
+	 - Status: SUCCESS
+	 - Description: "dereference failure: pointer outside object bounds"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+Check 65: RstBucket::refill.pointer_dereference.30
+	 - Status: SUCCESS
+	 - Description: "dereference failure: invalid integer address"
+	 - Location: budget_mutant.rs:26:9 in function RstBucket::refill
+
+
+SUMMARY:
+ ** 1 of 65 failed
+Failed Checks: assertion failed: b.inv()
+ File: "budget_mutant.rs", line 68, in proofs::rst_step_inductive
+
+VERIFICATION:- FAILED
+Verification Time: 0.6961716s
+
+Manual Harness Summary:
+Verification failed for - proofs::rst_step_inductive
+Complete - 0 successfully verified harnesses, 1 failures, 1 total.
+Command exited with non-zero status 1
+	Command being timed: "kani budget_mutant.rs --harness proofs::rst_step_inductive --exact"
+	User time (seconds): 0.90
+	System time (seconds): 0.14
+	Percent of CPU this job got: 101%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:01.03
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 173908
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 31089
+	Voluntary context switches: 469
+	Involuntary context switches: 16
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 1176
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1
+HEAVY rc=1 wall_s=1.114265693 cgroup_peak_bytes=26673152 memmax=6442450944 oom_events=oom_kill 0

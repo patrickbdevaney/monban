@@ -1,0 +1,3 @@
+gcra_window_bound_trace_fixed_t N=3 exit=124  HEAVY rc=124 wall_s=900.048436718 cgroup_peak_bytes=61788160 memmax=6442450944 oom_events=oom_kill 0
+gcra_window_bound_trace_fixed_t N=4 exit=124  HEAVY rc=124 wall_s=900.103846384 cgroup_peak_bytes=66416640 memmax=6442450944 oom_events=oom_kill 0
+gcra_window_bound_trace N=2 exit=124  HEAVY rc=124 wall_s=900.067167919 cgroup_peak_bytes=76926976 memmax=6442450944 oom_events=oom_kill 0

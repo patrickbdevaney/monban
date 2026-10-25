@@ -1,0 +1,39 @@
+{
+  "id": "q2-013",
+  "question": "Kani/Verus RAM (R-FORMAL-2): do representative F5 obligations (Kani: TBI-9 RST bucket, GCRA TAT update and I1 window bound; Verus: permit ledger with ghost multiset) fit a 6 GB CI cap, and does Kani fail closed on OOM?",
+  "flips_if": "Reverse R-FORMAL-2 if a golden obligation needs Mathlib, or Verus peak RAM on the first 10 obligations exceeds 16 GB; R-FORMAL-3 step 8 requires Kani main >= PR #4910 with OOM/timeout => FAIL",
+  "measured": {
+    "hardware": "LAN box kamrui standing in for the CI prover box: Intel N95 4 cores, 14 GB, Ubuntu 25.10; every run in a systemd user scope MemoryMax=6G (8G for builds), swap off, nice 15",
+    "toolchains": "Kani built from main 9461e07af7ec929f050aa4192f29363c9be07779 (2026-10-14; PR #4910 merge commit 16c774cf, merged 2026-09-30, is an ancestor) + CBMC 6.11.0 (ubuntu-24.04 .deb sha256 b3721aa5...ac8, extracted) + nightly-2026-10-12; Verus release/0.2026.10.18.7d82994 (zip sha256 e9af0373...dd, Z3 4.16.0) + rustc 1.99.1",
+    "pr_4910": "merged 2026-09-30: kani-driver accepts a CBMC result array only for exit 0/10 (or 6 with an ERROR property); any other status or a signal => 'CBMC failed with status N' and FAIL; 'Out of memory' in the JSON => ExitStatus::OutOfMemory. Fixes #4905 (0.68.0 printed VERIFICATION SUCCESSFUL from a result list truncated by bad_alloc)",
+    "kani_harnesses": {
+      "rst_step_inductive": "SUCCESSFUL, 1.3 s, cgroup peak 40 MB",
+      "rst_rate_bound_trace (N=6)": "SUCCESSFUL, 2.9 s, 46 MB",
+      "gcra_step": "SUCCESSFUL, 12.5 s, 43 MB",
+      "gcra_window_inductive_credit (I1, symbolic T and tau)": "SUCCESSFUL, 495 s, 68 MB",
+      "gcra_window_bound_trace (unrolled, symbolic T)": "TIMEOUT (exit 124) at N=6 in 1800 s and at N=2 in 900 s; peak 167 MB",
+      "gcra_window_bound_trace_fixed_t": "N=2 SUCCESSFUL 32 s; N=3 and N=4 TIMEOUT in 900 s; peak <= 66 MB",
+      "gcra_window_inductive / _fixed_t (I1 with T*sum)": "TIMEOUT in 1500 s / 900 s; 13,240 variables, 66,574 clauses; peak <= 93 MB (needs distributivity, hard for bit-blasted SAT)",
+      "max single-process RSS across all Kani runs": "<= 179 MB (kani-compiler); CBMC itself below the cgroup peaks above",
+      "mutation control": "removing the CAP clamp makes rst_step_inductive and rst_rate_bound_trace FAIL (b.inv())"
+    },
+    "verus": "permit_ledger.rs: 10 verified, 0 errors, 1.6 s wall, max RSS 365 MB, cgroup peak 224 MB; mutant (release does not return the permit) => 1 error",
+    "oom_semantics": {
+      "cgroup MemoryMax=150M, OOMPolicy=continue": "CBMC OOM-killed (oom_kill 1) -> 'CBMC appears to have run out of memory', VERIFICATION:- FAILED, kani exit 1",
+      "cgroup MemoryMax=150M, OOMPolicy=stop (systemd default)": "kani prints FAILED + OOM, then systemd stops the scope: exit 143",
+      "ulimit -v 400 MB on CBMC (bad_alloc inside CBMC, the #4905 path)": "'Out of memory', VERIFICATION:- FAILED, kani exit 1",
+      "positive control K=8 at 6 GB": "FAILED on the real 'real bug' assertion, exit 1, 15 s",
+      "heavy control K=32 at 6 GB": "no verdict in 1500 s (exit 124), cgroup peak 2.09 GB",
+      "false passes": "0 out of 4 OOM/timeout runs"
+    },
+    "builds": "Kani cargo build-dev --release: 7 min 10 s, max RSS 1.36 GB, cgroup peak 2.63 GB. Verus: prebuilt, no build",
+    "disk": "Verus 1.6 GB unpacked + rustc 1.99.1 minimal 593 MB = 2.2 GB (zip 465 MB, deletable). Kani: nightly-2026-10-12 1.6 GB + target/kani sysroot 442 MB + CBMC 212 MB = 2.25 GB at runtime; build tree adds 1.12 GB (target/build-libs 712 MB, release 229 MB, tools 180 MB) + source 142 MB. rustup/cargo bins 167 MB shared",
+    "kamrui_footprint": "~/aegis-ci 9.6 GB total (includes elan/Lean v4.34.1 3.0 GB and cedar-spec build 514 MB from spike cedar-axioms; downloads 535 MB)"
+  },
+  "verdict": "keep",
+  "decision_effect": "R-FORMAL-2 unchanged: 6 GB CI cap fits every measured obligation with >2.8x headroom (largest peak 2.09 GB was a deliberately heavy 32-element sort; real F5 obligations <= 0.37 GB). No obligation needs a bigger runner for RAM; Verus is >40x below the 16 GB flip threshold on its first obligation. The binding limit is solver TIME, not RAM. Amend R-FORMAL-3 / VERIFICATION_PLAN §3: (8) 'Kani: main commit >= PR #4910 checked by git ancestry of the recorded commit (main still reports version 0.68.0, so the version string cannot tell it from the broken release); serial; 6 GB cap; 30 min per-harness timeout; CBMC exit not in {0,10}, OOM or timeout => FAIL (executed: 0 false passes in 4 OOM/timeout runs)'. (9) replace '-V check-erasure' (not an option in 0.2026.10.18) with 'erasure check is on by default; deny --no-erasure-check'. New obligation-shape rule for Kani (F5 row, VERIFICATION_PLAN §2): 'Kani obligations are single-step inductive lemmas over symbolic state; window bounds are stated in emission-time units (ghost credit += T*cost), never as an unrolled trace and never needing T*(a+b) = T*a + T*b; nonlinear symbolic*symbolic arithmetic only with one factor <= 8 bits.' Disk: Verus CI install is 2.2 GB (REPO_LAYOUT §1 says 3.16 GB, which is now an upper bound including the zip); Kani 2.25 GB runtime + 1.1 GB build tree.",
+  "rung": "measurement grade B (LAN box standing in for CI; one host); harness results are R1-style model checks of spike harnesses, not of AEGIS code",
+  "reproduce": "on kamrui: ~/aegis-ci/bin/setup-toolchains.sh; ~/aegis-ci/bin/build-kani.sh; ~/aegis-ci/bin/run-kani.sh [harness...]; ~/aegis-ci/bin/run-verus.sh; ROUND=1 ~/aegis-ci/bin/oom-test.sh; ROUND=2 ~/aegis-ci/bin/oom-test.sh; ~/aegis-ci/bin/scale-gcra.sh (sources in spikes/q2-013/scripts, harnesses in spikes/q2-013/harness, work dir ~/aegis-ci/work/q2-013)",
+  "limits": "4 Kani + 1 Verus obligations, not the first 10 real ones; the Verus ledger is small (no maps, no per-connection collection), so Verus RAM on large ledgers stays an estimate. The #4905 false pass of release 0.68.0 was not reproduced as a control (0.68.0 not installed); fail-closed behaviour is shown for the pinned main build only. The ulimit path shows CBMC's own 'Out of memory' handling but whether CBMC exited 6 is inferred from Kani's message, not logged separately. CPU contention: some timed runs overlapped with one other CBMC job on the 4-core box (wall times are upper bounds). Kani's RSS figure is dominated by kani-compiler; CBMC's own peak is bounded by the cgroup peak.",
+  "date": "2026-10-25"
+}
