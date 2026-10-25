@@ -1,0 +1,4 @@
+{"id":"P2-budget-gate-001","crates":["xtask"],
+ "spec_refs":["REPO_LAYOUT §6 binary budget gates (stripped ≤6.0 MB default, ≤60 crates default, non-crypto unsafe ≤5000 lines, idle RSS ≤8 MB, 1k idle TLS ≤25 MB)","spikes/otlp-footprint (count shipped crates from the resolved build graph; cargo metadata over-counts never-built crates)"],
+ "acceptance":{"cmd":"cargo xtask budget && cargo xtask budget --self-test","must":"BUDGET: PASS with measured numbers printed; SELF-TEST: a synthetic over-budget input FAILS"},
+ "write_scope":["xtask/src/budget.rs"],"infeasible_exit":true,"max_retries":30,"passes":false}

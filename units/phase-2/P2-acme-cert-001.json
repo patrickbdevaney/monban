@@ -1,0 +1,6 @@
+{"id":"P2-acme-cert-001","crates":["aegis-ops"],
+ "spec_refs":["F1#CERT-1..4","ARCHITECTURE §3.11 ACME and certs (ARI renewal, atomic ResolvesServerCert swap, expiry gauge alerts 30/14/7/3 d, check-config --tls preflight, faketime +400 d)","DEVIATIONS X-6","spikes/cmvp-client-policy (acme compiled out of cmvp)"],
+ "oracles":["oracles/acme-pebble (new): Pebble container (letsencrypt/pebble, check size) issues/renews via the subject; self-test: wrong-key JWS, replayed nonce, tampered order, expired cert without renewal must be caught","CERT-4 faketime +400 d test"],
+ "acceptance":{"cmd":"ci/heavy.sh oracles/acme-pebble/run --subject target/release/acme-subject && oracles/acme-pebble/run --self-test","must":"ACME-PEBBLE: PASS (issue + renew + ARI + atomic swap) and SELF-TEST: PASS"},
+ "write_scope":["crates/aegis-ops/src/acme/**","crates/aegis-ops/src/cert/**","crates/aegis-ops/Cargo.toml","subjects/acme-subject/**","oracles/acme-pebble/**"],
+ "infeasible_exit":true,"max_retries":30,"passes":false}
