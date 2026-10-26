@@ -135,3 +135,9 @@ edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then 
 - Host faults are simulated through `env.host_fault`. The negative syscall tests, the hostile-module corpus (I1-I7)
   and the wasmtime pin/config assertions are separate Phase-5 gates, not covered here.
 - Sockets and the precompiled-module cache live in `.work/`, which is deleted at exit.
+
+## Timing mode
+`AEGIS_TIMING_GATES=advisory` (or `--timing advisory`) reports G3 recovery-p99 and G4 loop-throughput without gating
+them, for shared build boxes where they are noise (cordon OOM recovery p99 measured 1.2–16 ms depending on host load).
+Correctness criteria stay gated; the PASS line says `timing ADVISORY`. The Phase-5 gate runs in the default `gate` mode
+on a quiet VPS-class runner, per IMPLEMENTATION_PLAN Phase 5. Never applies to `--self-test`.

@@ -80,7 +80,7 @@ remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh run --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
 selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true

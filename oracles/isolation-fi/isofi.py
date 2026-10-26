@@ -58,6 +58,13 @@ def drive(bin_, guest, data, subject, fault, rate, n, seed, workdir, core, clien
     return d
 
 
+# Timing criteria (G3 recovery p99, G4 loop throughput) are only meaningful on a quiet runner (IMPLEMENTATION_PLAN
+# Phase 5: "re-run on a quiet VPS-class runner"). AEGIS_TIMING_GATES=advisory reports them without gating, for
+# shared build boxes; correctness criteria (G0, G1 blast, G2 wrong answers, unrecovered requests) stay gated.
+# Never applied to --self-test (its no-deadline mutants are caught through timing). Default: gated.
+TIMING_ADVISORY = False
+
+
 def cell_fails(path, f, d, base):
     """Gate failures of one fault cell (G1-G4)."""
     gated = GATED + (HOST if path == "forkwasm" else [])
@@ -73,9 +80,11 @@ def cell_fails(path, f, d, base):
     if d["blast_per_fault"] > 0.05:
         fails.append("G1 %s blast=%.3f>0.05" % (f, d["blast_per_fault"]))
     rp = d.get("recovery_p99_us")
-    if rp is None or rp > 5000 or d.get("unrecovered", 0) > 0:
+    if d.get("unrecovered", 0) > 0 or rp is None:
         fails.append("G3 %s recovery_p99=%sus unrecovered=%s" % (f, rp, d.get("unrecovered")))
-    if f == "loop" and base.get("rps"):
+    elif rp > 5000 and not TIMING_ADVISORY:
+        fails.append("G3 %s recovery_p99=%sus unrecovered=%s" % (f, rp, d.get("unrecovered")))
+    if f == "loop" and base.get("rps") and not TIMING_ADVISORY:
         ratio = d["rps"] / base["rps"]
         if ratio < 0.5:
             fails.append("G4 loop throughput x%.3f<0.5" % ratio)
@@ -146,7 +155,10 @@ def main():
     ap.add_argument("--server-core", default="2")
     ap.add_argument("--client-cores", default="4,5,6,7")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--timing", choices=["gate", "advisory"], default=os.environ.get("AEGIS_TIMING_GATES", "gate"))
     a = ap.parse_args()
+    global TIMING_ADVISORY
+    TIMING_ADVISORY = (a.timing == "advisory") and not a.self_test
     os.makedirs(a.workdir, exist_ok=True)
     t0 = time.time()
     faults = GATED + HOST
@@ -186,8 +198,9 @@ def main():
     if allfails:
         print("%s: FAIL (%s)" % (NAME, "; ".join(allfails)))
         return 1
-    print("%s: PASS (%s; %d fault classes at %.0f%%; %.0fs)" % (NAME, ", ".join(p for p, _ in subjects), len(faults),
-                                                            a.rate * 100, time.time() - t0))
+    mode = "; timing ADVISORY (not judged: shared runner)" if TIMING_ADVISORY else ""
+    print("%s: PASS (%s; %d fault classes at %.0f%%; %.0fs%s)" % (NAME, ", ".join(p for p, _ in subjects), len(faults),
+                                                              a.rate * 100, time.time() - t0, mode))
     return 0
 
 
