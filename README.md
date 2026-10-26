@@ -148,8 +148,8 @@ applications; the security of any path that bypasses AEGIS.
 
 ## Reporting vulnerabilities
 
-Do not report vulnerabilities in public issues. Use private vulnerability reporting as described in
-[`SECURITY.md`](SECURITY.md). An assurance claim that the evidence does not support is treated as a vulnerability.
+A vulnerability-reporting channel has not been set up yet and will be published before any public release. Do not
+report vulnerabilities in public issues.
 
 ## Contributing
 
