@@ -49,6 +49,7 @@ rustls-webpki = { version = "0.103.16", default-features = false }   # security 
 tokio-rustls = { version = "0.26.6", default-features = false }
 aws-lc-rs = { version = "1.18.2", default-features = false, features = ["aws-lc-sys"] }
 sd-notify = { version = "0.5.0", default-features = false }
+cedar-policy = { version = "4.14.0", default-features = false }   # aegis-pdp only (X-8: out of process); 4.14 is the GHSA-m84h floor
 rustix = { version = "1.1.5", default-features = false, features = ["std", "net"] }   # safe SCM_RIGHTS (OwnedFd) for F11
 
 [workspace.lints.rust]
