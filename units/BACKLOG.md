@@ -116,3 +116,11 @@
 - Vest (Verus-verified parsers) for HTTP/2 frame headers + HPACK primitives in front of h2; Kani on hyper/h2 parsers.
 - mrustc diverse double compilation as a trusting-trust cross-check of the pinned rustc.
 - Phase 7 libcrux CryptoProvider spike (more-proved crypto for P-PUBLIC-WEB; FIPS stays on AWS-LC).
+
+## Kani (from P2-kani-tbi-001)
+- Open Kani obligations (solver blowup on multiplication distributivity and BTreeMap node expansion): LRU eviction/
+  order (two ops on one store), `avail ≤ cap` for arbitrary bucket parameters, I4 rate step as one statement, RST
+  one-step for symbolic start time. Candidate fixes: restate with running-total invariants; replace LruStore's
+  BTreeMap with a fixed-array structure amenable to Kani; or move those obligations to Verus.
+- Ops note: during a stuck run the agent ran `pkill -x bash -P <sshd pids>` on kamrui (kills sshd-child bash
+  shells); no side effects observed. Agents must never pkill broadly on shared boxes.

@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# Kani proof gate for aegis-budget (unit P2-kani-tbi-001). It runs on the prover box (kamrui:~/aegis-ci) over ssh.
+#
+#   ci/kani.sh               every harness in crates/aegis-budget/src/kani_proofs.rs, plus the negative control
+#   ci/kani.sh --self-test   only the negative control (it must FAIL on its own assertion)
+#
+# The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/p2-kani with a
+# generated minimal workspace manifest. It asserts the Kani checkout is a descendant of the PR #4910 merge
+# (16c774cf). Main still reports "0.68.0", so the version string proves nothing. Harnesses then run serially,
+# each in its own `systemd-run --user --scope` with MemoryMax (default 6G), swap off, nice 15 and a timeout
+# (default 1800 s). If systemd user scopes are unavailable it falls back to `ulimit -v`.
+# A positive harness passes only on kani exit 0, "VERIFICATION:- SUCCESSFUL", one verified harness with
+# 0 failures, and all cover properties satisfied. Any other exit (CBMC status outside {0,10} surfaces as a
+# kani failure), an OOM, or a timeout (124/137/143) is FAIL.
+# The negative control passes only if kani reports VERIFICATION:- FAILED with exit 1 and the failed check is
+# its own "NEGATIVE CONTROL" assertion, with no OOM and no timeout.
+# Env: KANI_HOST (kamrui), KANI_MEM (6G), KANI_TIMEOUT (1800), KANI_HARNESSES (space-separated subset).
+set -uo pipefail
+
+HOST=${KANI_HOST:-kamrui}
+MEM=${KANI_MEM:-6G}
+TMO=${KANI_TIMEOUT:-1800}
+PR4910_MERGE=16c774cf
+CRATE=aegis-budget
+NEG=negative_control_unclamped_refill
+
+MODE=all
+case "${1:-}" in
+  --self-test) MODE=self ;;
+  "") ;;
+  *) echo "usage: ci/kani.sh [--self-test]" >&2; exit 2 ;;
+esac
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+PROOFS=$ROOT/crates/$CRATE/src/kani_proofs.rs
+fail_both() { echo "kani.sh: $*" >&2; [ "$MODE" = all ] && echo "KANI: FAIL"; echo "KANI SELF-TEST: FAIL"; exit 1; }
+[ -f "$PROOFS" ] || fail_both "missing $PROOFS"
+
+# Harness list = every `#[kani::proof]` fn in the proofs file (the gate cannot silently skip one).
+mapfile -t ALL < <(awk '/#\[kani::proof\]/{p=1; next} p && /fn [a-z_0-9]+\(/{match($0, /fn [a-z_0-9]+/); print substr($0, RSTART+3, RLENGTH-3); p=0}' "$PROOFS")
+POS=()
+for h in "${ALL[@]}"; do [ "$h" = "$NEG" ] || POS+=("$h"); done
+printf '%s\n' "${ALL[@]}" | grep -qx "$NEG" || fail_both "negative control $NEG not found in $PROOFS"
+[ "${#POS[@]}" -gt 0 ] || fail_both "no positive harnesses found"
+if [ -n "${KANI_HARNESSES:-}" ]; then read -r -a POS <<<"$KANI_HARNESSES"; fi
+[ "$MODE" = self ] && POS=()
+
+# Crates to sync: the crate plus aegis-* path deps declared in its [dependencies].
+CRATES=("$CRATE")
+mapfile -t DEPS < <(awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^aegis-[a-z0-9-]+ *=/{sub(/ *=.*/, ""); print}' \
+  "$ROOT/crates/$CRATE/Cargo.toml")
+for d in "${DEPS[@]}"; do [ -n "$d" ] && CRATES+=("$d"); done
+
+# Minimal workspace manifest: members + [workspace.package] + [workspace.lints.*] + aegis-* path deps.
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
+{
+  echo '[workspace]'
+  echo 'resolver = "3"'
+  printf 'members = ['; for c in "${CRATES[@]}"; do printf '"crates/%s", ' "$c"; done; echo ']'
+  echo
+  awk '/^\[/{keep = ($0 ~ /^\[workspace\.(package|lints\.rust|lints\.clippy)\]/)} keep' "$ROOT/Cargo.toml"
+  if [ "${#CRATES[@]}" -gt 1 ]; then
+    echo '[workspace.dependencies]'
+    for c in "${CRATES[@]:1}"; do echo "$c = { path = \"crates/$c\" }"; done
+  fi
+} >"$STAGE/Cargo.toml"
+
+ssh -o BatchMode=yes "$HOST" 'mkdir -p ~/aegis-ci/work/p2-kani/crates' || fail_both "ssh $HOST failed"
+for c in "${CRATES[@]}"; do
+  rsync -a --delete --exclude target -e 'ssh -o BatchMode=yes' "$ROOT/crates/$c/" "$HOST:aegis-ci/work/p2-kani/crates/$c/" \
+    || fail_both "rsync of $c failed"
+done
+rsync -a -e 'ssh -o BatchMode=yes' "$STAGE/Cargo.toml" "$HOST:aegis-ci/work/p2-kani/Cargo.toml" || fail_both "rsync of manifest failed"
+
+# Remote runner: prints one "RESULT <name> <OK|FAIL> ..." line per harness plus a "COMMIT" line.
+# shellcheck disable=SC2087
+ssh -o BatchMode=yes "$HOST" bash -s -- "$MEM" "$TMO" "$PR4910_MERGE" "$CRATE" "$NEG" "$MODE" "${POS[@]}" <<'REMOTE' | tee "$STAGE/out.txt"
+set -uo pipefail
+MEM=$1 TMO=$2 MERGE=$3 CRATE=$4 NEG=$5 MODE=$6; shift 6
+CI=$HOME/aegis-ci
+export RUSTUP_HOME=$CI/rustup CARGO_HOME=$CI/cargo PATH=$CI/src/kani/scripts:$CI/cargo/bin:$CI/cbmc/usr/bin:$PATH
+W=$CI/work/p2-kani; mkdir -p "$W/logs"; cd "$W" || exit 3
+K=$CI/src/kani
+commit=$(git -C "$K" rev-parse HEAD 2>/dev/null) || { echo "COMMIT FAIL no kani checkout"; exit 0; }
+if git -C "$K" merge-base --is-ancestor "$MERGE" "$commit" 2>/dev/null \
+   && [ -z "$(git -C "$K" status --porcelain --untracked-files=no)" ] && [ -x "$K/target/kani/bin/kani-driver" ]; then
+  echo "COMMIT OK $commit (descendant of $MERGE; clean tree; $(kani --version 2>/dev/null | head -1))"
+else
+  echo "COMMIT FAIL $commit is not a clean descendant of $MERGE (or the build is missing)"
+fi
+if systemd-run --user --scope -q true 2>/dev/null; then SCOPE=1; else SCOPE=0; fi
+run_one() { # name rustflags
+  local h=$1 rf=$2 log="$W/logs/$1.log"
+  if [ "$SCOPE" = 1 ]; then
+    RUSTFLAGS="$rf" systemd-run --user --scope -q -p MemoryMax="$MEM" -p MemorySwapMax=0 nice -n 15 bash -c '
+      cg=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup); s=$(date +%s.%N)
+      timeout "$0" cargo kani -p "$1" --harness "kani_proofs::harnesses::$2" --exact; rc=$?
+      echo "GATE rc=$rc wall=$(echo "$(date +%s.%N) - $s" | bc) peak=$(cat "$cg/memory.peak" 2>/dev/null || echo na) oom=$(awk "/^oom_kill /{print \$2}" "$cg/memory.events" 2>/dev/null)"
+      exit $rc' "$TMO" "$CRATE" "$h" >"$log" 2>&1
+  else
+    local kb; kb=$(numfmt --from=iec "$MEM"); kb=$((kb / 1024))
+    RUSTFLAGS="$rf" bash -c 'ulimit -v "$1"; s=$(date +%s.%N); nice -n 15 timeout "$0" cargo kani -p "$2" --harness "kani_proofs::harnesses::$3" --exact; rc=$?
+      echo "GATE rc=$rc wall=$(echo "$(date +%s.%N) - $s" | bc) peak=na oom=na"; exit $rc' "$TMO" "$kb" "$CRATE" "$h" >"$log" 2>&1
+  fi
+  local rc=$? g; g=$(grep -E '^GATE ' "$log" | tail -1)
+  local rc_in wall peak oom
+  rc_in=$(sed -n 's/.*GATE rc=\([0-9]*\).*/\1/p' <<<"$g"); rc_in=${rc_in:-$rc}
+  wall=$(sed -n 's/.* wall=\([0-9.]*\).*/\1/p' <<<"$g"); peak=$(sed -n 's/.* peak=\([0-9a-z]*\).*/\1/p' <<<"$g")
+  oom=$(sed -n 's/.* oom=\([0-9a-z]*\).*/\1/p' <<<"$g")
+  local memflag=0; grep -qiE 'out of memory|bad_alloc' "$log" && memflag=1
+  [ -n "$oom" ] && [ "$oom" != na ] && [ "$oom" != 0 ] && memflag=1
+  local mb=na; [[ "$peak" =~ ^[0-9]+$ ]] && mb=$((peak / 1048576))MB
+  local verdict=FAIL why=""
+  if [ "$h" = "$NEG" ]; then
+    if [ "$rc" = 1 ] && [ "$rc_in" = 1 ] && [ "$memflag" = 0 ] && grep -q 'VERIFICATION:- FAILED' "$log" \
+       && grep -A3 'Failed Checks:' "$log" | grep -q 'NEGATIVE CONTROL'; then verdict=FAIL_AS_EXPECTED
+    else why="negative control did not fail on its own assertion"; verdict=NOT_RED; fi
+  else
+    local cov; cov=$(grep -oE '\*\* [0-9]+ of [0-9]+ cover properties satisfied' "$log" | tail -1)
+    local cov_ok=1
+    if [ -n "$cov" ]; then read -r _ a _ b _ <<<"$cov"; [ "$a" = "$b" ] || cov_ok=0; fi
+    if [ "$rc" = 0 ] && [ "$rc_in" = 0 ] && [ "$memflag" = 0 ] && grep -q 'VERIFICATION:- SUCCESSFUL' "$log" \
+       && ! grep -q 'VERIFICATION:- FAILED' "$log" \
+       && grep -qE 'Complete - 1 successfully verified harnesses, 0 failures' "$log" && [ "$cov_ok" = 1 ]; then verdict=OK
+    else
+      case "$rc_in" in 124|137|143) why="timeout/killed";; esac
+      [ "$memflag" = 1 ] && why="OOM"
+      [ "$cov_ok" = 0 ] && why="unsatisfied cover ($cov)"
+      [ -z "$why" ] && why="rc=$rc_in"
+    fi
+  fi
+  echo "RESULT $h $verdict rc=$rc_in wall=${wall:-na}s peak=$mb ${cov:-} ${why:+($why)}"
+}
+for h in "$@"; do run_one "$h" ""; done
+run_one "$NEG" "--cfg aegis_kani_negative"
+REMOTE
+
+OUT=$STAGE/out.txt
+grep -q '^COMMIT OK' "$OUT" && commit_ok=1 || commit_ok=0
+self=FAIL; grep -qE "^RESULT $NEG FAIL_AS_EXPECTED" "$OUT" && [ "$commit_ok" = 1 ] && self=PASS
+if [ "$MODE" = all ]; then
+  pass=1
+  [ "$commit_ok" = 1 ] || pass=0
+  for h in "${POS[@]}"; do grep -qE "^RESULT $h OK " "$OUT" || pass=0; done
+  [ "$self" = PASS ] || pass=0
+  [ "$pass" = 1 ] && echo "KANI: PASS" || echo "KANI: FAIL"
+fi
+echo "KANI SELF-TEST: $self"
+if [ "$self" = PASS ] && { [ "$MODE" = self ] || [ "${pass:-0}" = 1 ]; }; then exit 0; fi
+exit 1
