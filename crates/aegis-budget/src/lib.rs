@@ -10,6 +10,7 @@ extern crate alloc;
 
 mod bucket;
 mod gcra;
+mod kani_proofs; // Kani harnesses; the module body is #[cfg(kani)] (see kani_proofs.rs)
 mod lru;
 
 pub use bucket::{RST_BURST, RST_REFILL_PER_S, TokenBucket};

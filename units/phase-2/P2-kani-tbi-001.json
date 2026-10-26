@@ -1,5 +1,26 @@
-{"id":"P2-kani-tbi-001","crates":["aegis-budget"],
- "spec_refs":["F1#TBI-5","F1#TBI-9","F1#Admission-I1","F1#I5","spikes/q2-013 (single-step inductive Kani lemmas only; Kani main >= #4910 by commit; exit ∈ {0,10}; OOM/timeout = FAIL)"],
- "acceptance":{"cmd":"ci/kani.sh (runs on the prover box kamrui:~/aegis-ci over ssh, 6 GB cap, serial)","must":"every harness VERIFICATION SUCCESSFUL; kani commit asserted; negative-control harness (mutated bucket) FAILS"},
- "write_scope":["crates/aegis-budget/src/kani_proofs.rs","crates/aegis-budget/src/lib.rs (one cfg(kani) mod line)","ci/kani.sh"],
- "infeasible_exit":true,"max_retries":30,"passes":false}
+{
+ "id": "P2-kani-tbi-001",
+ "crates": [
+  "aegis-budget"
+ ],
+ "spec_refs": [
+  "F1#TBI-5",
+  "F1#TBI-9",
+  "F1#Admission-I1",
+  "F1#I5",
+  "spikes/q2-013 (single-step inductive Kani lemmas only; Kani main >= #4910 by commit; exit \u2208 {0,10}; OOM/timeout = FAIL)"
+ ],
+ "acceptance": {
+  "cmd": "ci/kani.sh (runs on the prover box kamrui:~/aegis-ci over ssh, 6 GB cap, serial)",
+  "must": "every harness VERIFICATION SUCCESSFUL; kani commit asserted; negative-control harness (mutated bucket) FAILS"
+ },
+ "write_scope": [
+  "crates/aegis-budget/src/kani_proofs.rs",
+  "crates/aegis-budget/src/lib.rs (one cfg(kani) mod line)",
+  "ci/kani.sh"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": true,
+ "status": "pass: 8 harnesses on real aegis-budget code + negative control; narrowed obligations listed in SECURITY_CLAIMS.md and BACKLOG"
+}

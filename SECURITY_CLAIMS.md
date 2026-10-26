@@ -31,7 +31,7 @@ them secure and do not claim to.
 | Tenant-scoped data lowering returns exactly the permitted rows on exact backends | R4 model + R2 oracle | `spec/AegisIR/Lowering.lean`, `ThreeValued.lean`, `oracles/lowering-read` (≥100k cases per engine) |
 | Write path never touches another tenant's rows (W1/W2/W4) | R2 oracle | `oracles/lowering-write` (SQLite, PG, MariaDB, Cockroach with mandated forms) |
 | One canonical reading of every identity (paths, hosts, JSON, …) | R2 oracle | `oracles/canon-diff` (G1 100k + G2 17,113 + G3 66, 0 disagreements) |
-| Resource budgets (RST bucket, GCRA, admission I1/I2/I4/I5/I7/I8/I11) | R1 oracle; Kani on the real code in progress | `oracles/admission-props`, `ci/kani.sh` |
+| Resource budgets (RST bucket, GCRA, admission I1/I2/I4/I5/I7/I8/I11) | R1 oracle (all); **Kani on the real `aegis-budget` code** for: GCRA single step and no-wrap (full u64), I5 debit cap (full u64), I1 window bound (burst ≤255, T ≤1e9), I4 fresh-TAT exact, RST one-step invariant (reachable states from t₀=0), no-overflow for any bucket parameters, LRU capacity-0 fail-closed and first insert. **Not Kani-proved** (oracle/unit-test only): LRU eviction and order, `avail ≤ cap` for arbitrary bucket parameters, the I4 rate step as one statement | `oracles/admission-props`, `ci/kani.sh`, `crates/aegis-budget/src/kani_proofs.rs` |
 | PQ TLS profiles negotiate exactly as frozen | R1 | `tls/verdicts.toml`, `oracles/hrr-verdicts` |
 | Tamper-evident audit log | R1 + independent verifier | `oracles/tlog-verify` (Go x/mod tlog) |
 | Zero-downtime upgrade drops nothing | R1 | `oracles/upgrade-harness` (100 reloads, 0 drops) |
