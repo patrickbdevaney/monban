@@ -1,0 +1,4 @@
+{"id":"P3-agent-001","crates":["aegis-agent","aegis-bin"],
+ "spec_refs":["ARCHITECTURE §3.9 (MCP 2026-07-28 + 2025-11-25; listener gate as a type; sealed requestState; header/body consistency -32020 via the same JSON owner; RFC 9728 PRM, RFC 8707 audience, RFC 9207 iss)","DEVIATIONS X-9 (owned transport)","oracles/mcp-corpus (44 cases, zero handler invocations on rejects)"],
+ "acceptance":{"cmd":"oracles/mcp-corpus/run --subject <aegis agent listener URL per oracle README>","must":"all executable cases pass, 0 upstream handler invocations on rejects, advisory cases recorded"},
+ "write_scope":["crates/aegis-agent/**","crates/aegis-bin/src/agent*.rs","oracles/mcp-corpus/README.md (subject wiring notes only)"],"infeasible_exit":true,"max_retries":30,"passes":false}

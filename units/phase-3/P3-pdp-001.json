@@ -1,0 +1,5 @@
+{"id":"P3-pdp-001","crates":["aegis-authz","aegis-pdp (new binary crate, L5)"],
+ "spec_refs":["DEVIATIONS X-8 (Cedar out of process)","F6 combiner","INV-FAILCLOSED host mapping (timeout/crash/panic/garbage ⇒ Error ⇒ Deny)","spikes/cedar-axioms (cite Lean authz theorems at A, SymCC at B)"],
+ "oracles":["oracles/pdp-dst (new): deterministic fault injection on the PDP channel (delay past deadline, crash mid-reply, truncated/garbage frames, oversized reply, wrong request id) ⇒ every case Deny, never Allow; self-test: a client that maps timeout to Allow must FAIL","Cedar validation + policy tests on example policy sets"],
+ "acceptance":{"cmd":"oracles/pdp-dst/run --subject target/release/aegis-pdp && oracles/pdp-dst/run --self-test","must":"PASS"},
+ "write_scope":["crates/aegis-authz/**","crates/aegis-pdp/**","oracles/pdp-dst/**","Cargo.toml (workspace member + cedar-policy pin, integrator applies)"],"infeasible_exit":true,"max_retries":30,"passes":false}

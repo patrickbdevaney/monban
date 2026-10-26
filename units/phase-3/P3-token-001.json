@@ -1,0 +1,5 @@
+{"id":"P3-token-001","crates":["aegis-token"],
+ "spec_refs":["F5 interfaces/F5-token.cddl","spec/AegisIR/Token.lean (T1–T5)","F2 authn_path::mint (only aegis-token)","ARCHITECTURE §3.5 token tiers"],
+ "oracles":["DRT: Rust verifier vs Lean Token model (Lean #eval of verify/attenuate on generated caveat chains), ≥1e6 cases, 0 divergence","fuzz F1–F9 (CBOR decoder, verify) ≥1e7 local / 1e8 CI","dudect constant-time check on tag compare"],
+ "acceptance":{"cmd":"oracles/token-drt/run --subject target/release/token-subject && oracles/token-drt/run --self-test","must":"0 divergence; self-test mutants (leaf-only verify, plain-prefix resources, missing-arg allow, depth unchecked) caught"},
+ "write_scope":["crates/aegis-token/**","subjects/token-subject/**","oracles/token-drt/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
