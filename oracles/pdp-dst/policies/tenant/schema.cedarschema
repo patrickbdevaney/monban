@@ -1,0 +1,11 @@
+// Multi-tenant SaaS: users and documents belong to exactly one tenant; nothing crosses tenants.
+namespace Saas {
+  entity Tenant;
+  entity User in [Tenant] { tenant: Tenant, roles: Set<String> };
+  entity Document in [Tenant] { tenant: Tenant, owner: User, shared: Bool };
+  action read, write appliesTo {
+    principal: [User],
+    resource: [Document],
+    context: { mfa: Bool, session_age_s: Long }
+  };
+}

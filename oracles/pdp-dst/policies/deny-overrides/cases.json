@@ -1,0 +1,27 @@
+{
+  "base_entities": [
+    {"uid": ["Bank::Customer", "cy"], "attrs": {"blocked": false, "risk": 2}, "parents": []},
+    {"uid": ["Bank::Customer", "bo"], "attrs": {"blocked": true, "risk": 1}, "parents": []},
+    {"uid": ["Bank::Customer", "hr"], "attrs": {"blocked": false, "risk": 4}, "parents": []},
+    {"uid": ["Bank::Account", "cy-1"], "attrs": {"owner": {"__entity": ["Bank::Customer", "cy"]}, "frozen": false, "limit": 5000}, "parents": []},
+    {"uid": ["Bank::Account", "cy-2"], "attrs": {"owner": {"__entity": ["Bank::Customer", "cy"]}, "frozen": true, "limit": 5000}, "parents": []},
+    {"uid": ["Bank::Account", "bo-1"], "attrs": {"owner": {"__entity": ["Bank::Customer", "bo"]}, "frozen": false, "limit": 5000}, "parents": []},
+    {"uid": ["Bank::Account", "hr-1"], "attrs": {"owner": {"__entity": ["Bank::Customer", "hr"]}, "frozen": false, "limit": 9223372036854775807}, "parents": []}
+  ],
+  "cases": [
+    {"name": "owner views", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": []}}, "expect": "ALLOW"},
+    {"name": "non-owner views", "p": ["Bank::Customer", "hr"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "withdraw within limit", "p": ["Bank::Customer", "cy"], "a": "withdraw", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 100, "country": "FR", "flags": {"__set": ["new-device"]}}, "expect": "ALLOW"},
+    {"name": "withdraw over limit", "p": ["Bank::Customer", "cy"], "a": "withdraw", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 5001, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "frozen account withdraw", "p": ["Bank::Customer", "cy"], "a": "withdraw", "r": ["Bank::Account", "cy-2"], "ctx": {"amount": 1, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "frozen account still viewable", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-2"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": []}}, "expect": "ALLOW"},
+    {"name": "blocked owner", "p": ["Bank::Customer", "bo"], "a": "view", "r": ["Bank::Account", "bo-1"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "transfer to sanctioned country", "p": ["Bank::Customer", "cy"], "a": "transfer", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 10, "country": "XX", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "transfer ok", "p": ["Bank::Customer", "cy"], "a": "transfer", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 10, "country": "FR", "flags": {"__set": ["new-device", "travel"]}}, "expect": "ALLOW"},
+    {"name": "fraud flag", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": ["travel", "fraud-suspected"]}}, "expect": "DENY"},
+    {"name": "risk exposure", "p": ["Bank::Customer", "hr"], "a": "transfer", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": 300000, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
+    {"name": "overflow in a forbid: Cedar would Allow, AEGIS errors", "p": ["Bank::Customer", "hr"], "a": "transfer", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": 4611686018427387904, "country": "FR", "flags": {"__set": []}}, "expect": "ERROR", "cedar_raw": "cedar=Allow"},
+    {"name": "i64::MIN amount withdraw", "p": ["Bank::Customer", "hr"], "a": "withdraw", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": -9223372036854775808, "country": "FR", "flags": {"__set": []}}, "expect": "ALLOW"},
+    {"name": "flags must be a set", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": "travel"}, "expect": "ERROR"}
+  ]
+}

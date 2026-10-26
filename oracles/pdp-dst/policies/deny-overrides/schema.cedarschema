@@ -1,0 +1,10 @@
+// Banking: owners may act on their accounts unless any guard forbids (forbid always overrides permit).
+namespace Bank {
+  entity Customer { blocked: Bool, risk: Long };
+  entity Account { owner: Customer, frozen: Bool, limit: Long };
+  action view, withdraw, transfer appliesTo {
+    principal: [Customer],
+    resource: [Account],
+    context: { amount: Long, country: String, flags: Set<String> }
+  };
+}

@@ -1,0 +1,7 @@
+// RBAC: users hold roles (roles may nest), reports carry a classification.
+namespace Rbac {
+  entity Role in [Role];
+  entity User in [Role] { active: Bool };
+  entity Report { classification: String };
+  action view, edit, delete appliesTo { principal: [User], resource: [Report], context: {} };
+}

@@ -1,0 +1,34 @@
+[package]
+name = "aegis-pdp"
+description = "Out-of-process Cedar PDP (DEVIATIONS X-8): validated policy set, PDP-1 wire over SOCK_SEQPACKET."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = 5
+
+[[bin]]
+name = "aegis-pdp"
+path = "src/main.rs"
+
+# Fault-injection driver for oracles/pdp-dst: the aegis-authz PdpClient over the UDS transport. No Cedar code is
+# reachable from it (LTO drops the crate).
+[[bin]]
+name = "aegis-pdp-probe"
+path = "src/bin/aegis-pdp-probe.rs"
+
+[dependencies]
+aegis-types = { workspace = true }
+aegis-authz = { workspace = true }
+# Root pin, default-features = false; no feature enabled: the PDP data model has no extension values (ipaddr,
+# decimal, datetime), and nothing experimental (partial-eval, tpe, entity-manifest, protobufs) is used.
+cedar-policy = { workspace = true }
+# Root pin ("std", "net"): SOCK_SEQPACKET socket/bind/listen/accept/connect, recv(MSG_TRUNC), SO_TYPE; all safe
+# APIs. "time" only because rustix's linux_raw sockopt code does not compile without it (as in aegis-ops).
+rustix = { workspace = true, features = ["time"] }
+
+[lints]
+workspace = true
