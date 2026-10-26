@@ -3,9 +3,14 @@
 # Fails if any oracle fails, or if an oracle directory lacks an executable `run`. Oracles that judge a production
 # binary list it in `default-subject`; build those subjects first (gate build-subjects).
 set -uo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"; mode="${1:-run}"; fail=0; n=0
+# Placement: an oracle that needs host facilities lists them in `needs` (docker, lean). `--where remote` runs only
+# oracles with no needs (for the LAN build box); `--where local` runs only oracles that have needs. Default: all.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"; mode="${1:-run}"; where="all"; fail=0; n=0
+[ "${2:-}" = --where ] && where="${3:-all}"
 for d in "$ROOT"/oracles/*/; do
   name=$(basename "$d"); r="$d/run"
+  if [ "$where" = remote ] && [ -f "$d/needs" ]; then continue; fi
+  if [ "$where" = local ] && [ ! -f "$d/needs" ]; then continue; fi
   [ -x "$r" ] || { echo "ORACLES: $name has no executable run"; fail=1; continue; }
   n=$((n+1))
   # An oracle that needs a production subject names it in default-subject (a path relative to the repo root).
