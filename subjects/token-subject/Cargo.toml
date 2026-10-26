@@ -1,0 +1,17 @@
+[package]
+name = "token-subject"
+description = "Oracle subject: exposes aegis-token over the token-drt case protocol. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-token = { workspace = true }
+
+[lints]
+workspace = true

@@ -124,3 +124,11 @@
   BTreeMap with a fixed-array structure amenable to Kani; or move those obligations to Verus.
 - Ops note: during a stuck run the agent ran `pkill -x bash -P <sshd pids>` on kamrui (kills sshd-child bash
   shells); no side effects observed. Agents must never pkill broadly on shared boxes.
+- aegis-egress builds its PQ client profile directly on rustls (aegis-tls is also L3; edge not allowed). Consider one owner for TLS profiles (move into aegis-tls or allow the edge). No end-to-end TLS handshake test yet (subject has no TLS).
+
+## Token (from P3-token-001)
+- F5 K_aud derivation is ambiguous: HKDF info "aegis-cap-v1"‖aud‖kid has no length prefixes, so (aud="api",kid="k1")
+  and (aud="apik",kid="1") derive the same key. Not exploitable as found (aud caveat and kid‖nonce chain root still
+  differ), but fix by spec-change PR: length-prefix aud and kid (re-freeze F5, update aegis-token + token-drt).
+- Bridged spec gaps: Lean tenant Bytes vs wire uint (8-byte BE); wire `any` limited to int/string; dudect-quality
+  constant-time testing still a follow-up.

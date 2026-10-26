@@ -10,9 +10,24 @@ publish = false
 [package.metadata.aegis]
 layer = 3
 
+[features]
+default = []
+# The rustls CLIENT (https egress). Off by default so the cmvp build compiles every rustls client out
+# (spikes/cmvp-client-policy mode A, gate check M1 + B1/B2). Without it, `https://` fetches fail closed with
+# `EgressError::TlsUnavailable`; URL vetting, address classification, redirect policy and plain-HTTP fetch remain.
+tls-client = ["dep:rustls", "dep:tokio-rustls"]
+
 [dependencies]
 aegis-types = { workspace = true }
 aegis-canon = { workspace = true }
+# Root pins only, every crate already in Cargo.lock. No `macros` (tokio-macros is not in the lock). hyper's client
+# needs `want` (not in the lock), so the HTTP/1.1 exchange is hand-written in src/http1.rs.
+tokio = { workspace = true, features = ["net", "time", "io-util"] }
+rustls = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "net", "time", "io-util", "sync"] }
 
 [lints]
 workspace = true
