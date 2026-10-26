@@ -68,7 +68,7 @@ selftest = "cargo xtask lock-targets --self-test"
 
 [[gate]]
 name = "repro"
-cmd = "ci/repro.sh"
+cmd = "cargo fetch --locked -q && ci/repro.sh"
 selftest = "ci/repro.sh --self-test"
 heavy = true
 remote = true
