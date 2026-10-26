@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# TOKEN-DRT oracle entry point (oracles/README.md contract). Stdlib Python, isolated mode; needs a Lean 4.35.0
+# toolchain (core only) to build the reference evaluator into .lake/build (gitignored).
+set -u
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I -B "$here/token_drt.py" "$@"
