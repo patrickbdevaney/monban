@@ -12,10 +12,11 @@ build() {  # $1 = slot name, $2 = epoch
   local src="$W/$1/src-$1-tree" home="$W/$1/cargo-home" tgt="$W/$1/target"
   mkdir -p "$src" "$home"
   git -C "$ROOT" archive --format=tar HEAD | tar -x -C "$src"
-  [ -d "$HOME/.cargo/registry" ] && ln -s "$HOME/.cargo/registry" "$home/registry"
+  REG="${CARGO_HOME:-$HOME/.cargo}/registry"
+  [ -d "$REG" ] && ln -s "$REG" "$home/registry"
   local flags=""
   if [ $selftest = 0 ]; then
-    flags="--remap-path-prefix=$src=/src --remap-path-prefix=$home/registry/src=/cargo/registry --remap-path-prefix=$HOME/.cargo/registry/src=/cargo/registry --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup"
+    flags="--remap-path-prefix=$src=/src --remap-path-prefix=$home/registry/src=/cargo/registry --remap-path-prefix=$REG/src=/cargo/registry --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup"
   fi
   # The workspace .cargo/config.toml remaps /home; override it so only these flags apply.
   (cd "$src" && CARGO_PROFILE_RELEASE_DEBUG="${DEBUG_LEVEL:-0}" CARGO_PROFILE_RELEASE_STRIP="${STRIP:-symbols}" SOURCE_DATE_EPOCH="$2" CARGO_HOME="$home" CARGO_TARGET_DIR="$tgt" RUSTFLAGS="$flags -Cforce-frame-pointers=yes ${AEGIS_REPRO_EXTRA:-}" \
