@@ -132,3 +132,9 @@
   differ), but fix by spec-change PR: length-prefix aud and kid (re-freeze F5, update aegis-token + token-drt).
 - Bridged spec gaps: Lean tenant Bytes vs wire uint (8-byte BE); wire `any` limited to int/string; dudect-quality
   constant-time testing still a follow-up.
+
+## Pause point (2026-10-26, operator low on tokens)
+Phase 3 done: token, pdp, egress units. Remaining Phase 3: P3-agent-001 (MCP listener gate on the owned transport,
+wire aegis-token verify + aegis-pdp via an L4 transport crate + aegis-egress into aegis-bin), then gates/phase-3.toml
+(corpus 100% + zero handler invocations, token DRT, pdp DST, ssrf corpus, Lean Combine/Token gate) and the Phase-3 GO
+run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 crate, egress TLS profile ownership.

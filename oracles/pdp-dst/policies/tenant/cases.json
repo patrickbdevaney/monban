@@ -1,0 +1,26 @@
+{
+  "base_entities": [
+    {"uid": ["Saas::Tenant", "acme"], "attrs": {}, "parents": []},
+    {"uid": ["Saas::Tenant", "globex"], "attrs": {}, "parents": []},
+    {"uid": ["Saas::User", "ada"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "acme"]}, "roles": {"__set": ["member"]}}, "parents": [["Saas::Tenant", "acme"]]},
+    {"uid": ["Saas::User", "abe"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "acme"]}, "roles": {"__set": ["member", "tenant-admin"]}}, "parents": [["Saas::Tenant", "acme"]]},
+    {"uid": ["Saas::User", "gus"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "globex"]}, "roles": {"__set": ["tenant-admin"]}}, "parents": [["Saas::Tenant", "globex"]]},
+    {"uid": ["Saas::Document", "plan"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "acme"]}, "owner": {"__entity": ["Saas::User", "ada"]}, "shared": false}, "parents": [["Saas::Tenant", "acme"]]},
+    {"uid": ["Saas::Document", "wiki"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "acme"]}, "owner": {"__entity": ["Saas::User", "abe"]}, "shared": true}, "parents": [["Saas::Tenant", "acme"]]}
+  ],
+  "cases": [
+    {"name": "owner reads private doc", "p": ["Saas::User", "ada"], "a": "read", "r": ["Saas::Document", "plan"], "ctx": {"mfa": false, "session_age_s": 10}, "expect": "ALLOW"},
+    {"name": "same tenant reads shared doc", "p": ["Saas::User", "ada"], "a": "read", "r": ["Saas::Document", "wiki"], "ctx": {"mfa": false, "session_age_s": 10}, "expect": "ALLOW"},
+    {"name": "non-owner cannot read private doc", "p": ["Saas::User", "abe"], "a": "read", "r": ["Saas::Document", "plan"], "ctx": {"mfa": false, "session_age_s": 10}, "expect": "DENY"},
+    {"name": "tenant admin reads private doc with mfa", "p": ["Saas::User", "abe"], "a": "read", "r": ["Saas::Document", "plan"], "ctx": {"mfa": true, "session_age_s": 10}, "expect": "ALLOW"},
+    {"name": "other tenant admin cannot read shared doc", "p": ["Saas::User", "gus"], "a": "read", "r": ["Saas::Document", "wiki"], "ctx": {"mfa": true, "session_age_s": 10}, "expect": "DENY"},
+    {"name": "owner writes with mfa", "p": ["Saas::User", "ada"], "a": "write", "r": ["Saas::Document", "plan"], "ctx": {"mfa": true, "session_age_s": 10}, "expect": "ALLOW"},
+    {"name": "owner write without mfa", "p": ["Saas::User", "ada"], "a": "write", "r": ["Saas::Document", "plan"], "ctx": {"mfa": false, "session_age_s": 10}, "expect": "DENY"},
+    {"name": "stale session cannot write", "p": ["Saas::User", "ada"], "a": "write", "r": ["Saas::Document", "plan"], "ctx": {"mfa": true, "session_age_s": 7200}, "expect": "DENY"},
+    {"name": "doc re-parented into other tenant: guard forbids", "p": ["Saas::User", "gus"], "a": "read", "r": ["Saas::Document", "wiki"], "ctx": {"mfa": true, "session_age_s": 10},
+     "replace": [{"uid": ["Saas::Document", "wiki"], "attrs": {"tenant": {"__entity": ["Saas::Tenant", "acme"]}, "owner": {"__entity": ["Saas::User", "abe"]}, "shared": true}, "parents": [["Saas::Tenant", "globex"]]}], "expect": "DENY"},
+    {"name": "missing context attribute", "p": ["Saas::User", "ada"], "a": "read", "r": ["Saas::Document", "plan"], "ctx": {"mfa": true}, "expect": "ERROR"},
+    {"name": "context attribute of wrong type", "p": ["Saas::User", "ada"], "a": "read", "r": ["Saas::Document", "plan"], "ctx": {"mfa": "yes", "session_age_s": 10}, "expect": "ERROR"},
+    {"name": "resource of undeclared type", "p": ["Saas::User", "ada"], "a": "read", "r": ["Saas::Folder", "f"], "ctx": {"mfa": true, "session_age_s": 10}, "expect": "ERROR"}
+  ]
+}

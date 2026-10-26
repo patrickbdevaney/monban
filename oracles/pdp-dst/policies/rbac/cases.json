@@ -1,0 +1,33 @@
+{
+  "base_entities": [
+    {"uid": ["Rbac::Role", "viewer"], "attrs": {}, "parents": []},
+    {"uid": ["Rbac::Role", "editor"], "attrs": {}, "parents": [["Rbac::Role", "viewer"]]},
+    {"uid": ["Rbac::Role", "admin"], "attrs": {}, "parents": []},
+    {"uid": ["Rbac::User", "alice"], "attrs": {"active": true}, "parents": [["Rbac::Role", "viewer"]]},
+    {"uid": ["Rbac::User", "ann"], "attrs": {"active": false}, "parents": [["Rbac::Role", "viewer"]]},
+    {"uid": ["Rbac::User", "bob"], "attrs": {"active": true}, "parents": [["Rbac::Role", "editor"]]},
+    {"uid": ["Rbac::User", "carol"], "attrs": {"active": true}, "parents": [["Rbac::Role", "admin"]]},
+    {"uid": ["Rbac::User", "dave"], "attrs": {"active": true}, "parents": []},
+    {"uid": ["Rbac::Report", "q3"], "attrs": {"classification": "internal"}, "parents": []},
+    {"uid": ["Rbac::Report", "m-and-a"], "attrs": {"classification": "secret"}, "parents": []}
+  ],
+  "cases": [
+    {"name": "viewer views", "p": ["Rbac::User", "alice"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "ALLOW"},
+    {"name": "viewer cannot edit", "p": ["Rbac::User", "alice"], "a": "edit", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "DENY"},
+    {"name": "inactive viewer", "p": ["Rbac::User", "ann"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "DENY"},
+    {"name": "editor edits internal", "p": ["Rbac::User", "bob"], "a": "edit", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "ALLOW"},
+    {"name": "editor cannot edit secret", "p": ["Rbac::User", "bob"], "a": "edit", "r": ["Rbac::Report", "m-and-a"], "ctx": {}, "expect": "DENY"},
+    {"name": "editor views secret via nested viewer role", "p": ["Rbac::User", "bob"], "a": "view", "r": ["Rbac::Report", "m-and-a"], "ctx": {}, "expect": "ALLOW"},
+    {"name": "editor cannot delete", "p": ["Rbac::User", "bob"], "a": "delete", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "DENY"},
+    {"name": "admin deletes secret", "p": ["Rbac::User", "carol"], "a": "delete", "r": ["Rbac::Report", "m-and-a"], "ctx": {}, "expect": "ALLOW"},
+    {"name": "no role", "p": ["Rbac::User", "dave"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "DENY"},
+    {"name": "role nesting removed from slice", "p": ["Rbac::User", "bob"], "a": "view", "r": ["Rbac::Report", "m-and-a"], "ctx": {},
+     "replace": [{"uid": ["Rbac::Role", "editor"], "attrs": {}, "parents": []}], "expect": "DENY"},
+    {"name": "principal missing from slice: attribute access errors", "p": ["Rbac::User", "zed"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {},
+     "add": [{"uid": ["Rbac::Role", "x"], "attrs": {}, "parents": [["Rbac::Role", "viewer"]]}], "expect": "DENY"},
+    {"name": "schema violation: active is a Long", "p": ["Rbac::User", "alice"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {},
+     "replace": [{"uid": ["Rbac::User", "alice"], "attrs": {"active": 1}, "parents": [["Rbac::Role", "viewer"]]}], "expect": "ERROR"},
+    {"name": "undeclared action", "p": ["Rbac::User", "carol"], "a": "approve", "r": ["Rbac::Report", "q3"], "ctx": {}, "expect": "ERROR"},
+    {"name": "undeclared context attribute", "p": ["Rbac::User", "alice"], "a": "view", "r": ["Rbac::Report", "q3"], "ctx": {"x": 1}, "expect": "ERROR"}
+  ]
+}

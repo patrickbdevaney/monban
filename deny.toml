@@ -21,6 +21,13 @@ ignore = true  # first-party crates are publish = false
 [bans]
 multiple-versions = "deny"
 wildcards = "deny"
+# Measured duplicates (SUPPLY_CHAIN G1 allows a skip list). All three come from cedar-policy and are linked only into
+# the separate aegis-pdp binary (X-8); the shipped aegis binary has none. Older version skipped.
+skip = [
+  { crate = "itertools@0.14.0", reason = "cedar-policy (aegis-pdp only)" },
+  { crate = "syn@2.0.119", reason = "cedar-policy proc-macros (aegis-pdp only, build time)" },
+  { crate = "unicode-width@0.1.14", reason = "cedar-policy (aegis-pdp only)" },
+]
 allow-wildcard-paths = true  # workspace path deps
 deny = [
   { name = "fancy-regex", reason = "backtracking regex on the data plane (OPS: linear-time regex only)" },

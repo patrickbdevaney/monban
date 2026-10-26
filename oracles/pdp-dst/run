@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# AEGIS oracle: PDP channel fault injection (unit P3-pdp-001). Contract: oracles/README.md.
+# Last line: PDP-DST: PASS|FAIL (...)  /  PDP-DST SELF-TEST: PASS|FAIL (...).
+#   ./run --subject target/release/aegis-pdp   drive aegis-pdp-probe (next to the subject) through the fault proxy
+#   ./run --self-test                          Python reference client must PASS; mutant clients must FAIL
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/pdp_dst.py" "$@"

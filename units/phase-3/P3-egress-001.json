@@ -1,5 +1,26 @@
-{"id":"P3-egress-001","crates":["aegis-egress"],
- "spec_refs":["ARCHITECTURE §3.9/§3.3 resolved-address egress, redirect policy, NAT64/6to4, fetch host fn (never wasi-http)","spikes/cmvp-client-policy (egress client compiled out of cmvp or PQ-only)"],
- "oracles":["oracles/ssrf-corpus (new): resolver returning private/loopback/link-local/metadata/IPv4-mapped/NAT64/6to4/DNS-rebinding answers; redirects to such targets; PASS iff 0 connects to non-allowlisted addresses; self-test: a fetcher that connects by hostname (re-resolving) must FAIL"],
- "acceptance":{"cmd":"oracles/ssrf-corpus/run --subject target/release/egress-subject && oracles/ssrf-corpus/run --self-test","must":"PASS"},
- "write_scope":["crates/aegis-egress/**","subjects/egress-subject/**","oracles/ssrf-corpus/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
+{
+ "id": "P3-egress-001",
+ "crates": [
+  "aegis-egress"
+ ],
+ "spec_refs": [
+  "ARCHITECTURE \u00a73.9/\u00a73.3 resolved-address egress, redirect policy, NAT64/6to4, fetch host fn (never wasi-http)",
+  "spikes/cmvp-client-policy (egress client compiled out of cmvp or PQ-only)"
+ ],
+ "oracles": [
+  "oracles/ssrf-corpus (new): resolver returning private/loopback/link-local/metadata/IPv4-mapped/NAT64/6to4/DNS-rebinding answers; redirects to such targets; PASS iff 0 connects to non-allowlisted addresses; self-test: a fetcher that connects by hostname (re-resolving) must FAIL"
+ ],
+ "acceptance": {
+  "cmd": "oracles/ssrf-corpus/run --subject target/release/egress-subject && oracles/ssrf-corpus/run --self-test",
+  "must": "PASS"
+ },
+ "write_scope": [
+  "crates/aegis-egress/**",
+  "subjects/egress-subject/**",
+  "oracles/ssrf-corpus/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": true,
+ "status": "pass: 273 SSRF cases 0 violations; 7/7 mutants"
+}
