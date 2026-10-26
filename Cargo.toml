@@ -76,3 +76,8 @@ incremental = false
 
 [profile.dev]
 panic = "abort"
+# Line tables only (backtraces keep file:line): full debuginfo made target/debug 3.5 GB on a 98%-full disk.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
