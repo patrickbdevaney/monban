@@ -1,0 +1,20 @@
+[package]
+name = "egress-subject"
+description = "Oracle subject: exposes aegis-egress over the ssrf-corpus JSON-lines protocol. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# aegis-egress WITHOUT `tls-client`: the corpus judges vetting/redirect decisions and plain-HTTP positive controls;
+# enabling the rustls client here would feature-unify it into workspace builds of aegis-egress.
+[dependencies]
+aegis-egress = { workspace = true }
+tokio = { workspace = true, features = ["rt", "net", "time", "io-util"] }
+
+[lints]
+workspace = true
