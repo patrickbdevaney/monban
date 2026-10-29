@@ -1,0 +1,98 @@
+# AEGIS fuzz harness (unit P3-fuzz-001). A SEPARATE cargo workspace: it is not a member of the root workspace,
+# has its own Cargo.lock, and nothing in the shipped graph depends on it (`cargo tree -p aegis-bin` is unchanged).
+# Built only with the pinned nightly + cargo-fuzz in the LAN box's isolated toolchain (ci/tools.lock, ci/fuzz.sh).
+#
+# Targets exercise public APIs only. Skipped: "MCP listener gate request classification (aegis-agent)": aegis-agent
+# is still the Phase-0 stub (crates/aegis-agent/src/lib.rs has no items at all), so there is no untrusted-input
+# entry point to fuzz yet. Add `fuzz_targets/mcp_gate.rs` when P3-agent-001 lands.
+[package]
+name = "aegis-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+members = ["."]
+
+[dependencies]
+# Exact pin, published >= 7 days before it was added (2026-10-29). `arbitrary` (locked 1.5.0, 2026-10-06) comes
+# through its re-export. Every other locked crate is the version in the root Cargo.lock.
+libfuzzer-sys = "=0.4.13"
+aegis-types = { path = "../crates/aegis-types" }
+aegis-transport = { path = "../crates/aegis-transport" }
+aegis-token = { path = "../crates/aegis-token" }
+aegis-canon = { path = "../crates/aegis-canon" }
+aegis-authz = { path = "../crates/aegis-authz" }
+aegis-config = { path = "../crates/aegis-config" }
+aegis-audit = { path = "../crates/aegis-audit" }
+aegis-egress = { path = "../crates/aegis-egress" }
+tokio = { version = "1.53.3", default-features = false, features = ["io-util"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+# `fuzzing` is set by cargo-fuzz; `fuzzing_selftest` only by `ci/fuzz.sh self-test` (planted panics, never shipped).
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(fuzzing)", "cfg(fuzzing_selftest)"] }
+
+[profile.release]
+debug = 1
+panic = "abort"
+
+[[bin]]
+name = "h1_head"
+path = "fuzz_targets/h1_head.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "token"
+path = "fuzz_targets/token.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "canon_json"
+path = "fuzz_targets/canon_json.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "combiner"
+path = "fuzz_targets/combiner.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "config"
+path = "fuzz_targets/config.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "audit"
+path = "fuzz_targets/audit.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pdp_wire"
+path = "fuzz_targets/pdp_wire.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "egress"
+path = "fuzz_targets/egress.rs"
+test = false
+doc = false
+bench = false

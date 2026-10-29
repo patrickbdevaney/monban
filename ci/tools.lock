@@ -4,3 +4,10 @@ cargo-deny	0.20.2	2026-07-09	9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6
 cargo-audit	cargo-audit/v0.22.2	2026-06-05	7fb9497f8594b389e5fce5ef9b92db08432996895b2e0c5a0167a69ed445c428	https://github.com/rustsec/rustsec/releases/download/cargo-audit/v0.22.2/cargo-audit-x86_64-unknown-linux-musl-v0.22.2.tgz
 cargo-vet	v0.10.0	2024-10-03	c7664d9db5dd2ff813f20303650ac8253fa712ff2a1ea9ce12bed71e346f1744	https://github.com/mozilla/cargo-vet/releases/download/v0.10.0/cargo-vet-x86_64-unknown-linux-gnu.tar.xz
 zizmor	v1.31.1	2026-10-15	d185f726bdaf92df78273217dfdd24ebcd6b0ef48cf3ce776ff5762b6e138c99	https://github.com/zizmorcore/zizmor/releases/download/v1.31.1/zizmor-x86_64-unknown-linux-gnu.tar.gz
+# Fuzz toolchain (unit P3-fuzz-001), LAN build box only (~/aegis-ci), never this laptop. Rows start with "#fuzz:" so
+# install-tools.sh skips them; ci/fuzz.sh setup reads them. Same columns: name  version  published  sha256  url.
+#   nightly: sha256 of the dated channel manifest (rustup then checks every component against it).
+#   cargo-fuzz: no prebuilt release; sha256 is the crates.io .crate checksum, verified against the sparse index, then
+#   built with `cargo install --locked --version`. Both published >= 7 days before pinning (2026-10-29).
+#fuzz:nightly	nightly-2026-10-12	2026-10-12	ffde9ecbc57fc9e4f97294b11e2d8afdc6d130c97be693f02a8342e7494ed43b	https://static.rust-lang.org/dist/2026-10-12/channel-rust-nightly.toml
+#fuzz:cargo-fuzz	0.13.2	2026-06-09	5acfd01930e49823e58c30dd8012d3338a620377d7c7d4cc140ca4b2169400e2	https://static.crates.io/crates/cargo-fuzz/cargo-fuzz-0.13.2.crate
