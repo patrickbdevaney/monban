@@ -20,7 +20,7 @@ MEM=12G JOBS=8; [ "$HOST" = kamrui ] && { MEM=9G; JOBS=4; }
 # One remote tree per local checkout, so parallel worktrees (agents) never rsync --delete over each other's source.
 REPO=repo; [ "$(basename "$ROOT")" = aegis ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
 rsync -az --delete \
-  --exclude /target/ --exclude '**/target/' --exclude '**/.lake/' --exclude '/research/state/raw/' \
+  --exclude /target/ --exclude /.claude/ --exclude '**/target/' --exclude '**/.lake/' --exclude '/research/state/raw/' \
   --exclude '**/__pycache__/' --exclude '/gates/out/' \
   -e "ssh -o BatchMode=yes" "$ROOT/" "$HOST:aegis-ci/$REPO/"
 cmd_b64=$(printf '%q ' "$@" | base64 -w0)
