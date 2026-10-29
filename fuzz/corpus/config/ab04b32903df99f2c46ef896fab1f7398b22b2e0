@@ -1,0 +1,12 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.FFFFF","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exam.com","routes":[
+   {"id":1,"path":"/a","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":3,"path":"/s)))))))))))~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/st&&&&","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":5,"path":"/~~~","to":{"upstream":"a"},"authz":"api"},
+{"id":8,"path":"/)~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/sta)","to":{"static":"/srwww"}}]}],
+ "admin":{"bind":"1cow1:9000"},
+ "limits":{},
+ "canon":{}}

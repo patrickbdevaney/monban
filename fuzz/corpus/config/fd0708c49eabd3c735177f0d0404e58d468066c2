@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"tw------------.-------ebm----","bind":"0.0.0.0:443","profile":"P-PUIC-WEB","alpn":["h/1.1"]}],
+ "vhosts":[{"host":"exom","route":[
+   {"ip":"/static/","to":{"static":"/srv/"}}]}],
+ "admin":{},
+ "canon":{}}

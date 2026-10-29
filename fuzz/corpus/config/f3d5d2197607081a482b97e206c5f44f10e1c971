@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"FFFF:4","profile":"P-PQ-REQUIRED","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/a_p/&&&rentc.0:/","to":{"static":"B/srv/www"}}]}],
+  "limits":{},
+ "canon":{}}

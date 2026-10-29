@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"43","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"e.om","routes":[
+   {"id":1,"path":"/a_p/~host~~~~~~~~~~!!!!!!!!!!!!!~~~jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/statmax_body_bytesic.0:vvvvvvvvvvvvvvvvvvvv/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1rconn_window27.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

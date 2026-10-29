@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"we-b","bind":"0.0\\\\\\\\\\\\\\\\\\\\\\\\max_cou\\bittttttttttttttttttttty\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\bittrtttt.1.0:443","profile":"P-PUBLIC-WEB"}],
+ "vhosts":[{"host":"examplcanone.com","routes":[
+   {"id":4,"path":"/ap)+","to":{"upstream":"apprv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0FFFrst/43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exam","routes":[
+   {"id":1,"path":"/apatic.2:/","to":{"static":""}}]}],
+ "admin":{"bind":"1tttttt\t\\\t\ttt"},
+ "limits":{},
+ "canon":{}}

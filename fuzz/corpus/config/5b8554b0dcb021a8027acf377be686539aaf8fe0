@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P]-PUBLICten-WEB","alpn":["h2"]}],
+ "vhosts":[{"host":"exampl","ro":[  {"id":1,"pzhz":"api"}]}],
+ "admin":{"bind":"0.1:9615"},"limits":{},
+ "canon":{}}

@@ -1,0 +1,5 @@
+{"v":1,
+ "list":[{"name":"web","bin;n":["h2","htp/1.1"]}],
+ "vhosts":[{"":"exmle.c"},
+   {"ith":"/s;atic/1","1o":{"static":"/srv/www"}}]}],
+$"":"0

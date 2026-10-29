@@ -355,6 +355,26 @@ fn exceptions() -> BTreeSet<(String, String)> {
     out
 }
 
+/// Live `kind = "advisory-accepted"` ledger entries as (crate, version, advisory id). Each entry names the advisories it
+/// accepts, so a new advisory against the same crate@version still fails the gate.
+fn advisory_exceptions() -> BTreeSet<(String, String, String)> {
+    let s = std::fs::read_to_string(root().join("supply-chain/exceptions.toml")).unwrap_or_default();
+    let mut out = BTreeSet::new();
+    for block in s.split("[[exception]]").skip(1) {
+        let kv = lock::parse_kv(block);
+        let live = kv.get("expires").and_then(|e| rfc3339_day(e)).is_some_and(|d| d >= today());
+        if !live || kv.get("kind").map(String::as_str) != Some("advisory-accepted") {
+            continue;
+        }
+        if let (Some(c), Some(v), Some(a)) = (kv.get("crate"), kv.get("version"), kv.get("advisory")) {
+            for id in a.split(',').map(str::trim).filter(|x| !x.is_empty()) {
+                out.insert((c.clone(), v.clone(), id.to_string()));
+            }
+        }
+    }
+    out
+}
+
 fn lock_age(min_days: u64, self_test: bool) -> Result<(), String> {
     let pkgs = read_lock()?;
     let exc = exceptions();
@@ -393,6 +413,14 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
         // A version with known GHSA/OSV advisories (h2 0.3.0, RUSTSEC-2024-0003 et al.).
         pkgs.push(("h2".into(), "0.3.0".into()));
     }
+    let mut accepted = advisory_exceptions();
+    if self_test {
+        // Must stay red: an acceptance for a different advisory id does not cover h2 0.3.0's advisories.
+        accepted.insert(("h2".into(), "0.3.0".into(), "GHSA-0000-0000-0000".into()));
+    }
+    let open = |n: &str, ver: &str, ids: Vec<&str>| -> Vec<String> {
+        ids.into_iter().filter(|id| !accepted.contains(&(n.into(), ver.into(), (*id).into()))).map(String::from).collect()
+    };
     let mut v = Vec::new();
     for chunk in pkgs.chunks(500) {
         let queries: Vec<String> = chunk
@@ -409,6 +437,7 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
                 .iter()
                 .filter_map(|x| x.get("id").and_then(Json::str))
                 .collect();
+            let ids = open(n, ver, ids);
             if !ids.is_empty() {
                 v.push(format!("{n} {ver}: OSV {}", ids.join(",")));
             }
@@ -421,7 +450,7 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
             format!("https://api.github.com/advisories?ecosystem=rust&affects={n}@{ver}&per_page=100&type=unreviewed");
         match ghsa_cached(n, ver, &url) {
             Ok(j) => {
-                let ids: Vec<&str> = j.arr().iter().filter_map(|a| a.get("ghsa_id").and_then(Json::str)).collect();
+                let ids = open(n, ver, j.arr().iter().filter_map(|a| a.get("ghsa_id").and_then(Json::str)).collect());
                 if !ids.is_empty() {
                     v.push(format!("{n} {ver}: GHSA unreviewed {}", ids.join(",")));
                 }
@@ -429,7 +458,11 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
             Err(e) => v.push(format!("{n} {ver}: GitHub advisory query failed ({e}); gate cannot pass blind")),
         }
     }
-    println!("repo-advisories: {} packages queried (OSV + GitHub unreviewed)", pkgs.len());
+    println!(
+        "repo-advisories: {} packages queried (OSV + GitHub unreviewed), {} ledgered acceptances",
+        pkgs.len(),
+        accepted.len()
+    );
     verdict("REPO-ADVISORIES", &v, self_test)
 }
 

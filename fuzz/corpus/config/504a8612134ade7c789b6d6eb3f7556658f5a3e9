@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0ψwwwwwwwww+ww~wwwwwwwww0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examplem","routes":[
+   {"id":1,"path":"/","to":{"upstream":"a/srf/iidly\"lise_pv/www"}}]}],"canon":{}}

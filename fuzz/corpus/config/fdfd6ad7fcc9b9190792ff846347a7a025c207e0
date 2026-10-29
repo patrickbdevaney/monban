@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0FFFF3","profile":"P-PUBLIC-WEB"}],
+ "vhosts":[{"host":"exacom","routes":[
+   {"id":1,"path":"/a~~~~~~~~~~~~~~~~~~:/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1c_window27.0.0.1:9000"},
+ 
+ "canon":{}}

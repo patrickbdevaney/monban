@@ -1,0 +1,14 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.0.0FFF~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/stpi"},
+   {"id":5,"path":"/sta))))))!)~~~~~~~~~~","to":{"ups":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"))&&&&&&~~.com","routes":[
+   {"id":1,"path":"/a_~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/sta))))))))))))))))))))))))~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"aip"},
+   {"id":4,"path":"/sta)))))))&&&&&&&&&&~~~~~~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":5,"path":"/sta)))))))))pi"},
+   {"id":4,"path":"/sta)&&&&&&&~{~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/sta))))))))))))))))))))))))))))))))))))))~~current_stytesic.0:/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1conn_window27`.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

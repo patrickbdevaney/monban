@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"we-b","bind":"0.0\\\\\\\\\\\\\\\\\\\\T\\\\\\/\\st_43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"ecom","routes":[
+   {"id":2,"path":"/static/","to":{"static":"/s\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\w"}}]}],
+ "canon":{}}

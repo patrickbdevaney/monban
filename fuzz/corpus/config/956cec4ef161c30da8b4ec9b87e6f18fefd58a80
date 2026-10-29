@@ -1,0 +1,24 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0FFFFFFexample.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":3,"pars":[{"name":"weFFFFFFFFFF","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"hos}":1,
+ "isvs":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":3,"pars":[{"name":"web","bind":"0.0.0.0FFFFFFFFrst//////FFFFFFF","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"hos":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":2,"path":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canoth":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"844.0.0.1:9000"},
+ "limits":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":2,"path":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canoth":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"tweb","bind":"0.0.03","profile":"P-PUBLIC-WEB"}],
+ "vhosts":[{"host":"example.c0om","routes":[
+   {"id":2,"path":"/static/","to":{"static":"/srv/www"}}]}],
+ "admin":{},
+ "canon":{}}

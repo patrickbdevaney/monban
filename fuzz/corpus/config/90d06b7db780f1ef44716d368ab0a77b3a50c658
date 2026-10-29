@@ -1,0 +1,4 @@
+{"vsteners":[{"nrs":[{"-":"+-PUBLIC-WEB","alpn":["02","http/1.1"]}],
+ "vhosts":[{"host":"exa-ple.com","routes":[
+   {"id":0,"path":"/ap,i/","to":{"ups$treac":"/s/www"}}]}],"caam":"SA"}],
+  "vs":[{"host":"a","rutes":[{"":1,"﻿h":"/","to":{}}]}]}

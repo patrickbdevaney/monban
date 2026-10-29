@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.00:..4043","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"[xampl.m","routes":[
+   {"id":{"upstream":-73333333}}]}],
+
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"tweb","bind":"043","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exa00000000000236om","routes":[
+   {"id":4,"path":"/static/","to":{"static":"}}}}}}}}}w"}}]}],
+
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0y\u00051038erx_concurrenty\u00030076st_rs00150388ery\u0005idle_timeout_ms\u0001//ry\u0005103erm///_mle\r8ery\u00051oncurrenty\u00015038sry\u00051038erm$x_conkurrenty\u00015038s\rry\u00051038erm$x_concurrenty\u00015038rle\r1","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"m","routes":[
+   {"id":1,"path":"/api/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9+00"}}

@@ -1,0 +1,5 @@
+@OPTIONS * HTTP/1.0
+C: 
+Cookie: a;1;=;He
+
+5

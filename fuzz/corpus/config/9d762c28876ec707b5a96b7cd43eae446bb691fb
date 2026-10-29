@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.08443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"ele.com","routes":[
+   {"id":1,"path":"/a:::::::8:::,,,,,$,,,,,,,,,:D::","to":{"statci":"/srv/www"}}]}],
+ "admin":{"bind":".000"},
+ "limits":{},
+ "canon":{}}

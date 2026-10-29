@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"w0eb","bind":"0.43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examle.com","routes":[
+   {"id":4,"path":"/+","to":{}}]}],
+ "admin":{"bind":"12"},
+ "limits":{}}

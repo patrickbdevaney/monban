@@ -1,0 +1,12 @@
+{"v":1,
+ "listeners":[{"name":"webquery","bind":"5.0.0FFFF43","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exampzle.com","routes":[
+   {"id":1,"path":"/a_y/~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"apidi"},
+   {"id":3,"path":"/st)~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/sta)))))))&&&~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":5,"path":"/sta)))))~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":8,"path":"/sta)&&&&~~~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/sta)))))))))))))c.0:/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1conn_window"},
+ "limits":{},
+ "canon":{}}

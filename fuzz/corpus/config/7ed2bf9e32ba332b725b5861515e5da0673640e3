@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"1.0.0d/_40755FFFFF:442","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+ 
+   {"id":20.0433,"path":"/stc.f1:/","to":{"sta":"/sw"}}]}],
+ "admin":{}}

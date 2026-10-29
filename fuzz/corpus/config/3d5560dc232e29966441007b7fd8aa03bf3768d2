@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exom","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/st","to":{"static":"/srv/www"}}]}]}

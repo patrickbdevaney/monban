@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"wed","bind":"43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"m","routes":[   {"id":3,"path":"/ap)/","to":{"upstream":"app","framing":"h2"},"authz":"api"}]}],
+ "canon":{}}

@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"w0eb","bind":":443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[  {"id":2,"path":"/;;tatic/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"10.0.1:9000"},
+ "limits":{},
+ "canon":{}}

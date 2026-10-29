@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"we-b","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examplcanone.com","routes":[
+   {"id":4,"path":"/ap)+","to":{"upper_conn_stream":"apIIIIIIIIIIIIIIIIIII","frttttttttttttt&ttt":"a","bittttttttttttttst_rell_per_namttttttttttttttttttttttttttttme":"a","vtttttttYY﻿YYYYYYYYYYe":"a","bittttttttvtYYYYYYYY&ttt":"a","bvtYYYe":"a","bitttYYYYYYttttvtYYYe":"a","tttttt":"a","bitttttttttttttttYYYYYYYYYYYYttttvtttt﻿ing":"h1ww"}}]}],
+ "admin":{"bind":"127.0.:>000"},
+ "limits":{},
+ "canon":{}}

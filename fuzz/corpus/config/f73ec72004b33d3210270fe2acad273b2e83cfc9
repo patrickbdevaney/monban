@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0/rst_mle\rst_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////_mle\rs//////\nv\"vv\nvLnv\"vv\nvvv\nv\"vv\nvvv\nv//////////////e\rst_/////)//e\/﻿////////////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv/////////// {/e\rst_/////)////////rst_mle\rst_mle\rs/v//\//n/\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////////////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////t_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvvv\"vv\nvvv\nv////////////////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////e\rst_/////e\rst_refi,le\rst_/////)////////////////﻿////////////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////e\rst_/////)////////rst_mle\rst_mle\rs//////\nv\"vv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////_mle\rs//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////e\rst_////fi,le\rst_/////)///rst_/////)////////////////////////id////﻿////////////d////﻿////////nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv////////t\\t////////rGstFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF:04 7","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app$","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"063.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

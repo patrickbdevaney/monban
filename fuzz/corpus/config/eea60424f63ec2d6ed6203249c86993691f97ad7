@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"w","bind":"0.wwww","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"excom","routes":[
+   {"id":1,"path":"/pi/","to":{"upstream":"a/srf/iiy\"pvw"}}]}],
+ "admin":{}}
