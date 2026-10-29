@@ -21,3 +21,6 @@ spikes/q3-008/certs/
 *.map
 oracles/h2-conformance/.h2spec/
 notes/
+
+# Claude Code agent worktrees and local settings
+/.claude/
