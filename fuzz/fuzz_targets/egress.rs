@@ -86,8 +86,26 @@ fn ip(u: &mut Unstructured<'_>) -> IpAddr {
         0 | 1 => IpAddr::V4(Ipv4Addr::new(b[0], b[1], b[2], b[3])),
         2 => IpAddr::V6(Ipv6Addr::from(b)),
         3 => IpAddr::V6(Ipv4Addr::new(b[0], b[1], b[2], b[3]).to_ipv6_mapped()),
-        4 => IpAddr::V6(Ipv6Addr::new(0x64, 0xff9b, 0, 0, 0, 0, u16::from_be_bytes([b[0], b[1]]), u16::from_be_bytes([b[2], b[3]]))),
-        _ => IpAddr::V6(Ipv6Addr::new(0x2002, u16::from_be_bytes([b[0], b[1]]), u16::from_be_bytes([b[2], b[3]]), 0, 0, 0, 0, 1)),
+        4 => IpAddr::V6(Ipv6Addr::new(
+            0x64,
+            0xff9b,
+            0,
+            0,
+            0,
+            0,
+            u16::from_be_bytes([b[0], b[1]]),
+            u16::from_be_bytes([b[2], b[3]]),
+        )),
+        _ => IpAddr::V6(Ipv6Addr::new(
+            0x2002,
+            u16::from_be_bytes([b[0], b[1]]),
+            u16::from_be_bytes([b[2], b[3]]),
+            0,
+            0,
+            0,
+            0,
+            1,
+        )),
     }
 }
 

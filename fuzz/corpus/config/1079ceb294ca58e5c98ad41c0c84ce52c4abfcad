@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"eb","bind":"0.0//////i\f\fitind\fil\file]\fil\f\fil\fi///","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"ple.com","routes":[
+  {"id":2,"path":"/stac.1:/","to":{"static":"/srv/www"}}]}],
+  "canon":{}}

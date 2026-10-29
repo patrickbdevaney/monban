@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"twdb","bind":"1.0443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"e30000229150295.com","routes":[
+   {"id":2,"path":"/************************************************","to":{"static":"}}}7}w"}}]}],
+ "admin":{"bind":"x_co000"},
+ "limits":{},
+ "canon":{}}

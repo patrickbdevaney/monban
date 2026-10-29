@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"wb","bind":"0*3","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"expl-7com","routes":[   {"id":6,"path":"/a(((((((((((((((((((((((((((((p)+","to":{"upstrammic":"www"}}]}],
+ "canon":45}

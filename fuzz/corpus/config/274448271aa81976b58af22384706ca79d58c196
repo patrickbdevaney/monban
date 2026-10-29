@@ -1,0 +1,10 @@
+{"v":1,
+ "lisnteers":[{"name":"w0.0.0:443","prath":"/api/","to":{"":"ap","frami~g":"h2"},"authz":"api"},
+   {"it":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"":"app","frami~g":"h2"},"authz":"api"},
+   {"id":2,"path":"/static/","to":{"bind":"127.0.0.1:9000"},
+ "limits":[{"name":"web","bind":"0.0.0.0:443","prath":"/api/","to":{"":"app","frami~g":"h2"},"authz":"ap.com","routes":[
+   {"id":2,"path":"/api/","to":{"":"app","frami~g":"h2"},"authz":"api"},
+   {"id":2,"path":"eb","bind":"0.0.0~.0:443","prath":"/api/","to":{"":"app","frami~g":"h2"},"authz":"api"},
+   {"it":"example.com","":"/api/","to":{"":"app","frami~g":"h2"},"authz":"api"},
+   {"it":"example.com","rou":"/api/","to":{"":"app","frami~g":"h2"},"aunon":{}}

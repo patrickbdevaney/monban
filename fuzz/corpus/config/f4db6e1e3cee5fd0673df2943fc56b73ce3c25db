@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examp.com","routes":[
+     {"id":2,"path":"/:::::::::@:::::::@:::::","to":{"statci":"/srv/www"}}]}],
+ "admin":{"bind":"063.0.000"},
+ "limits":{},
+ "canon":{}}

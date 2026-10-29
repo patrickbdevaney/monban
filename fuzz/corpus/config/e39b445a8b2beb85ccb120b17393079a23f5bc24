@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0FFFFFFFFrst-////////er_tabl////////////﻿/////1//////db////﻿//////////////////////id////_mle_mle\r/id////﻿////////////d////﻿//////////////////d////﻿////i/////_mle\rst_mle\r/id////﻿/﻿////////i///﻿////////////d////﻿le\r/id////﻿////////////d////﻿////FFFFFFFFFFF!FFFFFF:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"ewample.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"@pi"},
+   {"id":2,"path":"/static.0:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,12 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"path":"/api/","to":{"listeners":[{"name":"web","bind":"0.00.0:443","profile":"P-PUBLIB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"pat":"api"},
+   {"id":1,"path":"/static/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},"c":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

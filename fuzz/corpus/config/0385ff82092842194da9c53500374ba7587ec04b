@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"we-b","bind":"0.0\\\\\\\ttttttttttty\\\\\\\\\\\\\\\\\\\\\\\\\\\rst_refill_per\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\bittttttt.443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examplcan.com","routes":[
+   {"id":4,"path":"/aatic/","to":{"static":"/srvwww"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"}, "limits":{},
+ "canon":{}}

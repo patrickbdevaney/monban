@@ -32,7 +32,7 @@ fuzz_target!(|data: &[u8]| {
                 }
                 Err(e) => panic!("effective JSON of an accepted config is rejected: {e}"),
             }
-            selftest!(c.vhosts().iter().any(|v| v.host.len() >= 12)); // seed hosts: "example.com" (11), "a"
+            selftest!(c.vhosts().iter().any(|v| v.host.len() >= 12)); // examples/seeds.rs hosts: "example.com" (11), "a"
         }
         Err(e) => {
             let p = e.pointer();

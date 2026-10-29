@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.00:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/ap)+","to":{"up'":"/srv/www"}}]}]}

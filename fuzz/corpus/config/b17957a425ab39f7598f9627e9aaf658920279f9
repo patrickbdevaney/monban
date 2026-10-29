@@ -1,0 +1,6 @@
+{"v":1, "listeners":[{"name":"wideb","bind":"0.0.0.0FFFFF\udBe2\udeB2\udBe2\udeB2_B2_|B2_407555702//////////////max_concurrna﻿me//\udBe4\udeB2\udBe2\udeB2_B2_|J20232///////////le\rst_//////////////////////////00000232\udBe2\udeB2\udBe0\udeB242","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/stati'.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"126.0.0.1:9+00"},
+ "limits":{},
+ "canon":{}}

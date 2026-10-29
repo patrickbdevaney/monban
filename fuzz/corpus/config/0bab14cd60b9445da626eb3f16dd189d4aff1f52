@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0///","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exa-ple.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":null},"authz":"api"}]}],
+ "admin":{"bind":"127.0.0.1:90000"},
+ "limits":{},
+ "canon":{}}

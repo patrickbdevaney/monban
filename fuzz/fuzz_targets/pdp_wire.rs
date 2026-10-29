@@ -42,7 +42,11 @@ fn request(u: &mut Unstructured<'_>) -> PdpRequest {
         resource: uid(u),
         context: record(u, 0),
         entities: (0..byte(u) % 4)
-            .map(|_| EntityData { uid: uid(u), attrs: record(u, 0), parents: (0..byte(u) % 3).map(|_| uid(u)).collect() })
+            .map(|_| EntityData {
+                uid: uid(u),
+                attrs: record(u, 0),
+                parents: (0..byte(u) % 3).map(|_| uid(u)).collect(),
+            })
             .collect(),
     }
 }

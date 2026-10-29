@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.0.0:443","profile":"P-PUBLIC-WEB"}],
+ "vhosts":[{"host":"exom","routes":[
+   {"id":1,"path":"/api.","to":{"static":"/srv/www"}}]}],
+ "admin":{"bi)d":"064.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

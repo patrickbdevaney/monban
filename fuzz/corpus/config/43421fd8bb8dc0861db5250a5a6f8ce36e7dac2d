@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFu:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exe.com","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&&&&&&&&&&&&~~~~~~~~~~~~~~~~~~","to":{"upsaaaaaatbry\u769937y\u77777777777\\pa\u777777yaaaaaaaaaaaaaaaaaaaaaaaaaa/*////////////v\\\\\\\ttt\\titb\t\\que\\quepa\u777777y///////////aaaa77y\u7777777777777777//////////aaaa77y\u777777777777777777778ry\u777777y\u77777777777\\ue\\quepa\u777777yaaaaaaaaaaaaaaaaaaaaaaaaaa///////////(/v\\\\\\\ttt\\titbry\u777777y\u77777377777\\y\u777777777777777777777//////////aaaa77y\u777777777777777777777ry\u7779777y\u77777773777\\\\que\\quepa\u777777yaaaaaaaaaaaaaaaaaaaaaaaitbry\u777777y\u77777777777\\\\que\\quepa\u777777yaaaaaaaaaaaaaaaaaaaaaa///titb\t\\que\\quepa\u7777aa77y\u777777777777777777777//////////aaaa78y\u777777777777777777777ry\u777777y\u77777777777\\\\que\\quepa\u777777yacaaaaaaaaaaaaaaaaaaaaaaaa/////////////v\\\\\\\ttt\\titbry\u777777y\u77777777777\\y\u777777777777777777777//////////aaaa77y\u777777777777777777777ry\u777777y\u77777777777\\\\que\\quepa\u77aaaaatic":"B/srv/www"}}]}],
+ "admin":{"bind":"0conn_window27.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

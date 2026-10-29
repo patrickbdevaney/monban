@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exagmple.com","routes":[
+ {"id":1,"path":"/a_!!!!esic.5:/","to":{"atic":"www"}}]}],
+ "admin":{"bind":"'max_cindow27"},
+ "limits":{},
+ "canon":{}}

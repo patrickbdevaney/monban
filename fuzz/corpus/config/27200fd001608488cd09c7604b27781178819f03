@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"tweb","bind":"0..0 :4.043","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"1xam4.0.0.1.com","routes":[
+   {"id":2,"o":{"stac":"}v/www"}}]}],
+
+ "canon":{}}

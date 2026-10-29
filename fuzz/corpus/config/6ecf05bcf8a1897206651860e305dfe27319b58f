@@ -1,0 +1,12 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/$ap)/","to":{"upsters":[{"name":"web","bind":"0.0.0.0:443","profile":"PB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/$apvvvvvvvvva~ic/","to":{"static":"/srv/www"}}]}],
+ "/admin":{"bind":"1000"},
+ "limits":{},
+ "caream":"app","framing":"hwww"}}]}],
+ "admin":{"bind":"127:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,13 @@
+{"v":1,
+ "listeners":[{ "listeners":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":1,
+ "listeners":[{ "listenners":[{ "listeners":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":0,
+ "listeners":[{ "listeners":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}], "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"d":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhers":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}],
+ "vhosts":{"upream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"b":false, "canon":{}}

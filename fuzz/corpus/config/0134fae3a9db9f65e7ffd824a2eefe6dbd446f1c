@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/max_concurrentzapi/","to":{"upstre////////id///////////00000000232////////////////////////_mle\rst_rle\rst_mle\rst_refi,le\rst_///////////////////host//////////\udBe2\udeB2\udBe2\udeB2_B2_|B2_to40755570232////////////////////////_mle\rst_rle\rst_mle\rst_refam":"app","framing":"rv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9+00"},
+ "limits":{},
+ "canon":{}}

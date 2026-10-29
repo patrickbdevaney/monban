@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"twe","bind":"443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exam---------------pm","routes":[
+   {"id":2,"path":"/static/","to":{"static":"/srv/www"}}]}],
+ "admin":{},
+ "canon":{}}

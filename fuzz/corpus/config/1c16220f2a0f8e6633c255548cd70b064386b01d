@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"twe-b","bind":"0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exam7.0.0.1:333333000076.com","routes":[
+   {"id":1,"path":"6stc/","t-":{"c":""}}]}],
+ 
+ "limits":{}}

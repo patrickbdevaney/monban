@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0./////2\udBe2\udeB2_B2","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exalom","routes":[
+   {"id":4,"path":"/api/","to":{"upstream":"app","framing":"h2"}}]}],
+ "admin":{"bind":"127.0.0.܏0"}}

@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"le.com","routes":[
+   {"id":4,"path":"/a","to":{"upstream":"_2"},"authz":"api"},
+   {"id":2,"path":"/;t","to":{"static":"/srv/"}}]}],
+ "admin":{}}

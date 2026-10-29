@@ -18,9 +18,9 @@ use std::sync::OnceLock;
 use aegis_audit::encoding::{base64_decode, base64_encode};
 use aegis_audit::event::MAX_LEAF_BYTES;
 use aegis_audit::{
-    Action, Actor, AuditEvent, Checkpoint, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass,
-    FipsStatus, MerkleStore, NoteSigner, NoteVerifier, Outcome, Untrusted, leaf_hash, open_note, sign_note,
-    verify_consistency, verify_inclusion,
+    Action, Actor, AuditEvent, Checkpoint, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass, FipsStatus,
+    MerkleStore, NoteSigner, NoteVerifier, Outcome, Untrusted, leaf_hash, open_note, sign_note, verify_consistency,
+    verify_inclusion,
 };
 use aegis_canon::{JsonValue, parse_json};
 use aegis_fuzz::{LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};

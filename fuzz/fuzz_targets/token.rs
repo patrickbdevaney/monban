@@ -18,8 +18,8 @@ use std::sync::OnceLock;
 use aegis_fuzz::{ALNUM, LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};
 use aegis_token::tier_x::{decode_envelope, envelope};
 use aegis_token::{
-    ArgPred, ArgVal, Caveat, KeyRing, MintParams, Req, Tier0Table, TokenL, VerifyError, XKeyRing, XPayload,
-    attenuate, mac_valid, mint, verify, verify_x,
+    ArgPred, ArgVal, Caveat, KeyRing, MintParams, Req, Tier0Table, TokenL, VerifyError, XKeyRing, XPayload, attenuate,
+    mac_valid, mint, verify, verify_x,
 };
 use aegis_types::TenantId;
 use libfuzzer_sys::fuzz_target;

@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.FFFFF","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"e--------------------------------------------------------xam.com","routes":[
+    {"id":2,"path":"/sta)","to":{"static":"/srwww"}}]}],
+ "admin":{},
+ "limits":{},
+ "canon":{}}

@@ -78,7 +78,7 @@ fuzz_target!(|data: &[u8]| {
     if let Some(end) = whole.windows(4).position(|w| w == b"\r\n\r\n") {
         let head = whole.get(..end + 4).unwrap_or(&[]);
         assert!(validate_head(head, &lim).is_ok(), "forwarded head rejected by validate_head");
-        // Seeds forward at most two heads; three pipelined requests need a mutation.
+        // examples/seeds.rs forwards at most two heads; three pipelined requests need a mutation.
         selftest!(whole.windows(4).filter(|w| *w == b"\r\n\r\n").count() >= 3);
     }
     // validate_head is total on the raw stream too.

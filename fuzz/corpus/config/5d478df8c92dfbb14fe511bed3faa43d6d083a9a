@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0*0.0.","profile":"P-PUBLIC-WEB","alpn":["h2"]}],
+ "vhosts":[{"host":"exampl-7com","routes":[   {"id":6,"path":"/a(((","to":{"static":""}}]}],
+ "admin":{"bind":"0.000"},
+  "canon":90}

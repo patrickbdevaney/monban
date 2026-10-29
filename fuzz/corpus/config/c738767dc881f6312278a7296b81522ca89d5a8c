@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"1.0.0.0FFFFFFFFrst///////////////_mle\r/FFF:442","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/tzapi/","to":{"upstre//////_rle\rs_r//me":"a","bittttttttttttttttttttttttttttttme":"a","bittttttttttme":"a","bittttttttttttttttttt;tttttttttttme":"a","bitttte":"a","bittttttttttttttme":"a","bYYYYYYYYYYYtYtttttttttttttttnd":"b","ptttttttttme":"a","bitttttttt":"a","bittttYYtYtttttttttttttttnd":"b","pttttYYtme":":","bittttttttttttttttttttttrst_refill_per_nd":"b","pttttYYYYYYYYYYYYY":"a","bitttttttttttttttttme":"a","tme":"a","bittttttttttttrle\rsm":"app","framing":"h5"},"authz":"api"},
+   {}]}],
+ "admin":{"bind":"127.0.0.1:9+00"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"","bind":"0.0","profile":"P-PUBILC-WB","alpn":["h1"]}],
+ "vhosts":[{"h":"exa-ple.com","utes":[
+]}],
+ "admin":{"bi_/":"253.0.0.1:9000"},"canon":{}}

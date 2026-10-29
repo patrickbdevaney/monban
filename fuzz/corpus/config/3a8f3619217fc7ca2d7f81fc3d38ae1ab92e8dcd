@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exampm","routes":[
+   {"id":5,"path":"/ap)*+","to":{"upstream":"ape\\\\\bittttttt\\\\\\\n\\\\\\\\\\\\\\\\\\\\onn_memory_3"},"authz":"api"},
+   {"id":2,"path":"/static/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{}}

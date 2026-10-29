@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0FFFFFFF:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exampo.clme","routes":[
+   {"id":1,"path":"/a_p~===========================================x_body_bytesic.0:.","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1conn_window200"},
+ "limits":{},
+ "canon":{}}

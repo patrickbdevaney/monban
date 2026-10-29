@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{ "s":[{"name":false,"bindilost":"example.com","ro#utes":[
+   {"id":2,"teners":[{ "listeners":[{"name":false,"b2ndile":"P-P","alpn":["h1","http/1.1"]}],"name":false,"bipn":["h2","ht"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"12"},
+ "limids":{},"name":false,"bind":"0.0.0.0:443","alpn":["h2","http/1.1"]}],
+ "vhotlimits":{},
+ "canon":{}}

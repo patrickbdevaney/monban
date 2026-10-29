@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"w0eb","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":4,"path":"/ap)+","to":{"upstream":"aper_conn_memory_2"},"authz":"api"},
+   {"id":2,"path":"/ap)+","to":{"upstream":"apecwww"}}]}],
+ "admin":{},
+ "canon":{}}

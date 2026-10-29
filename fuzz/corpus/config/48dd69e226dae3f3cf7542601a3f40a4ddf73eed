@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"/////\/~v/\/\\\\\t///////rGstFFFFFFFFFF:199","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":9,"path":"/static.2:/","to":{"static":""}}]}],
+ "admin":{"bind":"1tt]titb\tt\\tb\tt\tb\tttt\\tt\titb\tt\ttttt"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"geb","bind":"0.0FFFA43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examplenamv","routes":[
+   {"id":1,"path":"/api/","to":{"static":"/srvw"}}]}],
+ "admin":{"bind":"120000\u3863+.\u3863"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,43 @@
+{"v":1,
+ "listeners":[{ "listeners":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":1,
+ "listeners":[{ "listenners":[{ "listeners":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":1,
+ "listeners":[{ "listeners":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"upream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhs":[{ "listeners":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":1,
+ "listeners":[{ "listenners":[{ "rs":[{"name":false,"bindile":"P-PUBLICom","routes":[
+   {"id":2,"patv":1,
+ "listeners":[{ "listeners":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"upream":"av/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhers":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"upream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlimitsers":[{"name":false,"bindile":"P-PUBLIC-WEB","alpn":["h1","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"upream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlh":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhostlimits":{},
+ "canon":{}}

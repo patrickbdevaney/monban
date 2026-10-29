@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"wefffffffffffffb","bind":"0.43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"le.com","routes":[
+   {"id":1,"path":"/ic/","to":{"static":"/srv/www"}}]}],
+ 
+"canon":{}}

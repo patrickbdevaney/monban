@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exalple.com","routes":[
+   {"id":1,"path":"/!p)-","to":{"upstream":"aTpp/www"}}]}],
+ "admin":{}}

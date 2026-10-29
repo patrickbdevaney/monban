@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"w0eb","bind":"3","profile":"P-PUBLIC-WEB"}],
+ "vhosts":[{"host":"ple.com","routes":[
+  {"id":4,"path":"/a+","to":{}}]}],
+ "admin":{"bind":"121:900"},
+ "limits":{},
+ "canon":{}}

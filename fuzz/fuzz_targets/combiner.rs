@@ -11,8 +11,8 @@
 #![no_main]
 
 use aegis_authz::pdp::{
-    HEADER_LEN, KIND_REQUEST, PdpClient, PdpRequest, PdpStage, PdpTransport, REPLY_LEN, TransportFault, Uid, decode_header,
-    encode_reply,
+    HEADER_LEN, KIND_REQUEST, PdpClient, PdpRequest, PdpStage, PdpTransport, REPLY_LEN, TransportFault, Uid,
+    decode_header, encode_reply,
 };
 use aegis_authz::{Decision, PolicyStage, combine};
 use aegis_fuzz::{Unstructured, byte, bytes, selftest};
@@ -108,7 +108,8 @@ fuzz_target!(|data: &[u8]| {
     // 1. combine against its specification on arbitrary lists.
     let ds: Vec<Decision> = bytes(&mut u, 64).iter().map(|&b| decision(b)).collect();
     let got = combine(&ds);
-    let want = if !ds.is_empty() && ds.iter().all(|d| *d == Decision::Allow) { Decision::Allow } else { Decision::Deny };
+    let want =
+        if !ds.is_empty() && ds.iter().all(|d| *d == Decision::Allow) { Decision::Allow } else { Decision::Deny };
     assert_eq!(got, want, "combine differs from its specification");
     assert_ne!(got, Decision::Error, "combine returned Error");
 
@@ -150,5 +151,5 @@ fuzz_target!(|data: &[u8]| {
     if c == Decision::Allow {
         assert!(answers2.iter().all(|d| *d == Decision::Allow), "Allow despite a non-Allow PDP answer");
     }
-    selftest!(answers2.len() >= 5 && answers2.iter().all(|d| *d == Decision::Allow)); // seeds: at most 3
+    selftest!(answers2.len() >= 5 && answers2.iter().all(|d| *d == Decision::Allow)); // examples/seeds.rs: at most 3
 });
