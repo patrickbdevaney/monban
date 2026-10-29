@@ -419,7 +419,10 @@ fn repo_advisories(self_test: bool) -> Result<(), String> {
         accepted.insert(("h2".into(), "0.3.0".into(), "GHSA-0000-0000-0000".into()));
     }
     let open = |n: &str, ver: &str, ids: Vec<&str>| -> Vec<String> {
-        ids.into_iter().filter(|id| !accepted.contains(&(n.into(), ver.into(), (*id).into()))).map(String::from).collect()
+        ids.into_iter()
+            .filter(|id| !accepted.contains(&(n.into(), ver.into(), (*id).into())))
+            .map(String::from)
+            .collect()
     };
     let mut v = Vec::new();
     for chunk in pkgs.chunks(500) {
