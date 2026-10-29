@@ -13,8 +13,9 @@
 //!    the policy allows (credentials stripped);
 //! 6. one deadline over the whole fetch, caps on response head and body.
 //!
-//! The rustls client lives behind the `tls-client` feature (off by default) so the cmvp build compiles it out
-//! (spikes/cmvp-client-policy).
+//! The rustls client handshake lives behind the `tls-client` feature (off by default) so the cmvp build compiles it
+//! out (spikes/cmvp-client-policy). This crate builds no `ClientConfig`: the TLS profile is built by aegis-tls
+//! (`aegis_tls::client_config`) and injected through [`TlsClient::from_config`].
 #![forbid(unsafe_code)]
 
 pub mod addr;
@@ -37,8 +38,6 @@ pub use fetch::{
 };
 pub use http1::{Method, RawResponse};
 pub use policy::{HostRule, Policy};
-#[cfg(feature = "tls-client")]
-pub use rustls::RootCertStore;
 #[cfg(feature = "tls-client")]
 pub use tls::TlsClient;
 pub use url::{Host, Scheme, Url};

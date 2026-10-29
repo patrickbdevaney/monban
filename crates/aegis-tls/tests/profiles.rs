@@ -1,5 +1,6 @@
 //! Profile builder tests (P-PQ1, P-PQ2, P-PQ4, F12 lists). Handshakes use a hand-built TLS 1.3 ClientHello fed to
-//! a `ServerConnection` (same shape as oracles/hrr-verdicts); this crate builds no rustls `ClientConfig`.
+//! a `ServerConnection` (same shape as oracles/hrr-verdicts); these tests build no rustls `ClientConfig` (the client
+//! profile is tested in tests/client_profile.rs, feature `tls-client`).
 #![allow(clippy::indexing_slicing, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use std::sync::Arc;

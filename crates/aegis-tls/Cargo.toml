@@ -10,6 +10,12 @@ publish = false
 [package.metadata.aegis]
 layer = 3
 
+[features]
+default = []
+# The rustls CLIENT profile builder (`client_config`, `assert_client_profile`). Off by default so the cmvp build
+# compiles every rustls client out (spikes/cmvp-client-policy mode A, gate check M1 reads this crate's features).
+tls-client = []
+
 [dependencies]
 aegis-types = { workspace = true }
 rustls = { workspace = true }

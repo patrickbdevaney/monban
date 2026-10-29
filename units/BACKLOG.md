@@ -125,6 +125,14 @@
 - Ops note: during a stuck run the agent ran `pkill -x bash -P <sshd pids>` on kamrui (kills sshd-child bash
   shells); no side effects observed. Agents must never pkill broadly on shared boxes.
 - aegis-egress builds its PQ client profile directly on rustls (aegis-tls is also L3; edge not allowed). Consider one owner for TLS profiles (move into aegis-tls or allow the edge). No end-to-end TLS handshake test yet (subject has no TLS).
+  DONE 2026-10-29: one owner. aegis-tls builds every TLS profile: `client_config(profile, roots)` +
+  `assert_client_profile` (feature `tls-client`, off by default and in cmvp) next to `server_config`, kx from the same
+  per-profile tables (P-PUBLIC-WEB = the former egress list [0x11EC, 0x11EB, 0x001D, 0x0017]; PQ-REQUIRED [0x11EC];
+  FIPS-PQ-REQUIRED [0x11EB], the P-PQ6 shape; pending profiles -> `Pending`, FIPS -> `NotForClients` by P-PQ6).
+  aegis-egress builds no ClientConfig: `TlsClient::from_config(Arc<ClientConfig>)` re-checks TLS 1.3 / no resumption /
+  no early data / ALPN and refuses otherwise. No caller injects one yet (aegis-bin and egress-subject run with
+  `tls-client` off, plain-HTTP connector), so the end-to-end handshake test is still open. aegis-ops ACME still
+  builds its own ClientConfig (L4; could call aegis-tls).
 
 ## Token (from P3-token-001)
 - DONE 2026-10-29 (F5 re-frozen, info = label ‖ be16|aud| ‖ aud ‖ be16|kid| ‖ kid; unit test k_aud_info_is_length_prefixed;

@@ -81,6 +81,13 @@ pub enum ProfileError {
     Rustls(String),
     /// A startup assertion on the built config failed (P-PQ2 / P-PQ4 / `kx_groups[0]`).
     Assertion(String),
+    /// The profile is a listener (server) profile with no client definition; [`client_config`] refuses it.
+    NotForClients {
+        /// The profile.
+        profile: Profile,
+        /// Why no client profile is defined for it.
+        reason: &'static str,
+    },
 }
 
 impl core::fmt::Display for ProfileError {
@@ -89,6 +96,9 @@ impl core::fmt::Display for ProfileError {
             Self::Pending { profile, reason } => write!(f, "profile {} is pending: {reason}", profile.name()),
             Self::Rustls(e) => write!(f, "rustls: {e}"),
             Self::Assertion(e) => write!(f, "startup assertion failed: {e}"),
+            Self::NotForClients { profile, reason } => {
+                write!(f, "profile {} has no client definition: {reason}", profile.name())
+            }
         }
     }
 }
@@ -115,6 +125,9 @@ const PENDING_11ED: &str =
     "0x11ED is AEGIS-owned (Phase 6: KATs, OpenSSL 3.5+/BoringSSL interop, Kani share parsing). No F12 verdicts yet.";
 const PENDING_BSI: &str = "needs 0x11ED (Phase 6). No F12 verdicts yet.";
 const PENDING_CNSA: &str = "buildable on the floor lock (kx_group::MLKEM1024, ML-DSA-87) but no F12 verdicts are frozen for it yet; pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00).";
+#[cfg(feature = "tls-client")]
+const FIPS_FLOOR_NOT_CLIENT: &str = "P-PQ6: a FIPS-side client offers exactly [SecP256r1MLKEM768] (nothing \
+     classical for a RUSTSEC-2026-0349 downgrade to land on); this list adds P-256/P-384. Use FIPS-PQ-REQUIRED.";
 const PENDING_CMVP: &str = "needs the cmvp lock (rustls =0.23.43, aws-lc-rs =1.15.3 [fips], aws-lc-fips-sys =0.13.11) and the P-PQ5 module-identity gate (Phase 6); this is the floor build.";
 
 impl Profile {
@@ -319,6 +332,86 @@ pub fn assert_profile(cfg: &ServerConfig, profile: Profile) -> Result<(), Profil
     }
     if cfg.send_tls13_tickets != 0 {
         return Err(ProfileError::Assertion(format!("{}: tickets enabled before P-PQ3", profile.name())));
+    }
+    Ok(())
+}
+
+/// Why `profile` has no client definition, if it has none. Pending profiles are refused as for the server; the FIPS
+/// listener list is refused for clients by P-PQ6.
+#[cfg(feature = "tls-client")]
+fn client_refusal(profile: Profile) -> Option<ProfileError> {
+    if profile.status() == ProfileStatus::Pending {
+        return Some(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
+    }
+    match profile {
+        Profile::FipsFloor => Some(ProfileError::NotForClients { profile, reason: FIPS_FLOOR_NOT_CLIENT }),
+        _ => None,
+    }
+}
+
+/// The client ALPN list: the egress HTTP exchange is hand-written HTTP/1.1.
+#[cfg(feature = "tls-client")]
+pub const CLIENT_ALPN: &[u8] = b"http/1.1";
+
+/// Build the rustls `ClientConfig` for a profile (feature `tls-client`; compiled out of the cmvp build,
+/// spikes/cmvp-client-policy mode A). This is the only place the workspace's protocol layer builds a client config.
+///
+/// Key exchange = the profile's own [`Profile::kx_groups`] list, in order (the same table [`server_config`] uses),
+/// so `P-PUBLIC-WEB` offers `[X25519MLKEM768, SecP256r1MLKEM768, X25519, secp256r1]` (hybrid first) and
+/// `FIPS-PQ-REQUIRED` offers `[SecP256r1MLKEM768]` (the P-PQ6 client shape). Cipher suites as for the server
+/// (TLS 1.3; AES-GCM only for FIPS). TLS 1.3 only, resumption disabled and early data off, so no session ticket or
+/// key-share-prediction state is ever kept (RUSTSEC-2026-0349; the advisory exempts resumption-disabled clients).
+/// ALPN `http/1.1`. Trust anchors are the caller's `roots`; no platform verifier.
+///
+/// Refused with [`ProfileError::Pending`] for pending profiles and [`ProfileError::NotForClients`] for `FIPS`
+/// (P-PQ6). The built config is re-read by [`assert_client_profile`] before it is returned.
+#[cfg(feature = "tls-client")]
+pub fn client_config(profile: Profile, roots: rustls::RootCertStore) -> Result<rustls::ClientConfig, ProfileError> {
+    if let Some(e) = client_refusal(profile) {
+        return Err(e);
+    }
+    let provider = Arc::new(provider_for(profile)?);
+    let mut cfg = rustls::ClientConfig::builder_with_provider(provider)
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .map_err(|e| ProfileError::Rustls(e.to_string()))?
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+    cfg.resumption = rustls::client::Resumption::disabled();
+    cfg.enable_early_data = false;
+    cfg.alpn_protocols = Vec::from([CLIENT_ALPN.to_vec()]);
+    assert_client_profile(&cfg, profile)?;
+    Ok(cfg)
+}
+
+/// Startup assertion for a client config: the profile is defined for clients; kx list = the profile's list exactly,
+/// in order; only TLS 1.3 suites; early data off; resumption disabled (no session storage, no TLS 1.2 resumption,
+/// read from `Resumption`'s Debug form since rustls exposes no accessor); ALPN exactly `[http/1.1]`.
+#[cfg(feature = "tls-client")]
+pub fn assert_client_profile(cfg: &rustls::ClientConfig, profile: Profile) -> Result<(), ProfileError> {
+    if let Some(e) = client_refusal(profile) {
+        return Err(e);
+    }
+    let name = profile.name();
+    let kx: Vec<u16> = cfg.crypto_provider().kx_groups.iter().map(|g| u16::from(g.name())).collect();
+    if kx != profile.kx_groups() {
+        return Err(ProfileError::Assertion(format!(
+            "{name} client: kx_groups {kx:04x?} != profile {:04x?}",
+            profile.kx_groups()
+        )));
+    }
+    let suites = &cfg.crypto_provider().cipher_suites;
+    if suites.is_empty() || suites.iter().any(|s| s.version().version != ProtocolVersion::TLSv1_3) {
+        return Err(ProfileError::Assertion(format!("{name} client: suites are not TLS 1.3 only")));
+    }
+    if cfg.enable_early_data {
+        return Err(ProfileError::Assertion(format!("{name} client: early data enabled")));
+    }
+    let r = format!("{:?}", cfg.resumption);
+    if !r.contains("NoClientSessionStorage") || !r.contains("Disabled") {
+        return Err(ProfileError::Assertion(format!("{name} client: resumption not disabled: {r}")));
+    }
+    if cfg.alpn_protocols != [CLIENT_ALPN] {
+        return Err(ProfileError::Assertion(format!("{name} client: ALPN {:?} != [http/1.1]", cfg.alpn_protocols)));
     }
     Ok(())
 }
