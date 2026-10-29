@@ -1,0 +1,20 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"path":"/api/","to":{"listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":1,
+ "listeners":[{"e":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"path":"/api/","to":{"listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","apn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.0om","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framintatic":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},"upstreaframing":"h2v/www"}}]}],
+ "admin":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/static/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},"upstream":"app","framing":"h2v/www"}}]}],
+ "admin":{"bind":"127.0.5.1:9000"},
+ "limits":{},
+ "canon":{}}

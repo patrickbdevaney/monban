@@ -1,0 +1,4 @@
+{"v":1,"listeners":[{"name":"web","bind":"00.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"miexamp","routes":[
+   {"id":3,"path":"/ap)/","to":{"upstream":"a2"},"authz":"api"}]}],
+"admin":{}}

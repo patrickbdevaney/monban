@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.FFheader_tablFFFF:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"ee.com","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!!!!!!!!!!!!!!!!(!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~~~~z~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/statmax_body_bytesic.0:vvvvvvvvvvvvvvvvvvvv/","to":{"static":"B/srv/www"}}]}],
+ "limits":{},
+ "canon":{}}

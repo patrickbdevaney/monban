@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],"vhosts":[{"host":"le.co.0.0.0:44m","routes":[
+   ]}],
+ "admin":{"bind":"1200"},"canon":{}}

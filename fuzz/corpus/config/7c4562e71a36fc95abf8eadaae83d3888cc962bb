@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0F\\\\\\\\\\\\\\\\\\\bittttttt\\\\\\\\\\\\\\\bitttt\\\\\\|\\\\\\\\\\\\\\\\\\\\\bit\\\\\\\\\\\\\\\\\bittt\\\\\\\\\\\\\\\\\\\\\\\bittttttt\\\\\\\\\\\\\bittttttt\\\\\\|\\\\\\\\\\\\\\\\\\\\\bitttt\\\\\\\\\\\\\\\\\\\biFFFFFFFFcanon:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"ee.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"api"}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

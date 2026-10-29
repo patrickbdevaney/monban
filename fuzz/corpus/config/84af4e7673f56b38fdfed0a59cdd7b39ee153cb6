@@ -1,0 +1,3 @@
+{"v":1,
+ "listeners":[{"name":"{e.","bind":"0.03","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":{}}

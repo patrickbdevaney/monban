@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"wideb","bind":"0.0.0.0FFFFFFF///////////////00000232\udBe2\udeB2\udBe2\udeB242","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"ap/www"}}]}],
+ "admin":{"bind":"125.0.0.1:9+00"},
+ "limits":{},
+ "canon":{}}

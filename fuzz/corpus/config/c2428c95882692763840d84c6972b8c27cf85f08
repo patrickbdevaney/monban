@@ -1,0 +1,9 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.FFFF:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"exampl","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"apidi"},
+   {"id":3,"path":"/sta))))))~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/s~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":5,"path":"/s)))","to":{"upstream":"app","framing":"h2"}}]}],
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,14 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/$ap)/","to":{"upsters":[{"name":"web","bind":"0.030.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/$ap)/","to":{"upstream":"app","framing":"h2"},"authz":"apvvvvvvvvvvi"},
+   {"id":2,"path":"/sta~ic/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127:9000"},
+ "limis":{},
+ "caream":"app","framing":"h2"},"authz":"apvvvvvvvvvvvvvvvvvvvvvi"},
+   {"id":2,"path":"/sta~ic/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"063:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.00388ey\u00053810eroncurrenty\u000150e_mle\rst_F","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":2,"path":"/api/","to":{"upstream":""}}]}]
+, "admin":{"bind":"17.+00"},
+ "limits":{}}

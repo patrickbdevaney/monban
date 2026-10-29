@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0F:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~~~!!!!!!!!!=!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!~~~~~~~~~~~:/","to":{"static":"B/srv/www"}}]}],
+  "canon":{}}

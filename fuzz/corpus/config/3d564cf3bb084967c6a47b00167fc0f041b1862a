@@ -1,0 +1,12 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.0.0FFFFFFFFFFFFFFF:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/a~~~~~~z~~&&&&&&~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/s))))))))))))))))~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/sta)))))))&&&&&&&~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":5,"path":"/sta))&)))))))))))))))~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":8,"path":"/sta)))))))&&&&&&&&&&~~~~~~~~~~~~~~~~~~","to":{"upsconn_windowtream":"app","framing":"h2"},"authz":"api"},
+   {"io":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1conn_window27.0.0.1:9001"},
+ "limits":{},
+ "canon":{}}

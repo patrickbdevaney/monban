@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0(0.2FFFFFFFFrst//////////////////////////id////﻿////////////d//777777777777ry\u777777y\u77777777777\\\\que\\quepa\u777777yaaaaaaaaaaaaaaa/////////////v\\\\\\\ttt\\titbry\u777777y\u77777777777\\\\q//﻿////////////d////﻿//////////////////////id////_mle\rst_mle\r/id////﻿////////////d////﻿/////////////////////////////////////////////////////////id////_mle\rst_mle\r////////////aaaaaaaaaaa/////////////v\\\\\\\ttt\\titbry\u777777y\u77777777777\\y\u777777777777777777777//////////aaaa77y\u777777777777777777777ry\u777777y\u77777777777\\\\que\\quepa\u777777yaaaasy\u777777y\u77777777777\\\\que\\quepa\u777777yaaaaaaaaa//","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"ap///////////////////aaaa77y\u777777777777777777777//////////aaaa77y\u777777777777777777777ry\u777777y\u77777777777\\\\que\\quepa\u777777yaaaaaaaaaaaaaaaaaaaaaaaaaa//////////canon\\\\\\ttt\\titbry\u555554y\u77777777777\\y\u777777777777777777777//////////aaaa77y\u777777777777777777ry\u777777y\u77777777777\\\\qub\t\\que\\quepa\u777776yaaaaaaaaaaap","framing":"h2"},"authz":"api"},
+   {"id":2,"path":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

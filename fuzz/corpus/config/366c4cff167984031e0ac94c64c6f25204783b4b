@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"wenameb","bind":"0.0.0.0:A443","profile":"P-PUBLIC-WEB","alpn":["h2"]}],
+ "vhosts":[{"host":"miexcom","routes":[ {"id":2,"path":"/...st)","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"1279000"},
+ "limits":{},
+ "canon":{}}

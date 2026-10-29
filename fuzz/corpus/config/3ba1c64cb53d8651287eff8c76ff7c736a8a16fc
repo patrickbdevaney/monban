@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0FF443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~~~~~~~~~~~+++++++++++++++++++++++++++++++++++++++++++:/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"0max_concurrconn_window27.0.0.1:9000"},
+ "canon":{}}

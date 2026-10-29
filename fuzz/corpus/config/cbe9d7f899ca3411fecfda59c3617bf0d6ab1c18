@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"1.0.0.0FFF/////_mle\r/FFF:442","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/rrentzapi/","to":{"upstre////////id///////////0000000000000000000002q32\udBe2\udeB2\udBe2\udeB2_B2_|B2_40755570232////////////////////////_mle\rst_rle\rs_refi,le\rst_///////////////////host//////////\udBe2\udeB2\udBe2\udeB2_B2_|B2_to40755570232////////////////////////_mle\rst_rle\rst_mle\rst_refam":"app","framing":"h2"},"authz":"api"},
+   {}]}],
+ "admin":{"bind":"127.0.0.1:9+00"},
+ "limits":{},
+ "canon":{}}

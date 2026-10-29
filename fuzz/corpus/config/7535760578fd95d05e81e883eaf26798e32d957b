@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"43","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.om","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~~~~~~~~~~~.~~A~~~~~~~~~~~~~~t~~~~~~~~~~!!!!!!!!!~~~~~~~~~~~~:~~jjjjjjjjjjjjjjjjj~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~jjjjjjjjjjjjjj~~~~~~~~~~vvvvvvvvvv/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1max_urrconn_window27.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

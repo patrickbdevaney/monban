@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0>0.1.","profile":"P-PUBLIC-WEB","alpn":["h2"]}],
+ "vhosts":[{"host":"clme","routes":[
+   {"id":1,"path":"/a_~=======/","to":{"static":"B/vnerspR\fspr\fsrv/www"}}]}],
+  "limits":{},
+ "canon":{}}

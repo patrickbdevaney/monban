@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0]0:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"ex.cmm","routes":[]}],
+ "admin":{"bind":"1 0"}}

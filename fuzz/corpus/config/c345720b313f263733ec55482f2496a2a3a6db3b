@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"00FSFFFFFFFrst/","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"app","framing":"h2"}},
+   {"id":1e42,"path":"/static.1:/","to":{"static~":"}x"}}]}]}

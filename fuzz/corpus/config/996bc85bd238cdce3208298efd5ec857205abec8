@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0FFFmax_concurrent//////\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv/@//stream_win\nv\"vv\nv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////e\rst_//////////\nv\"vv\nv\nv\"///////////////////////vv\nvvv\nv\"vv\nvvv\nvnv\nv\"vv\nvvv\nv\"vv\nvvv\nv//////////////////////////////////////id///\nv\"vv\nvvv\nv\"vt\nvv\nvvv\nFFFF2","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example3som","routes":[
+     {"id":2,"path":"/static.1:/","to":{"static":"/srv/www"}}]}],
+ "admin":{"bind":"127.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

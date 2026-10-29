@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"we","bind":"0il0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"mi","routes":[
+   {"id":3,"path":"/a/","to":{"static":"www"}}]}],"canon":{"b":"127:9000"}}

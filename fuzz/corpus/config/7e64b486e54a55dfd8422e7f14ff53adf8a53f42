@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.rst_mle\r00150388y\u00051038erm$x_concurrenty\u0005038st_rle\ry\u00051038ety\u00015FFFFFFFF:221","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}], "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"static":"/srv/www"}}]}], "limits":{},
+ "canon":{}}

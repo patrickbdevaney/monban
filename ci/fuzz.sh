@@ -118,7 +118,7 @@ run_all() { # $1 = binary dir, $2 = runs per target, $3 = per-process wall timeo
   for t in $TARGETS; do
     rm -rf "$WORK/$mode-$t" "$WORK/$mode-$t-artifacts" "$WORK/$mode-$t".*.log "$WORK/$mode-$t".*.status
     mkdir -p "$WORK/$mode-$t" "$WORK/$mode-$t-artifacts" "fuzz/corpus/$t"
-    cp -r "fuzz/corpus/$t/." "$WORK/$mode-$t/" 2>/dev/null || true
+    cp -r "${SEED_SRC:-fuzz/corpus}/$t/." "$WORK/$mode-$t/" 2>/dev/null || true
   done
   for t in $TARGETS; do
     w=$(workers_of "$t" "$mode")
@@ -196,6 +196,12 @@ cmd_selftest() {
   parse_targets "$@"
   local td="$TD_BASE/fuzz-selftest"
   build "$td" "--cfg fuzzing_selftest"
+  # Start from the initial seeds (examples/seeds.rs), not the grown corpus: no seed meets a planted condition, so
+  # the fuzzer has to mutate its way to each one (a grown corpus may already contain the trigger).
+  rm -rf "$WORK/selftest-seeds"
+  cargo +"$NIGHTLY" run -q --manifest-path fuzz/Cargo.toml --target-dir "$TD_BASE/fuzz-seeds" --example seeds \
+    -- "$WORK/selftest-seeds" > /dev/null
+  SEED_SRC="$WORK/selftest-seeds"
   run_all "$td/$TRIPLE/release" 1000000 "${AEGIS_FUZZ_TARGET_TIMEOUT:-1800}" selftest
   local ok=0 bad=() t
   for t in $TARGETS; do

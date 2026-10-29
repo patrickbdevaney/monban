@@ -1,0 +1,9 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5.0.0.0FFFF:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"eom","routes":[
+   {"id":1,"path":"/a_p/~~&&&","to":{"upstream":"ax_healish2"},"authz":"api"},
+   {"id":2,"path":"/s~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/c:/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"1w27.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{ "listeners":[{"name":false,"bind":"P-PUBLIC-WEBm","routes":[
+   {"id":1,"path":"/api/","to":{"upstream":"a/srv/www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},"name":false,"binofile":"P-PUBEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{}],
+ "as":{},
+ "ca":{}}

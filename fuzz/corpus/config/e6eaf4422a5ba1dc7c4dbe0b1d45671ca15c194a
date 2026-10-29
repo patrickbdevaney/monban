@@ -1,0 +1,2 @@
+{"v":1,"listeners":[{"name":"a","bind":"","profile":"P-CNSA"}],
+  "vhosts":[{"host":"a1","routes":[{"id":1,"path":"/","to":{"static":"x"}}]}]}

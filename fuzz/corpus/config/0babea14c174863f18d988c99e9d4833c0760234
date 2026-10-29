@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"we-b","bind":"0.\\\\\bitt3","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"examplcaone.com","routes":[
+   {"id":-4,"path":"/ap)+","to":{"upming":"h!/srv/www"}}]}],
+ "admin":{}}

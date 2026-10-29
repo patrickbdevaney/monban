@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"webname","bind":"0.0.0.0:434","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"htes":[
+   {"id":2,"path":"/api/","to":{"":"a/srv/www"}}]}],
+
+ "canon":{}}

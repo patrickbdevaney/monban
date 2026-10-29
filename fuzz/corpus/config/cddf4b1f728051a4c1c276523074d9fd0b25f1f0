@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0FFFFFF","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/a_p/~~~~~~~~~~~~~~~&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&~~~~~~~~~oncu","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"2conn_.0.0.1:9000"},
+ "limits":{},
+ "canon":{}}

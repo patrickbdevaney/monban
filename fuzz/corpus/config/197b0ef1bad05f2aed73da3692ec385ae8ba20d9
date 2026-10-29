@@ -1,0 +1,9 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"exa.p.le.com","routes":[
+   {"id":5,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":15,"path":"/api/","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":1,"path":"/stati/","to":{"static":"/svvvvv"}}]}],
+ "admin":{"bind":"127.00"},
+ "limits":{},
+ "canon":{}}

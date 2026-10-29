@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2"]}],
+"vhosts":[{"host":"exa.p.le.co.m","routes":[
+   {"id":2,"path":"/api/","to":{"upstream":"vwvvvvvvvwww0"}}]}],
+
+ "canon":{}}

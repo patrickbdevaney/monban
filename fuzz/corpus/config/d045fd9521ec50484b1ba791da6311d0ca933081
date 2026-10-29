@@ -1,0 +1,5 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0/0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example","routes":[
+   {"id":77777777777774,"path":"/a/;tat","to":{"static":"/srv/wws"}}]}],
+ "admin":{}}

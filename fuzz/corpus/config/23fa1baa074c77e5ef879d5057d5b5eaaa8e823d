@@ -1,0 +1,8 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstreamu009A\u009A\"oh\u010A\u009Acg":"h2"},"authz":"api"},
+   {"id":2,"path":"/tic/","to":{"static":"www"}}]}],
+ "admin":{"bind":"127.000"},
+ "limits":{},
+ "canon":{}}

@@ -1,0 +1,6 @@
+{"v":1,
+ "listeners":[{"name":"wenamab","bind":"43","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"miexcom","routes":[
+   {"id":3,"path":"/ap)/.sa..ttic/","to":{"static":"v/ww"}}]}],
+ "admin":{},
+ "canon":{}}

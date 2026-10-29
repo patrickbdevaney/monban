@@ -1,0 +1,7 @@
+{"v":1,
+ "listeners":[{"name":"wenameb","bind":"5.0.0.0FFFFFFFFrst_bu_mle\rst_refi,le\rst__refi,le\rst_////////_mle\rst_mle\rst_rle\rst_m\r///////////id////_mle\rst_mle\rst_rle\rst_mle\rSt_refi,le\rst_///////FFFFF:443","profile":"P-PUBLIC-WEB","alpn":["h2","http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/static.1:/","to":{"static":"/srv/ww7"}}]}],
+ "admin":{"bind":"1.700.12.:9000"},
+ "limits":{},
+ "canon":{}}

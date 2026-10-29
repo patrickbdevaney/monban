@@ -1,0 +1,10 @@
+{"v":1,
+ "listeners":[{"name":"web","bind":"5FFFFFFFFFFFFFFFFFFFFFF:443","profile":"P-PUBLIC-WEB","alpn":["http/1.1"]}],
+ "vhosts":[{"host":"example.com","routes":[
+   {"id":1,"path":"/~~~~~~~~~~~~~~~~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":3,"path":"/s~~","to":{"upstream":"app","framing":"h2"},"authz":"api"},
+   {"id":4,"path":"/sta)))))))&&&&&&&&&&~~","to":{"upstream":"aph2"},"authz":"api"},
+   {"id":2,"path":"/sturst))))))))))))/","to":{"static":"B/srv/www"}}]}],
+ "admin":{"bind":"0conn000"},
+ "limits":{},
+ "canon":{}}

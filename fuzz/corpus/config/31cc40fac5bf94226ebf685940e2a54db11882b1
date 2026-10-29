@@ -1,0 +1,8 @@
+{"vlisteners":[{"name":"e.com","routes":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":1,"pars":[{"nnd":"0.0.0.0FFFFrsom","r/utes":[
+   {"id":1,"path":"/api/","to":{"upstre,m":"app","framing":null},"authz":"api"},
+   {"id":4,"patho":{"static":"/swww"}}]}],
+ "adm":{"sta":"/srv/www"}}]}],
+ "admints":{},
+ "canon":{}}

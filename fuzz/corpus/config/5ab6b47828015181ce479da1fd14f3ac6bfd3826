@@ -1,0 +1,4 @@
+{"v":1,
+ "listeners":[{"name":false,"bind":"0","profile":"","alpn":["`h3","1"]}],
+ "vhosts":[{"host":[]}],
+ "admin":{"bind":"127.000"}}
