@@ -23,15 +23,15 @@ parse errors, every case answered. Last line `TOKEN-DRT: PASS (...)`.
    append-without-MAC, flipped tag, swapped kid, new nonce); a verifier key ring (5% unknown kid, 5% wrong master,
    10% extra key). Caveats are generated "satisfied" with probability ~0.85-0.9 and otherwise random, with traps
    for each ratified decision (a segment that is a strict string prefix or extension of the request's: `t1`/`t10`;
-   a tool constraint on an absent argument; depth caveats that lower the bound; audiences/kids whose concatenation
-   collides, `"api"‖"k1"` = `"apik"‖"1"`).
+   a tool constraint on an absent argument; depth caveats that lower the bound; audiences/kids whose plain concatenation
+   collides, `"api"‖"k1"` = `"apik"‖"1"`; with F5's length prefixes these must now derive different keys).
 2. `lean/TokenDrt.lean` (compiled once with `lean -c` + `leanc` into `.lake/build/`, gitignored) evaluates each case.
    Its section 1 is a copy of Token.lean's definitions (no theorems); `run` checks that every non-extension line of
    that copy occurs verbatim in `spec/AegisIR/Token.lean` and FAILs on drift. Two marked extensions: X1
    `ArgCon.strPrefix` (the F5 wire's `argpred [3, tstr]`, absent from Token.lean) and X2 `shapeOk`/`countOk`.
    The MAC parameter `H` is instantiated with a free (injective, length-prefixed) function, so `macChain` equality
    holds iff key, `kid ‖ nonce` and caveats are equal: the ideal-MAC reading of T5. K_aud is modelled as
-   `master ‖ "aegis-cap-v1" ‖ aud ‖ kid`, the exact F5 HKDF info concatenation. Lean `tenant : Bytes` is the 8-byte
+   `master ‖ "aegis-cap-v1" ‖ be16|aud| ‖ aud ‖ be16|kid| ‖ kid`, the exact F5 HKDF info (length-prefixed since 2026-10-29). Lean `tenant : Bytes` is the 8-byte
    big-endian encoding of the wire uint.
 3. The subject (`subjects/token-subject`, default `target/release/token-subject`) builds the same token with the
    crate's public API (issuer `chain_tag`, holder `attenuate`, tamper, `encode`) and runs real HMAC-SHA256/HKDF.

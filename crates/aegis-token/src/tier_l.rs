@@ -1,7 +1,8 @@
 //! Tier L: macaroon-style HMAC-SHA256 chain over deterministic-CBOR caveats (F5 `token-l`, Lean `macChain`,
 //! `verify`, `attenuate`).
 //!
-//! K_aud = HKDF-SHA256(ikm = K, salt = "", info = "aegis-cap-v1" ‖ aud ‖ kid); the verifier derives it from ITS OWN
+//! K_aud = HKDF-SHA256(ikm = K, salt = "", info = "aegis-cap-v1" ‖ be16(|aud|) ‖ aud ‖ be16(|kid|) ‖ kid), so
+//! distinct (aud, kid) pairs never share an info string; the verifier derives it from ITS OWN
 //! audience (`Req::aud`), so a token minted for another audience fails the MAC as well as the aud caveat.
 //! tag = foldl (λ t c. HMAC(t, enc c)) (HMAC(K_aud, kid ‖ nonce)) caveats, compared in constant time.
 
@@ -151,7 +152,10 @@ impl TokenL {
 
 fn derive_k_aud(master: &[u8; 32], aud: &str, kid: &[u8]) -> Result<hmac::Key, TokenError> {
     let prk = hkdf::Salt::new(hkdf::HKDF_SHA256, &[]).extract(master);
-    let info: [&[u8]; 3] = [KDF_LABEL, aud.as_bytes(), kid];
+    let (a, k) = (aud.as_bytes(), kid);
+    let a_len = u16::try_from(a.len()).map_err(|_| TokenError::Crypto)?.to_be_bytes();
+    let k_len = u16::try_from(k.len()).map_err(|_| TokenError::Crypto)?.to_be_bytes();
+    let info: [&[u8]; 5] = [KDF_LABEL, &a_len, a, &k_len, k];
     let okm = prk.expand(&info, hmac::HMAC_SHA256).map_err(|_| TokenError::Crypto)?;
     Ok(hmac::Key::from(okm))
 }
@@ -281,4 +285,22 @@ pub(crate) fn principal_for(r: &Req, kid: &[u8], nonce: &[u8]) -> Result<Princip
     subject.extend_from_slice(kid);
     subject.extend_from_slice(nonce);
     authn_path::mint(tenant, Some(&subject)).map_err(|_| VerifyError::BadPrincipal)
+}
+
+#[cfg(test)]
+mod kdf_tests {
+    use super::*;
+
+    /// F5 re-freeze 2026-10-29: ("api","k1") and ("apik","1") have the same plain concatenation and must still derive
+    /// different keys.
+    #[test]
+    fn k_aud_info_is_length_prefixed() -> Result<(), TokenError> {
+        let m = [7u8; 32];
+        let a = hmac::sign(&derive_k_aud(&m, "api", b"k1")?, b"probe");
+        let b = hmac::sign(&derive_k_aud(&m, "apik", b"1")?, b"probe");
+        assert_ne!(a.as_ref(), b.as_ref());
+        let c = hmac::sign(&derive_k_aud(&m, "api", b"k1")?, b"probe");
+        assert_eq!(a.as_ref(), c.as_ref());
+        Ok(())
+    }
 }

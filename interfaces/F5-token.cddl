@@ -8,7 +8,9 @@
 ;   Verify = conjunction of EVERY caveat (never leaf-only); `now` is a verifier parameter.
 ;   Mint-shape check: the first caveats of a freshly minted token are exactly [aud, exp, depth_left] (drops the
 ;   WellMinted hypothesis of Token.lean). exp - mint_time <= 900 s. Encoded token <= 4096 bytes. 1..64 caveats.
-; Key: K_aud = HKDF-SHA256(ikm = K, salt = "", info = "aegis-cap-v1" || aud || kid). Tag = HMAC chain over caveats.
+; Key: K_aud = HKDF-SHA256(ikm = K, salt = "", info = "aegis-cap-v1" || be16(len aud) || aud || be16(len kid) || kid)
+;   (lengths in bytes, big-endian uint16; re-frozen 2026-10-29: the unprefixed form let ("api","k1") and ("apik","1")
+;   share an info string). Tag = HMAC chain over caveats.
 
 token-l = [
   version: 1,
