@@ -25,7 +25,7 @@ MUTANTS = ["leaf-only", "plain-prefix", "missing-arg-allow", "depth-unchecked"]
 
 NOW = 1_800_000_000
 AUDS = ["api", "apik", "a", "api.example", "é-svc"]
-KIDS = [b"k1", b"k2", b"1", b"k"]  # "api" + "k1" == "apik" + "1": the unprefixed HKDF info collides on purpose
+KIDS = [b"k1", b"k2", b"1", b"k"]  # "api"+"k1" == "apik"+"1" as plain concatenation: a trap that F5's length-prefixed HKDF info must separate
 SEGS = ["t1", "t10", "t", "docs", "x", "é"]
 TOOLS = ["search", "fetch", "s"]
 ARGK = ["q", "n", "k"]

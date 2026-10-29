@@ -4,6 +4,7 @@
 //!   before any socket is bound (INV-NONEMPTY: there is no implicit "serve everything" mode).
 //! * `aegis check-config <path> [--print-effective]`: CFG-1/2 validation plus the assembly's own checks.
 //! * `aegis --config <path> ...`: serve (see [`serve`]).
+//! * `aegis agent --config <agent.json>`: the MCP listener gate (see [`agent`]; Phase 3, gateway mode "G").
 //!
 //! Modules: [`plan`] (config → listeners / routes), [`proxy`] (the `aegis_transport::App` that forwards: CANON-4;
 //! inbound h1 and h2 are served by `aegis_transport::Server` with the AEGIS wrapper), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
@@ -12,6 +13,7 @@
 #![forbid(unsafe_code)]
 
 mod admin;
+mod agent;
 mod audit;
 mod cli;
 mod plan;
@@ -60,6 +62,9 @@ fn check_config(path: &std::path::Path, print_effective: bool) -> ExitCode {
 
 fn main() -> ExitCode {
     let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    if let Some(("agent", rest)) = args.split_first().and_then(|(a, r)| a.to_str().map(|a| (a, r))) {
+        return agent::run(rest);
+    }
     match cli::parse(&args) {
         Ok(cli::Cmd::Bare) => {
             eprintln!("aegis: no validated configuration; refusing to serve (fail-closed boot)");

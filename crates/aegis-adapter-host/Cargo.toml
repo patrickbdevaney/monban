@@ -13,6 +13,12 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
+# PDP-1 client transport (pdp_uds): the pure codec/client seam it implements.
+aegis-authz = { workspace = true }
+# Root pin ("std", "net"): SOCK_SEQPACKET socket/bind/listen/accept/connect, recv(MSG_TRUNC), SO_TYPE; all safe
+# APIs. "time" only because rustix's linux_raw sockopt code does not compile without it (as in aegis-ops). Already
+# linked into aegis-bin through aegis-ops with a superset of these features.
+rustix = { workspace = true, features = ["time"] }
 
 [lints]
 workspace = true

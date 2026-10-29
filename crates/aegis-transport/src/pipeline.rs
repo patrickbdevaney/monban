@@ -17,6 +17,9 @@ use aegis_types::RouteId;
 
 use crate::exchange::{ExchangeBudget, FrontEnd, Head, HeadVerdict, MessageVerdict, Method, Mode};
 
+/// aegis-canon `canon_request`'s reason for an Origin that parsed but is not bound to the vhost (CANON-6).
+const ORIGIN_UNBOUND: &str = "Origin not bound to vhost";
+
 /// The future a request handler returns. It borrows the app (the server keeps it alive for the whole exchange).
 pub type HandlerFuture<'a> = Pin<Box<dyn Future<Output = Reply> + Send + 'a>>;
 
@@ -59,6 +62,14 @@ pub trait App: FrontEnd + Send + Sync + 'static {
     /// stall, reset).
     fn depart(&self, ticket: u64, cancelled: bool) {
         let _ = (ticket, cancelled);
+    }
+
+    /// Status for a request whose Origin parsed but is not bound to the vhost (CANON-6 binding, decided in the core
+    /// before any app code). Default 421; an agent (MCP) listener returns 403, which MCP mandates for an invalid
+    /// Origin. Only 4xx statuses are honoured (anything else answers 421). Host/`:authority`/SNI misbinding and
+    /// userinfo are not affected.
+    fn origin_refusal_status(&self) -> u16 {
+        421
     }
 
     /// The core refused a request on its head (CANON reject, unknown method, 404) with `status`.
@@ -363,8 +374,18 @@ fn admit_inner<A: App + ?Sized>(
         host: &raw.hosts,
         origin: raw.origin,
     };
-    let authority = canon_request(&identity, &table)
-        .map_err(|r| core(Refused { reply: Reply::status(r.status()), authority: true }))?;
+    let authority = canon_request(&identity, &table).map_err(|r| {
+        // CANON-6: an Origin that parsed but is not bound to the vhost is 421 unless the app asks otherwise (an MCP
+        // listener answers 403, as MCP mandates). Host/:authority/SNI misbinding and userinfo stay as aegis-canon
+        // decided. The refusal still happens here, before any app code runs.
+        let status = match (r.status(), r.reason()) {
+            (421, ORIGIN_UNBOUND) => {
+                Some(app.origin_refusal_status()).filter(|s| (400..500).contains(s)).unwrap_or(421)
+            }
+            (s, _) => s,
+        };
+        core(Refused { reply: Reply::status(status), authority: true })
+    })?;
     let Some(method) = map_method(raw.method) else {
         return Err(core(refuse(501)));
     };
@@ -537,5 +558,103 @@ mod tests {
         assert_eq!(s.chunk(4, 3), b"o".to_vec());
         assert_eq!(sanitize_status(101), 500);
         assert_eq!(sanitize_status(421), 421);
+    }
+
+    /// A front end that counts every hook and handler call past admission (none may happen on a refusal).
+    struct T {
+        origin_status: Option<u16>,
+        calls: std::sync::atomic::AtomicUsize,
+    }
+    impl FrontEnd for T {
+        fn on_head(&self, _h: &Head<'_>) -> HeadVerdict {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            HeadVerdict::Accept(
+                Mode::Unary,
+                ExchangeBudget {
+                    max_message_bytes: 1,
+                    max_frame_bytes: 1,
+                    max_messages: 1,
+                    max_total_bytes: 1,
+                    stall_ms: 1,
+                },
+            )
+        }
+        fn on_message(&self, _h: &Head<'_>, _m: &[u8]) -> MessageVerdict {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            MessageVerdict::Continue
+        }
+    }
+    impl App for T {
+        fn route(&self, _a: &Canon<Authority>, _p: &Canon<RoutePath>, _m: Method) -> Option<RouteId> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            RouteId::new(1).ok()
+        }
+        fn origin_refusal_status(&self) -> u16 {
+            self.origin_status.unwrap_or(421)
+        }
+    }
+
+    fn status_for(app: &T, host: &[u8], origin: Option<&[u8]>, sni: Option<&[u8]>) -> u16 {
+        let mut vh = VhostTable::new();
+        vh.add(b"mcp.test:8080", &[b"http://mcp.test:8080"]);
+        let scheme = if sni.is_some() { Scheme::Https } else { Scheme::Http };
+        let conn = ConnInfo { scheme, sni: sni.map(<[u8]>::to_vec), peer: None, id: 1 };
+        let raw = RawHead {
+            proto: Proto::H1,
+            method: &http::Method::POST,
+            scheme: None,
+            authority: None,
+            hosts: vec![host],
+            origin,
+            path_and_query: b"/mcp",
+            fields: vec![(b"host".as_slice(), host)],
+        };
+        match admit(app, &vh, &conn, &raw) {
+            Ok(_) => 200,
+            Err(r) => r.reply.status,
+        }
+    }
+
+    #[test]
+    fn origin_refusal_status_is_per_app_and_origin_only() {
+        let default = T { origin_status: None, calls: Default::default() };
+        let agent = T { origin_status: Some(403), calls: Default::default() };
+        let broken = T { origin_status: Some(200), calls: Default::default() };
+        let evil = Some(&b"http://evil.example"[..]);
+        // Default listener: CANON-6 421, as before.
+        assert_eq!(status_for(&default, b"mcp.test:8080", evil, None), 421);
+        // Agent listener: the same refusal in the core, answered 403.
+        assert_eq!(status_for(&agent, b"mcp.test:8080", evil, None), 403);
+        // A non-4xx override is ignored (still refused, 421).
+        assert_eq!(status_for(&broken, b"mcp.test:8080", evil, None), 421);
+        // Host / SNI misbinding and userinfo are untouched by the override.
+        assert_eq!(status_for(&agent, b"evil.example:8080", None, None), 404);
+        assert_eq!(status_for(&agent, b"evil.example:8080", evil, None), 404);
+        assert_eq!(status_for(&agent, b"mcp.test:8080", None, Some(b"other.test")), 421, "SNI misbinding stays 421");
+        assert_eq!(status_for(&agent, b"u@mcp.test:8080", None, None), 400);
+        // Unparseable Origin stays aegis-canon's 403 on both.
+        assert_eq!(status_for(&default, b"mcp.test:8080", Some(b"null"), None), 403);
+        // No app hook ran for any refusal.
+        for a in [&default, &agent, &broken] {
+            assert_eq!(a.calls.load(Ordering::SeqCst), 0);
+        }
+        // The accepted control reaches routing.
+        assert_eq!(status_for(&agent, b"mcp.test:8080", Some(b"http://mcp.test:8080"), None), 200);
+        assert!(agent.calls.load(Ordering::SeqCst) > 0);
+    }
+
+    #[test]
+    fn origin_unbound_reason_matches_the_canon_owner() {
+        let vh = [Vhost { authority: b"a.test", origins: &[] }];
+        let id = RequestIdentity {
+            proto: Proto::H1,
+            scheme: Scheme::Http,
+            sni: None,
+            authority: None,
+            host: &[b"a.test"],
+            origin: Some(b"http://b.test"),
+        };
+        let r = canon_request(&id, &vh).unwrap_err();
+        assert_eq!((r.status(), r.reason()), (421, ORIGIN_UNBOUND));
     }
 }

@@ -24,8 +24,10 @@ dependencies = [
 name = "aegis-adapter-host"
 version = "0.0.0"
 dependencies = [
+ "aegis-authz",
  "aegis-data-ir",
  "aegis-types",
+ "rustix",
 ]
 
 [[package]]
@@ -68,6 +70,7 @@ dependencies = [
  "aegis-canon",
  "aegis-token",
  "aegis-types",
+ "aws-lc-rs",
 ]
 
 [[package]]
@@ -185,6 +188,7 @@ dependencies = [
 name = "aegis-pdp"
 version = "0.0.0"
 dependencies = [
+ "aegis-adapter-host",
  "aegis-authz",
  "aegis-types",
  "cedar-policy",
@@ -549,6 +553,14 @@ checksum = "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a"
 dependencies = [
  "generic-array",
  "typenum",
+]
+
+[[package]]
+name = "ct-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-token",
+ "aws-lc-rs",
 ]
 
 [[package]]

@@ -10,8 +10,8 @@ for two marked F5 extensions:
 Section 2 instantiates the MAC parameter `H` with a FREE (injective) function: H k m = [0xA5] ++ len(k) ++ k ++ m,
 and `enc` with an injective serialization. Under a free H, `macChain` equality holds iff key, kid ‖ nonce and the
 caveat encodings are equal: the ideal-MAC (EUF-CMA) reading of T5. The Rust side uses real HMAC-SHA256; the two
-agree except on an HMAC collision. K_aud is modelled as master ‖ "aegis-cap-v1" ‖ aud ‖ kid (the HKDF info string,
-concatenated exactly as F5 specifies).
+agree except on an HMAC collision. K_aud is modelled as master ‖ "aegis-cap-v1" ‖ be16 |aud| ‖ aud ‖ be16 |kid| ‖ kid
+(the HKDF info string, length-prefixed exactly as F5 specifies).
 
 Section 3 parses the case lines (format in ../README.md) and prints `<id> <verify><denote><depthOk><shapeOk>`.
 -/
@@ -170,8 +170,10 @@ def enc : Caveat → Bytes
   | .tool n as => [7] ++ lps n ++ natE as.length ++ (as.map (fun (k, c) => lps k ++ encCon c)).foldl (· ++ ·) []
   | .depth d => [8] ++ natE d
 
+def be16 (n : Nat) : Bytes := [UInt8.ofNat (n / 256), UInt8.ofNat (n % 256)]
+
 def kAud (master : Nat) (aud : String) (kid : Bytes) : Bytes :=
-  [UInt8.ofNat master] ++ strB "aegis-cap-v1" ++ strB aud ++ kid
+  [UInt8.ofNat master] ++ strB "aegis-cap-v1" ++ be16 (strB aud).length ++ strB aud ++ be16 kid.length ++ kid
 
 def verifyF5 (keys : List (Bytes × Nat)) (t : Token) (r : Req) : Bool :=
   match keys.lookup t.kid with

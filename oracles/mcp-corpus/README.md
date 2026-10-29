@@ -60,6 +60,16 @@ A per-era baseline (legitimate tools/call → 200, reaches the handler) must pas
 - Every target must be loopback; anything else is refused.
 - The last line is `MCP-CORPUS: PASS|FAIL (...)` and the exit code is 0 only on PASS.
 
+## Subject wiring: the AEGIS agent listener (P3-agent-001)
+
+The shipped binary serves this profile with `aegis agent --config <agent.json>` (crates/aegis-agent, wired in
+crates/aegis-bin/src/agent.rs). `crates/aegis-agent/subject/mcp-gate.sh run` does the whole wiring: it starts
+`aegis-pdp serve` (Cedar, out of process; policy `crates/aegis-agent/subject/mcp.cedar`) on a SOCK_SEQPACKET socket,
+writes an agent config with routes `/mcp`, `/mcp2`, `/mcp-redir`, `/mcp-multi` pointing at the mock upstream port,
+starts `target/release/aegis agent`, and runs this oracle with `--subject`, `--subject-url2`, `--subject-redir-url`,
+`--subject-multi-url` and `--subject-pid`. `mcp-gate.sh self-test` swaps in a deny-all Cedar policy and requires the
+run to fail on the baselines. Build first: `cargo build --release --locked -p aegis-bin -p aegis-pdp`.
+
 ## Pass criterion
 
 - Both baselines pass.

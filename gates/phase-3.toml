@@ -192,7 +192,7 @@ remote = true
 name = "mcp-gateway"
 # Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
 # full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && ci/mcp-gate.sh run"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin -p aegis-pdp && ci/mcp-gate.sh run --flood-n 20000"
 selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
 remote = true
 
