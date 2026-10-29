@@ -1,8 +1,10 @@
-//! SOCK_SEQPACKET plumbing (safe rustix + std): server listen/accept, the client [`UdsTransport`] that implements
-//! the pure `aegis_authz::pdp::PdpTransport`, and one-packet send/recv that reports a packet's true length.
+//! PDP-1 SOCK_SEQPACKET plumbing (safe rustix + std): server listen/accept, the client [`UdsTransport`] that
+//! implements the pure `aegis_authz::pdp::PdpTransport`, and one-packet send/recv that reports a packet's true
+//! length.
 //!
-//! The transport sits here for now (L5, next to its only user, the oracle probe). Its intended home for the server
-//! host is an L4 effects crate (aegis-adapter-host), so aegis-bin can use it without linking Cedar.
+//! Moved here from aegis-pdp (L5) so the host side (aegis-bin, the MCP listener gate) can reach the out-of-process
+//! Cedar PDP without linking Cedar (DEVIATIONS X-8). aegis-pdp re-exports this module as `aegis_pdp::uds` for its
+//! server loop, the probe and oracles/pdp-dst.
 
 use std::io;
 use std::os::fd::{AsFd, OwnedFd};

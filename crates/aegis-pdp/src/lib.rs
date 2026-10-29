@@ -5,7 +5,8 @@
 
 pub mod engine;
 pub mod server;
-pub mod uds;
+/// The PDP-1 socket plumbing, owned by the L4 host crate (aegis-bin uses the same client without Cedar).
+pub use aegis_adapter_host::pdp_uds as uds;
 
 /// Lowercase hex decoding for the probe and eval input lines.
 pub fn unhex(s: &str) -> Option<Vec<u8>> {

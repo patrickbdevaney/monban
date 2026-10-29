@@ -24,8 +24,10 @@ dependencies = [
 name = "aegis-adapter-host"
 version = "0.0.0"
 dependencies = [
+ "aegis-authz",
  "aegis-data-ir",
  "aegis-types",
+ "rustix",
 ]
 
 [[package]]
@@ -185,6 +187,7 @@ dependencies = [
 name = "aegis-pdp"
 version = "0.0.0"
 dependencies = [
+ "aegis-adapter-host",
  "aegis-authz",
  "aegis-types",
  "cedar-policy",
