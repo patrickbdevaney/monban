@@ -259,7 +259,8 @@ impl NetConnector {
         Self::default()
     }
 
-    /// Connector with the PQ-preferring TLS client profile.
+    /// Connector with an injected TLS client ([`crate::tls::TlsClient::from_config`] over a config built by
+    /// `aegis_tls::client_config`).
     #[cfg(feature = "tls-client")]
     pub fn with_tls(tls: crate::tls::TlsClient) -> Self {
         Self { tls: Some(tls) }

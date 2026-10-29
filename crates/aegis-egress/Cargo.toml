@@ -12,7 +12,8 @@ layer = 3
 
 [features]
 default = []
-# The rustls CLIENT (https egress). Off by default so the cmvp build compiles every rustls client out
+# The rustls CLIENT handshake (https egress; the ClientConfig is built by aegis-tls `client_config`, feature
+# `tls-client` there, and injected). Off by default so the cmvp build compiles every rustls client out
 # (spikes/cmvp-client-policy mode A, gate check M1 + B1/B2). Without it, `https://` fetches fail closed with
 # `EgressError::TlsUnavailable`; URL vetting, address classification, redirect policy and plain-HTTP fetch remain.
 tls-client = ["dep:rustls", "dep:tokio-rustls"]

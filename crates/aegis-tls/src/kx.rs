@@ -252,9 +252,10 @@ impl ActiveKeyExchange for Active {
 #[allow(clippy::indexing_slicing, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     //! Ported from the q4-026 selftest. The handshake-level negative tests there drove a rustls client; this
-    //! crate constructs no `ClientConfig` (spikes/cmvp-client-policy), so the same malformed shares are fed to
-    //! the group's two entry points directly (`start_and_complete` = server parsing a ClientHello share,
-    //! `complete` = client parsing a ServerHello share). rustls maps every error from either to alert 47.
+    //! crate's default build constructs no `ClientConfig` (spikes/cmvp-client-policy), so the same malformed
+    //! shares are fed to the group's two entry points directly (`start_and_complete` = server parsing a
+    //! ClientHello share, `complete` = client parsing a ServerHello share). rustls maps every error from either
+    //! to alert 47.
     use super::*;
     use std::collections::HashMap;
 

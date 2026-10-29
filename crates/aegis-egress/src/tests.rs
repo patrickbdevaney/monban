@@ -479,11 +479,49 @@ fn https_without_tls_feature_fails_closed() {
     assert_eq!(r.err(), Some(EgressError::TlsUnavailable));
 }
 
+/// Test-only stand-in for the config aegis-tls builds (aegis-egress may not depend on aegis-tls, even as a
+/// dev-dependency: same layer). The profile itself is tested in aegis-tls tests/client_profile.rs.
+#[cfg(feature = "tls-client")]
+fn injected_like_aegis_tls() -> rustls::ClientConfig {
+    let mut c =
+        rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(rustls::crypto::aws_lc_rs::default_provider()))
+            .with_protocol_versions(&[&rustls::version::TLS13])
+            .unwrap()
+            .with_root_certificates(rustls::RootCertStore::empty())
+            .with_no_client_auth();
+    c.resumption = rustls::client::Resumption::disabled();
+    c.enable_early_data = false;
+    c.alpn_protocols = vec![b"http/1.1".to_vec()];
+    c
+}
+
 #[cfg(feature = "tls-client")]
 #[test]
-fn tls_client_profile_asserted() {
-    let t = TlsClient::new(RootCertStore::empty()).unwrap();
-    assert!(tls::assert_client_profile(t.config()).is_ok());
+fn tls_client_accepts_conforming_injected_config() {
+    let t = TlsClient::from_config(std::sync::Arc::new(injected_like_aegis_tls())).unwrap();
+    assert!(tls::check_client_invariants(t.config()).is_ok());
+}
+
+#[cfg(feature = "tls-client")]
+#[test]
+fn tls_client_refuses_misbuilt_config() {
+    use rustls::client::Resumption;
+    let mutants: [fn(&mut rustls::ClientConfig); 6] = [
+        |c| c.enable_early_data = true,
+        |c| c.resumption = Resumption::default(),
+        |c| c.resumption = Resumption::in_memory_sessions(8),
+        |c| c.alpn_protocols = vec![b"h2".to_vec()],
+        |c| c.alpn_protocols.push(b"h2".to_vec()),
+        |c| c.alpn_protocols.clear(),
+    ];
+    for (i, m) in mutants.iter().enumerate() {
+        let mut c = injected_like_aegis_tls();
+        m(&mut c);
+        assert!(
+            matches!(TlsClient::from_config(std::sync::Arc::new(c)), Err(EgressError::Tls(_))),
+            "mutant {i} accepted"
+        );
+    }
 }
 
 /// Totality: arbitrary bytes never panic the URL parser or join.
