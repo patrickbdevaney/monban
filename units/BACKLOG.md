@@ -138,3 +138,14 @@ Phase 3 done: token, pdp, egress units. Remaining Phase 3: P3-agent-001 (MCP lis
 wire aegis-token verify + aegis-pdp via an L4 transport crate + aegis-egress into aegis-bin), then gates/phase-3.toml
 (corpus 100% + zero handler invocations, token DRT, pdp DST, ssrf corpus, Lean Combine/Token gate) and the Phase-3 GO
 run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 crate, egress TLS profile ownership.
+
+## Agent gateway (from P3-agent-001, 2026-10-29)
+- The JWT subject is an agent-local `Subject`, not a `Principal` (only aegis-token may construct one). Move the HS256/
+  JWT bearer profile into aegis-token so the gate yields a real Principal.
+- Not yet built: sealed requestState (MRTR), SSE responses (one JSON reply per POST today), TLS on the agent
+  listener, and the h2c `:authority` corpus case (needs an HTTP/2 client in the oracle).
+- PDP calls go through one mutex-guarded client on a blocking pool capped at 8; add a client pool for throughput.
+- Under the 20k flood, 0.15–2% of requests get a 502 after admission because the oracle's Python mock upstream
+  drops connections at 50-way concurrency. Not a reject, verdict unaffected; consider a larger backlog in the mock.
+- CANON-6 exception (c73b614): an agent listener refuses an Origin-only failure with 403. Hook
+  `App::origin_refusal_status`, default 421.
