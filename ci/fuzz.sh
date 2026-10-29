@@ -18,11 +18,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress"
+TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress mcp_gate"
 # Listed in the unit but not fuzzable yet (documented in fuzz/Cargo.toml).
-SKIPPED="mcp_gate (aegis-agent is a Phase-0 stub with no entry point)"
+SKIPPED="none"
 # Targets slower than ~10k exec/s on the desktop are split over W processes sharing one corpus (sum of execs >= N).
-SPLIT_DEFAULT="config=4 token=2 audit=2"
+# mcp_gate runs ~1.3k exec/s per process (up to 8 requests x 2-3 full gate checks, each a JWT verify + JSON parse).
+SPLIT_DEFAULT="config=4 token=2 audit=2 mcp_gate=8"
 
 lock_row() { grep "^#fuzz:$1	" "$ROOT/ci/tools.lock" | head -1 | cut -c7-; }
 field() { printf '%s\n' "$1" | cut -f"$2"; }

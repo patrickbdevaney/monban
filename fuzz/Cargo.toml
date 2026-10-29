@@ -2,9 +2,7 @@
 # has its own Cargo.lock, and nothing in the shipped graph depends on it (`cargo tree -p aegis-bin` is unchanged).
 # Built only with the pinned nightly + cargo-fuzz in the LAN box's isolated toolchain (ci/tools.lock, ci/fuzz.sh).
 #
-# Targets exercise public APIs only. Skipped: "MCP listener gate request classification (aegis-agent)": aegis-agent
-# is still the Phase-0 stub (crates/aegis-agent/src/lib.rs has no items at all), so there is no untrusted-input
-# entry point to fuzz yet. Add `fuzz_targets/mcp_gate.rs` when P3-agent-001 lands.
+# Targets exercise public APIs only. Skipped: none (all 9 unit targets; mcp_gate since aegis-agent landed in P3-agent-001).
 [package]
 name = "aegis-fuzz"
 version = "0.0.0"
@@ -30,6 +28,7 @@ aegis-authz = { path = "../crates/aegis-authz" }
 aegis-config = { path = "../crates/aegis-config" }
 aegis-audit = { path = "../crates/aegis-audit" }
 aegis-egress = { path = "../crates/aegis-egress" }
+aegis-agent = { path = "../crates/aegis-agent" }
 tokio = { version = "1.53.3", default-features = false, features = ["io-util"] }
 
 [lints.rust]
@@ -93,6 +92,13 @@ bench = false
 [[bin]]
 name = "egress"
 path = "fuzz_targets/egress.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "mcp_gate"
+path = "fuzz_targets/mcp_gate.rs"
 test = false
 doc = false
 bench = false

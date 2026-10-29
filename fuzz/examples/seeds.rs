@@ -15,6 +15,31 @@ fn put(dir: &Path, target: &str, name: &str, bytes: &[u8]) -> std::io::Result<()
     fs::write(d.join(name), bytes)
 }
 
+/// One mcp_gate request operation (byte layout of `parse_req` in fuzz_targets/mcp_gate.rs, no arbitrary fields):
+/// op, method, path, authority, origin, sec-fetch-site, cookie, content-type, token kind, subject, audience,
+/// MCP-Protocol-Version, body kind, template bytes, Mcp-Method, Mcp-Name, session (+ index), extra header.
+#[allow(clippy::too_many_arguments)]
+fn mcp_req(
+    method: u8,
+    path: u8,
+    origin: u8,
+    tok: u8,
+    sub: u8,
+    aud: u8,
+    pv: u8,
+    tmpl: &[u8],
+    mm: u8,
+    mn: u8,
+    sess: &[u8],
+) -> Vec<u8> {
+    let mut v = vec![0, method, path, 0, origin, 0, 0, 0, tok, sub, aud, pv, 0];
+    v.extend_from_slice(tmpl);
+    v.extend_from_slice(&[mm, mn]);
+    v.extend_from_slice(sess);
+    v.push(0);
+    v
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dir = std::env::args().nth(1).ok_or("usage: seeds <corpus dir>")?;
     let dir = Path::new(&dir);
@@ -117,5 +142,51 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     e.extend_from_slice(b"http://[2606:4700::1111]:8080/ //example.com/z");
     e.extend_from_slice(b"\x02HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n2\r\nok\r\n0\r\n\r\n");
     put(dir, "egress", "seed1", &e)?;
+
+    // mcp_gate: [script len, decisions...] then operations (0 = request, 5 = complete the oldest forward with
+    // [count sel, per reply: tool count, tool names, kind], 6 = clock step). Template bytes: method (0 tools/call,
+    // 1 tools/list, 2 initialize), id kind (0 + value byte = Int, 3 = none), name (0 echo, 5 none), _meta (0 none,
+    // 2 2026-07-28), protocolVersion (0 none, 1 2025-11-25), shape, params form. pv: 1 = 2026-07-28, 3 = 2025-11-25.
+    // At most 3 forwards per seed (the self-test plant needs 4).
+    let call_modern: &[u8] = &[0, 0, 7, 0, 2, 0, 0, 0];
+    let call_legacy: &[u8] = &[0, 0, 3, 0, 0, 0, 0, 0];
+    let init: &[u8] = &[2, 0, 1, 5, 0, 1, 0, 0];
+    let ok1: &[u8] = &[5, 0, 0, 0];
+    // seed0: a 2026-07-28 tools/call, forwarded and completed.
+    let mut m = vec![0u8];
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 1, call_modern, 1, 1, &[0]));
+    m.extend_from_slice(ok1);
+    put(dir, "mcp_gate", "modern_call", &m)?;
+    // seed1: 2025-11-25 initialize -> session -> tools/call in that session.
+    let mut m = vec![0u8];
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 0, init, 0, 0, &[0]));
+    m.extend_from_slice(ok1);
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 3, call_legacy, 0, 0, &[2, 0]));
+    m.extend_from_slice(ok1);
+    put(dir, "mcp_gate", "legacy_session", &m)?;
+    // seed2: multiplexed tools/list from an allowed Origin, merged from two upstreams.
+    let mut m = vec![0u8];
+    m.extend(mcp_req(0, 2, 2, 0, 0, 0, 1, &[1, 0, 4, 5, 2, 0, 0, 0], 1, 0, &[0]));
+    m.extend_from_slice(&[5, 0, 1, 0, 0, 1, 1, 0]);
+    put(dir, "mcp_gate", "multi_list", &m)?;
+    // seed3: script Allow, Deny, Error: one forward, then a PDP Deny; metadata GET, OPTIONS, a wrong-audience
+    // token and an evil Origin.
+    let mut m = vec![3u8, 0, 1, 2];
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 1, call_modern, 1, 1, &[0]));
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 1, call_modern, 1, 1, &[0]));
+    m.extend(mcp_req(7, 3, 0, 0, 0, 0, 0, call_modern, 0, 0, &[0]));
+    m.extend(mcp_req(5, 0, 2, 0, 0, 0, 0, call_modern, 0, 0, &[0]));
+    m.extend(mcp_req(0, 0, 0, 0, 0, 2, 1, call_modern, 1, 1, &[0]));
+    m.extend(mcp_req(0, 0, 4, 0, 0, 0, 1, call_modern, 1, 1, &[0]));
+    put(dir, "mcp_gate", "rejects", &m)?;
+    // seed4: alice's session used by bob, deleted by alice, then reused; a clock step in between.
+    let mut m = vec![0u8];
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 0, init, 0, 0, &[0]));
+    m.extend_from_slice(ok1);
+    m.extend(mcp_req(0, 0, 0, 0, 1, 0, 3, call_legacy, 0, 0, &[2, 0]));
+    m.extend_from_slice(&[6, 2]);
+    m.extend(mcp_req(6, 0, 0, 0, 0, 0, 3, call_legacy, 0, 0, &[2, 0]));
+    m.extend(mcp_req(0, 0, 0, 0, 0, 0, 3, call_legacy, 0, 0, &[2, 0]));
+    put(dir, "mcp_gate", "session_misuse", &m)?;
     Ok(())
 }
