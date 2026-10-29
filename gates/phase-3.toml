@@ -1,0 +1,209 @@
+# Placement: gates marked remote run on the LAN build box (ci/remote.sh); Docker- and Lean-dependent oracles run
+# locally (oracles/*/needs).
+# Phase 3 go/no-go: agent gateway "G" (IMPLEMENTATION_PLAN §3 Phase 3). Run: python3 -I ci/run-gates.py --phase 3
+# Carries every Phase-2 gate (reverse proxy must not regress) and adds the Phase-3 criteria:
+#   43-case MCP corpus + 33 advisory cases, 0 handler invocations on rejects ... gate mcp-gateway (real aegis binary)
+#   Lean Combine/Token gate ......................................................... gate proof (spec/AegisIR/{Combine,Token}.lean)
+#   DRT Lean vs Rust verifier, 1e6 cases, 0 divergence .............................. oracles-local: token-drt (needs lean)
+#   host-mapping DST (timeout/crash/panic/garbage -> Error -> Deny) .................. oracles-remote: pdp-dst
+#   SSRF corpus, 0 connects to non-allowlisted addresses ............................. oracles-remote: ssrf-corpus
+#   fuzz F1-F9, 1e8 executions per target ............................................ gate fuzz (unit P3-fuzz-001)
+#   dudect on MAC compare, no leak ................................................... oracles-remote: ct-dudect (unit P3-dudect-001)
+#   Cedar `#print axioms` recorded ................................................... spikes/cedar-axioms (axiom sets grade A;
+#                                                                                       theorems cited at B until a paranoid re-check)
+#   Shipped graph: aegis-bin links no Cedar crate ..................................... gate no-cedar-in-bin
+phase = 3
+go_no_go = "all gates pass && all self-tests pass"
+
+[[gate]]
+name = "workflow-lint"
+cmd = "zizmor --pedantic --offline .github/"
+selftest = "! zizmor --pedantic --offline ci/fixtures/bad-workflow.yml"
+
+[[gate]]
+name = "hygiene"
+cmd = "cargo fmt --all --check && ci/heavy.sh cargo clippy --workspace --all-targets --locked -q -- -D warnings"
+remote = true
+
+[[gate]]
+name = "tests"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
+remote = true
+
+[[gate]]
+name = "layering"
+cmd = "cargo xtask layering"
+selftest = "cargo xtask layering --self-test"
+
+[[gate]]
+name = "interfaces-frozen"
+cmd = "python3 -I ci/interfaces.py check"
+selftest = "python3 -I ci/interfaces.py self-test"
+
+[[gate]]
+name = "proof"
+cmd = "ci/heavy.sh ci/gate.sh"
+selftest = "ci/gate-selftest.sh"
+heavy = true
+
+[[gate]]
+name = "deny"
+cmd = "cargo deny check"
+selftest = "ci/deny-selftest.sh"
+
+[[gate]]
+name = "audit"
+cmd = "cargo audit --deny warnings"
+
+[[gate]]
+name = "vet"
+cmd = "cargo vet --locked && python3 -I ci/vet-baseline.py"
+selftest = "python3 -I ci/vet-baseline.py --self-test"
+
+[[gate]]
+name = "repo-advisories"
+cmd = "cargo xtask repo-advisories"
+selftest = "cargo xtask repo-advisories --self-test"
+
+[[gate]]
+name = "lock-age"
+cmd = "cargo xtask lock-age --min-days 7"
+selftest = "cargo xtask lock-age --self-test"
+
+[[gate]]
+name = "lock-targets"
+cmd = "cargo xtask lock-targets"
+selftest = "cargo xtask lock-targets --self-test"
+
+[[gate]]
+name = "repro"
+cmd = "cargo fetch --locked -q && ci/repro.sh"
+selftest = "ci/repro.sh --self-test"
+heavy = true
+remote = true
+
+[[gate]]
+name = "fail-closed-boot"
+cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+remote = true
+
+[[gate]]
+name = "oracles-remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp -p ct-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+heavy = true
+remote = true
+
+[[gate]]
+name = "oracles-local"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && ci/oracles.sh run --where local"
+selftest = "ci/oracles.sh self-test --where local"
+heavy = true
+
+[[gate]]
+name = "build-subjects"
+cmd = "ci/heavy.sh cargo build --release --locked -p admission-subject -p canon-subject -p tls-subject -p audit-subject -p upgrade-subject -p acme-subject"
+remote = true
+
+[[gate]]
+name = "admission-props"
+cmd = "ci/heavy.sh oracles/admission-props/run --subject target/release/admission-subject"
+selftest = "ci/heavy.sh oracles/admission-props/run --self-test"
+remote = true
+
+[[gate]]
+name = "canon-diff"
+cmd = "oracles/canon-diff/run --subject target/release/canon-subject"
+selftest = "oracles/canon-diff/run --self-test"
+remote = true
+
+[[gate]]
+name = "tls-verdicts"
+cmd = "ci/heavy.sh oracles/hrr-verdicts/run --file tls/verdicts.toml --subject 'target/release/tls-subject subject'"
+selftest = "ci/heavy.sh oracles/hrr-verdicts/run --self-test"
+remote = true
+
+[[gate]]
+name = "audit-tlog"
+cmd = "oracles/tlog-verify/run --subject target/release/audit-subject"
+selftest = "oracles/tlog-verify/run --self-test"
+
+[[gate]]
+name = "upgrade"
+cmd = "cargo build --release --locked -q -p upgrade-subject && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100"
+selftest = "oracles/upgrade-harness/run --self-test"
+heavy = true
+remote = true   # timing-sensitive: fails under unrelated CPU saturation on the laptop (load 76–135 measured)
+
+[[gate]]
+name = "acme-cert"
+cmd = "oracles/acme-pebble/run --subject target/release/acme-subject"
+selftest = "oracles/acme-pebble/run --self-test"
+heavy = true
+
+[[gate]]
+name = "metrics"
+cmd = "cargo xtask metrics-check"
+selftest = "cargo xtask metrics-check --self-test"
+remote = true
+
+[[gate]]
+name = "budget"
+cmd = "cargo xtask budget"
+selftest = "cargo xtask budget --self-test"
+remote = true
+
+[[gate]]
+name = "config-totality"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+remote = true
+
+[[gate]]
+name = "h2-conformance"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p transport-subject && oracles/h2-conformance/run --subject target/release/transport-subject"
+selftest = "oracles/h2-conformance/run --self-test"
+remote = true
+
+[[gate]]
+name = "systemd-hardening"
+cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+
+[[gate]]
+name = "kani-tbi"
+cmd = "ci/kani.sh"
+selftest = "ci/kani.sh --self-test"
+heavy = true
+
+[[gate]]
+name = "transport-limits"
+cmd = "oracles/transport-limits/run --subject target/release/transport-subject"
+selftest = "oracles/transport-limits/run --self-test target/release/transport-subject"
+heavy = true
+
+# OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
+[[gate]]
+name = "reverse-proxy-e2e"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+selftest = "oracles/proxy-e2e/run --self-test"
+remote = true
+
+
+[[gate]]
+name = "mcp-gateway"
+# Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
+# full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && ci/mcp-gate.sh run"
+selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
+remote = true
+
+[[gate]]
+name = "no-cedar-in-bin"
+cmd = "! cargo tree --locked -e normal,build -p aegis-bin --prefix none | grep -q '^cedar-policy'"
+selftest = "cargo tree --locked -e normal,build -p aegis-pdp --prefix none | grep -q '^cedar-policy'"
+
+[[gate]]
+name = "fuzz"
+cmd = "ci/fuzz.sh run --execs 100000000"
+selftest = "ci/fuzz.sh self-test"
+heavy = true
+remote = true
