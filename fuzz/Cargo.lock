@@ -3,6 +3,17 @@
 version = 4
 
 [[package]]
+name = "aegis-agent"
+version = "0.0.0"
+dependencies = [
+ "aegis-authz",
+ "aegis-canon",
+ "aegis-token",
+ "aegis-types",
+ "aws-lc-rs",
+]
+
+[[package]]
 name = "aegis-audit"
 version = "0.0.0"
 dependencies = [
@@ -49,6 +60,7 @@ dependencies = [
 name = "aegis-fuzz"
 version = "0.0.0"
 dependencies = [
+ "aegis-agent",
  "aegis-audit",
  "aegis-authz",
  "aegis-canon",
