@@ -552,6 +552,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ct-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-token",
+ "aws-lc-rs",
+]
+
+[[package]]
 name = "darling"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
