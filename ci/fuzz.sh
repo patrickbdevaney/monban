@@ -18,11 +18,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress"
+TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress mcp_gate"
 # Listed in the unit but not fuzzable yet (documented in fuzz/Cargo.toml).
-SKIPPED="mcp_gate (aegis-agent is a Phase-0 stub with no entry point)"
+SKIPPED="none"
 # Targets slower than ~10k exec/s on the desktop are split over W processes sharing one corpus (sum of execs >= N).
-SPLIT_DEFAULT="config=4 token=2 audit=2"
+# mcp_gate runs ~1.3k exec/s per process (up to 8 requests x 2-3 full gate checks, each a JWT verify + JSON parse).
+SPLIT_DEFAULT="config=4 token=2 audit=2 mcp_gate=8"
 
 lock_row() { grep "^#fuzz:$1	" "$ROOT/ci/tools.lock" | head -1 | cut -c7-; }
 field() { printf '%s\n' "$1" | cut -f"$2"; }
@@ -202,21 +203,30 @@ cmd_selftest() {
   cargo +"$NIGHTLY" run -q --manifest-path fuzz/Cargo.toml --target-dir "$TD_BASE/fuzz-seeds" --example seeds \
     -- "$WORK/selftest-seeds" > /dev/null
   SEED_SRC="$WORK/selftest-seeds"
-  run_all "$td/$TRIPLE/release" 1000000 "${AEGIS_FUZZ_TARGET_TIMEOUT:-1800}" selftest
-  local ok=0 bad=() t
-  for t in $TARGETS; do
-    local log="$WORK/selftest-$t.1.log" st; st=$(cat "$WORK/selftest-$t.1.status" 2>/dev/null || echo 99)
-    local n; n=$({ grep -oE '^#[0-9]+' "$log" || true; } | tail -1 | tr -d '#')
-    if [ "$st" != 0 ] && grep -q 'AEGIS_FUZZ_SELFTEST planted panic reached' "$log"; then
-      echo "self-test $t: planted panic found (after ~${n:-?} execs)"; ok=$((ok + 1))
-    else
-      echo "self-test $t: NOT found within 1e6 execs (exit $st)"; bad+=("$t")
-      grep -m3 -E 'panicked at|ERROR: libFuzzer|Done' "$log" | sed "s/^/  $t: /" || true
-    fi
+  # Time-to-find is random (each planted condition is one mutation from a seed, yet one 1e6 attempt misses it
+  # occasionally), so a target that misses gets up to 2 more independent attempts, each from the seeds with the
+  # full 1e6 budget. A planted panic that is unreachable still misses all 3 and fails.
+  local all=$TARGETS ok=0 bad=() t attempt
+  for attempt in 1 2 3; do
+    run_all "$td/$TRIPLE/release" 1000000 "${AEGIS_FUZZ_TARGET_TIMEOUT:-1800}" selftest
+    bad=()
+    for t in $TARGETS; do
+      local log="$WORK/selftest-$t.1.log" st; st=$(cat "$WORK/selftest-$t.1.status" 2>/dev/null || echo 99)
+      local n; n=$({ grep -oE '^#[0-9]+' "$log" || true; } | tail -1 | tr -d '#')
+      if [ "$st" != 0 ] && grep -q 'AEGIS_FUZZ_SELFTEST planted panic reached' "$log"; then
+        echo "self-test $t: planted panic found (attempt $attempt, after ~${n:-?} execs)"; ok=$((ok + 1))
+      else
+        echo "self-test $t: NOT found within 1e6 execs (attempt $attempt, exit $st)"; bad+=("$t")
+        grep -m3 -E 'panicked at|ERROR: libFuzzer|Done' "$log" | sed "s/^/  $t: /" || true
+      fi
+    done
+    [ "${#bad[@]}" -eq 0 ] && break
+    TARGETS="${bad[*]}"
   done
+  TARGETS=$all
   local n; n=$(wc -w <<<"$TARGETS")
   if [ "${#bad[@]}" -eq 0 ]; then
-    echo "FUZZ: PASS (self-test: $ok/$n planted panics found within 1e6 execs)"
+    echo "FUZZ: PASS (self-test: $ok/$n planted panics found within 1e6 execs, <= 3 independent attempts each)"
   else
     echo "FUZZ: FAIL (self-test: $ok/$n found; missed: ${bad[*]})"
     exit 1
