@@ -57,7 +57,18 @@ measurement floor, second-order test), re-implemented here.
 
 ## Results in-repo
 
-See below (appended per run).
+2026-10-29, LAN desktop (Ryzen 9 5900X, shared) via `ci/remote.sh`, subject pinned to CPU 23, release build:
+
+- Standalone, 1e7 measurements per test: all 10 tests max |t| ≤ 2.47 (cmp ≤ 1.83, mac ≤ 2.06, verify ≤ 2.47).
+  `CT-DUDECT: PASS (max |t|=2.47 on verify:fixed-vs-random < 4.5; 10 tests x 10000000 meas)`. Median call time:
+  cmp 30 ns (mostly timer overhead), mac 3336 ns, verify 3609 ns.
+- Self-test, 2e6 per test: early-exit mutant |t| = 6660 / 6494 (cmp), 1700 (mac), 813 (verify); identical-class
+  control max |t| = 3.02. `CT-DUDECT SELF-TEST: PASS (early-exit mutant min |t|=812.7 > 10 on 4 tests; ...)`.
+- Gate `oracles-remote` (phase 3): `CT-DUDECT: PASS (max |t|=2.81 on mac:equal-vs-first < 4.5; 10 tests x 10000000
+  meas)` and `CT-DUDECT SELF-TEST: PASS (early-exit mutant min |t|=645.2 > 10 on 4 tests; identical-class control
+  max |t|=1.72 < 4.5; 2000000 meas/test)`.
+
+aegis-token needed no change: `mac_valid` already compares with `aws_lc_rs::constant_time::verify_slices_are_equal`.
 
 ## Known limits
 
