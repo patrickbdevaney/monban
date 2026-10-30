@@ -39,6 +39,6 @@
  "notes": "Blocking std-socket v3 client (TCP + UDS): startup, SCRAM-SHA-256 (aws-lc-rs), extended protocol with text params, exact protocol-state tracking (txn status from ReadyForQuery, outstanding replies, open portals/statements) that P4-pg-003's checkin predicate needs; statement_timeout set per op budget; numeric server_version_num compare.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: owned PG v3 client + SCRAM (aws-lc-rs), ProtoState for NC3; version gate offline 52 cases + live 19rc1 refuse / 17.11 accept; server_version first token (as oracle), ASCII-only SCRAM passwords, sslmode=disable only"
 }

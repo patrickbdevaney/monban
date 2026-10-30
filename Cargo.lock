@@ -1340,6 +1340,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pg-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-pg",
+]
+
+[[package]]
 name = "phf_shared"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
