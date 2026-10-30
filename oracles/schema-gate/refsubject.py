@@ -352,8 +352,11 @@ def tenant_scoped(expr, tname):
     """Heuristic (README known limits): the expression compares the tenant column with current_setting(...) and
     has no OR / constant-true escape."""
     e = expr.lower()
+    # current_setting(name, true) is the missing_ok form aegis_adapter_pg::rls_policy emits; that `true` is an argument,
+    # not a constant-true escape, so it is removed before the OR/true scan.
+    scan = re.sub(r"current_setting\(\s*'[^']*'(::text)?\s*,\s*true\s*\)", "current_setting(_)", e)
     return (re.search(r'(^|[^a-z0-9_])"?' + re.escape(tname.lower()) + r'"?([^a-z0-9_]|$)', e) is not None
-            and "current_setting(" in e and re.search(r"\b(or|true)\b", e) is None)
+            and "current_setting(" in e and re.search(r"\b(or|true)\b", scan) is None)
 
 
 # ---------------------------------------------------------------------------------------------- serve loop

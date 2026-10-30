@@ -212,3 +212,12 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
   re-freeze is needed), CLI flag `--token-keyring <file>` (Tier-L KeyRing JSON), header `aegis-deadline-ms` (can only
   lower the deadline), and T_drain = 10 s for NC8. Mutants live behind the `e2e-mutants` cargo feature
   (AEGIS_E2E_MUTANT); the golden build never enables it, which P4-bin-001 asserts.
+- **D17: native data plane is an optional build feature.** ARCHITECTURE's "≤6 MB core" covers the front-proxy core
+  (steer §0b: lean core, optional modules). aegis-bin gains a cargo feature `native` (data plane + adapters + bundled
+  SQLite). The default build is the core and keeps the unchanged budget (≤6 MB, ≤60 crates). The `native` build gets
+  its own explicit ceiling of 8.0 MB stripped, recorded as DEVIATIONS X-12 (bundled SQLite is about 2.6 MB of C). The
+  budget gate measures both builds, and the native-e2e gate builds with `--features native`.
+- **D18 (deferred to backlog): Redis native mode.** The per-tenant ACL holds only +get/+set/+del, so the D14
+  MULTI/EXEC commit can't be sent. Until a follow-up adds `+multi +exec +discard` to `kv_acl` (non-key commands; the
+  queued commands are still key-checked) and re-runs the kv_acl hostile family, native mode refuses KV backends at boot
+  (exit 78, fail closed). The Redis adapter's lowering gates are unaffected.
