@@ -25,6 +25,8 @@ MUTATIONS = {
     'reuse-after-cancelrequest': 'recovery sends a CancelRequest to speed up the drain and then checks the connection back in; the cancel is not statement-bound and lands on the next request',
     'recovery-no-discard-all':   'recovery drains and rolls back but skips DISCARD ALL (session state and server objects survive)',
     'quarantine-not-charged':    'quarantine time and the discard are not charged to the cancelling principal (NC4)',
+    # NC3 widened (BACKLOG 2026-10-25): every resource a cancelled request touched is quarantined
+    'cancelled-session-no-discard': 'pre-widening NC3: a cancelled connection that passes the checkin predicate gets the ordinary checkin, so its session state (SET) reaches the next principal without DISCARD ALL',
 }
 DISCARD_COST = 3          # NC4 charge for a discarded connection (backend fork + auth of its replacement, q3-008)
 
@@ -110,6 +112,7 @@ class UpConn:
 # ============================================================================ reference model: host + handler
 class Cancelled(Exception): pass
 class QueryError(Exception): pass
+class HandlerAbort(Exception): pass      # the handler itself returns an error (NC1 "return/error"), no cancellation
 
 class Host:
     def __init__(s, world, mut, emit):
@@ -138,13 +141,15 @@ class Host:
         c.cancel_request(); s.emit(ev='cancel_request', req=r['id'], conn=c.id)
         c.close(); s.emit(ev='discard', req=r['id'], conn=c.id)
 
-    def release_cancelled(s, r, c):
-        """NC3 (q3-008): a connection left mid-protocol by a cancelled request is quarantined, then recovered within
-        T_recover = op budget, else discarded. Recovery = drain every outstanding reply to ReadyForQuery WITHOUT a
-        CancelRequest, ROLLBACK if the server-reported txn status is not I, DISCARD ALL, cache-generation bump.
-        Quarantine time and a discard are charged to the cancelling principal (NC4)."""
-        if s.reusable(c):                                 # not mid-protocol: ordinary checkin (predicate unchanged)
-            s.checkin(r, c); return
+    def release_cancelled(s, r, c, cancelled=True):
+        """NC3 (q3-008, widened): a connection that a cancelled request touched, or that was left mid-protocol, is
+        quarantined, then recovered within T_recover = op budget, else discarded. Recovery = drain every outstanding
+        reply to ReadyForQuery WITHOUT a CancelRequest, ROLLBACK if the server-reported txn status is not I, DISCARD
+        ALL, cache-generation bump. Quarantine time and a discard are charged to the cancelling principal (NC4).
+        `cancelled=False` is a handler that returned an error: only the "left mid-protocol" disjunct applies there, and
+        the checkin predicate decides it."""
+        if s.reusable(c) and (not cancelled or 'cancelled-session-no-discard' in s.mut):
+            s.checkin(r, c); return                       # not touched by a cancel, not mid-protocol: ordinary checkin
         s.emit(ev='quarantine', req=r['id'], conn=c.id)
         budget, ticks, ok = r.get('op_budget', 4), 0, True
         if 'reuse-after-cancelrequest' in s.mut:
@@ -197,6 +202,12 @@ class Host:
                     raise Cancelled()
                 n += 1; site = gen.send(None)
         except StopIteration:
+            return
+        except HandlerAbort as e:
+            # the handler returned an error before CP (NC1): Failed / 500; the connection is quarantined iff it was
+            # left mid-protocol (the checkin predicate decides; NC3 second disjunct)
+            if st['conn'] is not None: s.release_cancelled(r, st['conn'], cancelled=False)
+            s.emit(ev='outcome', req=r['id'], outcome='Failed', error=str(e)); s.emit(ev='response', req=r['id'], status=500)
             return
         except QueryError as e:
             # a server error fails the request: drain, roll back, ordinary checkin, Failed / 500
@@ -265,10 +276,15 @@ def handler(h, r, st):
         # outlives the txn, so a cancel in the following non-DB await leaves txn I + no replies + an open object
         yield from q(h, r, st, c, ('PARSE', 'cached'))
         yield 'stmtcache.insert'
+    if r.get('abort') == 'before_begin':
+        raise HandlerAbort('handler error after the statement-cache insert (txn I, server object open)')
     if r.get('session_set'):
         # session-level state (e.g. a GUC set for this principal) outside the txn; reset after commit. Only
         # DISCARD ALL removes it if the request is cancelled in between.
         yield from q(h, r, st, c, ('SET', 'app.principal', r['principal']))
+        # a non-DB host call after the SET reply was read: a cancel here leaves a protocol-clean connection (txn I,
+        # nothing outstanding) that still carries session state -- the NC3-widening window (BACKLOG 2026-10-25)
+        yield 'session.ready'
     yield from q(h, r, st, c, ('BEGIN',))
     idem = f"idem:{r['principal']}:{r['idem_key']}"
     yield from q(h, r, st, c, ('EXEC', idem, 'in_flight'))
@@ -301,6 +317,8 @@ def handler(h, r, st):
             st['ups'].append(u); u.unread = True
             yield 'upstream.response'
             u.unread = False; st['ups'].remove(u); h.up[key].append(u); h.emit(ev='upstream_release', req=r['id'], conn=u.id)
+    if r.get('abort') == 'in_txn':
+        raise HandlerAbort('handler error inside the txn (txn T, nothing outstanding)')
     yield from q(h, r, st, c, ('EXEC', idem, 'done:200'))        # outcome record inside the txn (NC2)
     # ---- commit point: COMMIT handed to the wire
     c.send(('COMMIT',)); h.emit(ev='wire', req=r['id'], conn=c.id, msg='COMMIT'); st['cp'] = True; h.emit(ev='cp', req=r['id'])
@@ -356,6 +374,13 @@ def scenario(seed):
         reqs.append(req(f'F{j}', B, 'followup', [['read', [f'u:{B}:x', f'u:{B}:y']], ['show'], ['write', f'u:{B}:y', f'{B}-F{j}']], ['authn.verify']))
     reqs.append(req('F4', A, 'followup-same', [['upstream'], ['read', [f'u:{A}:z']], ['write', f'u:{A}:y', f'{A}-F4']], ['authn.verify']))
     bumps = [2] if (seed % 2 == 0 or rng.random() < .5) else []   # auth/config change right after R0
+    # NC3 second disjunct ("left mid-protocol", no cancel): two alice requests whose handler returns an error, then a
+    # bob follow-up. E1 errors with txn I + an open session-level statement, E2 inside its txn. The checkin predicate
+    # decides quarantine here, which keeps the predicate mutations observable now that every cancelled connection is
+    # quarantined. Appended after all earlier draws, so W0..F4 are unchanged per seed.
+    e1 = req('E1', A, 'error', [['write', f'u:{A}:x', f'{A}-E1']], ['authn.verify']); e1.update(pre_prepare=True, session_set=False, abort='before_begin')
+    e2 = req('E2', A, 'error', [['write', f'u:{A}:z', f'{A}-E2']], ['authn.verify']); e2.update(pre_prepare=False, session_set=False, abort='in_txn')
+    reqs += [e1, e2, req('F5', B, 'followup', [['read', [f'u:{B}:x', f'u:{B}:y']], ['show'], ['write', f'u:{B}:x', f'{B}-F5']], ['authn.verify'])]
     return {'seed': seed, 'world': world, 'requests': reqs, 'bumps_before': bumps, 'target': 1}
 
 # ============================================================================ checkers (events only)
@@ -442,7 +467,9 @@ def check(job, evs):
             if d: V.append(('NC1', f"{rid}: terminated before CP ({mode or 'no cancel'}) but durable rows changed: {sorted(d)[:4]}"))
             if outcome and outcome[-1] != 'Failed': V.append(('NC1', f"{rid}: no CP but outcome {outcome[-1]}"))
             if any(200 <= s < 300 for s in resp): V.append(('NC1', f"{rid}: no CP but status {resp}"))
-            if not cancel and not deny: V.append(('NC1', f"{rid}: uncancelled request never reached CP"))
+            if not cancel and not deny and not r.get('abort'): V.append(('NC1', f"{rid}: uncancelled request never reached CP"))
+            if r.get('abort') and not crashed and (outcome != ['Failed'] or resp != [500]):
+                V.append(('NC1', f"{rid}: handler error before CP but outcome {outcome} status {resp}"))
         else:
             # ---- NC2: from CP on, latched: commit completes, outcome Committed, status only 200/202
             if crashed:
@@ -455,6 +482,14 @@ def check(job, evs):
                 if mode in ('timeout', 'stage_timeout') and cancel['_i'] > cp['_i'] and resp != [202]:
                     V.append(('NC2', f"{rid}: timer after CP must yield 202, got {resp}"))
                 if not cancel and resp != [200]: V.append(('NC2', f"{rid}: uncancelled request status {resp}"))
+        # ---- NC3 widened: every DB connection a cancelled request touched (cancel before CP) is quarantined before it
+        # can be checked in, even if it passes the checkin predicate (session state is invisible to the predicate)
+        if cancel and cp is None and not crashed:
+            touched = {e['conn'] for e in E if e['ev'] == 'conn_acquire' and e['_i'] < cancel['_i']}
+            quarantined = {e['conn'] for e in E if e['ev'] == 'quarantine' and e['_i'] > cancel['_i']}
+            for e in E:
+                if e['ev'] == 'checkin' and e['_i'] > cancel['_i'] and e['conn'] in touched and e['conn'] not in quarantined:
+                    V.append(('NC3', f"{rid}: {e['conn']} touched by a request cancelled at {cancel['site']} checked in without quarantine (no DISCARD ALL)"))
         # ---- NC5: a cancelled / timed-out authz stage => Deny and nothing past authz
         work = [e for e in E if e['ev'] in ('conn_acquire', 'wire', 'upstream_acquire', 'cp')]
         if cancel and cancel['site'].startswith('authz.'):
@@ -500,6 +535,10 @@ class ExternalSubject:
         s.p.stdin.write(json.dumps({'op': 'hello'}) + '\n'); s.p.stdin.flush()
         s.hello = json.loads(s.p.stdout.readline())
         if s.hello.get('ev') != 'hello': raise SystemExit(f'CANCEL-SWEEP: FAIL (subject did not answer hello: {s.hello})')
+        # X-11 (D6): "async" = cancellation points are Pendings of the handler future; "sync" = handlers run on a
+        # bounded blocking pool and cancellation points are host-call boundaries (README "Synchronous host")
+        if s.hello.get('host', 'async') not in ('async', 'sync'):
+            raise SystemExit(f"CANCEL-SWEEP: FAIL (subject hello has unknown host kind {s.hello.get('host')!r}; expected async|sync)")
     def run(s, job):
         s.p.stdin.write(json.dumps(dict(job, op='run')) + '\n'); s.p.stdin.flush()
         evs = []
@@ -513,7 +552,7 @@ class ExternalSubject:
         except Exception: s.p.kill()
 
 class RefSubject:
-    def __init__(s, mut): s.mut = mut; s.hello = {'impl': 'reference-model', 'mutations': list(mut)}
+    def __init__(s, mut): s.mut = mut; s.hello = {'impl': 'reference-model', 'host': 'async', 'mutations': list(mut)}
     def run(s, job): return reference_run(job, s.mut)
     def close(s): pass
 
@@ -521,7 +560,7 @@ def as_subject(mut):
     """Serve the reference model over the subject protocol (stdin/stdout JSON lines)."""
     for ln in sys.stdin:
         m = json.loads(ln)
-        if m['op'] == 'hello': print(json.dumps({'ev': 'hello', 'impl': 'aegis-cancel-sweep reference model', 'modes': MODES, 'mutations': mut}), flush=True)
+        if m['op'] == 'hello': print(json.dumps({'ev': 'hello', 'impl': 'aegis-cancel-sweep reference model', 'host': 'async', 'modes': MODES, 'mutations': mut}), flush=True)
         elif m['op'] == 'run':
             for e in reference_run(m, mut): print(json.dumps(e), flush=True)
         elif m['op'] == 'quit': break
@@ -574,7 +613,7 @@ def main():
     subj = ExternalSubject(a.subject) if a.subject else RefSubject(a.mutate)
     res = sweep(subj, range(1, a.seeds + 1), modes); subj.close()
     s = res['stats']
-    print(f"cancel-sweep: subject={subj.hello.get('impl')} seeds={s['seeds']} modes={len(modes)} runs={s['runs']} "
+    print(f"cancel-sweep: subject={subj.hello.get('impl')} host={subj.hello.get('host', 'async')} seeds={s['seeds']} modes={len(modes)} runs={s['runs']} "
           f"await_points={s['await_points']} sites={len(res['sites'])} uncovered_sites={res['uncovered'] or 0} {time.time() - t0:.1f}s")
     print(f"  NC3 quarantine: {s['quarantined']} quarantined, {s['recovered']} recovered within the op budget, "
           f"{s['recovery_failed']} over budget or failed => discarded")
@@ -592,7 +631,7 @@ def self_test(a, modes):
             ('checkin-ignores-txn', ('O2', 'NC1', 'NC3'), 100), ('checkin-ignores-objects', ('NC3',), 100),
             ('no-cp-latch', ('NC2',), 100), ('authz-fail-open', ('NC5',), 100), ('debit-after-work', ('NC4',), 100),
             ('reuse-after-cancelrequest', ('O2', 'NC3'), 100), ('recovery-no-discard-all', ('O2', 'NC3'), 100),
-            ('quarantine-not-charged', ('NC4',), 100)]
+            ('quarantine-not-charged', ('NC4',), 100), ('cancelled-session-no-discard', ('NC3', 'O2'), 100)]
     print(f"cancel-sweep self-test (reference model{', and --subject' if a.subject else ''}; modes={','.join(modes)})")
     missed = []
     for mut, clauses, budget in plan:
@@ -609,7 +648,7 @@ def self_test(a, modes):
             print(f"  [MISSED] {mut}: none of {clauses} red within {budget} seeds (other: {sorted(res['first'])})"); missed.append(mut)
     if missed:
         print(f"CANCEL-SWEEP SELF-TEST: FAIL (missed: {', '.join(missed)})"); return 1
-    print(f"CANCEL-SWEEP SELF-TEST: PASS ({len(plan)}/{len(plan)} mutations caught within 100 seeds each, incl. the plan's always-reusable, pool-key-no-epoch and q3-008's reuse-after-cancelrequest)")
+    print(f"CANCEL-SWEEP SELF-TEST: PASS ({len(plan)}/{len(plan)} mutations caught within 100 seeds each, incl. the plan's always-reusable, pool-key-no-epoch, q3-008's reuse-after-cancelrequest and the NC3-widening cancelled-session-no-discard)")
     return 0
 
 if __name__ == '__main__':

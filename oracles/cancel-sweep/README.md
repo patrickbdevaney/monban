@@ -3,7 +3,9 @@
 Gates `spec/SPEC_INVARIANTS.md` §B **INV-NOMUT-C**:
 - **NC1**: termination before the commit point ⇒ Failed, and no durable user rows changed.
 - **NC2**: from the commit point on, the request is latched; a timer after CP yields 202.
-- **NC3** (rewritten by spike q3-008): a connection left mid-protocol is quarantined, then recovered within
+- **NC3** (rewritten by spike q3-008, DEVIATIONS X-4; widened per BACKLOG 2026-10-25 to the frozen text "a resource
+  in D(r) that a cancelled request touched, or that was left mid-protocol"): such a connection is quarantined, then
+  recovered within
   T_recover = op budget (drain every outstanding reply to ReadyForQuery **without** a CancelRequest, ROLLBACK if the
   txn status is not `I`, DISCARD ALL, driver cache-generation bump), else discarded; a discard sends a CancelRequest;
   a CancelRequest is never sent on a connection that is checked back in. Checkin predicate unchanged: ReadyForQuery ∧
@@ -24,7 +26,7 @@ the Rust implementation plugs in with `--subject` without the oracle changing.
 ```
 oracles/cancel-sweep/run                    # 200 seeds x every await point x 5 modes (PR-gate size)
 oracles/cancel-sweep/run --seeds 20000      # nightly size
-oracles/cancel-sweep/run --self-test        # 10 mutations, each must go red within 100 seeds
+oracles/cancel-sweep/run --self-test        # 11 mutations, each must go red within 100 seeds
 oracles/cancel-sweep/run --subject '<cmd>'  # external subject speaking the event protocol below
 oracles/cancel-sweep/run --subject 'python3 -I oracles/cancel-sweep/cancelsweep.py --as-subject'   # protocol self-check
 ```
@@ -43,6 +45,15 @@ Each seed generates a scenario with two principals and these requests:
 - An optional auth/config **epoch bump** (always on even seeds, w.p. ½ otherwise).
 - `F1`–`F3`: bob follow-ups on the **size-1 DB pool** (O2: "the next 3 requests from a different principal").
 - `F4`: alice after the bump (C5).
+- `E1`, `E2`: alice requests whose **handler returns an error** before CP (NC1 "return/error", no cancellation). `E1`
+  errors right after its session-level PARSE (txn `I`, nothing outstanding, a server object open); `E2` errors inside
+  its txn (txn `T`, nothing outstanding). This exercises NC3's second disjunct ("left mid-protocol"), where the
+  checkin predicate alone decides quarantine. `F5`: a bob follow-up after them. These three are appended after every
+  earlier random draw, so `W0`..`F4` are unchanged per seed.
+
+R0's session-level `SET` (w.p. 0.7) is followed by a non-DB host call (`session.ready`) before BEGIN. A cancel there
+leaves a connection that passes the checkin predicate (txn `I`, no outstanding replies, no objects unless
+`pre_prepare`) but carries session state: the window the NC3 widening closes.
 
 The oracle runs `R0` uncancelled and counts its await points K. Every simulated I/O returns Pending once before
 Ready ("interleave pending"), so K = number of I/O awaits. It then re-runs the whole scenario with
@@ -68,9 +79,10 @@ The **reference model** consists of:
   (authority, principal, auth ctx, **epoch**); limiter debit before work; authz tri-state; an idempotency row and its
   outcome record inside the txn; a commit-point latch.
 
-NC3 recovery in the model (`Host.release_cancelled`). When a cancelled request (before CP) still holds a DB connection:
-- If `reusable(c)` holds, the connection is not mid-protocol and gets the ordinary checkin.
-- Otherwise it is quarantined (`quarantine` event). The host then:
+NC3 recovery in the model (`Host.release_cancelled`). When a cancelled request (before CP) still holds a DB connection,
+it is **always** quarantined (widened NC3: touched by a cancelled request), whether or not `reusable(c)` holds. When a
+handler returns an error before CP (`E1`/`E2`), the connection is quarantined iff `reusable(c)` fails ("left
+mid-protocol"); otherwise it gets the ordinary checkin. On quarantine (`quarantine` event) the host:
   1. drains every outstanding reply (no CancelRequest);
   2. sends ROLLBACK if the reported txn status is not `I`;
   3. sends DISCARD ALL;
@@ -81,8 +93,9 @@ NC3 recovery in the model (`Host.release_cancelled`). When a cancelled request (
 - The cancelling principal is debited the quarantine ticks (`reason: "quarantine"`, at least 1), plus `DISCARD_COST` = 3
   on a discard (`reason: "discard"`).
 - Scenario knobs: `op_budget` 2–5, `stmt_ticks` 1–3. R0 sets a session-level GUC (`SET app.principal`) before BEGIN
-  w.p. 0.7 and RESETs it after COMMIT. The default run quarantines 10,584 connections: 8,820 are recovered and 1,764
-  are discarded.
+  w.p. 0.7 and RESETs it after COMMIT. The default run quarantines 50,816 connections: 49,052 are recovered and 1,764
+  are discarded (before the widening: 10,584 / 8,820 / 1,764; the extra quarantines are protocol-clean cancelled
+  connections, which recover in 1–2 ticks, plus `E1`/`E2`).
 - The DB fake models a CancelRequest as **not statement-bound and delivered late**: it cancels the next message the
   backend executes (SQLSTATE 57014). This is the q3-008 race (3 of 24,997 N95 cycles hit the next request), taken as the
   worst case. Other fake details: DISCARD ALL inside a txn errors (25001), any statement in a failed txn errors (25P02),
@@ -95,9 +108,10 @@ tokio-postgres #1374).
 
 | clause | check |
 |---|---|
-| NC1 | no `cp` ⇒ the durable user-row delta (`u:*`, `idem:*`) is empty, outcome Failed, no 2xx |
+| NC1 | no `cp` ⇒ the durable user-row delta (`u:*`, `idem:*`) is empty, outcome Failed, no 2xx; a handler error (`abort`) ⇒ Failed + 500 |
 | NC2 | `cp` ⇒ delta == exactly the request's writes + idempotency row `done`, outcome Committed, status ∈ {200, 202}, and 202 when a timer fired after CP. On crash: all or nothing |
 | NC3 / O2 hygiene | every `checkin` has server truth txn `I`, 0 queued replies, no open objects and no session state (no "idle in transaction", no leaked statements, no leaked GUCs) |
+| NC3 widened | every DB connection acquired by a request that was cancelled before CP is `quarantine`d before its `checkin`, even when it passes the checkin predicate (session state is invisible to the predicate) |
 | NC3 recovery (q3-008) | a quarantined connection is checked in only after a `recover` with `completed: true` and `ticks` ≤ the request's `op_budget`, a DISCARD ALL on the wire and a `gen_bump`; it is never acquired while quarantined; a connection that received a `cancel_request` is never checked in again; every `discard` is preceded by a `cancel_request` on that connection |
 | O2 functional | bob's follow-ups read exactly bob's committed rows, see an empty session (`show`), commit, and change exactly their own rows (no stale reply, no inherited txn, no inherited session state, no stray cancel) |
 | NC5 | a cancelled authz stage records `deny`, does no work after it, sends no 2xx; no work without an Allow for every stage |
@@ -118,6 +132,11 @@ tokio-postgres #1374).
 | `reuse-after-cancelrequest` (q3-008): recovery sends a CancelRequest to speed up the drain, then checks the connection in; the stray cancel hits bob's next statement | O2 / NC3 | ≤100 seeds |
 | `recovery-no-discard-all` (q3-008): drain + ROLLBACK but no DISCARD ALL; alice's session GUC and open statements reach bob | O2 / NC3 | ≤100 seeds |
 | `quarantine-not-charged` (q3-008): no `quarantine`/`discard` debit | NC4 | ≤100 seeds |
+| `cancelled-session-no-discard` (NC3 widening, BACKLOG 2026-10-25): a cancelled connection that passes the checkin predicate gets the ordinary checkin without DISCARD ALL (the pre-widening model) | NC3 / O2 | ≤100 seeds |
+
+Since the widening, the three checkin-predicate mutations (`always-reusable`, `checkin-ignores-txn`,
+`checkin-ignores-objects`) go red first on the `E1`/`E2` handler-error path: a cancelled connection is always
+recovered, so the predicate only decides quarantine on the "left mid-protocol" path. No check was removed or relaxed.
 
 `--self-test --subject '<cmd>'` runs the same plan against the subject, appending `--mutate <name>` to its command
 line. A subject that supports self-test must implement these mutations behind that flag.
@@ -127,7 +146,7 @@ line. A subject that supports self-test must implement these mutations behind th
 The subject is one long-lived process with JSON lines on stdin/stdout. The oracle sends:
 
 ```
-{"op":"hello"}                                   -> {"ev":"hello","impl":"...","modes":[...]}
+{"op":"hello"}                                   -> {"ev":"hello","impl":"...","host":"async|sync","modes":[...]}
 {"op":"run","seed":S,"world":{row:val},"requests":[REQ...],"bumps_before":[idx],"target":idx,
  "cancel_at":N|null,"mode":"drop|rst|timeout|stage_timeout|crash"|null}
                                                  -> EVENT lines ..., then {"ev":"end"}
@@ -135,8 +154,14 @@ The subject is one long-lived process with JSON lines on stdin/stdout. The oracl
 REQ = {"id","principal","role","idem_key","cost","authority","authz":[stage...],"pre_prepare":bool,
        "session_set":bool, "op_budget":ticks, "stmt_ticks":ticks,
        "steps":[["read",[keys]] | ["write",key,val] | ["prepared",name,key,val] | ["savepoint",name,key,val] | ["upstream"]
-                | ["show"]]}
+                | ["show"]],
+       "abort": "before_begin"|"in_txn"   (optional; absent = none)}
 ```
+
+`abort` (added with the NC3 widening): the handler returns an application error (no cancellation) at that point:
+`before_begin` = right after the `pre_prepare` statement-cache insert (before the SET and BEGIN), `in_txn` = after the
+last step, before the outcome record. The host must then answer Failed/500 and apply the NC3 "left mid-protocol" rule.
+`host` in `hello` is optional (default `async`); any other value than `async`/`sync` fails the run.
 
 For a `run`, the subject seeds the harness DB fake with `world`, executes the requests in order, applies an epoch bump
 before each index in `bumps_before`, and wraps the target request's handler future in `CancelAt<cancel_at>` with the
@@ -144,7 +169,7 @@ given mode. Events (field `req` = request id):
 
 ```
 durable        {at:"start"|"after:<id>", rows}   harness DB snapshot (from the pgwire fake, not the subject's view)
-await          {n, site[, detached]}             each Pending of the top-level handler future (site = shim call site)
+await          {n, site[, detached]}             each cancellation point (async: Pending of the handler future; sync: host-call boundary, see below)
 cancel         {n, site, mode}                   CancelAt fired
 debit          {principal, cost, reason:"admission"|"cancel"|"quarantine"|"discard"}
 authz          {stage, decision:"allow"|"deny"|"error", cancelled}
@@ -164,6 +189,41 @@ response       {status}
 crash          {}
 ```
 
+## Synchronous host (DEVIATIONS X-11, Decision D6 of units/phase-4/PLAN.md)
+
+F7 handlers are synchronous (no handler futures). They run on a **bounded blocking pool**, as the PDP client does, and
+the **cancellation points are host-call boundaries**, not Pendings. A subject with a synchronous host says
+`"host":"sync"` in `hello` and maps the protocol as follows:
+
+- **Cancellation points.** Every driver round trip is one cancellation point: each message of each `TenantDb::run`
+  (and of every other host-owned driver call) is written to the wire first, then the host checks the cancel token
+  **before reading the reply**. This keeps the send-before-yield hazard shape of the async model (a cancelled request
+  can leave a reply outstanding). Every non-DB host call (limiter debit, each authz stage, pool acquire, statement-cache
+  insert, `session.ready`, upstream acquire/response) is one cancellation point at its boundary. The subject emits
+  `await {n, site}` at each of them, in order, with `n` counting from 0 per request. There are no other cancellation
+  points: handler code between host calls cannot be interrupted.
+- **Site names.** `db.<MSG>` for a driver round trip (MSG = the protocol message, e.g. `db.BEGIN`, `db.COMMIT`),
+  `authz.<stage>` for an authz stage (the NC5 checker keys on the `authz.` prefix), and stable names for the other host
+  calls. Every site seen in an uncancelled run must be cancellable (coverage check).
+- **CancelAt<N>.** When the N-th cancellation point fires, that host call returns `Err(Cancelled)` without performing
+  its effect (a round trip whose message is already on the wire leaves the connection mid-protocol). The host revokes
+  the handler's capabilities at that moment: every later host call by that handler returns `Err(Cancelled)` at once,
+  with no effect and no `await` event. Host-owned cleanup (NC3 quarantine/recovery/discard, upstream release/close, the
+  NC4 cancel debit, Failed/408) runs at the cancellation point, on the host's side; it does not wait for the handler's
+  pool thread to return. `drop` and `rst` both mean "the client is gone; the token is cancelled". `timeout` is the
+  request deadline. `stage_timeout` at `authz.<stage>` = that stage evaluates to Error ⇒ Deny. `crash` = kill -9 at
+  that point.
+- **After CP.** From the moment COMMIT is handed to the wire, the token is ignored (NC2 latch): the commit round trip
+  and the rest of the request complete on the host side. A cancellation that arrives after CP emits `latched`, and the
+  remaining cancellation points are reported as `await {n: null, site, detached: true}`. A timer after CP answers 202.
+- **Pool bound.** A handler that never makes a host call cannot be cancelled. It keeps its pool thread until it
+  returns, and that thread counts against the pool bound (back-pressure at admission). Wall-clock limits on handler
+  code are NC8 / native-e2e's job, not this oracle's.
+
+The event set, the checks and the verdict are the same for both host kinds. The reference model is an async host
+(`"host":"async"`); its generator yields are exactly the sync host's cancellation points under the mapping above, so
+a sync subject that follows the mapping produces the same event shapes.
+
 `durable` and `checkin.truth` come from the harness's DB fake. That fake is trusted harness code, not part of the unit
 under test. Everything else is emitted by the host instrumentation. The reference model is exposed over the same
 protocol (`--as-subject`), and running it through `--subject` must give the same verdict as the in-process run.
@@ -178,6 +238,21 @@ protocol (`--as-subject`), and running it through `--subject` must give the same
 Ported from nodes `ac.l5-cancel-sweep-harness` (enumeration, modes, oracles O1–O8, self-test), `ac.l5-inv-nomut-c`
 (NC1–NC8 definitions, reusable(c)) and `ac.principle-cancel-equals-crash`. Research ran no experiment here (machine
 safety §0e), so there are no research numbers to compare against.
+
+## Re-run in repo (2026-10-30, laptop, after the NC3 widening and the X-11 sync-host amendment)
+
+- `./run`: `CANCEL-SWEEP: PASS (NC1 NC2 NC3(quarantine/recovery) NC4 NC5 O2 C5 over 19840 runs, 3928 await points, 200 seeds x 5 modes)`
+  in 9.8 s. 20 await sites (new: `session.ready`), all cancelled at least once. 50,816 connections quarantined: 49,052
+  recovered, 1,764 discarded.
+- `./run --subject 'python3 -I .../cancelsweep.py --as-subject'`: the same verdict and counts over the protocol (30 s).
+- `./run --self-test` (in-process and over `--subject`): `CANCEL-SWEEP SELF-TEST: PASS (11/11 mutations caught within 100 seeds each, ...)`.
+  - always-reusable and checkin-ignores-txn: O2 red at seed 1 (F5 committed E2's leaked txn writes).
+  - checkin-ignores-objects: NC3 red at seed 1 (E1 checked in with `stmt:cached` open).
+  - recovery-no-discard-all: NC3 red at seed 1; quarantine-not-charged: NC4 red at seed 1.
+  - pool-key-no-epoch (seed 2), no-cp-latch, authz-fail-open, debit-after-work, reuse-after-cancelrequest (seed 1):
+    unchanged.
+  - cancelled-session-no-discard: NC3 red at seed 3 (R0 cancelled at `session.ready`, checked in with
+    `{'app.principal': 'alice'}`); the widened-NC3 event rule and O2 (bob's `show`) go red on the same runs.
 
 ## Re-run in repo (2026-10-25, laptop, after the q3-008 NC3 update)
 
@@ -214,10 +289,16 @@ safety §0e), so there are no research numbers to compare against.
 - One request is cancelled per scenario; concurrent requests and pool contention (size > 1) are not modelled. Recovery
   therefore runs to completion before the next request, so "never handed to another request while quarantined" is
   checked but cannot fail in the reference model.
-- "Left mid-protocol" is read as "the checkin predicate fails". A cancelled connection that passes the predicate gets
-  the ordinary checkin without DISCARD ALL. So session-level state (a `SET`) on a protocol-clean connection would not
-  be reset by NC3 as written. The scenario never produces that state: R0's `SET` window always has a reply in flight
-  or an open txn. This is a possible spec gap, flagged for the spec author; it is not hidden by the model.
+- "Left mid-protocol" is read as "the checkin predicate fails". Until 2026-10-30 a cancelled connection that passed
+  the predicate got the ordinary checkin, so a `SET` on a protocol-clean connection was not reset. The frozen NC3 text
+  ("touched by a cancelled request, or left mid-protocol") already closes this. The model now follows it, the
+  `session.ready` window produces that state, and `cancelled-session-no-discard` proves the check. A connection
+  released by a handler **error** (not a cancel) that passes the predicate still gets the ordinary checkin; `E1`/`E2`
+  never carry session state there. CRS C8 (DISCARD ALL on every recycle regardless of cancellation) belongs to the PG
+  adapter unit (P4-pg-003) and is not checked here beyond the `checkin.truth.session` rule.
+- Sync host (X-11): the oracle cannot tell whether a sync subject placed its cancellation points at every host-call
+  boundary. It sees only the `await` events it is given. The coverage check and the DST shell inside the subject are
+  the only guards.
 - Op-budget ticks are abstract (statement time = 1–3 ticks, ROLLBACK/DISCARD ALL = 1 tick, budget 2–5). The real
   T_recover is checked only by `--subject` under DST. The stray-cancel delivery is the worst case (always late), not a
   measured distribution. COPY, LISTEN and unknown protocol states (NC3: always discard) are not modelled.

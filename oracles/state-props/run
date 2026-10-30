@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# AEGIS oracle: state props (INV-IDEMP, NC2 commit-point latch, NC6 outbox, NC1 for the key). Contract: oracles/README.md.
+#   ./run [--seeds N] [--tail N]          reference subject (default 60 seeds)
+#   ./run --self-test                     mutations that must be caught (reference; plus the subject's with --subject)
+#   ./run --subject '<cmd> {dir}'         external store speaking the README line protocol
+# Last line: STATE-PROPS: PASS|FAIL (...). Runs under ci/heavy.sh (simulation = heavy job by repo rule).
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ -z "${AEGIS_STATEPROPS_UNDER_HEAVY:-}" ]; then
+  exec env AEGIS_STATEPROPS_UNDER_HEAVY=1 "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+exec python3 -I "$HERE/stateprops.py" "$@"
