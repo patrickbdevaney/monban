@@ -15,7 +15,7 @@
   "lowering-write-redis"
  ],
  "spec_refs": [
-  "SPEC §E W7 Redis reply subset",
+  "SPEC \u00a7E W7 Redis reply subset",
   "R-DB-3/4 denylist (EVAL, FLUSH*, SWAPDB, KEYS)",
   "R-DB-5 per-tenant ACL user; no connection shared across tenants (Valkey CVE-2025-67733); server-version gate",
   "DEVIATIONS X-10 (owned RESP2 client)",
@@ -37,6 +37,6 @@
  "notes": "SCAN MATCH patterns must glob-escape the suffix (* ? [ ] \\); keys are binary-safe (hex in protocol).",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass (gate runner on main): lowering-read/write-redis at pin valkey 9.1.2 + redis 8.10.2 incl kv_acl 108 hostile cmds; D11 Scan Unsupported; D12 default-user boot refusal"
 }

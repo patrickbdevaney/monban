@@ -15,7 +15,7 @@
   "cancel-sweep"
  ],
  "spec_refs": [
-  "SPEC §B NC3 as rewritten (drain without CancelRequest, ROLLBACK if txn != I, DISCARD ALL, generation bump within T_recover; else discard with CancelRequest; never CancelRequest on a connection that will be checked in)",
+  "SPEC \u00a7B NC3 as rewritten (drain without CancelRequest, ROLLBACK if txn != I, DISCARD ALL, generation bump within T_recover; else discard with CancelRequest; never CancelRequest on a connection that will be checked in)",
   "NC4 quarantine/discards charged to the cancelling principal",
   "CRS C5/C8: pool key over the whole config incl. tenant role and epoch; DISCARD ALL on every recycle regardless of cancellation (BACKLOG)",
   "cancel-sweep README subject event protocol"
@@ -37,6 +37,6 @@
  "notes": "The subject embeds the DST shell (CancelAt at host-call sites + interleave shim) and a pgwire fake that reports server truth; the fake is test-only code inside the subject crate.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass (gate runner on main): cancel-sweep 20840 runs / 200 seeds x 5 modes, NC3 53616 quarantined; self-test 11/11; C8 reset at reuse (keeps checkin predicate testable); DISCARD ALL + Close per tracked object"
 }
