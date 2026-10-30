@@ -170,3 +170,15 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
 - **Q4:** accepted. Shapes of those driver bugs are replayed against the owned clients as regression cases.
 - **Q5:** P4-spec-002 asserts with `cargo tree` that rusqlite adds no aws-lc/ring/openssl node and leaves the cmvp lock
   graph unchanged.
+- **D9 (from P4-oracle-schema-001):** the ten live-only schema classes (TenantNotText, GeneratedTenant,
+  TriggerOnCollection, RuleOnCollection, ForeignKeyAction, PartitionKeyMismatch, RlsNotForced, RlsPolicyWithoutCheck,
+  RlsPolicyNotTenantScoped, NotATable) stay adapter error types that wrap F4 `SchemaError`. F4 is not re-frozen for
+  them.
+- **D10:** on PG the gate accepts only `C`/`POSIX` collations (and `default` only when the database default is C).
+  That is stricter than the frozen F4 `Collation::Binary` comment ("deterministic ICU counts"), because deterministic
+  ICU gives binary equality but not binary ordering, and Pfx/range lowering depends on ordering. The comment is fixed
+  at the next F4 re-freeze; until then the gate is authoritative. Limit: RLS tenant scoping is judged from the policy
+  text, so a policy can look scoped without being scoped. Claims must say this.
+- **Finding:** a SQLite tenant column with INTEGER affinity stores some distinct 16-hex tenants as the same number
+  (e.g. `00000000000001e5` and `0000000000100000` both become 100000), which turns a tenant-scoped upsert into a
+  cross-tenant overwrite. Refused as TenantNotText and reproduced by the self-test.
