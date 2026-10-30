@@ -148,20 +148,7 @@ async fn public_conn(
 ) {
     let _g = ConnGuard::new(&shared);
     let _ = sock.set_nodelay(true);
-    // App handlers must see a client that went away before their commit point (NC1); the transport does not read
-    // the socket while a handler runs, so a duplicate of it is watched for FIN/RST readiness.
-    let watched = shared.native.is_some() && dup_socket(&sock).map(|d| shared.watch(addr, d)).is_ok();
     srv.serve_tls_from(sock, acc, Some(addr)).await;
-    if watched {
-        shared.unwatch(&addr);
-    }
-}
-
-fn dup_socket(sock: &tokio::net::TcpStream) -> std::io::Result<tokio::net::TcpStream> {
-    let fd = sock.as_fd().try_clone_to_owned()?;
-    let s = std::net::TcpStream::from(fd);
-    s.set_nonblocking(true)?;
-    tokio::net::TcpStream::from_std(s)
 }
 
 /// Upgrade hooks: the parent stops accepting and drains (UP-1/UP-4).
@@ -390,7 +377,7 @@ impl Ctl {
             && let Some(dp) = &self.shared.native
         {
             // NEGATIVE CONTROL (e2e-mutants only): fabricate successes for in-flight requests, exit uncommitted.
-            dp.dropping.store(true, Ordering::Release);
+            dp.start_dropping();
             std::thread::sleep(Duration::from_millis(300));
             std::process::exit(0);
         }

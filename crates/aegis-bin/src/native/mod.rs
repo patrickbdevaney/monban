@@ -6,7 +6,7 @@
 //! * every F8 backend is opened and its schema introspected: SQLite `SqliteDb::check_schema` (R-DB-7, D7), PG
 //!   `connect_admitted` (version gate, R-DB-1/R-DB-8) then `check_live_schema` (FORCE RLS, collations, triggers,
 //!   FKs: D8/D9/D10). An app's declared collection that the engine does not have, or has in a refused shape, fails
-//!   the boot. Redis/Valkey backends are refused (see INFEASIBLE_REPORT.md: the KV commit needs MULTI/EXEC);
+//!   the boot. Redis/Valkey backends are refused (PLAN D18, deferred: the KV commit needs MULTI/EXEC);
 //! * the backend's `aegis_idem` table (PLAN D14) is created if missing (PG: under FORCE RLS for the RLS role);
 //! * every route's `data` block is resolved against the introspected schemas (aegis-config `resolve_data`; an
 //!   unknown collection or column fails the boot) and converted to an F4 `CapSet` (aegis-adapter-host
@@ -218,6 +218,21 @@ fn boot_sqlite(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Re
         &[],
     )
     .map_err(|e| format!("aegis_idem: {e}"))?;
+    // A pre-existing table must have exactly that shape (an existing different one is refused, never altered).
+    let shape =
+        sqlite::query(&db, "SELECT name, pk, \"notnull\" FROM pragma_table_info('aegis_idem') ORDER BY cid", &[])
+            .map_err(|e| format!("aegis_idem: {e}"))?;
+    let want = [["principal", "1", "1"], ["k", "2", "1"], ["status", "0", "1"], ["body", "0", "1"]];
+    let ok = shape.len() == want.len()
+        && shape
+            .iter()
+            .zip(want.iter())
+            .all(|(r, w)| r.iter().map(|c| c.as_deref().unwrap_or("")).eq(w.iter().copied()));
+    if !ok {
+        return Err(
+            "aegis_idem exists with a different shape (expected principal, k, status, body; PK (principal, k))".into(),
+        );
+    }
     let lock = engines::allowlist(notes::ALLOWLIST_SQLITE, EngineFamily::Sqlite)?;
     let engine = Arc::new(wrap(
         engines::SqliteRenderer::new(&b.id, vec![table], lock),
@@ -234,34 +249,107 @@ fn pg_q(c: &mut aegis_adapter_pg::Connection, sql: &str, params: &[&str]) -> Res
     c.query(sql, &p, Instant::now() + BOOT_TIMEOUT).map(|r| r.rows).map_err(|e| e.to_string())
 }
 
-/// `aegis_idem` under FORCE RLS for the RLS role, created once by the boot connection (the table owner).
+/// The provisioning DDL `aegis_idem` must match (documented for operators; aegis-bin never runs it: the RLS role
+/// has no CREATE and must own nothing).
+pub const PG_IDEM_DDL: &str = "CREATE TABLE public.aegis_idem (tenant text COLLATE \"C\" NOT NULL, principal text \
+     COLLATE \"C\" NOT NULL, k text COLLATE \"C\" NOT NULL, status integer NOT NULL, body text NOT NULL, PRIMARY KEY \
+     (principal, k)) + aegis_adapter_pg::rls_policy(public, aegis_idem, tenant, aegis_app, aegis.tenant) + GRANT \
+     SELECT, INSERT TO aegis_app";
+
+fn cells(rows: &[Vec<Option<String>>]) -> Vec<Vec<&str>> {
+    rows.iter().map(|r| r.iter().map(|c| c.as_deref().unwrap_or("")).collect()).collect()
+}
+
+/// PLAN D14 on PG: the operator-provisioned `public.aegis_idem` is accepted only in exactly the shape above: the
+/// columns, `(principal, k)` its only unique index, ENABLE + FORCE ROW LEVEL SECURITY, every policy a permissive
+/// FOR ALL tenant guard (USING and WITH CHECK) with at least one applying to the RLS role, no user trigger or rule,
+/// SELECT and INSERT granted, not owned by the RLS role (an owner could turn FORCE off). Missing or different:
+/// refused (fail closed), never created or altered.
 fn ensure_pg_idem(c: &mut aegis_adapter_pg::Connection) -> Result<(), String> {
+    let refuse = |why: &str| Err(format!("public.aegis_idem {why} (provision it as: {PG_IDEM_DDL})"));
     if pg_q(c, "SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1", &[PG_RLS_ROLE])?.is_empty() {
         return Err(format!("role {PG_RLS_ROLE:?} does not exist (provision it and the collections' RLS policies)"));
     }
-    let exists = pg_q(c, "SELECT pg_catalog.to_regclass('public.aegis_idem') IS NOT NULL", &[])?;
-    if exists.first().and_then(|r| r.first()).and_then(|v| v.as_deref()) == Some("t") {
-        return Ok(());
+    let rel = pg_q(
+        c,
+        "SELECT c.relkind::text, c.relrowsecurity, c.relforcerowsecurity, \
+         (pg_catalog.pg_get_userbyid(c.relowner) = $1) FROM pg_catalog.pg_class c \
+         WHERE c.oid = pg_catalog.to_regclass('public.aegis_idem')",
+        &[PG_RLS_ROLE],
+    )?;
+    match cells(&rel).as_slice() {
+        [] => return refuse("does not exist"),
+        [r] if r.as_slice() == ["r", "t", "t", "f"] => {}
+        [r] if r.get(3) == Some(&"t") => return refuse("is owned by the RLS role"),
+        _ => return refuse("is not an ordinary table under ENABLE + FORCE ROW LEVEL SECURITY"),
     }
-    let mut stmts = vec![
-        "BEGIN".to_string(),
-        "CREATE TABLE public.aegis_idem (tenant text COLLATE \"C\" NOT NULL, principal text COLLATE \"C\" NOT NULL, \
-         k text COLLATE \"C\" NOT NULL, status integer NOT NULL, body text NOT NULL, PRIMARY KEY (principal, k))"
-            .to_string(),
+    let cols = pg_q(
+        c,
+        "SELECT a.attname::text, pg_catalog.format_type(a.atttypid, a.atttypmod), a.attnotnull, \
+         COALESCE(co.collname::text, '') FROM pg_catalog.pg_attribute a \
+         LEFT JOIN pg_catalog.pg_collation co ON co.oid = a.attcollation \
+         WHERE a.attrelid = 'public.aegis_idem'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum",
+        &[],
+    )?;
+    let cols = cells(&cols);
+    let want: [(&str, &str, Option<&str>); 5] = [
+        ("tenant", "text", Some("C")),
+        ("principal", "text", Some("C")),
+        ("k", "text", Some("C")),
+        ("status", "integer", None),
+        ("body", "text", None),
     ];
-    stmts.extend(
-        aegis_adapter_pg::rls_policy(Some(PG_NAMESPACE), "aegis_idem", "tenant", PG_RLS_ROLE, PG_TENANT_SETTING)
-            .map_err(|e| e.to_string())?,
-    );
-    stmts.push(format!("GRANT SELECT, INSERT ON public.aegis_idem TO \"{PG_RLS_ROLE}\""));
-    stmts.push("COMMIT".to_string());
-    for s in &stmts {
-        if let Err(e) = c.simple_query(s, Instant::now() + BOOT_TIMEOUT) {
-            let _ = c.simple_query("ROLLBACK", Instant::now() + BOOT_TIMEOUT);
-            return Err(format!("creating aegis_idem: {e}"));
-        }
+    let cols_ok = cols.len() == want.len()
+        && cols.iter().zip(want.iter()).all(|(got, (n, t, coll))| {
+            got.first() == Some(n)
+                && got.get(1) == Some(t)
+                && got.get(2) == Some(&"t")
+                && coll.is_none_or(|w| got.get(3) == Some(&w))
+        });
+    if !cols_ok {
+        return refuse("does not have the expected columns");
     }
-    Ok(())
+    let uniq = pg_q(
+        c,
+        "SELECT pg_catalog.array_to_string(ARRAY(SELECT a.attname::text FROM \
+         unnest(i.indkey::int2[]) WITH ORDINALITY AS k(n, o) JOIN pg_catalog.pg_attribute a \
+         ON a.attrelid = i.indrelid AND a.attnum = k.n ORDER BY k.o), ','), i.indisprimary, \
+         (i.indpred IS NULL AND i.indexprs IS NULL) FROM pg_catalog.pg_index i \
+         WHERE i.indrelid = 'public.aegis_idem'::regclass AND i.indisunique",
+        &[],
+    )?;
+    if cells(&uniq).as_slice() != [vec!["principal,k", "t", "t"]] {
+        return refuse("must have (principal, k) as its only unique index (the primary key)");
+    }
+    let pols = pg_q(
+        c,
+        "SELECT p.polcmd::text, p.polpermissive, COALESCE(pg_catalog.pg_get_expr(p.polqual, p.polrelid), ''), \
+         COALESCE(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), ''), \
+         (0::oid = ANY(p.polroles) OR (SELECT oid FROM pg_catalog.pg_roles WHERE rolname = $1) = ANY(p.polroles)) \
+         FROM pg_catalog.pg_policy p WHERE p.polrelid = 'public.aegis_idem'::regclass",
+        &[PG_RLS_ROLE],
+    )?;
+    let pols = cells(&pols);
+    let guard = |e: Option<&&str>| e.is_some_and(|e| aegis_adapter_pg::lower::is_tenant_guard(e, "tenant"));
+    let all_guards =
+        pols.iter().all(|p| p.first() == Some(&"*") && p.get(1) == Some(&"t") && guard(p.get(2)) && guard(p.get(3)));
+    if pols.is_empty() || !all_guards || !pols.iter().any(|p| p.get(4) == Some(&"t")) {
+        return refuse("policies are not permissive FOR ALL tenant guards (USING and WITH CHECK) for the RLS role");
+    }
+    let other = pg_q(
+        c,
+        "SELECT (SELECT count(*) FROM pg_catalog.pg_trigger WHERE tgrelid = 'public.aegis_idem'::regclass \
+         AND NOT tgisinternal) + (SELECT count(*) FROM pg_catalog.pg_rewrite WHERE ev_class = \
+         'public.aegis_idem'::regclass AND rulename <> '_RETURN'), \
+         pg_catalog.has_table_privilege($1, 'public.aegis_idem', 'SELECT'), \
+         pg_catalog.has_table_privilege($1, 'public.aegis_idem', 'INSERT')",
+        &[PG_RLS_ROLE],
+    )?;
+    match cells(&other).as_slice() {
+        [r] if r.as_slice() == ["0", "t", "t"] => Ok(()),
+        [r] if r.first() != Some(&"0") => refuse("has a user trigger or rule"),
+        _ => refuse("lacks SELECT and INSERT for the RLS role"),
+    }
 }
 
 fn boot_pg(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Result<EngineHandle, String> {
@@ -317,7 +405,7 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Op
             CfgEngine::Postgres => boot_pg(b, &reg, idx),
             CfgEngine::Redis | CfgEngine::Valkey => Err("Redis/Valkey data plane is not available in this build: the \
                  buffered commit needs MULTI/EXEC, which aegis-adapter-redis (GET/SET/DEL allowlist, per-tenant ACL) \
-                 cannot send (INFEASIBLE_REPORT.md)"
+                 cannot send yet (PLAN D18, deferred)"
                 .into()),
         }
         .map_err(|e| format!("data backend {:?} ({}): {e}", b.id, b.engine.as_str()))?;
@@ -423,6 +511,11 @@ impl DataPlane {
 
     pub fn active(&self) -> usize {
         self.reg.active()
+    }
+
+    /// NEGATIVE CONTROL `ack-then-drop` (e2e-mutants only): in-flight requests answer a fabricated success.
+    pub fn start_dropping(&self) {
+        self.dropping.store(true, Ordering::Release);
     }
 
     pub fn is_dropping(&self) -> bool {

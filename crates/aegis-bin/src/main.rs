@@ -17,6 +17,10 @@ mod admin;
 mod agent;
 mod audit;
 mod cli;
+#[cfg(feature = "native")]
+mod native;
+#[cfg(not(feature = "native"))]
+#[path = "native_stub.rs"]
 mod native;
 mod plan;
 mod proxy;

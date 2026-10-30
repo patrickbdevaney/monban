@@ -1,7 +1,5 @@
 //! Process-wide state shared by the listeners, the admin endpoint and the control thread.
 
-use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
@@ -138,24 +136,9 @@ pub struct Shared {
     pub cert_not_after: AtomicI64,
     /// The native data plane (modes A/D), when the config binds a route to an app.
     pub native: Option<Arc<crate::native::DataPlane>>,
-    /// Public connections by peer address: a duplicate of each socket, watched for FIN/RST while an app handler
-    /// runs (the transport does not read the socket then).
-    watch: Mutex<HashMap<SocketAddr, Arc<tokio::net::TcpStream>>>,
 }
 
 impl Shared {
-    pub fn watch(&self, peer: SocketAddr, dup: tokio::net::TcpStream) {
-        self.watch.lock().unwrap_or_else(std::sync::PoisonError::into_inner).insert(peer, Arc::new(dup));
-    }
-
-    pub fn unwatch(&self, peer: &SocketAddr) {
-        self.watch.lock().unwrap_or_else(std::sync::PoisonError::into_inner).remove(peer);
-    }
-
-    pub fn watched(&self, peer: &SocketAddr) -> Option<Arc<tokio::net::TcpStream>> {
-        self.watch.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(peer).cloned()
-    }
-
     pub fn new(snapshot: Snapshot, native: Option<Arc<crate::native::DataPlane>>) -> Arc<Self> {
         let s = Arc::new(Self {
             registry: Registry::new(),
@@ -173,7 +156,6 @@ impl Shared {
             mutants: Mutants::from_env(),
             cert_not_after: AtomicI64::new(i64::MIN),
             native,
-            watch: Mutex::new(HashMap::new()),
         });
         let h = s.snapshot().hash;
         s.registry.set_config_hash(&h);

@@ -358,6 +358,8 @@ selftest = "ci/no-crate.sh --self-test"
 
 [[gate]]
 name = "native-e2e"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/aegis --pg @pg17"
-selftest = "oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/release/aegis"
+# PLAN D17: the data plane is the `native` build (own target dirs, so the core build in target/release and the
+# proxy-e2e `e2e-mutants` build in target/e2e-mutants are never overwritten).
+cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/aegis --pg @pg17"
+selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/aegis --mutant-subject target/native-mutants/release/aegis"
 heavy = true

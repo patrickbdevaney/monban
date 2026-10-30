@@ -6,21 +6,19 @@
 //! path tenant must be the principal's (else the uniform denial, W6) → mutations need an `Idempotency-Key` (428)
 //! → the request takes its (backend, tenant) slot ([`super::scope::Registry`]) → a key that already committed is
 //! answered from the backend's `aegis_idem` (INV-IDEMP) → the handler runs on the blocking pool (X-11) while this
-//! task watches the deadline and the client.
+//! task watches the deadline.
 //!
 //! * Nothing is sent before the handler returned, i.e. after its commit point (NC7): a 2xx implies the effect is
 //!   durable when its first byte leaves.
 //! * Deadline: before the commit point → 504 and the commit refuses (NC1); after it → 202 with the key echoed, and
 //!   the stored outcome is served by key (NC2).
-//! * Client gone before the commit point → cancelled, nothing commits (NC1). The transport neither drops a running
-//!   handler on a client FIN (hyper `half_close`) nor reads the socket meanwhile, so the connection's socket is
-//!   watched here (read-closed / error readiness on a duplicate of its fd). A dropped request future (transport
-//!   timeout, connection torn down) cancels too ([`InFlight`]'s `Drop`).
+//! * Client gone before the commit point → cancelled, nothing commits (NC1): aegis-transport drops this future on
+//!   an h1 FIN/RST or an h2 `RST_STREAM` before the reply (and on a transport timeout or connection teardown), and
+//!   [`InFlight`]'s `Drop` cancels the commit gate.
 
 use std::pin::pin;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use std::task::{Context, Poll, Waker};
 use std::time::{Duration, Instant};
 
 use aegis_adapter_host::dispatch::{DispatchError, EngineError, Refusal};
@@ -32,7 +30,6 @@ use aegis_token::{Caveat, TokenL};
 use aegis_transport::exchange::Method;
 use aegis_transport::{Reply, ReplyBody, Request};
 use aegis_types::{Principal, RouteId};
-use tokio::io::Interest;
 
 use super::scope::{AppTicket, Claim, Idem, Phase, ReqCtx, Slot};
 use super::{AppRoute, DataPlane};
@@ -42,7 +39,7 @@ use crate::util::{Either, race};
 /// Deadline of a request when no backend gives one.
 const DEFAULT_DEADLINE_MS: u64 = 5000;
 const MAX_DEADLINE_HEADER_MS: u64 = 60_000;
-/// Poll period of the deadline / client / drain watch while the handler runs.
+/// Poll period of the deadline / drain watch while the handler runs.
 const TICK: Duration = Duration::from_millis(10);
 
 fn to_reply(h: HttpReply) -> Reply {
@@ -130,18 +127,6 @@ fn authenticate(dp: &DataPlane, req: &Request, aud: &str, op: u8, path: &str) ->
         Ok(p) => Ok((p, ops)),
         Err(aegis_token::VerifyError::Denied) => Err(403),
         Err(_) => Err(401),
-    }
-}
-
-/// The connection is gone (peer FIN or RST): read-closed or error readiness on the watched duplicate.
-fn client_gone(shared: &Shared, req: &Request) -> bool {
-    let Some(sock) = req.conn.peer.and_then(|a| shared.watched(&a)) else { return false };
-    let mut cx = Context::from_waker(Waker::noop());
-    let mut f = pin!(sock.ready(Interest::READABLE));
-    match f.as_mut().poll(&mut cx) {
-        Poll::Ready(Ok(r)) => r.is_read_closed() || r.is_error(),
-        Poll::Ready(Err(_)) => true,
-        Poll::Pending => false,
     }
 }
 
@@ -369,10 +354,6 @@ pub async fn handle(
                     if ctx.gate.phase() == Phase::Committed { accepted(key.as_deref()) } else { error(504, "deadline") }
                 }
             };
-        }
-        if client_gone(shared, req) {
-            ctx.gate.cancel();
-            return error(400, "client_gone");
         }
     }
 }

@@ -233,7 +233,8 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
             };
             let to = if let Some(app) = upstream.strip_prefix(crate::native::APP_PREFIX) {
                 if !crate::native::APPS.contains(&app) {
-                    return Err(format!("{at}/to: unknown app {app:?} (linked: {:?})", crate::native::APPS));
+                    let why = if cfg!(feature = "native") { "" } else { "; this build has no feature `native`" };
+                    return Err(format!("{at}/to: unknown app {app:?} (linked: {:?}{why})", crate::native::APPS));
                 }
                 if framing.is_some() {
                     return Err(format!("{at}/to/framing: an app route has no upstream framing"));
@@ -393,9 +394,13 @@ mod tests {
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"h:1","framing":"uds"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a//b","to":{"upstream":"h:1"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a/./b","to":{"upstream":"h:1"}}]"#)).is_err());
-        // App routes: only linked apps, no framing.
-        let p = plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes"},"authz":"allow-all"}]"#)).unwrap();
-        assert_eq!(p.vhosts[0].routes[0].to, RouteTo::App("notes".into()));
+        // App routes: only linked apps (none in the core build, PLAN D17), no framing.
+        let notes = plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes"},"authz":"allow-all"}]"#));
+        if cfg!(feature = "native") {
+            assert_eq!(notes.unwrap().vhosts[0].routes[0].to, RouteTo::App("notes".into()));
+        } else {
+            assert!(notes.unwrap_err().contains("feature `native`"));
+        }
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:nope"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes","framing":"h2"}}]"#)).is_err());
     }

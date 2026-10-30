@@ -1,5 +1,10 @@
 # apps/
 
+Apps are linked only into the `native` build of aegis-bin (`--features native`, PLAN D17; the default build is the
+core and links none). A route binds an app with `to.upstream = "app:<name>"`; its F8 `data` caps name the backend.
+Backends served in native mode: SQLite and PostgreSQL. Redis/Valkey backends are refused at boot (exit 78) until
+PLAN D18 adds the MULTI/EXEC commit to the per-tenant ACL. Example: `apps/notes` (oracles/native-e2e).
+
 Native handler applications (modes A/D). Each `apps/<name>/` is a workspace member (glob `apps/*`) with
 `[package.metadata.aegis] layer = "app"`.
 
