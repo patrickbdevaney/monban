@@ -675,7 +675,7 @@ def selftest_data(verbose=False):
 
 def main():
     ap = argparse.ArgumentParser(description="CRS differential oracle (tls-resume + data families)")
-    ap.add_argument("--family", choices=["tls-resume", "data", "all"], default="all")
+    ap.add_argument("--family", choices=["tls-resume", "data", "all"], default=None)
     ap.add_argument("--subject", default=None, help="tls: aegis binary; data: crs-subject (quoted argv allowed)")
     ap.add_argument("--self-test", action="store_true", dest="selftest")
     ap.add_argument("--pg", default=None)       # accepted and ignored here: the data subject connects to engines
@@ -691,12 +691,16 @@ def main():
                 subj_argv += [flag, val]
 
     if args.selftest:
-        fams = ["tls-resume", "data"] if args.family == "all" else [args.family]
+        fams = ["tls-resume", "data"] if args.family in (None, "all") else [args.family]
         rc = 0
         for f in fams:
             rc |= (selftest_tls if f == "tls-resume" else selftest_data)(args.verbose)
         return rc
 
+    # The ci/oracles.sh sweep passes only --subject (default-subject: the aegis binary): that is the tls-resume run.
+    # The data family needs engines, so it runs only as gate crs-data with an explicit --family data.
+    if args.family is None and args.subject and not (args.pg or args.redis):
+        args.family = "tls-resume"
     if args.family == "tls-resume":
         return run_tls(args.subject, args.verbose)
     if args.family == "data":
