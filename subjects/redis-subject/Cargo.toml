@@ -1,0 +1,20 @@
+[package]
+name = "redis-subject"
+description = "Oracle subject: the KV renderer and per-tenant ACL rules of aegis-adapter-redis over JSON lines (oracles/lowering-read, oracles/lowering-write). Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# No third-party dependencies: keys, patterns and ACL rules come from aegis-adapter-redis (kv_plan underneath).
+[dependencies]
+aegis-adapter-redis = { workspace = true }
+aegis-data-ir = { workspace = true }
+aegis-types = { workspace = true }
+
+[lints]
+workspace = true
