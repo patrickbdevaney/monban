@@ -1051,6 +1051,7 @@ class Cfg:
     def __init__(self, a):
         self.seeds, self.n = a.seeds, a.n
         self.engines = set(a.engine) - ({"sqlite"} if a.skip_sqlite else set())
+        self.skip_kv = bool(getattr(a, "skip_kv", False))
         self.dsns, self.urls = list(a.dsn or []), list(a.url or [])
         self.gate_only = not a.no_gate_demo
         self.exec = getattr(a, "_exec", None)
@@ -1088,7 +1089,7 @@ def evaluate(subject, cfg, log=print):
             kv_family(subject, cfg, fams.setdefault(f"{eng.kind}{eng.version} kv (live)", Stats()), eng)
             kv_acl_family(subject, cfg, fams.setdefault(f"{eng.kind}{eng.version} kv_acl hostile commands as the tenant ACL user (live)", Stats()), eng, url)
             eng.close()
-    elif "sqlite" in cfg.engines:
+    elif "sqlite" in cfg.engines and not cfg.skip_kv:
         kv_family(subject, cfg, fams.setdefault("redis kv (model)", Stats()), KVModel())
         kv_acl_static_family(subject, fams.setdefault("redis kv_acl rules (static, offline)", Stats()))
     tot = Stats()
@@ -1148,7 +1149,7 @@ ENGINE_MUTANTS = {
 }
 
 def small_ns(a, engines, n=150):
-    s = argparse.Namespace(**vars(a)); s.seeds = [20261025]; s.n = n; s.engine = engines; s.no_gate_demo = True; s.skip_sqlite = False
+    s = argparse.Namespace(**vars(a)); s.seeds = [20261025]; s.n = n; s.engine = engines; s.no_gate_demo = True; s.skip_sqlite = False; s.skip_kv = False
     return s
 
 def self_test(a):
@@ -1178,6 +1179,7 @@ def self_test(a):
             print(f"  [{eng}] mutant {mut:24s} expect {counter}>0: " + " ".join(f"{k}={tot[k]}" for k in BAD_KEYS[:10]) +
                   f" -> {'CAUGHT' if okm else 'NOT CAUGHT'}")
     ctl = Cfg(small_ns(a, (["sqlite"] if use_sqlite else []) + live, 100))
+    ctl.skip_kv = bool(getattr(a, "skip_kv", False))   # subject-side only: the reference mutants above keep every family
     cmd = a.subject or L.reference_cmd(HERE)
     sub = L.ProcSubject(cmd); _, _, tot, wall, _ = evaluate(sub, ctl, log=lambda *x: None); sub.close()
     ok = not bad_of(tot); pos = pos and ok
@@ -1201,6 +1203,8 @@ def main():
     ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis"])
     ap.add_argument("--dsn", action="append"); ap.add_argument("--url", action="append")
     ap.add_argument("--skip-sqlite", action="store_true", help="no SQLite families (kv-only or pg-only subjects); also in --self-test")
+    ap.add_argument("--skip-kv", action="store_true", help="no offline Redis-model families for a SQL-only subject (the Redis gates "
+                    "cover them with the KV renderer); applies to --subject runs only, never to the oracle's reference mutants")
     ap.add_argument("--engine-pin", action="store_true", help="check every engine against supply-chain/engine-pins.toml "
                     "(implies --sqlite-exec when SQLite runs)")
     ap.add_argument("--sqlite-exec", action="store_true", help="run SQLite at the adapter pin through rust/sqlite-exec")

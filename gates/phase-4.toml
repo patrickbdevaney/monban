@@ -238,8 +238,8 @@ heavy = true
 
 [[gate]]
 name = "lowering-write-sqlite"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && oracles/lowering-write/run --n 300 --engine-pin --subject 'target/release/sqlite-subject lowering'"
-selftest = "oracles/lowering-write/run --self-test && oracles/lowering-write/run --self-test --subject 'target/release/sqlite-subject lowering'"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && oracles/lowering-write/run --n 300 --engine-pin --skip-kv --subject 'target/release/sqlite-subject lowering'"
+selftest = "oracles/lowering-write/run --self-test && oracles/lowering-write/run --self-test --skip-kv --subject 'target/release/sqlite-subject lowering'"
 remote = true
 
 [[gate]]

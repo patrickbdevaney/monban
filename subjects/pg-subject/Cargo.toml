@@ -1,6 +1,6 @@
 [package]
 name = "pg-subject"
-description = "Oracle subject: the owned PG v3 client and version gate of aegis-adapter-pg over JSON lines (oracles/pg-version-gate). Never linked into aegis."
+description = "Oracle subject: aegis-adapter-pg over JSON lines: owned PG v3 client + version gate (oracles/pg-version-gate), renderer (oracles/lowering-read, lowering-write), live schema gate (oracles/schema-gate). Never linked into aegis."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish = false
 [package.metadata.aegis]
 layer = "tool"
 
-# No third-party dependencies: the wire client, SCRAM (aws-lc-rs) and the pins-compiled gate stay in the adapter.
+# No third-party dependencies: the wire client, SCRAM (aws-lc-rs), the gate, renderer and introspection stay in the adapter.
 [dependencies]
 aegis-adapter-pg = { workspace = true }
 

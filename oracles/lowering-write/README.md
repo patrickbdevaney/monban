@@ -355,3 +355,7 @@ denylist, read at run time).
   does not prove the absence of other statement shapes.
 * Redis: only string SET [NX|XX] / DEL / GET / SCAN are modelled offline.
 * MySQL/MariaDB/CockroachDB (q4-005) not covered.
+
+`--skip-kv` (2026-10-30): a SQL-only subject (sqlite-subject) is not asked the offline Redis-model families, which the
+Redis gates cover with the KV renderer. It applies only to `--subject` runs and the subject positive control; the
+oracle's own reference mutants always run every family.

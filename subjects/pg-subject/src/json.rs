@@ -30,6 +30,48 @@ impl Json {
     }
 }
 
+/// Nesting bound of the reader (requests carry IR predicates; `aegis_data_ir::MAX_PRED_DEPTH` = 64 levels of Pred,
+/// and `andN`/`orN` add an array level each).
+const MAX_DEPTH: usize = 160;
+
+/// JSON string literal (with quotes) for `s`.
+pub fn esc(s: &str) -> String {
+    let mut o = String::with_capacity(s.len() + 2);
+    o.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => o.push_str("\\\""),
+            '\\' => o.push_str("\\\\"),
+            '\n' => o.push_str("\\n"),
+            '\r' => o.push_str("\\r"),
+            '\t' => o.push_str("\\t"),
+            c if u32::from(c) < 0x20 || u32::from(c) > 0x7e => {
+                let mut buf = [0u16; 2];
+                for u in c.encode_utf16(&mut buf) {
+                    o.push_str(&format!("\\u{:04x}", u));
+                }
+            }
+            c => o.push(c),
+        }
+    }
+    o.push('"');
+    o
+}
+
+/// Compact JSON text of `j` (ASCII only).
+pub fn emit(j: &Json) -> String {
+    match j {
+        Json::Null => "null".into(),
+        Json::Bool(b) => b.to_string(),
+        Json::Num(t) => t.clone(),
+        Json::Str(s) => esc(s),
+        Json::Arr(v) => format!("[{}]", v.iter().map(emit).collect::<Vec<_>>().join(",")),
+        Json::Obj(m) => {
+            format!("{{{}}}", m.iter().map(|(k, v)| format!("{}:{}", esc(k), emit(v))).collect::<Vec<_>>().join(","))
+        }
+    }
+}
+
 pub fn parse(s: &str) -> Result<Json, String> {
     let mut p = P { b: s.as_bytes(), i: 0, depth: 0 };
     let v = p.value()?;
@@ -69,7 +111,7 @@ impl P<'_> {
     }
     fn value(&mut self) -> Result<Json, String> {
         self.ws();
-        if self.depth >= 64 {
+        if self.depth >= MAX_DEPTH {
             return Err("nesting too deep".into());
         }
         self.depth += 1;

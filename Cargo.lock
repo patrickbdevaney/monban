@@ -1454,6 +1454,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
+name = "redis-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-redis",
+ "aegis-data-ir",
+ "aegis-types",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1792,6 +1801,15 @@ checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "sqlite-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-sqlite",
+ "aegis-data-ir",
+ "aegis-types",
 ]
 
 [[package]]
