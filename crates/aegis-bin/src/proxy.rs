@@ -23,7 +23,7 @@ use aegis_transport::exchange::{ExchangeBudget, FrontEnd, Head, HeadVerdict, Mes
 use aegis_transport::{App, ConnInfo, HandlerFuture, Reply, ReplyBody, Request};
 use aegis_types::RouteId;
 
-use crate::plan::{Authz, RouteRt, Snapshot, UpstreamConnConfig};
+use crate::plan::{Authz, RouteRt, RouteTo, Snapshot, UpstreamConnConfig};
 use crate::shared::{Peer, Shared, bump};
 use crate::upstream::{UpError, UpRequest};
 
@@ -114,6 +114,26 @@ impl ProxyApp {
         }
     }
 
+    /// An app route (modes A/D): served by the native data plane. `None` for a proxied route.
+    async fn native(&self, req: &Request) -> Option<Reply> {
+        let snap = self.shared.snapshot();
+        let Some(vhost) = snap.vhost(req.authority.as_bytes()) else { return Some(Reply::status(421)) };
+        let route = vhost.route(req.path.as_bytes())?;
+        let RouteTo::App(_) = &route.to else { return None };
+        if let Err(s) = self.authorize(route) {
+            bump(&self.shared.stats.authz_denied);
+            return Some(Reply::status(s));
+        }
+        // No data plane or no binding: nothing can serve this route (fail closed).
+        let (Some(dp), Some(binding)) = (self.shared.native.as_ref(), snap.native.get(&vhost.host, route.id)) else {
+            return Some(Reply::status(503));
+        };
+        let binding = binding.clone();
+        let id = route.id;
+        drop(snap);
+        Some(crate::native::http::handle(&self.shared, dp, &binding, id, req).await)
+    }
+
     /// Everything the upstream will see, from the canonical request and the current routing table.
     fn upstream_request(&self, req: &Request) -> Result<Admitted, Reply> {
         let snap = self.shared.snapshot();
@@ -125,6 +145,7 @@ impl ProxyApp {
             bump(&self.shared.stats.authz_denied);
             return Err(Reply::status(s));
         }
+        let RouteTo::Upstream(upstream) = &route.to else { return Err(Reply::status(404)) };
         let all: Vec<(Vec<u8>, Vec<u8>)> = header_fields(&req.headers).map(|(n, v)| (n.to_vec(), v.to_vec())).collect();
         let mut path_and_query = req.path.as_bytes().to_vec();
         if !req.query.as_bytes().is_empty() {
@@ -137,7 +158,7 @@ impl ProxyApp {
         }
         Ok(Admitted {
             method,
-            upstream: route.upstream.clone(),
+            upstream: upstream.clone(),
             authority: req.authority.as_bytes().to_vec(),
             path_and_query,
             headers: end_to_end(all),
@@ -174,6 +195,9 @@ impl App for ProxyApp {
 
     fn handle(&self, req: Request) -> HandlerFuture<'_> {
         Box::pin(async move {
+            if let Some(reply) = self.native(&req).await {
+                return reply;
+            }
             match self.upstream_request(&req) {
                 Ok(adm) => forward(&self.shared, &adm, &req.body).await,
                 Err(reply) => reply,

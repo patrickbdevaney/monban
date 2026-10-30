@@ -9,6 +9,8 @@
 //! * `to.upstream` is `host:port` or `unix:/absolute/path`. F8 declares no upstream table, so the string *is* the
 //!   upstream; plain HTTP to it (upstream TLS is a later unit). `framing` defaults to `h1-regenerate` (TCP) or `uds`
 //!   (unix); `uds` = HTTP/1.1 with regenerated framing over a unix socket and requires a `unix:` target;
+//! * `to.upstream = "app:<name>"` binds the route to a native app linked into this binary (modes A/D, PLAN D16);
+//!   only such a route may carry a `data` endowment (resolved at boot by [`crate::native`]);
 //! * `to.static` is refused: static file serving is not in this build.
 //!
 //! Routing (documented semantics; F8 says nothing finer): a route path matches a canonical request path exactly,
@@ -80,8 +82,17 @@ pub struct RouteRt {
     /// Canonical route path.
     pub path: Vec<u8>,
     pub prefix: bool,
-    pub upstream: UpstreamConnConfig,
+    pub to: RouteTo,
     pub authz: Authz,
+}
+
+/// Where a route's requests go.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RouteTo {
+    /// Reverse proxy (mode R).
+    Upstream(UpstreamConnConfig),
+    /// A native application linked into this binary (modes A/D): `to.upstream = "app:<name>"` (PLAN D16).
+    App(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -220,14 +231,29 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                     return Err(format!("{at}/to: static targets are not served by this build (fail closed)"));
                 }
             };
-            let target = parse_target(upstream).map_err(|e| format!("{at}/to: {e}"))?;
-            let framing = match (framing, &target) {
-                (Some(Framing::H2), _) => UpFraming::H2,
-                (Some(Framing::H1Regenerate), _) | (None, _) => UpFraming::H1,
-                (Some(Framing::Uds), Target::Unix(_)) => UpFraming::H1,
-                (Some(Framing::Uds), Target::Tcp { .. }) => {
-                    return Err(format!("{at}/to/framing: \"uds\" needs a unix:/path upstream"));
+            let to = if let Some(app) = upstream.strip_prefix(crate::native::APP_PREFIX) {
+                if !crate::native::APPS.contains(&app) {
+                    let why = if cfg!(feature = "native") { "" } else { "; this build has no feature `native`" };
+                    return Err(format!("{at}/to: unknown app {app:?} (linked: {:?}{why})", crate::native::APPS));
                 }
+                if framing.is_some() {
+                    return Err(format!("{at}/to/framing: an app route has no upstream framing"));
+                }
+                RouteTo::App(app.to_string())
+            } else {
+                if r.data.is_some() {
+                    return Err(format!("{at}/data: a data endowment needs an app route (to.upstream \"app:<name>\")"));
+                }
+                let target = parse_target(upstream).map_err(|e| format!("{at}/to: {e}"))?;
+                let framing = match (framing, &target) {
+                    (Some(Framing::H2), _) => UpFraming::H2,
+                    (Some(Framing::H1Regenerate), _) | (None, _) => UpFraming::H1,
+                    (Some(Framing::Uds), Target::Unix(_)) => UpFraming::H1,
+                    (Some(Framing::Uds), Target::Tcp { .. }) => {
+                        return Err(format!("{at}/to/framing: \"uds\" needs a unix:/path upstream"));
+                    }
+                };
+                RouteTo::Upstream(UpstreamConnConfig { target, framing, scope: v.host.as_bytes().to_vec() })
             };
             let authz = match r.authz_requirement() {
                 AuthzRequirement::Deny => {
@@ -246,7 +272,7 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                 id: r.id,
                 path: r.path.as_bytes().to_vec(),
                 prefix: r.path.ends_with('/'),
-                upstream: UpstreamConnConfig { target, framing, scope: v.host.as_bytes().to_vec() },
+                to,
                 authz,
             });
         }
@@ -274,6 +300,8 @@ pub struct Snapshot {
     pub plan: Plan,
     /// (canonical authority, allowed serialized origins, vhost index).
     authorities: Vec<(Vec<u8>, Vec<Vec<u8>>, usize)>,
+    /// The app routes of this generation, resolved against the introspected schemas (empty without a data plane).
+    pub native: std::sync::Arc<crate::native::Bindings>,
 }
 
 impl Snapshot {
@@ -291,7 +319,7 @@ impl Snapshot {
                 authorities.push((n.into_bytes(), origins.clone(), i));
             }
         }
-        Self { generation, epoch, hash, plan, authorities }
+        Self { generation, epoch, hash, plan, authorities, native: Default::default() }
     }
 
     /// An empty table (no vhosts): every request is refused. Used only by the `skip-lkg` negative control.
@@ -305,6 +333,7 @@ impl Snapshot {
             hash: [0; 32],
             plan,
             authorities: Vec::new(),
+            native: Default::default(),
         }
     }
 
@@ -351,7 +380,7 @@ mod tests {
         assert_eq!(v.route(b"/x/").unwrap().id, 3);
         assert_eq!(v.routes[1].authz, Authz::Missing);
         assert_eq!(v.routes[2].authz, Authz::Unknown("cedar-set".into()));
-        assert_eq!(v.routes[2].upstream.framing, UpFraming::H2);
+        assert!(matches!(&v.routes[2].to, RouteTo::Upstream(u) if u.framing == UpFraming::H2));
         assert_eq!(p.admin, AdminBind::Tcp("127.0.0.1:9464".parse().unwrap()));
         let s = Snapshot::new(1, 1, [0; 32], p);
         assert!(s.vhost(b"aegis.test:8443").is_some() && s.vhost(b"aegis.test").is_some());
@@ -365,5 +394,14 @@ mod tests {
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"h:1","framing":"uds"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a//b","to":{"upstream":"h:1"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a/./b","to":{"upstream":"h:1"}}]"#)).is_err());
+        // App routes: only linked apps (none in the core build, PLAN D17), no framing.
+        let notes = plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes"},"authz":"allow-all"}]"#));
+        if cfg!(feature = "native") {
+            assert_eq!(notes.unwrap().vhosts[0].routes[0].to, RouteTo::App("notes".into()));
+        } else {
+            assert!(notes.unwrap_err().contains("feature `native`"));
+        }
+        assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:nope"}}]"#)).is_err());
+        assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes","framing":"h2"}}]"#)).is_err());
     }
 }

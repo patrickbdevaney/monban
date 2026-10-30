@@ -10,8 +10,11 @@
 //! | idle RSS | ≤ 8 MB (8,000,000 bytes) | VmRSS of a started `aegis` after 1 s; `n/a` while the binary exits at boot (fail-closed), not judged |
 //! | 1k idle TLS | ≤ 25 MB | `n/a` until a listener exists, not judged |
 //!
-//! Measurement (`measure`) and judgement (`judge`) are separate so `--self-test` can feed synthetic measurements:
-//! each single over-budget input must FAIL and a within-budget input must PASS.
+//! Then it builds and measures the `--features native` build (the native data plane, PLAN D17, into `target/native`)
+//! against the same criteria with its own stripped-size ceiling of 8.0 MB (DEVIATIONS X-12). Both must pass.
+//!
+//! Measurement (`measure`) and judgement (`judge_build`) are separate so `--self-test` can feed synthetic
+//! measurements: each single over-budget input must FAIL (for each build) and a within-budget input must PASS.
 //!
 //! Repository root: env `AEGIS_ROOT`, else `crate::root()`.
 
@@ -22,7 +25,27 @@ use std::time::Duration;
 
 /// Stripped size limit, default build (bytes, decimal MB).
 pub const MAX_STRIPPED_BYTES: u64 = 6_000_000;
-/// Shipped third-party crate limit, default build.
+/// Stripped size ceiling of the `--features native` build (PLAN D17, DEVIATIONS X-12: bundled C SQLite).
+pub const MAX_NATIVE_STRIPPED_BYTES: u64 = 8_000_000;
+
+/// One measured build of aegis-bin.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Build {
+    pub name: &'static str,
+    /// Cargo features (empty: the default build).
+    pub features: &'static str,
+    /// Target directory relative to the repository root (`None`: `CARGO_TARGET_DIR` or `target`).
+    pub target: Option<&'static str>,
+    pub max_size: u64,
+}
+
+/// The default build: the core (mode R, gateway G), REPO_LAYOUT §6 limits.
+pub const CORE: Build = Build { name: "default", features: "", target: None, max_size: MAX_STRIPPED_BYTES };
+/// The native data plane (modes A/D): the same limits except its own size ceiling. Built into `target/native` (the
+/// directory the native-e2e gate uses), so the core build in `target/release` is never overwritten.
+pub const NATIVE: Build =
+    Build { name: "native", features: "native", target: Some("target/native"), max_size: MAX_NATIVE_STRIPPED_BYTES };
+/// Shipped third-party crate limit (both builds).
 pub const MAX_CRATES: usize = 60;
 /// Non-crypto `unsafe` line limit over shipped third-party sources.
 pub const MAX_NONCRYPTO_UNSAFE: u64 = 5_000;
@@ -96,16 +119,22 @@ pub fn is_crypto(name: &str) -> bool {
 
 // ---------------------------------------------------------------- judgement
 
-/// Returns the violated criteria; empty means within budget. Runtime criteria that are `NotApplicable` are skipped.
+/// Returns the violated criteria under the default build's limits; empty means within budget.
 pub fn judge(m: &Measured) -> Vec<String> {
+    judge_build(m, &CORE)
+}
+
+/// Returns the violated criteria for build `b` (its size ceiling, the shared limits otherwise). Runtime criteria that
+/// are `NotApplicable` are skipped.
+pub fn judge_build(m: &Measured, b: &Build) -> Vec<String> {
     let mut v = Vec::new();
     match m.stripped {
         Some(true) => {}
         Some(false) => v.push("binary is not stripped (.symtab present); size is not a stripped measurement".into()),
         None => v.push("cannot confirm the binary is stripped (not an ELF64 little-endian file)".into()),
     }
-    if m.size_bytes > MAX_STRIPPED_BYTES {
-        v.push(format!("stripped size {} B > {} B", m.size_bytes, MAX_STRIPPED_BYTES));
+    if m.size_bytes > b.max_size {
+        v.push(format!("{} build: stripped size {} B > {} B", b.name, m.size_bytes, b.max_size));
     }
     if m.third_party.len() > MAX_CRATES {
         v.push(format!("shipped third-party crates {} > {}", m.third_party.len(), MAX_CRATES));
@@ -137,7 +166,7 @@ fn ok(pass: bool) -> &'static str {
     if pass { "ok" } else { "OVER" }
 }
 
-fn print_table(m: &Measured) {
+fn print_table(m: &Measured, b: &Build) {
     let rt = |r: &Runtime, lim: u64| match r {
         Runtime::Bytes(b) => (format!("{} ({b} B)", mb(*b)), ok(*b <= lim).to_string()),
         Runtime::NotApplicable(why) => (format!("n/a ({why})"), "not judged".to_string()),
@@ -151,8 +180,8 @@ fn print_table(m: &Measured) {
         (
             "stripped size".into(),
             format!("{} ({} B), stripped: {stripped}", mb(m.size_bytes), m.size_bytes),
-            format!("<= {}", mb(MAX_STRIPPED_BYTES)),
-            ok(m.size_bytes <= MAX_STRIPPED_BYTES && m.stripped == Some(true)).into(),
+            format!("<= {}", mb(b.max_size)),
+            ok(m.size_bytes <= b.max_size && m.stripped == Some(true)).into(),
         ),
         (
             "shipped crates (third-party)".into(),
@@ -194,23 +223,37 @@ fn print_table(m: &Measured) {
 
 // ---------------------------------------------------------------- measurement
 
-/// Builds the default release `aegis-bin` through `ci/heavy.sh` and measures every criterion.
-pub fn measure(root: &Path) -> Result<Measured, String> {
+fn build_target(root: &Path, b: &Build) -> PathBuf {
+    match b.target {
+        Some(t) => root.join(t),
+        None => target_dir(root),
+    }
+}
+
+fn feature_args(b: &Build) -> Vec<&'static str> {
+    if b.features.is_empty() { Vec::new() } else { vec!["--features", b.features] }
+}
+
+/// Builds release `aegis-bin` (build `b`) through `ci/heavy.sh` and measures every criterion.
+pub fn measure(root: &Path, b: &Build) -> Result<Measured, String> {
+    let target = build_target(root, b);
     let status = Command::new(root.join("ci/heavy.sh"))
         .current_dir(root)
+        .env("CARGO_TARGET_DIR", &target)
         .args(["cargo", "build", "--release", "--locked", "-p", "aegis-bin"])
+        .args(feature_args(b))
         .status()
         .map_err(|e| format!("spawn ci/heavy.sh: {e}"))?;
     if !status.success() {
-        return Err(format!("BUDGET: FAIL (release build of aegis-bin failed: {status})"));
+        return Err(format!("BUDGET: FAIL (release build of aegis-bin ({}) failed: {status})", b.name));
     }
-    let bin = target_dir(root).join("release").join("aegis");
+    let bin = target.join("release").join("aegis");
     let bytes = std::fs::read(&bin).map_err(|e| format!("read {}: {e}", bin.display()))?;
     let size_bytes = bytes.len() as u64;
     let stripped = elf_has_section(&bytes, ".symtab").map(|has| !has);
     drop(bytes);
 
-    let (third_party, workspace) = shipped_crates(root)?;
+    let (third_party, workspace) = shipped_crates(root, b)?;
     let (unsafe_crypto, unsafe_noncrypto, unsafe_by_crate, missing_sources) = count_unsafe(&third_party);
     let idle_rss = idle_rss(&bin, root);
     Ok(Measured {
@@ -254,9 +297,8 @@ pub fn parse_tree(out: &str, root: &Path) -> (Crates, Crates) {
     (third.into_iter().collect(), ws.into_iter().collect())
 }
 
-fn shipped_crates(root: &Path) -> Result<(Crates, Crates), String> {
-    let out = crate::run(Command::new("cargo").current_dir(root).args([
-        "tree",
+fn shipped_crates(root: &Path, b: &Build) -> Result<(Crates, Crates), String> {
+    let out = crate::run(Command::new("cargo").current_dir(root).arg("tree").args(feature_args(b)).args([
         "--locked",
         "-p",
         "aegis-bin",
@@ -678,6 +720,35 @@ fn self_test_run() -> Result<(), String> {
     if !judge(&edge).is_empty() {
         failures.push("input exactly at the limits was rejected".into());
     }
+    // The native build (PLAN D17): its own 8.0 MB ceiling, the shared limits otherwise; the core keeps 6.0 MB.
+    let native_ok = Measured { size_bytes: 7_900_000, ..base.clone() };
+    if judge_build(&native_ok, &NATIVE).is_empty() && !judge_build(&native_ok, &CORE).is_empty() {
+        println!("  native 7.9 MB: PASS under the native ceiling, FAIL under the core limit (as required)");
+    } else {
+        failures.push("7.9 MB must pass the native ceiling and fail the core limit".into());
+    }
+    let native_over: Vec<(&str, Measured)> = vec![
+        ("native size 8.1 MB", Measured { size_bytes: 8_100_000, ..base.clone() }),
+        (
+            "native 61 crates",
+            Measured { third_party: (0..61).map(|i| (format!("c{i}"), "1.0.0".into())).collect(), ..base.clone() },
+        ),
+        ("native unstripped", Measured { stripped: Some(false), ..base.clone() }),
+    ];
+    for (label, m) in &native_over {
+        let v = judge_build(m, &NATIVE);
+        if v.is_empty() {
+            failures.push(format!("over-budget input '{label}' was not rejected"));
+        } else {
+            println!("  over-budget '{label}': FAIL (as required: {})", v.join("; "));
+        }
+    }
+    if !judge_build(&Measured { size_bytes: MAX_NATIVE_STRIPPED_BYTES, ..base.clone() }, &NATIVE).is_empty() {
+        failures.push("native input exactly at the ceiling was rejected".into());
+    }
+    if NATIVE.features != "native" || !CORE.features.is_empty() || CORE.max_size != 6_000_000 {
+        failures.push("build table: the default build must be featureless at 6.0 MB, native at `native`".into());
+    }
     // Lexer: comment/string/char occurrences do not count; code occurrences do; crypto classification.
     let src = "// unsafe\n/* unsafe /* nested */ unsafe */ let s = \"unsafe\";\nlet r = r#\"unsafe\"#;\n\
                let c = '\"'; unsafe { f() }\nfn g<'a>(x: &'a u8) {}\nunsafe_fn();\nunsafe impl Send for X {}\n";
@@ -711,9 +782,35 @@ pub fn budget(self_test: bool) -> Result<(), String> {
         return self_test_run();
     }
     let root = repo_root();
-    let m = measure(&root)?;
-    println!("budget: aegis-bin default release build ({})", target_dir(&root).join("release/aegis").display());
-    print_table(&m);
+    let mut lines = Vec::new();
+    let mut failed = false;
+    for b in [CORE, NATIVE] {
+        match report(&root, &b) {
+            Ok(l) => lines.push(l),
+            Err(l) => {
+                failed = true;
+                lines.push(l);
+            }
+        }
+    }
+    let all = lines.join("; ");
+    if failed {
+        return Err(format!("BUDGET: FAIL ({all})"));
+    }
+    println!("BUDGET: PASS ({all})");
+    Ok(())
+}
+
+/// Measure, print and judge one build. `Ok`/`Err` carry its summary line.
+fn report(root: &Path, b: &Build) -> Result<String, String> {
+    let m = measure(root, b)?;
+    let feats = if b.features.is_empty() { String::new() } else { format!(", --features {}", b.features) };
+    println!(
+        "budget: aegis-bin {} release build{feats} ({})",
+        b.name,
+        build_target(root, b).join("release/aegis").display()
+    );
+    print_table(&m, b);
     println!(
         "  third-party shipped: {}",
         m.third_party.iter().map(|(n, v)| format!("{n} {v}")).collect::<Vec<_>>().join(", ")
@@ -732,22 +829,23 @@ pub fn budget(self_test: bool) -> Result<(), String> {
             println!("  note: runtime criterion not judged yet: {why}");
         }
     }
-    let v = judge(&m);
+    let v = judge_build(&m, b);
     let summary = format!(
-        "size {} B, {} third-party + {} workspace crates, non-crypto unsafe {} lines, crypto unsafe {} lines",
+        "{}: size {} B (<= {}), {} third-party + {} workspace crates, non-crypto unsafe {} lines, crypto unsafe {} lines",
+        b.name,
         m.size_bytes,
+        b.max_size,
         m.third_party.len(),
         m.workspace.len(),
         m.unsafe_noncrypto,
         m.unsafe_crypto
     );
     if v.is_empty() {
-        println!("BUDGET: PASS ({summary})");
-        Ok(())
+        Ok(summary)
     } else {
         for x in &v {
             println!("  - {x}");
         }
-        Err(format!("BUDGET: FAIL ({}; {summary})", v.join("; ")))
+        Err(format!("{}; {summary}", v.join("; ")))
     }
 }

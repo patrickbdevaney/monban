@@ -1,6 +1,6 @@
 [package]
 name = "aegis-bin"
-description = "Assembly: reverse-proxy mode R (listeners, canonical forwarding, admin metrics, audit, reload, upgrade); fail-closed boot."
+description = "Assembly: reverse-proxy mode R (listeners, canonical forwarding, admin metrics, audit, reload, upgrade), native apps over the golden data plane (modes A/D); fail-closed boot."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,9 +16,9 @@ path = "src/main.rs"
 
 [dependencies]
 aegis-adapter-host = { workspace = true }
-aegis-adapter-pg = { workspace = true }
-aegis-adapter-redis = { workspace = true }
-aegis-adapter-sqlite = { workspace = true }
+aegis-adapter-pg = { workspace = true, optional = true }
+aegis-adapter-redis = { workspace = true, optional = true }
+aegis-adapter-sqlite = { workspace = true, optional = true }
 aegis-admission = { workspace = true }
 aegis-agent = { workspace = true }
 aegis-audit = { workspace = true }
@@ -26,17 +26,23 @@ aegis-authz = { workspace = true }
 aegis-budget = { workspace = true }
 aegis-canon = { workspace = true }
 aegis-config = { workspace = true }
-aegis-data-ir = { workspace = true }
+aegis-data-ir = { workspace = true, optional = true }
 aegis-egress = { workspace = true }
 aegis-iso = { workspace = true }
 aegis-metrics = { workspace = true }
 aegis-ops = { workspace = true }
-aegis-state = { workspace = true }
+aegis-state = { workspace = true, optional = true }
 aegis-tls = { workspace = true }
 aegis-token = { workspace = true }
 aegis-transport = { workspace = true }
 aegis-types = { workspace = true }
 aegis-wasm = { workspace = true }
+# Native applications (modes A/D, layer "app"): only L5 may depend on them (cargo xtask layering). aegis-bin itself
+# never depends on aegis-sdk (only aegis-adapter-host and apps may); the SDK host loop stays in aegis-adapter-host.
+notes = { path = "../../apps/notes", optional = true }
+# Already in the graph through aegis-adapter-sqlite / aegis-state (root pin, bundled C SQLite): named here only to
+# read row values back from `SqliteDb::run` (rusqlite::types::Value). No new crate.
+rusqlite = { workspace = true, optional = true }
 # Third-party: root pins only, every crate already in Cargo.lock. tokio: no `macros` (tokio-macros is not in the
 # lock) and no `signal` (signal-hook-registry is not in the lock; signals go through aegis-ops sigwait).
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "time", "sync", "io-util"] }
@@ -49,8 +55,20 @@ http = { workspace = true }
 rustls = { workspace = true }
 
 [features]
+# The default build is the core (mode R, gateway G): the unchanged §6 budget (<= 6 MB stripped, <= 60 crates).
 default = []
-# Oracle negative controls ONLY (oracles/proxy-e2e --self-test): env-var hooks that break forwarding, the
+# Native data plane, modes A/D (PLAN D17, DEVIATIONS X-12): app routes (`app:<name>`), the golden SQLite/PG engines
+# (bundled C SQLite) and the linked apps. Its own budget ceiling: 8.0 MB stripped (`cargo xtask budget`).
+native = [
+    "dep:aegis-adapter-pg",
+    "dep:aegis-adapter-redis",
+    "dep:aegis-adapter-sqlite",
+    "dep:aegis-data-ir",
+    "dep:aegis-state",
+    "dep:notes",
+    "dep:rusqlite",
+]
+# Oracle negative controls ONLY (oracles/proxy-e2e --self-test; oracles/native-e2e with `native,e2e-mutants`): env-var hooks that break forwarding, the
 # INV-NONEMPTY deny and last-known-good. Never part of a shipped build; the default build has no hook code.
 e2e-mutants = ["aegis-transport/e2e-raw-target"]
 
