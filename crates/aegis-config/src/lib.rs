@@ -12,11 +12,17 @@
 //!   rollback, driven by explicit transitions with the clock passed in (no I/O).
 //! * [`defaults_json`]: the schema defaults as a canonical JSON document (`aegis check-config --print-effective`).
 //!
+//! * [`DataBlock`] / [`RouteData`] (F8 `data`, Phase 4): backends and per-route data endowments. Absent
+//!   `routes[].data` means no data capability (never unrestricted); `"unrestricted"` only as the explicit literal
+//!   (CI-gated by `ci/unrestricted.py`). Backend references and engine pins are checked at load; column names are
+//!   resolved at boot through [`SchemaProvider`] ([`Config::resolve_data`]). See the `data` module docs.
+//!
 //! INV-NONEMPTY: a route without an `authz` policy (or with an empty policy name) is denied
 //! ([`Route::authz_requirement`]); every limit has a schema maximum and a default, so no effective limit is
 //! unbounded.
 #![forbid(unsafe_code)]
 
+mod data;
 mod emit;
 mod parse;
 mod sha256;
@@ -24,6 +30,11 @@ mod store;
 
 use std::fmt;
 
+pub use data::{
+    Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine, FieldId, MAX_BACKENDS, MAX_CAP_COLUMNS, MAX_CAPS,
+    PinInfo, ResolvedCap, ResolvedData, ResolvedRoute, RouteData, SchemaProvider, UNRESTRICTED, Unresolved, engine_pin,
+    engine_pins,
+};
 pub use sha256::{hex, sha256};
 pub use store::{ConfigStore, Generation, Health, Phase, RolloutPolicy, StageError};
 
@@ -84,6 +95,20 @@ pub enum ErrorKind {
     DuplicateHost,
     /// Cross-field: two routes of one vhost share an id.
     DuplicateRouteId,
+    /// Cross-field: two `data.backends` share an id.
+    DuplicateBackend,
+    /// Cross-field: a cap's `backend` names no declared backend (or there is no `data` block).
+    UnknownBackend,
+    /// `pin` names no entry of `supply-chain/engine-pins.toml`.
+    UnknownPin,
+    /// `pin` names an entry whose engine family differs from `engine`.
+    PinEngineMismatch,
+    /// Boot ([`Config::resolve_data`]): the collection is not in the introspected schema.
+    UnknownCollection,
+    /// Boot ([`Config::resolve_data`]): a column is not in the introspected schema.
+    UnknownColumn,
+    /// Boot ([`Config::resolve_data`]): the backend's schema could not be introspected.
+    SchemaUnavailable,
 }
 
 /// A rejected config: kind, JSON pointer to the offending value (`""` is the document root) and a static detail.
@@ -131,6 +156,8 @@ pub struct Config {
     admin: Option<Admin>,
     limits: Limits,
     canon: Canon,
+    /// F8 `data`; `None` when absent.
+    data: Option<DataBlock>,
     canonical: Box<[u8]>,
     hash: [u8; 32],
 }
@@ -271,6 +298,9 @@ pub struct Route {
     pub path: String,
     pub to: RouteTarget,
     pub authz: Option<String>,
+    /// F8 `routes[].data`. `None` (absent): the route holds no data capability and reaches no backend; it is
+    /// never unrestricted. See [`RouteData`].
+    pub data: Option<RouteData>,
 }
 
 /// What a route requires before any request reaches its target.

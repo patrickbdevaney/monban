@@ -11,7 +11,7 @@
  "gates": [],
  "spec_refs": [
   "IMPLEMENTATION_PLAN Phase 4 'PG minor floor asserted; PG19 blocked until ON CONFLICT fix'",
-  "ARCHITECTURE §3.8 R-DB-1 (PG >= 18.6 / 17.11; recycle pooled connections after minor upgrades, CVE-2026-14666), R-DB-8 PG19 gate (wpo-pg-onconflict-where-peek A 0.86)"
+  "ARCHITECTURE \u00a73.8 R-DB-1 (PG >= 18.6 / 17.11; recycle pooled connections after minor upgrades, CVE-2026-14666), R-DB-8 PG19 gate (wpo-pg-onconflict-where-peek A 0.86)"
  ],
  "oracles": [
   "fake PG v3 server (stdlib Python) answering startup with server_version / server_version_num from a version matrix (16.x, 17.10, 17.11, 18.5, 18.6, 19beta, 19rc1, 19.0, garbage, missing); PASS iff the subject refuses exactly the versions engine-pins.toml refuses, and refuses a pooled connection whose server reports a different version on reconnect",
@@ -27,6 +27,6 @@
  "notes": "Subject protocol: {op:'connect', dsn} -> {ok:true, server_version} | {refuse:'<reason>'}. No third-party drivers.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: 52 offline cases, 9/9 mutants; live 19rc1 refuse / 17.11 + 18.6 accept"
 }

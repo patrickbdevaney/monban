@@ -31,6 +31,6 @@
  "notes": "aegis-bin check-config --print-effective must print the data block; if that needs bin changes, hand back (bin is P4-bin-001's scope).",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: F8 data block parsed/validated, 394 tests incl 1e6 totality; unrestricted ledger PASS; mirror types (no config->data-ir edge), blocked pins refused at connect per F8"
 }
