@@ -17,8 +17,8 @@
   "schema-gate-pg"
  ],
  "spec_refs": [
-  "SPEC §E lowering soundness (Exact on PG: col::text = $n::text COLLATE \"C\", bigint compares)",
-  "SPEC §E W1-W7 mandated forms (composite arbiters, FORCE RLS + WITH CHECK, ON CONFLICT names the key, guard compares binary text both sides, no user expressions in upsert WHERE)",
+  "SPEC \u00a7E lowering soundness (Exact on PG: col::text = $n::text COLLATE \"C\", bigint compares)",
+  "SPEC \u00a7E W1-W7 mandated forms (composite arbiters, FORCE RLS + WITH CHECK, ON CONFLICT names the key, guard compares binary text both sides, no user expressions in upsert WHERE)",
   "R-DB-7 live check_schema",
   "R-DB-1 SET LOCAL ROLE per tenant, tenant GUCs is_local=true"
  ],
@@ -40,6 +40,6 @@
  ],
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass (gate runner on main): lowering-read-pg 100k x2 engines, lowering-write-pg n=300 incl RLS 1448/engine, schema-gate-pg 37 x2; mandated upsert form only"
 }
