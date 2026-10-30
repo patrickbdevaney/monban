@@ -13,6 +13,11 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-audit = { workspace = true }
+# Pre-wired by P4-spec-002: durable store on bundled SQLite 3.53.2 (crash-harness pin; trusted, not verified C),
+# idempotency-key digests via aws-lc-rs, Op IR for the outbox.
+aegis-data-ir = { workspace = true }
+aws-lc-rs = { workspace = true }
+rusqlite = { workspace = true }
 
 [lints]
 workspace = true

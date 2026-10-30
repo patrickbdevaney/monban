@@ -26,8 +26,11 @@ version = "0.0.0"
 dependencies = [
  "aegis-authz",
  "aegis-data-ir",
+ "aegis-sdk",
+ "aegis-state",
  "aegis-types",
  "rustix",
+ "tokio",
 ]
 
 [[package]]
@@ -36,6 +39,8 @@ version = "0.0.0"
 dependencies = [
  "aegis-data-ir",
  "aegis-types",
+ "aws-lc-rs",
+ "rustix",
 ]
 
 [[package]]
@@ -44,6 +49,7 @@ version = "0.0.0"
 dependencies = [
  "aegis-data-ir",
  "aegis-types",
+ "rustix",
 ]
 
 [[package]]
@@ -52,6 +58,7 @@ version = "0.0.0"
 dependencies = [
  "aegis-data-ir",
  "aegis-types",
+ "rusqlite",
 ]
 
 [[package]]
@@ -145,6 +152,7 @@ name = "aegis-data-ir"
 version = "0.0.0"
 dependencies = [
  "aegis-types",
+ "aws-lc-rs",
 ]
 
 [[package]]
@@ -209,7 +217,10 @@ name = "aegis-state"
 version = "0.0.0"
 dependencies = [
  "aegis-audit",
+ "aegis-data-ir",
  "aegis-types",
+ "aws-lc-rs",
+ "rusqlite",
 ]
 
 [[package]]
@@ -727,8 +738,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "find-msvc-tools"
@@ -1110,6 +1133,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
+name = "libsqlite3-sys"
+version = "0.38.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1d20bef17f513b9b3004532233187769cd072d790971f4e4da0e346eb6401e8"
+dependencies = [
+ "cc",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1470,6 +1504,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusqlite"
+version = "0.40.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23f2a97da3e3873c73cb2a2e71b35c40ff95e0b1eefa8d72d8499a6928c3b5b3"
+dependencies = [
+ "bitflags 2.13.2",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "libsqlite3-sys",
+ "smallvec",
+]
+
+[[package]]
 name = "rustc-literal-escaper"
 version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1485,7 +1532,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2012,6 +2059,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "vcpkg"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2084,7 +2137,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

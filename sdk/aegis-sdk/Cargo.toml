@@ -15,5 +15,10 @@ aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
 aegis-authz = { workspace = true }
 
+[features]
+default = []
+# Host driving loop (D2(b)). Only aegis-adapter-host may enable it (`cargo xtask layering`, OWNERS).
+host = []
+
 [lints]
 workspace = true
