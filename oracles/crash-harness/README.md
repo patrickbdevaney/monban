@@ -9,7 +9,7 @@ plan's open items **double fault** (a crash during recovery) and **fsync EIO** (
 
 ```
 oracles/crash-harness/run                       # reduced run, ~3 min on the laptop, ~20k crash images
-oracles/crash-harness/run --self-test           # 6 mutations, all must be caught (~15 s)
+oracles/crash-harness/run --self-test           # 7 mutations, all must be caught (~50 s incl. the build)
 oracles/crash-harness/run --full                # research-size run: CI/VPS job (see "Full size")
 oracles/crash-harness/run --subject '<cmd> {dir}'   # plug in the aegis-state store (see "Subject protocol")
   options: --txns N --cuts N --seeds 1,2,3 --eio N --double N --double-cuts N --jobs N --keep --keep-build
@@ -81,9 +81,16 @@ clean. `--self-test` passes iff every mutation is caught:
 | fsync EIO treated as success (tracer `AEGIS_EIO_SWALLOW=1`) | wal:crc | `ack_after_eio` (+ `lost_ack`) |
 | extra: redb `Durability::None` | redb:none | `lost_ack` |
 | extra: own log without fsync | wal:naive | `lost_ack` |
+| no `journal_mode`/`synchronous` re-check after the first write (`--no-mode-recheck`, q2-007 assertion 1), EIO on fsync #1 only | sqlite:wal-full | `ack_after_eio` or `lost_ack` |
 
 With `--subject`, the self-test also runs the EIO-swallow mutation against the subject, plus `--ack-early` /
-`--no-dirsync` if the subject advertises them in its READY line (`mutations=ack-early,no-dirsync`).
+`--no-dirsync` / `--no-mode-recheck` if the subject advertises them in its READY line
+(`mutations=ack-early,no-dirsync,no-mode-recheck`). `no-mode-recheck` runs the EIO stage at k=1 only and is caught by
+either `ack_after_eio` or `lost_ack`.
+
+`no-mode-recheck` runs on `sqlite:wal-full`, not on `wal:crc` as the unit text P4-oracle-state-001 says. The own log
+has no journal mode that could fall back, so the mutation has no meaning there. aegis-state is SQLite WAL FULL
+(P4-state-001), and the fallback was found on SQLite. refstore advertises the flag only for the sqlite store.
 
 ## Subject protocol (for the future aegis-state store)
 
@@ -92,7 +99,8 @@ newline-terminated text over stdin/stdout:
 
 ```
 start                 -> open/create the store in {dir}; bootstrap (fsync files, then the dir); print
-                         "READY <free text> [mutations=ack-early,no-dirsync]"   or   "ERR open <msg>" and exit != 0
+                         "READY <free text> [mutations=ack-early,no-dirsync,no-mode-recheck]"
+                         or   "ERR open <msg>" and exit != 0
 BEGIN <i>             -> "BEGUN <i>"
 PUT <t> <khex> <vhex> -> (no reply) buffer a put into table t ∈ {0,1}
 COMMIT <i>            -> "OK <i>" only once the txn is durable;  "ERR <i> <msg>" otherwise. After any ERR the store
@@ -109,6 +117,9 @@ Requirements, all checked:
   io_uring, static binaries) bypass LD_PRELOAD; the audit catches a missing O/W/S trace but cannot see partial
   bypass, so build Rust subjects with `RUSTFLAGS='--cfg rustix_use_libc'` (research lesson from fjall);
 - no writable shared mmap of durable files.
+- a SQLite-backed subject must re-read `journal_mode` and `synchronous` after its first write and refuse to start if
+  either is not what it set (q2-007 assertion 1). `--no-mode-recheck` skips that re-read; P4-state-001 must advertise
+  and implement it.
 
 The trait the aegis-state crate should expose, so its CLI wrapper is ~40 lines:
 
@@ -145,6 +156,9 @@ runs as a CI/VPS job:
 HEAVY_TIMEOUT=7200 oracles/crash-harness/run --full --jobs 16
 ```
 
+Phase 4 (units/phase-4/PLAN.md, Q2): the GO runs `--full` remotely with `HEAVY_TIMEOUT=7200`, and PR checks run the
+reduced size (the default). `./run` passes `HEAVY_TIMEOUT` through to `ci/heavy.sh` (default 1800).
+
 ## Provenance (research artifacts are untrusted input: read and ported, never executed in place)
 
 | file (research/state/raw/) | sha256 |
@@ -168,6 +182,16 @@ What changed from research: the C shim became a Rust cdylib (only the variadic `
 moved into the driver behind a subject protocol; post-ack cuts are enumerated instead of only sampled; EIO and
 double-fault stages were added; the coverage audit fails closed; the stores are reduced to the golden floor (SQLite,
 redb) plus the own-log controls (fjall/heed/canopydb/sled dropped).
+
+## Re-run in repo (2026-10-30, laptop, after adding `no-mode-recheck`)
+
+- `./run`: `CRASH-HARNESS: PASS (images=19860 [main=9790 eio=710 double=9360], subjects=3, seeds=1, 155s)`. The
+  per-subject counts are identical to the 2026-10-25 table below (the reference path is unchanged).
+- `./run --self-test`: `CRASH-HARNESS SELF-TEST: PASS (7/7 mutations caught; images=6860)`. The six existing mutations
+  give the same counts as before. `no-mode-recheck`: EIO on fsync #1 (`s.db-journal`, op 4) is swallowed by SQLite's
+  fallback, the store prints READY and acks all 40 txns. Result: `ack_after_eio` (ack M1 at op 67 after the EIO), plus
+  `lost_ack` in 126 of 1,230 images. The unmutated `sqlite:wal-full` refuses to start at the same point
+  (`ERR open journal_mode=WAL not in effect after schema write`).
 
 ## Re-run in repo (2026-10-25, laptop, rustc 1.99.1, SQLite 3.53.2, redb 4.4.0)
 

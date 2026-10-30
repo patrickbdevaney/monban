@@ -525,6 +525,9 @@ def self_test(a, seeds):
         ('fsync EIO treated as success', ref('wal', 'crc'), dict(eio=4, eio_env={'AEGIS_EIO_SWALLOW': '1'}), 'ack_after_eio'),
         ('extra: redb Durability::None', ref('redb', 'none'), dict(), 'lost_ack'),
         ('extra: own log without fsync', ref('wal', 'naive'), dict(), 'lost_ack'),
+        # q2-007 assertion 1 (journal_mode re-check after the first write), as found by the EIO stage: EIO on fsync #1
+        # makes SQLite fall back to the rollback journal silently; without the re-check the store serves and acks
+        ('no journal_mode re-check after first write (EIO k=1)', ref('sqlite', 'wal-full', '--no-mode-recheck'), dict(eio=1), 'ack_after_eio|lost_ack'),
     ]
     if a.subject:
         cs = subject_from_cli(a.subject)
@@ -534,13 +537,15 @@ def self_test(a, seeds):
         adv = advertised.group(1).split(',') if advertised else []
         if 'ack-early' in adv: muts.append(('subject: ack before fsync', Subject(cs.name + ' --ack-early', cs.argv, ['--ack-early']), dict(), 'lost_ack'))
         if 'no-dirsync' in adv: muts.append(('subject: skip parent-dir fsync', Subject(cs.name + ' --no-dirsync', cs.argv, ['--no-dirsync']), dict(), 'lost_ack'))
+        if 'no-mode-recheck' in adv: muts.append(('subject: no journal_mode re-check (EIO k=1)', Subject(cs.name + ' --no-mode-recheck', cs.argv, ['--no-mode-recheck']), dict(eio=1), 'ack_after_eio|lost_ack'))
     print(f"crash-harness self-test: txns={small['txns']} random_cuts={small['cuts']} seed={small['seed']}")
     caught, missed, total = 0, [], 0
     for desc, subj, over, want in muts:
         cfg = make_cfg(a, **small); [setattr(cfg, k, v) for k, v in over.items()]
         summ = run_subject(subj, cfg, None); total += summ.get('images', 0)
-        hit = any(want in v for v in summ['violations'])
-        n_want = sum(n for k, v in summ.get('bad', {}).items() for c, n in v.items() if c == want) or sum(want in v for v in summ['violations'])
+        wants = want.split('|')                        # 'a|b': any of the listed violation kinds counts as caught
+        hit = any(w in v for v in summ['violations'] for w in wants)
+        n_want = sum(n for k, v in summ.get('bad', {}).items() for c, n in v.items() if c in wants) or sum(any(w in v for w in wants) for v in summ['violations'])
         print(f"  [{'caught' if hit else 'MISSED'}] {desc}: {want} x{n_want or ''} ({len(summ['violations'])} violations, {summ.get('images', 0)} images)")
         if hit: caught += 1
         else: missed.append(desc)

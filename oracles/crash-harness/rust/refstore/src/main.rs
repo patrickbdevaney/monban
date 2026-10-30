@@ -2,13 +2,14 @@
 //! Port of research round-002 `wl/src/main.rs`, restricted to the golden floor (SQLite, redb) plus the own-log
 //! controls, with the workload moved into the driver (the oracle owns the workload; a subject is only a store).
 //!
-//! usage: refstore serve <store> <cfg> <dir> [--no-dirsync] [--ack-early]
+//! usage: refstore serve <store> <cfg> <dir> [--no-dirsync] [--ack-early] [--no-mode-recheck]
 //!   sqlite: wal-full | wal-normal | wal-extra | del-full | del-normal | trunc-full
 //!   redb:   2pc (2PC + Durability::Immediate) | imm (1PC+C Immediate, redb default) | none (Durability::None)
 //!   wal:    crc (len|crc32|payload records, fdatasync per commit, CRC-terminated recovery) | naive (no fsync)
 //! Bootstrap (INV-DURABLE): after opening, fsync every file under <dir>, then <dir> and its subdirectories, before
 //! printing READY. Self-test mutations: `--no-dirsync` skips the directory fsyncs; `--ack-early` replies OK before the
-//! commit (and its fsync) has run.
+//! commit (and its fsync) has run; `--no-mode-recheck` (sqlite only) skips the journal_mode/synchronous re-read after
+//! the first write (q2-007 assertion 1), so a silent WAL -> rollback-journal fallback is served.
 use std::collections::BTreeMap;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -26,7 +27,7 @@ mod sqlite_s {
     use super::*;
     use rusqlite::*;
     pub struct S(Connection);
-    pub fn open(dir: &Path, cfg: &str) -> Result<S, String> {
+    pub fn open(dir: &Path, cfg: &str, recheck: bool) -> Result<S, String> {
         let v = rusqlite::version_number();
         if v < 3_051_003 {
             return Err(format!("SQLite {} below golden floor 3.51.3", rusqlite::version()));
@@ -51,6 +52,9 @@ mod sqlite_s {
             "PRAGMA synchronous={sy}; CREATE TABLE IF NOT EXISTS t0(k BLOB PRIMARY KEY, v BLOB); CREATE TABLE IF NOT EXISTS t1(k BLOB PRIMARY KEY, v BLOB);"
         ))
         .map_err(|e| e.to_string())?;
+        if !recheck {
+            return Ok(S(c)); // MUTATION (--no-mode-recheck): trust the first PRAGMA answer
+        }
         // Re-read after the first write: on a fresh file the WAL conversion happens lazily, and an I/O error there
         // makes SQLite fall back to the rollback journal while the earlier PRAGMA already reported "wal".
         let now: String = c.query_row("PRAGMA journal_mode", [], |r| r.get(0)).map_err(|e| e.to_string())?;
@@ -245,9 +249,9 @@ mod wal_s {
     }
 }
 
-fn open(store: &str, cfg: &str, dir: &Path) -> Result<Box<dyn Store>, String> {
+fn open(store: &str, cfg: &str, dir: &Path, recheck: bool) -> Result<Box<dyn Store>, String> {
     Ok(match store {
-        "sqlite" => Box::new(sqlite_s::open(dir, cfg)?),
+        "sqlite" => Box::new(sqlite_s::open(dir, cfg, recheck)?),
         "redb" => Box::new(redb_s::open(dir, cfg)?),
         "wal" => Box::new(wal_s::open(dir, cfg)?),
         _ => return Err(format!("unknown store {store}")),
@@ -312,20 +316,23 @@ fn hex(b: &[u8]) -> String {
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.len() < 5 || a[1] != "serve" {
-        eprintln!("usage: refstore serve <store> <cfg> <dir> [--no-dirsync] [--ack-early]");
+        eprintln!("usage: refstore serve <store> <cfg> <dir> [--no-dirsync] [--ack-early] [--no-mode-recheck]");
         std::process::exit(2);
     }
     let (store, cfg, dir) = (&a[2], &a[3], Path::new(&a[4]));
     let dirsync = !a[5..].iter().any(|x| x == "--no-dirsync");
     let ack_early = a[5..].iter().any(|x| x == "--ack-early");
-    let mut s = match open(store, cfg, dir).and_then(|s| bootstrap(dir, dirsync).map(|_| s)) {
+    let recheck = !a[5..].iter().any(|x| x == "--no-mode-recheck");
+    let mut s = match open(store, cfg, dir, recheck).and_then(|s| bootstrap(dir, dirsync).map(|_| s)) {
         Ok(s) => s,
         Err(e) => {
             reply(&format!("ERR open {}", e.replace('\n', " ")));
             std::process::exit(3);
         }
     };
-    reply(&format!("READY refstore {store}/{cfg} sqlite={} mutations=ack-early,no-dirsync", rusqlite::version()));
+    // no-mode-recheck only means something for SQLite (the only store with a journal mode to fall back from)
+    let muts = if store == "sqlite" { "ack-early,no-dirsync,no-mode-recheck" } else { "ack-early,no-dirsync" };
+    reply(&format!("READY refstore {store}/{cfg} sqlite={} mutations={muts}", rusqlite::version()));
     let mut puts: Puts = Vec::new();
     let mut poisoned = false;
     let stdin = std::io::stdin();
