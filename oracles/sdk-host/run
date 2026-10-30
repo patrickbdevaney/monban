@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# SDK-HOST oracle entry point (oracles/README.md contract): F7b streaming host obligations (q4-001).
+#   ./run [--seeds N] [--tail N]           reference subject (default 200 seeds)
+#   ./run --subject '<cmd>'                external host speaking the README protocol
+#   ./run --self-test [--subject '<cmd>']  reference mutants (and the subject's own --mutate variants) must go red
+# Stdlib Python, isolated mode. Last line: SDK-HOST: PASS|FAIL (...) / SDK-HOST SELF-TEST: PASS|FAIL (...).
+set -u
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec python3 -I -B "$here/sdk_host.py" "$@"
