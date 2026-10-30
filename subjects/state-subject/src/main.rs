@@ -5,8 +5,9 @@
 //!
 //! The wrapper only parses lines: BEGIN is [`State::begin`], WRITE is [`Lease::write`], EFFECT is
 //! [`State::effect`], COMMIT is [`State::commit`] (the commit point; 202 when the timer fired after CP), ABORT is
-//! [`State::abort`], DELIVER is one [`State::deliver`] pass whose sink writes and flushes the EFF line (so an effect
-//! is marked delivered only after its line is out), DUMP lists the committed user rows. Leases live in memory.
+//! [`State::abort`], DELIVER is one [`State::deliver`] pass whose sink writes the EFF line and waits for the oracle's
+//! ACK (so an effect is marked delivered only after the sink took it), DUMP lists the committed user rows. Leases
+//! live in memory.
 //!
 //! Self-test mutations: `idem-key-without-principal`, `replay-reexecutes`, `effect-before-commit` and
 //! `outbox-drop-on-restart` are aegis-state's hidden [`StateMutations`]; `latch-returns-408` (a 202 is printed as
@@ -150,7 +151,8 @@ fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
     let mut open: HashMap<String, Lease> = HashMap::new();
     let mut unstable_n = 0u64;
     let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
+    let mut lines = stdin.lock().lines();
+    while let Some(line) = lines.next() {
         let Ok(line) = line else { break };
         let a: Vec<&str> = line.split_whitespace().collect();
         let r = match a.as_slice() {
@@ -241,7 +243,13 @@ fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
                             *d = *s;
                         }
                     }
-                    reply(&format!("EFF {} {}", hex(&dd), hex(&e.payload)))
+                    reply(&format!("EFF {} {}", hex(&dd), hex(&e.payload)))?;
+                    // The sink accepted the effect only once the oracle ACKs it: a line still in the pipe is not
+                    // delivered, so an unACKed effect stays pending across a SIGKILL.
+                    match lines.next() {
+                        Some(Ok(ack)) if ack.trim() == "ACK" => Ok(()),
+                        _ => Err(()),
+                    }
                 });
                 match res {
                     Ok(_) => reply("END"),

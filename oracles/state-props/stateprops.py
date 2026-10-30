@@ -241,7 +241,8 @@ class Run:
             if s.delivered[pl]: s.stats['redeliveries'] += 1
             s.delivered[pl].add(dd)
             if mid_kill:
-                s.stats['mid_deliver_kills'] += 1; s.kill('inside DELIVER'); return
+                s.stats['mid_deliver_kills'] += 1; s.kill('inside DELIVER'); return   # this EFF is never ACKed
+            s.proc.send('ACK')
         if mid_kill: s.kill('after DELIVER')
     def dump_check(s, when):
         s.proc.send('DUMP'); got = {}
