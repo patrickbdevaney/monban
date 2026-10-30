@@ -103,8 +103,8 @@ remote = true
 
 [[gate]]
 name = "oracles-local"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && ci/oracles.sh run --where local"
-selftest = "ci/oracles.sh self-test --where local"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/oracles.sh run --where local"
+selftest = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && ci/oracles.sh self-test --where local"
 heavy = true
 
 [[gate]]

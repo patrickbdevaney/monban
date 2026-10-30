@@ -124,6 +124,8 @@ dependencies = [
  "h2",
  "http",
  "hyper",
+ "notes",
+ "rusqlite",
  "rustls",
  "tokio",
 ]
@@ -1314,6 +1316,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9737e026353e5cd0736f98eddae28665118eb6f6600902a7f50db585621fecb6"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "notes"
+version = "0.0.0"
+dependencies = [
+ "aegis-sdk",
 ]
 
 [[package]]

@@ -946,12 +946,12 @@ def subject_cmd(s):
 
 
 def build_mutant_subject():
-    target = os.path.join(REPO, "target", "e2e-mutants")
+    target = os.path.join(REPO, "target", "native-mutants")   # D17: the data plane is feature `native`
     binp = os.path.join(target, "release", "aegis")
     env = dict(os.environ, CARGO_TARGET_DIR=target)
     print(f"building the negative-control subject ({binp}) through ci/heavy.sh ...", flush=True)
     p = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q", "-p",
-                        "aegis-bin", "--features", "e2e-mutants"], cwd=REPO, env=env)
+                        "aegis-bin", "--features", "native,e2e-mutants"], cwd=REPO, env=env)
     return binp if p.returncode == 0 and os.access(binp, os.X_OK) else None
 
 
@@ -984,7 +984,7 @@ def main():
         return 1
 
     if a.subject:
-        subj = a.mutant_subject or os.path.join(REPO, "target", "e2e-mutants", "release", "aegis")
+        subj = a.mutant_subject or os.path.join(REPO, "target", "native-mutants", "release", "aegis")
         if not os.access(subj, os.X_OK):
             subj = build_mutant_subject()
             if not subj:

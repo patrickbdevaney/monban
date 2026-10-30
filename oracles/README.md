@@ -25,3 +25,6 @@ here, outside the implementer's write scope, and has been shown to FAIL on a neg
   (excluded from the main workspace), with its own `Cargo.lock`, built only through `ci/heavy.sh`.
 - Laptop safety (research §0e): every compile, load test or simulation goes through `ci/heavy.sh`; ≤1.5 GB of disk per
   oracle including build output; delete `target/` after measuring; no Docker image >500 MB; no apt/sudo.
+
+`needs` value `quiet-host` (2026-10-30): the oracle has wall-clock-sensitive checks (native-e2e lands cancels inside a
+1.2 s hold), so it runs only on the local quiet runner, never on the shared LAN build box.
