@@ -26,6 +26,6 @@
  "notes": "Subject protocol: JSON lines {op:'open'|'step'|'revoke'|'bump_epoch'|'run_jobs'} -> events {minted, decision, write, closed}.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: 200 seeds on reference; 11/11 mutants each red on own clause; ticks not wall time; mint counted at app entry"
 }
