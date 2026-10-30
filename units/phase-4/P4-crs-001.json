@@ -15,7 +15,7 @@
   "crs-data"
  ],
  "spec_refs": [
-  "SPEC §B CRS C2, C3, C5, C5b, C8",
+  "SPEC \u00a7B CRS C2, C3, C5, C5b, C8",
   "R-DB-5 no backend connection shared across tenants"
  ],
  "oracles": [
@@ -33,6 +33,6 @@
  "notes": "Fixes found here are limited to the two listed files; anything else is handed back as a finding.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass (gate runner on main): crs-data live pg17 + valkey, 6/6 mutants red live; crs-tls carried"
 }
