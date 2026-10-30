@@ -5,8 +5,10 @@
 //! re-checking that the session is still live, and fails closed (`SdkError::Unavailable`) when it is not.
 //! Host obligations (checked by the adapter-host oracle): per-step minting, never once per session; revoked
 //! sessions deny their queued jobs; an idle/step budget per stream.
-//! Deviation from the spike text: `detach` is a method of the host-provided `JobQueue` (the SDK `Ctx` carries no
-//! host handle), still requiring the committed-transaction proof.
+//! Deviation from the spike text: `detach` is a method of the host-provided `JobQueue`, still requiring the
+//! committed-transaction proof. Re-frozen 2026-10-30 (P4-spec-002, D2(b)): `JobQueue<'r>` is a supertrait of
+//! `TenantDb<'r>`, so every handler, step, message and job reaches `detach` through its db view. The SDK host collects
+//! queued jobs and returns them to the backend owner, which runs each later with a fresh job-scoped context.
 
 use crate::{Committed, Ctx, SdkError, TenantDb, Tx};
 use alloc::boxed::Box;
@@ -79,7 +81,8 @@ pub trait Job: Send + 'static {
     fn run<'j, D: TenantDb<'j>>(self, ctx: Ctx<'j>, db: &D) -> Result<(), SdkError>;
 }
 
-/// Host-provided queue. Jobs may only be queued after commit (INV-NOMUT-C).
+/// Host-provided queue, reached through `TenantDb` (its supertrait). Jobs may only be queued after commit
+/// (INV-NOMUT-C).
 pub trait JobQueue<'r> {
     fn detach<J: Job>(&self, after: &Tx<'r, Committed>, job: J) -> Result<(), SdkError>;
 }
