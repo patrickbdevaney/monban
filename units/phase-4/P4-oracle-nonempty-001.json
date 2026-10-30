@@ -9,7 +9,7 @@
  "start_now": true,
  "gates": [],
  "spec_refs": [
-  "SPEC §A INV-NONEMPTY: 'proptest 100k/adapter + boot test'; Unrestricted explicit and CI-gated; default config boot has no effective None limit",
+  "SPEC \u00a7A INV-NONEMPTY: 'proptest 100k/adapter + boot test'; Unrestricted explicit and CI-gated; default config boot has no effective None limit",
   "research node dpf-empty-means-all-pattern (A)"
  ],
  "oracles": [
@@ -29,6 +29,6 @@
  "notes": "Deterministic in-oracle generator (seeded, no proptest dependency); protocol: {op:'authorize', adapter, capset, op} -> {decision:'allow'|'deny', rendered:bool}; a reply with rendered=true on deny is a violation (render must not be reached). Reference subject in Python implements the F4 CapSet semantics. Subject mutants via --mutate.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: 100k cases x 4 adapters on reference subject; 17/17 mutants; unrestricted ledger 15/15 negative fixtures red"
 }
