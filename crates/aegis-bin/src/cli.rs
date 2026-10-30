@@ -1,7 +1,7 @@
 //! Command line.
 //!
 //! ```text
-//! aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>]
+//! aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>] [--token-keyring <file>]
 //! aegis check-config <path> [--print-effective]
 //! ```
 //! Certificate defaults: `$CREDENTIALS_DIRECTORY/tls.crt` and `tls.key` (systemd `LoadCredential=`). Audit default:
@@ -31,11 +31,13 @@ pub struct ServeOpts {
     pub key: Option<PathBuf>,
     pub audit_dir: Option<PathBuf>,
     pub runtime_dir: Option<PathBuf>,
+    /// F5 Tier-L key ring for app routes (`{"keys":[{"kid":hex,"key":64 hex}]}`, mode 0600; PLAN D16).
+    pub token_keyring: Option<PathBuf>,
     /// The original arguments (re-used verbatim by the upgrade child).
     pub args: Vec<OsString>,
 }
 
-pub const USAGE: &str = "usage: aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>]\n       aegis check-config <path> [--print-effective]";
+pub const USAGE: &str = "usage: aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>] [--token-keyring <file>]\n       aegis check-config <path> [--print-effective]";
 
 /// A command-line error (exit 64, EX_USAGE).
 #[derive(Debug)]
@@ -67,6 +69,7 @@ pub fn parse(args: &[OsString]) -> Result<Cmd, UsageError> {
         key: None,
         audit_dir: None,
         runtime_dir: None,
+        token_keyring: None,
         args: args.to_vec(),
     };
     let mut config = None;
@@ -79,6 +82,7 @@ pub fn parse(args: &[OsString]) -> Result<Cmd, UsageError> {
             Some("--key") => o.key = Some(path(it.next(), "--key")?),
             Some("--audit-dir") => o.audit_dir = Some(path(it.next(), "--audit-dir")?),
             Some("--runtime-dir") => o.runtime_dir = Some(path(it.next(), "--runtime-dir")?),
+            Some("--token-keyring") => o.token_keyring = Some(path(it.next(), "--token-keyring")?),
             _ => return Err(UsageError(format!("unknown argument {a:?}"))),
         }
     }

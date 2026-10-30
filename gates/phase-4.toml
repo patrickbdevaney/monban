@@ -29,7 +29,7 @@ selftest = "! zizmor --pedantic --offline ci/fixtures/bad-workflow.yml"
 
 [[gate]]
 name = "hygiene"
-cmd = "cargo fmt --all --check && ci/heavy.sh cargo clippy --workspace --all-targets --locked -q -- -D warnings"
+cmd = "cargo fmt --all --check && ci/heavy.sh cargo clippy --workspace --all-targets --locked -q -- -D warnings && ci/heavy.sh bash -c 'for m in apps/*/Cargo.toml; do CLIPPY_CONF_DIR=\"$PWD/oracles/sdk-trybuild\" cargo clippy --manifest-path \"$m\" --all-targets --locked -q -- -D warnings -D clippy::disallowed_methods -D clippy::disallowed_types || exit 1; done'"
 remote = true
 
 [[gate]]

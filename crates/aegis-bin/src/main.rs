@@ -9,13 +9,15 @@
 //! Modules: [`plan`] (config → listeners / routes), [`proxy`] (the `aegis_transport::App` that forwards: CANON-4;
 //! inbound h1 and h2 are served by `aegis_transport::Server` with the AEGIS wrapper), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
 //! clients), [`admin`] (metrics, healthz), [`audit`] (F9 admin events), [`tls`] (cert stores, profiles),
-//! [`serve`] (boot, signals, reload, upgrade).
+//! [`serve`] (boot, signals, reload, upgrade), [`native`] (modes A/D: `app:<name>` routes served by linked apps over
+//! the golden SQLite/PG data plane, Tier-L tokens, idempotency, NC1/NC2/NC7/NC8).
 #![forbid(unsafe_code)]
 
 mod admin;
 mod agent;
 mod audit;
 mod cli;
+mod native;
 mod plan;
 mod proxy;
 mod serve;

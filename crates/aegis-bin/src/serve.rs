@@ -37,8 +37,12 @@ pub const EX_CONFIG: u8 = 78;
 const EX_SOFTWARE: u8 = 70;
 const EX_OSERR: u8 = 71;
 const EX_IOERR: u8 = 74;
-/// UP-4 drain deadline D (upgrade and SIGTERM).
+/// UP-4 drain deadline D (upgrade).
 const DRAIN_DEADLINE: Duration = Duration::from_secs(10);
+/// NC8: SIGTERM to exit within T_drain = 10 s (PLAN D16). Connections get 8 s, then in-flight app scopes (pool
+/// tasks whose client already got its answer, e.g. a 504 before the commit point) the rest of 9 s.
+const TERM_DRAIN: Duration = Duration::from_secs(8);
+const TERM_SCOPES: Duration = Duration::from_secs(9);
 const HANDOVER_TIMEOUT: Duration = Duration::from_secs(10);
 /// Handover name of the admin listener (cannot collide: F8 listener names have no '.').
 const ADMIN_NAME: &str = "admin.ctl";
@@ -144,7 +148,20 @@ async fn public_conn(
 ) {
     let _g = ConnGuard::new(&shared);
     let _ = sock.set_nodelay(true);
+    // App handlers must see a client that went away before their commit point (NC1); the transport does not read
+    // the socket while a handler runs, so a duplicate of it is watched for FIN/RST readiness.
+    let watched = shared.native.is_some() && dup_socket(&sock).map(|d| shared.watch(addr, d)).is_ok();
     srv.serve_tls_from(sock, acc, Some(addr)).await;
+    if watched {
+        shared.unwatch(&addr);
+    }
+}
+
+fn dup_socket(sock: &tokio::net::TcpStream) -> std::io::Result<tokio::net::TcpStream> {
+    let fd = sock.as_fd().try_clone_to_owned()?;
+    let s = std::net::TcpStream::from(fd);
+    s.set_nonblocking(true)?;
+    tokio::net::TcpStream::from_std(s)
 }
 
 /// Upgrade hooks: the parent stops accepting and drains (UP-1/UP-4).
@@ -241,18 +258,28 @@ impl Ctl {
                 };
                 let cur = self.shared.snapshot();
                 let candidate = plan(&cfg).and_then(|p| {
-                    if p.same_sockets(&cur.plan) {
-                        Ok(p)
-                    } else {
-                        Err("listener or admin change: use the zero-downtime upgrade (SIGUSR2) after editing".into())
+                    if !p.same_sockets(&cur.plan) {
+                        return Err(
+                            "listener or admin change: use the zero-downtime upgrade (SIGUSR2) after editing".into()
+                        );
                     }
+                    // App routes are re-resolved against the schemas introspected at boot; a data plane that was
+                    // not booted cannot serve them (restart or upgrade).
+                    let bindings = match &self.shared.native {
+                        Some(dp) => Arc::new(dp.bind(&cfg)?),
+                        None if crate::native::has_app_routes(&cfg) => {
+                            return Err("app routes need the data plane booted at start (restart or upgrade)".into());
+                        }
+                        None => Arc::default(),
+                    };
+                    Ok((p, bindings))
                 });
                 match candidate {
                     Err(e) => {
                         let _ = self.store.rollback();
                         self.fallback("config.rollback", &e);
                     }
-                    Ok(p) => {
+                    Ok((p, bindings)) => {
                         let hash = cfg.config_hash();
                         let detail = [
                             ("generation", DetailValue::Int(i64::try_from(generation.0).unwrap_or(i64::MAX))),
@@ -269,7 +296,13 @@ impl Ctl {
                         } else {
                             // CRS C5: a changed config is a new epoch; pooled upstream connections are dropped.
                             let epoch = if hash == cur.hash { cur.epoch } else { cur.epoch.saturating_add(1) };
-                            self.install(Snapshot::new(generation.0, epoch, hash, p));
+                            let mut snap = Snapshot::new(generation.0, epoch, hash, p);
+                            snap.native = bindings;
+                            self.install(snap);
+                            // CRS C5 on the data plane: pooled PG connections of older epochs are retired.
+                            if let Some(dp) = &self.shared.native {
+                                dp.bump_epoch(epoch);
+                            }
                             bump(&self.shared.stats.config_reloads);
                             log(&format!("config generation {} applied ({})", generation.0, cfg.config_hash_hex()));
                         }
@@ -351,11 +384,25 @@ impl Ctl {
     }
 
     fn terminate(&mut self) {
+        let t0 = Instant::now();
         let _ = self.notifier.stopping();
+        if self.shared.mutants.ack_then_drop
+            && let Some(dp) = &self.shared.native
+        {
+            // NEGATIVE CONTROL (e2e-mutants only): fabricate successes for in-flight requests, exit uncommitted.
+            dp.dropping.store(true, Ordering::Release);
+            std::thread::sleep(Duration::from_millis(300));
+            std::process::exit(0);
+        }
         self.shared.stop_accept.store(true, Ordering::Release);
         self.shared.stop_notify.notify_waiters();
         self.offers.clear();
-        let forced = drain(&self.shared, &self.srv, DRAIN_DEADLINE);
+        let forced = drain(&self.shared, &self.srv, TERM_DRAIN);
+        if let Some(dp) = &self.shared.native {
+            while dp.active() > 0 && t0.elapsed() < TERM_SCOPES {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
         let _ = self.audit(
             "listener.stop",
             "all",
@@ -408,6 +455,18 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     for w in &p.warnings {
         log(&format!("warning: {w}"));
     }
+    // Native data plane (modes A/D): backends opened and introspected, endowments resolved, before any socket.
+    let native = match crate::native::boot(&cfg, opts.token_keyring.as_deref(), crate::shared::Mutants::from_env()) {
+        Ok(n) => n,
+        Err(e) => return fail_closed(&e),
+    };
+    let bindings = match &native {
+        Some(dp) => match dp.bind(&cfg) {
+            Ok(b) => Arc::new(b),
+            Err(e) => return fail_closed(&e),
+        },
+        None => Arc::default(),
+    };
     let certs = match CertPaths::resolve(opts.cert.as_deref(), opts.key.as_deref()) {
         Ok(c) => c,
         Err(e) => return fail_closed(&e),
@@ -432,7 +491,9 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     };
     let hash = cfg.config_hash();
     let admin_bind = p.admin.clone();
-    let shared = Shared::new(Snapshot::new(generation.0, 1, hash, p));
+    let mut snap0 = Snapshot::new(generation.0, 1, hash, p);
+    snap0.native = bindings;
+    let shared = Shared::new(snap0, native);
     let srv = {
         let snap = shared.snapshot();
         match Server::new(ProxyApp { shared: shared.clone() }, snap.vhost_table(), snap.plan.wl) {
@@ -584,6 +645,9 @@ pub fn run(opts: ServeOpts) -> ExitCode {
                 if ctl.upgrade() {
                     return ExitCode::SUCCESS;
                 }
+            }
+            Ok(Sig::Term) if ctl.shared.mutants.no_drain => {
+                log("SIGTERM ignored (negative control no-drain)"); // e2e-mutants only
             }
             Ok(Sig::Term) => {
                 ctl.terminate();

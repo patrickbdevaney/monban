@@ -1,6 +1,6 @@
 [package]
 name = "aegis-bin"
-description = "Assembly: reverse-proxy mode R (listeners, canonical forwarding, admin metrics, audit, reload, upgrade); fail-closed boot."
+description = "Assembly: reverse-proxy mode R (listeners, canonical forwarding, admin metrics, audit, reload, upgrade), native apps over the golden data plane (modes A/D); fail-closed boot."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -37,6 +37,12 @@ aegis-token = { workspace = true }
 aegis-transport = { workspace = true }
 aegis-types = { workspace = true }
 aegis-wasm = { workspace = true }
+# Native applications (modes A/D, layer "app"): only L5 may depend on them (cargo xtask layering). aegis-bin itself
+# never depends on aegis-sdk (only aegis-adapter-host and apps may); the SDK host loop stays in aegis-adapter-host.
+notes = { path = "../../apps/notes" }
+# Already in the graph through aegis-adapter-sqlite / aegis-state (root pin, bundled C SQLite): named here only to
+# read row values back from `SqliteDb::run` (rusqlite::types::Value). No new crate.
+rusqlite = { workspace = true }
 # Third-party: root pins only, every crate already in Cargo.lock. tokio: no `macros` (tokio-macros is not in the
 # lock) and no `signal` (signal-hook-registry is not in the lock; signals go through aegis-ops sigwait).
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "time", "sync", "io-util"] }

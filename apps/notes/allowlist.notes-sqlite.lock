@@ -1,0 +1,9 @@
+aegis-allowlist-lock v1
+adapter notes-sqlite
+family sqlite
+op notes delete eq(1) w=- r=1
+op notes insert tt w=1,2 r=-
+op notes select eq(1) w=- r=1,2
+op notes update eq(1) w=2 r=1
+op notes upsert tt w=1,2 r=-
+sha256 8de7cffcdffd72e21ba1be293087dcbf2fe61cf4666c9a352fdee0746b9a826d
