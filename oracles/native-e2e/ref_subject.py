@@ -36,6 +36,8 @@ MUTANT = os.environ.get("AEGIS_E2E_MUTANT", "")
 EX_CONFIG = 78
 APP_NOTES = "app:notes"
 ALLOW_ALL = "allow-all"
+PG_ROLE = "aegis_app"          # aegis-bin PG_RLS_ROLE
+PG_SETTING = "aegis.tenant"     # aegis-bin PG_TENANT_SETTING
 OP_BIT = {"select": 1, "insert": 2, "update": 4, "delete": 8, "upsert": 16}
 METHOD_OP = {"GET": "select", "POST": "insert", "PATCH": "update", "DELETE": "delete", "PUT": "upsert"}
 TENANT_RE = re.compile(r"^[0-9a-f]{16}$")
@@ -326,29 +328,46 @@ class SqliteTx:
 
 
 class PgTx:
+    """Runs as the RLS role with the tenant bound per transaction (aegis_adapter_pg::rls_bind): SET LOCAL ROLE and a
+    transaction-local `aegis.tenant`, both set before the transaction's first statement."""
+
     def __init__(self, dsn, write):
         self.c = wire.PgConn(dsn)
         self.c.query("BEGIN")
+        self.bound = None
+
+    def _bind(self, t):
+        if self.bound is None:
+            self.c.query(f'SET LOCAL ROLE "{PG_ROLE}"')
+            self.c.query(f"SELECT pg_catalog.set_config({wire.pg_quote(PG_SETTING)}, {wire.pg_quote(t)}, true)")
+            self.bound = t
+        elif self.bound != t:
+            raise wire.DbError("one tenant per transaction")
 
     def select(self, t, i):
+        self._bind(t)
         r = self.c.query(f"SELECT body FROM notes WHERE tenant={wire.pg_quote(t)} AND id={wire.pg_quote(i)}")
         return r[0][0] if r else None
 
     def insert(self, t, i, b):
         q = wire.pg_quote
+        self._bind(t)
         return bool(self.c.query(f"INSERT INTO notes(tenant,id,body) VALUES({q(t)},{q(i)},{q(b)}) "
                                  "ON CONFLICT (tenant,id) DO NOTHING RETURNING id"))
 
     def update(self, t, i, b):
         q = wire.pg_quote
+        self._bind(t)
         return bool(self.c.query(f"UPDATE notes SET body={q(b)} WHERE tenant={q(t)} AND id={q(i)} RETURNING id"))
 
     def delete(self, t, i):
         q = wire.pg_quote
+        self._bind(t)
         return bool(self.c.query(f"DELETE FROM notes WHERE tenant={q(t)} AND id={q(i)} RETURNING id"))
 
     def upsert(self, t, i, b):
         q = wire.pg_quote
+        self._bind(t)
         self.c.query(f"INSERT INTO notes(tenant,id,body) VALUES({q(t)},{q(i)},{q(b)}) "
                      "ON CONFLICT (tenant,id) DO UPDATE SET body=EXCLUDED.body")
         return True
@@ -443,9 +462,13 @@ def check_backend(b):
     elif b["engine"] == "postgres":
         c = wire.PgConn(b["target"])
         cols = {r[0] for r in c.query("SELECT column_name FROM information_schema.columns WHERE table_name='notes'")}
+        rls = c.query("SELECT relrowsecurity, relforcerowsecurity FROM pg_catalog.pg_class "
+                      "WHERE oid = 'public.notes'::regclass")
         c.close()
         if not {"tenant", "id", "body"} <= cols:
             raise ConfigError(f"backend {b['id']}: notes(tenant,id,body) missing")
+        if rls != [["t", "t"]]:
+            raise ConfigError(f"backend {b['id']}: schema gate: RlsNotForced")
     else:
         c = wire.KvConn(b["target"])
         c.cmd("PING")
