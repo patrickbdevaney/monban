@@ -139,7 +139,7 @@ impl Default for PoolConfig {
     }
 }
 
-/// Self-test mutations for `oracles/cancel-sweep` (subject `--mutate`). Each one breaks a required property, so
+/// Self-test mutations for `oracles/cancel-sweep` and `oracles/crs-diff` (subject `--mutate` / `--mutant`). Each one breaks a required property, so
 /// production code must use [`Pool::new`], which is [`PoolMutations::NONE`].
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -160,6 +160,9 @@ pub struct PoolMutations {
     pub quarantine_not_charged: bool,
     /// A cancelled connection that passes the checkin predicate gets the ordinary checkin (pre-widening NC3).
     pub cancelled_session_no_discard: bool,
+    /// An ordinary checkin does not mark the connection for reset, so the next checkout skips the C8 recycle reset
+    /// (DISCARD ALL + cache-generation bump); oracles/crs-diff `no-reset-on-recycle`.
+    pub recycle_no_reset: bool,
 }
 
 impl PoolMutations {
@@ -172,6 +175,7 @@ impl PoolMutations {
         recovery_no_discard_all: false,
         quarantine_not_charged: false,
         cancelled_session_no_discard: false,
+        recycle_no_reset: false,
     };
 }
 
@@ -505,6 +509,7 @@ impl<C: Pooled> Pool<C> {
         g.clock = g.clock.saturating_add(1);
         let stamp = g.clock;
         on_kept(&conn);
+        let needs_reset = needs_reset && !self.shared.muts.recycle_no_reset;
         g.idle.entry(sk).or_default().push(IdleConn { id, conn, needs_reset, stamp });
         drop(g);
         lease.disarm(); // the idle connection keeps its slot
