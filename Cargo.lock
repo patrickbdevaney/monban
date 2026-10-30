@@ -616,6 +616,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "datair-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-data-ir",
+ "aegis-types",
+]
+
+[[package]]
 name = "defmt"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1797,6 +1805,13 @@ dependencies = [
  "libc",
  "psm",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "state-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-state",
 ]
 
 [[package]]

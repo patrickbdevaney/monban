@@ -1,0 +1,13 @@
+aegis-allowlist-lock v1
+adapter notes-pg
+family postgres
+op notes delete eq(1) w=- r=-
+op notes insert tt w=1,2,3 r=1
+op notes select and(range(1),not(in(2))) w=- r=1
+op notes select eq(1) w=- r=1,2,3
+op notes select or(eq(1),eq(1)) w=- r=1
+op notes select pfx(2) w=- r=1,2
+op notes update eq(1) w=2,3 r=-
+op notes upsert tt w=1 r=-
+op notes upsert tt w=1,2,3 r=1,2,3
+sha256 deea3af79b7f42253ac7efa83c914e16fab2c40912b7c305421fc750c262457a
