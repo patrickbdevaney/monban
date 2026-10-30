@@ -1,0 +1,31 @@
+# Fixture (synthetic mutant, P4-spec-002) for ci/no-crate.sh --self-test: the head of the real
+# `cargo tree -e normal,build --target all -p aegis-bin --prefix none --no-dedupe` output (2026-10-30, paths
+# normalized to /repo) with a pg_query normalizer (pg_query 6.1.0 and part of its build graph) linked into
+# aegis-adapter-pg.
+aegis-bin v0.0.0 (/repo/crates/aegis-bin)
+aegis-adapter-host v0.0.0 (/repo/crates/aegis-adapter-host)
+aegis-authz v0.0.0 (/repo/crates/aegis-authz)
+aegis-types v0.0.0 (/repo/crates/aegis-types)
+aegis-data-ir v0.0.0 (/repo/crates/aegis-data-ir)
+aegis-types v0.0.0 (/repo/crates/aegis-types)
+aegis-adapter-pg v0.0.0 (/repo/crates/aegis-adapter-pg)
+pg_query v6.1.0
+prost v0.13.5
+bytes v1.12.1
+serde v1.0.228
+thiserror v2.0.17
+bindgen v0.72.1
+cc v1.8.0
+fs_extra v1.3.0
+glob v0.3.3
+aws-lc-rs v1.18.2
+aws-lc-sys v0.46.0
+cc v1.8.0
+find-msvc-tools v0.1.14
+jobserver v0.1.35
+getrandom v0.4.3
+cfg-if v1.0.5
+libc v0.2.191
+r-efi v6.0.0
+shlex v2.0.1
+cmake v0.1.58

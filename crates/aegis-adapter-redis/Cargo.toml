@@ -13,6 +13,8 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
+# Pre-wired by P4-spec-002. Owned RESP2 client over std::net / UDS (DEVIATIONS X-10).
+rustix = { workspace = true, features = ["time"] }
 
 [lints]
 workspace = true

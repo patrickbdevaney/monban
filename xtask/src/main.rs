@@ -8,8 +8,10 @@
 //!   cargo xtask fips-lock --profile cmvp [--self-test]
 //!   cargo xtask metrics-check [--self-test]
 //!   cargo xtask budget [--self-test]
+//!   cargo xtask allowlist-lock [--check] [--self-test]   (fail-closed stub until P4-datair-001)
 #![forbid(unsafe_code)]
 
+mod allowlist;
 mod budget;
 mod json;
 mod lock;
@@ -39,11 +41,12 @@ fn main() -> ExitCode {
         }
         Some("repo-advisories") => repo_advisories(self_test),
         Some("budget") => budget::budget(self_test),
+        Some("allowlist-lock") => allowlist::allowlist_lock(self_test),
         Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
         _ => {
             eprintln!(
-                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget> [--self-test]"
+                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget|allowlist-lock> [--self-test]"
             );
             return ExitCode::from(2);
         }
@@ -91,6 +94,8 @@ fn run(cmd: &mut Command) -> Result<String, String> {
 enum Layer {
     N(u8),
     Sdk,
+    /// Native handler applications (`apps/*`): may depend on aegis-sdk only; only L5 may depend on them.
+    App,
     Tool,
 }
 
@@ -101,16 +106,23 @@ struct Pkg {
     layer: Option<Layer>,
     /// (dependency name, kind, enabled features) for workspace-path dependencies only.
     deps: Vec<(String, String, Vec<String>)>,
+    /// Every value of the package's own `[features]` table (e.g. `"aegis-sdk/host"`), to catch forwarded gates.
+    fwd: Vec<String>,
 }
 
-/// Constructor-gate modules of aegis-types and the only crate allowed to use each (REPO_LAYOUT §3, F2).
-const OWNERS: &[(&str, &str, &str)] = &[
-    ("authn-path", "authn_path", "aegis-token"),
-    ("canon-owner", "canon_owner", "aegis-canon"),
-    ("raw-owner", "raw_owner", "aegis-transport"),
+/// Constructor-gate modules and the only crate allowed to use each: (defining crate, cargo feature, module, owner).
+/// aegis-types gates (REPO_LAYOUT §3, F2) and the SDK host driving loop (decision D2(b), P4-spec-002).
+const OWNERS: &[(&str, &str, &str, &str)] = &[
+    ("aegis-types", "authn-path", "authn_path", "aegis-token"),
+    ("aegis-types", "canon-owner", "canon_owner", "aegis-canon"),
+    ("aegis-types", "raw-owner", "raw_owner", "aegis-transport"),
+    ("aegis-sdk", "host", "host", "aegis-adapter-host"),
 ];
 /// Same-layer edges allowed by the crate table (REPO_LAYOUT §4). Everything else must point strictly downward.
-const INTRA_LAYER: &[(&str, &str)] = &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon")];
+const INTRA_LAYER: &[(&str, &str)] =
+    &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon"), ("aegis-adapter-host", "aegis-state")];
+/// Layered crates allowed to depend on the SDK (the F7 host; D2(b)). Apps and these are its only dependents.
+const SDK_HOSTS: &[&str] = &["aegis-adapter-host"];
 /// Crates permitted to relax `forbid(unsafe_code)` (each call site audited, ≤20 sites).
 const UNSAFE_ALLOWED: &[&str] = &["aegis-iso"];
 
@@ -126,6 +138,7 @@ fn workspace_model() -> Result<Vec<Pkg>, String> {
         let layer = match p.path(&["metadata", "aegis", "layer"]) {
             Some(Json::Num(n)) if *n >= 0.0 && *n <= 9.0 => Some(Layer::N(*n as u8)),
             Some(Json::Str(s)) if s == "sdk" => Some(Layer::Sdk),
+            Some(Json::Str(s)) if s == "app" => Some(Layer::App),
             Some(Json::Str(s)) if s == "tool" => Some(Layer::Tool),
             _ => None,
         };
@@ -149,7 +162,13 @@ fn workspace_model() -> Result<Vec<Pkg>, String> {
                 (n, k, f)
             })
             .collect();
-        pkgs.push(Pkg { name, dir: manifest.parent().map(Path::to_path_buf).unwrap_or_default(), layer, deps });
+        let fwd = match p.get("features") {
+            Some(Json::Obj(m)) => {
+                m.values().flat_map(|v| v.arr().iter().filter_map(Json::str).map(String::from)).collect()
+            }
+            _ => Vec::new(),
+        };
+        pkgs.push(Pkg { name, dir: manifest.parent().map(Path::to_path_buf).unwrap_or_default(), layer, deps, fwd });
     }
     Ok(pkgs)
 }
@@ -168,7 +187,11 @@ fn check_layering(pkgs: &[Pkg]) -> Vec<String> {
                 (Layer::Tool, _) => true,
                 (_, Layer::Tool) => kind == "dev",
                 (Layer::Sdk, Layer::N(d)) => *d <= 2,
-                (Layer::N(_), Layer::Sdk) | (Layer::Sdk, Layer::Sdk) => false,
+                (Layer::N(_), Layer::Sdk) => SDK_HOSTS.contains(&p.name.as_str()),
+                (Layer::Sdk, Layer::Sdk) | (Layer::Sdk, Layer::App) => false,
+                (Layer::App, Layer::Sdk) => true,
+                (Layer::App, _) => false,
+                (Layer::N(a), Layer::App) => *a == 5,
                 (Layer::N(a), Layer::N(b)) => {
                     b < a || (a == b && INTRA_LAYER.contains(&(p.name.as_str(), dn.as_str())))
                 }
@@ -176,14 +199,22 @@ fn check_layering(pkgs: &[Pkg]) -> Vec<String> {
             if !ok {
                 v.push(format!("{} ({pl:?}) -> {dn} ({dl:?}) [{kind}]: upward or cross-zone edge", p.name));
             }
-            if dn == "aegis-types" {
-                for f in feats {
-                    if let Some((_, _, owner)) = OWNERS.iter().find(|(feat, _, _)| feat == f)
-                        && p.name != *owner
-                    {
-                        v.push(format!("{} enables aegis-types/{f}; only {owner} may", p.name));
-                    }
+            for f in feats {
+                if let Some((_, _, _, owner)) = OWNERS.iter().find(|(c, feat, _, _)| c == dn && feat == f)
+                    && p.name != *owner
+                {
+                    v.push(format!("{} enables {dn}/{f}; only {owner} may", p.name));
                 }
+            }
+        }
+        // A gate feature forwarded through the package's own [features] table ("dep/feat" or "dep?/feat").
+        for fv in &p.fwd {
+            let Some((dep, feat)) = fv.split_once('/') else { continue };
+            let dep = dep.trim_end_matches('?');
+            if let Some((_, _, _, owner)) = OWNERS.iter().find(|(c, f, _, _)| *c == dep && *f == feat)
+                && p.name != *owner
+            {
+                v.push(format!("{} enables {dep}/{feat} (forwarded feature); only {owner} may", p.name));
             }
         }
     }
@@ -220,14 +251,77 @@ fn check_sources(pkgs: &[Pkg]) -> Vec<String> {
         }
         for f in &files {
             let src = std::fs::read_to_string(f).unwrap_or_default();
-            for (_, module, owner) in OWNERS {
-                if p.name != *owner && p.name != "aegis-types" && src.contains(&format!("{module}::")) {
-                    v.push(format!("{}: {} uses aegis_types::{module} (owner: {owner})", p.name, f.display()));
-                }
-            }
+            v.extend(source_violations(&p.name, &f.display().to_string(), &src));
         }
     }
     v
+}
+
+/// Owner-gate violations in one source file of package `pkg`. The defining crate itself is exempt.
+fn source_violations(pkg: &str, file: &str, src: &str) -> Vec<String> {
+    let mut v = Vec::new();
+    for (krate, _, module, owner) in OWNERS {
+        if pkg == *owner || pkg == *krate {
+            continue;
+        }
+        let hit = if *krate == "aegis-types" {
+            src.contains(&format!("{module}::")).then_some("path")
+        } else {
+            gated_module_ref(src, &krate.replace('-', "_"), module)
+        };
+        if let Some(how) = hit {
+            v.push(format!("{pkg}: {file} uses {}::{module} ({how}; owner: {owner})", krate.replace('-', "_")));
+        }
+    }
+    v
+}
+
+/// Finds a reference to `krate::module` in any spelling a `use` can take (whitespace ignored): a direct path, a brace
+/// group naming the module, a glob import followed by `module::`, or an alias of the crate (which cannot be followed,
+/// so it fails closed).
+fn gated_module_ref(src: &str, krate: &str, module: &str) -> Option<&'static str> {
+    let s: String = src.chars().filter(|c| !c.is_whitespace()).collect();
+    let ident = |c: char| c.is_alphanumeric() || c == '_';
+    let token_at = |hay: &str, needle: &str| {
+        hay.match_indices(needle).any(|(i, _)| {
+            let before = hay.get(..i).and_then(|h| h.chars().next_back());
+            let after = hay.get(i + needle.len()..).and_then(|h| h.chars().next());
+            let open_end = !needle.chars().next_back().is_some_and(ident);
+            !before.is_some_and(ident) && (open_end || !after.is_some_and(ident))
+        })
+    };
+    if s.contains(&format!("{krate}::{module}")) {
+        return Some("path");
+    }
+    let open = format!("{krate}::{{");
+    for (i, _) in s.match_indices(&open) {
+        let rest = s.get(i + open.len()..).unwrap_or_default();
+        let mut depth = 1usize;
+        let mut end = rest.len();
+        for (j, c) in rest.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        end = j;
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if token_at(rest.get(..end).unwrap_or_default(), module) {
+            return Some("use group");
+        }
+    }
+    if s.contains(&format!("{krate}::*")) && token_at(&s, &format!("{module}::")) {
+        return Some("glob import");
+    }
+    if s.contains(&format!("{krate}as")) {
+        return Some("crate alias");
+    }
+    None
 }
 
 fn layering(self_test: bool) -> Result<(), String> {
@@ -240,16 +334,76 @@ fn layering(self_test: bool) -> Result<(), String> {
         if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-agent") {
             t.deps.push(("aegis-types".into(), "normal".into(), vec!["authn-path".into()]));
         }
+        // P4-spec-002 (D2(b)): a non-owner enabling the SDK host feature, directly or forwarded; an app reaching past
+        // the SDK; a non-host layered crate depending on the SDK.
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-state") {
+            t.deps.push(("aegis-sdk".into(), "normal".into(), vec!["host".into()]));
+        }
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-bin") {
+            t.fwd.push("aegis-sdk?/host".into());
+        }
+        pkgs.push(Pkg {
+            name: "selftest-app".into(),
+            dir: PathBuf::new(),
+            layer: Some(Layer::App),
+            deps: vec![
+                ("aegis-sdk".into(), "normal".into(), vec![]),
+                ("aegis-data-ir".into(), "normal".into(), vec![]),
+            ],
+            fwd: vec![],
+        });
     }
     let mut v = check_layering(&pkgs);
     if !self_test {
         v.extend(check_sources(&pkgs));
     }
     if self_test {
-        for want in ["aegis-transport (N(3)) -> aegis-adapter-pg", "aegis-agent enables aegis-types/authn-path"] {
-            if !v.iter().any(|x| x.starts_with(want)) {
+        // Source mutants: every `use` spelling of aegis_sdk::host in a non-owner crate must be reported.
+        let mutants = [
+            "use aegis_sdk::host::Backend;",
+            "use aegis_sdk::{Ctx, host::{drive, Request}};",
+            "use aegis_sdk :: {\n    host,\n    Ctx,\n};",
+            "use aegis_sdk::*;\nfn f() { let _ = host::drive; }",
+            "extern crate aegis_sdk as sdk;",
+        ];
+        for (i, m) in mutants.iter().enumerate() {
+            v.extend(source_violations("aegis-state", &format!("selftest-mutant-{i}.rs"), m));
+        }
+        // Controls that must stay clean: the owner itself, the defining crate, and look-alike paths.
+        let clean = [
+            ("aegis-adapter-host", "use aegis_sdk::host::{drive, Backend};"),
+            ("aegis-sdk", "use crate::host::drive;"),
+            ("aegis-bin", "use aegis_adapter_host::pdp_uds; use aegis_sdk::{Ctx, ScopedHandler};"),
+            ("aegis-bin", "use aegis_sdk::*; fn f() { let _ = aegis_adapter_host::x; }"),
+        ];
+        for (pkg, src) in clean {
+            let bad = source_violations(pkg, "selftest-control.rs", src);
+            if !bad.is_empty() {
+                return Err(format!(
+                    "LAYERING SELF-TEST: FAIL (false positive on a clean control: {})",
+                    bad.join("; ")
+                ));
+            }
+        }
+        let mut wants: Vec<String> = [
+            "aegis-transport (N(3)) -> aegis-adapter-pg",
+            "aegis-agent enables aegis-types/authn-path",
+            "aegis-state enables aegis-sdk/host",
+            "aegis-state (N(4)) -> aegis-sdk (Sdk)",
+            "aegis-bin enables aegis-sdk/host (forwarded feature)",
+            "selftest-app (App) -> aegis-data-ir",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        wants.extend((0..mutants.len()).map(|i| format!("aegis-state: selftest-mutant-{i}.rs uses aegis_sdk::host")));
+        for want in &wants {
+            if !v.iter().any(|x| x.starts_with(want.as_str())) {
                 return Err(format!("LAYERING SELF-TEST: FAIL (injected violation not reported: {want})"));
             }
+        }
+        if v.iter().any(|x| x.starts_with("selftest-app (App) -> aegis-sdk")) {
+            return Err("LAYERING SELF-TEST: FAIL (app -> aegis-sdk edge wrongly rejected)".into());
         }
     }
     verdict("LAYERING", &v, self_test)

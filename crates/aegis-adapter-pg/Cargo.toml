@@ -13,6 +13,11 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
+# Pre-wired by P4-spec-002 (implementers do not edit manifests). SCRAM-SHA-256: HMAC, SHA-256, PBKDF2 (aws-lc-rs,
+# already in the shipped graph). Owned PG v3 client over std::net / UDS (DEVIATIONS X-10); rustix for socket options
+# ("time" only because rustix linux_raw sockopt needs it, as in aegis-ops and aegis-adapter-host).
+aws-lc-rs = { workspace = true }
+rustix = { workspace = true, features = ["time"] }
 
 [lints]
 workspace = true
