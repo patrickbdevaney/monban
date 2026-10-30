@@ -1,0 +1,4 @@
+{"v":1,"listeners":[{"name":"web","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}],
+ "limits":{"idle_timeout_ms":30000,"max_body_bytes":1048576,"max_concurrent_streams":100},
+ "vhosts":[{"host":"admin.example","routes":[
+  {"id":1,"path":"/migrate/","to":{"upstream":"127.0.0.1:8080"},"authz":"ops","_hide":{"data":"unrestricted"}}]}]}
