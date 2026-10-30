@@ -12,10 +12,10 @@
   "state-props"
  ],
  "spec_refs": [
-  "SPEC §B INV-IDEMP (key = (principal, idempotency-key); exactly-once not claimed; effect classes declared)",
+  "SPEC \u00a7B INV-IDEMP (key = (principal, idempotency-key); exactly-once not claimed; effect classes declared)",
   "NC2 commit-point latch (202 + retrieval)",
   "NC6 effects only through the outbox",
-  "ARCHITECTURE §3.7 R-STATE-2/3 (draft-08 + Stripe semantics)"
+  "ARCHITECTURE \u00a73.7 R-STATE-2/3 (draft-08 + Stripe semantics)"
  ],
  "oracles": [
   "oracles/state-props"
@@ -34,6 +34,6 @@
  ],
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: state-props 60 seeds / 822 SIGKILLs on real subject; self-test 12/12; spaces 16/17/18"
 }

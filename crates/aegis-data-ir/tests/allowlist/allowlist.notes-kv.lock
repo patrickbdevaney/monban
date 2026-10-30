@@ -1,0 +1,11 @@
+aegis-allowlist-lock v1
+adapter notes-kv
+family redis
+op kv delete eq(1) w=- r=-
+op kv insert tt w=1,2 r=-
+op kv select eq(1) w=- r=-
+op kv select pfx(1) w=- r=-
+op kv select tt w=- r=-
+op kv update eq(1) w=2 r=-
+op kv upsert tt w=1,2 r=-
+sha256 0fc58f9989ed7d494503dfe8dc8136fd7ef81e721b32d7c157ceb6a14cae820f

@@ -1,0 +1,14 @@
+aegis-allowlist-decl v1
+adapter notes-kv
+family redis
+# Fixture declaration (P4-datair-001) for a key-value collection. Fields: 0 tenant, 1 key, 2 value.
+# Every op must map through kv_plan (GET / SCAN / SET NX / SET / SET XX / DEL); nothing in the RESP denylist.
+schema kv tenant=0 key=1 cols=0,1,2 permitted=1,2
+
+op kv select eq(1) w=- r=-
+op kv select pfx(1) w=- r=-
+op kv select tt w=- r=-
+op kv insert tt w=1,2 r=-
+op kv upsert tt w=2,1 r=-
+op kv update eq(1) w=2 r=-
+op kv delete eq(1) w=- r=-
