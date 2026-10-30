@@ -65,8 +65,23 @@ routes (all "authz":"allow-all", all "to":{"upstream":"app:notes"}):
 
 **Schema (created by the oracle before boot).** SQLite:
 `notes(tenant TEXT NOT NULL COLLATE BINARY, id TEXT NOT NULL COLLATE BINARY, body TEXT NOT NULL,
-PRIMARY KEY(tenant,id)) WITHOUT ROWID`, in WAL mode. PostgreSQL: the same with `COLLATE "C"`, and the table is
-dropped and recreated on every run. KV: key `t:{<tenant hex>}:notes:<id>`, value = body (F4 `kv_key`). In every
+PRIMARY KEY(tenant,id)) WITHOUT ROWID`, in WAL mode. PostgreSQL: the same with `COLLATE "C"`, provisioned so that
+it passes the live schema gate (oracles/schema-gate pg mode, `aegis_adapter_pg::check_live_schema`) and recreated on
+every run (role and tables dropped first):
+  - login role `aegis_app` (aegis-bin's `PG_RLS_ROLE`): `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE
+    NOREPLICATION NOINHERIT`, a fresh random password per run. It owns nothing and has no CREATE on any schema.
+  - `public.notes` owned by the provisioning superuser, `ENABLE` + `FORCE ROW LEVEL SECURITY`, and the statements of
+    `aegis_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "aegis_app", "aegis.tenant")`: one policy
+    `aegis_tenant AS PERMISSIVE FOR ALL TO "aegis_app" USING ("tenant" = current_setting('aegis.tenant', true)
+    COLLATE "C") WITH CHECK (same)`. `GRANT SELECT, INSERT, UPDATE, DELETE` to `aegis_app`.
+  - `public.aegis_idem(tenant, principal, k, status integer, body, PRIMARY KEY(principal, k))`, all text
+    `COLLATE "C"`, same RLS shape, `GRANT SELECT, INSERT`: aegis-bin's in-band idempotency table, provisioned here so
+    the RLS role never needs CREATE or owns a table. A subject that keeps idempotency elsewhere ignores it.
+
+  `AEGIS_E2E_PG_DSN` logs in as `aegis_app`, never as the superuser. The subject binds each transaction with
+  `SET LOCAL ROLE "aegis_app"` and `set_config('aegis.tenant', <tenant text>, true)` (`aegis_adapter_pg::rls_bind`);
+  an unbound transaction sees no rows and can write none. The oracle provisions and reads durable rows with the
+  superuser DSN it was given (a superuser is never subject to RLS). KV: key `t:{<tenant hex>}:notes:<id>`, value = body (F4 `kv_key`). In every
 engine the tenant is the 16-lower-hex text of the u64 (D4, `tenant_text`).
 
 **Tokens.** `Authorization: Bearer <base64url, no padding, of the F5 token-l CBOR>`. The oracle mints caveats
@@ -173,5 +188,6 @@ Runs on 2026-10-30, laptop:
   requests to complete; the PASS line reports how many did. T_drain = 10 s is fixed here because F8 has no drain
   field.
 - **Not covered.** NC3 (pool quarantine and recovery: cancel-sweep/state-props), NC4–NC6, the schema gate's
-  required forms (FORCE RLS etc., P4-oracle-schema-001), PG per-tenant credentials, and `unrestricted`. If
-  P4-oracle-schema-001 requires more of the schema (e.g. RLS), the spec author amends `Store.setup` here.
+  refusals (judged by oracles/schema-gate; this oracle only provisions an admitted PG table, see Schema), PG
+  per-tenant credentials, and `unrestricted`. If P4-oracle-schema-001 requires more of the schema, the spec author
+  amends `Store.setup` / `pg_provision` here.

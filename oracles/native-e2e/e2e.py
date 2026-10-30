@@ -28,6 +28,7 @@ import tempfile
 import threading
 import time
 import traceback
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -109,11 +110,73 @@ def mint(master, kid, tenant, aud=VHOST, ops=31, exp_delta=600, with_tenant=True
 # ------------------------------------------------------------------------------------------------ durable state
 
 
+# PostgreSQL provisioning (P4-oracle-schema-001 / R-DB-7 live schema gate). The table must pass
+# aegis_adapter_pg::check_live_schema: tenant text COLLATE "C", (tenant, id) the only unique index, ENABLE + FORCE
+# ROW LEVEL SECURITY, and permissive policies whose USING and WITH CHECK are exactly the tenant guard. The policy is
+# the statement list of aegis_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "aegis_app", "aegis.tenant").
+# The role and the setting are aegis-bin's fixed names (PG_RLS_ROLE / PG_TENANT_SETTING). The role is a plain login
+# role: NOSUPERUSER, NOBYPASSRLS, owns nothing (every table is owned by the provisioning superuser, so the role
+# cannot ALTER ... NO FORCE ROW LEVEL SECURITY), no CREATE on any schema.
+PG_ROLE = "aegis_app"
+PG_SETTING = "aegis.tenant"
+PG_GUARD = f"(\"tenant\" = current_setting('{PG_SETTING}', true) COLLATE \"C\")"
+
+
+def pg_rls_policy(table):
+    t = f'"public"."{table}"'
+    return [f"ALTER TABLE {t} ENABLE ROW LEVEL SECURITY",
+            f"ALTER TABLE {t} FORCE ROW LEVEL SECURITY",
+            f'CREATE POLICY aegis_tenant ON {t} AS PERMISSIVE FOR ALL TO "{PG_ROLE}" USING {PG_GUARD} '
+            f"WITH CHECK {PG_GUARD}"]
+
+
+def pg_teardown():
+    # DROP OWNED also revokes the role's grants and removes anything a previous (crashed) subject left behind.
+    return ['DROP TABLE IF EXISTS "public"."notes", "public"."aegis_idem"',
+            f'DO $$BEGIN IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = {wire.pg_quote(PG_ROLE)}) THEN '
+            f'DROP OWNED BY "{PG_ROLE}"; DROP ROLE "{PG_ROLE}"; END IF; END$$']
+
+
+def pg_provision(password):
+    return pg_teardown() + [
+        f'CREATE ROLE "{PG_ROLE}" LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT '
+        f"PASSWORD {wire.pg_quote(password)}",
+        'CREATE TABLE "public"."notes"(tenant text COLLATE "C" NOT NULL, id text COLLATE "C" NOT NULL, '
+        "body text NOT NULL, PRIMARY KEY (tenant, id))",
+        *pg_rls_policy("notes"),
+        f'GRANT SELECT, INSERT, UPDATE, DELETE ON "public"."notes" TO "{PG_ROLE}"',
+        # aegis-bin's in-band idempotency table (D14). A subject creates it at boot only if it is missing, which
+        # would need CREATE on public and would make the RLS role its owner; provisioned here by the superuser
+        # instead, under the same RLS shape. A subject that keeps idempotency elsewhere ignores it.
+        'CREATE TABLE "public"."aegis_idem"(tenant text COLLATE "C" NOT NULL, principal text COLLATE "C" NOT NULL, '
+        'k text COLLATE "C" NOT NULL, status integer NOT NULL, body text NOT NULL, PRIMARY KEY (principal, k))',
+        *pg_rls_policy("aegis_idem"),
+        f'GRANT SELECT, INSERT ON "public"."aegis_idem" TO "{PG_ROLE}"',
+    ]
+
+
+def pg_role_dsn(dsn, user, password):
+    u = urllib.parse.urlsplit(dsn)
+    host = u.hostname or "127.0.0.1"
+    if ":" in host:
+        host = f"[{host}]"
+    netloc = f"{urllib.parse.quote(user, safe='')}:{urllib.parse.quote(password, safe='')}@{host}"
+    if u.port:
+        netloc += f":{u.port}"
+    return urllib.parse.urlunsplit((u.scheme, netloc, u.path, u.query, u.fragment))
+
+
 class Store:
     """Direct view of one backend's durable rows (never through the subject)."""
 
     def __init__(self, bid, engine, target):
         self.bid, self.engine, self.target = bid, engine, target
+        self.app_dsn = None
+        if engine == "postgres":
+            # `target` is the superuser DSN: provisioning and the oracle's own reads (a superuser is never subject to
+            # RLS). The subject gets `app_dsn`, which logs in as the RLS role with a fresh per-run password.
+            self.app_pw = secrets.token_hex(16)
+            self.app_dsn = pg_role_dsn(target, PG_ROLE, self.app_pw)
 
     def setup(self):
         if self.engine == "sqlite":
@@ -124,10 +187,16 @@ class Store:
             c.close()
         elif self.engine == "postgres":
             c = wire.PgConn(self.target)
-            c.query("DROP TABLE IF EXISTS notes")
-            c.query('CREATE TABLE notes(tenant text COLLATE "C" NOT NULL, id text COLLATE "C" NOT NULL, '
-                    "body text NOT NULL, PRIMARY KEY (tenant, id))")
-            c.close()
+            try:
+                for q in pg_provision(self.app_pw):
+                    c.query(q)
+                # The oracle's own precondition: the subject's login role can bypass nothing.
+                r = c.query(f"SELECT rolsuper, rolbypassrls, rolcanlogin FROM pg_catalog.pg_roles "
+                            f"WHERE rolname = {wire.pg_quote(PG_ROLE)}")
+                if r != [["f", "f", "t"]]:
+                    raise wire.DbError(f"role {PG_ROLE} provisioned wrongly: {r!r}")
+            finally:
+                c.close()
         else:
             wire.KvConn(self.target).close()
 
@@ -157,7 +226,8 @@ class Store:
         try:
             if self.engine == "postgres":
                 c = wire.PgConn(self.target)
-                c.query("DROP TABLE IF EXISTS notes")
+                for q in pg_teardown():
+                    c.query(q)
                 c.close()
             elif self.engine in ("valkey", "redis"):
                 c = wire.KvConn(self.target)
@@ -385,7 +455,7 @@ class Run:
             self.stores["pg"] = Store("pg", "postgres", pg)
             self.backends.append({"id": "pg", "engine": "postgres", "dsn_ref": "env:AEGIS_E2E_PG_DSN",
                                   "pin": pg_pin(pg), "op_budget_ms": OP_BUDGET_MS})
-            self.env["AEGIS_E2E_PG_DSN"] = pg
+            self.env["AEGIS_E2E_PG_DSN"] = self.stores["pg"].app_dsn  # the RLS role, never the superuser
         if kv:
             eng = kv_engine(kv)
             self.stores["kv"] = Store("kv", eng, kv)

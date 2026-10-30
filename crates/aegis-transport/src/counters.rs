@@ -81,6 +81,9 @@ counters! {
     ledger_peak_bytes,
     /// Responses sent.
     responses,
+    /// Handler futures dropped because the peer went away before the reply (h2 RST_STREAM, h1 FIN / TCP RST while
+    /// the handler runs): INV-NOMUT-C NC1 (the drop is the cancellation the handler observes).
+    handlers_aborted,
 }
 
 #[cfg(test)]
