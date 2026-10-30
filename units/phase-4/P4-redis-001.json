@@ -1,0 +1,42 @@
+{
+ "id": "P4-redis-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-redis"
+ ],
+ "depends_on": [
+  "P4-spec-001",
+  "P4-spec-002",
+  "P4-oracle-lowering-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "lowering-read-redis",
+  "lowering-write-redis"
+ ],
+ "spec_refs": [
+  "SPEC §E W7 Redis reply subset",
+  "R-DB-3/4 denylist (EVAL, FLUSH*, SWAPDB, KEYS)",
+  "R-DB-5 per-tenant ACL user; no connection shared across tenants (Valkey CVE-2025-67733); server-version gate",
+  "DEVIATIONS X-10 (owned RESP2 client)",
+  "R-DB-7 Redis keys t:{hex(tenant)}:"
+ ],
+ "oracles": [
+  "oracles/lowering-read --engine redis",
+  "oracles/lowering-write --engine redis (incl. kv_acl hostile-command corpus)"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p redis-subject && ci/engines.sh with valkey,redis -- sh -c \"oracles/lowering-read/run --big --skip-sqlite --engine-pin --subject 'target/release/redis-subject lowering' --engine redis --url @valkey --engine redis --url @redis && oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin --subject 'target/release/redis-subject lowering' --engine redis --url @valkey --engine redis --url @redis\"",
+  "must": "leak=miss=0 >= 100k per engine; W1=W2=W7=0; ACL corpus: every hostile command refused by the server under the generated ACL user"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-redis/src/**",
+  "crates/aegis-adapter-redis/tests/**",
+  "subjects/redis-subject/**"
+ ],
+ "notes": "SCAN MATCH patterns must glob-escape the suffix (* ? [ ] \\); keys are binary-safe (hex in protocol).",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

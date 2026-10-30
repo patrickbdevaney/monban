@@ -1,0 +1,43 @@
+{
+ "id": "P4-sqlite-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-sqlite"
+ ],
+ "depends_on": [
+  "P4-datair-001",
+  "P4-oracle-lowering-001",
+  "P4-oracle-schema-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "lowering-read-sqlite",
+  "lowering-write-sqlite",
+  "schema-gate-sqlite"
+ ],
+ "spec_refs": [
+  "SPEC §E (SQLite Exact: typeof guard + unary + + COLLATE BINARY; byte-prefix via CAST AS BLOB)",
+  "W1-W7 (no REPLACE family, no INSERT OR IGNORE)",
+  "R-DB-7 live check_schema via PRAGMA table_xinfo / index_list / index_xinfo / foreign_key_list + sqlite_schema triggers",
+  "SQLite floor >= 3.51.3 asserted at open",
+  "CRS C8 for an embedded engine (decision D7)"
+ ],
+ "oracles": [
+  "oracles/lowering-read (sqlite at pin)",
+  "oracles/lowering-write (sqlite)",
+  "oracles/schema-gate --engine sqlite"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && oracles/lowering-read/run --big --engine-pin --subject 'target/release/sqlite-subject lowering' && oracles/lowering-write/run --n 300 --engine-pin --subject 'target/release/sqlite-subject lowering' && oracles/schema-gate/run --engine sqlite --subject 'target/release/sqlite-subject schema'",
+  "must": "read leak=widen=miss=0 >= 100k at SQLite 3.53.2; write 0 violations >= 300/family; schema gate PASS; subject --mutant drop-tenant red"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-sqlite/src/**",
+  "crates/aegis-adapter-sqlite/tests/**",
+  "subjects/sqlite-subject/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

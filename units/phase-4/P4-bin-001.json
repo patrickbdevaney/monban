@@ -1,0 +1,40 @@
+{
+ "id": "P4-bin-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-bin",
+  "apps/notes (new example app, layer app)"
+ ],
+ "depends_on": [
+  "P4-host-001",
+  "P4-pg-003",
+  "P4-config-001",
+  "P4-oracle-e2e-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "native-e2e"
+ ],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN §7 modes A/D",
+  "NC1/NC2/NC7 at the host",
+  "F7 routes-only registration",
+  "budget gate (<= 60 third-party crates) and fail-closed-boot must stay green"
+ ],
+ "oracles": [
+  "oracles/native-e2e"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/aegis --pg @pg17 && oracles/native-e2e/run --self-test --subject target/release/aegis && cargo xtask budget",
+  "must": "PASS; allowlist locks for apps/notes committed and `cargo xtask allowlist-lock --check` green"
+ },
+ "write_scope": [
+  "crates/aegis-bin/src/**",
+  "crates/aegis-bin/Cargo.toml (features only)",
+  "apps/notes/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

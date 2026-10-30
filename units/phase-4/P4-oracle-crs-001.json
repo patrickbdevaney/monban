@@ -1,0 +1,35 @@
+{
+ "id": "P4-oracle-crs-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/crs-diff (new)"
+ ],
+ "depends_on": [
+  "P4-engines-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "crs-tls"
+ ],
+ "spec_refs": [
+  "SPEC §B CRS C1-C8 + C5b ('R2 two-scope differentials')",
+  "ARCHITECTURE-DRAFT R-STATE-5: 'nginx CVE-2025-23419 replica as a permanent regression'; ARCHITECTURE §3.2 R-PQC-6 ticketer per (cert-chain hash, verifier, ALPN, epoch), no resumption on mTLS listeners",
+  "ARCHITECTURE §3.8 R-DB-5 'no backend connection shared across tenants' (Valkey CVE-2025-67733)"
+ ],
+ "oracles": [
+  "crs-diff --family tls-resume: openssl s_client -sess_out on vhost A, -sess_in on vhost B / after epoch bump / other ALPN; PASS iff never 'Reused'",
+  "crs-diff --family data: two-scope differential (same request under scope A then scope B) over PG pool, Redis connection, statement/type cache, idempotency store, outbox; PASS iff B's observable state never depends on A"
+ ],
+ "acceptance": {
+  "cmd": "oracles/crs-diff/run --self-test && ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/crs-diff/run --family tls-resume --subject target/release/aegis",
+  "must": "self-test PASS (tls: an in-oracle vulnerable server reproducing the CVE-2025-23419 shape, i.e. SNI-switched context accepting a ticket minted for a vhost without client-cert verification, is caught; data: shared-pool, pool-key-no-tenant, pool-key-no-epoch, no-reset-on-recycle, idem-key-without-principal reference mutants caught); real aegis tls-resume PASS"
+ },
+ "write_scope": [
+  "oracles/crs-diff/**"
+ ],
+ "notes": "aegis currently disables tickets and has no mTLS listener, so tls-resume passes by construction today; the gate is the regression guard for the scoped ticketer (P2-tls-002). The vulnerable replica uses Python ssl (sni_callback context switch; resumption skips the client-cert check) with system openssl 3.0 as client; if Python cannot reproduce it, build a minimal rustls mutant in an oracle-local workspace. OpenSSL 3.0 lacks X25519MLKEM768: use a P-PUBLIC-WEB listener. data family subject protocol: {op:'scope', principal, tenant, epoch} + {op:'do', ...} events reporting conn ids, session GUCs and stored outcomes.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

@@ -1,0 +1,33 @@
+{
+ "id": "P4-oracle-schema-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/schema-gate (new)"
+ ],
+ "depends_on": [
+  "P4-engines-001"
+ ],
+ "start_now": false,
+ "gates": [],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 4 'schema gate refuses every counterexample schema'",
+  "SPEC §E: tenant/key columns binary+deterministic collation (refines_necessary); W3 sole full-length (t,key) unique index, NO-PAD; W5 closure over triggers / data-modifying CTEs / FK actions",
+  "ARCHITECTURE §3.8 R-DB-7 live check_schema() (binary collations, no citext/NOCASE, partition-key opclass = column's)",
+  "spikes/q4-005 counterexamples (PadSpace utf8mb4_bin, second UNIQUE(id), prefix index, ICU level2)"
+ ],
+ "oracles": [
+  "oracles/schema-gate: counterexample corpus x {static, sqlite, pg}; PASS iff every counterexample is refused with the expected SchemaError class AND every golden schema is accepted (refuse-all must fail)"
+ ],
+ "acceptance": {
+  "cmd": "oracles/schema-gate/run --self-test && ci/engines.sh with pg17 -- oracles/schema-gate/run --self-test --engine pg --dsn @pg17",
+  "must": "self-test PASS: mutants refuse-all (golden rejected -> red), ignore-collation, ignore-second-unique, ignore-prefix-index, ignore-nullable-tenant, ignore-triggers, declared-not-introspected (subject trusts a declared Schema instead of the catalog) each red"
+ },
+ "write_scope": [
+  "oracles/schema-gate/**"
+ ],
+ "notes": "Modes: --static (subject receives a Schema JSON, runs check_schema); --engine sqlite|pg (oracle executes DDL on a throwaway DB, subject must introspect the live catalog and refuse). Counterexamples (each with expected error): nullable tenant; tenant/key NOCASE, *_ci, citext, nondeterministic ICU, PG non-C collation, PadSpace; PK without tenant; second unique index; prefix unique index; expression index as arbiter; partition key opclass != column's; trigger on governed table; FK with ON DELETE/UPDATE action into a governed table; generated column over tenant; PG table without FORCE RLS or with a policy lacking WITH CHECK; SQLite WITHOUT ROWID + NOCASE PK; view as collection. Golden schemas: the five lowering-oracle schemas + composite (tenant,id) PK with C/BINARY. Protocol: JSON lines like lowering-read ({op:'schema', ...} -> {ok:true} | {refuse:'<SchemaError>'}).",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

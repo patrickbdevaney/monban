@@ -1,0 +1,38 @@
+{
+ "id": "P4-crs-001",
+ "role": "implementer",
+ "crates": [
+  "CRS data-plane subject"
+ ],
+ "depends_on": [
+  "P4-pg-003",
+  "P4-redis-001",
+  "P4-state-002",
+  "P4-oracle-crs-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "crs-data"
+ ],
+ "spec_refs": [
+  "SPEC §B CRS C2, C3, C5, C5b, C8",
+  "R-DB-5 no backend connection shared across tenants"
+ ],
+ "oracles": [
+  "oracles/crs-diff --family data"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p crs-subject && ci/engines.sh with pg17,valkey -- oracles/crs-diff/run --family data --subject target/release/crs-subject --pg @pg17 --redis @valkey",
+  "must": "0 cross-scope dependencies; subject mutants (shared pool, pool key without epoch) red"
+ },
+ "write_scope": [
+  "subjects/crs-subject/**",
+  "crates/aegis-adapter-pg/src/pool.rs",
+  "crates/aegis-adapter-redis/src/conn.rs"
+ ],
+ "notes": "Fixes found here are limited to the two listed files; anything else is handed back as a finding.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

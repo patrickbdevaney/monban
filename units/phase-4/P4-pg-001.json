@@ -1,0 +1,44 @@
+{
+ "id": "P4-pg-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-pg"
+ ],
+ "depends_on": [
+  "P4-spec-002",
+  "P4-engines-001",
+  "P4-oracle-pgver-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "pg-version-floor",
+  "pg19-blocked"
+ ],
+ "spec_refs": [
+  "DEVIATIONS X-10 (owned PG v3 client)",
+  "R-DB-1 version floor, recycle after minor upgrade",
+  "R-DB-8 PG19 gate",
+  "supply-chain/engine-pins.toml"
+ ],
+ "oracles": [
+  "oracles/pg-version-gate (fake + live)"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p pg-subject && oracles/pg-version-gate/run --subject 'target/release/pg-subject connect' && ci/engines.sh with pg19rc1,pg17 -- oracles/pg-version-gate/run --live --subject 'target/release/pg-subject connect' --refuse @pg19rc1 --accept @pg17",
+  "must": "PASS both; floors compiled from engine-pins.toml at build time (no hand-copied constant)"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-pg/src/lib.rs",
+  "crates/aegis-adapter-pg/src/wire/**",
+  "crates/aegis-adapter-pg/src/auth.rs",
+  "crates/aegis-adapter-pg/src/version.rs",
+  "crates/aegis-adapter-pg/build.rs",
+  "crates/aegis-adapter-pg/tests/wire*.rs",
+  "subjects/pg-subject/**"
+ ],
+ "notes": "Blocking std-socket v3 client (TCP + UDS): startup, SCRAM-SHA-256 (aws-lc-rs), extended protocol with text params, exact protocol-state tracking (txn status from ReadyForQuery, outstanding replies, open portals/statements) that P4-pg-003's checkin predicate needs; statement_timeout set per op budget; numeric server_version_num compare.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

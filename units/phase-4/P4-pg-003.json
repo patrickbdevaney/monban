@@ -1,0 +1,42 @@
+{
+ "id": "P4-pg-003",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-pg (pool, NC3)",
+  "cancel DST subject"
+ ],
+ "depends_on": [
+  "P4-pg-002",
+  "P4-state-002",
+  "P4-oracle-state-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "cancel-sweep"
+ ],
+ "spec_refs": [
+  "SPEC §B NC3 as rewritten (drain without CancelRequest, ROLLBACK if txn != I, DISCARD ALL, generation bump within T_recover; else discard with CancelRequest; never CancelRequest on a connection that will be checked in)",
+  "NC4 quarantine/discards charged to the cancelling principal",
+  "CRS C5/C8: pool key over the whole config incl. tenant role and epoch; DISCARD ALL on every recycle regardless of cancellation (BACKLOG)",
+  "cancel-sweep README subject event protocol"
+ ],
+ "oracles": [
+  "oracles/cancel-sweep --subject (200 seeds PR size; 20000 nightly)"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p cancel-subject && oracles/cancel-sweep/run --seeds 200 --subject target/release/cancel-subject && oracles/cancel-sweep/run --self-test --subject target/release/cancel-subject",
+  "must": "PASS; every subject-side mutation listed by the oracle red within 100 seeds"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-pg/src/pool.rs",
+  "crates/aegis-adapter-pg/src/checkin.rs",
+  "crates/aegis-adapter-pg/src/lib.rs",
+  "crates/aegis-adapter-pg/tests/pool*.rs",
+  "subjects/cancel-subject/**"
+ ],
+ "notes": "The subject embeds the DST shell (CancelAt at host-call sites + interleave shim) and a pgwire fake that reports server truth; the fake is test-only code inside the subject crate.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

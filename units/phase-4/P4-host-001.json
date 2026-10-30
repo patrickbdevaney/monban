@@ -1,0 +1,48 @@
+{
+ "id": "P4-host-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-host (SDK host + golden dispatch)"
+ ],
+ "depends_on": [
+  "P4-datair-001",
+  "P4-sqlite-001",
+  "P4-pg-002",
+  "P4-redis-001",
+  "P4-state-002",
+  "P4-oracle-nonempty-001",
+  "P4-oracle-host-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "nonempty-props",
+  "sdk-host"
+ ],
+ "spec_refs": [
+  "F7/F7b + sdk host seam (P4-spec-002)",
+  "INV-NO-AMBIENT (Grant = derive(token) ∪ endow(route))",
+  "INV-NONEMPTY",
+  "ARCHITECTURE §3.8 Op budget rows <= 10k, bytes <= 8 MiB, ms <= 5000",
+  "DEVIATIONS X-11 (sync handlers on bounded blocking pool)"
+ ],
+ "oracles": [
+  "oracles/nonempty-props (100k/adapter)",
+  "oracles/sdk-host"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p host-subject && oracles/nonempty-props/run --cases 100000 --subject 'target/release/host-subject nonempty' && oracles/nonempty-props/run --self-test --subject 'target/release/host-subject nonempty' && oracles/sdk-host/run --subject 'target/release/host-subject sdk-host' && oracles/sdk-host/run --self-test --subject 'target/release/host-subject sdk-host'",
+  "must": "0 allows on empty/non-covering capsets over >= 100k cases for each of sqlite, pg, redis, out-of-process; no render reached on deny; F7b obligations hold; subject mutants red"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-host/src/lib.rs",
+  "crates/aegis-adapter-host/src/host/**",
+  "crates/aegis-adapter-host/src/dispatch.rs",
+  "crates/aegis-adapter-host/tests/**",
+  "subjects/host-subject/**"
+ ],
+ "notes": "Order per op: authorize(CapSet) -> check_schema(introspected) -> budget pre-debit (NC4) -> render -> execute. pdp_uds.rs untouched.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}
