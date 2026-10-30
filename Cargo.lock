@@ -905,6 +905,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "host-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-host",
+ "aegis-adapter-pg",
+ "aegis-adapter-redis",
+ "aegis-adapter-sqlite",
+ "aegis-config",
+ "aegis-data-ir",
+ "aegis-sdk",
+ "aegis-state",
+ "aegis-token",
+ "aegis-types",
+]
+
+[[package]]
 name = "http"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
