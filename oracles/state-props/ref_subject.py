@@ -103,6 +103,8 @@ def main(argv):
             for seq, dd, pl in db.execute('SELECT seq, dedupe, payload FROM outbox WHERE delivered = 0 ORDER BY seq').fetchall():
                 if 'dedupe-unstable' in mut: dd = dd[:24] + os.urandom(4).hex()          # MUTATION
                 out(f'EFF {dd} {pl}')                                            # send first ...
+                if sys.stdin.readline().strip() != 'ACK':                       # ... the sink takes it ...
+                    return 4
                 db.execute('UPDATE outbox SET delivered = 1 WHERE seq = ?', (seq,))   # ... then mark (at-least-once)
             out('END')
         elif cmd == 'DUMP':

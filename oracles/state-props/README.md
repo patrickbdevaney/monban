@@ -109,8 +109,11 @@ COMMIT <rid> <status> <bodyhex> <timer>  -> RESP <rid> <code> <bodyhex|->
         request timer fired after CP): code 202 and body "-"; the outcome stays retrievable via BEGIN (NC2 latch).
 ABORT <rid>                              -> OK <rid>      termination before CP: nothing durable; key released
 DELIVER                                  -> EFF <dedupe> <payloadhex> ... END
-        one outbox relay pass: every committed, undelivered effect, oldest first. Mark an effect delivered only
-        after its EFF line is written (at-least-once). <dedupe> is stable across redeliveries.
+        one outbox relay pass: every committed, undelivered effect, oldest first. After each EFF line the subject
+        reads one line from the oracle (the sink): ACK means the sink took the effect, and only then may it be marked
+        delivered (at-least-once); anything else, or EOF, ends the pass without marking. A line written but not ACKed
+        is not delivered (it may sit unread in the pipe when the oracle SIGKILLs mid-pass). <dedupe> is stable
+        across redeliveries.
 DUMP                                     -> ROW <row> <valhex> ... END   (committed user rows)
 QUIT / EOF                               -> exit 0
 ```
@@ -122,7 +125,7 @@ next command is read.
 
 How the aegis-state crate maps onto it (P4-state-002): `idem.rs` answers BEGIN from the (principal, key) table and the
 in-flight set; `latch.rs` is the COMMIT path (one SQLite transaction for rows + outcome + outbox, then the response,
-202 when the request timer has fired after CP); `outbox.rs` is DELIVER (relay pass, mark after send) with a dedupe key
+202 when the request timer has fired after CP); `outbox.rs` is DELIVER (relay pass, mark after the sink's ACK) with a dedupe key
 derived from the idempotency key and the effect's position. The subject wrapper (`subjects/state-subject`) only parses
 lines.
 
