@@ -557,6 +557,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "crash-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-state",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1330,6 +1337,13 @@ checksum = "3672b37090dbd86368a4145bc067582552b29c27377cad4e0a306c97f9bd7772"
 dependencies = [
  "fixedbitset",
  "indexmap 2.14.2",
+]
+
+[[package]]
+name = "pg-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-pg",
 ]
 
 [[package]]

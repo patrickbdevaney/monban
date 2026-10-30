@@ -1,0 +1,18 @@
+# sdk-trybuild lint tier: the clippy ban list for application crates (ARCHITECTURE §3.12 "clippy ban list (spawn
+# family, Box::leak, mem::forget, std Mutex/OnceLock, State/Extension)"). Ported from the research list
+# (research/state/raw/round-004/05-work/app_b2/clippy.toml); the tokio/axum entries stay although app crates cannot
+# reach those crates. Added for F7 (no egress or process capability exists, so any use is ambient authority):
+# std::net socket constructors and std::process::Command.
+# Paths that do not resolve (tokio, axum) only produce a clippy warning.
+disallowed-methods = [
+ "tokio::spawn", "tokio::task::spawn", "tokio::task::spawn_blocking", "tokio::task::spawn_local", "tokio::runtime::Handle::spawn",
+ "std::mem::forget", "std::boxed::Box::leak", "std::mem::transmute",
+ "tokio::sync::mpsc::unbounded_channel", "tokio::sync::mpsc::channel",
+ "axum::middleware::from_fn", "axum::middleware::from_fn_with_state", "axum::routing::get", "axum::routing::post", "axum::Router::route", "axum::Router::layer", "axum::Router::new",
+ "std::net::TcpStream::connect", "std::net::TcpStream::connect_timeout", "std::net::TcpListener::bind", "std::net::UdpSocket::bind",
+ "std::process::Command::new",
+]
+disallowed-types = [
+ "std::sync::Mutex", "std::sync::RwLock", "std::sync::OnceLock", "std::sync::LazyLock", "tokio::sync::OnceCell", "std::cell::RefCell",
+ "axum::extract::State", "axum::Extension", "tokio::sync::Mutex",
+]

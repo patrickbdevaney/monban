@@ -13,7 +13,7 @@
   "crash-harness"
  ],
  "spec_refs": [
-  "SPEC §B INV-DURABLE",
+  "SPEC \u00a7B INV-DURABLE",
   "spikes/q2-007 decision_effect (4 mandatory assertions)",
   "crash-harness README 'Subject protocol' + CrashSubject trait",
   "BACKLOG State: WAL silent fallback; temp file + rename + dir fsync on create; --cfg rustix_use_libc"
@@ -34,6 +34,6 @@
  "notes": "SQLite WAL synchronous=FULL single writer (q2-007 keep); redb 2PC stays the documented alternative, not built.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: crash harness 0 violations reduced 9770 / full 58190 images (subject only; ~170k counted the 3 reference subjects); self-test 11/11; creation marker makes bootstrap dir fsync load-bearing"
 }

@@ -11,8 +11,8 @@
  "start_now": false,
  "gates": [],
  "spec_refs": [
-  "SPEC §E lowering soundness (refQ3; leak=0 ∧ widen=0 ∧ miss=0, >=100k cases per ENGINE_PIN)",
-  "SPEC §E INV-WRITE-SUBSET W1-W7 + mandated forms",
+  "SPEC \u00a7E lowering soundness (refQ3; leak=0 \u2227 widen=0 \u2227 miss=0, >=100k cases per ENGINE_PIN)",
+  "SPEC \u00a7E INV-WRITE-SUBSET W1-W7 + mandated forms",
   "units/BACKLOG.md Data plane + Oracle follow-ups",
   "lowering-write README 'Known limits / pending'"
  ],
@@ -31,5 +31,5 @@
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
- "status": "todo"
+ "status": "partial (2872c24 merged): 16-hex tenants, kv_plan families, --engine-pin, sqlite-exec at 3.53.2, 100k read/engine, write n=300 all 0, W6/forms; TODO: RLS-native PG families, PG19rc1 ON CONFLICT info run, Redis kv_acl hostile-command family"
 }

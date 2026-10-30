@@ -1,0 +1,17 @@
+[package]
+name = "crash-subject"
+description = "Oracle subject: exposes the aegis-state durable store over the crash-harness line protocol. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+[dependencies]
+aegis-state = { workspace = true }
+
+[lints]
+workspace = true

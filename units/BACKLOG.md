@@ -158,3 +158,8 @@ run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 cr
   drops connections at 50-way concurrency. Not a reject, verdict unaffected; consider a larger backlog in the mock.
 - CANON-6 exception (c73b614): an agent listener refuses an Origin-only failure with 403. Hook
   `App::origin_refusal_status`, default 421.
+
+## Phase 4 follow-ups (integrator, 2026-10-30)
+- xtask rule: only `subjects/crash-subject` may call `aegis_state::Store::open_with` (the mutation seam is `#[doc(hidden)]` but unenforced).
+- P4-state-001's remote build used `--cfg rustix_use_libc`; confirm whether the GO crash-harness gate needs it and record why.
+- P4-pg-001: run a mutated-pins control (raise the pg17 floor in a scratch copy of engine-pins.toml, rebuild, expect live 17.11 refused) to prove the floors are read from the pins file at build time; add a fuzz target for the PG message parser; add a connect timeout for Unix sockets; SASLprep (non-ASCII SCRAM passwords are refused today).
