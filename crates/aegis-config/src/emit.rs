@@ -5,7 +5,7 @@ use std::fmt::Write as _;
 
 use aegis_canon::canon_json;
 
-use crate::{Canon, Config, ConfigError, ErrorKind, Limits, MAX_CONFIG_BYTES, RouteTarget};
+use crate::{Canon, Config, ConfigError, DataBlock, ErrorKind, Limits, MAX_CONFIG_BYTES, RouteData, RouteTarget};
 
 fn string(s: &str, out: &mut String) {
     out.push('"');
@@ -49,6 +49,79 @@ fn canon(c: &Canon, out: &mut String) {
     key("query", out);
     string(c.query.as_str(), out);
     out.push('}');
+}
+
+fn str_array<'a>(items: impl Iterator<Item = &'a str>, out: &mut String) {
+    out.push('[');
+    for (i, s) in items.enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        string(s, out);
+    }
+    out.push(']');
+}
+
+/// `routes[].data`: the literal for `Unrestricted` (so the ledger sees every grant), else the cap list. Ops are
+/// emitted in F4 order (they are a set); columns in document order.
+fn route_data(d: &RouteData, out: &mut String) {
+    match d {
+        RouteData::Unrestricted => string(crate::UNRESTRICTED, out),
+        RouteData::Caps(list) => {
+            out.push('[');
+            for (k, c) in list.as_slice().iter().enumerate() {
+                if k > 0 {
+                    out.push(',');
+                }
+                out.push('{');
+                key("backend", out);
+                string(c.backend(), out);
+                out.push(',');
+                key("collection", out);
+                string(c.collection(), out);
+                out.push(',');
+                key("ops", out);
+                let ops = c.ops();
+                str_array(ops.iter().map(|o| o.as_str()), out);
+                out.push(',');
+                key("columns", out);
+                str_array(c.columns().iter().map(String::as_str), out);
+                out.push('}');
+            }
+            out.push(']');
+        }
+    }
+}
+
+/// The `data` block with backend defaults (`max_conns`, `op_budget_ms`) applied.
+fn data_block(d: &DataBlock, out: &mut String) {
+    out.push('{');
+    key("backends", out);
+    out.push('[');
+    for (i, b) in d.backends().iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        out.push('{');
+        key("id", out);
+        string(&b.id, out);
+        out.push(',');
+        key("engine", out);
+        string(b.engine.as_str(), out);
+        out.push(',');
+        key("dsn_ref", out);
+        string(&b.dsn_ref.to_f8(), out);
+        out.push(',');
+        key("pin", out);
+        string(&b.pin, out);
+        out.push(',');
+        key("max_conns", out);
+        let _ = write!(out, "{},", b.max_conns);
+        key("op_budget_ms", out);
+        let _ = write!(out, "{}", b.op_budget_ms);
+        out.push('}');
+    }
+    out.push_str("]}");
 }
 
 fn text(c: &Config) -> String {
@@ -131,6 +204,12 @@ fn text(c: &Config) -> String {
                 key("authz", &mut o);
                 string(a, &mut o);
             }
+            // Absent data is omitted (never `null`): no capability.
+            if let Some(d) = &r.data {
+                o.push(',');
+                key("data", &mut o);
+                route_data(d, &mut o);
+            }
             o.push('}');
         }
         o.push_str("]}");
@@ -152,6 +231,12 @@ fn text(c: &Config) -> String {
     o.push(',');
     key("canon", &mut o);
     canon(&c.canon, &mut o);
+    // Absent data block is omitted (never `null`).
+    if let Some(d) = &c.data {
+        o.push(',');
+        key("data", &mut o);
+        data_block(d, &mut o);
+    }
     o.push('}');
     o
 }

@@ -13,6 +13,15 @@ const B: &str = r#"{"v":1,"listeners":[{"name":"a","bind":"b","profile":"P-CNSA"
   "vhosts":[{"host":"a","routes":[{"id":1,"path":"/","to":{"static":"x"}}]}]}"#;
 const C: &str = r#"{"v":1,"listeners":[{"name":"c","bind":"b","profile":"FIPS-CMVP"}],
   "vhosts":[{"host":"c","routes":[{"id":3,"path":"/c","to":{"upstream":"u"}}]}]}"#;
+/// F8 `data` block (Phase 4): caps, the `unrestricted` literal, an absent endowment, all three dsn_ref forms.
+const D: &str = r#"{"v":1,"listeners":[{"name":"d","bind":"b","profile":"P-PUBLIC-WEB"}],
+  "vhosts":[{"host":"d","routes":[
+    {"id":1,"path":"/n","to":{"upstream":"u"},"authz":"n","data":[{"backend":"pg","collection":"notes","ops":["select","insert"],"columns":["id","body"]},{"backend":"kv","collection":"s","ops":["upsert"],"columns":["k"]}]},
+    {"id":2,"path":"/u","to":{"upstream":"u"},"data":"unrestricted"},
+    {"id":3,"path":"/","to":{"static":"x"}}]}],
+  "data":{"backends":[{"id":"pg","engine":"postgres","dsn_ref":"env:PG_DSN","pin":"pg18","max_conns":8},
+    {"id":"kv","engine":"redis","dsn_ref":"cred:kv","pin":"redis","op_budget_ms":100},
+    {"id":"lite","engine":"sqlite","dsn_ref":"path:/var/lib/a.db","pin":"sqlite"}]}}"#;
 
 fn hash(s: &ConfigStore) -> Option<[u8; 32]> {
     s.config_hash()
@@ -261,14 +270,14 @@ fn totality_random_mutation() {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(if cfg!(debug_assertions) { 20_000 } else { 1_000_000 });
-    let seeds: [&[u8]; 3] = [A.as_bytes(), B.as_bytes(), C.as_bytes()];
+    let seeds: [&[u8]; 4] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes()];
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
     let mut s = ConfigStore::with_policy(policy());
     s.apply(A.as_bytes()).unwrap();
     let (mut oks, mut errs) = (0u64, 0u64);
     let mut kinds = std::collections::HashSet::new();
     for i in 0..iters {
-        let input = mutate(&mut rng, seeds[(i % 3) as usize]);
+        let input = mutate(&mut rng, seeds[(i % 4) as usize]);
         let before = (s.config_hash(), s.generation());
         match s.apply(&input) {
             Ok(g) => {
