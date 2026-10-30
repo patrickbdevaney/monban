@@ -534,14 +534,45 @@ fn lock_age(min_days: u64, self_test: bool) -> Result<(), String> {
     let exc = exceptions();
     let mut v = Vec::new();
     let mut ages: Vec<(String, String, i64)> = Vec::new();
+    // A published version's created_at never changes, so fetched days are cached under target/ (not committed) and
+    // only new lock entries hit crates.io, at most one request per second (crates.io crawler policy).
+    let cache_path = root().join("target/xtask-cache/crates-created.tsv");
+    let mut cache: BTreeMap<(String, String), i64> = std::fs::read_to_string(&cache_path)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| {
+            let mut f = l.split('\t');
+            Some(((f.next()?.to_string(), f.next()?.to_string()), f.next()?.parse().ok()?))
+        })
+        .collect();
+    let mut fetched = 0usize;
     for p in pkgs.iter().filter(|p| p.source.as_deref().is_some_and(|s| s.starts_with("registry+"))) {
-        let j = curl_json(&format!("https://crates.io/api/v1/crates/{}/{}", p.name, p.version), None)?;
-        let created = j
-            .path(&["version", "created_at"])
-            .and_then(Json::str)
-            .and_then(rfc3339_day)
-            .ok_or(format!("{}: no created_at", p.name))?;
+        let key = (p.name.clone(), p.version.clone());
+        let created = match cache.get(&key) {
+            Some(d) => *d,
+            None => {
+                if fetched > 0 {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+                fetched += 1;
+                let j = curl_json(&format!("https://crates.io/api/v1/crates/{}/{}", p.name, p.version), None)?;
+                let d = j
+                    .path(&["version", "created_at"])
+                    .and_then(Json::str)
+                    .and_then(rfc3339_day)
+                    .ok_or(format!("{}: no created_at", p.name))?;
+                cache.insert(key, d);
+                d
+            }
+        };
         ages.push((p.name.clone(), p.version.clone(), today() - created));
+    }
+    if fetched > 0 {
+        let body: String = cache.iter().map(|((n, v), d)| format!("{n}\t{v}\t{d}\n")).collect();
+        if let Some(dir) = cache_path.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let _ = std::fs::write(&cache_path, body);
     }
     if self_test {
         ages.push(("selftest-fresh-crate".into(), "0.0.1".into(), 0));
