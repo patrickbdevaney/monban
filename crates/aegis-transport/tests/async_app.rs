@@ -115,7 +115,8 @@ fn pipe(srv: &Arc<Server<AsyncApp>>) -> (DuplexStream, tokio::task::JoinHandle<(
 async fn h1(srv: &Arc<Server<AsyncApp>>, req: &[u8]) -> String {
     let (mut io, h) = pipe(srv);
     io.write_all(req).await.unwrap();
-    io.shutdown().await.unwrap();
+    // No half-close: a client FIN while the handler runs cancels the request (INV-NOMUT-C NC1, tests/cancel.rs).
+    // The connection ends at the idle deadline (1 s) after the reply.
     let mut out = Vec::new();
     let _ = tokio::time::timeout(Duration::from_secs(5), io.read_to_end(&mut out)).await;
     let _ = tokio::time::timeout(Duration::from_secs(5), h).await;

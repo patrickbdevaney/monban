@@ -1,7 +1,10 @@
 //! HTTP/1.1 connection driver: hyper's h1 server behind the strict framing filter ([`crate::h1::H1Validator`]),
 //! with a TBI-8 watchdog (head / body / response stall deadline, idle deadline) and the TBI-6/7 ledger on the
 //! response path. One request at a time per connection, so TBI-4 holds by construction (≤ 1 live handler). While
-//! the handler runs the watchdog is suspended (the handler is bounded by the exchange's stall deadline itself).
+//! the handler runs the watchdog is suspended (the handler is bounded by the exchange's stall deadline itself) and
+//! the transport is probed instead: a client FIN or TCP RST ends the connection, which drops the handler future
+//! (INV-NOMUT-C NC1: an h1 close before the commit point cancels the request, so a half-closed client gets no
+//! reply from a handler that has not answered yet).
 //! Draining (`Server::drain`) closes an idle connection and ends a busy one after its current response.
 
 use std::future::{Future, poll_fn};
@@ -44,8 +47,9 @@ impl H1State {
     }
 }
 
-/// hyper I/O adapter: reads pass through the strict framing filter; writes go to the counting transport.
-struct H1Guard<IO> {
+/// The connection's transport and read filter, shared by hyper (through [`H1Guard`]) and the serve loop's
+/// peer-gone probe (both on the connection task, so the lock is never contended).
+struct GuardIo<IO> {
     io: CountingIo<IO>,
     validator: Option<H1Validator>,
     inbuf: Vec<u8>,
@@ -55,17 +59,77 @@ struct H1Guard<IO> {
     st: Arc<H1State>,
 }
 
+impl<IO: AsyncRead + AsyncWrite + Unpin> GuardIo<IO> {
+    fn filtered(&self) -> &[u8] {
+        self.out.get(self.pos..).unwrap_or(&[])
+    }
+
+    fn closed(&self) -> bool {
+        self.eof || self.validator.as_ref().is_some_and(|v| v.rejected().is_some())
+    }
+
+    /// One read from the transport (into the fixed `inbuf`) through the strict framing filter into `out`.
+    fn fill(&mut self, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        let mut tmp = ReadBuf::new(&mut self.inbuf);
+        match Pin::new(&mut self.io).poll_read(cx, &mut tmp) {
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+            Poll::Ready(Ok(())) => {}
+        }
+        let got = tmp.filled();
+        if got.is_empty() {
+            self.eof = true;
+            return Poll::Ready(Ok(()));
+        }
+        match self.validator.as_mut() {
+            Some(v) => {
+                if let Err(r) = v.feed(got, &mut self.out) {
+                    *self.st.reject.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(r);
+                }
+                self.st.head_partial.store(v.head_partial(), Ordering::Relaxed);
+                self.st.mid_message.store(v.mid_message(), Ordering::Relaxed);
+            }
+            None => self.out.extend_from_slice(got),
+        }
+        Poll::Ready(Ok(()))
+    }
+
+    /// While a handler runs hyper does not read (`half_close`), so a client FIN or TCP RST would go unseen until
+    /// the reply. `true` once the peer is gone: EOF or a read error. Reads at most one `inbuf` worth ahead: bytes
+    /// that arrive meanwhile (a pipelined request) are filtered into `out` and replayed to hyper later, and probing
+    /// pauses until hyper has consumed them (the handler stays bounded by the exchange stall deadline either way).
+    fn peer_gone(&mut self, cx: &mut Context<'_>) -> bool {
+        if self.eof {
+            return true;
+        }
+        if self.closed() || !self.filtered().is_empty() {
+            return false;
+        }
+        match self.fill(cx) {
+            Poll::Pending => false,
+            Poll::Ready(Err(_)) => true,
+            Poll::Ready(Ok(())) => self.eof,
+        }
+    }
+}
+
+fn lock<IO>(m: &Mutex<GuardIo<IO>>) -> std::sync::MutexGuard<'_, GuardIo<IO>> {
+    m.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// hyper I/O adapter: reads pass through the strict framing filter; writes go to the counting transport.
+struct H1Guard<IO>(Arc<Mutex<GuardIo<IO>>>);
+
 impl<IO: AsyncRead + AsyncWrite + Unpin> hyper::rt::Read for H1Guard<IO> {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         mut buf: hyper::rt::ReadBufCursor<'_>,
     ) -> Poll<std::io::Result<()>> {
-        let this = self.get_mut();
+        let mut this = lock(&self.0);
         loop {
-            if let Some(avail) = this.out.get(this.pos..)
-                && !avail.is_empty()
-            {
+            let avail = this.filtered();
+            if !avail.is_empty() {
                 let n = avail.len().min(buf.remaining());
                 buf.put_slice(avail.get(..n).unwrap_or(&[]));
                 this.pos = this.pos.saturating_add(n);
@@ -75,29 +139,13 @@ impl<IO: AsyncRead + AsyncWrite + Unpin> hyper::rt::Read for H1Guard<IO> {
                 }
                 return Poll::Ready(Ok(()));
             }
-            if this.eof || this.validator.as_ref().is_some_and(|v| v.rejected().is_some()) {
+            if this.closed() {
                 return Poll::Ready(Ok(()));
             }
-            let mut tmp = ReadBuf::new(&mut this.inbuf);
-            match Pin::new(&mut this.io).poll_read(cx, &mut tmp) {
+            match this.fill(cx) {
                 Poll::Pending => return Poll::Pending,
                 Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
                 Poll::Ready(Ok(())) => {}
-            }
-            let got = tmp.filled();
-            if got.is_empty() {
-                this.eof = true;
-                return Poll::Ready(Ok(()));
-            }
-            match this.validator.as_mut() {
-                Some(v) => {
-                    if let Err(r) = v.feed(got, &mut this.out) {
-                        *this.st.reject.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(r);
-                    }
-                    this.st.head_partial.store(v.head_partial(), Ordering::Relaxed);
-                    this.st.mid_message.store(v.mid_message(), Ordering::Relaxed);
-                }
-                None => this.out.extend_from_slice(got),
             }
         }
     }
@@ -105,13 +153,13 @@ impl<IO: AsyncRead + AsyncWrite + Unpin> hyper::rt::Read for H1Guard<IO> {
 
 impl<IO: AsyncRead + AsyncWrite + Unpin> hyper::rt::Write for H1Guard<IO> {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<std::io::Result<usize>> {
-        Pin::new(&mut self.get_mut().io).poll_write(cx, buf)
+        Pin::new(&mut lock(&self.0).io).poll_write(cx, buf)
     }
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut self.get_mut().io).poll_flush(cx)
+        Pin::new(&mut lock(&self.0).io).poll_flush(cx)
     }
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut self.get_mut().io).poll_shutdown(cx)
+        Pin::new(&mut lock(&self.0).io).poll_shutdown(cx)
     }
 }
 
@@ -386,7 +434,7 @@ where
             max_fields: l.max_header_fields,
         })
     });
-    let guard = H1Guard {
+    let shared_io = Arc::new(Mutex::new(GuardIo {
         io: CountingIo::new(io, ledger.clone(), Some((st.progress.clone(), epoch))),
         validator,
         inbuf: vec![0u8; 16_384],
@@ -394,7 +442,8 @@ where
         pos: 0,
         eof: false,
         st: st.clone(),
-    };
+    }));
+    let guard = H1Guard(shared_io.clone());
     let sh = Arc::new(Shared { srv: srv.clone(), info, flags, l, ledger, st: st.clone() });
     let mut b = hyper::server::conn::http1::Builder::new();
     b.half_close(true)
@@ -416,7 +465,16 @@ where
         if let Poll::Ready(r) = conn.poll_without_shutdown(cx) {
             return Poll::Ready(Some(r));
         }
-        if !on || st.handling.load(Ordering::Relaxed) > 0 {
+        if st.handling.load(Ordering::Relaxed) > 0 {
+            // NC1: the client closed (FIN) or reset the connection while the handler runs: end the connection,
+            // which drops the service future and with it the handler, before its commit point.
+            if lock(&shared_io).peer_gone(cx) {
+                counters::bump(&srv.counters.handlers_aborted);
+                return Poll::Ready(None);
+            }
+            return Poll::Pending;
+        }
+        if !on {
             return Poll::Pending;
         }
         loop {
@@ -451,7 +509,10 @@ where
             rej.status,
             reason_phrase(rej.status)
         );
-        let mut io = conn.into_parts().io.io.io;
+        let H1Guard(guard) = conn.into_parts().io;
+        drop(shared_io);
+        let Ok(gio) = Arc::try_unwrap(guard) else { return };
+        let mut io = gio.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner).io.io;
         let _ = timeout(srv.stall(), async {
             io.write_all(msg.as_bytes()).await?;
             io.shutdown().await

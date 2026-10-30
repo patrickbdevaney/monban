@@ -7,10 +7,12 @@
 //! per-connection ledger (request bytes are only released back to the peer as window when the ledger admits them;
 //! response bytes are only handed to h2 when it admits them), and TBI-8 per-stream stall and connection idle
 //! deadlines. Spikes/q2-009 is the prototype of the ledger + stall part. The request handler runs inside the stream
-//! task, under its TBI-4 permit; its reply goes out through the same ledger-gated send path. Draining
+//! task, under its TBI-4 permit; its reply goes out through the same ledger-gated send path. A peer
+//! RST_STREAM before the reply drops the handler future (INV-NOMUT-C NC1). Draining
 //! (`Server::drain`) sends a graceful GOAWAY.
 
 use std::future::{Future, poll_fn};
+use std::pin::pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::task::{Context, Poll, Waker};
@@ -331,7 +333,31 @@ async fn stream_task<A: App>(c: Arc<Conn<A>>, req: http::Request<RecvStream>, mu
         Err(BodyErr::Other) => return,
     };
     drop(body);
-    let reply = finish(&srv.app, adm, &c.info, message, stall).await;
+    // NC1: a peer reset (or a connection error) before the reply drops the handler future right away, so the
+    // handler observes the termination before its commit point; `arrival` is then dropped uncompleted.
+    let reply = {
+        let mut work = pin!(finish(&srv.app, adm, &c.info, message, stall));
+        poll_fn(|cx| {
+            if let Poll::Ready(r) = work.as_mut().poll(cx) {
+                return Poll::Ready(Ok(r));
+            }
+            match respond.poll_reset(cx) {
+                Poll::Ready(r) => Poll::Ready(Err(r.is_ok())),
+                Poll::Pending => Poll::Pending,
+            }
+        })
+        .await
+    };
+    let reply = match reply {
+        Ok(r) => r,
+        Err(peer) => {
+            counters::bump(&srv.counters.handlers_aborted);
+            if peer {
+                c.peer_reset();
+            }
+            return;
+        }
+    };
     arrival.complete();
     drop(hold);
     c.touch();
