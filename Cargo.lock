@@ -571,6 +571,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crs-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-pg",
+ "aegis-adapter-redis",
+ "aegis-state",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
