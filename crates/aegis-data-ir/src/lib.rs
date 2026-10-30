@@ -16,5 +16,11 @@
 
 extern crate alloc;
 
+mod capset;
 mod ir;
+mod lock;
+mod lower;
+pub use capset::*;
 pub use ir::*;
+pub use lock::*;
+pub use lower::*;
