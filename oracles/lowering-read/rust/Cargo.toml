@@ -1,0 +1,16 @@
+# Oracle-local workspace (excluded from the main AEGIS workspace via its `exclude = ["oracles", ...]`).
+# Built ONLY by the oracle itself (lowir.py SqliteExec.build -> ci/heavy.sh cargo build --locked) into a per-run
+# target directory under this folder that is deleted when the run ends (laptop disk rule, oracles/README.md).
+[workspace]
+resolver = "3"
+members = ["sqlite-exec"]
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[profile.release]
+opt-level = 2
+debug = false
+codegen-units = 16
+panic = "unwind"

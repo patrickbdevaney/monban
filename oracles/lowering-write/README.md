@@ -1,24 +1,29 @@
-# lowering-write: write-path differential oracle (INV-WRITE-SUBSET W1/W2/W4)
+# lowering-write: write-path differential oracle (INV-WRITE-SUBSET W1/W2/W4/W6)
 
-Checks that rendered UPDATE / DELETE / UPSERT statements and Redis/Valkey commands change only tenant-owned,
-predicate-selected state and return only permitted data. Spec clauses: **SPEC_INVARIANTS §E INV-WRITE-SUBSET
-W1, W2, W4** (W3 is observed through W1, W7 for the Redis family), mandated forms "composite arbiters, no REPLACE
-family, upsert WHERE without user expressions". IMPLEMENTATION_PLAN §2 row "write oracle W1/W2/W4"; Phase 4 gate
-"write oracle hardened forms 0/300 per family".
+Checks that rendered UPDATE / DELETE / INSERT / UPSERT statements and Redis/Valkey commands change only tenant-owned,
+predicate-selected state, return only permitted data and fail uniformly. Spec clauses: **SPEC_INVARIANTS §E
+INV-WRITE-SUBSET W1, W2, W4, W6** (W3 is observed through W1, W7 for the Redis family), mandated forms "composite
+arbiters, no REPLACE family, no IGNORE variants, ON CONFLICT always names the conflict key, upsert WHERE without user
+expressions" plus "MERGE and data-modifying CTE refused" (unit P4-oracle-lowering-001). IMPLEMENTATION_PLAN §2 row
+"write oracle W1/W2/W4"; Phase 4 gate "write oracle hardened forms 0/300 per family".
 
 ## Run
 
 ```
-oracles/lowering-write/run                         # default gate: SQLite (stdlib) + offline Redis model, ~7 s
-oracles/lowering-write/run --self-test             # mutants must be caught, ~11 s
+oracles/lowering-write/run                         # default gate: SQLite (stdlib) + offline Redis model, ~12 s
+oracles/lowering-write/run --self-test             # mutants must be caught, ~25 s
+oracles/lowering-write/run --self-test --subject "<cmd>"   # + <cmd> must PASS, "<cmd> --mutant drop-tenant" must go red
+oracles/lowering-write/run --n 300 --engine-pin    # SQLite at the adapter pin 3.53.2 (rust/sqlite-exec)
 oracles/lowering-write/run --subject "<cmd>"       # plug in the Rust renderer (protocol below)
-oracles/lowering-write/run --engine pg --dsn postgresql://postgres:x@127.0.0.1:55711/postgres \
-                           --engine redis --url redis://127.0.0.1:55712/9
-oracles/lowering-write/run --self-test --engine pg --dsn ... --engine redis --url ...
+ci/engines.sh with pg17,pg18,valkey,redis -- oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin \
+    --engine pg --dsn @pg17 --engine pg --dsn @pg18 --engine redis --url @valkey --engine redis --url @redis
+oracles/lowering-write/run --self-test --engine pg --dsn @pg17 --engine redis --url @valkey
 ```
 
 Last line `LOWERING-WRITE: PASS (...)` / `FAIL (...)`, exit 0 only on PASS. `--n` = cases per family per schema per
 seed (default 300, the research number); `--seeds` default 1,2,3,20261025; `--json FILE`; `--no-gate-demo`.
+`--dsn` / `--url` repeatable, `--skip-sqlite`, `--engine-pin`, `--sqlite-exec`, `--pins` exactly as in
+`oracles/lowering-read/README.md`.
 Targets must be throwaway (table `t` is dropped; the Redis db is FLUSHed if non-empty). No third-party drivers
 (in-file PG v3 wire client and RESP2 client, shared `lowir.py`).
 
@@ -37,6 +42,14 @@ With Delta = keys whose row differs (by the table's declared key):
   `keeps EXACT r (lowerQ t p)` get SET applied / are deleted; a composite upsert inserts or updates `(t, id)`.
   Without E a renderer that does nothing, or one that updates rows the Lean lowering drops (two-valued NOT), passes.
 * **W7** (Redis) GET/SCAN replies carry no key or value of another tenant.
+* **W6** (uniform failure, no existence oracle) the same rendered INSERT is run on S0 (no foreign row) and S1 (another
+  tenant holds a row with the same id, or the referenced parent group); the outcome (ok + RETURNING + own rows, or
+  the error class / SQLSTATE) must be identical. Ids and groups are fresh, so the own outcome depends only on own rows.
+* **FORM** (mandated forms) every write reply is one statement starting with the op's verb (UPDATE / DELETE /
+  INSERT); no MERGE, WITH (CTE), REPLACE, IGNORE, RULE, `INSERT OR ...`, no `;`; `ON CONFLICT` is followed by
+  `(conflict key)` and an upsert has one. Lexical scan outside literals, quoted identifiers and comments.
+* **REFUSE** requests that must be refused were answered: non-canonical tenant handles; ops `merge`, `cte`,
+  `replace`, `raw_sql`; invalid KV collection; KV key over 1024 bytes.
 
 Ill-formed requests (10% of U and UP cases: `SET tenant = other`, a request `row` carrying `tenant`; all upserts on
 a global-key table) must be refused or be W-safe; they get W checks, no E check. Engine errors are "blocked"
@@ -50,9 +63,16 @@ Families (SQLite; each 300 cases x 4 seeds per schema):
 | D `DELETE .. WHERE lowerQ RETURNING` | same |
 | UP composite-arbiter upsert `ON CONFLICT (tenant,id) DO UPDATE .. WHERE t.tenant = excluded.tenant COLLATE BINARY` | composite schemas |
 | UPG upsert on a global-key table (reference refuses: arbiter must contain tenant) | plain, NOCASE |
-| redis kv: SET/DEL/GET/SCAN over the research tenant corpus with adversarial suffixes (`b:c`, `}:x`, `*`) | model (offline) or live |
+| W6 INSERT, unique-key and FK existence (S0 vs S1) | composite PK + composite FK; global id PK + composite FK (reference refuses); composite PK + global FK (reference refuses) |
+| refusals (non-canonical handles on update/upsert; merge, cte, replace, raw_sql ops) | once per engine |
+| redis kv (aegis_data_ir::kv_plan): SET / SET NX / SET XX / DEL / GET / SCAN per (tenant, collection, key) with adversarial keys (`b:c`, `}:x`, `*`, `?`, `[a]`) and prefixes; E = exact kv_plan effect and reply; refusals for bad handles, collections, >1024-byte keys | model (offline) or live |
 
-PG (`--engine pg`): U/D/UP/UPG on plain id PK, composite PK, ICU nondeterministic tenant (`ci_nd`).
+PG (`--engine pg`): U/D/UP/UPG on plain id PK, composite PK, ICU nondeterministic tenant (`ci_nd`), the three W6
+schemas and the refusals.
+
+Tenants (D4): handles are 16 lower-case hex TenantId texts (`TEN_HANDLES`); the research TEN confusers ("ACME",
+"Acme", "acme ") are stored as non-canonical variants of the canonical `0000000000acce55` (upper case, mixed case,
+trailing space) and are never handles. Hostile `SET tenant = other` / row tenants use other canonical handles.
 
 Schema-gate demo (printed, not in the verdict): composite PK whose tenant column is NOCASE (SQLite) or ICU
 nondeterministic (PG). The arbiter matches `ACME` for `acme`; the reference's tenant guard prevents the W1
@@ -61,7 +81,8 @@ schemas; a guard alone is not enough.
 
 ## Pass criterion
 
-`W1 = W2 = W4 = W7 = E = 0` and no engine errors on well-formed requests, across all hardened families (each family
+`W1 = W2 = W4 = W6 = W7 = E = FORM = REFUSE = 0` (and, with `--engine-pin`, every engine at its pin) and no engine
+errors on well-formed requests, across all hardened families (each family
 is 300 cases per seed per schema, so ≥ 300 per family as the Phase 4 gate requires).
 
 ## Self-test (negative controls)
@@ -78,12 +99,24 @@ is 300 cases per seed per schema, so ≥ 300 per family as the Phase 4 gate requ
 | two-valued-not | E |
 | like-prefix | W1 |
 | refuse-all | E |
-| kv-naive (raw tenant in key and pattern) | W1 |
-| kv-escaped-colon (escaped glob, ':' delimiter) | W7 |
+| kv-naive (key `t:<unpadded hex><collection>:..`, no delimiter: tenant 2 + `ac` == tenant 2a + `c`) | W1 |
+| kv-escaped-colon (unpadded hex in braces; SCAN pattern `t:{<hex>*` drops the `}:` delimiter) | W7 |
+| lenient-handle (any tenant handle accepted) | REFUSE |
+| insert-global-key (INSERT accepted although a unique key lacks the tenant) | W6 |
+| fk-global (write accepted although a foreign key does not carry the tenant) | W6 |
+| upsert-as-merge (`MERGE INTO .. USING (VALUES ..)`) | FORM |
+| update-via-cte (`WITH .. UPDATE`; data-modifying CTE on PG) | FORM |
+| accept-merge (renders the merge / cte / replace / raw_sql ops) | REFUSE |
+| kv-no-escape (SCAN prefix not glob-escaped) | E |
+| kv-no-keycap (> 1024-byte key not refused) | REFUSE |
+| kv-collection-colon (collection not validated) | REFUSE |
 
-Plus a positive control (the unmutated reference **through the `--subject` process protocol** must PASS) and
-upsert-global-arbiter served out-of-process must be caught. With `--engine pg`: drop-tenant, upsert-global-arbiter,
-returning-star, set-tenant-passthrough, pg-no-collate-c; with `--engine redis`: both kv mutants. two-valued-not is
+Plus a positive control: the `--subject` command (default `lowir.py serve`) must PASS on the self-test corpus of
+every engine in scope, and the same command with ` --mutant drop-tenant` appended must go red (W1 or W7); without
+`--subject`, upsert-global-arbiter served out-of-process must also be caught. With `--engine pg`: drop-tenant,
+upsert-global-arbiter, returning-star, set-tenant-passthrough, pg-no-collate-c, insert-global-key, fk-global,
+upsert-as-merge, update-via-cte; with `--engine redis`: kv-naive, kv-escaped-colon, kv-no-escape, drop-tenant.
+`--skip-sqlite` skips the SQLite mutant list (for kv-only / pg-only subjects). two-valued-not is
 not in the PG write list: PG comparisons already propagate NULL, so on these text columns the mutant is
 near-equivalent (0/100 caught). It stays in the PG read self-test, where class-mismatch atoms expose it.
 
@@ -94,26 +127,43 @@ JSON reply per line on stdout, `id` echoed, values are JSON int | string, Pred a
 `python3 -I lowir.py serve [--mutant NAME]`. A reply is `{"sql": "<one statement>", "params": [...]}`, or
 `{"refuse": "reason"}`.
 
+Protocol v2 (tenant = 16 lower-case hex TenantId text, else refuse; see the read README for the v1 → v2 changes).
 ```json
-{"v":1,"id":7,"op":"update","dialect":"sqlite","table":"t","tenant_field":"tenant","key":["tenant","id"],
+{"v":2,"id":7,"op":"update","dialect":"sqlite","table":"t","tenant_field":"tenant","key":["tenant","id"],
+ "unique":[["tenant","id"]],"fks":[],
  "columns":{"id":"INTEGER","tenant":"TEXT","grp":"TEXT","x":"TEXT","y":"TEXT","secret":"TEXT"},
- "tenant":"acme","pred":["pfx","x","a"],"set":{"x":"U"},"returning":["id","x"]}
-{"v":1,"id":8,"op":"delete", ...same envelope..., "pred":P, "returning":["id"]}
-{"v":1,"id":9,"op":"upsert", ...same envelope..., "row":{"id":7,"grp":"g1","x":"N","y":"n"},"update":["x"],"returning":["id","x"]}
+ "tenant":"0000000000acce55","pred":["pfx","x","a"],"set":{"x":"U"},"returning":["id","x"]}
+{"v":2,"id":8,"op":"delete", ...same envelope..., "pred":P, "returning":["id"]}
+{"v":2,"id":9,"op":"upsert", ...same envelope..., "row":{"id":7,"grp":"g1","x":"N","y":"n"},"update":["x"],"returning":["id","x"]}
+{"v":2,"id":10,"op":"insert", ...same envelope..., "row":{"id":1007,"grp":"g1","x":"N","y":"n"},"returning":["id","x"]}
 ```
 `set` and `update` must not touch the tenant or key columns; `row` must not carry the tenant (the tenant value is
 the host-minted `tenant` handle). `returning` is the permitted projection; the statement may return fewer columns,
-never others. `key` is the table's primary key (the upsert arbiter must contain the tenant column).
+never others. `key` is the table's primary key (the upsert arbiter must contain the tenant column). `unique` lists
+every unique key and `fks` every foreign key
+(`{"columns":[..],"ref_table":"p","ref_columns":[..],"ref_tenant_field":"tenant"}`): an `insert` / `upsert` on a
+table whose unique key lacks the tenant, and any write on a table whose foreign key does not map tenant to the
+referenced tenant column, must be refused (W6 / W3). Ops `merge`, `cte`, `replace`, `raw_sql` must be refused.
 Example reference reply (postgres dialect):
 ```json
-{"v":1,"id":9,"sql":"INSERT INTO \"t\" (\"tenant\", \"id\", \"x\") VALUES ($1, $2, $3) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\" WHERE \"t\".\"tenant\" = excluded.\"tenant\" COLLATE \"C\" RETURNING \"id\", \"x\"","params":["acme",7,"N"]}
+{"v":2,"id":9,"sql":"INSERT INTO \"t\" (\"tenant\", \"id\", \"x\") VALUES ($1, $2, $3) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\" WHERE \"t\".\"tenant\" = excluded.\"tenant\" COLLATE \"C\" RETURNING \"id\", \"x\"","params":["0000000000acce55",7,"N"]}
 ```
-Redis/Valkey (byte strings hex-encoded): `{"op":"kv_set","tenant":t,"suffix_hex":..,"value_hex":..}`,
-`{"op":"kv_del",...}`, `{"op":"kv_get",...}` → `{"commands":[["<hex arg>",...],...]}` (executed in order);
-`{"op":"kv_key",...}` → `{"key_hex":..}`; `{"op":"kv_scan","tenant":t}` → `{"pattern_hex":..}`. The oracle derives
+Redis/Valkey (aegis_data_ir::kv_plan; byte strings hex-encoded, keys and values UTF-8 text):
+`{"op":"kv_set"|"kv_setnx"|"kv_setxx","tenant":T,"collection":C,"key_hex":..,"value_hex":..}` (Upsert `SET k v`,
+Insert `SET k v NX`, Update `SET k v XX`), `{"op":"kv_del"|"kv_get","tenant":T,"collection":C,"key_hex":..}` →
+`{"commands":[["<hex arg>",...],...]}` (executed in order); `{"op":"kv_key",...}` → `{"key_hex":..}`;
+`{"op":"kv_scan","tenant":T,"collection":C,"prefix_hex":null|..}` → `{"pattern_hex":..}`. The oracle derives
 ownership from the subject's own `kv_key`/`kv_scan` answers (encoding-independent): a changed key created by another
-tenant is W1, a new key inside another tenant's scan pattern or outside the own one is W2, a foreign key or value in
-a reply is W7. Reference encoding: `t:{hex(utf8 tenant)}:<suffix>`, pattern `t:{hex}:*`.
+tenant is W1, a new key inside another tenant's scan pattern or outside the own ones is W2, a foreign key or value in
+a reply is W7, and any other difference from the kv_plan effect (or a SCAN result other than the tenant's keys in that
+collection with that prefix) is E. Reference encoding: `t:{<16hex>}:<collection>:<key>`, pattern
+`t:{<16hex>}:<collection>:<glob_escape(prefix)>*`.
+
+Reserved, implemented by the reference renderer but **not yet exercised by any family** (see pending):
+`{"op":"kv_acl","tenant":T}` → `{"rules":[<ACL SETUSER tokens>]}`;
+`{"op":"rls_policy","dialect":"postgres","table":"t","tenant_field":"tenant","role":R,"setting":S}` →
+`{"statements":[sql,...]}`; `{"op":"rls_bind","dialect":"postgres","tenant":T,"role":R,"setting":S}` →
+`{"statements":[{"sql":..,"params":[..]},...]}`. Subjects may refuse them until those families exist.
 
 ## Divergences from research (reported)
 
@@ -142,7 +192,17 @@ a reply is W7. Reference encoding: `t:{hex(utf8 tenant)}:<suffix>`, pattern `t:{
 
 In-repo: `spec/AegisIR/Lowering.lean` 5b79eac2615fdd02e5f7260919080d178e9f7fd24206b9b56fd093f034c70203,
 `spec/SPEC_INVARIANTS.md` 2d7444473fe2f878680c70ba87d721a52ba7a2a3348b1a24125a8363dab12ac1.
-`lowir.py` is byte-identical to `oracles/lowering-read/lowir.py` (sha256 e5774a4bbb32420a9fcaf4288b62085c5cf59d687bdbaff94ac6a40e792be5b4).
+`lowir.py` is byte-identical to `oracles/lowering-read/lowir.py` (sha256 8a49928907e2d82320b7a0a3ba02db712ca580a6412d74d81b4eac62a5a15a85).
+
+## Re-run in repo (2026-10-30, P4-oracle-lowering-001: D4 tenants, protocol v2; Python 3.12.9)
+
+* `run`: `LOWERING-WRITE: PASS (cases=22837 families=20 W1=0 W2=0 W4=0 W6=0 W7=0 E=0 FORM=0 REFUSE=0)`, 12 s;
+  schema-gate demo still E = 51/1200 (NOCASE composite arbiter).
+* `--self-test`: `LOWERING-WRITE SELF-TEST: PASS (21/21 mutants caught; positive control PASS; subject drop-tenant caught)`, 23 s.
+  With `--engine pg --dsn @pg17 --engine redis --url @valkey` (the unit acceptance): 34/34, `RC=0`.
+* `--n 300 --engine-pin` (SQLite 3.53.2 via sqlite-exec): `LOWERING-WRITE: PASS (cases=22837 families=20 W1=0 W2=0 W4=0 W6=0 W7=0 E=0 FORM=0 REFUSE=0 engine_pin=[sqlite 3.53.2])`.
+* `--n 300 --skip-sqlite --engine-pin --engine pg --dsn @pg17 --engine pg --dsn @pg18`: `LOWERING-WRITE: PASS (cases=28844 families=26 W1=0 W2=0 W4=0 W6=0 W7=0 E=0 FORM=0 REFUSE=0 engine_pin=[pg17=17.11, pg18=18.6])`.
+* `--n 300 --skip-sqlite --engine-pin --engine redis --url @valkey --engine redis --url @redis`: `LOWERING-WRITE: PASS (cases=2430 families=2 W1=0 W2=0 W4=0 W6=0 W7=0 E=0 FORM=0 REFUSE=0 engine_pin=[valkey=9.1.2, redis=8.10.2])`.
 
 ## Re-run in repo (2026-10-25, Python 3.12.9, SQLite 3.45.3)
 
@@ -152,11 +212,14 @@ In-repo: `spec/AegisIR/Lowering.lean` 5b79eac2615fdd02e5f7260919080d178e9f7fd242
 
 ## Known limits / pending
 
-* W5 (triggers, data-modifying CTEs, FK actions), W6 (uniform failure / existence oracle), MERGE, RLS-native
-  enforcement (wp_run2/3: FORCE RLS, WITH CHECK, owner bypass, SECURITY DEFINER triggers) are not ported: the
-  research families exist and are listed in wp_run*.py. They need the schema gate as a subject, not just a renderer.
-* PG 19rc1 (ON CONFLICT DO SELECT, plan's "PG19 blocked until ON CONFLICT fix") not run; image is present locally.
-* Redis: only string SET/DEL/GET/SCAN are modelled offline; the research ACL hostile-command corpus (RENAME, COPY,
-  SORT BY/GET/STORE, EVAL with undeclared keys, MOVE, SWAPDB...) in rd_run.py tests native ACL enforcement and is
-  pending (it needs the adapter's ACL rule generator in the protocol).
+* **Pending from unit P4-oracle-lowering-001 (not done in this pass):** (a) the RLS-native PG families (wp_run2/3:
+  FORCE RLS, WITH CHECK, owner bypass) with their mutants; (b) the PG19rc1 ON CONFLICT WHERE-before-RLS information
+  run; (c) the Redis/Valkey `kv_acl` native-ACL family (the gate `lowering-write-redis` comment names it). The
+  protocol ops are reserved and the reference renders them, but no family checks them yet, so the
+  lowering-write-redis acceptance clause "ACL corpus: every hostile command refused" is **not yet gated**.
+* W5 (triggers, data-modifying CTEs, FK actions) stays with the schema gate (PLAN D8). W6 is covered for INSERT
+  (unique-key and FK existence); UPDATE of a uniquely-constrained column and DELETE under FK RESTRICT are not.
+* The FORM check is lexical (keywords outside literals / quoted identifiers); it enforces the mandated forms, it
+  does not prove the absence of other statement shapes.
+* Redis: only string SET [NX|XX] / DEL / GET / SCAN are modelled offline.
 * MySQL/MariaDB/CockroachDB (q4-005) not covered.

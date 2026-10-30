@@ -11,18 +11,28 @@ IMPLEMENTATION_PLAN §2 row "read lowering oracle".
 ## Run
 
 ```
-oracles/lowering-read/run                                  # default gate: SQLite (stdlib), offline, ~17 s
-oracles/lowering-read/run --self-test                      # mutants must be caught, ~8 s
-ci/heavy.sh oracles/lowering-read/run --big                # 100k unique generated cases (x5 schemas), ~2.5 min
+oracles/lowering-read/run                                  # default gate: SQLite (Python stdlib 3.45.3) + offline Redis model, ~17 s
+oracles/lowering-read/run --self-test                      # mutants must be caught, ~9 s
+oracles/lowering-read/run --self-test --subject "<cmd>"    # + <cmd> must PASS and "<cmd> --mutant drop-tenant" must go red
+ci/heavy.sh oracles/lowering-read/run --big --engine-pin   # 100k unique cases at SQLite 3.53.2 (sqlite-exec helper)
 oracles/lowering-read/run --subject "<cmd>"                # plug in the Rust renderer (protocol below)
-oracles/lowering-read/run --engine pg --dsn postgresql://postgres:x@127.0.0.1:55711/postgres \
-                          --engine redis --url redis://127.0.0.1:55712/9     # optional live engines
-oracles/lowering-read/run --self-test --engine pg --dsn ... --engine redis --url ...   # + engine mutants
+ci/engines.sh with pg17,pg18,valkey,redis -- oracles/lowering-read/run --big --skip-sqlite --engine-pin \
+    --engine pg --dsn @pg17 --engine pg --dsn @pg18 --engine redis --url @valkey --engine redis --url @redis
+oracles/lowering-read/run --self-test --engine pg --dsn @pg17 --engine redis --url @valkey   # + engine mutants
 ```
 
 The last line is `LOWERING-READ: PASS (...)` / `LOWERING-READ: FAIL (...)`; exit code 0 only on PASS.
-`--json FILE` writes the full report. `--seeds`, `--cases-per-seed`, `--rows`, `--selfjoin`, `--pg-cases` tune
-the corpus. PG and Redis targets must be **throwaway**: the oracle drops table `t` and FLUSHDBs the given db.
+Flags: `--dsn` / `--url` are repeatable (every given PG / Redis-family engine is run). `--skip-sqlite` drops the
+SQLite families (and the offline Redis model) for pg-only or kv-only subjects, also in `--self-test`. `--engine-pin`
+reads `supply-chain/engine-pins.toml`, identifies each engine started by `ci/engines.sh` through its
+`AEGIS_ENGINE_<NAME>` URL (else any pin of that kind and exact version), requires the exact pinned version with policy
+`allow` (a blocked pin such as pg19rc1, an unknown version or a mismatch FAILs) and prints the versions in the PASS
+line. `--sqlite-exec` (implied by `--engine-pin` when SQLite runs) executes all SQLite SQL through `rust/sqlite-exec`
+(own workspace + Cargo.lock; rusqlite =0.40.2 bundled = SQLite 3.53.2, the adapter pin; it only executes, never
+renders), built via `ci/heavy.sh` into a per-run `rust/target-*` that is deleted at exit (~25 s build). `--big` =
+25,000 cases per seed for SQLite, PG and Redis (>=100k per engine with the 4 default seeds).
+`--json FILE` writes the full report. `--seeds`, `--cases-per-seed`, `--rows`, `--selfjoin`, `--pg-cases`,
+`--kv-cases` tune the corpus. PG and Redis targets must be **throwaway**: the oracle drops table `t` and FLUSHDBs the given db.
 No third-party drivers: PG uses an in-file v3 wire client (trust/cleartext/md5/SCRAM-SHA-256, extended protocol,
 text parameters), Redis/Valkey an in-file RESP2 client.
 
@@ -68,9 +78,24 @@ Families (default run, SQLite 3.45.3 = Python's stdlib):
 4. **self-join** (plan: "add a self-join family"; PG dca6a9e32 self-join-elimination class): the same table twice,
    `t AS a JOIN t AS b` and a correlated `EXISTS (... t AS b ...)`, each alias with its own rendered predicate
    (`alias`, `param_offset` in the request).
-5. **redis keyspace**: `kv_key` must be injective across tenants; `kv_scan`'s pattern must match exactly the
-   tenant's own keys, using the research tenant corpus (`a*`, `a?`, `a[b]`, `acme:x`, ...). Offline via a
-   line-for-line port of `stringmatchlen_impl` (redis 8.10.2 `src/util.c`); live via `SCAN MATCH` with `--engine redis`.
+5. **redis keyspace** (aegis_data_ir::kv_plan, read side): logical rows (tenant, collection, key) are written under
+   the subject's own `kv_key` answers. Physical keys must be injective (a key shared by two logical rows is a LEAK).
+   `kv_scan` (Select Tt / Pfx) must return exactly the tenant's keys in that collection with that key prefix
+   (adversarial prefixes and keys containing `* ? [ ] \ : } {`). `kv_get` (Select Eq) must be a single `GET <key>`
+   that returns exactly that row's value. Cases are de-duplicated before counting (`--kv-cases` unique per seed).
+   Offline via a line-for-line port of `stringmatchlen_impl` (redis 8.10.2 `src/util.c`); live via `SCAN MATCH` / `GET`
+   with `--engine redis` (Valkey and Redis).
+6. **refusals** (UNREFUSED must be 0): non-canonical tenant handles (upper case, padding, NUL, 15/17 digits, all
+   zero, JSON int, fullwidth letters), invalid KV collections (outside `^[a-z_][a-z0-9_]{0,62}$`) and KV keys or
+   patterns over 1024 bytes (`KV_MAX_KEY_BYTES`) must be refused. A 900-byte key must be accepted.
+
+Tenants (D4, PLAN Decisions): handles are `tenant_text(TenantId)` = 16 lower-case hex digits. The research tenant
+corpus is mapped through `R_TENANT_MAP`. Canonical research tenants become distinct TenantIds. The research confusers
+("ACME", "Acme", "acme ", NFD, "01") become non-canonical stored values that a coarse comparison would equate with
+the base tenant: upper-case hex (NOCASE / citext / ICU ks-level2), trailing space, a fullwidth digit (ICU width), and
+the unpadded form. Further stored confusers: NUL suffix, int, `"0"*16`, the 15-digit and leading-space forms. Rows,
+predicates and seeds are otherwise unchanged. A canonical-equivalence (NFC/NFD) confuser does not exist for hex
+digits, so the `nd_canon` cex case now uses the width variant (it is no longer a canonical-equivalence witness).
 
 PG (`--engine pg`): the 11 PG cex cases (ICU nondeterministic `ci_nd`/`nd_canon`, citext, glibc range, LIKE),
 lean-generated x 4 PG schemas (deterministic default collation, ICU ks-level2, ICU und, citext; `y bigint`,
@@ -78,7 +103,8 @@ typed columns, NUL-free corpus because PG text cannot hold NUL), and the self-jo
 
 ## Pass criterion
 
-`leak = widen = miss = errors = refused = theorem_violations = 0`, with `permit = refQ3` (GAP vs `refQ` is not part of it). The default run has ≥10k unique generated cases
+`leak = widen = miss = errors = refused = unrefused = theorem_violations = 0` (and, with `--engine-pin`, every engine at
+its pin), with `permit = refQ3` (GAP vs `refQ` is not part of it). The default run has ≥10k unique generated cases
 plus every research seed/regression case; `--big` gives ≥100k unique cases (the Phase 4 gate number).
 
 ## Self-test (negative controls)
@@ -102,7 +128,15 @@ counter to go non-zero:
 | nul-prefix (research `substr(+col,1,n)`) | miss |
 | selfjoin-alias (tenant conjunct always on alias a) | leak |
 | refuse-all | miss |
-| kv-naive, kv-escaped-colon | leak |
+| kv-naive (key `t:<unpadded hex><collection>:..`: tenant 2 + `ac` collides with tenant 2a + `c`) | leak |
+| kv-escaped-colon (unpadded hex in braces; SCAN pattern `t:{<hex>*` drops the `}:` delimiter) | leak |
+| lenient-handle (any tenant handle accepted and bound verbatim) | unrefused |
+| kv-no-escape (SCAN prefix not glob-escaped) | leak |
+| kv-no-keycap (keys / patterns > 1024 bytes not refused) | unrefused |
+| kv-collection-colon (collection not validated) | unrefused |
+
+The kv mutants changed meaning with the D4 encoding: with fixed-width hex handles the research glob-metachar tenants
+(`a*`, `a?`) no longer exist, so the cross-tenant hazards left are a missing delimiter or padding.
 
 The two q4-004 mutants are defined in `read_oracle.py` (`LOCAL_MUTANTS`, subclasses of `lowir.Renderer`). Against the
 old 2VL permit set they score leak = 0 (only widen: 11 and 248 on the self-test corpus), so they are caught as leaks
@@ -110,15 +144,27 @@ only because the gate is now `refQ3`. The self-test also checks the two separati
 (`not_absent_gap` and `NOT In []` on NULL: `refQ` permits, `refQ3` denies).
 
 It also checks that naive-bound reproduces every research LEAK verdict of the SQLite cex corpus (10/10), that the
-`refines_necessary` witness holds in the model, that the unmutated reference passes **through the `--subject`
-process protocol** (positive control), and that `drop-tenant` served out-of-process is caught. With `--engine pg`
-it adds pg-no-collate-c, naive-bound, like-prefix, two-valued-not, drop-tenant; with `--engine redis` the two kv mutants.
+`refines_necessary` witness holds in the model, and that the `--engine-pin` logic accepts a matching pin and rejects a
+mismatch, an unknown version, a blocked pin and the wrong kind (8 fixtures). Positive control: the `--subject`
+command (default `lowir.py serve`) must PASS on the self-test corpus of every engine in scope, and the same command with
+` --mutant drop-tenant` appended must go red (so a Rust subject must implement `--mutant drop-tenant`, which drops all
+tenant scoping: SQL conjunct, KV prefix, ACL key pattern). With `--engine pg` it adds pg-no-collate-c, naive-bound,
+like-prefix, two-valued-not, drop-tenant, lenient-handle. With `--engine redis` it adds kv-naive, kv-escaped-colon,
+kv-no-escape, drop-tenant.
 
 ## Subject protocol (for aegis-data-ir / aegis-adapter-*)
 
 `--subject "<cmd>"` starts `<cmd>` once; the oracle writes one JSON object per line to its stdin and reads exactly
-one JSON object per line from its stdout (UTF-8; the oracle sends `ensure_ascii` JSON). Each request has `v` (=1) and
-`id`; the reply must echo `id`. The reference implementation is `python3 -I lowir.py serve [--mutant NAME]`.
+one JSON object per line from its stdout (UTF-8; the oracle sends `ensure_ascii` JSON). Each request has `v` (=2) and
+`id`; the reply must echo `id`. The reference implementation is `python3 -I lowir.py serve [--mutant NAME]`. A subject
+must accept `--mutant drop-tenant` (self-test, see above); any request it cannot serve exactly is answered with
+`{"refuse": ...}`.
+
+**Protocol v2 (2026-10-30) changes from v1:** `tenant` is always the D4 text of a TenantId (exactly 16 lower-case hex
+digits, not all zero; `aegis_data_ir::parse_tenant_text`), anything else must be refused; KV ops carry `collection`
+and `key_hex` / `prefix_hex` (layout `t:{<16hex>}:<collection>:<key>`, aegis_data_ir::kv_plan) instead of
+`suffix_hex`; new ops `insert`, `kv_setnx`, `kv_setxx`, `kv_acl`, `rls_policy`, `rls_bind` (write README); write
+requests carry `unique` and `fks`; ops `merge`, `cte`, `replace`, `raw_sql` must be refused.
 
 Values: JSON integer = Lean `Value.int`, JSON string = `Value.str`; nothing else (no floats, bools, null).
 Pred (mirrors the Lean constructors; fields are column names):
@@ -127,21 +173,26 @@ Pred (mirrors the Lean constructors; fields are column names):
 
 **read** request:
 ```json
-{"v":1,"id":1,"op":"read","dialect":"sqlite","table":"t","alias":null,"param_offset":0,
+{"v":2,"id":1,"op":"read","dialect":"sqlite","table":"t","alias":null,"param_offset":0,
  "tenant_field":"tenant","columns":{"id":"integer","tenant":"text","x":"","y":""},
- "tenant":"acme","pred":["not",["eq","x",1]]}
+ "tenant":"0000000000acce55","pred":["not",["eq","x",1]]}
 ```
 `dialect` is `sqlite` (placeholders `?`) or `postgres` (placeholders `$n`, numbered from `param_offset+1`).
 `columns` maps every column to its declared type (renderers may rely on it; a typed dialect must). `alias`, if
 non-null, qualifies every column (self-join family). Reply: a boolean SQL expression (the WHERE body) and its
 parameters, or a refusal:
 ```json
-{"v":1,"id":1,"sql":"((CASE WHEN \"tenant\" IS NULL THEN NULL ELSE (typeof(\"tenant\") = 'text' AND +\"tenant\" = ? COLLATE BINARY) END) AND (NOT (CASE WHEN \"x\" IS NULL THEN NULL ELSE (typeof(\"x\") = 'integer' AND +\"x\" = ?) END)))","params":["acme",1]}
-{"v":1,"id":1,"refuse":"reason"}
+{"v":2,"id":1,"sql":"((CASE WHEN \"tenant\" IS NULL THEN NULL ELSE (typeof(\"tenant\") = 'text' AND +\"tenant\" = ? COLLATE BINARY) END) AND (NOT (CASE WHEN \"x\" IS NULL THEN NULL ELSE (typeof(\"x\") = 'integer' AND +\"x\" = ?) END)))","params":["0000000000acce55",1]}
+{"v":2,"id":1,"refuse":"reason"}
 ```
-**kv_key** `{"op":"kv_key","tenant":"acme","suffix_hex":"6b31"}` → `{"key_hex":"..."}`;
-**kv_scan** `{"op":"kv_scan","tenant":"acme"}` → `{"pattern_hex":"..."}` (the oracle drives the SCAN cursor).
-Write ops (`update`, `delete`, `upsert`, `kv_set`, `kv_del`, `kv_get`) are documented in
+KV (byte strings hex; keys and prefixes are UTF-8 text, `Value::Str`):
+**kv_key** `{"op":"kv_key","tenant":T,"collection":"notes","key_hex":"6b31"}` → `{"key_hex":"..."}`;
+**kv_get** (Select Eq) same fields → `{"commands":[["474554","<key hex>"]]}` (exactly one GET);
+**kv_scan** (Select Tt / Pfx) `{"op":"kv_scan","tenant":T,"collection":"notes","prefix_hex":null|"..."}` →
+`{"pattern_hex":"..."}` (the oracle drives the SCAN cursor). Collections outside `^[a-z_][a-z0-9_]{0,62}$`, keys or
+patterns over 1024 bytes and non-canonical handles must be refused.
+Write ops (`update`, `delete`, `insert`, `upsert`, `kv_set`, `kv_setnx`, `kv_setxx`, `kv_del`, `kv_acl`,
+`rls_policy`, `rls_bind`) are documented in
 `oracles/lowering-write/README.md`; a renderer should implement all of them so one subject serves both oracles.
 A subject may also answer `{"op":"hello"}`; the oracle does not require it.
 
@@ -205,7 +256,7 @@ column type.
 In-repo inputs (2026-10-25, after q4-004): `spec/AegisIR/ThreeValued.lean` 278740ea86d7cdfc7a4e74acc72c2ba4af4c19a06a097ec716ee7396153d0135,
 `spec/AegisIR/Lowering.lean` 007e2f74bda62896066c006a90cfa7f0438f05f6fb675616a925ae4140190f3e, `spec/SPEC_INVARIANTS.md` 1fd940943a4c1e67921cca70b5a556231598b6f0222e9c5821baffd0e02c82c1,
 `spikes/q4-004/verdict.json` (decision and `oracle_follow_up`).
-`lowir.py` is byte-identical to `oracles/lowering-write/lowir.py` (sha256 e5774a4bbb32420a9fcaf4288b62085c5cf59d687bdbaff94ac6a40e792be5b4).
+`lowir.py` is byte-identical to `oracles/lowering-write/lowir.py` (sha256 8a49928907e2d82320b7a0a3ba02db712ca580a6412d74d81b4eac62a5a15a85).
 
 ## Re-run in repo (2026-10-25, after switching the gate to refQ3; Python 3.12, SQLite 3.45.3)
 
@@ -215,11 +266,24 @@ In-repo inputs (2026-10-25, after q4-004): `spec/AegisIR/ThreeValued.lean` 27874
 * Not re-run after this change: `--engine pg` / `--engine redis` (no throwaway PG/Valkey container was started).
   Before the change (2-valued gate): PG 17.11 + Valkey PASS, 24,530 cases, self-test 21/21 with engines.
 
+## Re-run in repo (2026-10-30, P4-oracle-lowering-001: D4 tenants, protocol v2; Python 3.12.9)
+
+Engines from `ci/engines.sh with pg17,pg18,valkey,redis` (pinned digests; 17.11, 18.6, Valkey 9.1.2, Redis 8.10.2).
+These close BACKLOG "re-run PG and Redis after the refQ3 switch".
+* `run`: `LOWERING-READ: PASS (cases=113971 generated_unique[sqlite=12000 redis_model=10000] ... leak=0 widen=0 miss=0 gap_vs_2vl(info)=3623 errors=0 unrefused=0)`, 17 s.
+* `--self-test`: `LOWERING-READ SELF-TEST: PASS (20/20 mutants caught; ...; subject drop-tenant caught; pin fixtures 8/8)`, 9 s.
+  With `--engine pg --dsn @pg17 --engine redis --url @valkey` (the unit acceptance): 30/30, `RC=0`.
+* `ci/heavy.sh run --big --engine-pin` (SQLite 3.53.2 via sqlite-exec): `LOWERING-READ: PASS (cases=643971 generated_unique[sqlite=100000 redis_model=100000] (sqlite x5 schemas=500000 ...) leak=0 widen=0 miss=0 gap_vs_2vl(info)=29982 errors=0 unrefused=0 engine_pin=[sqlite 3.53.2])`, 87 s.
+* `--big --skip-sqlite --engine-pin --engine pg --dsn @pg17 --engine pg --dsn @pg18`: `LOWERING-READ: PASS (cases=801056 generated_unique[pg=100000] (... pg x4 schemas x2 engines) leak=0 widen=0 miss=0 gap_vs_2vl(info)=86776 errors=0 unrefused=0 engine_pin=[pg17=17.11, pg18=18.6])`, 143 s.
+* `--big --skip-sqlite --engine-pin --engine redis --url @valkey --engine redis --url @redis`: `LOWERING-READ: PASS (cases=200114 generated_unique[redis=100000] ... leak=0 widen=0 miss=0 errors=0 unrefused=0 engine_pin=[valkey=9.1.2, redis=8.10.2])`, 37 s (100k de-duplicated cases per engine; the counter shows the minimum over engines).
+
 ## Known limits / pending
 
-* Engines are whatever the run used: SQLite is Python's bundled 3.45.3, not the ENGINE_PIN the adapter will ship;
-  PG was tested on 17.11 only (19rc1 image present but not run); Redis read side covers the key namespace only
-  (no value filters exist in the IR for Redis).
+* The default run (and every self-test) executes SQLite with Python's stdlib 3.45.3; only `--engine-pin` /
+  `--sqlite-exec` runs use the adapter pin 3.53.2. PG 19rc1 is not run here (blocked pin; `--engine-pin` FAILs on it).
+  The Redis read side covers the key namespace only (no value filters exist in the IR for Redis).
+* The sqlite-exec helper is trusted to forward SQL and values faithfully (it binds and reads via rusqlite; values are
+  hex-encoded on the pipe). It is checked only indirectly: the reference passes and drop-tenant goes red through it.
 * The reference evaluator and generators are self-written (calibration's overclaim risk still applies); the
   corpus is random over curated adversarial values, not exhaustive.
 * Not covered: MySQL/MariaDB, SQL Server, MongoDB (doc-derived denylist only), timing/scoring side channels,

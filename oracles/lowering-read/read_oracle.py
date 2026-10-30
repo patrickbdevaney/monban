@@ -18,6 +18,9 @@ three-valued (SPEC_INVARIANTS E as amended by spike q4-004; spec/AegisIR/ThreeVa
                               information only (fails only with --miss-vs-2vl, which reproduces the old D1 wording)
 Also checked on every evaluated row (guards the Python port itself): lower_exact3 (sql3 EXACT (lower p) = eval3 p),
 lower_sound_full (sql3 = some b -> eval = b) and eval3_sound (eval3 = some b -> eval = b).
+Tenant handles are the D4 encoding (TenantId u64 as 16 lower-case hex digits); stored tenant values additionally
+include non-canonical confusers (upper case, trailing space, NUL suffix, unpadded, ints) that a coarse comparison
+would equate with a handle. Non-canonical handles must be refused (UNREFUSED otherwise).
 """
 import argparse, json, os, random, sqlite3, sys, time, unicodedata
 
@@ -29,12 +32,36 @@ import lowir as L  # noqa: E402
 NAME = "LOWERING-READ"
 SEEDS = [1, 2, 3, 20261025]           # research seeds; the 4th was only ever run pre-fix (calibration r4c12)
 NFD = lambda s: unicodedata.normalize("NFD", s)
+T = L.tenant_text
+
+# =========================================================================================== D4 tenant corpus
+A, B, ONE = T(0xacce55), T(0xacce56), T(1)
+
+def up_first(s):
+    i = next(i for i, c in enumerate(s) if c.isalpha())
+    return s[:i] + s[i].upper() + s[i + 1:]
+
+# research tenant -> (stored value, handle). Canonical research tenants become distinct TenantIds; the research
+# confusers ("ACME", "Acme", "acme ", NFD, "01") become non-canonical stored values that a coarse comparison would
+# equate with the base tenant's canonical text (NOCASE, PAD SPACE, ICU ks-level2 width folding, numeric affinity),
+# and their handle is the base tenant (handles must be canonical).
+R_TENANT_MAP = {
+    "acme": (A, A), "ACME": (A.upper(), A), "Acme": (up_first(A), A), "acme ": (A + " ", A),
+    "acmé": (B, B), NFD("acmé"): (B[:-1] + "６", B),      # FULLWIDTH DIGIT SIX: tertiary (width) difference
+    "1": (ONE, ONE), "01": ("1", ONE), "a%": (T(0xa25), T(0xa25)), "a_": (T(0xa5f), T(0xa5f)),
+    "a\\": (T(0xa5c), T(0xa5c)), "évil": (T(0xe1), T(0xe1)), "ǅ": (T(0x1c5), T(0x1c5)), "ß": (T(0xdf), T(0xdf)),
+    "ss": (T(0x55), T(0x55)),
+    # used by the cex corpus only
+    "acme\x00evil": (A + "\x00evil", A), "evil": (T(0xe1), T(0xe1)),
+}
+def S(t): return R_TENANT_MAP[t][0] if type(t) is str and t in R_TENANT_MAP else t
+def H(t): return R_TENANT_MAP[t][1]
 
 # =========================================================================================== research replay
 # Verbatim port of the research generator (round-003/01-work/oracle.py gen_rows/gen_pred + main's case list) so
-# the 4 research seeds replay the exact same rows/cases.  Research predicates are n-ary ("and",[..]) and may hold
-# float literals; floats are not Lean Values, so such cases are counted as skipped_float (rows may still STORE
-# floats; a stored REAL is a non-Value that no literal equals).
+# the 4 research seeds replay the exact same rows/cases (tenant values then mapped through R_TENANT_MAP, D4).
+# Research predicates are n-ary ("and",[..]) and may hold float literals; floats are not Lean Values, so such cases
+# are counted as skipped_float (rows may still STORE floats; a stored REAL is a non-Value that no literal equals).
 R_TENANTS = ["acme", "ACME", "Acme", "acme ", "acmé", NFD("acmé"), "1", "01", "a%", "a_",
              "a\\", "évil", "ǅ", "ß", "ss"]
 R_FIELD_VALUES = [0, 1, 2, 10, -1, 1.0, 2.5, "1", "10", "2", "a", "A", "ab", "AB", "a%b", "a_b", "ä",
@@ -85,21 +112,26 @@ def research_corpus(seed, nrows=400, ncases=3000):
     rng = random.Random(seed)
     rows = r_gen_rows(rng, nrows)
     raw = [(rng.choice(R_TENANTS), r_gen_pred(rng)) for _ in range(ncases)]
+    for r in rows: r["tenant"] = S(r["tenant"])
     cases, skipped = [], 0
     for t, p in raw:
         q = r_to_lean(p)
         if q is None: skipped += 1
-        else: cases.append((t, q))
+        else: cases.append((H(t), q))
     return rows, cases, skipped
 
 # =========================================================================================== Lean-faithful generator
-G_TENANTS = R_TENANTS + ["acme\x00evil", 1, 0, "01"]
+G_STORED = [R_TENANT_MAP[t][0] for t in R_TENANTS] + [
+    A + "\x00evil", 1, 0, "1", "0" * 16, A[1:], " " + A[1:], A + "\n", 0xacce55]
+G_HANDLES = sorted({R_TENANT_MAP[t][1] for t in R_TENANTS} | {T(2 ** 64 - 1), T(2 ** 63)})
 G_VALUES = [0, 1, 2, 10, -1, 2 ** 62, -(2 ** 63), "1", "10", "2", "a", "A", "ab", "AB", "a%b", "a_b",
-            "ä", NFD("ä"), "", " ", "z", "acme\x00evil", "a\x00", " 1", "1e1", "10.0", "0x10", None, None, 1.0, 2.5]
+            "ä", NFD("ä"), "", " ", "z", "acme\x00evil", "a\x00", " 1", "1e1", "10.0", "0x10", None, None, 1.0, 2.5,
+            A, A.upper()]
 G_LITS = [v for v in G_VALUES if type(v) in (int, str)] + [2 ** 64, -(2 ** 70)]
-G_PFX = ["a", "A", "1", "a%", "a_", "", "ä", NFD("ä")[:1], "a\x00", "acme\x00", "ab", "\\"]
+G_PFX = ["a", "A", "1", "a%", "a_", "", "ä", NFD("ä")[:1], "a\x00", "acme\x00", "ab", "\\", A[:10]]
+_nn = lambda v: not (type(v) is str and "\x00" in v)
 
-def g_rows(rng, n, tenants=G_TENANTS, values=G_VALUES):
+def g_rows(rng, n, tenants=G_STORED, values=G_VALUES):
     return [{"id": i + 1, "tenant": rng.choice(tenants + [None]), "x": rng.choice(values), "y": rng.choice(values)}
             for i in range(n)]
 
@@ -128,17 +160,18 @@ def g_pred(rng, fields=("x", "y"), depth=0, lits=G_LITS, pfx=G_PFX):
 
 def lean_corpus(seed, nrows, ncases, nul=True):
     rng = random.Random(seed * 7919 + 17)
-    tenants = G_TENANTS if nul else [t for t in G_TENANTS if not (type(t) is str and "\x00" in t)]
-    values = G_VALUES if nul else [v for v in G_VALUES if not (type(v) is str and "\x00" in v)]
-    lits = [v for v in G_LITS if nul or not (type(v) is str and "\x00" in v)]
-    pfx = [s for s in G_PFX if nul or "\x00" not in s]
+    tenants = G_STORED if nul else [t for t in G_STORED if _nn(t)]
+    values = G_VALUES if nul else [v for v in G_VALUES if _nn(v)]
+    lits = [v for v in G_LITS if nul or _nn(v)]
+    pfx = [s for s in G_PFX if nul or _nn(s)]
     rows = g_rows(rng, nrows, tenants, values)
-    cases = [(rng.choice(tenants), g_pred(rng, lits=lits, pfx=pfx)) for _ in range(ncases)]
+    cases = [(rng.choice(G_HANDLES), g_pred(rng, lits=lits, pfx=pfx)) for _ in range(ncases)]
     return rows, cases
 
 # =========================================================================================== cex corpus (research 78)
 # The 15 SQLite single-cause cases of round-003/01-work/cex.py (+ the NUL probe of probe_nul.json).  Each: (name,
-# ddl, (tenant, x, y), tenant handle, pred, research naive-bound verdict).  The 11 PG cases are in PG_CEX.
+# ddl, (tenant, x, y), tenant handle, pred, research naive-bound verdict).  Tenants go through R_TENANT_MAP (D4):
+# stored value S(..), handle H(..).  The 11 PG cases are in PG_CEX.
 TXT = "create table t(id integer primary key, tenant text, x text, y text)"
 NUM = "create table t(id integer primary key, tenant text, x numeric, y numeric)"
 NOC = "create table t(id integer primary key, tenant text collate nocase, x text collate nocase, y text)"
@@ -177,7 +210,8 @@ PG_CEX_SCHEMAS = {
 }
 PG_CEX = [
     ("collation: nondeterministic ICU ks-level2 tenant (case)", "CI", ("ACME", "v", None), "acme", ["andN", []]),
-    ("collation: nondeterministic ICU 'und' tenant (NFC vs NFD canonical eq)", "NC", (NFD("acmé"), "v", None), "acmé", ["andN", []]),
+    ("collation: nondeterministic ICU 'und' tenant (width variant)", "NC", (NFD("acmé"), "v", None), "acmé", ["andN", []]),
+    ("collation: nondeterministic ICU ks-level2 tenant (width variant)", "CI", (NFD("acmé"), "v", None), "acmé", ["andN", []]),
     ("collation: nondeterministic ICU field eq NFD", "NC", ("acme", NFD("ä"), None), "acme", ["eq", "x", "ä"]),
     ("citext tenant", "CT", ("ACME", "v", None), "acme", ["andN", []]),
     ("LIKE prefix on nondeterministic collation", "CI", ("acme", "ADMIN-x", None), "acme", ["pfx", "x", "admin"]),
@@ -188,6 +222,10 @@ PG_CEX = [
     ("default collation range (en_US.utf8 vs code point)", "T", ("acme", "B", None), "acme", ["range", "x", "a", "b"]),
     ("glibc en_US.utf8 range: 'A' in ['a','b']", "T", ("acme", "A", None), "acme", ["range", "x", "a", "b"]),
 ]
+
+# Non-canonical tenant handles: every one must be refused (the adapter only ever binds tenant_text(TenantId)).
+BAD_HANDLES = [A.upper(), up_first(A), A + " ", " " + A[1:], A[1:], A + "0", "0" * 16, A + "\x00", "", "acme",
+               "0x" + A[2:], "g" * 16, A.replace("a", "ａ"), 0xacce55, 1, A + "\n"]
 
 # =========================================================================================== engines
 SQLITE_SCHEMAS = {   # name -> (ddl, declared column types sent to the subject)
@@ -205,16 +243,22 @@ SQLITE_SCHEMAS = {   # name -> (ddl, declared column types sent to the subject)
 RESEARCH_SCHEMAS = ["untyped(BLOB affinity)", "TEXT tenant, NUMERIC x,y", "NOCASE tenant,x; TEXT y", "STRICT ANY"]
 
 def coerce_for_strict(ddl, row):
-    """STRICT tables reject mismatched values; coerce like research oracle_typed (x->text, y->int or NULL)."""
+    """STRICT tables reject mismatched values; coerce like research oracle_typed (x->text, y->int or NULL); the
+    STRICT TEXT tenant of 'STRICT ANY' stores ints as text."""
+    if "tenant text, x any, y any) strict" in ddl and type(row["tenant"]) is int:
+        row = {**row, "tenant": str(row["tenant"])}
     if "x text, y integer) strict" not in ddl: return row
     x, y = row["x"], row["y"]
     return {**row, "x": None if x is None else (x if type(x) is str else str(x)),
             "y": y if type(y) is int else None}
 
+def sqlite_connect(cfg):
+    return cfg.exec.connect() if cfg.exec else sqlite3.connect(":memory:")
+
 class SqliteDB:
     dialect = "sqlite"
-    def __init__(self, ddl, rows):
-        self.c = sqlite3.connect(":memory:")
+    def __init__(self, ddl, rows, conn):
+        self.c = conn
         self.c.execute(ddl)
         for r in rows:
             r = coerce_for_strict(ddl, r)
@@ -223,7 +267,8 @@ class SqliteDB:
                        for (i, t, x, y) in self.c.execute("select id,tenant,x,y from t")}
     def ids(self, sql, params):
         return [r for r in self.c.execute(sql, params)]
-    def ph(self, n): return "?"
+    def close(self):
+        self.c.close()
 
 class PgDB:
     dialect = "postgres"
@@ -238,6 +283,7 @@ class PgDB:
         self.stored = {i: {"id": i, "tenant": t, "x": x, "y": y} for (i, t, x, y) in got}
     def ids(self, sql, params):
         return self.pg.query(sql, params)[1]
+    def close(self): pass
 
 def pg_setup(pg):
     pg.simple("create extension if not exists citext")
@@ -263,7 +309,7 @@ def pg_coerce(r):
 # =========================================================================================== core check
 class Stats(dict):
     KEYS = ("cases", "rows_evaluated", "leak", "widen", "miss", "gap", "leak_rows", "miss_rows", "refused",
-            "errors", "theorem_violations")
+            "errors", "theorem_violations", "unrefused")
     def __init__(self):
         super().__init__({k: 0 for k in self.KEYS}); self["examples"] = []
     def add(self, o):
@@ -355,6 +401,15 @@ def check_case(subject, db, cols, t, p, st, miss_vs_2vl=False):
     if miss: st["miss"] += 1; st["miss_rows"] += len(miss); note(st, "MISS", {"tenant": t, "pred": p, "sql": rep.get("sql"), "row": db.stored[min(miss)]})
     if gap - got: st["gap"] += 1
 
+def bad_handle_family(subject, dialect, cols, st):
+    """Every non-canonical tenant handle must be refused (D4: the adapter binds only tenant_text(TenantId))."""
+    for h in BAD_HANDLES:
+        st["cases"] += 1
+        rep = subject.call({"op": "read", "dialect": dialect, "table": "t", "alias": None, "param_offset": 0,
+                            "tenant_field": "tenant", "columns": cols, "tenant": h, "pred": ["tt"]})
+        if "refuse" not in rep:
+            st["unrefused"] += 1; note(st, "UNREFUSED(non-canonical handle)", {"tenant": h, "sql": rep.get("sql")})
+
 # ----- self-join family: same table twice (PG dca6a9e32 self-join-elimination RLS class; calibration r4c12)
 def check_selfjoin(subject, db, cols, t, pa, pb, shape, st):
     st["cases"] += 1
@@ -366,7 +421,6 @@ def check_selfjoin(subject, db, cols, t, pa, pb, shape, st):
     cand = db.idx.get(tkey(t), []) if L.is_val(t) else []
     pma, mma, _ = model_sets(cand, t, pa, st)
     pmb, mmb, _ = model_sets(cand, t, pb, st)
-    ids = sorted(db.stored)
     if shape == "join":
         model = {(a, b) for a in mma for b in mmb if a % 7 == b % 7}
         permit_ok = lambda pr: pr[0] in pma and pr[1] in pmb
@@ -389,57 +443,153 @@ def check_selfjoin(subject, db, cols, t, pa, pb, shape, st):
     if widen: st["widen"] += 1
     if miss: st["miss"] += 1; st["miss_rows"] += len(miss)
 
-# ----- Redis / Valkey key namespace family (read side: SCAN MATCH must return only own keys, all of them)
-R_REDIS_TENANTS = ["acme", "acme:x", "a*", "a?", "a[b]", "[ab]", "a\\", "a\\*", "ab", "abc", "a", "", "*", "a:b:c",
-                   "x]", "^", "a-c", "ACME", "acmé"]
-KV_SUFFIXES = [b"k1", b"x:2*", b"k3", b"x:4*", b"}:x", b":", b"b:c", b"x:b:c", b""]
+# ----- Redis / Valkey keyspace family (aegis_data_ir::kv_plan read side: Select Eq -> GET, Tt/Pfx -> SCAN MATCH).
+# Logical rows (tenant, collection, key) -> value; the subject's kv_key answers give the physical keys (encoding-
+# independent). A SCAN must return exactly the physical keys of the tenant's rows in that collection whose key starts
+# with the prefix; a GET must return exactly the row's value. Keys must be injective (a physical key shared by two
+# logical rows is a leak), non-canonical handles, invalid collections and over-long keys must be refused.
+KV_HANDLES = [T(0x2), T(0x2a), T(0xa), T(0xab), T(1), A, T(2 ** 64 - 1), T(2 ** 63)]
+KV_COLLS = ["c", "ac", "cc", "bc", "notes", "_x9"]       # 2 + "ac" == 2a + "c" without a delimiter (kv-naive)
+KV_BAD_COLLS = ["a:b", "", "C", "1a", "a*", "a b", "x" * 64, "é", "a-b", "a}", "c:"]
+KV_FIXED_KEYS = ["k1", "x:2*", "}:x", ":", "b:c", "", "*", "?", "[ab]", "\\", "a\\*", "k1*", "^", "a-c", "é", "k"]
+KV_ALPHA = "ab*?[]\\:}{-^ x1"
+KV_LONG_OK = "L" * 900                                   # accepted (< 1024 with any sane prefix)
+KV_LONG_BAD = "L" * 1100                                 # must be refused (> KV_MAX_KEY_BYTES whatever the prefix)
 
-def kv_family(subject, st, live=None):
-    keys = {}
-    collisions = 0
-    for t in R_REDIS_TENANTS:
-        for s in KV_SUFFIXES:
-            rep = subject.call({"op": "kv_key", "tenant": t, "suffix_hex": s.hex()})
-            if "refuse" in rep: st["refused"] += 1; continue
-            k = bytes.fromhex(rep["key_hex"])
-            if k in keys and keys[k] != t: collisions += 1; note(st, "LEAK(key collision)", {"key": k.decode("latin1"), "owners": [keys[k], t]})
-            keys.setdefault(k, t)
-    if live is not None:
-        live.cmd(b"SELECT", live.db); live.cmd(b"FLUSHDB")
-        for k, o in keys.items(): live.cmd(b"SET", k, b"v")
-    for t in R_REDIS_TENANTS:
+class KvModel:
+    """Offline string keyspace: GET / SET / SCAN MATCH via the stringmatchlen port."""
+    def __init__(self): self.d = {}
+    def set(self, k, v): self.d[k] = v
+    def get(self, k): return self.d.get(k)
+    def scan(self, pat):
+        lit = L.glob_literal_prefix(pat)
+        return {k for k in self.d if k.startswith(lit) and L.stringmatchlen(pat, k)}
+    def flush(self): self.d = {}
+    def close(self): pass
+
+class KvLive:
+    def __init__(self, url):
+        self.r = L.Resp(url); self.r.cmd(b"SELECT", self.r.db); self.r.cmd(b"FLUSHDB")
+        self.kind, self.version = L.kv_version(self.r)
+    def set(self, k, v): self.r.cmd(b"SET", k, v)
+    def get(self, k): return self.r.cmd(b"GET", k)
+    def scan(self, pat):
+        got, cur = set(), b"0"
+        while True:
+            r = self.r.cmd(b"SCAN", cur, b"MATCH", pat, b"COUNT", b"1000")
+            cur, batch = r[0], r[1]; got |= set(batch)
+            if cur == b"0": return got
+    def flush(self): self.r.cmd(b"FLUSHDB")
+    def close(self): self.flush(); self.r.close()
+
+def kv_rand(rng, n_max=4):
+    return "".join(rng.choice(KV_ALPHA) for _ in range(rng.randint(0, n_max)))
+
+def kv_family(subject, st, store, seeds, ncases, uniq_counter=None):
+    def must_refuse(req, what):
         st["cases"] += 1
-        rep = subject.call({"op": "kv_scan", "tenant": t})
-        if "refuse" in rep: st["refused"] += 1; continue
-        pat = bytes.fromhex(rep["pattern_hex"])
-        if live is None:
-            got = {k for k in keys if L.stringmatchlen(pat, k)}
-        else:
-            got, cur = set(), b"0"
-            while True:
-                r = live.cmd(b"SCAN", cur, b"MATCH", pat, b"COUNT", b"1000")
-                cur, batch = r[0], r[1]; got |= set(batch)
-                if cur == b"0": break
-        own = {k for k, o in keys.items() if o == t}
-        leak, miss = {k for k in got if keys.get(k) != t}, own - got
-        st["rows_evaluated"] += len(keys)
-        if leak: st["leak"] += 1; st["leak_rows"] += len(leak); note(st, "LEAK(scan)", {"tenant": t, "pattern": pat.decode("latin1"), "key": min(leak).decode("latin1")})
-        if miss: st["miss"] += 1; st["miss_rows"] += len(miss)
-    if collisions: st["leak"] += collisions; st["leak_rows"] += collisions
-    if live is not None: live.cmd(b"FLUSHDB")
+        rep = subject.call(req)
+        if "refuse" not in rep:
+            st["unrefused"] += 1; note(st, f"UNREFUSED({what})", {"req": req, "reply": rep})
+    # refusals: non-canonical handles, invalid collections, over-long keys / patterns
+    for h in BAD_HANDLES:
+        must_refuse({"op": "kv_scan", "tenant": h, "collection": "c", "prefix_hex": None}, "non-canonical handle")
+        must_refuse({"op": "kv_key", "tenant": h, "collection": "c", "key_hex": b"k1".hex()}, "non-canonical handle")
+    for c in KV_BAD_COLLS:
+        must_refuse({"op": "kv_key", "tenant": A, "collection": c, "key_hex": b"k1".hex()}, "invalid collection")
+        must_refuse({"op": "kv_scan", "tenant": A, "collection": c, "prefix_hex": None}, "invalid collection")
+    must_refuse({"op": "kv_key", "tenant": A, "collection": "c", "key_hex": KV_LONG_BAD.encode().hex()}, "key > 1024 bytes")
+    must_refuse({"op": "kv_get", "tenant": A, "collection": "c", "key_hex": KV_LONG_BAD.encode().hex()}, "key > 1024 bytes")
+    must_refuse({"op": "kv_scan", "tenant": A, "collection": "c", "prefix_hex": KV_LONG_BAD.encode().hex()}, "pattern > 1024 bytes")
+    for seed in seeds:
+        rng = random.Random(seed * 31 + 7)
+        store.flush()
+        rows = {}                                          # (t, c, k) -> value
+        for t in KV_HANDLES:
+            for c in KV_COLLS:
+                for k in rng.sample(KV_FIXED_KEYS, 6) + [kv_rand(rng, 5) for _ in range(6)]:
+                    rows.setdefault((t, c, k), f"v{len(rows)}".encode())
+        rows.setdefault((A, "c", KV_LONG_OK), b"vlong")
+        phys, owners, refused_rows = {}, {}, set()
+        for lr in rows:
+            t, c, k = lr
+            rep = subject.call({"op": "kv_key", "tenant": t, "collection": c, "key_hex": k.encode().hex()})
+            if "refuse" in rep:
+                st["refused"] += 1; refused_rows.add(lr); note(st, "REFUSED(kv_key)", {"row": lr, "reply": rep}); continue
+            pk = bytes.fromhex(rep["key_hex"])
+            phys[lr] = pk; owners.setdefault(pk, set()).add(lr)
+        for pk, ls in owners.items():
+            if len(ls) > 1:
+                st["leak"] += 1; st["leak_rows"] += len(ls) - 1
+                note(st, "LEAK(key collision)", {"key": pk.decode("latin1"), "rows": sorted(ls)[:2]})
+        for lr, pk in phys.items(): store.set(pk, rows[lr])
+        # cases: unique (kind, t, c, arg)
+        seen = set(); attempts = 0
+        by_tc = {}
+        for (t, c, k) in rows: by_tc.setdefault((t, c), []).append(k)
+        all_keys = [k for (_, _, k) in rows]
+        while len(seen) < ncases and attempts < ncases * 20:
+            attempts += 1
+            t, c = rng.choice(KV_HANDLES), rng.choice(KV_COLLS)
+            kind = rng.choice(["scan", "scan", "get", "get", "tt"])
+            r = rng.random()
+            if kind == "tt": arg = None
+            elif r < 0.5:
+                k = rng.choice(by_tc[(t, c)]); arg = k[:rng.randint(0, len(k))] if kind == "scan" else k
+            elif r < 0.75:
+                k = rng.choice(all_keys); arg = k[:rng.randint(0, len(k))] if kind == "scan" else k
+            else:
+                arg = kv_rand(rng)
+            ck = (kind, t, c, arg)
+            if ck in seen: continue
+            seen.add(ck)
+            st["cases"] += 1
+            if kind in ("scan", "tt"):
+                p = "" if arg is None else arg
+                rep = subject.call({"op": "kv_scan", "tenant": t, "collection": c,
+                                    "prefix_hex": None if arg is None else arg.encode().hex()})
+                if "refuse" in rep: st["refused"] += 1; note(st, "REFUSED(kv_scan)", {"case": ck}); continue
+                pat = bytes.fromhex(rep["pattern_hex"])
+                got = store.scan(pat)
+                sat = lambda l: l[0] == t and l[1] == c and l[2].startswith(p)
+                permit = {pk for pk, ls in owners.items() if all(sat(l) for l in ls)}
+                want = {phys[l] for l in phys if sat(l)}
+                leak, miss = got - permit, want - got
+                st["rows_evaluated"] += len(phys)
+                if leak: st["leak"] += 1; st["leak_rows"] += len(leak); note(st, "LEAK(scan)", {"case": ck, "pattern": pat.decode("latin1"), "key": min(leak).decode("latin1")})
+                if miss: st["miss"] += 1; st["miss_rows"] += len(miss); note(st, "MISS(scan)", {"case": ck, "pattern": pat.decode("latin1")})
+            else:
+                rep = subject.call({"op": "kv_get", "tenant": t, "collection": c, "key_hex": arg.encode().hex()})
+                if "refuse" in rep: st["refused"] += 1; note(st, "REFUSED(kv_get)", {"case": ck}); continue
+                cmds = [[bytes.fromhex(x) for x in cm] for cm in rep.get("commands", [])]
+                if len(cmds) != 1 or len(cmds[0]) != 2 or cmds[0][0].upper() != b"GET":
+                    st["errors"] += 1; note(st, "error(kv_get must be one GET <key>)", {"case": ck, "reply": rep}); continue
+                got = store.get(cmds[0][1])
+                want = rows.get((t, c, arg)) if (t, c, arg) not in refused_rows else None
+                st["rows_evaluated"] += 1
+                if got is not None and got != want:
+                    st["leak"] += 1; st["leak_rows"] += 1; note(st, "LEAK(get)", {"case": ck, "got": got.decode("latin1")})
+                elif got is None and want is not None:
+                    st["miss"] += 1; st["miss_rows"] += 1; note(st, "MISS(get)", {"case": ck})
+        if uniq_counter is not None: uniq_counter[0] += len(seen)
+    store.flush()
 
 # =========================================================================================== drivers
 def run_sqlite(subject, cfg, log):
     fam = {}
     def fs(name):
         return fam.setdefault(name, Stats())
+    tag = f"sqlite {cfg.sqlite_version}"
+    # F0 non-canonical handles
+    bad_handle_family(subject, "sqlite", {"id": "integer", "tenant": "text", "x": "", "y": ""}, fs(f"{tag} non-canonical tenant handles (must refuse)"))
     # F1 cex single-cause corpus
-    st = fs("cex(research 78-case corpus, SQLite part + in-repo regressions)")
+    st = fs(f"{tag} cex(research 78-case corpus, SQLite part + in-repo regressions)")
     for (name, ddl, (tn, x, y), t, p, _naive) in CEX:
-        db = SqliteDB(ddl, [{"id": 1, "tenant": tn, "x": x, "y": y}])
+        db = SqliteDB(ddl, [{"id": 1, "tenant": S(tn), "x": x, "y": y}], sqlite_connect(cfg))
         cols = {"id": "integer", "tenant": "", "x": "", "y": ""}
         db.idx = index_by_tenant(db.stored)
-        check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
+        check_case(subject, db, cols, H(t), p, st, cfg.miss_vs_2vl)
+        db.close()
     # F2 research replay on the 4 research seeds, research schemas, 400 rows x 3000 cases
     skipped = 0
     if cfg.research:
@@ -448,53 +598,58 @@ def run_sqlite(subject, cfg, log):
             skipped += sk
             for sname in RESEARCH_SCHEMAS:
                 ddl, cols = SQLITE_SCHEMAS[sname]
-                db = SqliteDB(ddl, rows); db.idx = index_by_tenant(db.stored)
-                st = fs(f"research-replay | {sname}")
+                db = SqliteDB(ddl, rows, sqlite_connect(cfg)); db.idx = index_by_tenant(db.stored)
+                st = fs(f"{tag} research-replay | {sname}")
                 for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
+                db.close()
         log(f"  research replay: {skipped} cases skipped (float literal, not a Lean Value)")
     # F3 Lean-faithful generated corpus (NOT, tt/ff, n-ary, mixed-class ranges, NUL, int64 edges) x 5 schemas
     for seed in cfg.seeds:
         rows, cases = lean_corpus(seed, cfg.rows, cfg.cases)
         for sname, (ddl, cols) in SQLITE_SCHEMAS.items():
-            db = SqliteDB(ddl, rows); db.idx = index_by_tenant(db.stored)
-            st = fs(f"lean-generated | {sname}")
+            db = SqliteDB(ddl, rows, sqlite_connect(cfg)); db.idx = index_by_tenant(db.stored)
+            st = fs(f"{tag} lean-generated | {sname}")
             for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
+            db.close()
     # F4 self-join family (60-row table)
     for seed in cfg.seeds:
         rng = random.Random(seed + 4242)
         rows, _ = lean_corpus(seed + 1, 60, 0)
-        cases = [(rng.choice(G_TENANTS), g_pred(rng), g_pred(rng), rng.choice(["join", "exists"])) for _ in range(cfg.selfjoin)]
+        cases = [(rng.choice(G_HANDLES), g_pred(rng), g_pred(rng), rng.choice(["join", "exists"])) for _ in range(cfg.selfjoin)]
         for sname, (ddl, cols) in SQLITE_SCHEMAS.items():
-            db = SqliteDB(ddl, rows); db.idx = index_by_tenant(db.stored)
-            st = fs(f"self-join | {sname}")
+            db = SqliteDB(ddl, rows, sqlite_connect(cfg)); db.idx = index_by_tenant(db.stored)
+            st = fs(f"{tag} self-join | {sname}")
             for t, pa, pb, shape in cases: check_selfjoin(subject, db, cols, t, pa, pb, shape, st)
+            db.close()
     return fam, skipped
 
-def run_pg(subject, cfg, log):
-    pg = L.Pg(cfg.dsn)
-    _, v = pg.simple("show server_version")
-    log(f"  postgres server_version {v[0][0]}")
+def run_pg(subject, cfg, dsn, log, versions):
+    pg = L.Pg(dsn)
+    v = L.pg_version(pg)
+    versions.append(("postgres", v, dsn))
+    log(f"  postgres server_version {v}")
     pg_setup(pg)
+    tag = f"pg{v}"
     fam = {}
-    st = fam.setdefault("pg cex (research 78-case corpus, PG part)", Stats())
+    bad_handle_family(subject, "postgres", PG_COLS, fam.setdefault(f"{tag} non-canonical tenant handles (must refuse)", Stats()))
+    st = fam.setdefault(f"{tag} cex (research 78-case corpus, PG part)", Stats())
     for (name, sk, (tn, x, y), t, p) in PG_CEX:
-        db = PgDB(pg, PG_CEX_SCHEMAS[sk], [{"id": 1, "tenant": tn, "x": x, "y": y}], lambda r: r)
+        db = PgDB(pg, PG_CEX_SCHEMAS[sk], [{"id": 1, "tenant": S(tn), "x": x, "y": y}], lambda r: r)
         db.idx = index_by_tenant(db.stored)
-        check_case(subject, db, {"id": "int", "tenant": "text", "x": "text", "y": "text"}, t, p, st, cfg.miss_vs_2vl)
+        check_case(subject, db, {"id": "int", "tenant": "text", "x": "text", "y": "text"}, H(t), p, st, cfg.miss_vs_2vl)
     for seed in cfg.seeds:
         rows, cases = lean_corpus(seed, cfg.rows, cfg.pg_cases, nul=False)
         for sname, ddl in PG_SCHEMAS.items():
             db = PgDB(pg, ddl, rows, pg_coerce); db.idx = index_by_tenant(db.stored)
-            st = fam.setdefault(f"pg lean-generated | {sname}", Stats())
+            st = fam.setdefault(f"{tag} lean-generated | {sname}", Stats())
             for t, p in cases: check_case(subject, db, PG_COLS, t, p, st, cfg.miss_vs_2vl)
         rng = random.Random(seed + 4242)
         rows2, _ = lean_corpus(seed + 1, 60, 0, nul=False)
-        nn = lambda v: not (type(v) is str and "\x00" in v)
-        lits, pf = [v for v in G_LITS if nn(v)], [v for v in G_PFX if nn(v)]
-        sj = [(rng.choice([x for x in G_TENANTS if nn(x)]), g_pred(rng, lits=lits, pfx=pf), g_pred(rng, lits=lits, pfx=pf),
+        lits, pf = [v for v in G_LITS if _nn(v)], [v for v in G_PFX if _nn(v)]
+        sj = [(rng.choice(G_HANDLES), g_pred(rng, lits=lits, pfx=pf), g_pred(rng, lits=lits, pfx=pf),
                rng.choice(["join", "exists"])) for _ in range(max(1, cfg.selfjoin // 2))]
         db = PgDB(pg, PG_SCHEMAS["deterministic default collation"], rows2, pg_coerce); db.idx = index_by_tenant(db.stored)
-        st = fam.setdefault("pg self-join | deterministic default collation", Stats())
+        st = fam.setdefault(f"{tag} self-join | deterministic default collation", Stats())
         for t, pa, pb, shape in sj:
             check_selfjoin(subject, db, PG_COLS, t, pa, pb, shape, st)
     pg.simple("drop table if exists t")
@@ -503,22 +658,37 @@ def run_pg(subject, cfg, log):
 
 def evaluate(subject, cfg, log=print):
     t0 = time.time()
-    fams = {}
+    fams, versions, counts = {}, [], {"sqlite": 0, "pg": 0, "redis": 0}
     skipped = 0
     if "sqlite" in cfg.engines:
         f, skipped = run_sqlite(subject, cfg, log); fams.update(f)
+        versions.append(("sqlite", cfg.sqlite_version, None))
+        counts["sqlite"] = cfg.cases * len(cfg.seeds)
     if "pg" in cfg.engines:
-        fams.update(run_pg(subject, cfg, log))
-    st = fams.setdefault("redis keyspace (stringmatchlen model)" if "redis" not in cfg.engines else "redis keyspace (live SCAN MATCH)", Stats())
-    live = L.Resp(cfg.url) if "redis" in cfg.engines else None
-    kv_family(subject, st, live)
-    if live: live.close()
+        for dsn in cfg.dsns:
+            fams.update(run_pg(subject, cfg, dsn, log, versions))
+        counts["pg"] = cfg.pg_cases * len(cfg.seeds)
+    if "redis" in cfg.engines:
+        per = []
+        for url in cfg.urls:
+            store = KvLive(url)
+            versions.append((store.kind, store.version, url))
+            uc = [0]
+            kv_family(subject, fams.setdefault(f"{store.kind}{store.version} keyspace (live GET / SCAN MATCH)", Stats()),
+                      store, cfg.seeds, cfg.kv_cases, uc)
+            store.close(); per.append(uc[0])
+        counts["redis"] = min(per) if per else 0
+    elif "sqlite" in cfg.engines:
+        uc = [0]
+        kv_family(subject, fams.setdefault("redis keyspace (offline stringmatchlen model)", Stats()), KvModel(),
+                  cfg.seeds, cfg.kv_cases, uc)
+        counts["redis_model"] = uc[0]
     tot = Stats()
     for s in fams.values(): tot.add(s)
-    return fams, tot, skipped, time.time() - t0
+    return fams, tot, skipped, time.time() - t0, versions, counts
 
 def verdict(tot, cfg, min_cases):
-    bad = {k: tot[k] for k in ("leak", "widen", "miss", "errors", "refused", "theorem_violations") if tot[k]}
+    bad = {k: tot[k] for k in ("leak", "widen", "miss", "errors", "refused", "theorem_violations", "unrefused") if tot[k]}
     if tot["cases"] < min_cases: bad["too_few_cases"] = tot["cases"]
     return bad
 
@@ -530,22 +700,29 @@ class Cfg:
         self.research = not a.no_research
         self.research_cases = 3000
         self.selfjoin = a.selfjoin
-        self.engines = set(a.engine)
-        self.dsn, self.url = a.dsn, a.url
+        self.engines = set(a.engine) - ({"sqlite"} if a.skip_sqlite else set())
+        self.dsns, self.urls = list(a.dsn or []), list(a.url or [])
         self.pg_cases = a.pg_cases
+        self.kv_cases = a.kv_cases
         self.miss_vs_2vl = a.miss_vs_2vl
+        self.exec = getattr(a, "_exec", None)
+        self.sqlite_version = self.exec.version if self.exec else sqlite3.sqlite_version
 
 def print_report(fams, tot, skipped, wall, log=print, quiet=False):
     if not quiet:
-        log(f"{'family':72s} {'cases':>7s} {'leak':>5s} {'widen':>5s} {'miss':>5s} {'gap':>5s} {'err':>4s} {'ref':>4s}")
+        log(f"{'family':76s} {'cases':>7s} {'leak':>5s} {'widen':>5s} {'miss':>5s} {'gap':>5s} {'err':>4s} {'ref':>4s} {'unref':>5s}")
         for n, s in fams.items():
-            log(f"{n[:72]:72s} {s['cases']:7d} {s['leak']:5d} {s['widen']:5d} {s['miss']:5d} {s['gap']:5d} {s['errors']:4d} {s['refused']:4d}")
+            log(f"{n[:76]:76s} {s['cases']:7d} {s['leak']:5d} {s['widen']:5d} {s['miss']:5d} {s['gap']:5d} {s['errors']:4d} {s['refused']:4d} {s['unrefused']:5d}")
             for ex in s["examples"][:1]:
-                if s["leak"] or s["widen"] or s["miss"] or s["errors"]:
+                if s["leak"] or s["widen"] or s["miss"] or s["errors"] or s["unrefused"] or s["refused"]:
                     log("    e.g. " + json.dumps(ex, ensure_ascii=True, default=str)[:400])
     log(f"total: cases={tot['cases']} rows_evaluated={tot['rows_evaluated']} leak={tot['leak']} widen={tot['widen']} "
         f"miss={tot['miss']} gap_vs_2vl(not_absent_gap, info)={tot['gap']} errors={tot['errors']} refused={tot['refused']} "
-        f"theorem_violations={tot['theorem_violations']} research_skipped_float={skipped} wall={wall:.1f}s")
+        f"unrefused={tot['unrefused']} theorem_violations={tot['theorem_violations']} research_skipped_float={skipped} wall={wall:.1f}s")
+
+def pin_results(versions, pins_path):
+    pins = L.load_pins(pins_path)
+    return [L.pin_check(pins, kind, ver, url) for kind, ver, url in versions]
 
 # =========================================================================================== self-test
 # q4-004 mutants: renderers that are only wrong under the three-valued policy (both pass the old 2VL `refQ` leak
@@ -595,77 +772,116 @@ SELFTEST_MUTANTS = [   # (mutant, counter that must become non-zero)
     ("refuse-all", "miss"),
     ("kv-naive", "leak"),
     ("kv-escaped-colon", "leak"),
+    ("lenient-handle", "unrefused"),
+    ("kv-no-escape", "leak"),
+    ("kv-no-keycap", "unrefused"),
+    ("kv-collection-colon", "unrefused"),
 ]
+ENGINE_MUTANTS = {
+    "pg": [("pg-no-collate-c", "leak"), ("naive-bound", "leak"), ("like-prefix", "leak"), ("two-valued-not", "widen"),
+           ("drop-tenant", "leak"), ("lenient-handle", "unrefused")],
+    "redis": [("kv-naive", "leak"), ("kv-escaped-colon", "leak"), ("kv-no-escape", "leak"), ("drop-tenant", "leak")],
+}
+
+def pin_selftest():
+    """--engine-pin logic: a matching allow pin passes; a version mismatch, an unknown version and a blocked pin fail."""
+    pins = {"sqlite": {"version": "3.53.2"}, "engines": {
+        "pg17": {"kind": "postgres", "version": "17.11", "policy": "allow"},
+        "pg19rc1": {"kind": "postgres", "version": "19rc1", "policy": "blocked", "blocked_reason": "R-DB-8"},
+        "valkey": {"kind": "valkey", "version": "9.1.2", "policy": "allow"}}}
+    env = {"AEGIS_ENGINE_PG17": "postgresql://x@127.0.0.1:1/postgres"}
+    checks = [
+        (L.pin_check(pins, "sqlite", "3.53.2")[0], True),
+        (L.pin_check(pins, "sqlite", sqlite3.sqlite_version)[0], sqlite3.sqlite_version == "3.53.2"),
+        (L.pin_check(pins, "postgres", "17.11", "postgresql://x@127.0.0.1:1/postgres", env)[0], True),
+        (L.pin_check(pins, "postgres", "17.10", "postgresql://x@127.0.0.1:1/postgres", env)[0], False),
+        (L.pin_check(pins, "postgres", "18.6", "postgresql://other", env)[0], False),
+        (L.pin_check(pins, "postgres", "19rc1", "postgresql://other", env)[0], False),
+        (L.pin_check(pins, "redis", "9.1.2", "redis://other", env)[0], False),
+        (L.pin_check(pins, "valkey", "9.1.2", "redis://other", env)[0], True),
+    ]
+    return all(got == want for got, want in checks), len(checks)
+
+def small_ns(a, engines):
+    s = argparse.Namespace(**vars(a))
+    s.seeds = [20261025]; s.cases_per_seed = 600; s.rows = 120; s.no_research = True
+    s.selfjoin = 120; s.engine = engines; s.pg_cases = 400; s.kv_cases = 400; s.skip_sqlite = False
+    return s
 
 def self_test(a):
-    small = argparse.Namespace(**vars(a))
-    small.seeds = [20261025]; small.cases_per_seed = 600; small.rows = 120; small.no_research = True
-    small.selfjoin = 120; small.engine = ["sqlite"]
-    cfg = Cfg(small)
-    caught, lines = 0, []
-    for mut, counter in SELFTEST_MUTANTS:
-        fams, tot, _, wall = evaluate(mutant_subject(mut), cfg, log=lambda *x: None)
-        bad = verdict(tot, cfg, 1)
-        ok = bool(bad) and tot.get(counter, 0) > 0
-        caught += ok
-        lines.append(f"  mutant {mut:21s} expect {counter:6s}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
-                     f"errors={tot['errors']} -> {'CAUGHT' if ok else 'NOT CAUGHT'} ({wall:.1f}s)")
-        print(lines[-1], flush=True)
-    # naive-bound must reproduce every research LEAK verdict of the 78-case corpus (SQLite part), case by case
-    naive = L.LocalSubject(["naive-bound"])
-    repro_ok = True
-    for (name, ddl, (tn, x, y), t, p, want) in CEX:
-        if want != "LEAK": continue
-        db = SqliteDB(ddl, [{"id": 1, "tenant": tn, "x": x, "y": y}]); db.idx = index_by_tenant(db.stored)
-        st = Stats(); check_case(naive, db, {"id": "integer", "tenant": "", "x": "", "y": ""}, t, p, st)
-        if not st["leak"]:
-            repro_ok = False; print(f"  research cex not reproduced by naive-bound: {name}")
-    print(f"  naive-bound reproduces all {sum(1 for c in CEX if c[5] == 'LEAK')} research SQLite LEAK verdicts: {repro_ok}")
-    # Lean counter-theorem refines_necessary: a coarser equality (NOCASE) on the tenant column must leak (model check)
-    coarse = L.Backend(lambda x, v: L.veq(x.lower() if type(x) is str else x, v.lower() if type(v) is str else v), L.ref_range, L.ref_prefix)
-    row = {"tenant": "ACME"}
-    rn_ok = L.keeps(coarse, row, L.lowerQ("tenant", "acme", ["tt"])) and not refQ3("tenant", "acme", row, ["tt"])
-    # the gate is refQ3, not the 2VL refQ: the two q4-004 witnesses must separate them (not_absent_gap,
-    # inList_nil_not_const_false) -- a NULL x with NOT (x = v) / NOT (x in []) is 2VL-permitted and 3VL-denied
-    nul = {"tenant": "acme", "x": None}
-    gap_ok = all(L.refQ("tenant", "acme", nul, q) and not refQ3("tenant", "acme", nul, q)
-                 for q in (["not", ["eq", "x", "a"]], ["not", ["in", "x", []]]))
-    print(f"  refQ3 vs refQ witnesses (not_absent_gap, NOT In [] on NULL: 2VL permits, 3VL denies): {gap_ok}")
-    rn_ok = rn_ok and gap_ok
-    print(f"  refines_necessary witness (NOCASE backend keeps a row refQ rejects): {rn_ok}")
-    # positive control through the out-of-process protocol (reference renderer served by lowir.py)
-    cmd = f"{sys.executable} -I {os.path.join(HERE, 'lowir.py')} serve"
-    sub = L.ProcSubject(cmd)
-    fams, tot, _, wall = evaluate(sub, cfg, log=lambda *x: None); sub.close()
-    pos_ok = not verdict(tot, cfg, 1)
-    print(f"  positive control (reference via --subject protocol): cases={tot['cases']} leak={tot['leak']} widen={tot['widen']} "
-          f"miss={tot['miss']} errors={tot['errors']} -> {'PASS' if pos_ok else 'FAIL'} ({wall:.1f}s)")
-    # and one mutant through the protocol, to prove --subject output is really checked
-    sub = L.ProcSubject(cmd + " --mutant drop-tenant")
-    _, tot2, _, _ = evaluate(sub, cfg, log=lambda *x: None); sub.close()
-    proc_mut_ok = tot2["leak"] > 0
-    print(f"  drop-tenant via --subject protocol: leak={tot2['leak']} -> {'CAUGHT' if proc_mut_ok else 'NOT CAUGHT'}")
-    n = len(SELFTEST_MUTANTS)
+    live = [e for e in (a.engine or []) if e in ("pg", "redis")]
+    use_sqlite = not a.skip_sqlite
+    if not use_sqlite and not live:
+        print(f"{NAME} SELF-TEST: FAIL (--skip-sqlite without any --engine pg/redis leaves nothing to test)"); return 1
+    caught, n, lines = 0, 0, []
+    repro_ok = rn_ok = True
+    if use_sqlite:
+        cfg = Cfg(small_ns(a, ["sqlite"]))
+        for mut, counter in SELFTEST_MUTANTS:
+            fams, tot, _, wall, _, _ = evaluate(mutant_subject(mut), cfg, log=lambda *x: None)
+            bad = verdict(tot, cfg, 1)
+            ok = bool(bad) and tot.get(counter, 0) > 0
+            caught += ok; n += 1
+            print(f"  mutant {mut:21s} expect {counter:9s}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
+                  f"errors={tot['errors']} unrefused={tot['unrefused']} -> {'CAUGHT' if ok else 'NOT CAUGHT'} ({wall:.1f}s)", flush=True)
+        # naive-bound must reproduce every research LEAK verdict of the 78-case corpus (SQLite part), case by case
+        naive = L.LocalSubject(["naive-bound"])
+        for (name, ddl, (tn, x, y), t, p, want) in CEX:
+            if want != "LEAK": continue
+            db = SqliteDB(ddl, [{"id": 1, "tenant": S(tn), "x": x, "y": y}], sqlite3.connect(":memory:")); db.idx = index_by_tenant(db.stored)
+            st = Stats(); check_case(naive, db, {"id": "integer", "tenant": "", "x": "", "y": ""}, H(t), p, st)
+            if not st["leak"]:
+                repro_ok = False; print(f"  research cex not reproduced by naive-bound: {name}")
+        print(f"  naive-bound reproduces all {sum(1 for c in CEX if c[5] == 'LEAK')} research SQLite LEAK verdicts: {repro_ok}")
+        # Lean counter-theorem refines_necessary: a coarser equality (NOCASE) on the tenant column must leak (model check)
+        coarse = L.Backend(lambda x, v: L.veq(x.lower() if type(x) is str else x, v.lower() if type(v) is str else v), L.ref_range, L.ref_prefix)
+        row = {"tenant": A.upper()}
+        rn_ok = L.keeps(coarse, row, L.lowerQ("tenant", A, ["tt"])) and not refQ3("tenant", A, row, ["tt"])
+        # the gate is refQ3, not the 2VL refQ: the two q4-004 witnesses must separate them (not_absent_gap,
+        # inList_nil_not_const_false) -- a NULL x with NOT (x = v) / NOT (x in []) is 2VL-permitted and 3VL-denied
+        nul = {"tenant": A, "x": None}
+        gap_ok = all(L.refQ("tenant", A, nul, q) and not refQ3("tenant", A, nul, q)
+                     for q in (["not", ["eq", "x", "a"]], ["not", ["in", "x", []]]))
+        print(f"  refQ3 vs refQ witnesses (not_absent_gap, NOT In [] on NULL: 2VL permits, 3VL denies): {gap_ok}")
+        rn_ok = rn_ok and gap_ok
+        print(f"  refines_necessary witness (NOCASE backend keeps a row refQ rejects): {rn_ok}")
     # optional live backends: the same gate must go red on the engine-specific mutants
-    for eng, muts in (("pg", [("pg-no-collate-c", "leak"), ("naive-bound", "leak"), ("like-prefix", "leak"),
-                              ("two-valued-not", "widen"), ("drop-tenant", "leak")]),
-                      ("redis", [("kv-naive", "leak"), ("kv-escaped-colon", "leak")])):
-        if eng not in (a.engine or []): continue
-        e2 = argparse.Namespace(**vars(small)); e2.engine = [eng]; e2.pg_cases = 400; e2.selfjoin = 40
-        c2 = Cfg(e2)
-        _, tot, _, _ = evaluate(L.LocalSubject(), c2, log=lambda *x: None)
+    pos_ok = True
+    for eng in live:
+        c2 = Cfg(small_ns(a, [eng]))
+        _, tot, _, _, vers, _ = evaluate(L.LocalSubject(), c2, log=lambda *x: None)
         ok = not verdict(tot, c2, 1)
-        print(f"  [{eng}] positive control: cases={tot['cases']} leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} -> {'PASS' if ok else 'FAIL'}")
+        print(f"  [{eng} {' '.join(v for _, v, _ in vers)}] positive control (reference): cases={tot['cases']} leak={tot['leak']} "
+              f"widen={tot['widen']} miss={tot['miss']} -> {'PASS' if ok else 'FAIL'}")
         pos_ok = pos_ok and ok
-        for mut, counter in muts:
-            _, tot, _, _ = evaluate(L.LocalSubject([mut]), c2, log=lambda *x: None)
+        for mut, counter in ENGINE_MUTANTS[eng]:
+            _, tot, _, _, _, _ = evaluate(L.LocalSubject([mut]), c2, log=lambda *x: None)
             okm = tot.get(counter, 0) > 0
             n += 1; caught += okm
-            print(f"  [{eng}] mutant {mut:16s} expect {counter}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} errors={tot['errors']} -> {'CAUGHT' if okm else 'NOT CAUGHT'}")
-    if caught == n and repro_ok and pos_ok and proc_mut_ok and rn_ok:
-        print(f"{NAME} SELF-TEST: PASS ({caught}/{n} mutants caught; research naive LEAKs reproduced; positive control PASS)")
+            print(f"  [{eng}] mutant {mut:16s} expect {counter}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
+                  f"errors={tot['errors']} unrefused={tot['unrefused']} -> {'CAUGHT' if okm else 'NOT CAUGHT'}")
+    # positive control through the out-of-process --subject protocol (the given --subject, else lowir.py serve),
+    # and the same command with --mutant drop-tenant must go red (proves the subject path is really checked)
+    ctl = Cfg(small_ns(a, (["sqlite"] if use_sqlite else []) + live))
+    cmd = a.subject or L.reference_cmd(HERE)
+    sub = L.ProcSubject(cmd)
+    _, tot, _, wall, _, _ = evaluate(sub, ctl, log=lambda *x: None); sub.close()
+    ok = not verdict(tot, ctl, 1)
+    pos_ok = pos_ok and ok
+    print(f"  positive control via --subject {cmd!r}: cases={tot['cases']} leak={tot['leak']} widen={tot['widen']} "
+          f"miss={tot['miss']} errors={tot['errors']} refused={tot['refused']} unrefused={tot['unrefused']} -> {'PASS' if ok else 'FAIL'} ({wall:.1f}s)")
+    sub = L.ProcSubject(cmd + " --mutant drop-tenant")
+    _, tot2, _, _, _, _ = evaluate(sub, ctl, log=lambda *x: None); sub.close()
+    proc_mut_ok = tot2["leak"] > 0
+    print(f"  {cmd + ' --mutant drop-tenant'!r} via --subject: leak={tot2['leak']} -> {'CAUGHT' if proc_mut_ok else 'NOT CAUGHT'}")
+    pin_ok, npin = pin_selftest()
+    print(f"  --engine-pin logic ({npin} fixtures: match passes; mismatch / unknown / blocked / wrong kind fail): {pin_ok}")
+    if caught == n and repro_ok and pos_ok and proc_mut_ok and rn_ok and pin_ok:
+        print(f"{NAME} SELF-TEST: PASS ({caught}/{n} mutants caught; research naive LEAKs reproduced; positive control PASS; "
+              f"subject drop-tenant caught; pin fixtures {npin}/{npin})")
         return 0
-    print(f"{NAME} SELF-TEST: FAIL ({caught}/{n} mutants caught; repro={repro_ok}; positive_control={pos_ok}; proc_mutant={proc_mut_ok}; refines_necessary={rn_ok})")
+    print(f"{NAME} SELF-TEST: FAIL ({caught}/{n} mutants caught; repro={repro_ok}; positive_control={pos_ok}; "
+          f"subject_drop_tenant={proc_mut_ok}; refines_necessary={rn_ok}; pin={pin_ok})")
     return 1
 
 # =========================================================================================== main
@@ -674,14 +890,22 @@ def main():
     ap.add_argument("--subject", help="command speaking the line protocol (README.md); default: in-process reference renderer")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis"], help="repeatable; default sqlite")
-    ap.add_argument("--dsn", help="postgresql://user:pw@host:port/db (throwaway database: tables are dropped)")
-    ap.add_argument("--url", help="redis://host:port/db (throwaway db: it is FLUSHDB'ed)")
+    ap.add_argument("--dsn", action="append", help="postgresql://user:pw@host:port/db, repeatable (throwaway databases: tables are dropped)")
+    ap.add_argument("--url", action="append", help="redis://host:port/db, repeatable (throwaway db: it is FLUSHDB'ed)")
+    ap.add_argument("--skip-sqlite", action="store_true", help="no SQLite families (kv-only or pg-only subjects); also in --self-test")
+    ap.add_argument("--engine-pin", action="store_true", help="check every engine against supply-chain/engine-pins.toml and "
+                    "put the versions in the PASS line (implies --sqlite-exec when SQLite runs)")
+    ap.add_argument("--sqlite-exec", action="store_true", help="run SQLite at the adapter pin through rust/sqlite-exec "
+                    "(built via ci/heavy.sh, target deleted afterwards) instead of Python's sqlite3")
+    ap.add_argument("--pins", default=os.path.join(L.repo_root(HERE), "supply-chain", "engine-pins.toml"))
     ap.add_argument("--seeds", type=lambda s: [int(x) for x in s.split(",")], default=SEEDS)
     ap.add_argument("--cases-per-seed", type=int, default=3000)
-    ap.add_argument("--big", action="store_true", help="25000 generated cases per seed (>=100k with the default 4 seeds)")
+    ap.add_argument("--big", action="store_true", help="25000 generated cases per seed for SQLite, PG and Redis "
+                    "(>=100k unique per engine with the default 4 seeds)")
     ap.add_argument("--rows", type=int, default=200)
     ap.add_argument("--selfjoin", type=int, default=250, help="self-join cases per seed")
     ap.add_argument("--pg-cases", type=int, default=1500)
+    ap.add_argument("--kv-cases", type=int, default=2500, help="unique Redis keyspace cases per seed")
     ap.add_argument("--no-research", action="store_true", help="skip the research-replay family")
     ap.add_argument("--miss-vs-2vl", action="store_true",
                     help="information: count GAP (permitted by the old two-valued refQ, denied by refQ3) as MISS")
@@ -690,29 +914,43 @@ def main():
     if not a.engine: a.engine = ["sqlite"]
     if "pg" in a.engine and not a.dsn: ap.error("--engine pg needs --dsn")
     if "redis" in a.engine and not a.url: ap.error("--engine redis needs --url")
-    if a.big: a.cases_per_seed = 25000
+    if a.big: a.cases_per_seed = a.pg_cases = a.kv_cases = 25000
     if a.self_test:
         sys.exit(self_test(a))
-    cfg = Cfg(a)
-    subject = L.make_subject(a.subject)
-    print(f"{NAME}: subject={subject.name} engines={sorted(cfg.engines)} sqlite={sqlite3.sqlite_version} seeds={cfg.seeds} "
-          f"cases/seed={cfg.cases} rows={cfg.rows}", flush=True)
-    fams, tot, skipped, wall = evaluate(subject, cfg)
-    subject.close()
+    cleanup = None
+    a._exec = None
+    try:
+        if (a.sqlite_exec or a.engine_pin) and "sqlite" in a.engine and not a.skip_sqlite:
+            binary, cleanup = L.build_sqlite_exec(HERE)
+            a._exec = L.SqliteExec(binary)
+        cfg = Cfg(a)
+        subject = L.make_subject(a.subject)
+        print(f"{NAME}: subject={subject.name} engines={sorted(cfg.engines)} sqlite={cfg.sqlite_version}"
+              f"{' (sqlite-exec helper)' if cfg.exec else ' (python stdlib)'} seeds={cfg.seeds} "
+              f"cases/seed={cfg.cases} rows={cfg.rows} pg_cases/seed={cfg.pg_cases} kv_cases/seed={cfg.kv_cases}", flush=True)
+        fams, tot, skipped, wall, versions, counts = evaluate(subject, cfg)
+        subject.close()
+    finally:
+        if a._exec: a._exec.close()
+        if cleanup: cleanup()
     print_report(fams, tot, skipped, wall)
-    # the default gate needs >=10k unique generated cases (4 seeds x 3000); smaller ad-hoc runs only need >0
-    min_cases = 1
-    gen = sum(s["cases"] for n, s in fams.items() if n.startswith("lean-generated"))
-    bad = verdict(tot, cfg, min_cases)
+    bad = verdict(tot, cfg, 1)
+    pins_txt = ""
+    if a.engine_pin:
+        res = pin_results(versions, a.pins)
+        for ok, label in res:
+            print(f"  engine-pin: {label} -> {'OK' if ok else 'MISMATCH'}")
+        if not all(ok for ok, _ in res): bad["engine_pin"] = "; ".join(l for ok, l in res if not ok)
+        pins_txt = " engine_pin=[" + ", ".join(l for _, l in res) + "]"
     if a.json:
         with open(a.json, "w") as fh:
-            json.dump({"families": fams, "total": tot, "skipped_float": skipped, "wall_s": wall, "bad": bad},
-                      fh, indent=1, ensure_ascii=True, default=str)
-    uniq = cfg.cases * len(cfg.seeds) if "sqlite" in cfg.engines else 0
-    upg = cfg.pg_cases * len(cfg.seeds) if "pg" in cfg.engines else 0
-    summary = (f"cases={tot['cases']} generated_unique_sqlite={uniq} (x{len(SQLITE_SCHEMAS)} schemas={gen}) "
-               f"generated_unique_pg={upg} (x{len(PG_SCHEMAS)} schemas) leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
-               f"gap_vs_2vl(info)={tot['gap']} errors={tot['errors']}")
+            json.dump({"families": fams, "total": tot, "skipped_float": skipped, "wall_s": wall, "bad": bad,
+                       "versions": versions, "unique_cases": counts}, fh, indent=1, ensure_ascii=True, default=str)
+    gen = sum(s["cases"] for n, s in fams.items() if " lean-generated | " in n and n.startswith("sqlite"))
+    uniq = " ".join(f"{k}={v}" for k, v in counts.items() if k in ("sqlite", "pg", "redis") and v or k == "redis_model")
+    summary = (f"cases={tot['cases']} generated_unique[{uniq}] (sqlite x{len(SQLITE_SCHEMAS)} schemas={gen}; pg x{len(PG_SCHEMAS)} schemas "
+               f"x{len(cfg.dsns) if 'pg' in cfg.engines else 0} engines) leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
+               f"gap_vs_2vl(info)={tot['gap']} errors={tot['errors']} unrefused={tot['unrefused']}{pins_txt}")
     if bad:
         print(f"{NAME}: FAIL ({', '.join(f'{k}={v}' for k, v in bad.items())}; {summary})")
         sys.exit(1)
