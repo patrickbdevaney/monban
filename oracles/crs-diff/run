@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# CRS differential oracle (oracles/README.md contract). python3 -I, stdlib only.
+#   ./run --family tls-resume --subject <aegis binary>        cross-scope TLS resumption (CVE-2025-23419 shape)
+#   ./run --family data --subject <crs-subject> --pg URL --redis URL   two-scope data differential
+#   ./run --self-test [--family tls-resume|data]              negative controls (default: both families)
+# Last line: CRS-DIFF: PASS|FAIL (...) or CRS-DIFF SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
+# Light harness (one aegis process + a few openssl handshakes, or in-process reference models); the heavy release
+# build is done by the gate command, not here.
+set -u
+exec python3 -I "$(dirname "$(readlink -f "$0")")/crsdiff.py" "$@"
