@@ -1,0 +1,11 @@
+aegis-allowlist-lock v1
+adapter notes-sqlite
+family sqlite
+op notes delete eq(1) w=- r=-
+op notes insert tt w=1,2,3 r=1
+op notes select and(range(1),not(in(2))) w=- r=1
+op notes select eq(1) w=- r=1,2,3
+op notes select pfx(2) w=- r=1,2
+op notes update eq(1) w=2,3 r=-
+op notes upsert tt w=1,2,3 r=1,2,3
+sha256 666030b18b4630667b72061da1473922075852f64b1424b7bc0ec33bf836eba9
