@@ -105,7 +105,7 @@ ISOLATION-FI SELF-TEST: PASS (5/5 mutations caught; unmutated control passes; 12
 | round-001/04-bench/src/bin/forkpanic.rs | 49b9e1e00c50102eb267d5c453d5a63ad129fd1e2a5824a1ad0767789f0dc540 |
 
 Changes from the research harness:
-- Wasmtime 48.0.7 replaced by 49.0.3; the wasmtime-wasi dependency dropped.
+- Wasmtime 48.0.7 replaced by 50.0.0; the wasmtime-wasi dependency dropped.
 - Fuel budget added; the fork+Wasm zygote is new (the research fork path was native).
 - New host fault classes: hostabort and hostpoison.
 - New metrics: service-gap recovery with censoring, and per-cell recovery samples.
@@ -118,11 +118,11 @@ The research result reproduced here: E4 (epoch-only, 4 threads) gives loop p99 x
 
 ## Pin
 
-`wasmtime =49.0.3` (2026-10-14) is the newest release that meets the 7-day lock age on 2026-10-25. It is **below**
-the ARCHITECTURE floor of >=49.0.4 (GHSA-897f), which is acceptable only because the oracle runs its own
-first-party guest. Re-pin to 49.0.4 on or after 2026-10-26, or to 50.0.0 (the lock target) on or after 2026-10-27:
-edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check every lock entry is at least
-7 days old (`lock-dates.txt` holds the current dates; the newest is libc 0.2.191, 2026-10-16). Toolchain: Rust
+`wasmtime =50.0.0` (2026-10-20) is the lock target and meets the ARCHITECTURE floor of >=49.0.4 (GHSA-897f).
+It was re-pinned from 49.0.3 on 2026-10-29. cranelift is held at 0.137.0 because 0.137.1 (2026-10-29) was under the
+7-day lock age. To re-pin: edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check
+every lock entry is at least 7 days old (`lock-dates.txt` holds the current dates; the newest are the wasmtime
+50.0.0 crates, 2026-10-20). Toolchain: Rust
 1.98.0 (`rust/rust-toolchain.toml`), the installed toolchain that has the wasm32-unknown-unknown target.
 `build.sh` changes into `rust/` so that rustup resolves that toolchain file.
 
