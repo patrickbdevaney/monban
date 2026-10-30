@@ -14,9 +14,15 @@
 //! made; the new `server_version` token must equal the one admitted for that DSN, else the answer is a refusal and
 //! the pool entry is removed (R-DB-1: recycle after a minor upgrade), so the next connect is a fresh admission.
 //! Unknown ops, unreadable lines and over-long lines (1 MiB) get a refusal; the subject never guesses an accept.
+//!
+//! `pg-subject lowering [--mutant drop-tenant]` serves the lowering-read / lowering-write protocol v2 through the
+//! production renderer (`aegis_adapter_pg::lower`, see `lowering.rs`); `pg-subject schema` serves the schema-gate
+//! protocol, pg mode through live introspection (`aegis_adapter_pg::schema`, see `gate.rs`).
 #![forbid(unsafe_code)]
 
+mod gate;
 mod json;
+mod lowering;
 
 use std::collections::HashMap;
 use std::io::{BufRead, Read, Write};
@@ -24,41 +30,10 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use aegis_adapter_pg::{AdmittedVersion, ConnectConfig, ConnectError, Connection, connect_admitted};
-use json::Json;
+use json::{Json, emit, esc};
 
 const MAX_LINE: u64 = 1 << 20;
 const TERMINATE: Duration = Duration::from_millis(200);
-
-fn esc(s: &str) -> String {
-    let mut o = String::with_capacity(s.len() + 2);
-    o.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => o.push_str("\\\""),
-            '\\' => o.push_str("\\\\"),
-            '\n' => o.push_str("\\n"),
-            '\r' => o.push_str("\\r"),
-            '\t' => o.push_str("\\t"),
-            c if u32::from(c) < 0x20 => o.push_str(&format!("\\u{:04x}", u32::from(c))),
-            c => o.push(c),
-        }
-    }
-    o.push('"');
-    o
-}
-
-fn emit(j: &Json) -> String {
-    match j {
-        Json::Null => "null".into(),
-        Json::Bool(b) => b.to_string(),
-        Json::Num(t) => t.clone(),
-        Json::Str(s) => esc(s),
-        Json::Arr(v) => format!("[{}]", v.iter().map(emit).collect::<Vec<_>>().join(",")),
-        Json::Obj(m) => {
-            format!("{{{}}}", m.iter().map(|(k, v)| format!("{}:{}", esc(k), emit(v))).collect::<Vec<_>>().join(","))
-        }
-    }
-}
 
 enum Reply {
     Ok(String),
@@ -118,11 +93,12 @@ impl Subject {
     }
 }
 
-fn serve_connect() -> ExitCode {
+/// Read JSON lines from stdin and write `handle(Some(line))` (or `handle(None)` for a line over 1 MiB) as one line
+/// each to stdout, flushed. Blank lines are skipped. Exit 0 at EOF, 2 on an I/O error.
+pub(crate) fn serve_lines(mut handle: impl FnMut(Option<&str>) -> String) -> ExitCode {
     let stdin = std::io::stdin();
     let mut input = stdin.lock();
     let mut out = std::io::stdout().lock();
-    let mut subj = Subject::default();
     loop {
         let mut buf = Vec::new();
         match (&mut input).take(MAX_LINE).read_until(b'\n', &mut buf) {
@@ -143,25 +119,50 @@ fn serve_connect() -> ExitCode {
         if line.is_empty() {
             continue;
         }
-        let (id, reply) =
-            if over { (Json::Null, Reply::Refuse("request line too long".into())) } else { subj.handle(line) };
+        let reply = handle(if over { None } else { Some(line) });
+        if writeln!(out, "{reply}").and_then(|()| out.flush()).is_err() {
+            return ExitCode::from(2);
+        }
+    }
+}
+
+fn serve_connect() -> ExitCode {
+    let mut subj = Subject::default();
+    serve_lines(|line| {
+        let (id, reply) = match line {
+            None => (Json::Null, Reply::Refuse("request line too long".into())),
+            Some(l) => subj.handle(l),
+        };
         let body = match reply {
             Reply::Ok(v) => format!("\"ok\":true,\"server_version\":{}", esc(&v)),
             Reply::Refuse(r) => format!("\"refuse\":{}", esc(&r)),
             Reply::Hello => "\"ok\":true,\"subject\":\"pg-subject\"".into(),
         };
-        if writeln!(out, "{{\"id\":{},{body}}}", emit(&id)).and_then(|()| out.flush()).is_err() {
-            return ExitCode::from(2);
-        }
-    }
+        format!("{{\"id\":{},{body}}}", emit(&id))
+    })
 }
 
 fn main() -> ExitCode {
     let mode = std::env::args().nth(1);
     match mode.as_deref() {
         Some("connect") => serve_connect(),
+        Some("lowering") => {
+            let rest: Vec<String> = std::env::args().skip(2).collect();
+            match rest.as_slice() {
+                [] => lowering::serve(false),
+                [m, n] if m == "--mutant" && n == "drop-tenant" => lowering::serve(true),
+                _ => {
+                    eprintln!("usage: pg-subject lowering [--mutant drop-tenant]");
+                    ExitCode::from(2)
+                }
+            }
+        }
+        Some("schema") => gate::serve(),
         _ => {
-            eprintln!("usage: pg-subject connect   (JSON lines on stdin/stdout; oracles/pg-version-gate/README.md)");
+            eprintln!(
+                "usage: pg-subject connect | lowering [--mutant drop-tenant] | schema   (JSON lines on stdin/stdout; \
+                 oracles/pg-version-gate, oracles/lowering-read + lowering-write, oracles/schema-gate)"
+            );
             ExitCode::from(2)
         }
     }
