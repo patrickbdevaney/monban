@@ -10,8 +10,8 @@
  "start_now": true,
  "gates": [],
  "spec_refs": [
-  "SPEC §B INV-NOMUT-C NC1-NC8 (NC3 as rewritten from q3-008; DEVIATIONS X-4)",
-  "SPEC §B INV-DURABLE, INV-IDEMP",
+  "SPEC \u00a7B INV-NOMUT-C NC1-NC8 (NC3 as rewritten from q3-008; DEVIATIONS X-4)",
+  "SPEC \u00a7B INV-DURABLE, INV-IDEMP",
   "spikes/q2-007 decision_effect (journal_mode re-check after first write, atomic create, dir fsync, fsync error fatal)",
   "units/BACKLOG.md State + Oracle follow-ups (NC3 widened mutant)",
   "F7 is synchronous (no handler futures)"
@@ -33,6 +33,6 @@
  "notes": "state-props subject protocol: line-oriented like crash-harness ({dir} store, SIGKILL between steps driven by the oracle).",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: cancel-sweep widened NC3 + sync host (11/11), crash-harness no-mode-recheck on sqlite:wal-full (7/7), new state-props (6/6)"
 }
