@@ -1,0 +1,36 @@
+{
+ "id": "P4-oracle-trybuild-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/sdk-trybuild (new)"
+ ],
+ "depends_on": [
+  "P4-spec-002"
+ ],
+ "start_now": false,
+ "gates": [
+  "sdk-trybuild"
+ ],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 4 'trybuild >= 25/32, residual as frozen'",
+  "ARCHITECTURE §3.12 (B2 25/32; 28/32 without tokio/axum deps; residual {M15, M16} after the lint tier)",
+  "ARCHITECTURE-DRAFT R-DX r4 'residual exactly {M15, M16, N9, N14}'",
+  "research/state/raw/round-004/05-work/mutants.py (32 ids M1-M16, N1, N1b, N2-N15; untrusted, port only)",
+  "spikes/q4-001 F7b mutants (D2 19/19 rejected)"
+ ],
+ "oracles": [
+  "sdk-trybuild: trybuild 1.0.122 corpus in its own workspace against the real sdk/aegis-sdk; app crates with no tokio/axum dependency; expected.txt frozen by the spec author before running; plus the clippy ban-list tier"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh oracles/sdk-trybuild/run && ci/heavy.sh oracles/sdk-trybuild/run --self-test",
+  "must": ">= 25/32 B2 mutants compile-rejected, accepted set == frozen residual exactly; 19/19 F7b mutants rejected; controls compile; self-test: corpus against mutated SDK copies (Ctx: Clone; Granted field pub; Tx<Committed> not required by JobQueue::detach) drops below threshold or changes the residual -> red"
+ },
+ "write_scope": [
+  "oracles/sdk-trybuild/**"
+ ],
+ "notes": "Re-express each research mutant against F7 (sync, axum-free). A mutant whose construct has no F7 analogue is written as the closest attempt (e.g. import axum State) and is rejected by absence of the dependency; record this per id (decision D5). Note the host seam: an app calling aegis_sdk::host:: compiles; only xtask layering catches it, so the corpus runs `cargo xtask layering`-equivalent owner scan on each case (in-oracle) and counts it as the lint tier. Pin rustc (snapshots are rustc-specific). Delete target/ after run.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

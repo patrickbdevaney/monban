@@ -1,0 +1,39 @@
+{
+ "id": "P4-state-002",
+ "role": "implementer",
+ "crates": [
+  "aegis-state (idempotency, outbox, latch)"
+ ],
+ "depends_on": [
+  "P4-state-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "state-props"
+ ],
+ "spec_refs": [
+  "SPEC §B INV-IDEMP (key = (principal, idempotency-key); exactly-once not claimed; effect classes declared)",
+  "NC2 commit-point latch (202 + retrieval)",
+  "NC6 effects only through the outbox",
+  "ARCHITECTURE §3.7 R-STATE-2/3 (draft-08 + Stripe semantics)"
+ ],
+ "oracles": [
+  "oracles/state-props"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p state-subject && oracles/state-props/run --subject 'target/release/state-subject {dir}' && oracles/state-props/run --self-test --subject 'target/release/state-subject {dir}'",
+  "must": "PASS; subject mutants (--mutate idem-key-without-principal, replay-reexecutes) red"
+ },
+ "write_scope": [
+  "crates/aegis-state/src/idem.rs",
+  "crates/aegis-state/src/outbox.rs",
+  "crates/aegis-state/src/latch.rs",
+  "crates/aegis-state/src/lib.rs",
+  "crates/aegis-state/tests/props*.rs",
+  "subjects/state-subject/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

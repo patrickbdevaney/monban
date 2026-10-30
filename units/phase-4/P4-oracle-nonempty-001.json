@@ -1,0 +1,34 @@
+{
+ "id": "P4-oracle-nonempty-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/nonempty-props (new)",
+  "ci/unrestricted.py (new)"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [],
+ "spec_refs": [
+  "SPEC §A INV-NONEMPTY: 'proptest 100k/adapter + boot test'; Unrestricted explicit and CI-gated; default config boot has no effective None limit",
+  "research node dpf-empty-means-all-pattern (A)"
+ ],
+ "oracles": [
+  "oracles/nonempty-props: per adapter >= 100k generated (capset, op) pairs; empty/absent/non-covering capsets must Deny before any render; covering capsets must Allow (non-vacuity)",
+  "ci/unrestricted.py: every `unrestricted` in any in-tree config's effective form is listed in ci/unrestricted.allow with a reason; the built-in default has none and no null/absent limit"
+ ],
+ "acceptance": {
+  "cmd": "oracles/nonempty-props/run --self-test && python3 -I ci/unrestricted.py --self-test",
+  "must": "PASS; mutants empty-means-all, missing-capset-means-all, deny-everything (non-vacuity red), unrestricted-implicit (absent data block treated as unrestricted) caught within 1e4 cases; unrestricted.py red on fixtures with an unlisted unrestricted and with a null limit"
+ },
+ "write_scope": [
+  "oracles/nonempty-props/**",
+  "ci/unrestricted.py",
+  "ci/unrestricted.allow",
+  "ci/fixtures/unrestricted/**"
+ ],
+ "notes": "Deterministic in-oracle generator (seeded, no proptest dependency); protocol: {op:'authorize', adapter, capset, op} -> {decision:'allow'|'deny', rendered:bool}; a reply with rendered=true on deny is a violation (render must not be reached). Reference subject in Python implements the F4 CapSet semantics. Subject mutants via --mutate.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

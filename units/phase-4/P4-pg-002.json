@@ -1,0 +1,45 @@
+{
+ "id": "P4-pg-002",
+ "role": "implementer",
+ "crates": [
+  "aegis-adapter-pg"
+ ],
+ "depends_on": [
+  "P4-pg-001",
+  "P4-datair-001",
+  "P4-oracle-lowering-001",
+  "P4-oracle-schema-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "lowering-read-pg",
+  "lowering-write-pg",
+  "schema-gate-pg"
+ ],
+ "spec_refs": [
+  "SPEC §E lowering soundness (Exact on PG: col::text = $n::text COLLATE \"C\", bigint compares)",
+  "SPEC §E W1-W7 mandated forms (composite arbiters, FORCE RLS + WITH CHECK, ON CONFLICT names the key, guard compares binary text both sides, no user expressions in upsert WHERE)",
+  "R-DB-7 live check_schema",
+  "R-DB-1 SET LOCAL ROLE per tenant, tenant GUCs is_local=true"
+ ],
+ "oracles": [
+  "oracles/lowering-read --engine pg",
+  "oracles/lowering-write --engine pg",
+  "oracles/schema-gate --engine pg"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p pg-subject && ci/engines.sh with pg17,pg18 -- sh -c \"oracles/lowering-read/run --big --skip-sqlite --engine-pin --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17 --engine pg --dsn @pg18 && oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17 --engine pg --dsn @pg18 && oracles/schema-gate/run --engine pg --dsn @pg17 --subject 'target/release/pg-subject schema'\"",
+  "must": "read leak=0 widen=0 miss=0 >= 100k cases per PG pin; write W1=W2=W4=E=0 at >= 300/family/schema/seed; schema gate PASS; subject --mutant drop-tenant red"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-pg/src/lower.rs",
+  "crates/aegis-adapter-pg/src/schema.rs",
+  "crates/aegis-adapter-pg/src/lib.rs",
+  "crates/aegis-adapter-pg/tests/lower*.rs",
+  "subjects/pg-subject/**"
+ ],
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

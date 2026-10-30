@@ -1,0 +1,38 @@
+{
+ "id": "P4-oracle-state-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/cancel-sweep",
+  "oracles/crash-harness",
+  "oracles/state-props (new)"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [],
+ "spec_refs": [
+  "SPEC §B INV-NOMUT-C NC1-NC8 (NC3 as rewritten from q3-008; DEVIATIONS X-4)",
+  "SPEC §B INV-DURABLE, INV-IDEMP",
+  "spikes/q2-007 decision_effect (journal_mode re-check after first write, atomic create, dir fsync, fsync error fatal)",
+  "units/BACKLOG.md State + Oracle follow-ups (NC3 widened mutant)",
+  "F7 is synchronous (no handler futures)"
+ ],
+ "oracles": [
+  "cancel-sweep: + mutant 'cancelled connection with session state checked in without DISCARD ALL'; README amendment: for a synchronous host the cancellation sites are host-call boundaries (each TenantDb::run / driver round trip) and the subject emits await events there",
+  "crash-harness: subject-advertised mutation no-mode-recheck (expected catch: ack_after_eio or lost_ack at eio k=1)",
+  "state-props (new): INV-IDEMP + NC2 + NC6 properties over a store directory: replay of a completed (principal,key) returns the stored outcome byte-identically; same key under another principal is independent; same key + different request digest -> conflict; in-flight key -> 409-class; timer after CP -> 202 then retrieval returns the latched outcome; outbox: no effect visible before commit, every committed effect delivered at least once across a SIGKILL restart, dedupe key stable"
+ ],
+ "acceptance": {
+  "cmd": "oracles/cancel-sweep/run --self-test && oracles/crash-harness/run --self-test && oracles/state-props/run --self-test",
+  "must": "cancel-sweep 11/11 mutations red within 100 seeds; crash-harness self-test PASS incl. the new mutation on the reference wal:crc subject; state-props reference PASS and mutants idem-key-without-principal, replay-reexecutes, effect-before-commit, outbox-drop-on-restart, latch-returns-408 each red"
+ },
+ "write_scope": [
+  "oracles/cancel-sweep/**",
+  "oracles/crash-harness/**",
+  "oracles/state-props/**"
+ ],
+ "notes": "state-props subject protocol: line-oriented like crash-harness ({dir} store, SIGKILL between steps driven by the oracle).",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

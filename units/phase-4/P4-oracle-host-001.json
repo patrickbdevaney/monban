@@ -1,0 +1,31 @@
+{
+ "id": "P4-oracle-host-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/sdk-host (new)"
+ ],
+ "depends_on": [
+  "P4-spec-002"
+ ],
+ "start_now": false,
+ "gates": [],
+ "spec_refs": [
+  "spikes/APPLIED.md q4-001: 'host obligations to be checked by an adapter-host oracle (unit)'",
+  "F7b streaming.rs host obligations: per-step minting (never once per session); revoked sessions deny queued jobs; idle/step budget per stream; detach only with Tx<Committed>"
+ ],
+ "oracles": [
+  "sdk-host: drives scripted SSE/WS/body/job scenarios through the host (subject) with revocation and epoch bumps between steps; PASS iff every step after revocation is Denied/Unavailable, jobs of revoked sessions write nothing, idle streams are closed at the budget, and Ctx minting count == step count"
+ ],
+ "acceptance": {
+  "cmd": "oracles/sdk-host/run --self-test",
+  "must": "reference host PASS; mutants mint-once-per-session, job-ignores-revocation, no-idle-budget, detach-before-commit each red"
+ },
+ "write_scope": [
+  "oracles/sdk-host/**"
+ ],
+ "notes": "Subject protocol: JSON lines {op:'open'|'step'|'revoke'|'bump_epoch'|'run_jobs'} -> events {minted, decision, write, closed}.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}

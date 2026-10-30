@@ -1,0 +1,47 @@
+{
+ "id": "P4-datair-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-data-ir",
+  "xtask (allowlist subcommand body)"
+ ],
+ "depends_on": [
+  "P4-spec-001",
+  "P4-spec-002",
+  "P4-oracle-schema-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "schema-gate-static",
+  "allowlist-lock"
+ ],
+ "spec_refs": [
+  "F4 (as re-frozen by P4-spec-001)",
+  "spec/AegisIR/Lowering.lean lowerQ + ThreeValued.lean sql3",
+  "oracles/lowering-read/lowir.py (structure to mirror: one SqlExpr node per Lean node; IN [] UNKNOWN on NULL)",
+  "INV-NONEMPTY",
+  "R-DB-3/4 allowlist lock + denylist"
+ ],
+ "oracles": [
+  "oracles/schema-gate --static",
+  "cargo xtask allowlist-lock --check / --self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p datair-subject && oracles/schema-gate/run --static --subject 'target/release/datair-subject schema' && cargo xtask allowlist-lock --check && cargo xtask allowlist-lock --self-test",
+  "must": "schema-gate static PASS (every counterexample refused with the expected class, every golden accepted); lock regeneration byte-identical across two runs with different env (LC_ALL, TZ, PWD, hash seed); self-test: a mutated declaration or a denylisted entry (Redis EVAL) makes --check red"
+ },
+ "write_scope": [
+  "crates/aegis-data-ir/src/lower.rs",
+  "crates/aegis-data-ir/src/capset.rs",
+  "crates/aegis-data-ir/src/lock.rs",
+  "crates/aegis-data-ir/src/lib.rs (module lines only)",
+  "crates/aegis-data-ir/tests/**",
+  "xtask/src/allowlist.rs",
+  "subjects/datair-subject/**"
+ ],
+ "notes": "no_std stays; lower.rs is engine-neutral (SqlExpr AST); dialect text belongs to adapters.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "todo"
+}
