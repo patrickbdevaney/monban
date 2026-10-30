@@ -208,3 +208,7 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
 - **D15: dependency edges for the bin wiring.** The adapter `Renderer`/`Executor` pairings and the
   aegis-config→Endowment conversion live in aegis-bin (L5), which may depend on every adapter and on aegis-config.
   No same-layer edges are added between adapter-host and the adapters.
+- **D16: native-e2e contract choices accepted.** Route target `app:<name>` (the F8 `upstream` is a free string, so no
+  re-freeze is needed), CLI flag `--token-keyring <file>` (Tier-L KeyRing JSON), header `aegis-deadline-ms` (can only
+  lower the deadline), and T_drain = 10 s for NC8. Mutants live behind the `e2e-mutants` cargo feature
+  (AEGIS_E2E_MUTANT); the golden build never enables it, which P4-bin-001 asserts.

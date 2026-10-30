@@ -11,9 +11,9 @@
  "start_now": false,
  "gates": [],
  "spec_refs": [
-  "IMPLEMENTATION_PLAN §7 modes A and D (+ capability-typed handlers, INV-NOMUT-C, idempotency, INV-NONEMPTY, two-sided lowering)",
-  "SPEC §B NC1, NC2 (202 + retrieval), NC7 (no body bytes before CP)",
-  "SPEC §E F7 tenant isolation (logical)"
+  "IMPLEMENTATION_PLAN \u00a77 modes A and D (+ capability-typed handlers, INV-NOMUT-C, idempotency, INV-NONEMPTY, two-sided lowering)",
+  "SPEC \u00a7B NC1, NC2 (202 + retrieval), NC7 (no body bytes before CP)",
+  "SPEC \u00a7E F7 tenant isolation (logical)"
  ],
  "oracles": [
   "native-e2e: boots target/release/aegis with an oracle config (apps/notes routes on SQLite and PG backends, two tenants via test tokens); checks cross-tenant read/write/upsert/delete = uniform denial, client disconnect / RST / deadline before CP leaves zero durable rows, timer after CP -> 202 + Idempotency-Key retrieval, replay returns stored outcome, no response byte before commit, route without data caps cannot reach the DB"
@@ -27,6 +27,6 @@
  ],
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: reference 88 checks (sqlite) / 224 (sqlite+pg18+valkey), self-test 6/6 incl NC8 no-drain/ack-then-drop; aegis binary FAILs until P4-bin-001"
 }

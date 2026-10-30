@@ -95,6 +95,7 @@ extern crate alloc;
 
 #[cfg(feature = "host")]
 pub mod host;
+pub mod query;
 mod streaming;
 mod surface;
 pub use streaming::*;
