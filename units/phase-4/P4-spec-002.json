@@ -15,7 +15,7 @@
  "spec_refs": [
   "F7 surface.rs: Ctx/Granted/Tx have private fields and no constructor, so no host can mint them today",
   "CLAUDE.md layering + constructor-owner rule (xtask OWNERS)",
-  "ARCHITECTURE §3.8 'per-family normalizers that link C (pg_query) run at build time only or out of process'",
+  "ARCHITECTURE \u00a73.8 'per-family normalizers that link C (pg_query) run at build time only or out of process'",
   "xtask budget: 41/60 third-party crates shipped at Phase 3 (gates/out/logs/phase3-budget-cmd.log)",
   "DEVIATIONS X-6/X-9 precedent (owned minimal protocol clients to stay in the crate budget)"
  ],
@@ -45,11 +45,14 @@
   "crates/aegis-bin/Cargo.toml",
   "apps/README.md",
   "ci/no-crate.sh",
-  "ci/fixtures/tree-pg_query.txt"
+  "ci/fixtures/tree-pg_query.txt",
+  "sdk/aegis-sdk/src/surface.rs",
+  "sdk/aegis-sdk/src/streaming.rs",
+  "interfaces/MANIFEST.sha256"
  ],
  "notes": "SDK host seam per decision D2 (PLAN.md): host.rs adds the minting functions for Ctx/Granted/Tx; xtask OWNERS gains ('sdk-host','host','aegis-adapter-host'). Layering: INTRA_LAYER += (aegis-adapter-host, aegis-state); new layer \"app\" (may depend on aegis-sdk only) and workspace member glob apps/*. Pre-wire every Phase-4 edge so implementer units never touch Cargo.toml/Cargo.lock: rusqlite =0.40.2 bundled (SQLite 3.53.2, the crash-harness pin, >=7 d old) into aegis-state + aegis-adapter-sqlite; aws-lc-rs into aegis-adapter-pg (SCRAM-SHA-256: HMAC, SHA-256, PBKDF2); rustix into aegis-adapter-pg/redis if UDS is used; workspace path edges host->{data-ir,state,authz,sdk}, bin->{adapter-*, state, adapter-host}. New subject crates (subjects/*) are added by their units; the integrator re-locks path-only entries at merge and re-runs lock-targets/lock-age (no third-party version may change). Measure tokio-postgres/redis-rs/rusqlite crate counts with `cargo tree` and record them in X-10.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: F7 Ctx::grant + host module (feature host, adapter-host only), TenantDb: JobQueue; rusqlite via POLICY \u00a71 baseline; X-10/X-11; 45/60 crates, unsafe 4948/5000 (52 headroom)"
 }
