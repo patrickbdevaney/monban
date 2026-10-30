@@ -242,15 +242,19 @@ fn live_tenant_acl_user_end_to_end() {
         assert!(matches!(ex(&mut a, KvOp::SetXx { key: k, value: "v3" }), Ok(KvOutcome::Written(true))));
         assert!(matches!(ex(&mut a, KvOp::Set { key: k, value: "v4" }), Ok(KvOutcome::Written(true))));
         assert_eq!(ex(&mut a, KvOp::Get { key: k }).ok(), Some(KvOutcome::Value(Some(b"v4".to_vec()))));
-        // SCAN is not granted to the tenant user (it would list every tenant's key names).
+        // D11: Select Tt/Pfx (SCAN) is refused by the executor before anything is sent, on any connection; the
+        // server would refuse it too (no +scan), checked raw below and in the hostile corpus.
         let scan = ex(&mut a, KvOp::Scan { prefix: None });
-        assert!(matches!(&scan, Err(ExecError::Server(e)) if e.starts_with("NOPERM")), "{name}: {scan:?}");
+        assert!(matches!(&scan, Err(ExecError::Unsupported)), "{name}: {scan:?}");
+        assert!(matches!(
+            execute(&mut admin, ta, "notes", &p(KvOp::Scan { prefix: Some("k") })),
+            Err(ExecError::Unsupported)
+        ));
+        assert!(matches!(a.command(&[b"SCAN", b"0"]), Err(Error::Usage(_))));
+        assert!(a.is_reusable());
         // Another tenant's planned command through tenant A's executor: refused client-side (W7), nothing sent.
         let foreign = plan(tb, "notes", &KvOp::Get { key: "k" }).unwrap_or_else(|e| unreachable!("{e:?}"));
         assert!(matches!(execute(&mut a, ta, "notes", &foreign), Err(ExecError::Foreign)));
-        // The admin connection may SCAN; the executor re-checks every returned key.
-        let keys = execute(&mut admin, ta, "notes", &p(KvOp::Scan { prefix: Some("k*?") }));
-        assert!(matches!(&keys, Ok(KvOutcome::Keys(v)) if v.len() == 1), "{name}: {keys:?}");
         assert!(matches!(ex(&mut a, KvOp::Del { key: k }), Ok(KvOutcome::Deleted(true))));
         assert!(a.is_reusable());
 
@@ -337,5 +341,50 @@ fn live_tenant_acl_user_end_to_end() {
         assert!(admin.deprovision(&tenant_username(ta)).unwrap_or(false));
         assert!(admin.deprovision(&tenant_username(tb)).unwrap_or(false));
         assert!(matches!(admin.deprovision("default"), Err(Error::Usage(_))));
+
+        // D12: the stock engine `default` user (on, nopass, +@all) must make the provisioning connection refuse.
+        assert!(matches!(admin.check_default_user(), Err(Error::DefaultUserEnabled(_))), "{name}");
+        assert!(matches!(Connection::connect_provisioning(&cfg(&url), &pins), Err(Error::DefaultUserEnabled(_))));
+        // An operator admin user, then `default` off: provisioning (as the admin user) is accepted.
+        let admin_pw = "z".repeat(40);
+        let mk = raw_cmd(
+            &mut adm_raw,
+            &[
+                b"ACL",
+                b"SETUSER",
+                b"aegis-admin",
+                b"reset",
+                b"on",
+                format!(">{admin_pw}").as_bytes(),
+                b"~*",
+                b"&*",
+                b"+@all",
+            ],
+        );
+        assert_eq!(mk, b"+OK\r\n", "{name}");
+        let mut pc = cfg(&url);
+        pc.username = Some("aegis-admin".into());
+        pc.password = Some(admin_pw.clone());
+        // From here on, administer as aegis-admin: `default` is about to lose its permissions.
+        let mut op_raw = TcpStream::connect(host_port(&url)).unwrap_or_else(|e| unreachable!("{e}"));
+        assert_eq!(raw_cmd(&mut op_raw, &[b"AUTH", b"aegis-admin", admin_pw.as_bytes()]), b"+OK\r\n");
+        let mut adm_raw = op_raw;
+        assert_eq!(raw_cmd(&mut adm_raw, &[b"ACL", b"SETUSER", b"default", b"off"]), b"+OK\r\n");
+        let prov = Connection::connect_provisioning(&pc, &pins);
+        assert!(prov.is_ok(), "{name}: {prov:?}");
+        // `default` on but without any permission: also accepted. With one command back: refused.
+        assert_eq!(
+            raw_cmd(&mut adm_raw, &[b"ACL", b"SETUSER", b"default", b"on", b"resetkeys", b"resetchannels", b"-@all"]),
+            b"+OK\r\n"
+        );
+        assert!(Connection::connect_provisioning(&pc, &pins).is_ok(), "{name}");
+        assert_eq!(raw_cmd(&mut adm_raw, &[b"ACL", b"SETUSER", b"default", b"+ping"]), b"+OK\r\n");
+        assert!(matches!(Connection::connect_provisioning(&pc, &pins), Err(Error::DefaultUserEnabled(_))), "{name}");
+        // Restore the throwaway engine's stock default for anything that runs after.
+        assert_eq!(
+            raw_cmd(&mut adm_raw, &[b"ACL", b"SETUSER", b"default", b"on", b"nopass", b"~*", b"&*", b"+@all"]),
+            b"+OK\r\n"
+        );
+        assert_eq!(raw_cmd(&mut adm_raw, &[b"ACL", b"DELUSER", b"aegis-admin"]), b":1\r\n");
     }
 }

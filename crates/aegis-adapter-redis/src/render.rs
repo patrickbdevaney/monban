@@ -111,7 +111,8 @@ pub fn physical_key(tenant: TenantId, collection: &str, key: &str) -> Result<Str
 
 /// The only commands a per-tenant ACL user may run: the key-bearing commands of `kv_plan` (`GET`, `SET`, `DEL`).
 /// `SCAN` is deliberately absent: it takes no key argument (MATCH is not an ACL key), so `+scan` would let the user
-/// list every tenant's key names. Consequence: `KvCommand::Scan` cannot run under the per-tenant user.
+/// list every tenant's key names. Consequence (PLAN D11): [`execute`] refuses `KvCommand::Scan` with [`ExecError::Unsupported`]; the renderer
+/// still produces the escaped pattern ([`command_args`], checked by the read oracle).
 pub const ACL_COMMANDS: &[&str] = &["get", "set", "del"];
 
 /// `ACL SETUSER` rule tokens for `tenant`: no keys, no channels, no commands, then exactly the tenant's key pattern
@@ -183,18 +184,11 @@ impl TenantUser {
 
 // ---------------------------------------------------------------------------------------------- executor (W7)
 
-/// Most SCAN round trips per op and most keys returned (bounds a hostile or huge keyspace).
-pub const MAX_SCAN_STEPS: usize = 10_000;
-pub const MAX_SCAN_KEYS: usize = 100_000;
-const SCAN_COUNT: &str = "100";
-
 /// Result of one executed [`KvCommand`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KvOutcome {
     /// GET: the value, or `None` if absent.
     Value(Option<Vec<u8>>),
-    /// SCAN: matching keys (deduplicated, in first-seen order).
-    Keys(Vec<Vec<u8>>),
     /// SET / SET NX / SET XX: whether it was applied.
     Written(bool),
     /// DEL: whether a key was removed.
@@ -210,8 +204,8 @@ pub enum ExecError {
     Foreign,
     /// Reply shape does not match the command.
     Unexpected(String),
-    /// SCAN exceeded [`MAX_SCAN_STEPS`] or [`MAX_SCAN_KEYS`].
-    TooMany,
+    /// `KvCommand::Scan` (Select Tt/Pfx): not executable under the per-tenant ACL user (PLAN D11). Nothing is sent.
+    Unsupported,
 }
 
 impl fmt::Display for ExecError {
@@ -221,7 +215,7 @@ impl fmt::Display for ExecError {
             ExecError::Server(e) => write!(f, "server error: {e}"),
             ExecError::Foreign => write!(f, "key outside the tenant namespace (W7)"),
             ExecError::Unexpected(e) => write!(f, "unexpected reply: {e}"),
-            ExecError::TooMany => write!(f, "SCAN result exceeds cap"),
+            ExecError::Unsupported => write!(f, "KV listing (SCAN) is unsupported under per-tenant ACL users (D11)"),
         }
     }
 }
@@ -251,7 +245,9 @@ pub fn execute(
     base.push(':');
     let own = |k: &[u8]| k.starts_with(base.as_bytes()) && k.len() <= KV_MAX_KEY_BYTES;
     let target = match c {
-        KvCommand::Scan { pattern } => pattern,
+        // D11 (PLAN): ACL cannot key-restrict SCAN, so the per-tenant user has no +scan and every connection is a
+        // per-tenant one (R-DB-5). Select Tt/Pfx is refused here, before anything is sent (fail closed).
+        KvCommand::Scan { .. } => return Err(ExecError::Unsupported),
         KvCommand::Get { key }
         | KvCommand::Set { key, .. }
         | KvCommand::SetNx { key, .. }
@@ -277,42 +273,8 @@ pub fn execute(
             Reply::Int(n) if (0..=1).contains(&n) => Ok(KvOutcome::Deleted(n == 1)),
             r => Err(server_err(&r).unwrap_or_else(|| ExecError::Unexpected(format!("DEL: {r:?}")))),
         },
-        KvCommand::Scan { pattern } => {
-            let mut cursor = b"0".to_vec();
-            let mut keys: Vec<Vec<u8>> = Vec::new();
-            let mut seen = std::collections::HashSet::new();
-            for _ in 0..MAX_SCAN_STEPS {
-                let r =
-                    conn.command(&[b"SCAN", &cursor, b"MATCH", pattern.as_bytes(), b"COUNT", SCAN_COUNT.as_bytes()])?;
-                let Reply::Array(Some(items)) = &r else {
-                    return Err(server_err(&r).unwrap_or_else(|| ExecError::Unexpected(format!("SCAN: {r:?}"))));
-                };
-                let (next, batch) = match items.as_slice() {
-                    [Reply::Bulk(Some(n)), Reply::Array(Some(b))] => (n, b),
-                    _ => return Err(ExecError::Unexpected("SCAN reply shape".into())),
-                };
-                if next.is_empty() || !next.iter().all(u8::is_ascii_digit) {
-                    return Err(ExecError::Unexpected("SCAN cursor".into()));
-                }
-                for k in batch {
-                    let Reply::Bulk(Some(k)) = k else { return Err(ExecError::Unexpected("SCAN key".into())) };
-                    if !own(k) {
-                        return Err(ExecError::Foreign);
-                    }
-                    if seen.insert(k.clone()) {
-                        if keys.len() >= MAX_SCAN_KEYS {
-                            return Err(ExecError::TooMany);
-                        }
-                        keys.push(k.clone());
-                    }
-                }
-                if next.as_slice() == b"0" {
-                    return Ok(KvOutcome::Keys(keys));
-                }
-                cursor.clone_from(next);
-            }
-            Err(ExecError::TooMany)
-        }
+        // D11: unreachable (refused above); kept exhaustive without a wildcard.
+        KvCommand::Scan { .. } => Err(ExecError::Unsupported),
     }
 }
 

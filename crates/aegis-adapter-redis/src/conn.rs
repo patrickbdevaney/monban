@@ -7,7 +7,7 @@
 //! dropped (never returned to a pool).
 //!
 //! Command surface: [`Connection::command`] sends only the data commands the KV renderer emits (`GET`, `SET`,
-//! `DEL`, `SCAN`), and additionally refuses anything on the shared RESP denylist (R-DB-3/4). The connection
+//! `DEL`; SCAN is refused per PLAN D11), and additionally refuses anything on the shared RESP denylist (R-DB-3/4). The connection
 //! handshake (`HELLO 2 [AUTH]`, `INFO server`) and per-tenant user provisioning (`ACL SETUSER/DELUSER`) are
 //! separate, fixed-shape methods; there is no raw-command escape hatch.
 
@@ -207,6 +207,8 @@ pub enum Error {
     /// A reply of an unexpected shape for the command (the connection stays in sync but the caller must not trust
     /// the result).
     Unexpected(String),
+    /// PLAN D12: the `default` user is enabled with permissions (RESET would log a tenant connection into it).
+    DefaultUserEnabled(String),
 }
 
 impl fmt::Display for Error {
@@ -222,6 +224,7 @@ impl fmt::Display for Error {
             Error::Refused(r) => write!(f, "{r}"),
             Error::Usage(e) => write!(f, "usage: {e}"),
             Error::Unexpected(e) => write!(f, "unexpected reply: {e}"),
+            Error::DefaultUserEnabled(e) => write!(f, "refusing to start: `default` user {e} (PLAN D12)"),
         }
     }
 }
@@ -298,7 +301,8 @@ fn open(ep: &Endpoint, deadline: Instant) -> Result<Stream, Error> {
 }
 
 /// Data commands [`Connection::command`] may send: exactly what the KV renderer emits (`aegis_data_ir::KvCommand`).
-pub const DATA_COMMANDS: &[&str] = &["GET", "SET", "DEL", "SCAN"];
+/// SCAN is excluded (PLAN D11: listing is refused under per-tenant ACL users).
+pub const DATA_COMMANDS: &[&str] = &["GET", "SET", "DEL"];
 
 /// One authenticated, version-admitted RESP2 connection. Not shared across tenants (R-DB-5): open one per ACL user.
 pub struct Connection {
@@ -507,7 +511,7 @@ impl Connection {
         }
     }
 
-    /// Send one data command (`GET`/`SET`/`DEL`/`SCAN`, case-insensitive) and read its reply. Anything else, or
+    /// Send one data command (`GET`/`SET`/`DEL`, case-insensitive) and read its reply. Anything else, or
     /// anything on the RESP denylist, is refused before a byte is written. A server error reply is returned as
     /// `Ok(Reply::Error(..))` (the connection is still in sync).
     pub fn command(&mut self, args: &[&[u8]]) -> Result<Reply, Error> {
@@ -550,6 +554,22 @@ impl Connection {
         }
     }
 
+    /// PLAN D12 boot check, on the provisioning connection: `ACL GETUSER default` must show the user `off`, or `on`
+    /// with no permissions at all (`-@all`, no key pattern, no channel, no selector). `RESET` (never ACL-checked)
+    /// re-authenticates a connection as `default`, so an enabled, permitted `default` would undo the per-tenant user.
+    pub fn check_default_user(&mut self) -> Result<(), Error> {
+        let r = self.exchange(&[b"ACL", b"GETUSER", b"default"])?;
+        default_user_verdict(&r).map_err(Error::DefaultUserEnabled)
+    }
+
+    /// First admission plus the D12 check: the only way the adapter should open its provisioning connection at
+    /// boot. Refuses to return a connection if either fails.
+    pub fn connect_provisioning(cfg: &ConnectConfig, pins: &KvPins) -> Result<Connection, Error> {
+        let mut c = Connection::connect(cfg, pins, None)?;
+        c.check_default_user()?;
+        Ok(c)
+    }
+
     /// Best-effort `QUIT` within `timeout`, then close.
     pub fn close(mut self, timeout: Duration) {
         if !self.broken {
@@ -557,6 +577,61 @@ impl Connection {
             let _ = self.exchange(&[b"QUIT"]);
         }
     }
+}
+
+/// Verdict on an `ACL GETUSER default` reply (RESP2 flat field/value array). `Ok` iff the user is `off`, or has
+/// exactly `commands = -@all`, empty `keys`, empty `channels` and no selectors. Anything unreadable is refused.
+pub fn default_user_verdict(r: &Reply) -> Result<(), String> {
+    let items = match r {
+        Reply::Array(Some(v)) if v.len() % 2 == 0 => v,
+        Reply::Array(None) | Reply::Bulk(None) => return Err("does not exist? (unexpected nil)".into()),
+        other => return Err(format!("unreadable ACL GETUSER reply {other:?}")),
+    };
+    let field = |name: &[u8]| {
+        items
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .find(|[k, _]| matches!(k, Reply::Bulk(Some(b)) if b.as_slice() == name))
+            .map(|[_, v]| v)
+    };
+    let text = |v: Option<&Reply>| match v {
+        Some(Reply::Bulk(Some(b))) => Some(b.clone()),
+        _ => None,
+    };
+    let flags: Vec<Vec<u8>> = match field(b"flags") {
+        Some(Reply::Array(Some(fs))) => fs
+            .iter()
+            .filter_map(|f| match f {
+                Reply::Bulk(Some(b)) | Reply::Simple(b) => Some(b.clone()),
+                _ => None,
+            })
+            .collect(),
+        _ => return Err("no readable flags".into()),
+    };
+    if flags.iter().any(|f| f == b"off") {
+        return Ok(());
+    }
+    if !flags.iter().any(|f| f == b"on") {
+        return Err("neither on nor off".into());
+    }
+    let commands = text(field(b"commands"));
+    let keys = text(field(b"keys"));
+    let channels = text(field(b"channels"));
+    let no_selectors = matches!(field(b"selectors"), Some(Reply::Array(Some(s))) if s.is_empty());
+    if commands.as_deref() == Some(b"-@all".as_slice())
+        && keys.as_deref() == Some(b"".as_slice())
+        && channels.as_deref() == Some(b"".as_slice())
+        && no_selectors
+    {
+        return Ok(());
+    }
+    Err(format!(
+        "is on with commands {:?}, keys {:?}, channels {:?}",
+        commands.map(|c| String::from_utf8_lossy(&c).into_owned()),
+        keys.map(|c| String::from_utf8_lossy(&c).into_owned()),
+        channels.map(|c| String::from_utf8_lossy(&c).into_owned())
+    ))
 }
 
 #[cfg(test)]
@@ -591,6 +666,40 @@ mod tests {
         }
         let dbg = format!("{:?}", ConnectConfig::from_url("redis://u:secret@h"));
         assert!(!dbg.contains("secret"));
+    }
+
+    fn getuser(flags: &[&str], commands: &str, keys: &str, channels: &str, selectors: usize) -> Reply {
+        let b = |s: &str| Reply::Bulk(Some(s.as_bytes().to_vec()));
+        Reply::Array(Some(vec![
+            b("flags"),
+            Reply::Array(Some(flags.iter().map(|f| b(f)).collect())),
+            b("passwords"),
+            Reply::Array(Some(vec![])),
+            b("commands"),
+            b(commands),
+            b("keys"),
+            b(keys),
+            b("channels"),
+            b(channels),
+            b("selectors"),
+            Reply::Array(Some((0..selectors).map(|_| Reply::Array(Some(vec![]))).collect())),
+        ]))
+    }
+
+    #[test]
+    fn default_user_d12() {
+        // Stock engine default: on, nopass, +@all ~* &* -> refuse.
+        assert!(default_user_verdict(&getuser(&["on", "nopass"], "+@all", "~*", "&*", 0)).is_err());
+        assert!(default_user_verdict(&getuser(&["off", "nopass"], "+@all", "~*", "&*", 0)).is_ok());
+        assert!(default_user_verdict(&getuser(&["on", "nopass"], "-@all", "", "", 0)).is_ok());
+        for (cmds, keys, chans, sel) in
+            [("-@all +ping", "", "", 0), ("-@all", "~x", "", 0), ("-@all", "", "&*", 0), ("-@all", "", "", 1)]
+        {
+            assert!(default_user_verdict(&getuser(&["on"], cmds, keys, chans, sel)).is_err(), "{cmds} {keys} {chans}");
+        }
+        assert!(default_user_verdict(&getuser(&["nopass"], "-@all", "", "", 0)).is_err());
+        assert!(default_user_verdict(&Reply::Error(b"ERR".to_vec())).is_err());
+        assert!(default_user_verdict(&Reply::Array(None)).is_err());
     }
 
     #[test]
