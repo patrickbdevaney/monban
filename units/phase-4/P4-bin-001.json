@@ -16,7 +16,7 @@
   "native-e2e"
  ],
  "spec_refs": [
-  "IMPLEMENTATION_PLAN §7 modes A/D",
+  "IMPLEMENTATION_PLAN \u00a77 modes A/D",
   "NC1/NC2/NC7 at the host",
   "F7 routes-only registration",
   "budget gate (<= 60 third-party crates) and fail-closed-boot must stay green"
@@ -36,5 +36,6 @@
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
- "status": "todo"
+ "status": "todo",
+ "notes": " From P4-oracle-trybuild-001: apply oracles/sdk-trybuild/clippy.toml's ban list (mem::forget etc.) to apps/* in the hygiene gate, since M3/M12/N9 are only caught by it."
 }
