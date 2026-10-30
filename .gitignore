@@ -21,6 +21,8 @@ spikes/q3-008/certs/
 *.map
 oracles/h2-conformance/.h2spec/
 notes/
+# ...but not the example native app (modes A/D).
+!/apps/notes/
 
 # Claude Code agent worktrees and local settings
 /.claude/

@@ -37,6 +37,7 @@ them secure and do not claim to.
 | Tamper-evident audit log | R1 + independent verifier | `oracles/tlog-verify` (Go x/mod tlog) |
 | Zero-downtime upgrade drops nothing | R1 | `oracles/upgrade-harness` (100 reloads, 0 drops) |
 | Acked writes survive single crashes (SQLite WAL FULL / redb 2PC) | R1 | `oracles/crash-harness` |
+| Native handlers (modes A/D, `native` build of aegis-bin): tenant only from the verified token, uniform denial (W6), idempotent mutations with the outcome written in the data transaction (D14), no response byte before the commit point, cancel/deadline before it leaves no effect, SIGTERM drain without acking undurable work. SQLite and PostgreSQL only: Redis/Valkey backends are refused at boot (PLAN D18, deferred) | R1 oracle | `oracles/native-e2e` (SQLite + PostgreSQL 17 under FORCE RLS, 156 checks; 6 negative controls caught) |
 
 Microarchitectural isolation (Spectre-class) is **not** claimed. No regulator credits code proofs; compliance claims
 are in `research/templates/COMPLIANCE_MAP.md`.

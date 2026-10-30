@@ -37,6 +37,19 @@ pub struct Mutants {
     pub skip_authz_deny: bool,
     /// On a failed reload, drop the served config instead of keeping the last-known-good (breaks CFG-3).
     pub skip_lkg: bool,
+    // oracles/native-e2e --self-test (modes A/D):
+    /// The tenant is taken from the request path, not from the token (breaks INV-NO-AMBIENT / W6).
+    pub tenant_from_path: bool,
+    /// Commit although the request was cancelled before the commit point (breaks NC1).
+    pub commit_despite_cancel: bool,
+    /// Answer before the commit point (breaks NC7).
+    pub body_before_cp: bool,
+    /// An app route without a data block may use every op on the first backend (breaks INV-NONEMPTY).
+    pub empty_caps_means_all: bool,
+    /// Ignore SIGTERM (breaks NC8).
+    pub no_drain: bool,
+    /// On SIGTERM, answer in-flight requests 2xx and exit without committing (breaks NC8 / INV-DURABLE).
+    pub ack_then_drop: bool,
 }
 
 impl Mutants {
@@ -44,7 +57,17 @@ impl Mutants {
     pub fn from_env() -> Self {
         let v = std::env::var("AEGIS_E2E_MUTANT").unwrap_or_default();
         let has = |n: &str| v.split(',').any(|s| s.trim() == n);
-        let m = Self { raw_path: has("raw-path"), skip_authz_deny: has("skip-authz-deny"), skip_lkg: has("skip-lkg") };
+        let m = Self {
+            raw_path: has("raw-path"),
+            skip_authz_deny: has("skip-authz-deny"),
+            skip_lkg: has("skip-lkg"),
+            tenant_from_path: has("tenant-from-path"),
+            commit_despite_cancel: has("commit-despite-cancel"),
+            body_before_cp: has("body-before-cp"),
+            empty_caps_means_all: has("empty-caps-means-all"),
+            no_drain: has("no-drain"),
+            ack_then_drop: has("ack-then-drop"),
+        };
         if m != Self::default() {
             eprintln!("aegis: E2E NEGATIVE-CONTROL BUILD, mutants active: {m:?}");
         }
@@ -111,10 +134,12 @@ pub struct Shared {
     pub mutants: Mutants,
     /// notAfter of the serving certificate (Unix s), `i64::MIN` before the first install (CERT-1 gauge source).
     pub cert_not_after: AtomicI64,
+    /// The native data plane (modes A/D), when the config binds a route to an app.
+    pub native: Option<Arc<crate::native::DataPlane>>,
 }
 
 impl Shared {
-    pub fn new(snapshot: Snapshot) -> Arc<Self> {
+    pub fn new(snapshot: Snapshot, native: Option<Arc<crate::native::DataPlane>>) -> Arc<Self> {
         let s = Arc::new(Self {
             registry: Registry::new(),
             stats: ProxyStats::default(),
@@ -130,6 +155,7 @@ impl Shared {
             live_conns: AtomicUsize::new(0),
             mutants: Mutants::from_env(),
             cert_not_after: AtomicI64::new(i64::MIN),
+            native,
         });
         let h = s.snapshot().hash;
         s.registry.set_config_hash(&h);
