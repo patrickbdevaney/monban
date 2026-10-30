@@ -11,9 +11,9 @@
   "interfaces-frozen (carried)"
  ],
  "spec_refs": [
-  "IMPLEMENTATION_PLAN §1 F4 'Op IR + Adapter + allowlist lock format' (lock format is missing from ir.rs)",
-  "SPEC_INVARIANTS §A INV-NONEMPTY (empty capability set denies; Unrestricted explicit and CI-gated)",
-  "ARCHITECTURE §3.8 R-DB-3/4 allowlist.<adapter>.lock + CVE-traced denylists (Redis EVAL, FLUSH*, SWAPDB, KEYS)",
+  "IMPLEMENTATION_PLAN \u00a71 F4 'Op IR + Adapter + allowlist lock format' (lock format is missing from ir.rs)",
+  "SPEC_INVARIANTS \u00a7A INV-NONEMPTY (empty capability set denies; Unrestricted explicit and CI-gated)",
+  "ARCHITECTURE \u00a73.8 R-DB-3/4 allowlist.<adapter>.lock + CVE-traced denylists (Redis EVAL, FLUSH*, SWAPDB, KEYS)",
   "F8 has no data-plane block (backends, per-route data endowments)",
   "F10 op mirrors F4 Op"
  ],
@@ -30,9 +30,10 @@
   "interfaces/F8-config.schema.json",
   "interfaces/F10-module-wire.cddl",
   "interfaces/MANIFEST.sha256",
-  "interfaces/README.md"
+  "interfaces/README.md",
+  "spec/SPEC_INVARIANTS.md"
  ],
- "notes": "Additive F4 changes only (keep Op/Pred/Schema layout so F10 stays byte-compatible): (1) CapSet = Caps(nonempty Vec<DataCap{adapter, collection, ops: OpKind bitmask, columns}>) | Unrestricted, with no Default and no empty constructor (INV-NONEMPTY by type); authorize(&CapSet, &Op) -> Result<(), Denied>; (2) allowlist lock format (canonical line format: version header, sorted entries, LF, no timestamps, sha256 trailer) and the per-family denylist as data; (3) KV mapping rule for OpKind on key-value engines (Select=GET/SCAN, Insert/Upsert=SET, Delete=DEL; Pfx on the key field = SCAN MATCH with glob escaping); (4) tenant value rule: TenantId -> engine value (proposal: decimal ASCII text in a binary-collated column; Redis key t:{hex(decimal)}:), stated in doc comments; (5) EnginePin {family, floor per major, blocked majors}. F8: optional `data` block {backends:[{id, engine, dsn_ref, pin}], routes[].data:[cap...] | \"unrestricted\"}; additionalProperties false, every limit bounded. Decisions D1-D4 in PLAN.md must be ratified first.",
+ "notes": "Additive F4 changes only (keep Op/Pred/Schema layout so F10 stays byte-compatible): (1) CapSet = Caps(nonempty Vec<DataCap{adapter, collection, ops: OpKind bitmask, columns}>) | Unrestricted, with no Default and no empty constructor (INV-NONEMPTY by type); authorize(&CapSet, &Op) -> Result<(), Denied>; (2) allowlist lock format (canonical line format: version header, sorted entries, LF, no timestamps, sha256 trailer) and the per-family denylist as data; (3) KV mapping rule for OpKind on key-value engines (Select=GET/SCAN, Insert/Upsert=SET, Delete=DEL; Pfx on the key field = SCAN MATCH with glob escaping); (4) tenant value rule: TenantId -> engine value (proposal: decimal ASCII text in a binary-collated column; Redis key t:{hex(decimal)}:), stated in doc comments; (5) EnginePin {family, floor per major, blocked majors}. F8: optional `data` block {backends:[{id, engine, dsn_ref, pin}], routes[].data:[cap...] | \"unrestricted\"}; additionalProperties false, every limit bounded. Decisions D1-D4 in PLAN.md must be ratified first. Decisions D1, D4, D7 in PLAN.md 'Decisions' are binding; re-freeze interfaces and spec statements in the same commit.",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
