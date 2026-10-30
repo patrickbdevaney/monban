@@ -74,6 +74,8 @@ sources = [
 ]
 
 # PG19 blocked: ON CONFLICT ... WHERE evaluated before the RLS check (R-DB-8, wpo-pg-onconflict-where-peek A 0.86).
+# 2026-10-30 lowering-write --pg-onconflict-info: the peek reproduces on 19rc1 AND on 17.11/18.6 (mandated form clean);
+# new in 19: ON CONFLICT DO SELECT through a security_barrier view returns another tenant's row.
 # Lifting it is a spec change naming the fixed 19.x minor plus a passing lowering-write RLS ON CONFLICT family on it.
 [engines.pg19rc1]
 kind = "postgres"
@@ -84,7 +86,7 @@ image_id = "sha256:70a5d673564d822eef31ca15298d7a5a697aa3316d27c339c59bbc8199e00
 bytes = 461_286_432
 version = "19rc1"
 policy = "blocked"
-blocked_reason = "R-DB-8: ON CONFLICT WHERE evaluated before RLS; every 19.x refused until a named fixed minor"
+blocked_reason = "R-DB-8: ON CONFLICT WHERE evaluated before RLS (also reproduces on 17.11/18.6, where only the mandated composite-arbiter, no-user-WHERE form protects); 19 adds DO SELECT via security_barrier view leaking foreign rows; every 19.x refused until a named fixed minor"
 port = 5432
 tmpfs = "/var/lib/postgresql"
 sources = ["research/ARCHITECTURE.md R-DB-8", "units/phase-4/PLAN.md 'Infeasible or blocked as written'"]

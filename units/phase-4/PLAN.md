@@ -182,3 +182,14 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
 - **Finding:** a SQLite tenant column with INTEGER affinity stores some distinct 16-hex tenants as the same number
   (e.g. `00000000000001e5` and `0000000000100000` both become 100000), which turns a tenant-scoped upsert into a
   cross-tenant overwrite. Refused as TenantNotText and reproduced by the self-test.
+- **D11 (from the finished lowering families, 2026-10-30): KV listing.** Redis/Valkey ACLs cannot key-restrict SCAN, so
+  a per-tenant user holding `+scan` could list every tenant's key names. The reference `kv_acl` therefore grants only
+  GET/SET/DEL, and the KV adapter refuses `kv_plan` Scan (Select Tt/Pfx) at runtime under the per-tenant user
+  (`Unsupported`, fail closed). The renderer still produces the escaped pattern, because the read oracle checks
+  rendering. Phase 7 / backlog: tenant-scoped listing via a per-tenant index key (ZRANGEBYLEX on `t:{hex}:<coll>:__idx`).
+- **D12: Redis `default` user.** RESET logs a connection in as `default`, and ACL rules cannot block it. The adapter's
+  provisioning connection must check at boot that `default` is disabled or has no permissions, and refuse to start
+  otherwise. ci/engines.sh containers are throwaway and exempt; the native-e2e and crs runs must provision it that way.
+- **R-DB-8 restated:** the ON CONFLICT WHERE peek reproduces on 17.11 and 18.6 too. Only the mandated composite-arbiter
+  form with no user WHERE protects us, and claims must say so. PG19 stays blocked (19 also leaks through DO SELECT via a
+  security_barrier view).
