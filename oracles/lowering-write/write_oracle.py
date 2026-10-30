@@ -13,6 +13,8 @@ it in a transaction that is rolled back, diffs the WHOLE table (all tenants) pre
   E   effect: the post-state and RETURNING set equal what the Lean model predicts for a correct renderer
   FORM mandated forms: one statement starting with the op's verb; no MERGE, no WITH (CTE), no REPLACE / IGNORE /
       INSERT OR ..., no ';'; an upsert names its conflict key (ON CONFLICT (...)).
+  BIND (PG RLS family) the per-request tenant binding is gone after COMMIT/ROLLBACK (pool checkin)
+  ACL  (Redis kv_acl family) the per-tenant ACL user holds only t:{<hex>}:* and refuses every hostile command
   REFUSE requests that must be refused (non-canonical tenant handle, merge/cte/replace/raw_sql ops, invalid KV
       collection, KV key > 1024 bytes) were answered.
 Ill-formed requests (SET of the tenant column, a request row carrying a tenant, upsert without a composite key) must
@@ -20,7 +22,7 @@ be refused or be W-safe; they get W checks but no effect check.  Engine errors c
 blocked or refused WELL-FORMED request is an effect violation.
 Tenant handles are the D4 encoding (TenantId u64 as 16 lower-case hex digits).
 """
-import argparse, json, os, random, sqlite3, sys, time
+import argparse, json, os, random, re, sqlite3, sys, time, urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True
@@ -151,7 +153,7 @@ class PgEng:
 
 # =========================================================================================== checks
 class Stats(dict):
-    KEYS = ("cases", "W1", "W2", "W4", "W6", "W7", "E", "FORM", "REFUSE", "blocked", "refused", "illformed", "errors_wellformed")
+    KEYS = ("cases", "W1", "W2", "W4", "W6", "W7", "E", "FORM", "REFUSE", "BIND", "ACL", "blocked", "refused", "illformed", "errors_wellformed")
     def __init__(self):
         super().__init__({k: 0 for k in self.KEYS}); self["examples"] = []
     def add(self, o):
@@ -521,6 +523,529 @@ def kv_family(subject, cfg, st, eng):
                 if kind in seen: continue
                 seen.add(kind); st.viol(kind, {"tenant": t, "op": op, "key": s, "violation": f"{kind}: {msg}"})
 
+# =========================================================================================== Redis / Valkey kv_acl
+# The subject's kv_acl rules define a per-tenant ACL user. Required: its only key pattern is t:{<16hex>}:*, no
+# pub/sub channel, no credential tokens (the host owns `reset on >password`), and every hostile command below is
+# refused (ACL DRYRUN denies it AND, executed live as that user, it returns an error and changes nothing), while
+# the subject's own kv_plan commands (GET / SET / SET NX / SET XX / DEL on own keys) still work as that user.
+ACL_CRED_TOKENS = ("on", "off", "nopass", "reset", "resetpass", "skip-sanitize-payload", "sanitize-payload")
+KV_ACL_EMITTED = {"get", "set", "del"}           # the commands kv_plan emits for Get / Set / SetNx / SetXx / Del
+FROZEN_RESP_DENY = ["EVAL", "EVALSHA", "EVAL_RO", "EVALSHA_RO", "FCALL", "FCALL_RO", "FUNCTION", "SCRIPT", "FLUSHALL",
+                    "FLUSHDB", "SWAPDB", "KEYS", "SORT", "SORT_RO", "MOVE", "COPY", "RENAME", "RENAMENX", "MIGRATE",
+                    "SELECT", "CLIENT", "ACL", "CONFIG", "DEBUG", "MODULE", "MONITOR"]
+
+def resp_denylist():
+    """The frozen RESP denylist (aegis_data_ir::denylist, crates/aegis-data-ir/src/ir.rs RESP_DENY); the embedded
+    copy is used only when the oracle runs outside the repo. Every item must be covered by the hostile corpus."""
+    p = os.path.join(L.repo_root(HERE), "crates", "aegis-data-ir", "src", "ir.rs")
+    try:
+        src = open(p, encoding="utf-8").read()
+    except OSError:
+        return list(FROZEN_RESP_DENY), "embedded copy"
+    i = src.find("const RESP_DENY")
+    block = src[i:src.find("];", i)] if i >= 0 else ""
+    items = re.findall(r'item:\s*"([A-Z_]+)"', block)
+    return (items or list(FROZEN_RESP_DENY)), p
+
+def hostile_corpus(T, O):
+    """(label, argv) hostile commands for tenant hex T against tenant hex O. Keys use the reference encoding."""
+    own, fk = f"t:{{{T}}}:c:k1", f"t:{{{O}}}:c:k1"
+    lua = "#!lua name=aegislib\nredis.register_function('aegisf', function(keys, args) return 1 end)"
+    c = [
+        ("FLUSHALL", ["FLUSHALL"]), ("FLUSHALL ASYNC", ["FLUSHALL", "ASYNC"]), ("FLUSHDB", ["FLUSHDB"]),
+        ("KEYS *", ["KEYS", "*"]), ("KEYS foreign", ["KEYS", f"t:{{{O}}}:*"]), ("KEYS own", ["KEYS", f"t:{{{T}}}:*"]),
+        ("CONFIG GET", ["CONFIG", "GET", "*"]), ("CONFIG SET", ["CONFIG", "SET", "maxmemory-policy", "noeviction"]),
+        ("CONFIG RESETSTAT", ["CONFIG", "RESETSTAT"]), ("CONFIG REWRITE", ["CONFIG", "REWRITE"]),
+        ("EVAL declared own key", ["EVAL", "return redis.call('GET', KEYS[1])", "1", own]),
+        ("EVAL undeclared foreign key", ["EVAL", f"return redis.call('GET', '{fk}')", "0"]),
+        ("EVAL_RO", ["EVAL_RO", "return 1", "0"]),
+        ("EVALSHA", ["EVALSHA", "e0e1f9fabfc9d4800c877a703b823ac0578ff8db", "0"]),
+        ("EVALSHA_RO", ["EVALSHA_RO", "e0e1f9fabfc9d4800c877a703b823ac0578ff8db", "0"]),
+        ("SCRIPT LOAD", ["SCRIPT", "LOAD", "return 1"]), ("SCRIPT FLUSH", ["SCRIPT", "FLUSH"]),
+        ("SCRIPT EXISTS", ["SCRIPT", "EXISTS", "e0e1f9fabfc9d4800c877a703b823ac0578ff8db"]),
+        ("FUNCTION LOAD", ["FUNCTION", "LOAD", lua]), ("FUNCTION LIST", ["FUNCTION", "LIST"]),
+        ("FUNCTION FLUSH", ["FUNCTION", "FLUSH"]), ("FCALL", ["FCALL", "aegisf", "0"]), ("FCALL_RO", ["FCALL_RO", "aegisf", "0"]),
+        ("MODULE LIST", ["MODULE", "LIST"]), ("MODULE LOAD", ["MODULE", "LOAD", "/nonexistent/aegis.so"]),
+        ("DEBUG SLEEP", ["DEBUG", "SLEEP", "0"]), ("DEBUG OBJECT", ["DEBUG", "OBJECT", own]),
+        ("MIGRATE own key", ["MIGRATE", "127.0.0.1", "1", own, "0", "10"]),
+        ("MIGRATE KEYS foreign", ["MIGRATE", "127.0.0.1", "1", "", "0", "10", "KEYS", fk]),
+        ("SWAPDB", ["SWAPDB", "0", "1"]), ("MOVE own key to db 1", ["MOVE", own, "1"]),
+        ("COPY own->foreign", ["COPY", own, fk]), ("COPY foreign->own", ["COPY", fk, own, "REPLACE"]),
+        ("COPY own to db 1", ["COPY", own, own, "DB", "1"]),
+        ("RENAME own->foreign", ["RENAME", own, fk]), ("RENAME foreign->own", ["RENAME", fk, own]),
+        ("RENAMENX own->foreign", ["RENAMENX", own, fk]),
+        ("SORT BY/GET foreign", ["SORT", own, "BY", f"t:{{{O}}}:*", "GET", f"t:{{{O}}}:*"]),
+        ("SORT STORE foreign", ["SORT", own, "STORE", fk]), ("SORT_RO BY foreign", ["SORT_RO", own, "BY", f"t:{{{O}}}:*"]),
+        ("SELECT 1", ["SELECT", "1"]), ("CLIENT LIST", ["CLIENT", "LIST"]),
+        ("CLIENT KILL ID", ["CLIENT", "KILL", "ID", "999999999"]), ("CLIENT KILL ADDR", ["CLIENT", "KILL", "ADDR", "192.0.2.1:1"]),
+        ("CLIENT SETNAME", ["CLIENT", "SETNAME", "x"]), ("CLIENT NO-EVICT", ["CLIENT", "NO-EVICT", "on"]),
+        ("ACL WHOAMI", ["ACL", "WHOAMI"]), ("ACL LIST", ["ACL", "LIST"]), ("ACL GETUSER default", ["ACL", "GETUSER", "default"]),
+        ("ACL SETUSER self +@all", ["ACL", "SETUSER", f"aegis_kv_{T}", "+@all", "~*"]),
+        ("ACL DELUSER", ["ACL", "DELUSER", "aegis_nonexistent"]), ("ACL LOG", ["ACL", "LOG"]),
+        ("MONITOR", ["MONITOR"]),
+        ("PUBLISH", ["PUBLISH", f"t:{{{O}}}:ch", "m"]), ("SPUBLISH", ["SPUBLISH", f"t:{{{O}}}:ch", "m"]),
+        ("SUBSCRIBE", ["SUBSCRIBE", f"t:{{{O}}}:ch"]), ("PSUBSCRIBE", ["PSUBSCRIBE", "*"]),
+        ("SSUBSCRIBE", ["SSUBSCRIBE", f"t:{{{O}}}:ch"]), ("PUBSUB CHANNELS", ["PUBSUB", "CHANNELS"]),
+        ("SCAN no MATCH", ["SCAN", "0"]), ("SCAN MATCH *", ["SCAN", "0", "MATCH", "*"]),
+        ("SCAN MATCH foreign", ["SCAN", "0", "MATCH", f"t:{{{O}}}:*", "COUNT", "1000"]),
+        ("SCAN MATCH foreign TYPE", ["SCAN", "0", "MATCH", f"t:{{{O}}}:c:*", "TYPE", "string"]),
+        ("GET foreign", ["GET", fk]), ("SET foreign", ["SET", fk, "x"]), ("SET foreign NX", ["SET", fk, "x", "NX"]),
+        ("SET foreign XX", ["SET", fk, "x", "XX"]), ("DEL foreign", ["DEL", fk]), ("DEL own+foreign", ["DEL", own, fk]),
+        ("SET foreign GET", ["SET", fk, "x", "GET"]),
+        ("MGET own+foreign", ["MGET", own, fk]), ("EXISTS foreign", ["EXISTS", fk]), ("TYPE foreign", ["TYPE", fk]),
+        ("DUMP foreign", ["DUMP", fk]), ("OBJECT ENCODING foreign", ["OBJECT", "ENCODING", fk]),
+        ("UNLINK foreign", ["UNLINK", fk]), ("GETDEL foreign", ["GETDEL", fk]), ("APPEND foreign", ["APPEND", fk, "x"]),
+        ("EXPIRE foreign", ["EXPIRE", fk, "1"]), ("TOUCH foreign", ["TOUCH", fk]),
+        ("SAVE", ["SAVE"]), ("BGSAVE", ["BGSAVE"]), ("BGREWRITEAOF", ["BGREWRITEAOF"]),
+        ("REPLICAOF NO ONE", ["REPLICAOF", "NO", "ONE"]), ("SHUTDOWN", ["SHUTDOWN", "NOSAVE"]),
+        ("FAILOVER ABORT", ["FAILOVER", "ABORT"]), ("WAIT", ["WAIT", "0", "1"]),
+        ("INFO", ["INFO"]), ("DBSIZE", ["DBSIZE"]), ("RANDOMKEY", ["RANDOMKEY"]), ("OBJECT FREQ own", ["OBJECT", "FREQ", own]),
+        ("MEMORY USAGE foreign", ["MEMORY", "USAGE", fk]), ("LATENCY RESET", ["LATENCY", "RESET"]),
+        ("SLOWLOG GET", ["SLOWLOG", "GET"]), ("JSON.GET foreign (redis module)", ["JSON.GET", fk]), ("FT._LIST (redis module)", ["FT._LIST"]),
+    ]
+    # out-of-namespace neighbours of the tenant's own namespace t:{T}:* (a pattern missing a brace or the ':'
+    # delimiter, or without braces, reaches them)
+    for k in (f"t:{{{T}}}", f"t:{{{T}}}x:k1", f"t:{{{T}0}}:c:k1", f"t:{T}:c:k1", f"t:{{{T}", "k1"):
+        c.append((f"GET neighbour {k!r}", ["GET", k]))
+        c.append((f"SET neighbour {k!r}", ["SET", k, "x"]))
+    return c
+
+def acl_static(rules, t):
+    """Offline structural check of kv_acl rules (no engine): returns [(counter, message)]. Category grants (+@cat)
+    cannot be verified without the server's category table, so they are violations here (live mode uses DRYRUN)."""
+    out, keys, chans, cmds = [], set(), set(), set()
+    deny = {d.lower() for d in resp_denylist()[0]}
+    hostile = {argv[0].lower() for _, argv in hostile_corpus(t, A if t != A else T(0x2))} - KV_ACL_EMITTED
+    for tok in rules:
+        if type(tok) is not str: out.append(("FORM", f"non-string rule token {tok!r}")); continue
+        lo = tok.lower()
+        if lo in ACL_CRED_TOKENS or tok[:1] in (">", "<", "#", "!"):
+            out.append(("FORM", f"credential/state token {tok!r} (the host owns reset/on/password)")); continue
+        if lo == "resetkeys": keys.clear()
+        elif lo == "allkeys": keys.add("*")
+        elif re.match(r"^(%[RW]+)?~", tok): keys.add(tok.split("~", 1)[1])
+        elif lo == "resetchannels": chans.clear()
+        elif lo == "allchannels" or tok.startswith("&"): chans.add(tok)
+        elif lo in ("allcommands", "+@all"): cmds.add("@all")
+        elif lo in ("nocommands", "-@all"): cmds.clear()
+        elif tok.startswith("+@"): cmds.add(lo[1:])
+        elif tok.startswith("+"): cmds.add(lo[1:].split("|")[0])
+        elif tok.startswith("-"): cmds.discard(lo[1:].split("|")[0])
+        elif tok.startswith("(") or tok.startswith("%"): out.append(("ACL", f"selector / unsupported token {tok!r}"))
+        else: out.append(("ACL", f"unknown rule token {tok!r}"))
+    want = f"t:{{{t}}}:*"
+    if keys != {want}: out.append(("ACL", f"key patterns {sorted(keys)} != only {want!r}"))
+    if chans: out.append(("ACL", f"pub/sub channels granted {sorted(chans)}"))
+    cats = sorted(c for c in cmds if c.startswith("@"))
+    if cats: out.append(("ACL", f"category grant(s) {cats} include denylisted / hostile commands"))
+    bad = sorted(c for c in cmds if c in deny or c in hostile)
+    if bad: out.append(("ACL", f"hostile command(s) granted {bad}"))
+    return out
+
+def kv_acl_refusals(subject, st):
+    for h in BAD_HANDLES:
+        st["cases"] += 1
+        rep = subject.call({"op": "kv_acl", "tenant": h})
+        if "refuse" not in rep: st.viol("REFUSE", {"tenant": h, "violation": f"REFUSE: kv_acl answered for non-canonical handle {h!r}"})
+
+def kv_acl_static_family(subject, st):
+    kv_acl_refusals(subject, st)
+    for t in KV_TEN:
+        st["cases"] += 1
+        rep = subject.call({"op": "kv_acl", "tenant": t})
+        if "refuse" in rep or not isinstance(rep.get("rules"), list):
+            st["refused"] += 1; st.viol("E", {"tenant": t, "violation": f"E: kv_acl refused / malformed: {str(rep)[:160]}"}); continue
+        for kind, msg in acl_static(rep["rules"], t):
+            st.viol(kind, {"tenant": t, "rules": rep["rules"], "violation": f"{kind}: {msg}"})
+
+def _b(x): return x if isinstance(x, bytes) else str(x).encode()
+
+def kv_acl_family(subject, cfg, st, eng, url):
+    """Live: per tenant, create the subject's ACL user and run the hostile corpus as that user."""
+    deny, deny_src = resp_denylist()
+    admin = eng.r
+    db1 = L.Resp(url); db1.cmd(b"SELECT", b"1")
+    kv_acl_refusals(subject, st)
+    covered = {argv[0].upper() for _, argv in hostile_corpus(T(1), T(2))}
+    for d in deny:
+        if d.upper() not in covered:
+            st.viol("ACL", {"violation": f"ACL: oracle corpus lacks denylisted command {d} ({deny_src})"})
+    def keyspace():
+        return ({k: admin.cmd(b"DUMP", k) for k in admin.cmd(b"KEYS", b"*")},
+                {k: db1.cmd(b"DUMP", k) for k in db1.cmd(b"KEYS", b"*")})
+    def seed():
+        admin.cmd(b"FLUSHALL")
+        for tt in KV_TEN:
+            for kk in ("k1", "k2"):
+                kr = subject.call({"op": "kv_key", "tenant": tt, "collection": "c", "key_hex": kk.encode().hex()})
+                if "key_hex" in kr: admin.cmd(b"SET", bytes.fromhex(kr["key_hex"]), f"v:{tt}:{kk}".encode())
+            for k in (f"t:{{{tt}}}", f"t:{{{tt}}}x:k1", f"t:{{{tt}0}}:c:k1", f"t:{tt}:c:k1", f"t:{{{tt}", "k1"):
+                admin.cmd(b"SET", k.encode(), b"neighbour")
+        admin.cmd(b"SCRIPT", b"LOAD", b"return 1")
+        return keyspace()
+    base = seed()
+    for i, t in enumerate(KV_TEN):
+        o = KV_TEN[(i + 1) % len(KV_TEN)]
+        user = f"aegis_kv_{t}"; pw = os.urandom(12).hex()
+        rep = subject.call({"op": "kv_acl", "tenant": t})
+        st["cases"] += 1
+        if "refuse" in rep or not isinstance(rep.get("rules"), list):
+            st["refused"] += 1; st.viol("E", {"tenant": t, "violation": f"E: kv_acl refused / malformed: {str(rep)[:160]}"}); continue
+        rules = rep["rules"]
+        for kind, msg in acl_static(rules, t):
+            if kind == "FORM": st.viol("FORM", {"tenant": t, "rules": rules, "violation": f"FORM: {msg}"})
+        r = admin.cmd(b"ACL", b"SETUSER", user.encode(), b"reset", b"on", b">" + pw.encode(), *[_b(x) for x in rules])
+        if isinstance(r, L.RespError):
+            st.viol("E", {"tenant": t, "rules": rules, "violation": f"E: ACL SETUSER rejected the rules: {r}"}); continue
+        # key patterns as the server holds them: exactly one, t:{<hex>}:*
+        info = admin.cmd(b"ACL", b"GETUSER", user.encode())
+        d = dict(zip(info[0::2], info[1::2])) if isinstance(info, list) else {}
+        kp = d.get(b"keys", b"")
+        kp = kp.decode() if isinstance(kp, bytes) else " ".join(x.decode() for x in kp or [])
+        sel = d.get(b"selectors") or []
+        if kp.split() != [f"~t:{{{t}}}:*"] or sel:
+            st.viol("ACL", {"tenant": t, "rules": rules, "violation": f"ACL: server key patterns {kp!r} selectors={len(sel)} != only '~t:{{{t}}}:*'"})
+        ch = d.get(b"channels", b"")
+        ch = ch.decode() if isinstance(ch, bytes) else " ".join(x.decode() for x in ch or [])
+        if ch.strip():
+            st.viol("ACL", {"tenant": t, "violation": f"ACL: pub/sub channels granted {ch!r}"})
+        # positive: the subject's own kv_plan commands work as this user
+        u = L.Resp(url, user=user, password=pw)
+        nk = "kacl"
+        seq = [("kv_set", b"OK"), ("kv_get", f"n:{t}".encode()), ("kv_setxx", b"OK"), ("kv_setnx", None), ("kv_del", 1), ("kv_get", None)]
+        for op, want in seq:
+            st["cases"] += 1
+            q = subject.call({"op": op, "tenant": t, "collection": "c", "key_hex": nk.encode().hex(), "value_hex": f"n:{t}".encode().hex()})
+            if "refuse" in q: st.viol("E", {"tenant": t, "op": op, "violation": "E: own kv op refused"}); continue
+            got = [u.cmd(*[bytes.fromhex(x) for x in cm]) for cm in q["commands"]]
+            if got[-1:] != [want]:
+                st.viol("E", {"tenant": t, "op": op, "violation": f"E: own kv op as the ACL user replied {got!r}, want {want!r}"})
+        u.close()
+        if keyspace() != base: base = seed()
+        # hostile corpus
+        for label, argv in hostile_corpus(t, o):
+            st["cases"] += 1
+            args = [_b(x) for x in argv]
+            dr = admin.cmd(b"ACL", b"DRYRUN", user.encode(), *args)
+            if dr == b"OK":
+                st.viol("ACL", {"tenant": t, "cmd": label, "violation": f"ACL: DRYRUN permits {label} for the tenant user"})
+                continue                   # never executed live when the ACL already permits it (engine safety)
+            u = L.Resp(url, user=user, password=pw, timeout=10)
+            try:
+                rr = u.cmd(*args)
+            except Exception as e:
+                rr = L.RespError(f"connection: {e}")
+            u.close()
+            if not isinstance(rr, L.RespError):
+                st.viol("ACL", {"tenant": t, "cmd": label, "violation": f"ACL: executed as the tenant user: {str(rr)[:120]}"})
+            now = keyspace()
+            if now != base:
+                st.viol("W1", {"tenant": t, "cmd": label, "violation": "W1: keyspace changed by a hostile command"})
+                base = seed()
+        admin.cmd(b"ACL", b"DELUSER", user.encode())
+    db1.cmd(b"FLUSHDB"); db1.close()
+    admin.cmd(b"SCRIPT", b"FLUSH")
+
+# =========================================================================================== Postgres RLS-native
+# Defence in depth behind the renderer (R-DB-1, R-DB-8): the subject's rls_policy statements are applied by the
+# table owner, its rls_bind statements open each request transaction, and ORACLE-composed statements (no tenant
+# conjunct, hostile SET tenant / foreign INSERT / column-free writes / global-arbiter upserts; research
+# wp_run2/wp_run3) run under them. Checks: W1/W2/W4 on the whole table (read through a SECURITY DEFINER snapshot
+# function inside the transaction), E for well-formed own-tenant statements, FORM on the catalog (ENABLE + FORCE,
+# every permissive policy carries USING and an explicit WITH CHECK on the tenant column vs current_setting(S)),
+# BIND (after COMMIT/ROLLBACK -- the checkin -- the connection is back to the login role with the setting empty),
+# and the owner path (owner login with the setting bound but no role switch: FORCE must stop the owner bypass).
+RLS_ROLE, RLS_LOGIN, RLS_SETTING = "aegis_rls_app", "aegis_rls_login", "aegis.tenant"
+RLS_COLS = ["id", "tenant", "peer", "grp", "x", "y", "secret"]
+RLS_DECL = {"id": "int", "tenant": "text", "peer": "text", "grp": "text", "x": "text", "y": "text", "secret": "text"}
+RLS_SNAP = "select id, tenant, peer, grp, x, y, secret from aegis_rls_snap()"
+RLS_KINDS = ["sel", "upd", "del", "updall", "delall", "inso", "move", "movew", "insf", "upg", "upgt"]
+RLS_WELLFORMED = {"sel", "upd", "del", "updall", "delall", "inso"}
+
+def login_dsn(dsn, user, pw):
+    u = urllib.parse.urlparse(dsn)
+    host = u.hostname or "127.0.0.1"
+    return f"postgresql://{user}:{pw}@{host}:{u.port or 5432}{u.path or '/postgres'}"
+
+def rls_setup(admin, dsn, rows):
+    pw = os.urandom(12).hex()
+    for r in (RLS_LOGIN, RLS_ROLE):
+        if admin.query("select 1 from pg_roles where rolname = $1", (r,))[1]:
+            admin.simple(f"drop owned by {r} cascade")
+    admin.simple("drop table if exists rt cascade")
+    admin.simple("drop function if exists aegis_rls_snap()")
+    for r in (RLS_LOGIN, RLS_ROLE):
+        admin.simple(f"drop role if exists {r}")
+    admin.simple(f"create role {RLS_ROLE} nologin")
+    # NOINHERIT: policies TO aegis_rls_app must not apply to the owner login implicitly (else a binding without
+    # SET LOCAL ROLE, mutant rls-no-role, would be indistinguishable from a correct one)
+    admin.simple(f"create role {RLS_LOGIN} login noinherit nosuperuser nobypassrls password '{pw}'")
+    admin.simple(f"grant {RLS_ROLE} to {RLS_LOGIN}")
+    admin.simple(f"grant usage on schema public to {RLS_ROLE}, {RLS_LOGIN}")
+    admin.simple("create table rt(id int primary key, tenant text not null, peer text, grp text, x text, y text, secret text)")
+    for r in rows:
+        admin.query("insert into rt(id,tenant,peer,grp,x,y,secret) values ($1,$2,$3,$4,$5,$6,$7)", tuple(r[c] for c in RLS_COLS))
+    admin.simple(f"alter table rt owner to {RLS_LOGIN}")
+    admin.simple(f"grant select, insert, update, delete on rt to {RLS_ROLE}")
+    # superuser-owned SECURITY DEFINER snapshot: sees the whole table, including this transaction's own changes
+    admin.simple("create function aegis_rls_snap() returns setof rt language sql security definer "
+                 "set search_path = public as $$ select * from rt $$")
+    admin.simple("revoke all on function aegis_rls_snap() from public")
+    admin.simple(f"grant execute on function aegis_rls_snap() to {RLS_ROLE}, {RLS_LOGIN}")
+    return L.Pg(login_dsn(dsn, RLS_LOGIN, pw))
+
+def _strip_literals(s):
+    return re.sub(r"'(?:[^']|'')*'", "''", s or "")
+
+def rls_catalog_form(admin, setting, tf):
+    """[(msg)] violations of the mandated RLS form, read from the catalog (not from the subject's SQL text)."""
+    out = []
+    r = admin.query("select relrowsecurity, relforcerowsecurity from pg_class where oid = 'rt'::regclass")[1]
+    if not r or r[0][0] is not True: out.append("row level security not ENABLEd")
+    if not r or r[0][1] is not True: out.append("row level security not FORCEd (owner bypass)")
+    pols = admin.query("select polname::text, polpermissive, polcmd::text, pg_get_expr(polqual, polrelid), "
+                       "pg_get_expr(polwithcheck, polrelid) from pg_policy where polrelid = 'rt'::regclass")[1]
+    perm = [p for p in pols if p[1] is True]
+    if not perm: out.append("no permissive policy")
+    cover = {p[2] for p in perm}
+    if "*" not in cover and not {"r", "a", "w", "d"} <= cover: out.append(f"permissive policies cover only {sorted(cover)}")
+    others = [c for c in RLS_COLS if c != tf]
+    def guard_ok(e):
+        if e is None: return False
+        if not re.search(r"current_setting\('" + re.escape(setting) + r"'", e): return False
+        bare = _strip_literals(e)
+        if not re.search(r'(?<![\w"])"?' + re.escape(tf) + r'"?(?![\w"])', bare): return False
+        return not any(re.search(r'(?<![\w"])"?' + re.escape(c) + r'"?(?![\w"])', bare) for c in others)
+    for name, _p, cmd, qual, chk in perm:
+        if cmd in ("*", "r", "w", "d") and not guard_ok(qual):
+            out.append(f"policy {name} ({cmd}) USING {qual!r} is not tenant_field = current_setting({setting!r})")
+        if cmd in ("*", "a", "w"):
+            if chk is None: out.append(f"policy {name} ({cmd}) has no explicit WITH CHECK")
+            elif not guard_ok(chk): out.append(f"policy {name} ({cmd}) WITH CHECK {chk!r} is not tenant_field = current_setting({setting!r})")
+    return out
+
+def rls_statement(kind, rng, t, other, p, nid):
+    """Oracle-composed statement (no tenant conjunct: RLS alone must confine it) -> (sql, params)."""
+    ctx = L.Renderer.Ctx({"dialect": "postgres", "columns": RLS_DECL, "param_offset": 1})
+    if kind == "sel":
+        ctx.offset = 0; w = L.Renderer().render(p, ctx)
+        return f"SELECT id, tenant, x FROM rt WHERE {w}", ctx.params
+    if kind == "upd":
+        w = L.Renderer().render(p, ctx)
+        return f"UPDATE rt SET x = $1 WHERE {w} RETURNING id, tenant, x", ["U"] + ctx.params
+    if kind == "del":
+        ctx.offset = 0; w = L.Renderer().render(p, ctx)
+        return f"DELETE FROM rt WHERE {w} RETURNING id, tenant", ctx.params
+    if kind == "updall": return "UPDATE rt SET x = $1", ["U"]
+    if kind == "delall": return "DELETE FROM rt", []
+    if kind == "inso":
+        return "INSERT INTO rt(id, tenant, peer, grp, x, y, secret) VALUES ($1, $2, $3, 'g1', 'N', 'n', NULL)", [nid, t, other]
+    if kind == "move": return "UPDATE rt SET tenant = $1", [other]
+    if kind == "movew": return "UPDATE rt SET tenant = $1 WHERE id > 0 RETURNING id", [other]
+    if kind == "insf":
+        return "INSERT INTO rt(id, tenant, peer, grp, x, y, secret) VALUES ($1, $2, $3, 'g1', 'F', 'f', NULL)", [nid, other, t]
+    if kind == "upg":
+        return ("INSERT INTO rt(id, tenant, x) VALUES ($1, $2, 'N') ON CONFLICT (id) DO UPDATE SET x = excluded.x",
+                [rng.randint(1, 70), t])
+    if kind == "upgt":
+        return ("INSERT INTO rt(id, tenant, x) VALUES ($1, $2, 'N') ON CONFLICT (id) DO UPDATE SET tenant = excluded.tenant, "
+                "x = excluded.x RETURNING id, tenant, x", [rng.randint(1, 70), t])
+    raise ValueError(kind)
+
+def rls_expected(kind, t, p, pre, nid, other):
+    """(post-state by id, returned rows multiset) for a well-formed statement under a correct tenant-t policy."""
+    post = {r["id"]: dict(r) for r in pre}
+    own = lambda r: L.veq(r["tenant"], t)
+    hit = lambda r: own(r) and L.keeps(L.EXACT, r, L.lower(p))
+    ret = []
+    if kind == "sel": ret = [(r["id"], r["tenant"], r["x"]) for r in pre if hit(r)]
+    elif kind == "upd":
+        for r in post.values():
+            if hit(r): r["x"] = "U"; ret.append((r["id"], r["tenant"], "U"))
+    elif kind == "del":
+        for r in pre:
+            if hit(r): ret.append((r["id"], r["tenant"])); del post[r["id"]]
+    elif kind == "updall":
+        for r in post.values():
+            if own(r): r["x"] = "U"
+    elif kind == "delall":
+        for r in pre:
+            if own(r): del post[r["id"]]
+    elif kind == "inso":
+        post[nid] = dict(id=nid, tenant=t, peer=other, grp="g1", x="N", y="n", secret=None)
+    return post, sorted(ret, key=repr)
+
+def rls_check(st, kind, t, pre, post, rows, wellformed, exp, ex):
+    preI = {r["id"]: r for r in pre}; postI = {r["id"]: r for r in post}
+    viol = []
+    for k in set(preI) | set(postI):
+        a, b = preI.get(k), postI.get(k)
+        if a == b: continue
+        if a is not None and not L.veq(a["tenant"], t): viol.append(("W1", f"changed foreign row tenant={a['tenant']!r} id={k}"))
+        if b is not None and not L.veq(b["tenant"], t): viol.append(("W2", f"post-image tenant={b['tenant']!r} id={k}"))
+    for row in rows:
+        if len(row) > 1 and not L.veq(row[1], t): viol.append(("W4", f"returned row of tenant {row[1]!r}"))
+        elif len(row) == 1 and row[0] in preI and not L.veq(preI[row[0]]["tenant"], t) and not (row[0] in postI and L.veq(postI[row[0]]["tenant"], t)):
+            viol.append(("W4", f"returned id {row[0]} of a foreign row"))
+    if wellformed:
+        epost, eret = exp
+        if postI != epost or sorted(rows, key=repr) != eret:
+            viol.append(("E", "effect differs from the tenant-t model (post-state or returned rows)"))
+    seen = set()
+    for kind_, msg in viol:
+        if kind_ in seen: continue
+        seen.add(kind_); st.viol(kind_, dict(ex, violation=f"{kind_}: {msg}"))
+
+def rls_family(admin, dsn, subject, cfg, fams, tag):
+    st = fams.setdefault(f"{tag}RLS native (FORCE, WITH CHECK, per-request bind, owner path) | rt global id PK", Stats())
+    for h in BAD_HANDLES[:4]:
+        st["cases"] += 1
+        rep = subject.call({"op": "rls_bind", "dialect": "postgres", "tenant": h, "role": RLS_ROLE, "setting": RLS_SETTING})
+        if "refuse" not in rep: st.viol("REFUSE", {"tenant": h, "violation": f"REFUSE: rls_bind answered for {h!r}"})
+    for seed in cfg.seeds:
+        rng = random.Random(seed + 77)
+        rows = [dict(r, peer=rng.choice(TEN_HANDLES)) for r in mkrows(random.Random(20261025 + seed), 60)]
+        login = rls_setup(admin, dsn, rows)
+        st["cases"] += 1
+        pol = subject.call({"op": "rls_policy", "dialect": "postgres", "table": "rt", "tenant_field": "tenant",
+                            "role": RLS_ROLE, "setting": RLS_SETTING, "columns": RLS_DECL})
+        if "refuse" in pol or not isinstance(pol.get("statements"), list):
+            st["refused"] += 1; st.viol("E", {"violation": f"E: rls_policy refused / malformed: {str(pol)[:160]}"}); login.close(); continue
+        try:
+            for s in pol["statements"]: login.simple(s)        # applied by the table owner (no superuser needed)
+        except L.PgError as e:
+            st.viol("E", {"violation": f"E: rls_policy statement failed as the table owner: {e}"}); login.close(); continue
+        for msg in rls_catalog_form(admin, RLS_SETTING, "tenant"):
+            st.viol("FORM", {"policy": pol["statements"], "violation": f"FORM: {msg}"})
+        nid = 1000
+        for i in range(cfg.n):
+            st["cases"] += 1
+            kind = RLS_KINDS[i % len(RLS_KINDS)] if i < len(RLS_KINDS) else rng.choice(RLS_KINDS)
+            t = rng.choice(TEN_HANDLES); other = rng.choice([x for x in TEN_HANDLES if x != t]); p = gpred(rng)
+            nid += 1
+            wf = kind in RLS_WELLFORMED
+            if not wf: st["illformed"] += 1
+            sql, params = rls_statement(kind, rng, t, other, p, nid)
+            ex = {"kind": kind, "tenant": t, "sql": sql}
+            b = subject.call({"op": "rls_bind", "dialect": "postgres", "tenant": t, "role": RLS_ROLE, "setting": RLS_SETTING})
+            if "refuse" in b or not isinstance(b.get("statements"), list):
+                st["refused"] += 1; st.viol("E", dict(ex, violation=f"E: rls_bind refused / malformed: {str(b)[:160]}")); continue
+            login.simple("begin")
+            try:
+                for s in b["statements"]: login.query(s["sql"], s.get("params") or [])
+                pre = [dict(zip(RLS_COLS, r)) for r in login.query(RLS_SNAP)[1]]
+            except L.PgError as e:
+                login.simple("rollback"); st["blocked"] += 1
+                st.viol("E", dict(ex, violation=f"E: binding failed: {e}")); continue
+            try:
+                names, got = login.query(sql, params)
+                post = [dict(zip(RLS_COLS, r)) for r in login.query(RLS_SNAP)[1]]
+                login.simple("commit" if kind == "sel" else "rollback")     # read-only requests check in after COMMIT
+                rls_check(st, kind, t, pre, post, got if names else [], wf, rls_expected(kind, t, p, pre, nid, other), ex)
+            except L.PgError as e:
+                login.simple("rollback"); st["blocked"] += 1
+                if wf:
+                    st["errors_wellformed"] += 1; st.viol("E", dict(ex, violation=f"E: well-formed statement blocked: {str(e)[:160]}"))
+            # checkin: no reset is issued by the pool; the binding must be gone with the transaction
+            who = login.query(f"select current_user::text, coalesce(current_setting('{RLS_SETTING}', true), '')")[1][0]
+            if who != (RLS_LOGIN, ""):
+                n_seen = login.query("select count(*) from rt")[1][0][0]
+                st.viol("BIND", dict(ex, violation=f"BIND: after checkin current_user={who[0]!r} {RLS_SETTING}={who[1]!r}; "
+                                                   f"an unbound statement on this pooled connection sees {n_seen} row(s)"))
+                login.simple(f"reset role; select set_config('{RLS_SETTING}', '', false)")
+        # owner path: the owner login with the tenant setting bound but no role switch
+        for i in range(max(1, cfg.n // 5)):
+            st["cases"] += 1; st["illformed"] += 1
+            kind = rng.choice(["sel", "updall", "delall", "move", "insf", "upg"])
+            t = rng.choice(TEN_HANDLES); other = rng.choice([x for x in TEN_HANDLES if x != t]); p = gpred(rng)
+            nid += 1
+            sql, params = rls_statement(kind, rng, t, other, p, nid)
+            ex = {"kind": "owner-path " + kind, "tenant": t, "sql": sql}
+            login.simple("begin")
+            try:
+                login.query("select set_config($1, $2, true)", [RLS_SETTING, t])
+                pre = [dict(zip(RLS_COLS, r)) for r in login.query(RLS_SNAP)[1]]
+                names, got = login.query(sql, params)
+                post = [dict(zip(RLS_COLS, r)) for r in login.query(RLS_SNAP)[1]]
+                rls_check(st, kind, t, pre, post, got if names else [], False, None, ex)
+            except L.PgError:
+                st["blocked"] += 1
+            login.simple("rollback")
+        login.close()
+    admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists aegis_rls_snap()")
+
+# =========================================================================================== PG ON CONFLICT information run
+INFO_NAME = "LOWERING-WRITE PG-ONCONFLICT-INFO"
+
+def pg_onconflict_info(dsns, subject):
+    """Information only (never a gate): does ON CONFLICT DO UPDATE ... WHERE <user function> evaluate the function on
+    another tenant's row before RLS rejects the update (R-DB-8, research wpo-pg-onconflict-where-peek)? Plus the
+    hardened composite arbiter, plain UPDATE/DELETE/MERGE/SELECT controls and PG19's ON CONFLICT DO SELECT."""
+    A_, B_ = TEN_HANDLES[0], TEN_HANDLES[1]
+    summary = []
+    for dsn in dsns:
+        admin = L.Pg(dsn); v = L.pg_version(admin)
+        print(f"  [pg {v}] tenant A={A_} binds; tenant B={B_} owns row id 2 (x='secretB'); FORCE RLS policy from the subject")
+        rows = [dict(id=1, tenant=A_, peer=B_, grp="g1", x="secretA", y="0", secret="s1"),
+                dict(id=2, tenant=B_, peer=A_, grp="g1", x="secretB", y="0", secret="s2")]
+        login = rls_setup(admin, dsn, rows)
+        admin.simple(f"create table rt2(tenant text not null, id int not null, x text, primary key (tenant, id))")
+        admin.simple(f"insert into rt2 values ('{A_}', 1, 'secretA'), ('{B_}', 2, 'secretB')")
+        admin.simple(f"alter table rt2 owner to {RLS_LOGIN}"); admin.simple(f"grant select, insert, update, delete on rt2 to {RLS_ROLE}")
+        admin.simple("create or replace function aegis_peek(text) returns boolean language plpgsql as "
+                     "$$ begin raise notice 'AEGIS_PEEK %', $1; return true; end $$")
+        admin.simple(f"grant execute on function aegis_peek(text) to {RLS_ROLE}")
+        admin.simple(f"create view rtv with (security_barrier = true) as select * from rt where tenant = current_setting('{RLS_SETTING}', true)")
+        admin.simple(f"grant select, insert on rtv to {RLS_ROLE}")
+        for tbl in ("rt", "rt2"):
+            pol = subject.call({"op": "rls_policy", "dialect": "postgres", "table": tbl, "tenant_field": "tenant",
+                                "role": RLS_ROLE, "setting": RLS_SETTING})
+            for s in pol.get("statements", []): login.simple(s)
+        probes = [
+            ("P1 ON CONFLICT (id) DO UPDATE .. WHERE peek(t.x), global arbiter, foreign id 2",
+             "INSERT INTO rt(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO UPDATE SET x = excluded.x WHERE aegis_peek(rt.x)"),
+            ("P2 hardened: composite arbiter (tenant,id) .. WHERE peek(t.x), id 2",
+             "INSERT INTO rt2(tenant, id, x) VALUES ($1, 2, 'n') ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE aegis_peek(rt2.x)"),
+            ("P3 control UPDATE .. WHERE peek(x)", "UPDATE rt SET x = 'z' WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
+            ("P4 control DELETE .. WHERE peek(x)", "DELETE FROM rt WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
+            ("P5 control MERGE .. WHEN MATCHED AND peek(t.x)",
+             "MERGE INTO rt USING (SELECT 2 AS id, $1::text AS t) s ON rt.id = s.id WHEN MATCHED AND aegis_peek(rt.x) THEN UPDATE SET x = 'm'"),
+            ("P6 control SELECT .. WHERE peek(x)", "SELECT id FROM rt WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
+            ("P7 ON CONFLICT (id) DO SELECT RETURNING (PG19 syntax), RLS table",
+             "INSERT INTO rt(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO SELECT RETURNING id, tenant, x"),
+            ("P8 ON CONFLICT (id) DO SELECT via security_barrier view (view tenancy, not RLS)",
+             "INSERT INTO rtv(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO SELECT RETURNING id, tenant, x"),
+        ]
+        res = {}
+        bind = subject.call({"op": "rls_bind", "dialect": "postgres", "tenant": A_, "role": RLS_ROLE, "setting": RLS_SETTING})
+        for label, sql in probes:
+            login.notices.clear(); login.simple("begin")
+            try:
+                for s in bind["statements"]: login.query(s["sql"], s.get("params") or [])
+                _, got = login.query(sql, [A_])
+                outcome = f"ok rows={got}"
+            except L.PgError as e:
+                outcome = f"error {e.sqlstate}: {str(e).split(': ', 1)[-1][:90]}"
+            login.simple("rollback")
+            seen = [n for n in login.notices if "secretB" in n]
+            leak = bool(seen) or "secretB" in outcome
+            res[label[:2]] = leak
+            if "42601" in outcome: res[label[:2]] = None          # syntax not in this major (DO SELECT is PG19)
+            print(f"    {label}: foreign row {'SEEN' if leak else 'not seen'}; {outcome}"
+                  + (f"; notices={seen}" if seen else ""))
+        login.close()
+        for o in ("view if exists rtv", "table if exists rt2", "function if exists aegis_peek(text)"):
+            admin.simple(f"drop {o}")
+        admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists aegis_rls_snap()")
+        admin.close()
+        word = lambda k: "n/a" if res.get(k) is None else "LEAKS" if res[k] else "clean"
+        summary.append(f"pg{v}: P1 foreign-row peek {'REPRODUCES' if res.get('P1') else 'does not reproduce'}, "
+                       f"P2 hardened {word('P2')}, P7 DO SELECT/RLS {word('P7')}, "
+                       f"P8 DO SELECT/view {word('P8')}, controls P3-P6 "
+                       f"{'LEAK' if any(res.get(k) for k in ('P3', 'P4', 'P5', 'P6')) else 'clean'}")
+    print(f"{INFO_NAME} (information only, not a gate): " + "; ".join(summary))
+    return 0
+
 # =========================================================================================== driver
 class Cfg:
     def __init__(self, a):
@@ -555,32 +1080,35 @@ def evaluate(subject, cfg, log=print):
             sql_families(lambda d, r: PgEng(pg, d, r), "postgres", PG, subject, cfg, fams, tag)
             w6_family(lambda d, r, p: PgEng(pg, d, r, p), "postgres", W6_PG, subject, cfg, fams, tag)
             if cfg.gate_only: sql_families(lambda d, r: PgEng(pg, d, r), "postgres", PG_GATE_ONLY, subject, cfg, info, tag)
+            rls_family(pg, dsn, subject, cfg, fams, tag)
             pg.simple("drop table if exists t"); pg.simple("drop table if exists p"); pg.close()
     if "redis" in cfg.engines:
         for url in cfg.urls:
             eng = KVLive(url); versions.append((eng.kind, eng.version, url))
             kv_family(subject, cfg, fams.setdefault(f"{eng.kind}{eng.version} kv (live)", Stats()), eng)
+            kv_acl_family(subject, cfg, fams.setdefault(f"{eng.kind}{eng.version} kv_acl hostile commands as the tenant ACL user (live)", Stats()), eng, url)
             eng.close()
     elif "sqlite" in cfg.engines:
         kv_family(subject, cfg, fams.setdefault("redis kv (model)", Stats()), KVModel())
+        kv_acl_static_family(subject, fams.setdefault("redis kv_acl rules (static, offline)", Stats()))
     tot = Stats()
     for s in fams.values(): tot.add(s)
     return fams, info, tot, time.time() - t0, versions
 
-BAD_KEYS = ("W1", "W2", "W4", "W6", "W7", "E", "FORM", "REFUSE", "errors_wellformed")
+BAD_KEYS = ("W1", "W2", "W4", "W6", "W7", "E", "FORM", "REFUSE", "BIND", "ACL", "errors_wellformed")
 def bad_of(tot):
     return {k: tot[k] for k in BAD_KEYS if tot.get(k)}
 
 def report(fams, info, tot, wall, log=print):
-    log(f"{'family':84s} {'cases':>6s} {'W1':>4s} {'W2':>4s} {'W4':>4s} {'W6':>4s} {'W7':>4s} {'E':>4s} {'FORM':>4s} {'REF!':>4s} {'blk':>4s} {'ref':>4s}")
+    log(f"{'family':84s} {'cases':>6s} {'W1':>4s} {'W2':>4s} {'W4':>4s} {'W6':>4s} {'W7':>4s} {'E':>4s} {'FORM':>4s} {'REF!':>4s} {'BIND':>4s} {'ACL':>4s} {'blk':>4s} {'ref':>4s}")
     for title, group in (("", fams), ("[schema-gate demo, not in verdict] ", info)):
         for n, s in group.items():
             log(f"{(title + n)[:84]:84s} {s['cases']:6d} {s['W1']:4d} {s['W2']:4d} {s['W4']:4d} {s['W6']:4d} {s['W7']:4d} {s['E']:4d} "
-                f"{s['FORM']:4d} {s['REFUSE']:4d} {s['blocked']:4d} {s['refused']:4d}")
+                f"{s['FORM']:4d} {s['REFUSE']:4d} {s['BIND']:4d} {s['ACL']:4d} {s['blocked']:4d} {s['refused']:4d}")
             if any(s.get(k) for k in BAD_KEYS) and s["examples"]:
                 log("    e.g. " + json.dumps(s["examples"][0], ensure_ascii=True, default=str)[:420])
     log(f"total: cases={tot['cases']} W1={tot['W1']} W2={tot['W2']} W4={tot['W4']} W6={tot['W6']} W7={tot['W7']} E={tot['E']} "
-        f"FORM={tot['FORM']} REFUSE={tot['REFUSE']} blocked={tot['blocked']} refused={tot['refused']} illformed={tot['illformed']} wall={wall:.1f}s")
+        f"FORM={tot['FORM']} REFUSE={tot['REFUSE']} BIND={tot['BIND']} ACL={tot['ACL']} blocked={tot['blocked']} refused={tot['refused']} illformed={tot['illformed']} wall={wall:.1f}s")
 
 SELFTEST_MUTANTS = [
     ("drop-tenant", "W1"),
@@ -604,12 +1132,19 @@ SELFTEST_MUTANTS = [
     ("kv-no-escape", "E"),
     ("kv-no-keycap", "REFUSE"),
     ("kv-collection-colon", "REFUSE"),
+    ("kv-acl-all", "ACL"),
+    ("kv-acl-allkeys", "ACL"),
+    ("kv-acl-no-brace", "ACL"),
+    ("kv-acl-eval", "ACL"),
 ]
 ENGINE_MUTANTS = {
     "pg": [("drop-tenant", "W1"), ("upsert-global-arbiter", "W1"), ("returning-star", "W4"), ("set-tenant-passthrough", "W2"),
            ("pg-no-collate-c", "W1"), ("insert-global-key", "W6"), ("fk-global", "W6"), ("upsert-as-merge", "FORM"),
-           ("update-via-cte", "FORM")],
-    "redis": [("kv-naive", "W1"), ("kv-escaped-colon", "W7"), ("kv-no-escape", "E"), ("drop-tenant", "W1")],
+           ("update-via-cte", "FORM"),
+           ("rls-no-force", "W1"), ("rls-check-true", "W2"), ("rls-split-update-true", "W1"), ("rls-no-role", "E"),
+           ("rls-no-check", "FORM"), ("rls-wrong-column", "W4"), ("rls-session-setting", "BIND")],
+    "redis": [("kv-naive", "W1"), ("kv-escaped-colon", "W7"), ("kv-no-escape", "E"), ("drop-tenant", "W1"),
+              ("kv-acl-all", "ACL"), ("kv-acl-allkeys", "ACL"), ("kv-acl-no-brace", "ACL"), ("kv-acl-eval", "ACL")],
 }
 
 def small_ns(a, engines, n=150):
@@ -640,7 +1175,7 @@ def self_test(a):
         for mut, counter in ENGINE_MUTANTS[eng]:
             _, _, tot, _, _ = evaluate(L.LocalSubject([mut]), c2, log=lambda *x: None)
             okm = tot.get(counter, 0) > 0; n += 1; caught += okm
-            print(f"  [{eng}] mutant {mut:24s} expect {counter}>0: " + " ".join(f"{k}={tot[k]}" for k in BAD_KEYS[:8]) +
+            print(f"  [{eng}] mutant {mut:24s} expect {counter}>0: " + " ".join(f"{k}={tot[k]}" for k in BAD_KEYS[:10]) +
                   f" -> {'CAUGHT' if okm else 'NOT CAUGHT'}")
     ctl = Cfg(small_ns(a, (["sqlite"] if use_sqlite else []) + live, 100))
     cmd = a.subject or L.reference_cmd(HERE)
@@ -674,7 +1209,12 @@ def main():
     ap.add_argument("--n", type=int, default=300, help="cases per family per schema per seed (research: 300)")
     ap.add_argument("--no-gate-demo", action="store_true", help="skip schemas the schema gate must refuse")
     ap.add_argument("--json")
+    ap.add_argument("--pg-onconflict-info", action="store_true", help="information run (never a gate): ON CONFLICT WHERE "
+                    "vs RLS on every --dsn (e.g. ci/engines.sh with pg19rc1 -- run --pg-onconflict-info --dsn @pg19rc1); exit 0")
     a = ap.parse_args()
+    if a.pg_onconflict_info:
+        if not a.dsn: ap.error("--pg-onconflict-info needs --dsn")
+        sub = L.make_subject(a.subject); rc = pg_onconflict_info(a.dsn, sub); sub.close(); sys.exit(rc)
     if not a.engine: a.engine = ["sqlite"]
     if "pg" in a.engine and not a.dsn: ap.error("--engine pg needs --dsn")
     if "redis" in a.engine and not a.url: ap.error("--engine redis needs --url")
@@ -707,7 +1247,7 @@ def main():
             json.dump({"families": fams, "schema_gate_demo": info, "total": tot, "wall_s": wall, "bad": bad, "versions": versions},
                       fh, indent=1, default=str)
     summary = (f"cases={tot['cases']} families={len(fams)} W1={tot['W1']} W2={tot['W2']} W4={tot['W4']} W6={tot['W6']} "
-               f"W7={tot['W7']} E={tot['E']} FORM={tot['FORM']} REFUSE={tot['REFUSE']}{pins_txt}")
+               f"W7={tot['W7']} E={tot['E']} FORM={tot['FORM']} REFUSE={tot['REFUSE']} BIND={tot['BIND']} ACL={tot['ACL']}{pins_txt}")
     if bad or tot["cases"] == 0:
         print(f"{NAME}: FAIL ({', '.join(f'{k}={v}' for k, v in bad.items()) or 'no cases'}; {summary})"); sys.exit(1)
     print(f"{NAME}: PASS ({summary})")

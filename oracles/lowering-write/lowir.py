@@ -223,6 +223,9 @@ MUTANTS = {
     "rls-no-force":       "RLS enabled but not FORCEd (table owner bypasses it)",
     "rls-split-update-true": "split RLS policies, FOR UPDATE USING (true) WITH CHECK (true)",
     "rls-no-role":        "tenant binding sets the GUC but never SET LOCAL ROLE (statement runs as the RLS-exempt login role)",
+    "rls-no-check":       "RLS policy FOR ALL USING (tenant = cur) without an explicit WITH CHECK",
+    "rls-wrong-column":   "RLS policy guards the column `peer` (another tenant-valued column) instead of tenant_field",
+    "rls-session-setting": "tenant binding SET ROLE + set_config(.., false): session-scoped, survives COMMIT into the next checkout",
     # kv
     "kv-naive":           "Redis key t:<unpadded hex><collection>:<key> (no braces, no delimiter: tenant 2 + 'ac' == tenant 2a + 'c')",
     "kv-escaped-colon":   "Redis key t:{<unpadded hex>}:..; SCAN MATCH glob-escapes 't:{<hex>' but drops the '}:' delimiter",
@@ -230,6 +233,9 @@ MUTANTS = {
     "kv-no-keycap":       "keys / patterns longer than KV_MAX_KEY_BYTES (1024) are not refused",
     "kv-collection-colon": "collection name not validated (':' and glob characters accepted, keys stop being injective)",
     "kv-acl-all":         "ACL rule ~t:{hex}:* +@all (no command restriction)",
+    "kv-acl-allkeys":     "ACL rule ~* (any key) with the reference command set",
+    "kv-acl-no-brace":    "ACL key pattern ~t:{<hex>* (closing tenant brace and ':' delimiter missing)",
+    "kv-acl-eval":        "ACL rule also grants +eval (server-side scripting)",
 }
 
 REFUSED_OPS = ("merge", "cte", "replace", "raw_sql")
@@ -559,10 +565,14 @@ class Renderer:
         if not re.fullmatch(r"[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)?", setting): raise ValueError("bad setting name")
         if req["op"] == "rls_bind":
             t = self.tenant(req)
+            if "rls-session-setting" in self.m:
+                return {"statements": [{"sql": f"SET ROLE {qi(role)}", "params": []},
+                                       {"sql": "SELECT set_config($1, $2, false)", "params": [setting, t]}]}
             st = [] if "rls-no-role" in self.m else [{"sql": f"SET LOCAL ROLE {qi(role)}", "params": []}]
             st.append({"sql": "SELECT set_config($1, $2, true)", "params": [setting, t]})
             return {"statements": st}
         table, tf = qi(req["table"]), qi(req["tenant_field"])
+        if "rls-wrong-column" in self.m: tf = qi("peer")
         guard = f"({tf} = current_setting({ql(setting)}, true) COLLATE \"C\")"
         st = [f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"]
         if "rls-no-force" not in self.m:
@@ -573,8 +583,9 @@ class Renderer:
                    f"CREATE POLICY aegis_d ON {table} FOR DELETE TO {qi(role)} USING {guard}",
                    f"CREATE POLICY aegis_u ON {table} FOR UPDATE TO {qi(role)} USING (true) WITH CHECK (true)"]
         else:
-            chk = "(true)" if "rls-check-true" in self.m else guard
-            st.append(f"CREATE POLICY aegis_tenant ON {table} AS PERMISSIVE FOR ALL TO {qi(role)} USING {guard} WITH CHECK {chk}")
+            chk = (" WITH CHECK (true)" if "rls-check-true" in self.m else "" if "rls-no-check" in self.m
+                   else f" WITH CHECK {guard}")
+            st.append(f"CREATE POLICY aegis_tenant ON {table} AS PERMISSIVE FOR ALL TO {qi(role)} USING {guard}{chk}")
         return {"statements": st}
 
     # ------------------------------------------------------------------ Redis / Valkey (aegis_data_ir::kv_plan)
@@ -594,10 +605,14 @@ class Renderer:
         else:
             prefix = b"t:{" + tb + b"}:"                  # D4: 16 lower-case hex, '}' terminator, pins the slot
         if op == "kv_acl":
-            pat = b"~*" if "drop-tenant" in m else b"~" + glob_escape(prefix) + b"*"
+            # Key-bearing commands only. SCAN has no key argument (MATCH is not an ACL key), so +scan would let this
+            # user list every tenant's key names: kv_plan::Scan cannot run under the per-tenant ACL user.
+            pat = b"~*" if ("drop-tenant" in m or "kv-acl-allkeys" in m) else b"~" + glob_escape(prefix) + b"*"
+            if "kv-acl-no-brace" in m: pat = b"~" + glob_escape(prefix[:-2]) + b"*"
             if "kv-acl-all" in m:
                 return {"rules": ["resetkeys", pat.decode(), "resetchannels", "+@all"]}
-            return {"rules": ["resetkeys", pat.decode(), "resetchannels", "-@all", "+get", "+set", "+del", "+scan"]}
+            return {"rules": ["resetkeys", pat.decode(), "resetchannels", "-@all", "+get", "+set", "+del"]
+                             + (["+eval"] if "kv-acl-eval" in m else [])}
         coll = req.get("collection")
         if "kv-collection-colon" in m:
             if type(coll) is not str: raise ValueError("collection")
