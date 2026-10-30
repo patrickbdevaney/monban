@@ -193,3 +193,8 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
 - **R-DB-8 restated:** the ON CONFLICT WHERE peek reproduces on 17.11 and 18.6 too. Only the mandated composite-arbiter
   form with no user WHERE protects us, and claims must say so. PG19 stays blocked (19 also leaks through DO SELECT via a
   security_barrier view).
+- **D13: app-facing query surface.** aegis-sdk re-exports the F4 query types apps need (`aegis_data_ir::{Op, OpKind,
+  Pred, Value, Field}`) from a new non-frozen module `aegis_sdk::query`, so apps under the layering rule (SDK only)
+  can build ops. Safety still rests on the SDK: `host::Backend::run` receives the op only after the SDK has checked
+  `op.kind == K` against the grant and overwritten `op.tenant`. No F7 re-freeze, because surface.rs is unchanged.
+  P4-host-001 owns the module (add `sdk/aegis-sdk/src/query.rs` and its `mod`/`pub use` line in lib.rs to its scope).
