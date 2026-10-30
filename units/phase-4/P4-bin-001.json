@@ -30,12 +30,15 @@
  },
  "write_scope": [
   "crates/aegis-bin/src/**",
-  "crates/aegis-bin/Cargo.toml (features only)",
-  "apps/notes/**"
+  "crates/aegis-bin/Cargo.toml",
+  "crates/aegis-bin/tests/**",
+  "apps/notes/**",
+  "oracles/native-e2e/default-subject",
+  "gates/phase-4.toml (hygiene line only: apps/* clippy ban list)"
  ],
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
  "status": "todo",
- "notes": " From P4-oracle-trybuild-001: apply oracles/sdk-trybuild/clippy.toml's ban list (mem::forget etc.) to apps/* in the hygiene gate, since M3/M12/N9 are only caught by it."
+ "notes": " From P4-oracle-trybuild-001: apply oracles/sdk-trybuild/clippy.toml's ban list (mem::forget etc.) to apps/* in the hygiene gate, since M3/M12/N9 are only caught by it. Integrator scope update 2026-10-30: aegis-bin/Cargo.toml path edges to adapters/config/state allowed (D15; no new third-party crates without asking); default-subject for native-e2e once green; hygiene gate applies oracles/sdk-trybuild/clippy.toml ban list to apps/*."
 }
