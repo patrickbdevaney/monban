@@ -381,7 +381,10 @@ def main():
 
 
 def self_test(a):
-    plan = [(m, c, 10) for m, c in MUTATIONS.items()]
+    # dedupe-unstable shows only on a redelivery, which needs a SIGKILL to land between an EFF line and the subject's
+    # delivered mark: timing-dependent, so under machine load 10 seeds can pass with no redelivery at all. It gets the
+    # full PR seed budget (60); the others are caught deterministically by the scripted prelude.
+    plan = [(m, c, 60 if m == 'dedupe-unstable' else 10) for m, c in MUTATIONS.items()]
     cmds = [('reference', REF)] + ([('subject', a.subject)] if a.subject else [])
     print('state-props self-test (reference subject' + (', and --subject' if a.subject else '') + ')')
     missed, n = [], 0
@@ -404,11 +407,11 @@ def self_test(a):
             if clause in first:
                 print(f"  [caught] {label}:{mut}: {clause} red at seed {first[clause]} (<= {budget}); {ex[clause][:170]}")
             else:
-                print(f"  [MISSED] {label}:{mut}: {clause} not red within {budget} seeds (other: {sorted(first)})")
+                print(f"  [MISSED] {label}:{mut}: {clause} not red within {budget} seeds (other: {sorted(first)}; redeliveries observed {stats['redeliveries']})")
                 missed.append(f'{label}:{mut}')
     if missed:
         print(f"STATE-PROPS SELF-TEST: FAIL (missed: {', '.join(missed)})"); return 1
-    print(f"STATE-PROPS SELF-TEST: PASS ({n}/{n} mutations caught within 10 seeds each: "
+    print(f"STATE-PROPS SELF-TEST: PASS ({n}/{n} mutations caught within their seed budgets (10; dedupe-unstable 60): "
           f"{', '.join(MUTATIONS)}{'; subject-advertised ones too' if a.subject else ''})")
     return 0
 
