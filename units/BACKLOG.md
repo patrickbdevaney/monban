@@ -163,3 +163,4 @@ run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 cr
 - xtask rule: only `subjects/crash-subject` may call `aegis_state::Store::open_with` (the mutation seam is `#[doc(hidden)]` but unenforced).
 - P4-state-001's remote build used `--cfg rustix_use_libc`; confirm whether the GO crash-harness gate needs it and record why.
 - P4-pg-001: run a mutated-pins control (raise the pg17 floor in a scratch copy of engine-pins.toml, rebuild, expect live 17.11 refused) to prove the floors are read from the pins file at build time; add a fuzz target for the PG message parser; add a connect timeout for Unix sockets; SASLprep (non-ASCII SCRAM passwords are refused today).
+- aegis-state: completed idempotency keys never expire (unbounded growth); add a retention window with an F8 limit before production. Consider making `Lease` abort on Drop instead of relying on the host to call abort.

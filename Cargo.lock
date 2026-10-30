@@ -1800,6 +1800,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "state-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-state",
+]
+
+[[package]]
 name = "string_cache"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
