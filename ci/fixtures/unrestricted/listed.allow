@@ -1,0 +1,2 @@
+# Fixture ledger for ci/unrestricted.py --self-test: <config path> <json pointer into its effective form> <reason>
+ci/fixtures/unrestricted/src-listed.json /vhosts/0/routes/0/data fixture: operator migration route, admin vhost only, authz policy ops

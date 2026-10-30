@@ -16,3 +16,11 @@ error-code = 1..255                      ; uniform codes; no existence oracle (W
 op         = [tenant: uint .gt 0, collection: tstr, kind: 0..4, filter: pred, writes: [* [uint, value]], returning: [* uint]]
 pred       = [0] / [1] / [2, uint, value] / [3, uint, [* value]] / [4, uint, value, value] / [5, uint, tstr]
            / [6, pred, pred] / [7, pred, pred] / [8, pred]    ; tt ff eq isIn range pfx and or not (Lowering.lean)
+; Shapes above unchanged by the P4-spec-001 re-freeze (F4 Op/Pred layout kept). Normative notes added with it:
+; - kind code i is OpKind::ALL[i] (select insert update delete upsert) and owns bit 1<<i of an F4 OpMask.
+; - tenant is the raw u64; a module renders it only as F4 tenant_text (16 lower-case hex digits) in SQL text
+;   columns, or as the F4 kv_key_prefix t:{<16 hex>}: in Redis/Valkey keys (decision D4). No other encoding.
+; - the host runs F4 authorize (CapSet) and check_schema before sending a request; a module never sees an op
+;   its route was not granted. Emitting an F4 denylist item to the engine breaks the extension contract
+;   (SPEC_INVARIANTS H); the host does not see an out-of-process module's engine traffic, so this is a contract
+;   term, not a host check.

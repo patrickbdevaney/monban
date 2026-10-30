@@ -6,6 +6,11 @@
 //!
 //! Policy semantics are three-valued (`eval3`/`refQ3` in spec/AegisIR/ThreeValued.lean, adopted from spike q4-004):
 //! on an exact backend the rendered SQL returns exactly the permitted rows; `Not` is accepted only by exact adapters.
+//!
+//! Host order per op: [`authorize`] (route `CapSet`, INV-NONEMPTY) → [`check_schema`] against the introspected
+//! schema → budget pre-debit (NC4) → [`Adapter::render`] (or [`kv_plan`] on Redis/Valkey) → execute. Tenant values
+//! reach engines only as [`tenant_text`] / [`kv_key_prefix`] (decision D4). The allowlist lock is [`lock_body`] plus a
+//! `sha256` trailer; [`denylist`] is the per-family deny data; [`EnginePin`] gates server versions at connect.
 #![forbid(unsafe_code)]
 #![no_std]
 

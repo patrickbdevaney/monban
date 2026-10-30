@@ -78,6 +78,9 @@
           "description": "opaque: forwarded byte-exact, never split by the core; typed: per-route declared parameters with strict per-parameter rules (duplicates, encodings rejected)"
         }
       }
+    },
+    "data": {
+      "$ref": "#/$defs/data"
     }
   },
   "$defs": {
@@ -200,6 +203,160 @@
         "authz": {
           "type": "string",
           "description": "Cedar policy set name; absent means the route is denied (INV-NONEMPTY)"
+        },
+        "data": {
+          "description": "Data endowment of the route (F4 CapSet). Absent: the route holds no data capability and cannot reach any backend (never unrestricted). A list: CapSet::Caps, non-empty (an empty list is invalid, not 'all'). The literal \"unrestricted\": CapSet::Unrestricted, explicit and CI-gated (ci/unrestricted.py ledger); it lifts the capability check only (tenant conjunct, schema gate, budgets and allowlist lock still apply).",
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 256,
+              "items": {
+                "$ref": "#/$defs/data_cap"
+              }
+            },
+            {
+              "const": "unrestricted"
+            }
+          ]
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backends"
+      ],
+      "description": "Data plane (Phase 4). Backend ids are unique; every routes[].data[].backend names a declared backend (checked at load, error otherwise).",
+      "properties": {
+        "backends": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/backend"
+          }
+        }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "engine",
+        "dsn_ref",
+        "pin"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "engine": {
+          "enum": [
+            "sqlite",
+            "postgres",
+            "redis",
+            "valkey"
+          ],
+          "description": "F4 EngineFamily name"
+        },
+        "dsn_ref": {
+          "type": "string",
+          "pattern": "^(env:[A-Z_][A-Z0-9_]{0,63}|cred:[A-Za-z0-9_.-]{1,64}|path:/[A-Za-z0-9._/-]{1,255})$",
+          "description": "Where the connection target comes from; never an inline DSN or secret. env:NAME / cred:NAME (systemd credential) hold a DSN for postgres/redis/valkey; path:/abs is the SQLite database file and is valid only with engine sqlite."
+        },
+        "pin": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]{0,15}$",
+          "description": "Entry in supply-chain/engine-pins.toml (F4 EnginePin) whose family must equal engine. Config selects a pin; it cannot lower a floor or unblock a major. Connect refuses a server version the pin does not admit."
+        },
+        "max_conns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "default": 16,
+          "description": "Pool size cap for network engines; open-handle cap for sqlite"
+        },
+        "op_budget_ms": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 60000,
+          "default": 5000,
+          "description": "Per-op budget; PG statement_timeout and NC3 T_recover"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "engine": {
+                "const": "sqlite"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dsn_ref": {
+                "pattern": "^path:"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "dsn_ref": {
+                "pattern": "^(env|cred):"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "data_cap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "collection",
+        "ops",
+        "columns"
+      ],
+      "description": "One F4 DataCap. Column names are resolved against the introspected schema at boot; an unknown name fails the load.",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "collection": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+        },
+        "ops": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "select",
+              "insert",
+              "update",
+              "delete",
+              "upsert"
+            ]
+          }
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_][a-z0-9_]{0,62}$"
+          }
         }
       }
     },

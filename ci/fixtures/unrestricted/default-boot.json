@@ -1,0 +1,1 @@
+{"v":1,"listeners":[{"name":"web","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}],"vhosts":[{"host":"localhost","routes":[{"id":1,"path":"/","to":{"upstream":"127.0.0.1:8080"}}]}]}

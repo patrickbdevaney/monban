@@ -1,0 +1,10 @@
+# Unrestricted ledger (INV-NONEMPTY: `Unrestricted` is explicit and CI-gated). Checked by ci/unrestricted.py.
+#
+# One line per `unrestricted` occurrence in the EFFECTIVE form (`aegis check-config <path> --print-effective`) of an
+# in-tree config:
+#   <config path relative to the repo root> <RFC 6901 JSON pointer into the effective form> <reason>
+# The reason is free text (at least 20 characters, no TODO/TBD/FIXME): who needs everything, and why a capability
+# list will not do. Entries that no longer match an occurrence fail the check (stale). The built-in default boot
+# config (ci/fixtures/unrestricted/default-boot.json) can never be listed.
+#
+# No entries: no in-tree config grants `unrestricted`.
