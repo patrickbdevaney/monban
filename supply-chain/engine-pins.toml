@@ -1,0 +1,149 @@
+# Live database engine pins (ENGINE_PIN) for Phase 4. Owner: P4-engines-001. Consumers: ci/engines.sh (starts and
+# version-checks the containers), oracles/* --engine-pin (put the version in the PASS line), aegis-adapter-pg build.rs
+# (compiles the PG floors; no hand-copied constant), oracles/pg-version-gate (refusal matrix).
+# Resolved 2026-10-30 by reading the advisories cited per entry. A bump is a spec-change PR: new digest + image_id +
+# bytes + version, re-run `ci/engines.sh self-test && ci/engines.sh with <all> -- ci/engines.sh versions`, and re-run every
+# ">= 100k cases per ENGINE_PIN" oracle (SPEC §E).
+#
+# Semantics (enforced by ci/engines.sh, which must stay in sync with this comment):
+#   image@digest      the only reference ever run; tags are informational. A missing/short/non-sha256 digest is refused.
+#   image_id          local config digest; the inspected image must have exactly this Id and list image@digest.
+#   bytes             recorded `docker image inspect .Size`; any image whose live size > max_image_bytes is refused.
+#   version           exact server-reported version (PG: server_version leading token; Valkey: valkey_version;
+#                     Redis: redis_version). The running engine must report exactly this, else teardown + refuse.
+#   policy            "allow": version must satisfy the floor rule below.
+#                     "blocked": engines.sh still starts it (oracles need a live refusal target) but `versions` labels
+#                     it BLOCKED and the adapter must refuse every version of that major (pg19-blocked gate).
+#   floor (postgres)  numeric (major, minor) compare, same major only; pre-releases (rc/beta) never satisfy a floor.
+#   fixed_in (kv)     per-branch first fixed release. A version is accepted only if its major.minor branch is listed
+#                     and version >= that entry. Unlisted branches are refused: newer branches are NOT assumed fixed
+#                     (Redis 8.8.x shipped after the fix and is still unfixed, see engines.redis).
+
+schema = 1
+max_image_bytes = 500_000_000   # CLAUDE.md "No Docker image > 500 MB" (decimal MB, as docker reports Size)
+
+# No container: the adapter and oracles link it (rusqlite =0.40.2 bundled -> libsqlite3-sys 0.38.2 -> SQLite 3.53.2).
+[sqlite]
+version = "3.53.2"
+floor = "3.51.3"
+advisory = "SQLite WAL-reset corruption bug 3.7.0 .. 3.51.2, fixed 3.51.3 (2026-03-13); backports 3.44.6, 3.50.7"
+sources = [
+  "research/state/raw/round-001/09-state-durability-and-db-gate-failure-modes.progress.md (WAL-reset bug range)",
+  "research/ARCHITECTURE.md R-STATE-4 (SQLite >= 3.51.3)",
+  "oracles/crash-harness/rust/refstore/Cargo.toml (rusqlite =0.40.2 bundles 3.53.2)",
+]
+
+# ---------------------------------------------------------------- PostgreSQL ----------------------------------------
+# Floors: CVE-2026-14666 "row security caching disregards role modifications" (CVSS 4.2). Affected: all versions
+# before 18.6, 17.11, 16.15, 15.19, 14.24; fixed 2026-08-13. The adapter must also recycle pooled connections after a
+# minor upgrade or role DDL (R-DB-1). No newer PG minor existed on 2026-10-30 (next scheduled 2026-11-12).
+[engines.pg17]
+kind = "postgres"
+image = "postgres"
+tag = "17-alpine"
+digest = "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b"
+image_id = "sha256:ab20e934b27ba3ff927c1b4c9ff8cf6c32f315f743efe68dd3441182a87fb085"
+bytes = 297_186_005
+version = "17.11"
+policy = "allow"
+floor = "17.11"
+port = 5432
+tmpfs = "/var/lib/postgresql/data"
+advisory = "CVE-2026-14666"
+sources = [
+  "https://www.postgresql.org/support/security/CVE-2026-14666/",
+  "https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/",
+]
+
+[engines.pg18]
+kind = "postgres"
+image = "postgres"
+tag = "18-alpine"
+digest = "sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5"
+image_id = "sha256:57b23a0326ee442e83b3d3fa027c5a148be0a392d7c91d1ca4e1e70131ee859a"
+bytes = 303_736_028
+version = "18.6"
+policy = "allow"
+floor = "18.6"
+port = 5432
+tmpfs = "/var/lib/postgresql"
+advisory = "CVE-2026-14666"
+sources = [
+  "https://www.postgresql.org/support/security/CVE-2026-14666/",
+  "https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/",
+]
+
+# PG19 blocked: ON CONFLICT ... WHERE evaluated before the RLS check (R-DB-8, wpo-pg-onconflict-where-peek A 0.86).
+# Lifting it is a spec change naming the fixed 19.x minor plus a passing lowering-write RLS ON CONFLICT family on it.
+[engines.pg19rc1]
+kind = "postgres"
+image = "postgres"
+tag = "19rc1"
+digest = "sha256:de2cbeff2b8177e65bd64d077b46c90a1898aa8aea974a9e35a8cf60b5e90581"
+image_id = "sha256:70a5d673564d822eef31ca15298d7a5a697aa3316d27c339c59bbc8199e00c42"
+bytes = 461_286_432
+version = "19rc1"
+policy = "blocked"
+blocked_reason = "R-DB-8: ON CONFLICT WHERE evaluated before RLS; every 19.x refused until a named fixed minor"
+port = 5432
+tmpfs = "/var/lib/postgresql"
+sources = ["research/ARCHITECTURE.md R-DB-8", "units/phase-4/PLAN.md 'Infeasible or blocked as written'"]
+
+# ---------------------------------------------------------------- Valkey / Redis ------------------------------------
+# CVE-2025-67733: RESP protocol injection via Lua error replies (CR/LF / NUL in error_reply or error()), CVSS 8.5,
+# GHSA-p876-p7q5-hv2m published 2026-02-23. The core also never shares a backend connection across tenants (R-DB-5).
+#
+# Valkey: GHSA/OSV list patched 9.0.2, 8.1.6, 8.0.7, 7.2.12. But the 9.0.2 release notes (2026-02-03, before the
+# advisory) do not list the CVE; 9.0.3 (2026-02-24) does. Conservative floor for 9.0 is therefore 9.0.3. The unstable
+# fix (PR #3249, merge 0d713a4e, 2026-02-23) is an ancestor of tags 9.1.0-rc1, 9.1.0 and 9.1.2 (GitHub compare:
+# "behind"), so 9.1 is fixed from 9.1.0.
+[engines.valkey]
+kind = "valkey"
+image = "valkey/valkey"
+tag = "alpine"
+digest = "sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11"
+image_id = "sha256:40ab224f823ae96d9d05adfbb31d7068cbf96708be5d8b2691621b703a02de3d"
+bytes = 45_158_671
+version = "9.1.2"   # 9.1.3 (2026-10-26) exists; inside the 7-day cooldown on 2026-10-30, bump after 2026-11-02
+policy = "allow"
+fixed_in = ["7.2.12", "8.0.7", "8.1.6", "9.0.3", "9.1.0"]
+port = 6379
+tmpfs = "/data"
+advisory = "CVE-2025-67733"
+sources = [
+  "https://github.com/valkey-io/valkey/security/advisories/GHSA-p876-p7q5-hv2m",
+  "https://osv.dev/vulnerability/CVE-2025-67733",
+  "https://github.com/valkey-io/valkey/releases/tag/9.0.3 (lists CVE-2025-67733; 9.0.2 notes do not)",
+  "https://github.com/valkey-io/valkey/releases/tag/8.1.6",
+  "https://github.com/valkey-io/valkey/releases/tag/8.0.7",
+  "https://github.com/valkey-io/valkey/releases/tag/7.2.12",
+  "https://github.com/valkey-io/valkey/pull/3249 (unstable fix, ancestor of 9.1.0)",
+  "https://security-tracker.debian.org/tracker/CVE-2025-67733",
+]
+
+# Redis: no Redis-side GHSA/CVE text; Debian DSA-6279-1 (2026-05-17) assigns CVE-2025-67733 to the redis package
+# ("CR/LF byte sequences in an error reply produced via redis.error_reply() or error()"). Upstream fix "Strip CRLF from
+# error and simple string replies" (#826) shipped 2026-02-23 in 8.6.1, 8.4.2, 8.2.5, 8.0.6, 7.4.8, 7.2.13 (release
+# notes: "injecting \r\n sequences into a Redis error reply"). Unstable only got it on 2026-07-20 (#15496, e1cc3dc2),
+# first in 8.10-rc2: tags 8.8.0..8.8.4 and 8.10-rc1 lack addReplyErrorSdsExSafe and still call addReplyErrorSdsEx on the
+# Lua error path (checked in src/networking.c and src/script_lua.c at those tags). So 8.8 is NOT listed: refused.
+[engines.redis]
+kind = "redis"
+image = "redis"
+tag = "alpine"
+digest = "sha256:0bf6577d7774e592b29d093e3ac9390eb91e13d72c21e506afce736de5e0eeb0"
+image_id = "sha256:6cfed4c686145bcd5807ef3ac1d2bf3384503cb3da30b0d308b4f25eb50dc373"
+bytes = 118_845_025
+version = "8.10.2"  # 8.10.3 (2026-10-26, cluster-bus PUBLISH >4GB fix; we run standalone) bump after cooldown
+policy = "allow"
+fixed_in = ["7.2.13", "7.4.8", "8.0.6", "8.2.5", "8.4.2", "8.6.1", "8.10.0"]
+port = 6379
+tmpfs = "/data"
+advisory = "CVE-2025-67733"
+sources = [
+  "https://lists.debian.org/debian-security-announce/2026/msg00190.html (DSA-6279-1)",
+  "https://security-tracker.debian.org/tracker/CVE-2025-67733",
+  "https://github.com/redis/redis/releases/tag/8.6.1 (and 8.4.2, 8.2.5, 8.0.6, 7.4.8, 7.2.13: same security line)",
+  "https://github.com/redis/redis/commit/61e49e1998de (8.6 backport of #826)",
+  "https://github.com/redis/redis/pull/15496 (unstable, first in 8.10-rc2)",
+]

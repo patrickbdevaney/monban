@@ -36,6 +36,6 @@
  "notes": "Additive F4 changes only (keep Op/Pred/Schema layout so F10 stays byte-compatible): (1) CapSet = Caps(nonempty Vec<DataCap{adapter, collection, ops: OpKind bitmask, columns}>) | Unrestricted, with no Default and no empty constructor (INV-NONEMPTY by type); authorize(&CapSet, &Op) -> Result<(), Denied>; (2) allowlist lock format (canonical line format: version header, sorted entries, LF, no timestamps, sha256 trailer) and the per-family denylist as data; (3) KV mapping rule for OpKind on key-value engines (Select=GET/SCAN, Insert/Upsert=SET, Delete=DEL; Pfx on the key field = SCAN MATCH with glob escaping); (4) tenant value rule: TenantId -> engine value (proposal: decimal ASCII text in a binary-collated column; Redis key t:{hex(decimal)}:), stated in doc comments; (5) EnginePin {family, floor per major, blocked majors}. F8: optional `data` block {backends:[{id, engine, dsn_ref, pin}], routes[].data:[cap...] | \"unrestricted\"}; additionalProperties false, every limit bounded. Decisions D1-D4 in PLAN.md must be ratified first. Decisions D1, D4, D7 in PLAN.md 'Decisions' are binding; re-freeze interfaces and spec statements in the same commit.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: F4 additive (CapSet/OpMask/kv_plan/EnginePin/denylist/lock format), F8 data block, F1 C8 clarification (D7); tenant = 16-hex; lock sha256 trailer left to lock.rs"
 }

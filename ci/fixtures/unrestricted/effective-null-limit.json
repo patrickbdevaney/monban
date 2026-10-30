@@ -1,0 +1,1 @@
+{"limits":{"idle_timeout_ms":null,"max_body_bytes":1048576,"max_concurrent_streams":100},"listeners":[{"bind":"127.0.0.1:8443","name":"web","profile":"P-PUBLIC-WEB"}],"v":1,"vhosts":[{"host":"localhost","routes":[{"id":1,"path":"/","to":{"upstream":"127.0.0.1:8080"}}]}]}
