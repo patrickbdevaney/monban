@@ -11,7 +11,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 
 use aegis_data_ir::CapSet;
-use aegis_types::{Principal, RouteId};
+use aegis_data_ir::tenant_text;
+use aegis_types::{Principal, RouteId, Subject};
 
 /// The five single-kind op codes (`aegis_sdk::op_code`), as a mask.
 pub const ALL_OPS: u8 = 0b1_1111;
@@ -26,6 +27,20 @@ pub fn endowment_ops(caps: Option<&CapSet>) -> u8 {
         Some(CapSet::Unrestricted) => ALL_OPS,
         Some(CapSet::Caps(c)) => c.as_slice().iter().fold(0u8, |m, d| m | d.ops().bits()) & ALL_OPS,
     }
+}
+
+/// Canonical identity bytes of a principal (pool keys, NC4 charge accounts): the 16-hex tenant (fixed width), then
+/// `0` for `Public` or `1` followed by the authenticated subject bytes. Injective over principals.
+pub fn principal_bytes(p: &Principal) -> Vec<u8> {
+    let mut b = tenant_text(p.tenant()).into_bytes();
+    match p.subject() {
+        Subject::Public => b.push(0),
+        Subject::Authenticated(s) => {
+            b.push(1);
+            b.extend_from_slice(s);
+        }
+    }
+    b
 }
 
 struct Inner {

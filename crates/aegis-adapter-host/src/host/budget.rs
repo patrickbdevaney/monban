@@ -128,3 +128,35 @@ impl Debit {
         used.rows <= self.limits.rows && used.bytes <= self.limits.bytes && used.ms <= self.limits.ms
     }
 }
+
+/// Where NC4 charges against a principal go (quarantine time and discards of connections that a cancelled request
+/// touched, reported by the PG pool's release path). The assembly debits its per-principal limiter here.
+pub trait ChargeSink: Send + Sync + 'static {
+    /// Debit `units` (op-budget units: milliseconds for PG sessions) from principal `who`
+    /// (`session::principal_bytes`).
+    fn charge(&self, who: &[u8], units: u64);
+}
+
+/// A simple in-memory [`ChargeSink`]: cumulative charges per principal.
+#[derive(Debug, Default)]
+pub struct PrincipalLedger {
+    charged: std::sync::Mutex<std::collections::BTreeMap<Vec<u8>, u64>>,
+}
+
+impl PrincipalLedger {
+    pub fn new() -> PrincipalLedger {
+        PrincipalLedger::default()
+    }
+    /// Total charged to `who` so far.
+    pub fn charged(&self, who: &[u8]) -> u64 {
+        self.charged.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get(who).copied().unwrap_or(0)
+    }
+}
+
+impl ChargeSink for PrincipalLedger {
+    fn charge(&self, who: &[u8], units: u64) {
+        let mut m = self.charged.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let e = m.entry(who.to_vec()).or_insert(0);
+        *e = e.saturating_add(units);
+    }
+}

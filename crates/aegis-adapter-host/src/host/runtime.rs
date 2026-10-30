@@ -9,7 +9,7 @@
 //! * **JOB-REVOKE / JOB-KEEP**: `Driven.jobs` is queued even when `Driven.result` is an error (a job exists only
 //!   after a commit); each queued job runs once through `run_job` with its session as it is *then*.
 //! * **IDLE-BUDGET / STEP-BUDGET**: per stream, in ticks (one host poll = one tick).
-//! * **POOL**: every SDK call goes through [`BlockingPool::try_run`] (X-11): rejected at once when full.
+//! * **POOL**: every SDK call goes through [`BlockingPool::reserve`] (X-11): rejected at once when full.
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -21,14 +21,16 @@ use aegis_sdk::{
     WsSession,
 };
 
-use super::pool::{BlockingPool, Rejected, Ticket};
+use super::pool::{BlockingPool, CancelToken, Rejected, Ticket};
 use super::session::{Frozen, SessionHandle, View};
 
 /// Produces the per-scope `Backend` for a session. Called on the pool thread, once per SDK scope, so a backend
 /// never crosses threads. Implementations should acquire connections lazily (at `Backend::begin`).
 pub trait Backends: Send + Sync + 'static {
     type Backend: Backend;
-    fn open(&self, session: &SessionHandle) -> Result<Self::Backend, SdkError>;
+    /// `cancel` is the scope's cancellation token (the caller dropped its ticket, or a deadline cancelled it);
+    /// backends check it at their cancellation points and release resources as cancelled (NC1/NC3).
+    fn open(&self, session: &SessionHandle, cancel: &CancelToken) -> Result<Self::Backend, SdkError>;
 }
 
 /// Self-test mutations for `oracles/sdk-host` (`host-subject sdk-host --mutate`). Production uses
@@ -270,9 +272,10 @@ impl<F: Backends> Inner<F> {
         &self,
         session: &SessionHandle,
         frozen: Frozen,
+        cancel: &CancelToken,
         f: impl FnOnce(&Request<'_, F::Backend, View<'_>>) -> Driven<T, F::Backend>,
     ) -> Outcome<T> {
-        let backend = match self.backends.open(session) {
+        let backend = match self.backends.open(session, cancel) {
             Ok(b) => b,
             Err(e) => return Outcome { result: Err(e), jobs_queued: 0 },
         };
@@ -331,9 +334,10 @@ impl<F: Backends> Host<F> {
     pub(crate) fn scope_now<T>(
         &self,
         session: &SessionHandle,
+        cancel: &CancelToken,
         f: impl FnOnce(&Request<'_, F::Backend, View<'_>>) -> Driven<T, F::Backend>,
     ) -> Outcome<T> {
-        self.inner.scope(session, Frozen::NONE, f)
+        self.inner.scope(session, Frozen::NONE, cancel, f)
     }
 
     /// `host::drive` of a request-scoped handler on the pool.
@@ -344,7 +348,11 @@ impl<F: Backends> Host<F> {
     {
         let inner = Arc::clone(&self.inner);
         let s = session.clone();
-        self.inner.pool.try_run(move || inner.scope(&s, Frozen::NONE, |req| sdk::drive(&*h, req)))
+        Ok(self
+            .inner
+            .pool
+            .reserve()?
+            .run_cancellable(move |c| inner.scope(&s, Frozen::NONE, &c, |req| sdk::drive(&*h, req))))
     }
 
     /// `host::open_body` on the pool; on success the stream carries `budget`.
@@ -356,10 +364,10 @@ impl<F: Backends> Host<F> {
     ) -> Result<Ticket<Outcome<GenStream<H::Gen>>>, Rejected> {
         let inner = Arc::clone(&self.inner);
         let s = session.clone();
-        self.inner.pool.try_run(move || {
-            let o = inner.scope(&s, Frozen::NONE, |req| sdk::open_body(&*h, req));
+        Ok(self.inner.pool.reserve()?.run_cancellable(move |c| {
+            let o = inner.scope(&s, Frozen::NONE, &c, |req| sdk::open_body(&*h, req));
             inner.gen_stream(o, s, budget)
-        })
+        }))
     }
 
     /// `host::open_sse` on the pool.
@@ -372,10 +380,10 @@ impl<F: Backends> Host<F> {
     ) -> Result<Ticket<Outcome<GenStream<H::Gen>>>, Rejected> {
         let inner = Arc::clone(&self.inner);
         let s = session.clone();
-        self.inner.pool.try_run(move || {
-            let o = inner.scope(&s, Frozen::NONE, |req| sdk::open_sse(&*h, req, last_event_id));
+        Ok(self.inner.pool.reserve()?.run_cancellable(move |c| {
+            let o = inner.scope(&s, Frozen::NONE, &c, |req| sdk::open_sse(&*h, req, last_event_id));
             inner.gen_stream(o, s, budget)
-        })
+        }))
     }
 
     /// `host::open_ws` on the pool.
@@ -387,14 +395,14 @@ impl<F: Backends> Host<F> {
     ) -> Result<Ticket<Outcome<WsStream<H::Session>>>, Rejected> {
         let inner = Arc::clone(&self.inner);
         let s = session.clone();
-        self.inner.pool.try_run(move || {
-            let o = inner.scope(&s, Frozen::NONE, |req| sdk::open_ws(&*h, req));
+        Ok(self.inner.pool.reserve()?.run_cancellable(move |c| {
+            let o = inner.scope(&s, Frozen::NONE, &c, |req| sdk::open_ws(&*h, req));
             let frozen = inner.stream_frozen(&s);
             Outcome {
                 result: o.result.map(|ws| WsStream { ws, session: s, counters: Counters::new(budget), frozen }),
                 jobs_queued: o.jobs_queued,
             }
-        })
+        }))
     }
 
     /// One `host::step` of a generator stream on the pool (a fresh context per step).
@@ -405,7 +413,7 @@ impl<F: Backends> Host<F> {
     ) -> Result<Ticket<StepOutcome<GenStream<G>, Step<G::Item>>>, StepRefused<GenStream<G>>> {
         let Ok(slot) = self.inner.pool.reserve() else { return Err(StepRefused::Rejected(st)) };
         let inner = Arc::clone(&self.inner);
-        Ok(slot.run(move || inner.step_gen(st)))
+        Ok(slot.run_cancellable(move |c| inner.step_gen(st, &c)))
     }
 
     /// One inbound WebSocket message (`host::on_ws_message`) on the pool.
@@ -417,7 +425,7 @@ impl<F: Backends> Host<F> {
     ) -> Result<Ticket<StepOutcome<WsStream<W>, WsReply>>, StepRefused<WsStream<W>>> {
         let Ok(slot) = self.inner.pool.reserve() else { return Err(StepRefused::Rejected(st)) };
         let inner = Arc::clone(&self.inner);
-        Ok(slot.run(move || inner.step_ws(st, &msg)))
+        Ok(slot.run_cancellable(move |c| inner.step_ws(st, &msg, &c)))
     }
 
     /// A WebSocket idle tick (no inbound message): no SDK call, no pool.
@@ -450,7 +458,7 @@ impl<F: Backends> Host<F> {
         let Ok(slot) = self.inner.pool.reserve() else { return Err((job, Rejected)) };
         let inner = Arc::clone(&self.inner);
         let QueuedJob { job, session, frozen } = job;
-        Ok(slot.run(move || inner.scope(&session, frozen, |req| sdk::run_job(job, req))))
+        Ok(slot.run_cancellable(move |c| inner.scope(&session, frozen, &c, |req| sdk::run_job(job, req))))
     }
 }
 
@@ -468,13 +476,17 @@ impl<F: Backends> Inner<F> {
         }
     }
 
-    fn step_gen<G: StreamGen>(&self, st: GenStream<G>) -> StepOutcome<GenStream<G>, Step<G::Item>> {
+    fn step_gen<G: StreamGen>(
+        &self,
+        st: GenStream<G>,
+        cancel: &CancelToken,
+    ) -> StepOutcome<GenStream<G>, Step<G::Item>> {
         let GenStream { generator, session, mut counters, frozen } = st;
         let mut probe = Probe { g: generator, called: false };
-        let mut o = self.scope(&session, frozen, |req| sdk::step(&mut probe, req));
+        let mut o = self.scope(&session, frozen, cancel, |req| sdk::step(&mut probe, req));
         let mut queued = o.jobs_queued;
         if self.muts.step_retry_double_mint && matches!(o.result, Ok(Step::Idle)) {
-            o = self.scope(&session, frozen, |req| sdk::step(&mut probe, req)); // MUTATION (self-test only)
+            o = self.scope(&session, frozen, cancel, |req| sdk::step(&mut probe, req)); // MUTATION (self-test only)
             queued = queued.saturating_add(o.jobs_queued);
         }
         let closed = if probe.called {
@@ -495,10 +507,15 @@ impl<F: Backends> Inner<F> {
         StepOutcome { stream, result: o.result, jobs_queued: queued, closed }
     }
 
-    fn step_ws<W: WsSession>(&self, st: WsStream<W>, msg: &WsMsg) -> StepOutcome<WsStream<W>, WsReply> {
+    fn step_ws<W: WsSession>(
+        &self,
+        st: WsStream<W>,
+        msg: &WsMsg,
+        cancel: &CancelToken,
+    ) -> StepOutcome<WsStream<W>, WsReply> {
         let WsStream { ws, session, mut counters, frozen } = st;
         let mut probe = Probe { g: ws, called: false };
-        let o = self.scope(&session, frozen, |req| sdk::on_ws_message(&mut probe, req, msg));
+        let o = self.scope(&session, frozen, cancel, |req| sdk::on_ws_message(&mut probe, req, msg));
         let closed = if probe.called {
             let (err, done) = match &o.result {
                 Err(_) => (true, false),

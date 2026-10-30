@@ -28,9 +28,10 @@ use std::sync::Arc;
 
 use aegis_data_ir::{Allowlist, CapSet, Denied, Fidelity, Op, Schema, SchemaError, authorize, check_schema};
 use aegis_sdk::SdkError;
-use aegis_types::TenantId;
+use aegis_types::{Principal, TenantId};
 
 use crate::host::budget::{Exhausted, OpLimits, Remaining, RequestBudget, Usage};
+use crate::host::pool::CancelToken;
 
 /// Why an engine refused or failed. Coarse on purpose: nothing engine-specific reaches the handler (W6).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -72,12 +73,24 @@ pub trait Renderer: Send + Sync + 'static {
     fn render(&self, op: &Op, schema: &Schema) -> Result<Self::Rendered, EngineError>;
 }
 
+/// Who a scope runs as, for executors: the principal (pool keys never mix principals, CRS C2), its tenant, and the
+/// scope's cancellation token. An executor checks the token at its cancellation points and releases its resources
+/// as cancelled when the scope was cancelled before its commit point (NC1/NC3).
+#[derive(Debug)]
+pub struct ScopeInfo<'a> {
+    pub principal: &'a Principal,
+    pub tenant: TenantId,
+    pub cancel: &'a CancelToken,
+}
+
 /// The effect half of an engine: one transaction (or connection lease) per SDK scope.
 pub trait Executor<R>: Send + Sync + 'static {
     /// Per-scope transaction state (a pooled connection inside BEGIN with the tenant bound, a buffered KV batch...).
+    /// Dropping it must release its resources (an executor implements `Drop` for that), because a scope can end
+    /// without commit or rollback reaching it.
     type Tx: Send + 'static;
     type Rows: 'static;
-    fn begin(&self, tenant: TenantId) -> Result<Self::Tx, EngineError>;
+    fn begin(&self, scope: &ScopeInfo<'_>) -> Result<Self::Tx, EngineError>;
     /// Execute one rendered op within `limits` (row cap, byte cap, statement timeout) and report what it used.
     fn execute(&self, tx: &mut Self::Tx, rendered: R, limits: OpLimits) -> Result<(Self::Rows, Usage), EngineError>;
     fn commit(&self, tx: Self::Tx) -> Result<(), EngineError>;
@@ -264,7 +277,9 @@ pub fn run<Rn: Renderer, Ex: Executor<Rn::Rendered>>(
 pub struct ScopeBackend<Rn: Renderer, Ex: Executor<Rn::Rendered>> {
     engine: Arc<Engine<Rn, Ex>>,
     caps: Option<Arc<CapSet>>,
+    principal: Principal,
     tenant: TenantId,
+    cancel: CancelToken,
     budget: RequestBudget,
     tx: RefCell<Option<Ex::Tx>>,
 }
@@ -279,8 +294,24 @@ impl<Rn: Renderer, Ex: Executor<Rn::Rendered>> fmt::Debug for ScopeBackend<Rn, E
 }
 
 impl<Rn: Renderer, Ex: Executor<Rn::Rendered>> ScopeBackend<Rn, Ex> {
-    pub fn new(engine: Arc<Engine<Rn, Ex>>, caps: Option<Arc<CapSet>>, tenant: TenantId, budget: Remaining) -> Self {
-        ScopeBackend { engine, caps, tenant, budget: RequestBudget::new(budget), tx: RefCell::new(None) }
+    /// Every op of the scope is bound to `principal`'s tenant.
+    pub fn new(
+        engine: Arc<Engine<Rn, Ex>>,
+        caps: Option<Arc<CapSet>>,
+        principal: Principal,
+        cancel: CancelToken,
+        budget: Remaining,
+    ) -> Self {
+        let tenant = principal.tenant();
+        ScopeBackend {
+            engine,
+            caps,
+            principal,
+            tenant,
+            cancel,
+            budget: RequestBudget::new(budget),
+            tx: RefCell::new(None),
+        }
     }
 
     pub fn remaining(&self) -> Remaining {
@@ -296,7 +327,8 @@ impl<Rn: Renderer, Ex: Executor<Rn::Rendered>> aegis_sdk::host::Backend for Scop
         if slot.is_some() {
             return Err(SdkError::Conflict);
         }
-        *slot = Some(self.engine.executor.begin(self.tenant).map_err(|e| DispatchError::Engine(e).to_sdk())?);
+        let info = ScopeInfo { principal: &self.principal, tenant: self.tenant, cancel: &self.cancel };
+        *slot = Some(self.engine.executor.begin(&info).map_err(|e| DispatchError::Engine(e).to_sdk())?);
         Ok(())
     }
 
@@ -356,7 +388,13 @@ impl<Rn: Renderer, Ex: Executor<Rn::Rendered>> EngineBackends<Rn, Ex> {
 impl<Rn: Renderer, Ex: Executor<Rn::Rendered>> crate::host::Backends for EngineBackends<Rn, Ex> {
     type Backend = ScopeBackend<Rn, Ex>;
 
-    fn open(&self, session: &crate::host::SessionHandle) -> Result<Self::Backend, SdkError> {
-        Ok(ScopeBackend::new(Arc::clone(&self.engine), session.endowment(), session.principal().tenant(), self.budget))
+    fn open(&self, session: &crate::host::SessionHandle, cancel: &CancelToken) -> Result<Self::Backend, SdkError> {
+        Ok(ScopeBackend::new(
+            Arc::clone(&self.engine),
+            session.endowment(),
+            session.principal().clone(),
+            cancel.clone(),
+            self.budget,
+        ))
     }
 }

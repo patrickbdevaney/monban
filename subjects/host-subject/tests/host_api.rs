@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use aegis_adapter_host::host::endow::{CapParts, Endowment, capset};
 use aegis_adapter_host::host::lease::{Admission, Idem};
-use aegis_adapter_host::host::{Backends, BlockingPool, Host, SessionHandle, reply};
+use aegis_adapter_host::host::{Backends, BlockingPool, CancelToken, Host, SessionHandle, reply};
 use aegis_config::{
     Backend as CfgBackend, FieldId, ResolvedData, ResolvedRoute, SchemaProvider, Unresolved, parse_config,
 };
@@ -61,7 +61,7 @@ impl aegis_sdk::host::Backend for NoopBackend {
 struct Noop;
 impl Backends for Noop {
     type Backend = NoopBackend;
-    fn open(&self, _s: &SessionHandle) -> Result<NoopBackend, SdkError> {
+    fn open(&self, _s: &SessionHandle, _c: &CancelToken) -> Result<NoopBackend, SdkError> {
         Ok(NoopBackend)
     }
 }

@@ -178,14 +178,27 @@ pub struct Slot<'p> {
 
 impl Slot<'_> {
     /// Run `f` on this slot's worker. If the worker has died the task is dropped and the ticket yields [`Lost`].
-    pub fn run<T, F>(mut self, f: F) -> Ticket<T>
+    pub fn run<T, F>(self, f: F) -> Ticket<T>
     where
         T: Send + 'static,
         F: FnOnce() -> T + Send + 'static,
     {
+        self.run_cancellable(move |_| f())
+    }
+
+    /// Like [`Slot::run`], and `f` receives the call's [`CancelToken`]: it reads cancelled once the caller dropped
+    /// the [`Ticket`] before taking the result (the request was cancelled). The task is not interrupted; it checks
+    /// the token at its own cancellation points (host-call boundaries, X-11).
+    pub fn run_cancellable<T, F>(mut self, f: F) -> Ticket<T>
+    where
+        T: Send + 'static,
+        F: FnOnce(CancelToken) -> T + Send + 'static,
+    {
         let (tx, rx) = oneshot::channel();
+        let flag = Arc::new(AtomicBool::new(false));
+        let token = CancelToken(Arc::clone(&flag));
         let task: Task = Box::new(move || {
-            let v = f();
+            let v = f(token);
             Box::new(move || {
                 let _ = tx.send(v); // the receiver may be gone (caller cancelled): the result is dropped
             })
@@ -203,7 +216,7 @@ impl Slot<'_> {
             // MUTATION (self-test only): the caller's thread.
             SlotKind::Inline => task()(),
         }
-        Ticket(rx)
+        Ticket { rx: Some(rx), cancel: flag }
     }
 }
 
@@ -256,21 +269,62 @@ impl Drop for BlockingPool {
     }
 }
 
-/// The pending result of one pool task.
+/// Cancellation of one pool call, as seen from inside the task: set when the caller dropped its [`Ticket`]
+/// without taking the result. Cheap to clone.
+#[derive(Clone, Debug, Default)]
+pub struct CancelToken(Arc<AtomicBool>);
+
+impl CancelToken {
+    /// A token that is never cancelled by a ticket (tests, internal calls); [`CancelToken::cancel`] still works.
+    pub fn new() -> CancelToken {
+        CancelToken::default()
+    }
+    pub fn is_cancelled(&self) -> bool {
+        self.0.load(Ordering::SeqCst)
+    }
+    /// Cancel explicitly (e.g. a request deadline that fired before the commit point).
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
+}
+
+/// The pending result of one pool task. Dropping it before the result was taken cancels the task's
+/// [`CancelToken`].
 #[derive(Debug)]
-pub struct Ticket<T>(oneshot::Receiver<T>);
+pub struct Ticket<T> {
+    rx: Option<oneshot::Receiver<T>>,
+    cancel: Arc<AtomicBool>,
+}
 
 impl<T> Ticket<T> {
     /// Block the calling thread until the task finished. Must not be called from inside an async runtime (use
     /// `.await` there).
-    pub fn wait(self) -> Result<T, Lost> {
-        self.0.blocking_recv().map_err(|_| Lost)
+    pub fn wait(mut self) -> Result<T, Lost> {
+        match self.rx.take() {
+            Some(rx) => rx.blocking_recv().map_err(|_| Lost),
+            None => Err(Lost),
+        }
     }
 }
 
 impl<T> Future for Ticket<T> {
     type Output = Result<T, Lost>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.0).poll(cx).map(|r| r.map_err(|_| Lost))
+        let Some(rx) = self.rx.as_mut() else { return Poll::Ready(Err(Lost)) };
+        match Pin::new(rx).poll(cx) {
+            Poll::Ready(r) => {
+                self.rx = None;
+                Poll::Ready(r.map_err(|_| Lost))
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl<T> Drop for Ticket<T> {
+    fn drop(&mut self) {
+        if self.rx.is_some() {
+            self.cancel.store(true, Ordering::SeqCst); // dropped before the result was taken: cancelled
+        }
     }
 }

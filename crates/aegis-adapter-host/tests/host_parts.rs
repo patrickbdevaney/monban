@@ -55,6 +55,31 @@ fn reserved_slot_dropped_unused_returns_the_worker() -> Result<(), String> {
     Ok(())
 }
 
+#[test]
+fn dropping_a_ticket_cancels_the_task_token() -> Result<(), String> {
+    let pool = BlockingPool::new(2).map_err(|e| e.to_string())?;
+    let (go, wait) = mpsc::channel::<()>();
+    let (started_tx, started_rx) = mpsc::channel::<bool>();
+    let (seen_tx, seen_rx) = mpsc::channel::<bool>();
+    let slot = pool.reserve().map_err(|e| e.to_string())?;
+    let t = slot.run_cancellable(move |c| {
+        let _ = started_tx.send(c.is_cancelled());
+        let _ = wait.recv();
+        let _ = seen_tx.send(c.is_cancelled());
+    });
+    let before = started_rx.recv_timeout(Duration::from_secs(5)).map_err(|e| e.to_string())?;
+    drop(t); // the caller gave up before the result: cancelled
+    let _ = go.send(());
+    let after = seen_rx.recv_timeout(Duration::from_secs(5)).map_err(|e| e.to_string())?;
+    assert!(!before && after);
+    // A ticket whose result was taken does not cancel.
+    let slot = pool.reserve().map_err(|e| e.to_string())?;
+    let t = slot.run_cancellable(|c| c);
+    let c = t.wait().map_err(|_| "lost")?;
+    assert!(!c.is_cancelled());
+    Ok(())
+}
+
 // ------------------------------------------------------------------------------------------------ M4
 
 #[test]

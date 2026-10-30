@@ -23,7 +23,7 @@ use std::sync::Arc;
 use aegis_sdk::ScopedHandler;
 use aegis_state::{Outcome, Reply, StateError};
 
-pub use pool::{BlockingPool, PoolError, Rejected, Ticket};
+pub use pool::{BlockingPool, CancelToken, PoolError, Rejected, Ticket};
 pub use reply::{HttpReply, Respond, reply};
 pub use runtime::{
     Backends, CloseReason, GenStream, Host, HostMutations, Outcome as ScopeOutcome, QueuedJob, StepOutcome,
@@ -61,8 +61,8 @@ impl<F: Backends> Host<F> {
         let slot = self.pool().reserve()?; // on Err the guard is dropped here: lease aborted
         let host = self.clone();
         let s = session.clone();
-        Ok(slot.run(move || {
-            let o = host.scope_now(&s, |req| aegis_sdk::host::drive(&*h, req));
+        Ok(slot.run_cancellable(move |c| {
+            let o = host.scope_now(&s, &c, |req| aegis_sdk::host::drive(&*h, req));
             let ok = o.result.is_ok();
             let reply = reply::reply(o.result);
             let latched = if ok {

@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use aegis_data_ir::{Fidelity, MAX_PRED_DEPTH, Op, OpKind, Pred, Schema, Value};
 use aegis_types::TenantId;
 
-use crate::dispatch::{EngineError, Executor, Renderer};
+use crate::dispatch::{EngineError, Executor, Renderer, ScopeInfo};
 use crate::host::budget::{OpLimits, Usage};
 
 /// F10 default frame cap.
@@ -182,8 +182,8 @@ pub struct OopExecutor;
 impl Executor<Vec<u8>> for OopExecutor {
     type Tx = TenantId;
     type Rows = Vec<Vec<Option<Value>>>;
-    fn begin(&self, tenant: TenantId) -> Result<TenantId, EngineError> {
-        Ok(tenant)
+    fn begin(&self, scope: &ScopeInfo<'_>) -> Result<TenantId, EngineError> {
+        Ok(scope.tenant)
     }
     fn execute(&self, _tx: &mut TenantId, _r: Vec<u8>, _l: OpLimits) -> Result<(Self::Rows, Usage), EngineError> {
         Err(EngineError::Unavailable("out-of-process module transport not wired".into()))

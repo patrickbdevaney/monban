@@ -5,7 +5,9 @@
 use std::cell::Cell;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use aegis_adapter_host::dispatch::{self, DispatchError, Engine, EngineError, Executor, Refusal, Renderer, prepare};
+use aegis_adapter_host::dispatch::{
+    self, DispatchError, Engine, EngineError, Executor, Refusal, Renderer, ScopeInfo, prepare,
+};
 use aegis_adapter_host::host::budget::{OpLimits, Remaining, RequestBudget, Usage};
 use aegis_data_ir::{
     CapSet, Caps, Collation, Column, DataCap, Fidelity, Op, OpKind, OpMask, Pred, Schema, UniqueIndex, Value,
@@ -42,7 +44,7 @@ struct Exec {
 impl Executor<String> for Exec {
     type Tx = ();
     type Rows = String;
-    fn begin(&self, _t: TenantId) -> Result<(), EngineError> {
+    fn begin(&self, _s: &ScopeInfo<'_>) -> Result<(), EngineError> {
         Ok(())
     }
     fn execute(&self, _tx: &mut (), r: String, _l: OpLimits) -> Result<(String, Usage), EngineError> {

@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use aegis_adapter_host::host::pool::PoolMutations;
 use aegis_adapter_host::host::{
-    Backends, BlockingPool, CloseReason, GenStream, Host, HostMutations, ScopeOutcome, SessionHandle, StepRefused,
-    StreamBudget, Ticket, WsStream,
+    Backends, BlockingPool, CancelToken, CloseReason, GenStream, Host, HostMutations, ScopeOutcome, SessionHandle,
+    StepRefused, StreamBudget, Ticket, WsStream,
 };
 use aegis_data_ir::{CapSet, Caps, DataCap, OpMask, Pred, tenant_text};
 use aegis_sdk::query::{Op, OpKind};
@@ -172,7 +172,7 @@ struct SubjBackends {
 
 impl Backends for SubjBackends {
     type Backend = SubjBackend;
-    fn open(&self, session: &SessionHandle) -> Result<SubjBackend, SdkError> {
+    fn open(&self, session: &SessionHandle, _cancel: &CancelToken) -> Result<SubjBackend, SdkError> {
         let fail = self
             .fail
             .lock()

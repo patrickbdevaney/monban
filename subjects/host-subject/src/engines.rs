@@ -153,7 +153,8 @@ mod tests {
     //! The full `dispatch::run` path (authorize → check_schema → pre-debit → render → execute) against a real
     //! SQLite database through `aegis_adapter_sqlite::SqliteDb`, with a minimal executor.
     use super::*;
-    use aegis_adapter_host::dispatch::{self, Engine, Executor, Refusal};
+    use aegis_adapter_host::dispatch::{self, Engine, Executor, Refusal, ScopeInfo};
+    use aegis_adapter_host::host::CancelToken;
     use aegis_adapter_host::host::budget::{OpLimits, Remaining, RequestBudget, Usage};
     use aegis_adapter_sqlite::{OpenMode, SqliteDb};
     use aegis_data_ir::{CapSet, Caps, Collation, Column, DataCap, OpKind, OpMask, Pred, UniqueIndex, Value};
@@ -165,7 +166,7 @@ mod tests {
     impl Executor<aegis_adapter_sqlite::Rendered> for SqliteExec {
         type Tx = SqliteDb;
         type Rows = usize;
-        fn begin(&self, _t: TenantId) -> Result<SqliteDb, EngineError> {
+        fn begin(&self, _s: &ScopeInfo<'_>) -> Result<SqliteDb, EngineError> {
             let db =
                 SqliteDb::open(&self.0, OpenMode::ReadWrite).map_err(|e| EngineError::Unavailable(format!("{e:?}")))?;
             db.connection().execute_batch("BEGIN IMMEDIATE").map_err(|e| EngineError::Unavailable(e.to_string()))?;
@@ -235,6 +236,9 @@ mod tests {
         let table = db.check_schema(&schema(), &|_| None).map_err(|e| format!("{e:?}"))?;
         let engine = Engine { renderer: SqliteRenderer::new("main", vec![table]), executor: SqliteExec(path.clone()) };
         let t = TenantId::new(7).map_err(|_| "tenant")?;
+        let principal = crate::token::principal(t)?;
+        let cancel = CancelToken::new();
+        let info = ScopeInfo { principal: &principal, tenant: t, cancel: &cancel };
         let all = OpMask::from_bits(0x1f).map_err(|e| format!("{e:?}"))?;
         let cap = DataCap::new("main", "notes", all, vec![1, 2]).map_err(|e| format!("{e:?}"))?;
         let caps = CapSet::Caps(Caps::new(vec![cap]).map_err(|e| format!("{e:?}"))?);
@@ -242,12 +246,12 @@ mod tests {
 
         let ins =
             op(OpKind::Insert, t, Pred::Tt, vec![(1, Value::Str("a".into())), (2, Value::Str("x".into()))], vec![]);
-        let mut tx = engine.executor.begin(t).map_err(|e| e.to_string())?;
+        let mut tx = engine.executor.begin(&info).map_err(|e| e.to_string())?;
         dispatch::run(Some(&caps), &engine, &ins, &budget, &mut tx).map_err(|e| format!("{e:?}"))?;
         engine.executor.commit(tx).map_err(|e| e.to_string())?;
 
         let sel = op(OpKind::Select, t, Pred::Eq(1, Value::Str("a".into())), vec![], vec![2]);
-        let mut tx = engine.executor.begin(t).map_err(|e| e.to_string())?;
+        let mut tx = engine.executor.begin(&info).map_err(|e| e.to_string())?;
         let n = dispatch::run(Some(&caps), &engine, &sel, &budget, &mut tx).map_err(|e| format!("{e:?}"))?;
         assert_eq!(n, 1);
         // Another tenant sees nothing (tenant conjunct from the bound op).

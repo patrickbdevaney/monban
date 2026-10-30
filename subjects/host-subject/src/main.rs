@@ -13,6 +13,10 @@
 mod engines;
 mod json;
 mod nonempty;
+// The P4-pg-003 pool behind the dispatch executor seam: the pairing P4-bin-001 lifts into the assembly. No oracle
+// mode drives a live PG, so the binary itself does not call it; its unit tests do.
+#[cfg_attr(not(test), allow(dead_code))]
+mod pg;
 mod sdkhost;
 mod token;
 
