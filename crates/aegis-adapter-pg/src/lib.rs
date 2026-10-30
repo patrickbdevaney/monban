@@ -2,17 +2,29 @@
 //!
 //! P4-pg-001: the owned PG v3 wire client ([`wire`], DEVIATIONS X-10), SCRAM-SHA-256 on aws-lc-rs ([`auth`]), and
 //! the version gate compiled from `supply-chain/engine-pins.toml` ([`version`]; R-DB-1 floors, R-DB-8 PG19 block).
-//! Lowering/schema (P4-pg-002) and the pool with the NC3 checkin predicate (P4-pg-003) build on these.
+//! P4-pg-002: the renderer of the engine-neutral lowering tree ([`lower`]: `render`, `render_filter`, `render_op`,
+//! `rls_policy`, `rls_bind`) and live schema introspection + gate ([`schema`]: `check_live_schema`, R-DB-7).
+//! The pool with the NC3 checkin predicate (P4-pg-003) builds on these.
 //! Spec: `spec/SPEC_INVARIANTS.md`.
 #![forbid(unsafe_code)]
 
 pub mod auth;
+pub mod lower;
+pub mod schema;
 pub mod version;
 pub mod wire;
 
 use std::fmt;
 use std::time::Duration;
 
+/// The IR and types crates this adapter's API speaks (re-exported for subjects and hosts).
+pub use aegis_data_ir as data_ir;
+pub use aegis_types::TenantId;
+pub use lower::{
+    Param, PgClass, PgColumn, PgForeignKey, PgTable, RenderError, Rendered, render, render_filter, render_op, rls_bind,
+    rls_policy,
+};
+pub use schema::{LiveSchemaError, LiveTable, check_live_schema};
 pub use version::{AdmittedVersion, VersionRefusal, admit_server_version, recheck};
 pub use wire::{ConnectConfig, Connection};
 
