@@ -15,6 +15,13 @@ aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
 # PDP-1 client transport (pdp_uds): the pure codec/client seam it implements.
 aegis-authz = { workspace = true }
+# Pre-wired by P4-spec-002 (D2(b)): the SDK host driving loop. adapter-host implements aegis_sdk::host::Backend and
+# is the only crate allowed to enable feature `host` (xtask OWNERS). aegis-state: idempotency/outbox/latch
+# (INTRA_LAYER edge). tokio: the bounded blocking pool for sync F7 handlers (DEVIATIONS X-11); aegis-bin already
+# links tokio with a superset of these features.
+aegis-sdk = { workspace = true, features = ["host"] }
+aegis-state = { workspace = true }
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
 # Root pin ("std", "net"): SOCK_SEQPACKET socket/bind/listen/accept/connect, recv(MSG_TRUNC), SO_TYPE; all safe
 # APIs. "time" only because rustix's linux_raw sockopt code does not compile without it (as in aegis-ops). Already
 # linked into aegis-bin through aegis-ops with a superset of these features.

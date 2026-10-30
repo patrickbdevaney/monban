@@ -11,8 +11,8 @@
  "gates": [],
  "spec_refs": [
   "IMPLEMENTATION_PLAN Phase 4 'schema gate refuses every counterexample schema'",
-  "SPEC §E: tenant/key columns binary+deterministic collation (refines_necessary); W3 sole full-length (t,key) unique index, NO-PAD; W5 closure over triggers / data-modifying CTEs / FK actions",
-  "ARCHITECTURE §3.8 R-DB-7 live check_schema() (binary collations, no citext/NOCASE, partition-key opclass = column's)",
+  "SPEC \u00a7E: tenant/key columns binary+deterministic collation (refines_necessary); W3 sole full-length (t,key) unique index, NO-PAD; W5 closure over triggers / data-modifying CTEs / FK actions",
+  "ARCHITECTURE \u00a73.8 R-DB-7 live check_schema() (binary collations, no citext/NOCASE, partition-key opclass = column's)",
   "spikes/q4-005 counterexamples (PadSpace utf8mb4_bin, second UNIQUE(id), prefix index, ICU level2)"
  ],
  "oracles": [
@@ -28,6 +28,6 @@
  "notes": "Modes: --static (subject receives a Schema JSON, runs check_schema); --engine sqlite|pg (oracle executes DDL on a throwaway DB, subject must introspect the live catalog and refuse). Counterexamples (each with expected error): nullable tenant; tenant/key NOCASE, *_ci, citext, nondeterministic ICU, PG non-C collation, PadSpace; PK without tenant; second unique index; prefix unique index; expression index as arbiter; partition key opclass != column's; trigger on governed table; FK with ON DELETE/UPDATE action into a governed table; generated column over tenant; PG table without FORCE RLS or with a policy lacking WITH CHECK; SQLite WITHOUT ROWID + NOCASE PK; view as collection. Golden schemas: the five lowering-oracle schemas + composite (tenant,id) PK with C/BINARY. Protocol: JSON lines like lowering-read ({op:'schema', ...} -> {ok:true} | {refuse:'<SchemaError>'}).",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: static 20 / sqlite 29 / pg17+pg18 37 cases; self-test 22/22 (+18/18 pg) incl refuse-all"
 }

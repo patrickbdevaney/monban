@@ -290,6 +290,10 @@ criteria = "safe-to-deploy"
 version = "0.2.191"
 criteria = "safe-to-deploy"
 
+[[exemptions.libsqlite3-sys]]
+version = "0.38.2"
+criteria = "safe-to-deploy"
+
 [[exemptions.linked_hash_set]]
 version = "0.1.6"
 criteria = "safe-to-deploy"
@@ -428,6 +432,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.ring]]
 version = "0.17.11"
+criteria = "safe-to-deploy"
+
+[[exemptions.rusqlite]]
+version = "0.40.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.rustc-literal-escaper]]
