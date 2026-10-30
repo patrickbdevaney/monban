@@ -42,6 +42,6 @@
  "notes": "no_std stays; lower.rs is engine-neutral (SqlExpr AST); dialect text belongs to adapters.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "todo"
+ "passes": true,
+ "status": "pass: lower.rs lowering tree (depth cap 64), admit/Allowlist/denied_in_sql; schema-gate static 20; allowlist-lock byte-identical (3 locks) + self-test 29/29; xtask has an independent SHA-256/lock impl cross-checked by Python fixtures; new allowlist.<adapter>.decl format"
 }
