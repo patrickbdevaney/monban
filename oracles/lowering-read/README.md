@@ -256,7 +256,7 @@ column type.
 In-repo inputs (2026-10-25, after q4-004): `spec/AegisIR/ThreeValued.lean` 278740ea86d7cdfc7a4e74acc72c2ba4af4c19a06a097ec716ee7396153d0135,
 `spec/AegisIR/Lowering.lean` 007e2f74bda62896066c006a90cfa7f0438f05f6fb675616a925ae4140190f3e, `spec/SPEC_INVARIANTS.md` 1fd940943a4c1e67921cca70b5a556231598b6f0222e9c5821baffd0e02c82c1,
 `spikes/q4-004/verdict.json` (decision and `oracle_follow_up`).
-`lowir.py` is byte-identical to `oracles/lowering-write/lowir.py` (sha256 8a49928907e2d82320b7a0a3ba02db712ca580a6412d74d81b4eac62a5a15a85).
+`lowir.py` is byte-identical to `oracles/lowering-write/lowir.py` (sha256 3eb7d79037e2dbb57b276da12d529f5b00fbe8778a3afe2d609891223151b14f).
 
 ## Re-run in repo (2026-10-25, after switching the gate to refQ3; Python 3.12, SQLite 3.45.3)
 
@@ -276,6 +276,15 @@ These close BACKLOG "re-run PG and Redis after the refQ3 switch".
 * `ci/heavy.sh run --big --engine-pin` (SQLite 3.53.2 via sqlite-exec): `LOWERING-READ: PASS (cases=643971 generated_unique[sqlite=100000 redis_model=100000] (sqlite x5 schemas=500000 ...) leak=0 widen=0 miss=0 gap_vs_2vl(info)=29982 errors=0 unrefused=0 engine_pin=[sqlite 3.53.2])`, 87 s.
 * `--big --skip-sqlite --engine-pin --engine pg --dsn @pg17 --engine pg --dsn @pg18`: `LOWERING-READ: PASS (cases=801056 generated_unique[pg=100000] (... pg x4 schemas x2 engines) leak=0 widen=0 miss=0 gap_vs_2vl(info)=86776 errors=0 unrefused=0 engine_pin=[pg17=17.11, pg18=18.6])`, 143 s.
 * `--big --skip-sqlite --engine-pin --engine redis --url @valkey --engine redis --url @redis`: `LOWERING-READ: PASS (cases=200114 generated_unique[redis=100000] ... leak=0 widen=0 miss=0 errors=0 unrefused=0 engine_pin=[valkey=9.1.2, redis=8.10.2])`, 37 s (100k de-duplicated cases per engine; the counter shows the minimum over engines).
+
+## Re-run in repo (2026-10-30, P4-oracle-lowering-001 pass 2: RLS / kv_acl families in lowering-write)
+
+`lowir.py` changed only in the write-side ops `kv_acl` (no `+scan`; new mutants `kv-acl-allkeys`, `kv-acl-no-brace`,
+`kv-acl-eval`) and `rls_policy` / `rls_bind` (new mutants `rls-no-check`, `rls-wrong-column`,
+`rls-session-setting`); no read path changed. Re-run:
+* `run`: `LOWERING-READ: PASS (cases=113971 generated_unique[sqlite=12000 redis_model=10000] (sqlite x5 schemas=60000; pg x4 schemas x0 engines) leak=0 widen=0 miss=0 gap_vs_2vl(info)=3623 errors=0 unrefused=0)` (identical to pass 1).
+* `--self-test`: `LOWERING-READ SELF-TEST: PASS (20/20 mutants caught; research naive LEAKs reproduced; positive control PASS; subject drop-tenant caught; pin fixtures 8/8)`;
+  with `--engine pg --dsn @pg17 --engine redis --url @valkey` (unit acceptance): 30/30, `RC=0`.
 
 ## Known limits / pending
 
