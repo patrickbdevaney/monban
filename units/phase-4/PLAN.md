@@ -198,3 +198,13 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
   can build ops. Safety still rests on the SDK: `host::Backend::run` receives the op only after the SDK has checked
   `op.kind == K` against the grant and overwritten `op.tenant`. No F7 re-freeze, because surface.rs is unchanged.
   P4-host-001 owns the module (add `sdk/aegis-sdk/src/query.rs` and its `mod`/`pub use` line in lib.rs to its scope).
+- **D14: idempotency outcome is atomic with the data (INV-IDEMP, NC2).** The host must not commit the aegis-state lease
+  after a separately committed backend transaction: a crash between the two would re-run a committed request on
+  replay. For each transactional backend (SQLite, PG), the outcome record is written in the same backend transaction
+  as the user rows, in a per-backend `aegis_idem` table keyed by (principal, key). The cancel-subject already models
+  it this way. aegis-state stays the store for the commit latch and outbox of non-transactional work. For Redis (no
+  multi-key transactions across the idem key and user keys outside one MULTI/EXEC), the outcome key lives in the
+  same MULTI/EXEC under the tenant prefix. P4-bin-001 wires this; native-e2e's crash and replay checks must cover it.
+- **D15: dependency edges for the bin wiring.** The adapter `Renderer`/`Executor` pairings and the
+  aegis-config→Endowment conversion live in aegis-bin (L5), which may depend on every adapter and on aegis-config.
+  No same-layer edges are added between adapter-host and the adapters.
