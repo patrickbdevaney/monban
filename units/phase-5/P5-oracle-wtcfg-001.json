@@ -28,6 +28,6 @@
  "notes": "Static half (cargo tree features, lock version, deserialize-site count) runs without a build; runtime half needs the aegis-p2 binary from P5-wasm-001. Stdlib Python only, python3 -I.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "open"
+ "passes": true,
+ "status": "pass: self-test clean green + 25/25 mutants red on named rules (GHSA-6wgr + GHSA-394w shapes read 2026-10-31 and quoted verbatim); check red at this wave as expected (aegis-p2 absent, no wasmtime in Cargo.lock, 0 deserialize sites); expectation requires wasmtime feature memory-protection-keys (+call-hook) for the D11 MPK option (integrator to confirm)"
 }
