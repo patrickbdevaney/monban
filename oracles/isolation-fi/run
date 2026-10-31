@@ -7,8 +7,13 @@
 #   ./run --subject '<cmd>' --path cordon|forkwasm
 #                                  plug in a real server: it inherits a listening Unix socket on fd 3, speaks the
 #                                  8-byte protocol (README) and runs {guest} per request; {data} = host I/O file
+#   ./run --self-test --path P --subject '<cmd>' --mutant-subject '<mutants-build cmd>'
+#                                  real-subject self-test: mutants selected with AEGIS_P2_MUTANT must be red
+#   --trials N / --record <json> / --reference <json>   pool N trials per cell; write per-cell metrics; print
+#                                  ratios vs a reference runner and flag >2x (report only, README "Phase 5")
 #   --keep-build                   keep rust/target (default: deleted at exit, laptop disk rule)
-#   other options are passed to isofi.py (--n, --rate, --server-core, --client-cores, --conc, --seed)
+#   other options are passed to isofi.py (--n, --rate, --server-core, --client-cores, --conc, --seed); on a
+#   4-core runner use --server-core 1 --client-cores 2,3
 # The whole run (build + fault injection) holds the machine-wide heavy-job lock via ci/heavy.sh.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
