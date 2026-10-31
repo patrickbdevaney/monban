@@ -1,0 +1,24 @@
+P5-bin-001, oracle defect (oracles/ is integrator scope): Subject.reloads() looks for the sample line
+`aegis_proxy_config_reloads <n>`, but aegis renders its admin metrics as OpenMetrics 1.0 (aegis-metrics), where a
+counter family's sample is `<family>_total`, i.e. `aegis_proxy_config_reloads_total <n>` (oracles/proxy-e2e reads
+that form). Against the real subject reloads() always returns None, so `reload.to-cordon.applied` fails although the
+reload is applied and counted (subject log: "config generation 2 applied"), and the main family stops there. The
+patch accepts both forms (the reference subject prints the bare name); the judgement (the counter must advance,
+which happens only on an applied reload) is unchanged. Applied for the P5-bin-001 runs.
+Apply from the repo root: git apply crates/aegis-bin/tests/p2-patches/oracles-p2-e2e-reload-counter.patch
+
+diff --git a/oracles/p2-e2e/e2e.py b/oracles/p2-e2e/e2e.py
+index 038bfdb..2816566 100755
+--- a/oracles/p2-e2e/e2e.py
++++ b/oracles/p2-e2e/e2e.py
+@@ -306,7 +306,9 @@ class Subject:
+ 
+     def reloads(self):
+         for ln in self.admin_get("/metrics").split(b"\n"):
+-            if ln.startswith(b"aegis_proxy_config_reloads "):
++            # OpenMetrics renders a counter sample as <family>_total (aegis-metrics; proxy-e2e reads that form); the
++            # reference subject prints the bare family name.
++            if ln.startswith(b"aegis_proxy_config_reloads ") or ln.startswith(b"aegis_proxy_config_reloads_total "):
+                 try:
+                     return int(float(ln.split()[1]))
+                 except (IndexError, ValueError):

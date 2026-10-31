@@ -2,8 +2,10 @@
 //! SIGTERM drain), sd-notify.
 //!
 //! Boot order: block lifecycle signals (before any thread exists) → read + validate config (CFG-1/2, exit 78) →
-//! plan (exit 78) → certificates + TLS profiles (exit 78) → audit log (exit 78) → audit `config.apply` durably
-//! (fail closed, Audit I7) → bind (or take over from the upgrading parent, F11) → accept → READY.
+//! plan (exit 78) → native data plane (exit 78) → P2 supervisor: every module compiled by the sandboxed
+//! `aegis-p2 compile`, zygote set started (feature `p2`; exit 78) → certificates + TLS profiles (exit 78) → audit
+//! log (exit 78) → audit `config.apply` durably (fail closed, Audit I7) → bind (or take over from the upgrading
+//! parent, F11) → accept → READY. The P2 workers are shut down whenever the process leaves `run`.
 
 use std::net::TcpListener as StdTcpListener;
 use std::os::fd::AsFd;
@@ -259,14 +261,23 @@ impl Ctl {
                         }
                         None => Arc::default(),
                     };
-                    Ok((p, bindings))
+                    // P2 modules are compiled (sandboxed) and digested before anything is applied; a refusal keeps
+                    // the last-known-good config and its workers.
+                    let p2 = match &self.shared.p2 {
+                        Some(rt) => Some(rt.prepare(&cfg)?),
+                        None if crate::p2::has_wasm_routes(&cfg) => {
+                            return Err("wasm routes need the P2 supervisor (feature `p2`)".into());
+                        }
+                        None => None,
+                    };
+                    Ok((p, bindings, p2))
                 });
                 match candidate {
                     Err(e) => {
                         let _ = self.store.rollback();
                         self.fallback("config.rollback", &e);
                     }
-                    Ok((p, bindings)) => {
+                    Ok((p, bindings, p2)) => {
                         let hash = cfg.config_hash();
                         let detail = [
                             ("generation", DetailValue::Int(i64::try_from(generation.0).unwrap_or(i64::MAX))),
@@ -286,6 +297,13 @@ impl Ctl {
                             let mut snap = Snapshot::new(generation.0, epoch, hash, p);
                             snap.native = bindings;
                             self.install(snap);
+                            // The P2 generation: previous workers shut down, the new zygote set started (D1: a path
+                            // switch is this reload, no rebuild).
+                            if let (Some(rt), Some(prep)) = (&self.shared.p2, p2)
+                                && let Err(e) = rt.install(prep)
+                            {
+                                log(&format!("p2: {e}"));
+                            }
                             // CRS C5 on the data plane: pooled PG connections of older epochs are retired.
                             if let Some(dp) = &self.shared.native {
                                 dp.bump_epoch(epoch);
@@ -390,6 +408,9 @@ impl Ctl {
                 std::thread::sleep(Duration::from_millis(10));
             }
         }
+        if let Some(rt) = &self.shared.p2 {
+            rt.shutdown(); // SIGTERM stops the workers too
+        }
         let _ = self.audit(
             "listener.stop",
             "all",
@@ -454,6 +475,13 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         },
         None => Arc::default(),
     };
+    // P2 (feature `p2`): every module compiled by the sandboxed worker and the zygote set started, before any
+    // socket. A worker that refuses (missing, digest mismatch, Landlock ABI < 4, D2) fails the boot.
+    let p2 = match crate::p2::boot(&cfg, opts.token_keyring.as_deref(), opts.runtime_dir.as_deref()) {
+        Ok(p) => p,
+        Err(e) => return fail_closed(&e),
+    };
+    let _p2_guard = crate::p2::Guard(p2.clone());
     let certs = match CertPaths::resolve(opts.cert.as_deref(), opts.key.as_deref()) {
         Ok(c) => c,
         Err(e) => return fail_closed(&e),
@@ -480,7 +508,7 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     let admin_bind = p.admin.clone();
     let mut snap0 = Snapshot::new(generation.0, 1, hash, p);
     snap0.native = bindings;
-    let shared = Shared::new(snap0, native);
+    let shared = Shared::new(snap0, native, p2);
     let srv = {
         let snap = shared.snapshot();
         match Server::new(ProxyApp { shared: shared.clone() }, snap.vhost_table(), snap.plan.wl) {
