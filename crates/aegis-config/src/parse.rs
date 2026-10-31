@@ -8,6 +8,7 @@ use aegis_canon::{JsonValue, parse_json};
 
 use crate::ErrorKind as E;
 use crate::data::{self, Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine, RouteData};
+use crate::p2::{self, CrashBudget, Isolation, P2Block, P2Limits, P2Module, Tenancy};
 use crate::{
     Admin, Alpn, Canon, Config, ConfigError, Framing, Limits, Listener, MAX_CONFIG_BYTES, MAX_ROUTE_ID, Profile,
     QueryMode, Route, RouteTarget, Vhost, emit, sha256,
@@ -201,7 +202,12 @@ pub(crate) fn is_route_path(s: &str) -> bool {
 
 fn root(v: &JsonValue) -> R<Config> {
     let m = object(v, "")?;
-    fields(m, "", &["v", "listeners", "vhosts", "admin", "limits", "canon", "data"], &["v", "listeners", "vhosts"])?;
+    fields(
+        m,
+        "",
+        &["v", "listeners", "vhosts", "admin", "limits", "canon", "data", "p2"],
+        &["v", "listeners", "vhosts"],
+    )?;
 
     // `const: 1` (numeric equality, so 1.0 matches too).
     match get(m, "v") {
@@ -285,7 +291,14 @@ fn root(v: &JsonValue) -> R<Config> {
     };
     cap_backends(&vhosts, data.as_ref())?;
 
-    let mut cfg = Config { listeners, vhosts, admin, limits, canon, data, canonical: Box::default(), hash: [0; 32] };
+    let p2 = match get(m, "p2") {
+        Some(pv) => Some(p2_block(pv, "/p2")?),
+        None => None,
+    };
+    wasm_modules(&vhosts, p2.as_ref())?;
+
+    let mut cfg =
+        Config { listeners, vhosts, admin, limits, canon, data, p2, canonical: Box::default(), hash: [0; 32] };
     let canonical = emit::canonical(&cfg)?;
     cfg.hash = sha256::sha256(&canonical);
     cfg.canonical = canonical;
@@ -412,30 +425,51 @@ fn target_static(v: &JsonValue, p: &str) -> R<RouteTarget> {
     Ok(RouteTarget::Static { root })
 }
 
-/// `oneOf` [upstream, static]: exactly one branch must validate. When none does, the error of the branch the
-/// object evidently aims at (it names `upstream` or `static`, but not both) is reported for precision.
+fn target_wasm(v: &JsonValue, p: &str) -> R<RouteTarget> {
+    let m = object(v, p)?;
+    fields(m, p, &["wasm"], &["wasm"])?;
+    let mut module = String::new();
+    if let Some(x) = get(m, "wasm") {
+        let pp = child(p, "wasm");
+        let s = string(x, &pp)?;
+        if !is_listener_name(s) {
+            return Err(ConfigError::new(E::Pattern, pp, "wasm module id must match ^[a-z][a-z0-9-]{0,31}$"));
+        }
+        module = s.to_owned();
+    }
+    Ok(RouteTarget::Wasm { module })
+}
+
+/// `oneOf` [upstream, static, wasm]: exactly one branch must validate. When none does, the error of the branch
+/// the object evidently aims at (it names exactly one of `upstream`, `static`, `wasm`) is reported for precision.
 fn target(v: &JsonValue, p: &str) -> R<RouteTarget> {
-    let a = target_upstream(v, p);
-    let b = target_static(v, p);
-    match (a, b) {
-        (Ok(t), Err(_)) | (Err(_), Ok(t)) => Ok(t),
-        (Ok(_), Ok(_)) => Err(ConfigError::new(E::OneOf, p, "route target matches more than one branch")),
-        (Err(ea), Err(eb)) => {
-            let (has_u, has_s) = match v {
-                JsonValue::Object(m) => (get(m, "upstream").is_some(), get(m, "static").is_some()),
-                _ => (false, false),
-            };
-            match (has_u, has_s) {
-                (true, false) => Err(ea),
-                (false, true) => Err(eb),
-                _ => Err(ConfigError::new(
-                    E::OneOf,
-                    p,
-                    "route target must be exactly one of {\"upstream\": ...} or {\"static\": ...}",
-                )),
+    let results = [target_upstream(v, p), target_static(v, p), target_wasm(v, p)];
+    let mut found: Option<&RouteTarget> = None;
+    for t in results.iter().flatten() {
+        if found.is_some() {
+            return Err(ConfigError::new(E::OneOf, p, "route target matches more than one branch"));
+        }
+        found = Some(t);
+    }
+    if let Some(t) = found {
+        return Ok(t.clone());
+    }
+    let named: [bool; 3] = match v {
+        JsonValue::Object(m) => [get(m, "upstream").is_some(), get(m, "static").is_some(), get(m, "wasm").is_some()],
+        _ => [false; 3],
+    };
+    if named.iter().filter(|b| **b).count() == 1 {
+        for (r, n) in results.into_iter().zip(named) {
+            if let (true, Err(e)) = (n, r) {
+                return Err(e);
             }
         }
     }
+    Err(ConfigError::new(
+        E::OneOf,
+        p,
+        "route target must be exactly one of {\"upstream\": ...}, {\"static\": ...} or {\"wasm\": ...}",
+    ))
 }
 
 // ------------------------------------------------------------------------------------------------ data (F8, Phase 4)
@@ -667,6 +701,189 @@ fn cap_backends(vhosts: &[Vhost], data: Option<&DataBlock>) -> R<()> {
                         ));
                     }
                 }
+            }
+        }
+    }
+    Ok(())
+}
+
+// ------------------------------------------------------------------------------------------------ p2 (F8, Phase 5)
+
+/// `^/[A-Za-z0-9._/-]{1,max}$` (`p2.worker`, `p2.cache_dir`: max 255).
+fn is_abs_path(s: &str, max: usize) -> bool {
+    match s.as_bytes().split_first() {
+        Some((b'/', rest)) => {
+            (1..=max).contains(&rest.len())
+                && rest.iter().all(|c| c.is_ascii_alphanumeric() || matches!(c, b'.' | b'_' | b'/' | b'-'))
+        }
+        _ => false,
+    }
+}
+
+/// `^/[A-Za-z0-9._/-]{1,250}\.wasm$` (`p2_module.path`).
+pub(crate) fn is_wasm_path(s: &str) -> bool {
+    match s.strip_suffix(".wasm") {
+        Some(stem) => is_abs_path(stem, 250),
+        None => false,
+    }
+}
+
+/// `^[0-9a-f]{64}$`, decoded.
+fn hex32(s: &str) -> Option<[u8; 32]> {
+    let b = s.as_bytes();
+    if b.len() != 64 {
+        return None;
+    }
+    let nib = |c: u8| match c {
+        b'0'..=b'9' => Some(c - b'0'),
+        b'a'..=b'f' => Some(c - b'a' + 10),
+        _ => None,
+    };
+    let mut out = [0u8; 32];
+    let (pairs, rest) = b.as_chunks::<2>();
+    if !rest.is_empty() {
+        return None;
+    }
+    for (o, [h, l]) in out.iter_mut().zip(pairs) {
+        *o = (nib(*h)? << 4) | nib(*l)?;
+    }
+    Some(out)
+}
+
+fn boolean(v: &JsonValue, p: &str) -> R<bool> {
+    match v {
+        JsonValue::Bool(b) => Ok(*b),
+        _ => Err(ConfigError::new(E::Type, p, "expected boolean")),
+    }
+}
+
+fn p2_block(v: &JsonValue, p: &str) -> R<P2Block> {
+    let m = object(v, p)?;
+    fields(m, p, P2Block::MEMBERS, &["worker", "modules"])?;
+    let mut worker = String::new();
+    if let Some(x) = get(m, "worker") {
+        let pp = child(p, "worker");
+        let s = string(x, &pp)?;
+        if !is_abs_path(s, 255) {
+            return Err(ConfigError::new(E::Pattern, pp, "worker must match ^/[A-Za-z0-9._/-]{1,255}$"));
+        }
+        worker = s.to_owned();
+    }
+    let mut cache_dir = None;
+    if let Some(x) = get(m, "cache_dir") {
+        let pp = child(p, "cache_dir");
+        let s = string(x, &pp)?;
+        if !is_abs_path(s, 255) {
+            return Err(ConfigError::new(E::Pattern, pp, "cache_dir must match ^/[A-Za-z0-9._/-]{1,255}$"));
+        }
+        cache_dir = Some(s.to_owned());
+    }
+    let mut isolation = Isolation::default();
+    if let Some(x) = get(m, "isolation") {
+        isolation = enum_of(x, &child(p, "isolation"), &Isolation::ALL)?;
+    }
+    let mut limits = P2Limits::default();
+    for (name, min, max, _) in P2Limits::BOUNDS {
+        if let Some(x) = get(m, name) {
+            limits.set(name, integer(x, &child(p, name), *min, *max)?);
+        }
+    }
+    let mut crash_budget = CrashBudget::default();
+    if let Some(x) = get(m, "crash_budget") {
+        let pp = child(p, "crash_budget");
+        let cm = object(x, &pp)?;
+        let names: Vec<&str> = CrashBudget::BOUNDS.iter().map(|(n, ..)| *n).collect();
+        fields(cm, &pp, &names, &[])?;
+        for (name, min, max, _) in CrashBudget::BOUNDS {
+            if let Some(y) = get(cm, name) {
+                crash_budget.set(name, integer(y, &child(&pp, name), *min, *max)?);
+            }
+        }
+    }
+    let mut mpk = false;
+    if let Some(x) = get(m, "mpk") {
+        mpk = boolean(x, &child(p, "mpk"))?;
+    }
+    let mut modules: Vec<P2Module> = Vec::new();
+    if let Some(x) = get(m, "modules") {
+        let pp = child(p, "modules");
+        let items = array(x, &pp, 1, p2::MAX_P2_MODULES)?;
+        for (i, it) in items.iter().enumerate() {
+            let mp = index(&pp, i);
+            let md = p2_module(it, &mp, &limits)?;
+            if modules.iter().any(|o| o.id == md.id) {
+                return Err(ConfigError::new(E::DuplicateModule, child(&mp, "id"), "duplicate p2 module id"));
+            }
+            modules.push(md);
+        }
+    }
+    if modules.is_empty() {
+        // Unreachable after the required/minItems checks; fail closed rather than build an empty table.
+        return Err(ConfigError::new(E::MinItems, child(p, "modules"), "p2 block declares no module"));
+    }
+    Ok(P2Block { worker, cache_dir, isolation, limits, crash_budget, mpk, modules })
+}
+
+fn p2_module(v: &JsonValue, p: &str, block: &P2Limits) -> R<P2Module> {
+    let m = object(v, p)?;
+    fields(m, p, P2Module::MEMBERS, &["id", "path", "sha256"])?;
+    let mut id = String::new();
+    if let Some(x) = get(m, "id") {
+        let pp = child(p, "id");
+        let s = string(x, &pp)?;
+        if !is_listener_name(s) {
+            return Err(ConfigError::new(E::Pattern, pp, "module id must match ^[a-z][a-z0-9-]{0,31}$"));
+        }
+        id = s.to_owned();
+    }
+    let mut path = String::new();
+    if let Some(x) = get(m, "path") {
+        let pp = child(p, "path");
+        let s = string(x, &pp)?;
+        if !is_wasm_path(s) {
+            return Err(ConfigError::new(E::Pattern, pp, "module path must match ^/[A-Za-z0-9._/-]{1,250}\\.wasm$"));
+        }
+        path = s.to_owned();
+    }
+    let mut sha256 = [0u8; 32];
+    if let Some(x) = get(m, "sha256") {
+        let pp = child(p, "sha256");
+        let s = string(x, &pp)?;
+        let Some(d) = hex32(s) else {
+            return Err(ConfigError::new(E::Pattern, pp, "sha256 must match ^[0-9a-f]{64}$"));
+        };
+        sha256 = d;
+    }
+    let mut tenancy = Tenancy::default();
+    if let Some(x) = get(m, "tenancy") {
+        tenancy = enum_of(x, &child(p, "tenancy"), &Tenancy::ALL)?;
+    }
+    // Overrides carry the block's bounds; absent = the block's (already defaulted) value.
+    let over = |name: &str, (lo, hi): (u64, u64), dflt: u64| -> R<u64> {
+        match get(m, name) {
+            Some(x) => integer(x, &child(p, name), lo, hi),
+            None => Ok(dflt),
+        }
+    };
+    let fuel = over("fuel", P2Limits::FUEL_BOUNDS, block.fuel)?;
+    let wall_ms = over("wall_ms", P2Limits::WALL_MS_BOUNDS, block.wall_ms)?;
+    let memory_mib = over("memory_mib", P2Limits::MEMORY_MIB_BOUNDS, block.memory_mib)?;
+    Ok(P2Module { id, path, sha256, tenancy, fuel, wall_ms, memory_mib })
+}
+
+/// Cross-field: every `{"wasm": id}` route target names a declared module (no `p2` block means no module exists).
+fn wasm_modules(vhosts: &[Vhost], p2: Option<&P2Block>) -> R<()> {
+    for (i, vh) in vhosts.iter().enumerate() {
+        for (j, r) in vh.routes.iter().enumerate() {
+            if let RouteTarget::Wasm { module } = &r.to
+                && p2.and_then(|b| b.module(module)).is_none()
+            {
+                let why = if p2.is_some() {
+                    "wasm route names an undeclared p2 module"
+                } else {
+                    "wasm route without a p2 block"
+                };
+                return Err(ConfigError::new(E::UnknownModule, format!("/vhosts/{i}/routes/{j}/to/wasm"), why));
             }
         }
     }

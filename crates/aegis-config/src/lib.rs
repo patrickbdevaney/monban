@@ -17,6 +17,12 @@
 //!   (CI-gated by `ci/unrestricted.py`). Backend references and engine pins are checked at load; column names are
 //!   resolved at boot through [`SchemaProvider`] ([`Config::resolve_data`]). See the `data` module docs.
 //!
+//! * [`P2Block`] (F8 `p2`, Phase 5) and the `{"wasm": <module-id>}` route target ([`RouteTarget::Wasm`]): the
+//!   worker path, module table (path, sha256, tenancy, resolved limits), `isolation` (D1 default `forkwasm`),
+//!   bounded fuel / wall / memory / host-call caps, the D7 crash budget and `mpk`. A cordon shared by principals
+//!   is unrepresentable (no field names a cordon). Module ids are unique and every wasm route names a declared
+//!   module (checked at load). See the `p2` module docs.
+//!
 //! INV-NONEMPTY: a route without an `authz` policy (or with an empty policy name) is denied
 //! ([`Route::authz_requirement`]); every limit has a schema maximum and a default, so no effective limit is
 //! unbounded.
@@ -24,6 +30,7 @@
 
 mod data;
 mod emit;
+mod p2;
 mod parse;
 mod sha256;
 mod store;
@@ -35,6 +42,7 @@ pub use data::{
     PinInfo, ResolvedCap, ResolvedData, ResolvedRoute, RouteData, SchemaProvider, UNRESTRICTED, Unresolved, engine_pin,
     engine_pins,
 };
+pub use p2::{CrashBudget, Isolation, MAX_P2_MODULES, P2Block, P2Limits, P2Module, Tenancy};
 pub use sha256::{hex, sha256};
 pub use store::{ConfigStore, Generation, Health, Phase, RolloutPolicy, StageError};
 
@@ -109,6 +117,11 @@ pub enum ErrorKind {
     UnknownColumn,
     /// Boot ([`Config::resolve_data`]): the backend's schema could not be introspected.
     SchemaUnavailable,
+    /// Cross-field: two `p2.modules` share an id.
+    DuplicateModule,
+    /// Cross-field: a `{"wasm": id}` route target names no declared `p2.modules[]` entry (or there is no `p2`
+    /// block).
+    UnknownModule,
 }
 
 /// A rejected config: kind, JSON pointer to the offending value (`""` is the document root) and a static detail.
@@ -158,6 +171,8 @@ pub struct Config {
     canon: Canon,
     /// F8 `data`; `None` when absent.
     data: Option<DataBlock>,
+    /// F8 `p2`; `None` when absent.
+    p2: Option<P2Block>,
     canonical: Box<[u8]>,
     hash: [u8; 32],
 }
@@ -289,6 +304,10 @@ pub enum RouteTarget {
     },
     Static {
         root: String,
+    },
+    /// `{"wasm": <module-id>}` (Phase 5, F14): names a declared `p2.modules[]` entry (checked at load).
+    Wasm {
+        module: String,
     },
 }
 

@@ -5,7 +5,10 @@ use std::fmt::Write as _;
 
 use aegis_canon::canon_json;
 
-use crate::{Canon, Config, ConfigError, DataBlock, ErrorKind, Limits, MAX_CONFIG_BYTES, RouteData, RouteTarget};
+use crate::{
+    Canon, Config, ConfigError, CrashBudget, DataBlock, ErrorKind, Limits, MAX_CONFIG_BYTES, P2Block, P2Limits,
+    RouteData, RouteTarget,
+};
 
 fn string(s: &str, out: &mut String) {
     out.push('"');
@@ -124,6 +127,68 @@ fn data_block(d: &DataBlock, out: &mut String) {
     out.push_str("]}");
 }
 
+/// Integer members `name: value` from a bounds table, comma-separated (no leading or trailing comma).
+fn bounded(bounds: &[(&str, u64, u64, u64)], values: Vec<u64>, out: &mut String) {
+    for (i, ((name, ..), v)) in bounds.iter().zip(values).enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        key(name, out);
+        let _ = write!(out, "{v}");
+    }
+}
+
+/// The `p2` block with every default applied: block limits, `isolation`, `crash_budget`, `mpk`, and per module
+/// `tenancy` plus the resolved `fuel` / `wall_ms` / `memory_mib` (an absent override means the block's value, so
+/// printing it keeps the meaning and makes "absent" and "explicit equal" hash the same). `cache_dir` has no
+/// schema default and is printed only when present.
+fn p2_block(b: &P2Block, out: &mut String) {
+    out.push('{');
+    key("worker", out);
+    string(b.worker(), out);
+    if let Some(d) = b.cache_dir() {
+        out.push(',');
+        key("cache_dir", out);
+        string(d, out);
+    }
+    out.push(',');
+    key("isolation", out);
+    string(b.isolation().as_str(), out);
+    out.push(',');
+    bounded(P2Limits::BOUNDS, b.limits().values(), out);
+    out.push(',');
+    key("crash_budget", out);
+    out.push('{');
+    bounded(CrashBudget::BOUNDS, b.crash_budget().values(), out);
+    out.push('}');
+    out.push(',');
+    key("mpk", out);
+    out.push_str(if b.mpk() { "true" } else { "false" });
+    out.push(',');
+    key("modules", out);
+    out.push('[');
+    for (i, m) in b.modules().iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        out.push('{');
+        key("id", out);
+        string(m.id(), out);
+        out.push(',');
+        key("path", out);
+        string(m.path(), out);
+        out.push(',');
+        key("sha256", out);
+        string(&m.sha256_hex(), out);
+        out.push(',');
+        key("tenancy", out);
+        string(m.tenancy().as_str(), out);
+        let _ = write!(out, ",\"fuel\":{},\"wall_ms\":{},\"memory_mib\":{}", m.fuel(), m.wall_ms(), m.memory_mib());
+        out.push('}');
+    }
+    out.push_str("]}");
+}
+
 fn text(c: &Config) -> String {
     let mut o = String::with_capacity(4096);
     o.push('{');
@@ -197,6 +262,10 @@ fn text(c: &Config) -> String {
                     key("static", &mut o);
                     string(root, &mut o);
                 }
+                RouteTarget::Wasm { module } => {
+                    key("wasm", &mut o);
+                    string(module, &mut o);
+                }
             }
             o.push('}');
             if let Some(a) = &r.authz {
@@ -236,6 +305,12 @@ fn text(c: &Config) -> String {
         o.push(',');
         key("data", &mut o);
         data_block(d, &mut o);
+    }
+    // Absent p2 block is omitted (never `null`).
+    if let Some(b) = &c.p2 {
+        o.push(',');
+        key("p2", &mut o);
+        p2_block(b, &mut o);
     }
     o.push('}');
     o
