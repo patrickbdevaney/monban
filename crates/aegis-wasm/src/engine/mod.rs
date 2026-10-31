@@ -360,6 +360,21 @@ impl P2Engine {
     }
 }
 
+/// Whether instantiation failed only because the pool, or with MPK the Store's stripe, had no free slot.
+pub fn is_pool_full(e: &wasmtime::Error) -> bool {
+    e.downcast_ref::<wasmtime::PoolConcurrencyLimitError>().is_some()
+}
+
+/// How many further Stores one request may try when its Store's pool stripe is full. With MPK (F8 `p2.mpk`, D11)
+/// wasmtime splits the pool into one stripe per protection key and assigns each new Store the next stripe
+/// round-robin; a stripe holds only `pool_slots / stripes` instances (64 slots over 16 keys: 4 per stripe on the
+/// laptop, i9-14900HX), so a cordon with more than 4 requests in flight saw "maximum concurrent limit of 4 for
+/// memory stripe N reached" on healthy requests (P5-iso-003, isolation-fi MPK cell). One retry per pool slot visits
+/// every stripe. Without MPK there is one stripe: a full pool stays full, so no retry.
+pub fn pool_retry_limit(engine: &P2Engine) -> u32 {
+    if engine.settings.memory_protection_keys == Mpk::Yes { engine.settings.pool_slots() } else { 0 }
+}
+
 /// Epoch deadline, in [`EPOCH_TICK`] ticks, for a wall bound of `wall_ms`. The deadline fires once the epoch has
 /// advanced this many ticks past the arming point. It is set a tenth under `wall_ms` (at least one tick under,
 /// minimum 1 tick) so that the arming phase within a tick plus the ticker's wake-up latency still lands the trap

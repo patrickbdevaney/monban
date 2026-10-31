@@ -158,19 +158,29 @@ impl FiWorker {
     }
 
     /// A fresh Store and instance with fuel and the epoch deadline armed before instantiation.
+    ///
+    /// With MPK a Store whose pool stripe is full is dropped and a new Store (next stripe) is tried, at most
+    /// [`crate::engine::pool_retry_limit`] times (see there); no guest code has run when the pool refuses a slot.
     pub fn instance(&self, limits: RequestLimits) -> Result<FiInstance, TrapKind> {
         let cap = usize::try_from(limits.memory_bytes()).unwrap_or(usize::MAX);
-        let mut store = Store::new(self.engine.wasmtime(), FiState { memory_cap: cap, limit_hit: false });
-        store.limiter(|s| s);
-        store.set_fuel(limits.fuel()).map_err(|_| TrapKind::Wasm)?;
-        store.set_epoch_deadline(epoch_deadline_ticks(limits.wall_ms()));
-        store.epoch_deadline_trap();
-        let inst = match self.pre.instantiate(&mut store) {
-            Ok(i) => i,
-            Err(e) => return Err(classify(&e, store.data())),
-        };
-        let func = inst.get_typed_func::<(i32, i32), i32>(&mut store, EXPORT).map_err(|_| TrapKind::Wasm)?;
-        Ok(FiInstance { store, func })
+        let mut tries = crate::engine::pool_retry_limit(&self.engine);
+        loop {
+            let mut store = Store::new(self.engine.wasmtime(), FiState { memory_cap: cap, limit_hit: false });
+            store.limiter(|s| s);
+            store.set_fuel(limits.fuel()).map_err(|_| TrapKind::Wasm)?;
+            store.set_epoch_deadline(epoch_deadline_ticks(limits.wall_ms()));
+            store.epoch_deadline_trap();
+            let inst = match self.pre.instantiate(&mut store) {
+                Ok(i) => i,
+                Err(e) if tries > 0 && crate::engine::is_pool_full(&e) => {
+                    tries -= 1;
+                    continue;
+                }
+                Err(e) => return Err(classify(&e, store.data())),
+            };
+            let func = inst.get_typed_func::<(i32, i32), i32>(&mut store, EXPORT).map_err(|_| TrapKind::Wasm)?;
+            return Ok(FiInstance { store, func });
+        }
     }
 
     /// One request in a fresh instance (dropped before returning).

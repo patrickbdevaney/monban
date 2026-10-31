@@ -117,8 +117,12 @@ class WorkerProc:
             pass
 
 
-def exchange(conn, rid, limits, body, case, deadline_s):
-    """Mock supervisor for one request. Returns a record of what the worker sent."""
+def exchange(conn, rid, limits, body, case, deadline_s, first_on_conn=True):
+    """Mock supervisor for one request. Returns a record of what the worker sent.
+
+    A test-hooks/mutants worker sends one D8 `layout` frame after `ready` on each connection (F14 Part 2). It is
+    accepted only in the first exchange of a connection (`first_on_conn`), only once, and only before any other
+    frame; every other frame type outside the request's own frames is still a protocol violation."""
     rec = {"frames": [], "end": None, "died": False, "timeout": False, "protocol": None, "data_runs": [],
            "resp_head": None, "body": b"", "log_bytes": 0}
     try:
@@ -154,6 +158,9 @@ def exchange(conn, rid, limits, body, case, deadline_s):
         except f14.DecodeError as e:
             rec["protocol"] = f"undecodable frame: {e}"
             return rec
+        if d["t"] == "layout" and first_on_conn and not rec["frames"] and not rec.get("layout"):
+            rec["layout"] = True
+            continue
         rec["frames"].append(d["t"])
         if d.get("rid") != rid:
             rec["protocol"] = f"frame for unknown req-id {d.get('rid')}"
@@ -331,7 +338,8 @@ class WorkerLevel:
                     conn.close()
                     conn = w.connect()
                     w.conn = conn
-            rec = exchange(conn, 2, limits, body, case, deadline)
+            fresh = not case.get("previous_handle") or path == "zygote"
+            rec = exchange(conn, 2, limits, body, case, deadline, first_on_conn=fresh)
             reason = judge(case, rec)
             if reason is None and path == "zygote" and not w.alive():
                 reason = f"the zygote died (a request must only ever take down its fork child): {w.tail()}"

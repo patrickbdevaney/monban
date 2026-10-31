@@ -279,20 +279,34 @@ impl Session<'_> {
             frame_max: w.frame_max,
             io,
         };
-        let mut store = Store::new(w.engine.wasmtime(), state);
-        store.limiter(|s| s);
         let unbounded = mutant::is(Mutant::NoFuelNoEpoch);
         // MUTANT no-fuel-no-epoch: practically unlimited fuel and no epoch deadline.
         let fuel = if unbounded { u64::MAX / 4 } else { limits.fuel() };
-        let fuel_ok = store.set_fuel(fuel).is_ok();
-        store.set_epoch_deadline(if unbounded { u64::MAX / 4 } else { epoch_deadline_ticks(limits.wall_ms()) });
-        store.epoch_deadline_trap();
-        let res = if fuel_ok {
-            w.pre
-                .instantiate(&mut store)
-                .and_then(|inst| inst.get_typed_func::<(), i32>(&mut store, super::EXPORT_HANDLE)?.call(&mut store, ()))
-        } else {
-            Err(wasmtime::Error::msg("fuel could not be armed"))
+        // With MPK a Store whose pool stripe is full is dropped and the request state moves to a new Store (next
+        // stripe), at most `pool_retry_limit` times; no guest code has run when the pool refuses a slot (PLAN D21).
+        let mut tries = crate::engine::pool_retry_limit(&w.engine);
+        let mut state = state;
+        let (store, res) = loop {
+            let mut store = Store::new(w.engine.wasmtime(), state);
+            store.limiter(|s| s);
+            let fuel_ok = store.set_fuel(fuel).is_ok();
+            store.set_epoch_deadline(if unbounded { u64::MAX / 4 } else { epoch_deadline_ticks(limits.wall_ms()) });
+            store.epoch_deadline_trap();
+            if !fuel_ok {
+                break (store, Err(wasmtime::Error::msg("fuel could not be armed")));
+            }
+            let inst = match w.pre.instantiate(&mut store) {
+                Ok(i) => i,
+                Err(e) if tries > 0 && crate::engine::is_pool_full(&e) => {
+                    tries -= 1;
+                    state = store.into_data();
+                    continue;
+                }
+                Err(e) => break (store, Err(e)),
+            };
+            let res =
+                inst.get_typed_func::<(), i32>(&mut store, super::EXPORT_HANDLE).and_then(|f| f.call(&mut store, ()));
+            break (store, res);
         };
         let left = store.get_fuel().unwrap_or(0);
         let fuel_used = fuel.saturating_sub(left).min(limits.fuel());
