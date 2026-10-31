@@ -1,4 +1,4 @@
-# Frozen interfaces (F1–F13)
+# Frozen interfaces (F1–F14)
 
 Written by the spec-author role before implementation (IMPLEMENTATION_PLAN §1). Implementer agents may not edit
 them; `ci/interfaces.py check` fails on any change. A change goes through a spec-change PR that re-freezes
@@ -6,7 +6,7 @@ them; `ci/interfaces.py check` fails on any change. A change goes through a spec
 
 | id | artifact | status | ratified at freeze |
 |---|---|---|---|
-| F1 | `spec/SPEC_INVARIANTS.md` + `spec/STATEMENTS.sha256` (Lean statements) | frozen | statement hashes; proof PRs cannot touch them (`ci/statements.py`) |
+| F1 | `spec/SPEC_INVARIANTS.md` + `spec/STATEMENTS.sha256` (Lean statements) | frozen; §H INV-P2 addendum P5-spec-001 | statement hashes; proof PRs cannot touch them (`ci/statements.py`); INV-P2 (P2-1..P2-8 + q4-006 acceptance) is prose, no Lean declaration added, so the statement ledger is re-frozen unchanged |
 | F2 | `crates/aegis-types/src/lib.rs` | frozen | `Principal` mintable only via `authn_path` (owner aegis-token); `Canon<K>` via `canon_owner` (aegis-canon); `RawFor<S>` via `raw_owner` (aegis-transport); enforced by `cargo xtask layering` |
 | F3 | `crates/aegis-transport/src/exchange.rs` | frozen | Exchange + 2 front-end hooks (`on_head`, `on_message`); R-ING-1 reverses if a front end needs a third |
 | F4 | `crates/aegis-data-ir/src/ir.rs` | provisional: q4-004 → resolved; additive re-freeze P4-spec-001 | three-valued policy semantics (ThreeValued.lean); `Not` only on `Fidelity::Exact`; binary no-pad tenant/key collations; upsert needs a sole full-length (tenant, key) unique index (q4-005); P4-spec-001 (D1, D4): `CapSet` (no empty constructor, explicit `Unrestricted`) + `authorize`, tenant encoding = 16 lower-case hex digits (`tenant_text`, Redis `t:{hex}:`), KV mapping rule `kv_plan`, `EnginePin`, per-family `denylist`, allowlist lock format (`lock_body` + sha256 trailer); Op/Pred/Schema layout unchanged |
@@ -14,11 +14,12 @@ them; `ci/interfaces.py check` fails on any change. A change goes through a spec
 | F6 | `crates/aegis-authz/src/combine.rs` | frozen | tri-state; Error/timeout/crash ⇒ Deny; `combine` = Combine.lean `combine` |
 | F7 | `sdk/aegis-sdk/src/surface.rs` | frozen | request-scoped surface |
 | F7b | `sdk/aegis-sdk/src/streaming.rs` | frozen | host-driven streaming/SSE/WS/detached jobs (q4-001 D2) |
-| F8 | `interfaces/F8-config.schema.json` | frozen (q4-008 resolved); data block P4-spec-001 | every limit bounded; canon block per q4-008 (empty segments 308, trailing slash accepted, encoded non-ASCII opaque, opaque query); optional `data.backends[]` {id, engine, dsn_ref, pin, max_conns, op_budget_ms} and `routes[].data` = non-empty cap list or the literal `"unrestricted"` (absent = no data capability) |
+| F8 | `interfaces/F8-config.schema.json` | frozen (q4-008 resolved); data block P4-spec-001 | every limit bounded; canon block per q4-008 (empty segments 308, trailing slash accepted, encoded non-ASCII opaque, opaque query); optional `data.backends[]` {id, engine, dsn_ref, pin, max_conns, op_budget_ms} and `routes[].data` = non-empty cap list or the literal `"unrestricted"` (absent = no data capability); P5-spec-001 (additive): `p2` block (worker, cache_dir, isolation forkwasm\|cordon default forkwasm, fuel/wall_ms/memory_mib, per-request quotas, frame cap, cordon pool/count/idle, crash_budget 3/60/600 with low bounded minimums, mpk default false, modules[] {id, path, sha256, tenancy, overrides}) and route target `{"wasm": <module-id>}`; every limit bounded, every object closed, no field can express a cordon shared by principals |
 | F9 | `interfaces/F9-audit-event.schema.json` | frozen | tlog-tiles leaf fields |
 | F10 | `interfaces/F10-module-wire.cddl` | frozen | out-of-process module wire; host decoders in the verified TCB; P4-spec-001 adds normative comments only (kind↔OpMask bit, D4 tenant encoding) |
 | F11 | `interfaces/F11-upgrade-handover.cddl` | frozen | UP-1..7 handover messages |
 | F12 | `tls/verdicts.toml` | provisional: q4-026 | PUB-T1..T6, FIPS-F1..F6; 0x11ED from our own KxGroup (Phase 6) |
 | F13 | `interfaces/F13-conformance-report.schema.json` | frozen | C0–C4 report |
+| F14 | `interfaces/F14-p2-guest-abi.cddl` | frozen (new, P5-spec-001) | P2 core-module guest ABI: closed import allowlist in module `aegis` (req_head, req_body_read, resp_head, resp_write, log, data_run, result_read, handle_drop), export `handle() -> u32` (0 Allow, 1 Deny, else Error ⇒ Deny); per-request generation-tagged handles (forged/foreign/stale trap); `env.host_fault` only in `test-hooks` builds; worker↔supervisor SOCK_SEQPACKET frames in the F10 encoding, capped by F8 `p2.frame_max_bytes`; `data_run` carries the F10 `op` rule by name (F10 unchanged); decode failure kills the worker and charges the principal's crash budget, never the supervisor; supervisor re-serializes all module output (I5), authorizes + audits every data_run before effect (I1, I6-host), module failure ⇒ Deny (I7) |
 
 "Provisional" means frozen now, with a named Phase-1 spike that may force one re-freeze before Phase 2.

@@ -1,0 +1,18 @@
+{
+  "allocation_strategy": "pooling",
+  "memory_reservation": 4294967296,
+  "memory_guard_size": 33554432,
+  "guard_before_linear_memory": true,
+  "signals_based_traps": true,
+  "pooling_total_core_instances": 64,
+  "pooling_total_memories": 64,
+  "pooling_total_tables": 64,
+  "pooling_max_memory_size": 16777216,
+  "memory_protection_keys": "no",
+  "wasm_memory64": false,
+  "wasm_gc": false,
+  "wasm_threads": false,
+  "wasm_component_model": false,
+  "epoch_interruption": true,
+  "consume_fuel": true
+}

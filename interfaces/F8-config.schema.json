@@ -81,6 +81,9 @@
     },
     "data": {
       "$ref": "#/$defs/data"
+    },
+    "p2": {
+      "$ref": "#/$defs/p2"
     }
   },
   "$defs": {
@@ -195,6 +198,20 @@
               "properties": {
                 "static": {
                   "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "wasm"
+              ],
+              "description": "P2 route target wasm:<module-id> (Phase 5, F14). The id must name a declared p2.modules[] entry (checked at load; a wasm route without a p2 block fails the load). The route's authz and data endowment apply unchanged: every F14 data_run is authorized against routes[].data (absent = no data capability).",
+              "properties": {
+                "wasm": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,31}$"
                 }
               }
             }
@@ -357,6 +374,216 @@
             "type": "string",
             "pattern": "^[a-z_][a-z0-9_]{0,62}$"
           }
+        }
+      }
+    },
+    "p2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker",
+        "modules"
+      ],
+      "description": "P2 isolation (Phase 5; F14 guest ABI and worker frames; SPEC_INVARIANTS H INV-P2). Absent: no P2 route can be configured. The cordon key is always the principal and is not configurable: no field of this block, or of any other F8 block, can name, share or merge a cordon, so a cordon shared by principals is unrepresentable (PLAN D1). Every limit is bounded and defaulted. Fuel is accounting (D6): wall_ms (epoch for a cordon, ITIMER_REAL for a fork child) is the DoS bound. Operator obligation, not a load check (p50 is unknown at load time): a module's fuel should stay <= 50x its route's p50 handler cost (q4-006). Boot refuses p2 routes (exit 78, fail closed) when the worker is missing, a module digest does not match, or Landlock ABI < 4.",
+      "properties": {
+        "worker": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._/-]{1,255}$",
+          "description": "Absolute path of the aegis-p2 worker binary; every zygote, cordon and compile process is a fresh execve of it (D8 exec respawn, never a fork of a template)."
+        },
+        "cache_dir": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._/-]{1,255}$",
+          "description": "Directory (0700, service user) for this boot's .cwasm files produced by the sandboxed `aegis-p2 compile`; absent = $RUNTIME_DIRECTORY/p2. Never a source of modules: a .cwasm is loaded only if its sha256 equals the digest the supervisor recorded at this boot's compile (D4)."
+        },
+        "isolation": {
+          "enum": [
+            "forkwasm",
+            "cordon"
+          ],
+          "default": "forkwasm",
+          "description": "Default path for multi-principal modules (D1, q4-006 flip): forkwasm = fork child of an exec-spawned single-threaded zygote, fresh instance per request; cordon = one exec-spawned cordon per principal, fresh instance per request. Switching is a config change plus reload, no rebuild. Single-tenant modules always run in a per-principal cordon."
+        },
+        "fuel": {
+          "type": "integer",
+          "minimum": 10000,
+          "maximum": 1000000000,
+          "default": 15000000,
+          "description": "Default per-request fuel (units). Accounting budget, not the DoS bound (D6)."
+        },
+        "wall_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100,
+          "description": "Default per-request wall-clock bound in ms: epoch deadline in a cordon, ITIMER_REAL in a fork child (R-ISO-3)."
+        },
+        "memory_mib": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "default": 16,
+          "description": "Default per-instance linear-memory cap in MiB (ResourceLimiter); table growth bounded by the same limiter."
+        },
+        "max_host_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "default": 10000,
+          "description": "Per-request cap on F14 host calls of every kind (I2). Breach traps the request."
+        },
+        "max_data_runs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024,
+          "default": 64,
+          "description": "Per-request cap on F14 data_run calls; also the handle-table size (I2). Breach traps the request."
+        },
+        "max_data_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864,
+          "default": 4194304,
+          "description": "Per-request cap on the summed encoded size of data_run ops and replies (I2). Breach traps the request."
+        },
+        "max_resp_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216,
+          "default": 1048576,
+          "description": "Per-request cap on response body bytes written through resp_write (I2). Breach traps the request; nothing is forwarded."
+        },
+        "max_log_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "Per-request cap on log bytes (I2). Breach traps the request."
+        },
+        "frame_max_bytes": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "Cap on one F14 worker<->supervisor frame (SOCK_SEQPACKET message). A larger or truncated frame is a decode failure: the worker is killed and the principal charged."
+        },
+        "cordon_slots": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024,
+          "default": 64,
+          "description": "Instance slots (pooling allocator) per cordon (D1: 64)."
+        },
+        "max_cordons": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096,
+          "default": 64,
+          "description": "Cap on live cordons (one per principal). At the cap the least-recently-used idle cordon is reaped; when none is idle the request is refused (503), never routed to another principal's cordon."
+        },
+        "cordon_idle_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400,
+          "default": 300,
+          "description": "An idle cordon is reaped after this many seconds."
+        },
+        "crash_budget": {
+          "$ref": "#/$defs/p2_crash_budget"
+        },
+        "mpk": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wasmtime memory_protection_keys as a density option only (D11): reservation (4 GiB) and guard (32 MiB) are asserted unchanged with and without it; never guard shrinking (GHSA-6wgr, GHSA-394w)."
+        },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/p2_module"
+          },
+          "description": "Module ids are unique (checked at load)."
+        }
+      }
+    },
+    "p2_module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "sha256"
+      ],
+      "description": "One P2 core Wasm module (F14 ABI). Imports outside the F14 allowlist refuse the module at compile (boot exit 78; reload keeps last-known-good, CFG-3).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9._/-]{1,250}\\.wasm$",
+          "description": "Absolute path of the .wasm (read-only in the worker's Landlock domain)."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Digest of the .wasm file; a mismatch at boot or reload refuses the module."
+        },
+        "tenancy": {
+          "enum": [
+            "multi",
+            "single"
+          ],
+          "default": "multi",
+          "description": "multi: runs on p2.isolation (default forkwasm). single: runs in a per-principal cordon (D1)."
+        },
+        "fuel": {
+          "type": "integer",
+          "minimum": 10000,
+          "maximum": 1000000000,
+          "description": "Per-module fuel override (per-route calibration); absent = p2.fuel."
+        },
+        "wall_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Per-module wall-clock override; absent = p2.wall_ms."
+        },
+        "memory_mib": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "description": "Per-module memory override; absent = p2.memory_mib."
+        }
+      }
+    },
+    "p2_crash_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-principal crash budget (D7): `crashes` crash-attributable faults (trap, abnormal child exit, cordon death, F14 decode failure caused by that principal's request) within `window_s` => that principal's P2 requests get 429 for `penalty_s`. Healthy failures and other principals' faults never count. Minimums are low so a gate can scale the windows down.",
+      "properties": {
+        "crashes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 3,
+          "description": "Faults that exhaust the budget."
+        },
+        "window_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "default": 60,
+          "description": "Sliding window in seconds (CLOCK_MONOTONIC)."
+        },
+        "penalty_s": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400,
+          "default": 600,
+          "description": "429 period in seconds."
         }
       }
     },

@@ -29,6 +29,7 @@ aegis-egress = { path = "crates/aegis-egress" }
 aegis-iso = { path = "crates/aegis-iso" }
 aegis-metrics = { path = "crates/aegis-metrics" }
 aegis-ops = { path = "crates/aegis-ops" }
+aegis-p2 = { path = "crates/aegis-p2" }
 aegis-state = { path = "crates/aegis-state" }
 aegis-tls = { path = "crates/aegis-tls" }
 aegis-token = { path = "crates/aegis-token" }
@@ -55,6 +56,19 @@ rustix = { version = "1.1.5", default-features = false, features = ["std", "net"
 # libsqlite3-sys 0.38.2 = SQLite 3.53.2 (golden floor >= 3.51.3; crash-harness pin). Trusted, not verified C (D3).
 # No default features: no hashlink statement cache (3 fewer crates); prepare per statement.
 rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
+# P2 isolation (PLAN-5 D3/D11, DEVIATIONS X-13): wasmtime links ONLY into the aegis-p2 worker binary (through
+# aegis-wasm), never into aegis-bin (gate no-wasmtime-in-bin). Exactly these five features (R-ISO-2; PLAN-5 D11 as
+# amended: memory-protection-keys is required for the MPK density option and implies call-hook): no
+# component-model, gc, threads, winch, wasi. Security floor 50.0.1 (RUSTSEC-2026-0422/0423/0424 affect 50.0.0; the
+# R-ISO-2 floor was >= 49.0.4, GHSA-897f). 50.0.1 needs cranelift ^0.137.1; both are 2 days old on 2026-10-31, so the
+# cooldown is bypassed through supply-chain/exceptions.toml (PLAN-5 D11) until they pass it on 2026-11-05.
+wasmtime = { version = "50.0.1", default-features = false, features = ["cranelift", "memory-protection-keys", "pooling-allocator", "runtime", "std"] }
+# SHA-256 of the .cwasm, checked in aegis-wasm before the one unsafe deserialize (PLAN-5 D4). Already in the aegis-p2
+# graph through cranelift-codegen, so no new crate; never in aegis-bin.
+sha2 = { version = "0.10.9", default-features = false }
+# aegis-iso raw syscalls (fork, prctl, seccomp, landlock_*, setitimer, _exit; PLAN-5 D4). Already in the lock and
+# in the default aegis-bin build (tokio/rustix); a root pin only, no new crate.
+libc = { version = "0.2.191", default-features = false, features = ["std"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

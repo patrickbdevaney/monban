@@ -27,6 +27,10 @@ skip = [
   { crate = "itertools@0.14.0", reason = "cedar-policy (aegis-pdp only)" },
   { crate = "syn@2.0.119", reason = "cedar-policy proc-macros (aegis-pdp only, build time)" },
   { crate = "unicode-width@0.1.14", reason = "cedar-policy (aegis-pdp only)" },
+  # P5-spec-002 (DEVIATIONS X-13): wasmtime 50.0.1 is linked only into the separate aegis-p2 worker; the shipped aegis
+  # binary has neither duplicate (gate no-wasmtime-in-bin).
+  { crate = "hashbrown@0.16.1", reason = "gimli 0.33 (wasmtime/cranelift; aegis-p2 only) vs 0.17.1 (indexmap)" },
+  { crate = "object@0.39.1", reason = "ar_archive_writer -> psm -> stacker (cedar-policy build time, aegis-pdp only) vs 0.40.0 (wasmtime, aegis-p2 only)" },
 ]
 allow-wildcard-paths = true  # workspace path deps
 deny = [

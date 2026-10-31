@@ -1,0 +1,22 @@
+[workspace]
+members = ["."]
+resolver = "2"
+
+[package]
+name = "synprobe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "synprobe"
+path = "src/main.rs"
+
+# No dependencies on purpose: the few libc symbols needed are declared by hand, so this oracle adds nothing to the
+# supply chain (isofi uses the libc crate for the same filter; this is the same design without it).
+[dependencies]
+
+[profile.release]
+opt-level = 2
+debug = false
+panic = "abort"

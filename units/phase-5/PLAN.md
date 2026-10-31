@@ -271,6 +271,11 @@ row is not edited here.
 - **D11 wasmtime pin and config (R-ISO-2).**
   - Version: wasmtime =50.0.0 (lock target; ≥49.0.4 floor, GHSA-897f). cranelift at whatever version passes lock-age
     on the day P5-spec-002 runs (Q12).
+    **Amended 2026-10-31 (integrator, after W0):** the pin is 50.0.1 (RUSTSEC-2026-0422/0423/0424 affect 50.0.0),
+    with cranelift 0.137.1, under the cooldown-bypass entries until 2026-11-05. The features are the four below plus
+    `memory-protection-keys` (which implies `call-hook`), because `PoolingAllocationConfig::memory_protection_keys`
+    only exists with that feature and the MPK density option is in scope. The oracles (isolation-fi,
+    wasmtime-config) use the same pin and feature set.
   - Features: `default-features = false` plus exactly cranelift, pooling-allocator, runtime and std. No
     component-model in Phase 5: F14 is a core-module ABI, and R-ISO-2 lists it only as optional. No gc, threads,
     winch, wasi, wasi-http or component-model-async. `memory64(false)` and `gc(false)` are set explicitly.

@@ -1,0 +1,142 @@
+# Frozen wasmtime pin and effective-config expectation (ARCHITECTURE §3.6 R-ISO-2, PLAN D4 + D11).
+# Checked by: python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2   (gate wasmtime-config)
+# Self-test:  python3 -I ci/wasmtime-config.py --self-test
+# Owner: spec author (unit P5-oracle-wtcfg-001). Implementers never edit this file. ci/wasmtime-config.py also holds
+# hard floors (4 GiB reservation, 32 MiB guard, guard before memory, epoch + fuel on, memory64/gc/threads/component
+# model off, MPK changes nothing but itself) and refuses this file if it is ever weakened below them.
+#
+# ---------------------------------------------------------------------------------------------------------------
+# Advisory texts (read 2026-10-31T11:27Z via https://api.github.com/advisories/<id>, User-Agent aegis-ci).
+# Quoted verbatim; the configuration shapes below are the advisories' own conditions, not guesses.
+#
+# GHSA-6wgr-89rj-399p (CVE-2026-34988), https://github.com/advisories/GHSA-6wgr-89rj-399p
+#   published 2026-04-09T20:23:58Z, updated 2026-04-10T14:40:08Z, severity low.
+#   Summary: "Wasmtime has data leakage between pooling allocator instances"
+#   Affected: wasmtime >= 28.0.0, < 36.0.7; >= 37.0.0, < 42.0.2; = 43.0.0 (patched 36.0.7, 42.0.2, 43.0.1).
+#   "Exposing this bug requires specific configuration values to be used. If any of these configurations are not
+#    applicable then this bug does not happen:
+#    * The pooling allocator must be in use.
+#    * The `Config::memory_guard_size` configuration option must be 0.
+#    * The `Config::memory_reservation` configuration must be less than 4GiB.
+#    * The pooling allocator must be configured with `max_memory_size` the same as the `memory_reservation` value."
+#   "For example it is strongly recommended that guard pages are configured for linear memories which would make
+#    this bug not applicable."
+#   => rule ghsa-6wgr-shape: allocation_strategy == "pooling" AND memory_guard_size == 0 AND
+#      memory_reservation < 4 GiB AND pooling_max_memory_size == memory_reservation.
+#
+# GHSA-394w-hwhg-8vgm (CVE-2026-35195), https://github.com/advisories/GHSA-394w-hwhg-8vgm
+#   published 2026-04-09T20:24:12Z, updated 2026-04-10T14:40:31Z, severity medium.
+#   Summary: "Wasmtime has out-of-bounds write or crash when transcoding component model strings"
+#   Affected: wasmtime < 24.0.7; >= 25.0.0, < 36.0.7; >= 37.0.0, < 42.0.2; = 43.0.0
+#   (patched 24.0.7, 36.0.7, 42.0.2, 43.0.1).
+#   "This enables a guest to cause the host to write arbitrary transcoded string bytes to an arbitrary location up
+#    to 4GiB away from the base of linear memory."
+#   "Wasmtime by default reserves 4GiB of virtual memory for a guest's linear memory meaning that this bug will by
+#    default on hosts cause the host to hit unmapped memory and abort the process due to an unhandled fault.
+#    Wasmtime can be configured, however, to reserve less memory for a guest and to remove all guard pages, so some
+#    configurations of Wasmtime may lead to corruption of data outside of a guest's linear memory, such as host data
+#    structures or other guests's linear memories."
+#   "There is no known workaround for this issue and affected hosts/embeddings are recommended to upgrade."
+#   => rule ghsa-394w-shape: memory_reservation < 4 GiB AND memory_guard_size == 0 (the advisory's "reserve less
+#      memory ... and remove all guard pages"). The vulnerable code path is component-model string transcoding;
+#      the component model is also off here (cargo feature absent, wasm_component_model false).
+#
+# wasmtime 50.0.0 is outside both affected ranges. The shapes are asserted anyway: R-ISO-2 says the 4 GiB + 32 MiB
+# layout is "never density-tuned by guard shrinking", and both advisories show that the default layout turned a bug
+# into a crash or a non-issue while the shrunk layout turned it into a cross-instance leak or host-memory write.
+# ---------------------------------------------------------------------------------------------------------------
+
+schema = 1
+
+[pin]
+# Lock target (supply-chain/lock-targets.toml). Floor 49.0.4 (GHSA-897f / GHSA-mghf, ARCHITECTURE §3.6).
+crate = "wasmtime"
+version = "50.0.1"
+floor = "49.0.4"
+
+[cargo_tree]
+# Static half. Run from the repo root; it resolves metadata only (no compile).
+command = ["cargo", "tree", "--offline", "--locked", "-e", "features", "-p", "aegis-p2"]
+# The exact set of `wasmtime feature "<f>"` nodes that the tree may show (feature closure, including cargo's
+# implicit dependency features). Recorded 2026-10-31 from a real `cargo tree -e features` of the
+# oracles/isolation-fi host manifest (wasmtime =50.0.0, default-features = false) with features
+# ["cranelift", "pooling-allocator", "runtime", "std", "memory-protection-keys"]
+# (fixture: ci/fixtures/wasmtime-config/clean/tree.txt).
+#
+# NOTE (D11 text vs. D11 MPK option): `PoolingAllocationConfig::memory_protection_keys` is
+# `#[cfg(feature = "memory-protection-keys")]` in wasmtime 50.0.0 (src/config.rs), and that feature is
+# ["pooling-allocator", "call-hook"]. D11 lists "exactly cranelift, pooling-allocator, runtime and std" but also
+# requires the MPK density option behind these assertions, which cannot be built without it. This expectation
+# therefore requires `memory-protection-keys` (+ its implied `call-hook`). The workspace pin set by P5-spec-002 must
+# include it. Recorded as an open issue for the integrator; no other feature is added.
+wasmtime_features = [
+  "call-hook",
+  "cranelift",
+  "memory-protection-keys",
+  "once_cell",
+  "pooling-allocator",
+  "runtime",
+  "std",
+  "wasmtime-jit-icache-coherence",
+  "wasmtime-unwinder",
+]
+# Crates that must not appear in the aegis-p2 tree. Exact names, then name prefixes.
+# wasmtime-wasi-http: RUSTSEC-2026-0350/0376 (never, ARCHITECTURE §3.6). wasi/winch/fiber(async)/wmemcheck: D11.
+forbidden_crates = [
+  "wasmtime-wasi",
+  "wasmtime-wasi-http",
+  "wasmtime-wasi-io",
+  "wasi-common",
+  "wasmtime-winch",
+  "wasmtime-internal-winch",
+  "winch-codegen",
+  "wasmtime-fiber",
+  "wasmtime-internal-fiber",
+  "wasmtime-wmemcheck",
+  "wasmtime-internal-wmemcheck",
+  "wasmtime-component-macro",
+  "wasmtime-internal-component-macro",
+]
+forbidden_crate_prefixes = ["wasmtime-wasi", "wasi-common", "wasmtime-winch", "wasmtime-internal-winch", "winch-"]
+
+[lock]
+# Cargo.lock (repo root): exactly one `wasmtime` package, at pin.version; every wasmtime-* package at pin.version;
+# no package named by the wasi prefixes above (the lock lists optional deps, so only the wasi family is judged here;
+# fiber/winch are judged on the tree, which is the real build graph).
+forbidden_crate_prefixes = ["wasmtime-wasi", "wasi-common"]
+
+[deserialize]
+# PLAN D4 / runwasi CVE-2026-47218: exactly one Module/Component deserialize call in the product tree, in
+# aegis-wasm, on a .cwasm whose sha256 was checked first. Comments are ignored; strings are not (stricter).
+scan_roots = ["crates", "subjects"]
+expected_sites = 1
+site_prefix = "crates/aegis-wasm/src/"
+
+[effective]
+# Runtime half: `aegis-p2 config --json` must print exactly this JSON object (same keys, same values, nothing
+# else) for the built-in F8 defaults (no config file). The values are the ones passed to wasmtime::Config and
+# PoolingAllocationConfig, and the JSON must be produced from the same settings value the engine is built from,
+# never from a separate literal. Keys are wasmtime 50.0.0 setter names (pooling_* = PoolingAllocationConfig).
+# wasm_threads / wasm_component_model have no setter without their cargo features: report false.
+# memory_protection_keys: "no" | "yes" (wasmtime Enabled::No / Enabled::Yes; "auto" is refused: host-dependent).
+allocation_strategy = "pooling"
+memory_reservation = 4294967296          # 4 GiB, never less
+memory_guard_size = 33554432             # 32 MiB, never shrunk
+guard_before_linear_memory = true
+signals_based_traps = true
+pooling_total_core_instances = 64        # q4-006 / isolation-fi reference pool
+pooling_total_memories = 64
+pooling_total_tables = 64
+pooling_max_memory_size = 16777216       # F8 p2.memory_mib default 16; strictly below memory_reservation
+memory_protection_keys = "no"
+wasm_memory64 = false
+wasm_gc = false
+wasm_threads = false
+wasm_component_model = false
+epoch_interruption = true
+consume_fuel = true
+
+[effective_mpk]
+# `aegis-p2 config --json --mpk` must equal [effective] with only these keys changed. Reservation, guard and every
+# other key stay identical (ARCHITECTURE §3.6: MPK is density "while keeping guard protection", never shrinking).
+memory_protection_keys = "yes"

@@ -49,7 +49,7 @@ serving host process down (abort); code 2 must corrupt that process's host state
 process is wrong (the reference XORs results with 0x5a5a). Real AEGIS hosts wire these two codes in a test-only
 build. A subject that does not honour them cannot claim the host-fault rows.
 
-Reference subjects (built from `rust/`, Wasmtime 49.0.3, pooling allocator, 16 MiB limiter, default guards,
+Reference subjects (built from `rust/`, Wasmtime 50.0.1, pooling allocator, 16 MiB limiter, default guards,
 Landlock + seccomp, dumpable=0):
 - `isofi serve cordon --threads 64 --budget fuel:15000000 --epoch-ms 100`: fresh instance per request in one
   process.
@@ -65,11 +65,69 @@ Landlock + seccomp, dumpable=0):
 | no-deadline: no fuel, no epoch deadline | cordon | G4 loop x0.02, G3 |
 | no-fork: the zygote serves requests in-process | forkwasm | G2 hostpoison (915 wrong), G1 |
 | no-deadline: no fuel, no itimer | forkwasm | G4 loop x0.08, G3 |
+| epoch-only-4: epoch-only 100 ms, 4 threads (research E4; Phase 5) | cordon | G4 loop x0.14 |
+| reuse-instance: the forked child keeps its instance and serves 50 more connections (Phase 5) | forkwasm | G2 poison (206 wrong), G1 |
+
+`--self-test` also runs offline reference/record checks before any subject: a synthetic timing metric 2.1x the
+reference (and a throughput 1/2.1x) is flagged, 1.9x is not, and a red cell set judged before and after loading a
+mutated reference (mirrored red values, fake loose thresholds, verdict "PASS") keeps the same failures. Setting the
+flag ratio to 1.8 or 2.2 turns these checks red (checked by hand, 2026-10-31).
 
 The unmutated reference subjects must pass the same cells (the control), so the self-test also fails if the oracle
 is red on a correct subject. The no-fork mutation is *not* caught by hostabort alone: a single-threaded in-process
 server behind a supervisor-held socket loses only the in-flight request on abort (0 healthy failures, 3-4.5 ms
 restart). That is why hostpoison exists.
+
+## Phase 5: real subject, trials, record and reference (unit P5-oracle-fi-001, PLAN D10/D14)
+
+`needs` = `quiet-host`: the timing gates G3/G4 run on the laptop (the quiet host and reference runner, PLAN D10),
+so `ci/oracles.sh --where remote` no longer runs this oracle on the shared desktop.
+
+| option | meaning |
+|---|---|
+| `--trials N` | pool N driver runs per cell (seeds `s`, `s+1000`, ...). Counts are summed, so G1 = sum healthy failures / sum injected (3 trials: about 90 faults per class, PLAN D14). G3 recovery p50/p99 are recomputed over the concatenated per-fault samples. Throughput = total requests / total wall time. Latency p99 = the worst trial's. The timing-only re-drive of a failing cell re-drives the whole pooled cell once. |
+| `--record <json>` | write per-cell metrics (format `isolation-fi-record/1`: per path, host facts, subject, trials, n, rate, cores, verdict, and per cell the counts, latency and recovery percentiles, rps, `rps_vs_baseline`). It merges by path into an existing record file, so two runs (`--path forkwasm`, `--path cordon`) can build one reference file. |
+| `--reference <json>` (repeatable) | after the verdict is fixed, print this runner/reference ratios for the timing metrics `p50_us p99_us recovery_p50_us recovery_p99_us rps rps_vs_baseline` and flag any shift above 2x in either direction. Report only: thresholds never move, and the reference file is never passed to the evaluator. A per-runner threshold needs an integrator Decision (PLAN D10). Count metrics are never ratioed. |
+| `--self-test --path P --subject S --mutant-subject M` | real-subject self-test. S (golden build) and M with `AEGIS_P2_MUTANT` unset must pass the self-test cells (none, poison, loop, hostabort, hostpoison; n=1000). M is then run with `AEGIS_P2_MUTANT=<m>`, every cell for every mutant, and each mutant must turn the verdict red: forkwasm {no-fork, no-deadline, reuse-instance}, cordon {shared-store, recycle50, no-deadline, epoch-only-4}. A mutant that cannot serve the no-fault baseline counts as MISSED (broken, not caught). The oracle strips any inherited `AEGIS_P2_MUTANT` from control runs. |
+| `--server-core C --client-cores a,b` | CPU pinning (taskset). Default `2` / `4,5,6,7`. On a 4-core runner (kamrui, Intel N95) use `--server-core 1 --client-cores 2,3`, which leaves core 0 for the OS and the driver's supervisor (PLAN D10). |
+
+Real subject contract: the p2-subject speaks the 8-byte protocol above on fd 3, honours `env.host_fault` codes 1
+and 2 in its test build, and in its `mutants` build reads `AEGIS_P2_MUTANT`. hostabort/hostpoison are gated for
+forkwasm and reported for cordon. The reference `isofi serve` also reads `AEGIS_P2_MUTANT` when `--mutation` is not
+given, so the mode is exercised before the real subject exists.
+
+Measured on 2026-10-31 (laptop i9-14900HX, 32 threads, load average 12-14 from other agents' builds: not quiet).
+The real p2-subject did not exist yet (built by P5-iso-002/003), so `--mutant-subject` mode was run with the
+reference binary as both the subject and the mutants build:
+
+```
+forkwasm: control subject PASS; control mutants build (AEGIS_P2_MUTANT unset) PASS
+  no-fork        CAUGHT: G2 hostpoison wrong_answers=982; G1 hostpoison blast=89.273
+  no-deadline    CAUGHT: G3 loop unrecovered; G4 loop throughput x0.083<0.5
+  reuse-instance CAUGHT: G2 poison wrong_answers=208; G2 hostpoison wrong_answers=77
+ISOLATION-FI SELF-TEST: PASS (forkwasm real subject: 3/3 mutants caught ...)
+cordon: control subject PASS; control mutants build PASS
+  shared-store   CAUGHT: G2 poison wrong_answers=950
+  recycle50      CAUGHT: G2 poison wrong_answers=126
+  no-deadline    CAUGHT: G4 loop throughput x0.023<0.5
+  epoch-only-4   CAUGHT: G4 loop throughput x0.192<0.5
+ISOLATION-FI SELF-TEST: PASS (cordon real subject: 4/4 mutants caught ...)
+negative control: a "mutants build" that ignores AEGIS_P2_MUTANT (env -u) ->
+ISOLATION-FI SELF-TEST: FAIL (missed: no-fork, no-deadline, reuse-instance)
+```
+
+Record and reference, same day: `--trials 3 --record` on both reference paths wrote one file with 86-100 injected
+faults per class. A red subject (`--mutation shared-store`) judged with a mutated reference (timing x2.1, fake
+thresholds, verdict PASS) stayed `FAIL` (G2 poison 2845 wrong); a green subject against the same mutated reference
+stayed `PASS` with 47 of 52 metrics flagged (5 were within 2x because the run's own timing shifted); against the
+unmutated record it flagged 0.
+
+Unit acceptance `./run --self-test && ./run --trials 3` (gate timing mode, fresh build each run):
+- load average 7.7 rising to 29 (an unrelated 12-core test job): self-test PASS (7/7); `--trials 3` FAIL on
+  `forkwasm G3 oom recovery_p99=5918us` after the timing re-drive. All count criteria were green.
+- load average 4.7: `ISOLATION-FI SELF-TEST: PASS (7/7 mutations caught; unmutated control passes; reference checks
+  pass; 14s)` and `ISOLATION-FI: PASS (cordon, forkwasm; 8 fault classes at 1%; 3 trial(s) per cell; 24s)`. Pooled
+  oom recovery p99: cordon 2317 us, forkwasm 3670 us. Loop throughput: cordon x0.70, forkwasm x0.86.
 
 ## Re-run in this repository (2026-10-25, laptop i9-14900HX, shared machine)
 
@@ -118,18 +176,23 @@ The research result reproduced here: E4 (epoch-only, 4 threads) gives loop p99 x
 
 ## Pin
 
-`wasmtime =50.0.0` (2026-10-20) is the lock target and meets the ARCHITECTURE floor of >=49.0.4 (GHSA-897f).
-It was re-pinned from 49.0.3 on 2026-10-29. cranelift is held at 0.137.0 because 0.137.1 (2026-10-29) was under the
-7-day lock age. To re-pin: edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check
+`wasmtime =50.0.1` (2026-10-29) is the lock target, matching the product pin in the workspace Cargo.toml
+(features cranelift, memory-protection-keys, pooling-allocator, runtime, std; PLAN-5 D11 as amended). It was re-pinned
+from 49.0.3 to 50.0.0 on 2026-10-29 and to 50.0.1 on 2026-10-31, because RUSTSEC-2026-0422/0423/0424 affect 50.0.0;
+50.0.1 needs cranelift 0.137.1. Both were under the 7-day lock age on 2026-10-31 and are covered until 2026-11-05 by
+the cooldown-bypass entries in supply-chain/exceptions.toml. To re-pin: edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check
 every lock entry is at least 7 days old (`lock-dates.txt` holds the current dates; the newest are the wasmtime
-50.0.0 crates, 2026-10-20). Toolchain: Rust
+50.0.1 / cranelift 0.137.1 crates, 2026-10-29). Toolchain: Rust
 1.98.0 (`rust/rust-toolchain.toml`), the installed toolchain that has the wasm32-unknown-unknown target.
 `build.sh` changes into `rust/` so that rustup resolves that toolchain file.
 
 ## Known limits
 
-- The reduced run is 1 trial per cell, with about 30 faults per class. A blast of 0.05 per fault is resolvable only
-  as "0 or more than 0.03", so the spike's 5-trial run is the measurement and the oracle is a gate.
+- The default run is 1 trial per cell, with about 30 faults per class. A blast of 0.05 per fault is resolvable only
+  as "0 or more than 0.03"; the Phase-5 gates use `--trials 3` (about 90 faults per class, PLAN D14).
+- The cordon oom recovery p99 is marginal against 5 ms (q4-006: 1.2-6.6 ms). Pooled over 3 trials on the loaded
+  laptop on 2026-10-31 it was 5620 us (FAIL), after one timing re-drive. This is a property of the measured design
+  under load, not of the oracle. The gate is defined for a quiet host.
 - Timing gates depend on the hardware: the fork path's loop service gap was 6.8 ms on an Intel N95. Re-calibrate the
   budgets or the thresholds on a quiet VPS-class runner, as Phase 5 requires.
 - Host faults are simulated through `env.host_fault`. The negative syscall tests, the hostile-module corpus (I1-I7)
