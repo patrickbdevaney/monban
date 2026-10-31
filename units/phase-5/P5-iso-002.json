@@ -1,45 +1,45 @@
 {
- "id": "P5-iso-002",
- "role": "implementer",
- "crates": [
-  "aegis-iso (exec zygote, fork+Wasm, supervisor spawn/respawn)",
-  "aegis-p2 (worker main)",
-  "subjects/p2-subject (forkwasm serve)"
- ],
- "depends_on": [
-  "P5-iso-001",
-  "P5-wasm-001",
-  "P5-oracle-fi-001"
- ],
- "start_now": false,
- "gates": [
-  "p2-fault-forkwasm"
- ],
- "spec_refs": [
-  "spikes/q4-006 decision_effect (zygote: Engine + precompiled Module + InstancePre, no compiler state; fresh instance in the child; ITIMER_REAL; Landlock + seccomp in the zygote)",
-  "ARCHITECTURE R-ISO-5 exec spawn; supervisor-held listening socket",
-  "oracles/isolation-fi subject protocol",
-  "PLAN D5 (child filter, measure install cost), D8, D14, D15"
- ],
- "oracles": [
-  "oracles/isolation-fi --path forkwasm (real subject, 3 trials at GO) and --self-test --mutant-subject"
- ],
- "acceptance": {
-  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe' --path forkwasm",
-  "must": "PASS on the laptop in gate timing mode: 0 healthy failures and 0 wrong answers per fault on panic, abort, segv, loop, oom, poison, hostabort, hostpoison; recovery p99 <= 5 ms; loop throughput >= 0.5x; mutants no-fork, no-deadline, reuse-instance red; child-filter install cost per fork reported (p50/p99) in the unit status"
- },
- "write_scope": [
-  "crates/aegis-iso/src/zygote/**",
-  "crates/aegis-iso/src/supervisor/**",
-  "crates/aegis-iso/src/lib.rs",
-  "crates/aegis-iso/tests/zygote*.rs",
-  "crates/aegis-p2/src/main.rs",
-  "crates/aegis-p2/src/zygote.rs",
-  "subjects/p2-subject/**"
- ],
- "notes": "Worker main subcommands: zygote, cordon (stub returning exit 78 until P5-iso-003), compile/config (P5-wasm-001 module), probe (test-hooks). The zygote re-exec rule from isofi (start from the cached precompiled module) is kept. The supervisor API (spawn by execve with the inherited listening fd, respawn by execve, never fork-from-template) lives in aegis-iso::supervisor and is consumed by aegis-bin in P5-bin-001.",
- "infeasible_exit": true,
- "max_retries": 30,
- "passes": false,
- "status": "blocked (INFEASIBLE_REPORT: subjects/p2-subject/INFEASIBLE_REPORT.md): the isolation-fi guest (handle(id,fault), env.host_fault) cannot run through aegis-wasm as committed (F14-only Worker, no host_fault, no wasmtime re-export) and crates/aegis-wasm/** is outside this write scope. Minimal fix supplied as subjects/p2-subject/aegis-wasm-fi.patch (test-hooks-only aegis-wasm/src/fi.rs, no unsafe, no new dep) + 1-line path-only Cargo.lock re-lock (p2-subject -> aegis-wasm). WITH the patch applied (uncommitted), laptop 6.17.0-14, Landlock ABI 7: isolation-fi --trials 3 --path forkwasm PASS in gate timing mode, no retries [load 5.0]: 0 healthy failures/0 wrong answers on panic, abort, segv, loop, oom, poison, hostabort, hostpoison; recovery p99 max 3112 us (oom); loop x0.905; --self-test --mutant-subject PASS 3/3 (no-fork G2 hostpoison 983 wrong; no-deadline G4 x0.192; reuse-instance G2 poison 188 wrong) [8.6]; reference --self-test 7/7 [8.5]; syscall-negative p2-subject probe PASS 77/77 [9.3]; aegis-p2 probe (test-hooks) PASS 77/77 [8.8]; syscall-negative --self-test 7/7. Child-filter install cost per fork (p2-subject forkcost n=3000, 2 runs, load 4.6): p50 21.8 us, p99 25.3-25.6 us; fork+fresh instance+call p50 167-169 us with the filter vs 148-149 us without. Committed: aegis-iso zygote (fork per connection, child closes the listener, child filter, ITIMER_REAL, WNOHANG reap; mutants no-fork/no-deadline/reuse-child) and supervisor (execve with the listener at fd 3, env cleared to AEGIS_P2_*, respawn by execve only); aegis-p2 main (config/compile dispatch kept; compile runs under the new Profile::compile; zygote = F14 ready/request/body-chunk/resp-end, plus the layout frame and the AEGIS_P2_TEST_LANDLOCK_ABI override in test-hooks/mutants builds; cordon exit 78; probe in test-hooks); p2-subject serve forkwasm (compile+hash+re-exec, digest-checked load, Profile::zygote) and forkcost. Integrator-directed edits outside write_scope (binding note: compile profile writing the --out dir): sandbox/filter.rs Kind::Compile = cordon layout + fsync/fdatasync/rename*/unlink* (DENYLIST and the zygote/cordon/child programs unchanged), landlock.rs write-dir rule, mod.rs Profile::compile/write_dirs, probe.rs match arm. No syscall had to be added for the real Wasmtime zygote/child. aegis-iso unsafe 13/20; unsafe-sites, layering, fmt and clippy -D warnings (aegis-iso + aegis-p2 in 3 feature sets, p2-subject x2, aegis-wasm with the patch) clean; cargo test aegis-iso 18/18, aegis-p2 3/3; wasmtime-config check PASS. Acceptance-cmd defects: the combined -p p2-subject -p aegis-p2 build violates D18 (run split); the trailing --path forkwasm is rejected by synneg.py (exit 2; the gate form passes)."
+  "id": "P5-iso-002",
+  "role": "implementer",
+  "crates": [
+    "aegis-iso (exec zygote, fork+Wasm, supervisor spawn/respawn)",
+    "aegis-p2 (worker main)",
+    "subjects/p2-subject (forkwasm serve)"
+  ],
+  "depends_on": [
+    "P5-iso-001",
+    "P5-wasm-001",
+    "P5-oracle-fi-001"
+  ],
+  "start_now": false,
+  "gates": [
+    "p2-fault-forkwasm"
+  ],
+  "spec_refs": [
+    "spikes/q4-006 decision_effect (zygote: Engine + precompiled Module + InstancePre, no compiler state; fresh instance in the child; ITIMER_REAL; Landlock + seccomp in the zygote)",
+    "ARCHITECTURE R-ISO-5 exec spawn; supervisor-held listening socket",
+    "oracles/isolation-fi subject protocol",
+    "PLAN D5 (child filter, measure install cost), D8, D14, D15"
+  ],
+  "oracles": [
+    "oracles/isolation-fi --path forkwasm (real subject, 3 trials at GO) and --self-test --mutant-subject"
+  ],
+  "acceptance": {
+    "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe'",
+    "must": "PASS on the laptop in gate timing mode: 0 healthy failures and 0 wrong answers per fault on panic, abort, segv, loop, oom, poison, hostabort, hostpoison; recovery p99 <= 5 ms; loop throughput >= 0.5x; mutants no-fork, no-deadline, reuse-instance red; child-filter install cost per fork reported (p50/p99) in the unit status"
+  },
+  "write_scope": [
+    "crates/aegis-iso/src/zygote/**",
+    "crates/aegis-iso/src/supervisor/**",
+    "crates/aegis-iso/src/lib.rs",
+    "crates/aegis-iso/tests/zygote*.rs",
+    "crates/aegis-p2/src/main.rs",
+    "crates/aegis-p2/src/zygote.rs",
+    "subjects/p2-subject/**"
+  ],
+  "notes": "Worker main subcommands: zygote, cordon (stub returning exit 78 until P5-iso-003), compile/config (P5-wasm-001 module), probe (test-hooks). The zygote re-exec rule from isofi (start from the cached precompiled module) is kept. The supervisor API (spawn by execve with the inherited listening fd, respawn by execve, never fork-from-template) lives in aegis-iso::supervisor and is consumed by aegis-bin in P5-bin-001.",
+  "infeasible_exit": true,
+  "max_retries": 30,
+  "passes": true,
+  "status": "passed (integrator, 2026-10-31): blocked only on scope; integrator applied the test-hooks aegis-wasm fi module (PLAN D20) and fixed two acceptance-cmd defects (split the D18-forbidden combined build; dropped the --path flag synneg.py rejects). Gate p2-fault-forkwasm on main: cmd PASS (8 fault classes, 3 trials, load 3.1); selftest PASS (reference 7/7; real subject 3/3 no-fork, no-deadline, reuse-instance; load 7.2). Unit's own results: laptop 6.17.0-14, Landlock ABI 7: isolation-fi --trials 3 --path forkwasm PASS in gate timing mode, no retries [load 5.0]: 0 healthy failures/0 wrong answers on panic, abort, segv, loop, oom, poison, hostabort, hostpoison; recovery p99 max 3112 us (oom); loop x0.905; --self-test --mutant-subject PASS 3/3 (no-fork G2 hostpoison 983 wrong; no-deadline G4 x0.192; reuse-instance G2 poison 188 wrong) [8.6]; reference --self-test 7/7 [8.5]; syscall-negative p2-subject probe PASS 77/77 [9.3]; aegis-p2 probe (test-hooks) PASS 77/77 [8.8]; syscall-negative --self-test 7/7. Child-filter install cost per fork (p2-subject forkcost n=3000, 2 runs, load 4.6): p50 21.8 us, p99 25.3-25.6 us; fork+fresh instance+call p50 167-169 us with the filter vs 148-149 us without. Committed: aegis-iso zygote (fork per connection, child closes the listener, child filter, ITIMER_REAL, WNOHANG reap; mutants no-fork/no-deadline/reuse-child) and supervisor (execve with the listener at fd 3, env cleared to AEGIS_P2_*, respawn by execve only); aegis-p2 main (config/compile dispatch kept; compile runs under the new Profile::compile; zygote = F14 ready/request/body-chunk/resp-end, plus the layout frame and the AEGIS_P2_TEST_LANDLOCK_ABI override in test-hooks/mutants builds; cordon exit 78; probe in test-hooks); p2-subject serve forkwasm (compile+hash+re-exec, digest-checked load, Profile::zygote) and forkcost. Integrator-directed edits outside write_scope (binding note: compile profile writing the --out dir): sandbox/filter.rs Kind::Compile = cordon layout + fsync/fdatasync/rename*/unlink* (DENYLIST and the zygote/cordon/child programs unchanged), landlock.rs write-dir rule, mod.rs Profile::compile/write_dirs, probe.rs match arm. No syscall had to be added for the real Wasmtime zygote/child. aegis-iso unsafe 13/20; unsafe-sites, layering, fmt and clippy -D warnings (aegis-iso + aegis-p2 in 3 feature sets, p2-subject x2, aegis-wasm with the patch) clean; cargo test aegis-iso 18/18, aegis-p2 3/3; wasmtime-config check PASS. Acceptance-cmd defects: the combined -p p2-subject -p aegis-p2 build violates D18 (run split); the trailing --path forkwasm is rejected by synneg.py (exit 2; the gate form passes)."
 }

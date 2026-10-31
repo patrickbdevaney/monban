@@ -1701,6 +1701,7 @@ name = "p2-subject"
 version = "0.0.0"
 dependencies = [
  "aegis-iso",
+ "aegis-wasm",
 ]
 
 [[package]]
