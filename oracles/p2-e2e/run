@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# AEGIS oracle: p2-e2e, the P2 supervisor end to end (unit P5-oracle-e2e-001, gate p2-e2e). Contract: oracles/README.md;
+# subject contract: oracles/p2-e2e/README.md. Last line: P2-E2E: PASS|FAIL (...) / P2-E2E SELF-TEST: PASS|FAIL (...)
+#   ./run                                   the reference subject (ref_subject.py + ref_worker.py)
+#   ./run --self-test                       reference must PASS, each of the 8 reference mutants must FAIL
+#   ./run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 \
+#         --test-worker target/p2-test/release/aegis-p2                         the real binary (gate cmd)
+#   ./run --self-test --subject .. --worker .. --mutant-subject target/p2-mutants/release/aegis \
+#         --mutant-worker target/p2-mutants/release/aegis-p2 [--mutant-test-worker ..]   real negative controls
+# Real runs build the Wasm guests (oracles/p2-e2e/guest, wasm32-unknown-unknown) through ci/heavy.sh.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/e2e.py" "$@"

@@ -28,6 +28,6 @@
  "notes": "Interfaces of the run: --subject <aegis> --worker <aegis-p2> [--test-worker <aegis-p2 test-hooks>] [--mutant-subject ... --mutant-worker ...]. default-subject is written by P5-bin-001 once green. Guests built by the oracle (wasm32-unknown-unknown, as isolation-fi).",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "open"
+ "passes": true,
+ "status": "pass: oracles/p2-e2e (needs=quiet-host). ./run on the reference mock (ref_subject.py + ref_worker.py): PASS 161 checks, 20.5 s; ./run --self-test: PASS, 8/8 mutants red on their expected check family (shared-cordon 7, fork-respawn 1, global-crash-budget 9, no-crash-budget 3, budget-counts-healthy 5, dumpable-1 7, no-reload-switch 32, boot-without-landlock-accepted 2), 103 s at load 5.4 (an earlier identical PASS at load 46.6). Families: dump (effective defaults 3/60/600, forkwasm, 15M/100/16, mpk false + scaled knobs), boot exit 78 + never listened (missing worker, digest, undeclared module, wasm route w/o p2, 7 shared-cordon spellings, Landlock ABI 3 via test-hooks override with ABI 4 control), wasm answers under forkwasm, cordon and across reloads both ways (strict F14 req-head echo), per-principal cordons + kill isolation, crash budget (healthy not counted, sliding window, 429, other principal, expiry), dumpable=0, exec respawn (zygote and cordon: new pid + new layout load base). Guests: Rust wasm32 (oracles/p2-e2e/guest) built via ci/heavy.sh, export-rewritten to memory+handle and F14-import-checked; real-mode path exercised against pre-p2 target/release/aegis: red as expected (config rejects /p2)."
 }
