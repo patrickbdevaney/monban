@@ -7,7 +7,7 @@
 //!   compile sandbox first (`Profile::compile`: no fork, no network, Landlock read on `--in`, write beneath the
 //!   `--out` directory, seccomp, dumpable=0), then runs config.rs's compile. Exit 78 = refused.
 //! - `zygote --module <c.cwasm> --sha256 <hex> [...]`: the fork+Wasm zygote (zygote.rs).
-//! - `cordon ...`: fails closed (exit 78) until P5-iso-003.
+//! - `cordon --module <c.cwasm> --sha256 <hex> [...]`: the per-principal fresh-Wasm cordon (cordon.rs, P5-iso-003).
 //! - `probe ...` (`test-hooks` only): the syscall-negative probe protocol on the worker's own sandbox profiles.
 //!
 //! `test-hooks` and `mutants` builds read `AEGIS_P2_TEST_LANDLOCK_ABI=<n>` as the detected Landlock ABI for
@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 mod config;
+mod cordon;
 mod zygote;
 
 use std::path::{Path, PathBuf};
@@ -51,7 +52,7 @@ fn main() -> ExitCode {
             config::dispatch(&args).unwrap_or_else(|| fail(EX_CONFIG, "compile: not dispatched"))
         }
         "zygote" => zygote::run(rest),
-        "cordon" => fail(EX_CONFIG, "cordon: not implemented yet (P5-iso-003); fail closed"),
+        "cordon" => cordon::run(rest),
         #[cfg(feature = "test-hooks")]
         "probe" => ExitCode::from(aegis_iso::sandbox::probe::run(rest)),
         _ => match config::dispatch(&args) {

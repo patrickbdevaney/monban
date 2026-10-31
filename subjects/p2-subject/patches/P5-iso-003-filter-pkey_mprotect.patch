@@ -1,0 +1,21 @@
+--- a/crates/aegis-iso/src/sandbox/filter.rs
++++ b/crates/aegis-iso/src/sandbox/filter.rs
+@@ -192,6 +192,7 @@
+     pub const EXECVEAT: u32 = 322;
+     pub const USERFAULTFD: u32 = 323;
+     pub const MEMBARRIER: u32 = 324;
++    pub const PKEY_MPROTECT: u32 = 329;
+     pub const STATX: u32 = 332;
+     pub const RSEQ: u32 = 334;
+     pub const KEXEC_LOAD: u32 = 246;
+@@ -320,6 +321,10 @@
+     nr::MREMAP,
+     nr::BRK,
+     nr::MEMBARRIER,
++    // Wasmtime's pooling allocator with memory_protection_keys (F8 `p2.mpk`, D11): it colours each slot's pages
++    // with a key allocated at engine creation (pkey_alloc stays denied after install) on every instance
++    // allocation. Same power as mprotect on the process's own mappings.
++    nr::PKEY_MPROTECT,
+     nr::FUTEX,
+     nr::SET_ROBUST_LIST,
+     nr::RSEQ,
