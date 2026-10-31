@@ -318,3 +318,10 @@ row is not edited here.
 - **D19 integrator wiring after W1.** `aegis-bin` refuses `{"wasm": id}` routes with a fail-closed error until
   P5-bin-001 lands (plan.rs). `aegis-p2 main` dispatches `config` and `compile` (P5-wasm-001). The unsandboxed
   `compile` refuses unless NoNewPrivs=1 and Seccomp=2, until P5-iso-002 installs the compile profile.
+- **D20 fault-injection guest support in aegis-wasm (integrator, after W2).** The isolation-fi guest exports
+  `handle(id, fault)` and imports `env.host_fault`, so it is not an F14 module. `crates/aegis-wasm/src/fi.rs` runs it
+  behind `test-hooks` only: no unsafe code, no new dependency, the same engine config, the same digest-checked load
+  and a fresh instance per call. P5-iso-002 supplied it as a patch because aegis-wasm is outside its write scope; the
+  integrator applied it. P5-wasm-002 owns the file from here on and must keep it test-hooks only. The P5-iso-002
+  compile profile (Kind::Compile: cordon layout plus fsync, rename and unlink, with Landlock write access only under
+  `--out`) was reviewed and accepted; the denylist is unchanged.

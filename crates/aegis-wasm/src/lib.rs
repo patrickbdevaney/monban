@@ -14,6 +14,8 @@
 
 pub mod abi;
 pub mod engine;
+#[cfg(feature = "test-hooks")]
+pub mod fi;
 pub mod store;
 
 pub use engine::cwasm::{CwasmError, Digest};
