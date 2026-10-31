@@ -1,0 +1,189 @@
+; Frozen interface F14: P2 core-module guest ABI and the aegis-p2 worker <-> supervisor frames (Phase 5,
+; P5-spec-001; PLAN D1, D2, D6, D7, D11, D12, D13; SPEC_INVARIANTS H, INV-P2).
+;
+; Scope. A P2 module is a core WebAssembly module (no component model, no WASI: D13). It runs in the aegis-p2
+; worker (a fork child of the exec-spawned zygote, or a per-principal cordon), one fresh instance per request.
+; The worker talks to the supervisor (aegis-bin, feature p2) over SOCK_SEQPACKET Unix sockets with the frames
+; below. The supervisor holds all authority: the module and the worker hold none (I1).
+;
+; Encoding. Every structure here, and every value a host call copies into or out of guest memory, uses the F10
+; encoding rule (postcard positional: unsigned integers LEB128 varints, signed integers zigzag + varint, tstr and
+; bstr and arrays length-prefixed with a varint, a choice as a varint discriminant followed by its fields, bool
+; one byte 0/1, null as discriminant 0 of an option and a value as discriminant 1). The CDDL below is the
+; normative shape. The data_run op is the F10 `op` rule, cited by name: F10 bytes and shapes are unchanged.
+;
+; ------------------------------------------------------------------------------------------------------------
+; Part 1. Guest ABI (Wasm core types; all pointers and lengths are i32 offsets into the module's memory 0)
+; ------------------------------------------------------------------------------------------------------------
+;
+; Exports (exactly these; any other export, a missing one or a wrong type refuses the module at compile):
+;   memory                                  memory 0, 32-bit (memory64 off: D11), grown only under the limiter
+;   handle() -> i32                         completion status, read as u32:
+;                                             0 = done/Allow: the response written through resp_head/resp_write
+;                                                 is the module's answer;
+;                                             1 = Deny: the module refuses; anything written is discarded;
+;                                             any other value = Error.
+;                                           A trap, fuel exhaustion, wall timeout, quota breach or worker death
+;                                           is also Error. Error => Deny (I7, F6 tri-state combiner: the module
+;                                           decision is one input, never the only one).
+; A start function is allowed and runs under the same fuel, wall and memory bounds as handle().
+;
+; Imports: a closed allowlist in module "aegis". A module importing anything else (another name, another module,
+; a memory, table or global, or an allowlisted name with another type) is refused by `aegis-p2 compile` before
+; instantiation, and the worker's Linker defines only these names, so instantiation would fail too (I1).
+;
+;   aegis.req_head(dst: i32, cap: i32) -> i32
+;       Total encoded length L of `req-head` (below). Writes the encoding at dst only if cap >= L (all or
+;       nothing), so a module can size its buffer with cap = 0.
+;   aegis.req_body_read(dst: i32, cap: i32) -> i32
+;       Copies up to cap bytes of the next request-body bytes to dst; returns the count, 0 at end of body.
+;   aegis.resp_head(status: i32, src: i32, len: i32) -> i32
+;       status in 200..599; src/len = encoded `resp-headers`. Returns 0. Traps if called twice, with a status
+;       out of range, or with headers that fail the I5 rules below.
+;   aegis.resp_write(src: i32, len: i32) -> i32
+;       Appends response body bytes. Returns 0. Traps before resp_head, or past p2.max_resp_bytes.
+;   aegis.log(level: i32, src: i32, len: i32) -> i32
+;       level 0 error, 1 warn, 2 info, 3 debug, 4 trace; other levels trap. The bytes are module-authored data:
+;       the host records them as an opaque, typed `module_data` field (typed redaction, audit I6), never parses
+;       them into host fields, and makes no claim about their content (ASSUME golden). Returns 0. Traps past
+;       p2.max_log_bytes.
+;   aegis.data_run(src: i32, len: i32) -> i32
+;       src/len = one F10 `op` (F10 encoding rule). Blocks until the supervisor replies, then returns a handle
+;       (u32 read from the i32 bits) to the result. The op's tenant field is a placeholder that the supervisor
+;       ignores and overwrites with the route-bound tenant; it must still satisfy the F10 rule (uint .gt 0;
+;       convention 1). Traps past p2.max_data_runs or p2.max_data_bytes. A denied op is not a trap: its result
+;       is F10 [1, error-code] with the uniform code (W6, no existence oracle).
+;   aegis.result_read(handle: i32, dst: i32, cap: i32) -> i32
+;       Total encoded length L of the handle's F10 `result`; writes it at dst only if cap >= L. Repeatable until
+;       the handle is dropped.
+;   aegis.handle_drop(handle: i32) -> ()
+;       Releases the handle. Dropping it again traps.
+;
+; Common rules for every import:
+;   - A pointer range outside memory 0 traps. Every call counts against p2.max_host_calls (breach traps).
+;   - Misuse traps; there are no error codes a module could use as a probe.
+;   - Handles: u32 = (generation << 16) | slot. generation is a per-request value in 1..65535 drawn by the
+;     worker for each request (never 0, so 0 is never a handle); slot is the data_run ordinal in
+;     0..p2.max_data_runs-1 and is never reused within a request. A handle whose generation is not the current
+;     request's (foreign), whose slot was not issued (forged), or whose slot was dropped (stale) traps. Handles
+;     die with the request and its fresh instance.
+;   - Test-only import env.host_fault(code: i32) -> () exists only in aegis-p2 builds with the `test-hooks`
+;     feature (D15): code 1 = abort the worker process (abort(3)), code 2 = corrupt host state (later replies
+;     of this process are wrong; oracles/isolation-fi hostpoison), any other code traps. A golden build's
+;     Linker has no `env` module at all, so a module importing it is refused like any non-allowlisted import.
+
+guest-api-version = 1
+
+; Canonical structured request (I5: the module never sees raw request bytes). Built by the supervisor from the
+; checked Canon_K values (CANON-1..4); the worker copies it verbatim into guest memory.
+req-head = [
+  method:  tstr,                      ; canonical method token, upper case
+  path:    tstr,                      ; canonical route path (CANON, q4-008 rules already applied)
+  query:   query,
+  headers: [* header],                ; allowlisted request headers only (below)
+  body-len: uint / null,              ; exact body length when known
+]
+query  = [0, bstr]                    ; opaque query (F8 canon.query = "opaque"), byte-exact
+       / [1, [* [name: tstr, value: tstr]]]  ; typed: the route's declared parameters, decoded, in declared order
+header = [name: tstr, value: bstr]    ; name lower case; value the canonical field value
+; Request header allowlist (fixed, not configurable): accept, accept-language, content-type, if-match,
+; if-modified-since, if-none-match, if-unmodified-since, range. Credentials (authorization, cookie,
+; proxy-authorization), framing (content-length, transfer-encoding, te, trailer, connection, upgrade, keep-alive,
+; host, :authority) and every other field are never passed to a module.
+
+resp-headers = [* header]
+; I5 rules for resp-headers, checked by the worker (trap) and independently re-checked by the supervisor
+; (frame decode failure): name is a lower-case RFC 9110 token, 1..64 bytes; value bytes are VCHAR / SP / HTAB
+; with no leading or trailing SP/HTAB (no CR, LF, NUL or obs-text); no framing or hop-by-hop field
+; (content-length, transfer-encoding, connection, keep-alive, upgrade, te, trailer, proxy-*); count <= F8
+; limits.max_header_fields; summed name+value+32 per field <= F8 limits.max_header_list_size. Reject, never
+; repair (CANON-2).
+
+; ------------------------------------------------------------------------------------------------------------
+; Part 2. Worker <-> supervisor frames
+; ------------------------------------------------------------------------------------------------------------
+;
+; Transport: SOCK_SEQPACKET Unix sockets, one frame per message, each frame <= p2.frame_max_bytes (F8, default
+; 64 KiB). Fork+Wasm: the zygote accepts on its inherited listening fd and forks one child per connection; the
+; child serves exactly one request on it and exits. Cordon: one connection per cordon carries that principal's
+; requests, multiplexed by req-id (at most p2.cordon_slots in flight). Bodies and responses larger than one frame
+; are split into chunk frames.
+;
+; Decoding (the F10 rule, applied to F14): the supervisor's decoders of worker output are in the verified TCB
+; (SPEC_INVARIANTS H). They are total, length-capped and validate every frame fully before use. Any decode
+; failure (a truncated or oversized message, an unknown tag, a malformed field, a frame out of order, an unknown
+; or finished req-id, a second resp-head, a resp-body before resp-head, a count or byte quota exceeded, a
+; malformed data_run op, a ready frame with the wrong digest) kills the worker (SIGKILL of the fork child; of
+; the cordon, which serves only that principal) and charges one crash to the principal whose request the frame
+; belonged to (on a cordon connection, a frame with no live req-id charges the cordon's principal). It never
+; stops, panics or blocks the supervisor. Everything buffered for the affected request is discarded.
+
+frame   = s2w / w2s
+req-id  = uint .size 8                ; chosen by the supervisor, unique per connection, never 0
+
+; supervisor -> worker
+s2w = request / body-chunk / data-reply / cancel
+request    = [0, req-id, limits, req-head]
+limits     = [fuel: uint, wall-ms: uint, memory-mib: uint, max-host-calls: uint, max-data-runs: uint,
+              max-data-bytes: uint, max-resp-bytes: uint, max-log-bytes: uint]
+             ; the effective F8 values for this route's module; the worker applies min(frame value, its own
+             ; boot ceilings) and never raises a limit
+body-chunk = [1, req-id, chunk: bstr, last: bool]
+data-reply = [2, req-id, seq: uint, result]          ; result = the F10 `result` rule; seq = the data-run's seq
+cancel     = [3, req-id]                             ; the request is over (client gone, wall bound); the worker
+                                                     ; drops the instance and sends nothing more for req-id
+
+; worker -> supervisor
+w2s = ready / resp-head / resp-body / resp-end / data-run / log / layout
+ready      = [16, 0, guest-api-version, module-sha256: bstr .size 32]
+             ; first frame on every connection; the digest must equal the one the supervisor holds for the
+             ; .cwasm it had `aegis-p2 compile` produce at this boot (D4), else decode failure
+resp-head  = [17, req-id, status: 200..599, resp-headers]
+resp-body  = [18, req-id, chunk: bstr]
+resp-end   = [19, req-id, end, fuel-used: uint]
+end        = [0, code: uint .size 4]                 ; handle() returned; code as in Part 1
+           / [1, trap]                               ; the request trapped
+trap       = 1   ; fuel exhausted
+           / 2   ; wall bound (epoch / ITIMER_REAL)
+           / 3   ; memory or table limit
+           / 4   ; Wasm trap (unreachable, bounds, stack overflow, ...)
+           / 5   ; handle fault (forged, foreign, stale)
+           / 6   ; host-call, data_run, data byte, response byte or log byte quota
+           / 7   ; ABI misuse (pointer out of range, resp_head twice, write before head, bad header, bad level)
+           / 8   ; test-hooks host_fault
+data-run   = [20, req-id, seq: uint, op: bstr]       ; op = F10 `op` rule bytes exactly as the guest passed them
+log        = [21, req-id, level: 0..4, data: bstr]
+layout     = [22, 0, load-base: uint, pid: uint]     ; test-hooks builds only (D8): the worker's own load base
+                                                     ; after execve; recorded by the supervisor, no authority
+
+; Ordering per req-id (supervisor-enforced): request, body-chunks (last = true once), then from the worker any
+; interleaving of data-run (seq 0, 1, 2, ... each answered by exactly one data-reply before the next data-run),
+; log, at most one resp-head followed by resp-body chunks, and exactly one resp-end, which closes the req-id.
+; The worker's trap code and fuel-used are untrusted reports: they are logged and classify the fault, they never
+; turn a request into a success. A worker that dies or goes silent past wall-ms + a fixed grace is an abnormal
+; exit (crash-attributable, D7).
+
+; ------------------------------------------------------------------------------------------------------------
+; Part 3. Normative supervisor obligations (survival table, SPEC_INVARIANTS H)
+; ------------------------------------------------------------------------------------------------------------
+;
+; I5  The supervisor re-serializes every byte the module emits: status and headers from the decoded
+;     structured values after the I5 header rules, body bytes as an opaque payload with host-computed framing.
+;     Nothing reaches the client before resp-end with code 0 (Allow); after a trap, Deny, Error, timeout,
+;     cancel or decode failure the buffered response is discarded and the host answers with its own fixed
+;     response (no module byte). Module output is never written to the client or an upstream as raw bytes.
+; I1  Every data_run is decoded by the supervisor (F10 `op` rule, filter depth <= F4 MAX_PRED_DEPTH), its tenant
+;     overwritten with the route-bound tenant, and authorized against the route's CapSet (F4 authorize;
+;     routes[].data absent = no capability, INV-NONEMPTY) and check_schema before anything else. A module never
+;     reaches a backend, socket, file or another principal's state except through this path.
+; I6-host  Every authorized data_run is appended to the F9 audit log before it executes (audit before effect),
+;     including when the request later traps; a refused op is audited as refused.
+; I7  A module decision is one input to the F6 tri-state combiner. Error, timeout, trap, worker death, decode
+;     failure and any handle() code other than 0 or 1 map to Error => Deny. No configuration can turn a module
+;     failure into Allow (no failure_mode_allow).
+; I2  The worker enforces fuel, the wall bound, the memory/table limiter and the per-request host-call, data_run,
+;     data byte, response byte and log byte quotas (p2 block of F8); the supervisor re-checks counts and bytes on
+;     every frame and treats an excess as a decode failure.
+; D7  A trap, an abnormal child exit, a cordon death or a decode failure caused by a principal's request charges
+;     that principal's crash budget (default 3 in 60 s => 429 for 600 s); healthy failures and other
+;     principals' faults never do.

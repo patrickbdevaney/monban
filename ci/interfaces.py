@@ -26,6 +26,7 @@ IFACES = [
     ("F11", "interfaces/F11-upgrade-handover.cddl", "frozen"),
     ("F12", "tls/verdicts.toml", "provisional:q4-026"),
     ("F13", "interfaces/F13-conformance-report.schema.json", "frozen"),
+    ("F14", "interfaces/F14-p2-guest-abi.cddl", "frozen"),
 ]
 MANIFEST = "interfaces/MANIFEST.sha256"
 
