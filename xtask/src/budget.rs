@@ -11,7 +11,14 @@
 //! | 1k idle TLS | ≤ 25 MB | `n/a` until a listener exists, not judged |
 //!
 //! Then it builds and measures the `--features native` build (the native data plane, PLAN D17, into `target/native`)
-//! against the same criteria with its own stripped-size ceiling of 8.0 MB (DEVIATIONS X-12). Both must pass.
+//! against the same criteria with its own stripped-size ceiling of 8.0 MB (DEVIATIONS X-12).
+//!
+//! Third, the P2 worker binary `aegis-p2` (PLAN-5 D3, DEVIATIONS X-13: the only binary that links wasmtime and
+//! cranelift), built into `target/p2`, against its own explicit ceilings for stripped size, third-party crates and
+//! non-crypto unsafe lines (set from the 2026-10-31 measurement). All three must pass.
+//!
+//! Finally, aegis-bin's `p2` feature must add no third-party crate: the resolved graphs of `p2` and `native,p2` must
+//! hold exactly the third-party crates of the default and `native` builds (`cargo tree`, no build needed).
 //!
 //! Measurement (`measure`) and judgement (`judge_build`) are separate so `--self-test` can feed synthetic
 //! measurements: each single over-budget input must FAIL (for each build) and a within-budget input must PASS.
@@ -28,25 +35,79 @@ pub const MAX_STRIPPED_BYTES: u64 = 6_000_000;
 /// Stripped size ceiling of the `--features native` build (PLAN D17, DEVIATIONS X-12: bundled C SQLite).
 pub const MAX_NATIVE_STRIPPED_BYTES: u64 = 8_000_000;
 
-/// One measured build of aegis-bin.
+/// One measured release binary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Build {
     pub name: &'static str,
+    /// Cargo package and binary name.
+    pub package: &'static str,
+    pub bin: &'static str,
     /// Cargo features (empty: the default build).
     pub features: &'static str,
     /// Target directory relative to the repository root (`None`: `CARGO_TARGET_DIR` or `target`).
     pub target: Option<&'static str>,
     pub max_size: u64,
+    /// Third-party shipped crate ceiling.
+    pub max_crates: usize,
+    /// Non-crypto `unsafe` line ceiling.
+    pub max_unsafe: u64,
+    /// Start the binary with a minimal serving config for the idle-RSS probe (aegis-bin only).
+    pub serve: bool,
 }
 
 /// The default build: the core (mode R, gateway G), REPO_LAYOUT §6 limits.
-pub const CORE: Build = Build { name: "default", features: "", target: None, max_size: MAX_STRIPPED_BYTES };
+pub const CORE: Build = Build {
+    name: "default",
+    package: "aegis-bin",
+    bin: "aegis",
+    features: "",
+    target: None,
+    max_size: MAX_STRIPPED_BYTES,
+    max_crates: MAX_CRATES,
+    max_unsafe: MAX_NONCRYPTO_UNSAFE,
+    serve: true,
+};
 /// The native data plane (modes A/D): the same limits except its own size ceiling. Built into `target/native` (the
 /// directory the native-e2e gate uses), so the core build in `target/release` is never overwritten.
-pub const NATIVE: Build =
-    Build { name: "native", features: "native", target: Some("target/native"), max_size: MAX_NATIVE_STRIPPED_BYTES };
-/// Shipped third-party crate limit (both builds).
+pub const NATIVE: Build = Build {
+    name: "native",
+    package: "aegis-bin",
+    bin: "aegis",
+    features: "native",
+    target: Some("target/native"),
+    max_size: MAX_NATIVE_STRIPPED_BYTES,
+    max_crates: MAX_CRATES,
+    max_unsafe: MAX_NONCRYPTO_UNSAFE,
+    serve: true,
+};
+/// The P2 worker (PLAN-5 D3, DEVIATIONS X-13): wasmtime + cranelift, its own ceilings. Built into `target/p2`, the
+/// shipped p2 configuration (no `test-hooks`, no `mutants`; PLAN-5 D15).
+pub const P2: Build = Build {
+    name: "p2-worker",
+    package: "aegis-p2",
+    bin: "aegis-p2",
+    features: "",
+    target: Some("target/p2"),
+    max_size: MAX_P2_STRIPPED_BYTES,
+    max_crates: MAX_P2_CRATES,
+    max_unsafe: MAX_P2_NONCRYPTO_UNSAFE,
+    serve: false,
+};
+/// aegis-bin feature sets that must resolve to exactly the third-party crates of a measured build (PLAN-5 D3: the
+/// `p2` feature adds only the aegis-iso supervisor and the F14 decoder, no third-party crate).
+pub const SAME_CRATES: &[(&str, &str)] = &[("p2", ""), ("native,p2", "native")];
+/// Shipped third-party crate limit (both aegis-bin builds).
 pub const MAX_CRATES: usize = 60;
+/// aegis-p2 ceilings (DEVIATIONS X-13), set by the integrator from the measurement of 2026-10-31 (PLAN-5 Q3):
+/// * size: the skeleton links no wasmtime code (286,584 B), so the ceiling comes from a probe with the same release
+///   profile exercising the worker's wasmtime surface (compile, serialize, deserialize_file, pooling, fuel, epoch,
+///   linker, InstancePre): 9,548,896 B stripped. 11.0 MB leaves ~1.45 MB for aegis-iso, F14 and the subcommands.
+/// * crates: 64 third-party (wasmtime 50.0.1 + cranelift 0.137.1 graph, incl. libc/rustix/sha2); any new crate needs
+///   an integrator decision, as in aegis-bin.
+/// * non-crypto unsafe: 6,243 lines over those 64 crates; 6,500 leaves room for a wasmtime 50.0.x security bump.
+pub const MAX_P2_STRIPPED_BYTES: u64 = 11_000_000;
+pub const MAX_P2_CRATES: usize = 64;
+pub const MAX_P2_NONCRYPTO_UNSAFE: u64 = 6_500;
 /// Non-crypto `unsafe` line limit over shipped third-party sources.
 pub const MAX_NONCRYPTO_UNSAFE: u64 = 5_000;
 /// Idle RSS limit (bytes, decimal MB).
@@ -136,14 +197,14 @@ pub fn judge_build(m: &Measured, b: &Build) -> Vec<String> {
     if m.size_bytes > b.max_size {
         v.push(format!("{} build: stripped size {} B > {} B", b.name, m.size_bytes, b.max_size));
     }
-    if m.third_party.len() > MAX_CRATES {
-        v.push(format!("shipped third-party crates {} > {}", m.third_party.len(), MAX_CRATES));
+    if m.third_party.len() > b.max_crates {
+        v.push(format!("{} build: shipped third-party crates {} > {}", b.name, m.third_party.len(), b.max_crates));
     }
     if !m.missing_sources.is_empty() {
         v.push(format!("unsafe count incomplete, sources not found for: {}", m.missing_sources.join(", ")));
     }
-    if m.unsafe_noncrypto > MAX_NONCRYPTO_UNSAFE {
-        v.push(format!("non-crypto unsafe lines {} > {}", m.unsafe_noncrypto, MAX_NONCRYPTO_UNSAFE));
+    if m.unsafe_noncrypto > b.max_unsafe {
+        v.push(format!("{} build: non-crypto unsafe lines {} > {}", b.name, m.unsafe_noncrypto, b.max_unsafe));
     }
     if let Runtime::Bytes(b) = m.idle_rss
         && b > MAX_IDLE_RSS_BYTES
@@ -186,8 +247,8 @@ fn print_table(m: &Measured, b: &Build) {
         (
             "shipped crates (third-party)".into(),
             m.third_party.len().to_string(),
-            format!("<= {MAX_CRATES}"),
-            ok(m.third_party.len() <= MAX_CRATES).into(),
+            format!("<= {}", b.max_crates),
+            ok(m.third_party.len() <= b.max_crates).into(),
         ),
         ("shipped crates (workspace)".into(), m.workspace.len().to_string(), "reported".into(), "-".into()),
         (
@@ -199,8 +260,8 @@ fn print_table(m: &Measured, b: &Build) {
         (
             "unsafe lines, non-crypto".into(),
             m.unsafe_noncrypto.to_string(),
-            format!("<= {MAX_NONCRYPTO_UNSAFE}"),
-            ok(m.unsafe_noncrypto <= MAX_NONCRYPTO_UNSAFE && m.missing_sources.is_empty()).into(),
+            format!("<= {}", b.max_unsafe),
+            ok(m.unsafe_noncrypto <= b.max_unsafe && m.missing_sources.is_empty()).into(),
         ),
         ("unsafe lines, crypto".into(), m.unsafe_crypto.to_string(), "reported".into(), "-".into()),
         {
@@ -234,28 +295,28 @@ fn feature_args(b: &Build) -> Vec<&'static str> {
     if b.features.is_empty() { Vec::new() } else { vec!["--features", b.features] }
 }
 
-/// Builds release `aegis-bin` (build `b`) through `ci/heavy.sh` and measures every criterion.
+/// Builds the release binary of build `b` through `ci/heavy.sh` and measures every criterion.
 pub fn measure(root: &Path, b: &Build) -> Result<Measured, String> {
     let target = build_target(root, b);
     let status = Command::new(root.join("ci/heavy.sh"))
         .current_dir(root)
         .env("CARGO_TARGET_DIR", &target)
-        .args(["cargo", "build", "--release", "--locked", "-p", "aegis-bin"])
+        .args(["cargo", "build", "--release", "--locked", "-p", b.package, "--bin", b.bin])
         .args(feature_args(b))
         .status()
         .map_err(|e| format!("spawn ci/heavy.sh: {e}"))?;
     if !status.success() {
-        return Err(format!("BUDGET: FAIL (release build of aegis-bin ({}) failed: {status})", b.name));
+        return Err(format!("BUDGET: FAIL (release build of {} ({}) failed: {status})", b.package, b.name));
     }
-    let bin = target.join("release").join("aegis");
+    let bin = target.join("release").join(b.bin);
     let bytes = std::fs::read(&bin).map_err(|e| format!("read {}: {e}", bin.display()))?;
     let size_bytes = bytes.len() as u64;
     let stripped = elf_has_section(&bytes, ".symtab").map(|has| !has);
     drop(bytes);
 
-    let (third_party, workspace) = shipped_crates(root, b)?;
+    let (third_party, workspace) = shipped_crates(root, b.package, b.features)?;
     let (unsafe_crypto, unsafe_noncrypto, unsafe_by_crate, missing_sources) = count_unsafe(&third_party);
-    let idle_rss = idle_rss(&bin, root);
+    let idle_rss = idle_rss(&bin, root, b.serve);
     Ok(Measured {
         size_bytes,
         stripped,
@@ -297,11 +358,12 @@ pub fn parse_tree(out: &str, root: &Path) -> (Crates, Crates) {
     (third.into_iter().collect(), ws.into_iter().collect())
 }
 
-fn shipped_crates(root: &Path, b: &Build) -> Result<(Crates, Crates), String> {
-    let out = crate::run(Command::new("cargo").current_dir(root).arg("tree").args(feature_args(b)).args([
+fn shipped_crates(root: &Path, package: &str, features: &str) -> Result<(Crates, Crates), String> {
+    let feats: Vec<&str> = if features.is_empty() { Vec::new() } else { vec!["--features", features] };
+    let out = crate::run(Command::new("cargo").current_dir(root).arg("tree").args(feats).args([
         "--locked",
         "-p",
-        "aegis-bin",
+        package,
         "-e",
         "normal,no-proc-macro",
         "--prefix",
@@ -621,12 +683,12 @@ fn serving_args(dir: &Path) -> Option<Vec<String>> {
     ])
 }
 
-/// Starts the binary serving a minimal config (falls back to no arguments if openssl is unavailable) and reads
-/// VmRSS after 1.5 s. If it exits before then the criterion is not applicable.
-fn idle_rss(bin: &Path, root: &Path) -> Runtime {
+/// Starts the binary (with `serve`: serving a minimal config, falling back to no arguments if openssl is
+/// unavailable) and reads VmRSS after 1.5 s. If it exits before then the criterion is not applicable.
+fn idle_rss(bin: &Path, root: &Path, serve: bool) -> Runtime {
     let scratch = root.join("target").join("xtask-budget-run");
     let _ = std::fs::remove_dir_all(&scratch);
-    let args = serving_args(&scratch).unwrap_or_default();
+    let args = if serve { serving_args(&scratch).unwrap_or_default() } else { Vec::new() };
     let mut child = match Command::new(bin)
         .args(&args)
         .env_remove("NOTIFY_SOCKET")
@@ -641,7 +703,9 @@ fn idle_rss(bin: &Path, root: &Path) -> Runtime {
     };
     std::thread::sleep(Duration::from_millis(1500));
     if let Ok(Some(st)) = child.try_wait() {
-        let why = if args.is_empty() {
+        let why = if !serve {
+            "fail-closed without a supervisor"
+        } else if args.is_empty() {
             "fail-closed boot (no openssl for a test config)"
         } else {
             "exited with the test config"
@@ -749,6 +813,61 @@ fn self_test_run() -> Result<(), String> {
     if NATIVE.features != "native" || !CORE.features.is_empty() || CORE.max_size != 6_000_000 {
         failures.push("build table: the default build must be featureless at 6.0 MB, native at `native`".into());
     }
+    // The P2 worker (PLAN-5 D3, DEVIATIONS X-13): its own ceilings; each single over-ceiling input must FAIL, the
+    // input exactly at its ceilings must PASS, and its ceilings must not leak into the aegis-bin builds.
+    let p2_edge = Measured {
+        size_bytes: MAX_P2_STRIPPED_BYTES,
+        third_party: (0..MAX_P2_CRATES).map(|i| (format!("c{i}"), "1.0.0".into())).collect(),
+        unsafe_noncrypto: MAX_P2_NONCRYPTO_UNSAFE,
+        ..base.clone()
+    };
+    if judge_build(&p2_edge, &P2).is_empty() && !judge_build(&p2_edge, &CORE).is_empty() {
+        println!("  p2-worker at its ceilings: PASS under P2, FAIL under the core limits (as required)");
+    } else {
+        failures.push("p2-worker input at its ceilings must pass P2 and fail the core limits".into());
+    }
+    let p2_over: Vec<(&str, Measured)> = vec![
+        ("p2-worker size over ceiling", Measured { size_bytes: MAX_P2_STRIPPED_BYTES + 1, ..p2_edge.clone() }),
+        (
+            "p2-worker crates over ceiling",
+            Measured {
+                third_party: (0..=MAX_P2_CRATES).map(|i| (format!("c{i}"), "1.0.0".into())).collect(),
+                ..p2_edge.clone()
+            },
+        ),
+        (
+            "p2-worker non-crypto unsafe over ceiling",
+            Measured { unsafe_noncrypto: MAX_P2_NONCRYPTO_UNSAFE + 1, ..p2_edge.clone() },
+        ),
+        ("p2-worker unstripped", Measured { stripped: Some(false), ..p2_edge.clone() }),
+    ];
+    for (label, m) in &p2_over {
+        let v = judge_build(m, &P2);
+        if v.is_empty() {
+            failures.push(format!("over-budget input '{label}' was not rejected"));
+        } else {
+            println!("  over-budget '{label}': FAIL (as required: {})", v.join("; "));
+        }
+    }
+    if P2.package != "aegis-p2" || P2.bin != "aegis-p2" || !P2.features.is_empty() || P2.target != Some("target/p2") {
+        failures.push("build table: the p2 worker must be aegis-p2, featureless, in target/p2 (PLAN-5 D15)".into());
+    }
+    // aegis-bin `p2` must add no third-party crate (PLAN-5 D3).
+    let c = |n: &str| (n.to_string(), "1.0.0".to_string());
+    let core_set = vec![c("tokio"), c("hyper")];
+    if !same_crates_violations("p2", &core_set, "", &core_set).is_empty() {
+        failures.push("identical p2/default crate sets were rejected".into());
+    }
+    let with_wasmtime = vec![c("tokio"), c("hyper"), c("wasmtime")];
+    let v = same_crates_violations("p2", &with_wasmtime, "", &core_set);
+    if v.is_empty() {
+        failures.push("aegis-bin p2 adding a third-party crate (wasmtime) was not rejected".into());
+    } else {
+        println!("  mutant 'aegis-bin p2 adds wasmtime': FAIL (as required: {})", v.join("; "));
+    }
+    if SAME_CRATES != [("p2", ""), ("native,p2", "native")] {
+        failures.push("SAME_CRATES must compare p2 with default and native,p2 with native".into());
+    }
     // Lexer: comment/string/char occurrences do not count; code occurrences do; crypto classification.
     let src = "// unsafe\n/* unsafe /* nested */ unsafe */ let s = \"unsafe\";\nlet r = r#\"unsafe\"#;\n\
                let c = '\"'; unsafe { f() }\nfn g<'a>(x: &'a u8) {}\nunsafe_fn();\nunsafe impl Send for X {}\n";
@@ -784,13 +903,33 @@ pub fn budget(self_test: bool) -> Result<(), String> {
     let root = repo_root();
     let mut lines = Vec::new();
     let mut failed = false;
-    for b in [CORE, NATIVE] {
+    for b in [CORE, NATIVE, P2] {
         match report(&root, &b) {
             Ok(l) => lines.push(l),
             Err(l) => {
                 failed = true;
                 lines.push(l);
             }
+        }
+    }
+    for (with, base) in SAME_CRATES {
+        let (a, _) = shipped_crates(&root, "aegis-bin", with)?;
+        let (b, _) = shipped_crates(&root, "aegis-bin", base)?;
+        let v = same_crates_violations(with, &a, base, &b);
+        println!(
+            "budget: aegis-bin --features {with}: {} third-party crates (vs {} for {})",
+            a.len(),
+            b.len(),
+            if base.is_empty() { "default" } else { base }
+        );
+        if v.is_empty() {
+            lines.push(format!("aegis-bin {with}: no new third-party crate"));
+        } else {
+            for x in &v {
+                println!("  - {x}");
+            }
+            failed = true;
+            lines.push(v.join("; "));
         }
     }
     let all = lines.join("; ");
@@ -801,14 +940,24 @@ pub fn budget(self_test: bool) -> Result<(), String> {
     Ok(())
 }
 
+/// Third-party crates that aegis-bin feature set `with` resolves beyond those of `base` (PLAN-5 D3).
+pub fn same_crates_violations(with: &str, a: &[(String, String)], base: &str, b: &[(String, String)]) -> Vec<String> {
+    let base = if base.is_empty() { "default" } else { base };
+    a.iter()
+        .filter(|c| !b.contains(c))
+        .map(|(n, v)| format!("aegis-bin --features {with} adds third-party crate {n} {v} (not in the {base} build)"))
+        .collect()
+}
+
 /// Measure, print and judge one build. `Ok`/`Err` carry its summary line.
 fn report(root: &Path, b: &Build) -> Result<String, String> {
     let m = measure(root, b)?;
     let feats = if b.features.is_empty() { String::new() } else { format!(", --features {}", b.features) };
     println!(
-        "budget: aegis-bin {} release build{feats} ({})",
+        "budget: {} {} release build{feats} ({})",
+        b.package,
         b.name,
-        build_target(root, b).join("release/aegis").display()
+        build_target(root, b).join("release").join(b.bin).display()
     );
     print_table(&m, b);
     println!(

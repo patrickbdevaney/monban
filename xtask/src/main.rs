@@ -8,6 +8,7 @@
 //!   cargo xtask fips-lock --profile cmvp [--self-test]
 //!   cargo xtask metrics-check [--self-test]
 //!   cargo xtask budget [--self-test]
+//!   cargo xtask unsafe-sites [--self-test]
 //!   cargo xtask allowlist-lock [--check] [--self-test]   (fail-closed stub until P4-datair-001)
 #![forbid(unsafe_code)]
 
@@ -41,12 +42,13 @@ fn main() -> ExitCode {
         }
         Some("repo-advisories") => repo_advisories(self_test),
         Some("budget") => budget::budget(self_test),
+        Some("unsafe-sites") => unsafe_sites_gate(self_test),
         Some("allowlist-lock") => allowlist::allowlist_lock(self_test),
         Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
         _ => {
             eprintln!(
-                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget|allowlist-lock> [--self-test]"
+                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget|unsafe-sites|allowlist-lock> [--self-test]"
             );
             return ExitCode::from(2);
         }
@@ -123,8 +125,12 @@ const INTRA_LAYER: &[(&str, &str)] =
     &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon"), ("aegis-adapter-host", "aegis-state")];
 /// Layered crates allowed to depend on the SDK (the F7 host; D2(b)). Apps and these are its only dependents.
 const SDK_HOSTS: &[&str] = &["aegis-adapter-host"];
-/// Crates permitted to relax `forbid(unsafe_code)` (each call site audited, ≤20 sites).
-const UNSAFE_ALLOWED: &[&str] = &["aegis-iso"];
+/// Crates permitted to relax `forbid(unsafe_code)` (each site audited and capped by `cargo xtask unsafe-sites`).
+const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm"];
+/// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): aegis-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
+/// setitimer, fd adoption, _exit); aegis-wasm ≤ 1 (the digest-checked `Module::deserialize_file`). Every crate in
+/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0.
+const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("aegis-iso", 20), ("aegis-wasm", 1)];
 
 fn workspace_model() -> Result<Vec<Pkg>, String> {
     let out = run(Command::new("cargo")
@@ -407,6 +413,235 @@ fn layering(self_test: bool) -> Result<(), String> {
         }
     }
     verdict("LAYERING", &v, self_test)
+}
+
+// ---------------------------------------------------------------- unsafe sites (PLAN-5 D4, DEVIATIONS X-14)
+
+fn ident_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// Unsafe sites of one source file: one per `unsafe` keyword in code (block, fn, impl, trait, extern; comments and
+/// string/char literals ignored), as (1-based line, justified). A site is justified by a `// SAFETY:` comment on the
+/// same line or in the run of `//` comment and `#[..]` attribute lines directly above it.
+fn unsafe_sites(src: &str) -> Vec<(usize, bool)> {
+    let code = budget::strip_comments_and_strings(src);
+    let raw: Vec<&str> = src.lines().collect();
+    let mut out = Vec::new();
+    for (i, l) in code.lines().enumerate() {
+        let n = l
+            .match_indices("unsafe")
+            .filter(|(p, _)| {
+                let before = l.get(..*p).and_then(|s| s.chars().next_back());
+                let after = l.get(p + 6..).and_then(|s| s.chars().next());
+                !before.is_some_and(ident_char) && !after.is_some_and(ident_char)
+            })
+            .count();
+        if n == 0 {
+            continue;
+        }
+        let same_line = raw.get(i).is_some_and(|r| r.contains("// SAFETY:"));
+        let mut above = false;
+        let mut j = i;
+        while j > 0 {
+            j -= 1;
+            let t = raw.get(j).map(|r| r.trim_start()).unwrap_or_default();
+            if t.starts_with("//") {
+                if t.starts_with("// SAFETY:") {
+                    above = true;
+                    break;
+                }
+            } else if !t.starts_with("#[") {
+                break;
+            }
+        }
+        out.extend(std::iter::repeat_n((i + 1, same_line || above), n));
+    }
+    out
+}
+
+/// One workspace source file: (package, path, contents).
+type SrcFile = (String, String, String);
+
+/// Judges unsafe sites over `files` and the per-package `unsafe_code` lint level read from each manifest
+/// (`manifests`: package → lint value, absent when the manifest inherits the workspace's `forbid`).
+/// Returns (violations, per-package site counts).
+fn check_unsafe_sites(
+    files: &[SrcFile],
+    manifests: &BTreeMap<String, String>,
+) -> (Vec<String>, BTreeMap<String, usize>) {
+    let mut v = Vec::new();
+    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+    for a in UNSAFE_ALLOWED {
+        if !UNSAFE_SITE_CAPS.iter().any(|(c, _)| c == a) {
+            v.push(format!("{a}: in UNSAFE_ALLOWED without a site cap"));
+        }
+    }
+    for (pkg, file, src) in files {
+        let allowed = UNSAFE_ALLOWED.contains(&pkg.as_str());
+        for (line, justified) in unsafe_sites(src) {
+            *counts.entry(pkg.clone()).or_default() += 1;
+            if !justified {
+                v.push(format!("{pkg}: {file}:{line}: unsafe site without a `// SAFETY:` comment"));
+            }
+        }
+        let code: String = budget::strip_comments_and_strings(src).chars().filter(|c| !c.is_whitespace()).collect();
+        if !allowed && (code.contains("allow(unsafe_code") || code.contains("warn(unsafe_code")) {
+            v.push(format!("{pkg}: {file} relaxes unsafe_code but {pkg} is not in UNSAFE_ALLOWED"));
+        }
+    }
+    for (pkg, n) in &counts {
+        let cap = UNSAFE_SITE_CAPS.iter().find(|(c, _)| c == pkg).map_or(0, |(_, k)| *k);
+        if *n > cap {
+            v.push(format!("{pkg}: {n} unsafe sites > cap {cap}"));
+        }
+    }
+    for (pkg, level) in manifests {
+        let allowed = UNSAFE_ALLOWED.contains(&pkg.as_str());
+        let ok = level == "forbid" || (allowed && level == "deny");
+        if !ok {
+            v.push(format!(
+                "{pkg}: Cargo.toml sets unsafe_code = \"{level}\" (only forbid, or deny for {UNSAFE_ALLOWED:?})"
+            ));
+        }
+    }
+    (v, counts)
+}
+
+/// The `unsafe_code` level a package manifest sets in its own `[lints.rust]` table, if any.
+fn manifest_unsafe_level(toml: &str) -> Option<String> {
+    let mut in_rust = false;
+    for l in toml.lines() {
+        let t = l.trim();
+        if t.starts_with('[') {
+            in_rust = t == "[lints.rust]";
+            continue;
+        }
+        if in_rust && let Some(rest) = t.strip_prefix("unsafe_code") {
+            let val = rest.trim_start().trim_start_matches('=').trim();
+            let val = val.split(['#']).next().unwrap_or_default().trim();
+            // `"deny"` or `{ level = "deny", .. }`
+            let lvl = val.split('"').nth(1).unwrap_or(val);
+            return Some(lvl.to_string());
+        }
+    }
+    None
+}
+
+fn unsafe_sites_gate(self_test: bool) -> Result<(), String> {
+    if self_test {
+        return unsafe_sites_self_test();
+    }
+    let pkgs = workspace_model()?;
+    let mut files: Vec<SrcFile> = Vec::new();
+    let mut manifests = BTreeMap::new();
+    for p in &pkgs {
+        let mut fs = Vec::new();
+        rust_files(&p.dir, &mut fs);
+        fs.sort();
+        for f in fs {
+            let src = std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?;
+            let rel = f.strip_prefix(root()).unwrap_or(&f).display().to_string();
+            files.push((p.name.clone(), rel, src));
+        }
+        let toml = std::fs::read_to_string(p.dir.join("Cargo.toml")).unwrap_or_default();
+        if let Some(l) = manifest_unsafe_level(&toml) {
+            manifests.insert(p.name.clone(), l);
+        }
+    }
+    let (v, counts) = check_unsafe_sites(&files, &manifests);
+    let caps: Vec<String> =
+        UNSAFE_SITE_CAPS.iter().map(|(c, k)| format!("{c} {}/{k}", counts.get(*c).copied().unwrap_or(0))).collect();
+    println!("unsafe-sites: {} packages, {} source files; {}", pkgs.len(), files.len(), caps.join(", "));
+    verdict("UNSAFE-SITES", &v, false)
+}
+
+/// (label, files, manifest lint levels, expected violation substring).
+type UnsafeMutant<'a> = (&'a str, Vec<SrcFile>, BTreeMap<String, String>, &'a str);
+
+fn unsafe_sites_self_test() -> Result<(), String> {
+    let site = "    // SAFETY: the fd is owned and open.\n    #[allow(unsafe_code)]\n    unsafe { f() };\n";
+    let src_n = |n: usize| format!("fn x() {{\n{}}}\n", site.repeat(n));
+    let mk = |pkg: &str, src: String| (pkg.to_string(), format!("{pkg}/src/lib.rs"), src);
+    let deny = |pkgs: &[&str]| pkgs.iter().map(|p| (p.to_string(), "deny".to_string())).collect::<BTreeMap<_, _>>();
+    let clean_bin = "// unsafe is not used here\nfn y() { let s = \"unsafe { }\"; let _c = 'u'; unsafe_fn(); }\n";
+    let base: Vec<SrcFile> = vec![
+        mk("aegis-iso", src_n(20)),
+        mk("aegis-wasm", "fn d() {\n    let m = unsafe { g() }; // SAFETY: digest checked above.\n}\n".into()),
+        mk("aegis-bin", clean_bin.into()),
+    ];
+    let manifests = deny(&["aegis-iso", "aegis-wasm"]);
+    let mut failures = Vec::new();
+    let (v, counts) = check_unsafe_sites(&base, &manifests);
+    if v.is_empty() && counts.get("aegis-iso") == Some(&20) && counts.get("aegis-wasm") == Some(&1) {
+        println!("  control (aegis-iso 20, aegis-wasm 1, comments/strings ignored): PASS (as required)");
+    } else {
+        failures.push(format!("clean control rejected or miscounted: {v:?} {counts:?}"));
+    }
+    let with = |pkg: &str, src: String| {
+        let mut f = base.clone();
+        f.retain(|(p, _, _)| p != pkg);
+        f.push(mk(pkg, src));
+        f
+    };
+    let mutants: Vec<UnsafeMutant> = vec![
+        ("21st aegis-iso site", with("aegis-iso", src_n(21)), manifests.clone(), "aegis-iso: 21 unsafe sites > cap 20"),
+        ("2nd aegis-wasm site", with("aegis-wasm", src_n(2)), manifests.clone(), "aegis-wasm: 2 unsafe sites > cap 1"),
+        (
+            "site without // SAFETY:",
+            with("aegis-iso", "fn z() {\n    // the fd is open\n    unsafe { f() };\n}\n".into()),
+            manifests.clone(),
+            "unsafe site without a `// SAFETY:` comment",
+        ),
+        (
+            "unsafe in a third crate",
+            with("aegis-bin", src_n(1)),
+            manifests.clone(),
+            "aegis-bin: 1 unsafe sites > cap 0",
+        ),
+        (
+            "third crate relaxes the lint in source",
+            with("aegis-bin", "#![allow(unsafe_code)]\nfn y() {}\n".into()),
+            manifests.clone(),
+            "aegis-bin: aegis-bin/src/lib.rs relaxes unsafe_code",
+        ),
+        (
+            "third crate relaxes the lint in Cargo.toml",
+            base.clone(),
+            deny(&["aegis-iso", "aegis-wasm", "aegis-bin"]),
+            "aegis-bin: Cargo.toml sets unsafe_code = \"deny\"",
+        ),
+        (
+            "allowed crate sets unsafe_code = allow",
+            base.clone(),
+            [("aegis-iso".to_string(), "allow".to_string())].into_iter().collect(),
+            "aegis-iso: Cargo.toml sets unsafe_code = \"allow\"",
+        ),
+    ];
+    for (label, files, m, want) in &mutants {
+        let (v, _) = check_unsafe_sites(files, m);
+        if v.iter().any(|x| x.contains(want)) {
+            println!("  mutant '{label}': FAIL (as required: {})", v.join("; "));
+        } else {
+            failures.push(format!("mutant '{label}' not rejected (want '{want}', got {v:?})"));
+        }
+    }
+    let lvl = |s: &str| manifest_unsafe_level(s);
+    if lvl("[lints.rust]\nunsafe_code = \"deny\"\n").as_deref() != Some("deny")
+        || lvl("[lints.rust]\nunsafe_code = { level = \"allow\", priority = 1 }\n").as_deref() != Some("allow")
+        || lvl("[lints]\nworkspace = true\n").is_some()
+    {
+        failures.push("manifest unsafe_code parser wrong".into());
+    }
+    if failures.is_empty() {
+        println!("UNSAFE-SITES SELF-TEST: PASS ({} mutants rejected)", mutants.len());
+        Ok(())
+    } else {
+        for f in &failures {
+            println!("  - {f}");
+        }
+        Err(format!("UNSAFE-SITES SELF-TEST: FAIL ({} problems)", failures.len()))
+    }
 }
 
 // ---------------------------------------------------------------- lock targets
