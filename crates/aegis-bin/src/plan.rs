@@ -230,6 +230,9 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                 RouteTarget::Static { .. } => {
                     return Err(format!("{at}/to: static targets are not served by this build (fail closed)"));
                 }
+                RouteTarget::Wasm { .. } => {
+                    return Err(format!("{at}/to: wasm targets are not served by this build (fail closed)"));
+                }
             };
             let to = if let Some(app) = upstream.strip_prefix(crate::native::APP_PREFIX) {
                 if !crate::native::APPS.contains(&app) {

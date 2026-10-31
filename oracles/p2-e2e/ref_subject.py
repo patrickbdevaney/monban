@@ -416,7 +416,7 @@ class Runtime:
         if self.in_penalty(tenant):
             return 429, b"too many crashes\n"
         if self.broken:
-            return 502, b"p2 unavailable\n"
+            return 403, b"denied\n"  # D17: Error => the Deny response
         p2 = self.cfg["p2"]
         mod = next(m for m in p2["modules"] if m["id"] == module)
         cordon = mod.get("tenancy") == "single" or p2["isolation"] == "cordon"
@@ -450,7 +450,7 @@ class Runtime:
                 self.charge(tenant)
             return 403, b"denied\n"
         self.charge(tenant)  # trap, worker death, decode failure
-        return 502, b"module error\n"
+        return 403, b"denied\n"  # D17: Error => the Deny response
 
 
 # ------------------------------------------------------------------------------------------------ servers

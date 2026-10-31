@@ -761,14 +761,14 @@ class Run:
         self.answer(s, f"budget.healthy-not-counted.{label}", "echo_a", A)
         t0 = time.monotonic()
         for _ in range(CB_SCALED["crashes"] - 1):
-            self.status(s, f"budget.{label}.trap-is-502", "/trap/", A, 502)
+            self.status(s, f"budget.{label}.trap-is-deny", "/trap/", A, 403)
         self.answer(s, f"budget.{label}.below-threshold", "echo_a", A)
         time.sleep(max(0.0, t0 + W + 1.0 - time.monotonic()))
-        self.status(s, f"budget.{label}.trap-is-502", "/trap/", A, 502)
+        self.status(s, f"budget.{label}.trap-is-deny", "/trap/", A, 403)
         self.answer(s, f"budget.{label}.sliding-window", "echo_a", A)
         t1 = time.monotonic()
         for _ in range(CB_SCALED["crashes"] - 1):
-            self.status(s, f"budget.{label}.trap-is-502", "/trap/", A, 502)
+            self.status(s, f"budget.{label}.trap-is-deny", "/trap/", A, 403)
         t3 = time.monotonic()
         if t3 - t1 > W - 0.5:
             self.check(f"budget.{label}.timing", False, f"3 traps took {t3 - t1:.2f} s, window {W} s: cannot judge "
@@ -776,7 +776,7 @@ class Run:
         self.status(s, f"budget.exhausted-429.{label}", "/a/", A, 429)
         self.status(s, f"budget.exhausted-429.{label}.any-route", "/trap/", A, 429)
         self.answer(s, f"budget.other-principal-unaffected.{label}", "echo_a", B)
-        self.status(s, f"budget.other-principal.{label}.trap-is-502", "/trap/", B, 502)
+        self.status(s, f"budget.other-principal.{label}.trap-is-deny", "/trap/", B, 403)
         self.answer(s, f"budget.other-principal-own-count.{label}", "echo_a", B)
         time.sleep(max(0.0, t3 + PEN + 1.0 - time.monotonic()))
         self.answer(s, f"budget.penalty-expires.{label}", "echo_a", A)
@@ -821,7 +821,7 @@ class Run:
         # the budget is per principal on this path too
         A, B = P[2], P[3]
         for _ in range(CB_SCALED["crashes"]):
-            self.status(s, "budget.cordon.trap-is-502", "/trap/", A, 502)
+            self.status(s, "budget.cordon.trap-is-deny", "/trap/", A, 403)
         self.status(s, "budget.exhausted-429.cordon", "/a/", A, 429)
         self.answer(s, "budget.other-principal-unaffected.cordon", "echo_a", B)
         s.stop()
@@ -862,7 +862,7 @@ class Run:
         self.check("respawn.zygote.load-base-changed", l1 is not None and l2 is not None and l1[1] != l2[1],
                    f"load base {l1} -> {l2} (a replacement must be a fresh execve, D8)")
         self.check("dumpable.respawned-zygote", dz2 is not False, f"zygote {z2}")
-        self.status(s, "respawn.abort-is-502", "/abort/", T, 502)
+        self.status(s, "respawn.abort-is-deny", "/abort/", T, 403)
         (z3, _), _ = self.find_zygote(s, T)
         self.check("respawn.zygote.survives-child-abort", z3 is not None and z3 == z2, f"zygote {z2} -> {z3}")
         s.stop()
@@ -877,7 +877,7 @@ class Run:
         self.check("respawn.cordon.before.layout-reported", bool(ls1), f"no layout line from cordon {c1}")
         off = s.log_offset()
         before = s.workers()
-        self.status(s, "respawn.abort-is-502.cordon", "/abort/", T, 502)
+        self.status(s, "respawn.abort-is-deny.cordon", "/abort/", T, 403)
         ok, until = False, time.time() + 10
         while not ok and time.time() < until:
             ok = s.c.get("/a/x?n=1", self.token(T)).status == 200
