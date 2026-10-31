@@ -29,6 +29,6 @@
  "notes": "Keep wasmtime =50.0.0 in the oracle lock (same as the workspace lock target). The real subject speaks the existing 8-byte protocol on fd 3; hostabort/hostpoison stay gated for forkwasm and reported for cordon.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "open"
+ "passes": true,
+ "status": "pass: self-test 7/7 reference mutants (+epoch-only-4, reuse-instance) + offline reference checks (2.1x flagged, 1.9x not, mutated reference cannot turn red green); --mutant-subject mode 3/3 forkwasm, 4/4 cordon via AEGIS_P2_MUTANT on the reference binary (real p2-subject not built yet); --trials 3 PASS both paths at load 4.7 (FAIL G3 forkwasm oom 5918us at load 29); needs=quiet-host"
 }

@@ -6,13 +6,15 @@
 //
 // Subcommands:
 //   isofi serve cordon   --guest G --data D [--threads 64] [--budget epoch|fuel:N|none] [--epoch-ms 100]
-//                        [--mutation none|shared-store|recycle50] [--sandbox 1]
+//                        [--mutation none|shared-store|recycle50|no-deadline|epoch-only-4] [--sandbox 1]
 //       fresh Store+Instance per request from a 64-slot pooling allocator inside one sandboxed process (the
 //       "fresh-Wasm cordon"). Listening socket = fd 3 (supervisor-held, socket activation).
 //   isofi serve forkwasm --guest G --data D [--budget ...] [--epoch-ms 100] [--pool ondemand|pool]
-//                        [--mutation none|no-fork] [--sandbox 1]
+//                        [--mutation none|no-fork|no-deadline|reuse-instance] [--sandbox 1]
 //       single-threaded zygote with Engine+Module+InstancePre loaded and Landlock+seccomp installed; fork per
 //       request; child instantiates, runs, replies, _exit. Wall-clock bound = ITIMER_REAL in the child.
+//   Without --mutation, the env var AEGIS_P2_MUTANT selects the mutation (the same selector the real p2-subject
+//   `mutants` build reads), so the oracle's --mutant-subject mode can be exercised against this reference.
 //   isofi drive --server '<cmd with {guest} {data}>' --fault F --rate R --n N --conc C --seed S --prefix P
 //               --server-core C --client-cores a,b,c --guest G --data D
 //       closed-loop client + supervisor (restart on exit, 2 s liveness watchdog). Prints one JSON line.
@@ -68,6 +70,14 @@ impl Args {
     }
     fn n<T: std::str::FromStr>(&self, k: &str, d: T) -> T {
         self.kv.get(k).and_then(|x| x.parse().ok()).unwrap_or(d)
+    }
+}
+
+// --mutation wins; otherwise AEGIS_P2_MUTANT (the real subject's mutant selector, oracle --mutant-subject mode).
+fn mutation_of(a: &Args) -> String {
+    match a.kv.get("mutation") {
+        Some(m) => m.clone(),
+        None => std::env::var("AEGIS_P2_MUTANT").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "none".to_string()),
     }
 }
 
@@ -303,10 +313,20 @@ fn serve_cordon(a: &Args) {
     let guest = a.req("guest");
     // absolute path: Landlock is scoped to its parent directory (a relative path would yield an empty rule set)
     let data = abs_path(&a.req("data"));
-    let threads: usize = a.n("threads", 64);
-    let budget = parse_budget(&a.s("budget", "epoch"));
+    let mut threads: usize = a.n("threads", 64);
+    let mut budget = parse_budget(&a.s("budget", "epoch"));
     let ticks = (a.n::<u64>("epoch-ms", 100) / EPOCH_TICK_MS).max(1);
-    let mutation = a.s("mutation", "none");
+    let mutation = mutation_of(a);
+    match mutation.as_str() {
+        // MUTATION: no fuel and no epoch deadline (a runaway guest holds its thread forever)
+        "no-deadline" => budget = Budget::None,
+        // MUTATION: the research config E4 (epoch-only 100 ms, 4 threads; spikes/q4-006: loop throughput x0.163)
+        "epoch-only-4" => {
+            budget = Budget::Epoch;
+            threads = 4;
+        }
+        _ => {}
+    }
     proc_limits();
     let eng = engine(matches!(budget, Budget::Fuel(_)), true, true);
     let (pre, _) = load(&eng, &guest);
@@ -390,11 +410,16 @@ fn serve_forkwasm(a: &Args) {
     let guest = a.req("guest");
     // absolute path: Landlock is scoped to its parent directory (a relative path would yield an empty rule set)
     let data = abs_path(&a.req("data"));
-    let budget = parse_budget(&a.s("budget", "epoch"));
+    let mut budget = parse_budget(&a.s("budget", "epoch"));
     let ms: u64 = a.n("epoch-ms", 100);
     let pool = a.s("pool", "ondemand") == "pool";
-    let mutation = a.s("mutation", "none");
+    let mutation = mutation_of(a);
     let nofork = mutation == "no-fork";
+    // MUTATION reuse-instance: the forked child keeps its Store/Instance and serves up to 50 more connections
+    let reuse = mutation == "reuse-instance";
+    if mutation == "no-deadline" {
+        budget = Budget::None; // MUTATION: no fuel, no itimer
+    }
     proc_limits();
     // zygote: single-threaded; Engine, compiled Module and InstancePre live here and are inherited by every child
     let eng = engine(matches!(budget, Budget::Fuel(_)), nofork, pool);
@@ -455,7 +480,7 @@ fn serve_forkwasm(a: &Args) {
                 }
                 let Ok((mut st, f)) = new_inst(&eng, &pre) else { return 5 };
                 arm(&mut st, budget, ticks, false);
-                match f.call(&mut st, (id, fault)) {
+                let first = match f.call(&mut st, (id, fault)) {
                     Ok(h) => {
                         if reply(&mut s, id, h).is_ok() {
                             0
@@ -464,7 +489,35 @@ fn serve_forkwasm(a: &Args) {
                         }
                     }
                     Err(_) => 1,
+                };
+                if !reuse || first != 0 {
+                    return first;
                 }
+                drop(s);
+                child_itimer(0); // idle while waiting in accept: no wall-clock bound
+                for _ in 0..50 {
+                    let fd2 = unsafe { libc::accept4(l.as_raw_fd(), std::ptr::null_mut(), std::ptr::null_mut(), libc::SOCK_CLOEXEC) };
+                    if fd2 < 0 {
+                        return 0;
+                    }
+                    let mut s2 = unsafe { UnixStream::from_raw_fd(fd2) };
+                    let Ok((id, fault)) = read_req(&mut s2) else { continue };
+                    if host_io(&data).is_err() {
+                        return 4;
+                    }
+                    if budget != Budget::None {
+                        child_itimer(ms);
+                    }
+                    arm(&mut st, budget, ticks, false);
+                    match f.call(&mut st, (id, fault)) {
+                        Ok(h) => {
+                            let _ = reply(&mut s2, id, h);
+                        }
+                        Err(_) => return 1,
+                    }
+                    child_itimer(0);
+                }
+                0
             })();
             unsafe { libc::_exit(code) };
         }
