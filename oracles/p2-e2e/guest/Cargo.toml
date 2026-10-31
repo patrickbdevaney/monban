@@ -1,0 +1,23 @@
+[package]
+name = "p2e2e-guest"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Own workspace (oracles/ is excluded from the main one); no dependencies.
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[features]
+# The only build that imports env.host_fault (F14 test-only import); a golden worker refuses it at compile.
+fault = []
+
+[profile.release]
+opt-level = "s"
+debug = false
+lto = true
+codegen-units = 1
+panic = "abort"

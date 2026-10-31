@@ -1,0 +1,15 @@
+[package]
+name = "hostref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "hostref"
+path = "src/main.rs"
+
+[dependencies]
+# Same pin and feature set as oracles/isolation-fi and the product (PLAN-5 D11 as amended 2026-10-31: 50.0.1,
+# RUSTSEC-2026-0422/0423/0424 affect 50.0.0). The unit text says =50.0.0; the amendment supersedes it.
+wasmtime = { version = "=50.0.1", default-features = false, features = ["cranelift", "memory-protection-keys", "pooling-allocator", "runtime", "std"] }
+libc = "=0.2.191"

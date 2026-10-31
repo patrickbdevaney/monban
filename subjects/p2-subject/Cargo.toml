@@ -1,0 +1,20 @@
+[package]
+name = "p2-subject"
+description = "Oracle subject: drives the aegis-iso P2 sandbox (and, from P5-iso-002, the P2 serve paths) over the oracles' --subject protocols. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# Path dependencies only (PLAN-5 "Roles"): no third-party crate, never wasmtime directly.
+[dependencies]
+# `test-hooks` brings the syscall probe (oracles/syscall-negative probe protocol); in aegis-iso it only adds the
+# probe module and never changes what `sandbox::install` does.
+aegis-iso = { workspace = true, features = ["test-hooks"] }
+
+[lints]
+workspace = true
