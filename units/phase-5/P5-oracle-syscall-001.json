@@ -1,0 +1,32 @@
+{
+ "id": "P5-oracle-syscall-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/syscall-negative (new)"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 5 'negative syscall tests (CLONE_NEWUSER, socket, TCP_ULP, bpf, io_uring killed/ENOSYS)'",
+  "ARCHITECTURE \u00a73.6 R-ISO-4/5 (clone-flag filter, clone3 ENOSYS, child denylist, dumpable=0, exec spawn)",
+  "spikes/q4-006 limits: the child-only denylist was not installed in the spike",
+  "PLAN D2 (AppArmor userns restriction; masked controls; filter signature only), D5"
+ ],
+ "oracles": [
+  "reference probe (oracle-local Rust, hand-rolled filter like isofi) passes on the laptop",
+  "mutants each red: no-clone-flag-filter (unshare/clone CLONE_NEWUSER succeeds), no-denylist (socket succeeds), eperm-instead-of-kill (bpf EPERM is indistinguishable from the kernel default and must be rejected), clone3-allowed, dumpable-1, no-landlock (open outside the allowed dir succeeds), no-child-filter (fork from a forkwasm child succeeds)"
+ ],
+ "acceptance": {
+  "cmd": "oracles/syscall-negative/run --self-test && oracles/syscall-negative/run",
+  "must": "PASS; probe protocol documented: `<subject> --path forkwasm|cordon --probe <name>` runs the subject's own sandbox install, then the syscall, and reports one JSON line; for each probe an unfiltered control run first and host facts recorded (apparmor_restrict_unprivileged_userns, unprivileged_bpf_disabled, io_uring_disabled, Landlock ABI); pass only on SIGSYS (KILL_PROCESS) or ENOSYS (clone3), never EPERM; TCP_ULP probed on a pre-opened TCP fd passed by the oracle; dumpable read back via PR_GET_DUMPABLE in zygote, child and cordon"
+ },
+ "write_scope": [
+  "oracles/syscall-negative/**"
+ ],
+ "notes": "Probes: clone(CLONE_NEWUSER), unshare(CLONE_NEWUSER), unshare(CLONE_NEWNET), setns, clone3, socket(AF_INET/AF_INET6/AF_UNIX/AF_NETLINK), socketpair, setsockopt(TCP_ULP,\"tls\"), bpf(BPF_PROG_LOAD), io_uring_setup, perf_event_open, ptrace, process_vm_readv, userfaultfd, keyctl, mount, execve, fork-from-child; landlock: open outside allowed dir, TCP connect. No `needs` (host-agnostic by construction: it judges against the recorded control), so ci/oracles.sh also runs its self-test on the desktop.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

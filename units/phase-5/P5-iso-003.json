@@ -1,0 +1,42 @@
+{
+ "id": "P5-iso-003",
+ "role": "implementer",
+ "crates": [
+  "aegis-iso (cordon per principal, crash budget)",
+  "aegis-p2 (cordon main)",
+  "subjects/p2-subject (cordon serve)"
+ ],
+ "depends_on": [
+  "P5-iso-002"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-fault-cordon"
+ ],
+ "spec_refs": [
+  "ARCHITECTURE \u00a73.6 P2 single-tenant row (fresh instance per request, reuse 1, 16 MiB, per-tenant cordon) as amended by q4-006 (fuel per route; cordon oom service gap marginal 1.2-6.6 ms, must hold < 5 ms)",
+  "spikes/q4-006 F64-2 (64 slots, fuel 2 ms) passes; epoch-only and 10 ms fuel fail throughput",
+  "PLAN D1 (cordon keyed by principal, never shared), D7 (crash budget), D11 (MPK cell)"
+ ],
+ "oracles": [
+  "oracles/isolation-fi --path cordon (default and --mpk) and --self-test --mutant-subject"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' && oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe' && ci/remote.sh ci/heavy.sh cargo test --locked -q -p aegis-iso",
+  "must": "PASS on the laptop in gate timing mode on the 6 guest classes (hostabort/hostpoison reported, not gated, as per-principal cordon damage) with and without MPK; oom recovery p99 <= 5 ms; mutants shared-store, recycle50, no-deadline, epoch-only-4 red; aegis-iso unit tests: cordon registry refuses a second principal on a cordon; crash budget 3/60 s -> 429 for 600 s per principal, independent across principals, healthy failures not counted"
+ },
+ "write_scope": [
+  "crates/aegis-iso/src/cordon/**",
+  "crates/aegis-iso/src/crash_budget/**",
+  "crates/aegis-iso/src/lib.rs",
+  "crates/aegis-iso/tests/cordon*.rs",
+  "crates/aegis-p2/src/main.rs",
+  "crates/aegis-p2/src/cordon.rs",
+  "subjects/p2-subject/**"
+ ],
+ "notes": "Idle cordons are reaped (bounded count, F8); respawn by execve only. The crash budget is pure logic in aegis-iso (no clock reads inside: the caller passes CLOCK_MONOTONIC instants) so it is unit-testable.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

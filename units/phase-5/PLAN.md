@@ -1,0 +1,302 @@
+# Phase 5 plan: P2 isolation, both paths (draft, spec author, 2026-10-31, base 2ab7ad5)
+
+Scope (IMPLEMENTATION_PLAN §3 Phase 5): iso full (exec zygote, per-tenant cordons, fork+Wasm mode, crash budgets,
+dumpable=0) and wasm (fresh instance per request, fuel, epoch watchdog, MPK density option behind the GHSA-6wgr/394w
+assertions). Both P2 paths are built and gated, because P(R1 fires within 12 months) ≈ 0.38 at the 2.21/yr planning
+rate (ARCHITECTURE §3.6). The Phase-1 verdict q4-006 picks the default (D1). Gate file: `gates/phase-5.toml`
+(67 gates = 57 carried from Phase 4 + 10 new). Units: 16 JSON files here.
+
+Starting point: `crates/aegis-iso` and `crates/aegis-wasm` are Phase-0 stubs (4-line lib.rs each, no third-party
+dependency). wasmtime is not in the workspace Cargo.lock; it is pinned at 50.0.0 only in the
+`oracles/isolation-fi/rust` workspace and in `supply-chain/lock-targets.toml`. The reference subjects in
+`oracles/isolation-fi` (isofi: cordon and fork+Wasm, hand-rolled Landlock and seccomp over libc) are the measured
+design. Phase 5 ports that design into the product crates and gates the real code.
+
+## Gate → unit (each Phase-5 gate is in exactly one unit's acceptance)
+
+| plan gate | gates in phase-5.toml | unit |
+|---|---|---|
+| ≤0.05 crash-attributable healthy failures/fault at 1%; 0 wrong answers; poison 0; recovery p99 ≤5 ms; throughput ≥0.5× at 1% loop: fork+Wasm path | p2-fault-forkwasm | P5-iso-002 |
+| same five criteria: fresh-Wasm cordon path (+ the MPK density cell) | p2-fault-cordon | P5-iso-003 |
+| negative syscall tests (CLONE_NEWUSER, socket, TCP_ULP, bpf, io_uring killed/ENOSYS), both paths | p2-syscall-negative | P5-iso-001 |
+| hostile-module corpus: I1 (imports, handles), I2 (fuel, epoch, memory, table, stack, host-call and I/O quotas) at the worker | p2-hostile-worker | P5-wasm-002 |
+| hostile-module corpus: I1 (capabilities at the supervisor), I5, I6-host, I7, end to end | p2-hostile-host | P5-bin-002 |
+| wasmtime pin/config assertions (MPK only with unchanged reservation and guards) | wasmtime-config | P5-wasm-001 |
+| re-run on a quiet VPS-class runner; thresholds move only if shifted >2× | p2-fault-vps | P5-vps-001 |
+| (added) exec zygote and exec respawn, cordon per principal, crash budgets, dumpable=0, default path switchable by config, fail-closed boot | p2-e2e | P5-bin-001 |
+| (added) no wasmtime/cranelift in any aegis-bin build (D3, X-13) | no-wasmtime-in-bin | P5-spec-002 |
+| (added) unsafe sites: aegis-iso ≤20, aegis-wasm =1, each with `// SAFETY:` (D4, X-14) | unsafe-sites | P5-spec-002 |
+
+Every new gate has a selftest that turns red on a mutant. The mutants are listed in each unit's `oracles` and
+`acceptance.must`. Carried gates: the seven Phase-3/4 gates that still have no selftest (hygiene, tests, audit,
+fail-closed-boot, build-subjects, config-totality, systemd-hardening) are unchanged. `budget` is extended to the
+aegis-p2 worker binary (P5-spec-002), and `oracles-local` also builds the p2 targets. P5-config-001 has no gate of
+its own: the carried config-totality gate and the p2-e2e boot family cover it.
+
+## Roles
+
+As in Phase 4, oracles and harness pieces are spec-author units. Every oracle exists outside the implementer's write
+scope and has gone red before an implementer is assigned (§2). Implementer units never touch Cargo.toml or
+Cargo.lock. P5-spec-002 pre-wires every third-party edge (wasmtime into aegis-wasm, libc into aegis-iso), creates
+the `crates/aegis-p2` crate skeleton, and defines every cargo feature named below (aegis-bin `p2`/`p2-mutants`,
+aegis-p2 `test-hooks`/`mutants`). The new subject crate `subjects/p2-subject` has path dependencies only (on
+aegis-iso and aegis-wasm, never on wasmtime directly), so its unit may write its manifest. The integrator re-locks
+path-only entries at merge, and lock-targets and lock-age must show no third-party version change.
+
+## Unit graph and waves (→ = depends on)
+
+```
+W0  start now:   P5-spec-001  P5-spec-002  P5-oracle-fi-001  P5-oracle-syscall-001  P5-oracle-wtcfg-001
+W0b spec-001 → P5-oracle-hostile-001, P5-oracle-e2e-001          (both need the F14 ABI and the F8 p2 block)
+W1  P5-iso-001     → spec-002, oracle-syscall                     (sandbox: Landlock, seccomp, dumpable, probe)
+    P5-wasm-001    → spec-001, spec-002, oracle-wtcfg             (engine config, cwasm, fresh Store, fuel, epoch, MPK)
+    P5-config-001  → spec-001                                     (F8 p2 block in aegis-config)
+W2  P5-iso-002     → iso-001, wasm-001, oracle-fi                 (exec zygote, fork+Wasm, worker binary, p2-subject)
+W3  P5-iso-003     → iso-002                                      (cordon per principal, crash budget, supervisor respawn)
+    P5-wasm-002    → wasm-001, iso-002, oracle-hostile            (F14 linker allowlist, handles, quotas)
+W4  P5-bin-001     → iso-003, wasm-002, config-001, oracle-e2e    (aegis-bin feature p2: routes wasm:, F14 decoder, I5)
+    P5-vps-001     → iso-003, oracle-fi, oracle-syscall           (kamrui re-run + laptop reference file)
+W5  P5-bin-002     → bin-001, oracle-hostile                      (data_run authorize, audit-before-effect, I7 mapping)
+GO  python3 -I ci/run-gates.py --phase 5
+```
+
+Critical path: spec-002 → iso-001 → iso-002 → iso-003 → bin-001 → bin-002. Waves are logical. The machine limit is
+still ≤2 compiling agents (heavy.sh 6 GB). A wasmtime+cranelift release build is the largest compile so far, so
+prefer `ci/remote.sh` for implementer iteration builds. Oracle units that build Wasm guests or reference hosts
+(fi, syscall, hostile, e2e) compile in their own oracle workspaces. Write scopes are disjoint for every pair of units
+not ordered by depends_on (checked by script over the JSON files). Units that share a crate are chained: iso-001 →
+iso-002 → iso-003 (aegis-iso, aegis-p2, p2-subject); wasm-001 → wasm-002 (aegis-wasm; wasm-001 owns
+`src/abi/mod.rs` as a fail-closed stub only); bin-001 → bin-002. The one textual overlap,
+`supply-chain/wasmtime-config.toml`, is excluded from spec-002's `supply-chain/**`.
+
+## Placement (laptop, desktop, kamrui)
+
+- **Quiet host = this laptop** (i9-14900HX, Linux 6.17.0-14). These gates run here, never on the shared desktop:
+  p2-fault-forkwasm, p2-fault-cordon (timing criteria G3/G4), p2-e2e (crash-budget windows, respawn timing) and
+  p2-syscall-negative (it judges the stated 6.17 kernel). oracles/isolation-fi and oracles/p2-e2e get
+  `needs` = `quiet-host`, so `ci/oracles.sh --where remote` stops running isolation-fi on the desktop (Phase 4 ran it
+  there with `AEGIS_TIMING_GATES=advisory`). This follows the ct-dudect move (8d9351d).
+- **Desktop (ci/remote.sh, default host)** handles build-heavy, timing-free gates: wasmtime-config,
+  p2-hostile-worker, p2-hostile-host (count criteria only), plus the carried remote gates. Its kernel is 6.11.0-29
+  (Landlock ABI 5), so it can run the sandboxed worker (D2 needs ABI ≥4).
+- **VPS-class runner = kamrui** (Intel N95, 4 cores, Linux 6.17.0-41, load ≈0.2 when checked), through
+  `ci/remote.sh --host kamrui` inside the p2-fault-vps gate (D10). Not `remote = true`, which targets the desktop.
+- **No Phase-5 gate needs Docker.** Engine gates stay as in Phase 4. Observed in passing: kamrui has
+  `/usr/bin/docker`, which bears on Phase-4 Q1. Not acted on here.
+
+## Interfaces (frozen F-files)
+
+Phase 5 **must not change** F2 (aegis-types), F3 (Exchange), F4 (data IR), F5 (token), F6 (combine), F7/F7b (SDK),
+F9 (audit event), F10 (out-of-process module wire), F11 (upgrade handover), F12 (verdicts) or F13 (conformance
+report). It needs these amendments, all in P5-spec-001 with re-freeze in the same commit:
+
+- **F14 (new)** `interfaces/F14-p2-guest-abi.cddl` defines the P2 core-module guest ABI and the worker↔supervisor
+  frames. Imports are a closed allowlist in module `aegis`. The request arrives as canonical structured values
+  (never raw bytes). Response head and body are written through host calls and re-serialized by the supervisor.
+  `log` takes module-authored data. `data_run` carries an F4 op encoded with the F10 `op` rule, cited by name (F10
+  bytes unchanged). Handles are per-request, generation-tagged ids. `env.host_fault` exists only in `test-hooks`
+  builds. Worker→supervisor frames are length-capped. A decode failure kills the worker and charges the crash
+  budget, never the supervisor (the F10 rule, applied to F14). Register F14 in `ci/interfaces.py` IFACES.
+- **F8 (additive)**: a `p2` block. `worker` path; per-route target `wasm:<module-id>` with module path and sha256;
+  `isolation` = `forkwasm` | `cordon`, with the D1 default; `fuel` (default 15,000,000, bounded max), `wall_ms`
+  (default 100, bounded), `memory_mib` (default 16, bounded); crash budget `{crashes: 3, window_s: 60,
+  penalty_s: 600}` with bounded minimums so a gate can scale them; `mpk` boolean (default false). No field can
+  express a cordon shared by principals. `additionalProperties: false`, and every limit is bounded.
+- **F1 (addendum to §H)**: INV-P2 statements. They carry the q4-006 acceptance (0 healthy failures and 0 wrong
+  answers per fault on the 6 guest classes plus hostabort/hostpoison for fork+Wasm, recovery p99 ≤5 ms, loop
+  throughput ≥0.5×), "principals never share a cordon", exec respawn, the crash budget, dumpable=0 and the
+  seccomp/Landlock obligations of D2/D5. Re-freeze with `ci/statements.py freeze spec`.
+
+ARCHITECTURE §3.6's multi-principal row still reads "co-equal default candidates … decided in Phase 1". The q4-006
+flip is recorded in spikes/APPLIED.md, which is authoritative. research/ is outside the spec-author scope, so the
+row is not edited here.
+
+## Spec decisions needed before wave 1 (spec author / operator)
+
+- **D1 default path (from q4-006).** Multi-principal P2 data routes default to fork+Wasm. The alternative is one
+  fresh-Wasm cordon per principal. Single-tenant P2 routes run fresh instances in a per-principal cordon.
+- **D2 namespaces are unavailable; record what that means for cordons and for the negative tests.**
+- **D3 wasmtime cannot enter aegis-bin within the budget.**
+- **D4 `Module::deserialize` is `unsafe`, and aegis-wasm is `forbid(unsafe_code)`.**
+- **D5–D16** follow from the spike limits and ARCHITECTURE R-ISO-2..5; see Decisions.
+
+## Infeasible or blocked as written
+
+- **"Quiet VPS-class runner."** No VPS exists. kamrui stands in (D10). Every P2 latency or throughput claim stays
+  grade ≤B and provisional, as for q3-001/q4-006. The q4-006 reversal ("fork overhead >0.3 ms p50 or loop recovery
+  unmet on the q3-001 real 1-vCPU VPS ⇒ cordon per principal") cannot be evaluated until one exists.
+- **"Thresholds move only if shifted >2×."** In q4-006 the fork+Wasm loop service gap was 2.31 ms p99 on the laptop
+  and 6.78 ms on kamrui (2.9×, over 5 ms in 2 of 3 trials). p2-fault-vps may therefore be red on that cell
+  while every count criterion holds. D10 says who may move a threshold and how. No agent moves one.
+- **GHSA-6wgr / GHSA-394w.** ARCHITECTURE cites them for "never density-tuned by guard shrinking". The advisory texts
+  were not read in this session. P5-oracle-wtcfg-001 must read them and encode the exact affected config shapes as
+  mutants, without guessing.
+
+## Open questions
+
+1. No real VPS, so the q4-006 reversal test is pending (above). Does the operator accept kamrui as the Phase-5 GO
+   runner, with the claims capped at B?
+2. Will the operator accept a per-runner threshold for the kamrui fork+Wasm loop recovery if it reproduces at >2×
+   (D10)? Or should a kamrui miss count as evidence for the cordon-per-principal default?
+3. aegis-p2 budget ceilings (crates, stripped size, non-crypto unsafe) are unknown until P5-spec-002 measures them.
+   No number is proposed here.
+4. cargo-vet coverage of wasmtime/cranelift 50.0.0 through the bytecode-alliance import is unverified. How large is
+   the vet-baseline addition?
+5. Does kamrui's ~/aegis-ci toolchain have Rust 1.98.0 with `wasm32-unknown-unknown` (isolation-fi's guest build)?
+   q4-006 ran laptop-built binaries there. P5-vps-001 checks first.
+6. Per-cordon cgroup v2 limits (systemd --user delegation) are unverified. Phase 5 bounds memory with the Wasmtime
+   ResourceLimiter plus rlimits only, and RLIMIT_AS is unusable with the 4 GiB reservations.
+7. What does the per-fork cost of the child's extra seccomp filter (D5) come to? P5-iso-002 measures it.
+8. F14 `data_run` reuses the F10 `op` rule. If that proves impossible without editing F10, it becomes a P5-spec-001
+   spec change with re-freeze, never an implementer edit.
+9. Velocity is measured only as wall-clock time between commits. No agent-hour instrumentation exists in the repo.
+10. Landlock ABI on a production VPS is unknown. D2 refuses P2 below ABI 4.
+11. Hostile corpus "I/O amplification": P2 guests have no file or socket imports. The I2 cases are therefore
+    host-call count and `data_run`/response byte quotas, not WASI I/O. Confirm this is the intended coverage.
+12. cranelift: 0.137.1 reaches the 7-day lock age on 2026-11-05. P5-spec-002 pins whichever version passes lock-age
+    on the day it runs.
+
+---
+
+## Decisions (integrator, 2026-10-31; operator standing authorization "proceed on all phases when each passes")
+
+- **GO condition (q4-003, q1-009, velocity):** met. Evidence:
+  1. **Phase 4 passed.** `gates/phase-4.verdict.json`: go = true, 107 steps including self-tests, git_head
+     8d9351d, clean tree, chain 5e17779c6cb7. Committed in 2ab7ad5.
+  2. **q4-003** (`spikes/q4-003/verdict.json`, decision_effect 5) takes procurement out of the Phase 4–5 decision.
+     It neither blocks nor justifies Phase 5.
+  3. **q1-009** (`spikes/q1-009/verdict.json`) is a keep. AI-found bugs are exploited at the base rate (1.3% vs
+     1.4%), so no reverse condition fires. It is neutral to Phase 5, which rests on its own argument: the R1
+     arithmetic in ARCHITECTURE §3.6 (P(≥3 M0 escapes in 12 months) = 0.38 at 2.21/yr) and the q4-006 flip.
+  4. **Velocity**, from commit timestamps: Phase 2 GO 2026-10-26 02:05; Phase 3 GO 2026-10-30 00:46, including the
+     2026-10-26 operator pause recorded in BACKLOG; Phase 4 plan 2026-10-30 01:01 → GO 2026-10-31 07:10 (~30 h wall),
+     against a 300–600 h [E] estimate. This is wall-clock, not agent-hours (Q9).
+  5. **Agent-infra segment evidence:** nothing new has been collected since Phase 4. As at Phase 4, the GO rests on
+     the operator's Phases 0→7 directive and standing authorization, not on a segment study.
+
+  Phase 5 therefore advances. Nothing above is a claim about P2 security; those claims come only from the gates.
+- **D1 default P2 path:** adopted from q4-006 (verdict flip).
+  - Multi-principal data routes: `isolation = "forkwasm"` by default. The zygote is exec-spawned and
+    single-threaded. It holds the Engine, a locally precompiled Module and an InstancePre, and no compiler state.
+    Each child creates a fresh instance and gets per-route fuel plus an ITIMER_REAL wall bound.
+  - Alternative: `isolation = "cordon"`, one exec-spawned cordon per principal, with a fresh instance per request,
+    a 64-slot pool, fuel and a 100 ms epoch.
+  - Single-tenant routes use the cordon, keyed by principal.
+  - A cordon shared by principals cannot be configured. aegis-iso refuses it at runtime because the cordon key is the
+    principal.
+  - Switching the default is a config change plus reload, with no rebuild. If R1 fires, that switch is the whole
+    response, which is why both paths are built. p2-e2e asserts that the same route serves correctly under both
+    paths across a reload.
+- **D2 namespaces and AppArmor (measured 2026-10-31).** On all three hosts, `kernel.apparmor_restrict_unprivileged_userns
+  = 1` (laptop 6.17.0-14, kamrui 6.17.0-41, desktop 6.11.0-29). `unshare -U true` **succeeds** (exit 0), but the new
+  namespace has no capabilities: writing uid_map gets EPERM, so `unshare -Ur` fails on all three hosts.
+  `unshare -Urn` was checked on the laptop only, and it fails the same way. This matches
+  the existing note that bwrap userns is blocked for the proof gate. Consequences:
+  1. **No cordon relies on namespaces**: no user, net, mount or pid namespace, no bwrap, no unshare. A cordon or
+     zygote is an exec-spawned process with PR_SET_NO_NEW_PRIVS, Landlock, seccomp, rlimits and PR_SET_DUMPABLE=0,
+     which matches ARCHITECTURE R-ISO-4/5. Network denial comes from seccomp (socket killed) plus Landlock net
+     rules.
+  2. **Landlock ABI ≥4 is required.** Measured ABI is laptop 7, kamrui 7, desktop 5. Below 4, P2 routes are refused
+     at boot (exit 78, fail closed).
+  3. **Negative tests**:
+     - CLONE_NEWUSER: the kernel *permits* an unprivileged process to create a (capability-less) user namespace here,
+       so the probe is meaningful. Its unfiltered control succeeds, and under the filter it must die with SIGSYS.
+     - bpf: it already fails with EPERM (`kernel.unprivileged_bpf_disabled = 2`). A probe therefore passes only on
+       the filter's own signature (SIGSYS from SECCOMP_RET_KILL_PROCESS, or ENOSYS for clone3), never on EPERM or on
+       another kernel or AppArmor denial.
+     - Every probe first runs an unfiltered control and records the host facts (the AppArmor sysctls,
+       unprivileged_bpf_disabled, io_uring_disabled = 0 on the laptop, Landlock ABI). A control that already fails is
+       reported as "masked", and the filtered result must still be the filter signature.
+     - A VPS kernel without the AppArmor restriction, where CLONE_NEWUSER grants capabilities, is more exposed. The
+       filter is the control on either kernel.
+- **D3 separate worker binary (DEVIATIONS X-13, proposed).** wasmtime and cranelift link only into a new crate,
+  `crates/aegis-p2` (layer 5): the zygote, cordon and compile entry points, built on aegis-iso and aegis-wasm.
+  aegis-bin (default, `native`, `p2` and every combination) gets no wasmtime or cranelift node, enforced by the gate
+  no-wasmtime-in-bin. aegis-bin's `p2` feature adds only the aegis-iso supervisor (spawn, fd passing, respawn,
+  crash budget) and the F14 decoder, with no new third-party crate. Reasons:
+  - The core is at 45/60 third-party crates and 4,948/5,000 non-crypto unsafe lines (P4-spec-002 status).
+  - The isolation-fi lock has 106 entries for wasmtime 50.0.0 + cranelift 0.137.0, including build and guest
+    crates.
+  - The design already exec-spawns the zygote, and fork cost grows with zygote RSS (q4-006 limits).
+
+  aegis-p2 gets its own explicit ceilings, measured by P5-spec-002 and set by the integrator before W1 implementers
+  start (Q3). The same pattern as X-8 (aegis-pdp) and X-12.
+- **D4 unsafe sites (DEVIATIONS X-14, proposed).** aegis-iso: ≤20 sites (fork, prctl, seccomp, landlock_*,
+  setitimer, fd adoption, _exit), each with `// SAFETY:`. aegis-wasm: exactly 1, the `Module::deserialize_file` of a
+  `.cwasm` that this boot's sandboxed `aegis-p2 compile` produced. Its sha256 must equal the digest the supervisor
+  holds and passes to the zygote/cordon. Never bytes from config or from a tenant (runwasi CVE-2026-47218 pattern).
+  The alternative, compiling in the zygote with no unsafe, is rejected by q4-006: zygote RSS 11.8 vs 5.9 MiB and
+  +43–84 µs per fork. xtask `UNSAFE_ALLOWED` gains aegis-wasm with a cap of 1. The new `cargo xtask unsafe-sites`
+  enforces both caps and the SAFETY comments.
+- **D5 seccomp layout.** One filter is installed in the zygote and in each cordon before it serves:
+  - an argument-free allowlist of hot syscalls (cache-friendly);
+  - the clone flag filter: CLONE_NEW* → kill;
+  - clone3 → ENOSYS, so libc falls back to the filtered clone;
+  - KILL_PROCESS for unshare, setns, socket, socketpair, setsockopt(TCP_ULP), bpf, perf_event_open, io_uring_setup/
+    enter/register, ptrace, process_vm_readv/writev, userfaultfd, keyctl/add_key/request_key, mount family, execve
+    and execveat.
+
+  The zygote keeps accept4 on its inherited listening fd. Each fork child also installs a small second filter that
+  kills clone, fork, vfork and execve. P5-iso-002 measures its install cost per fork and reports it; the
+  p2-fault-forkwasm throughput criterion has to pass with it. Cordons get no fork at all. Landlock goes in before
+  seccomp, once per process: fs read-only on the module and data paths only, and net with no rules allowed.
+- **D6 fuel and watchdog.** Fuel is the deterministic compute budget. The DoS bound is the epoch (cordon, 100 ms)
+  or ITIMER_REAL (fork child, 100 ms) (R-ISO-3). The default route fuel is 15,000,000 (q4-006: about 2 ms on the
+  laptop, about 58× the reference handler). F8 bounds the maximum. The q4-006 rule "≤50× the route's p50 handler
+  cost" stays an operator obligation documented in F8, not a config check, because p50 is unknown at config time.
+  The fault gates run at the default.
+- **D7 crash budget.** Per principal: 3 crash-attributable faults in 60 s → 429 for 600 s. A fault counts when it
+  is a trap, an abnormal child exit, a cordon death, or an F14 decode failure caused by that principal's request.
+  Healthy failures and other principals' faults never count. The gate scales the window and penalty through the F8
+  knobs, which have bounded minimums. p2-e2e reads the effective defaults from the config dump.
+- **D8 exec respawn.** A replacement zygote or cordon is always a fresh execve of aegis-p2 (new ASLR layout), never
+  a fork of a template (BROP crash oracle, R-ISO-5). p2-e2e checks this with a `test-hooks` build of aegis-p2 that
+  reports its own load base in an F14 status frame. dumpable=0 makes `/proc/<pid>/maps` unreadable from outside,
+  which p2-e2e checks too: `/proc/<pid>` is owned by root while the worker is non-dumpable.
+- **D9 residual: fork children share the zygote's layout.** That is inherent to fork. Probing layout by crashing
+  children is bounded by the per-principal crash budget (3 per 60 s), and the zygote itself never serves requests.
+  Claims must state this.
+- **D10 the quiet VPS-class runner.**
+  - The laptop is the quiet host and the reference: the p2-fault gates and p2-e2e run there.
+  - kamrui is the VPS-class re-run (gate p2-fault-vps). It repeats both paths at 3 trials, with
+    `--server-core 1 --client-cores 2,3`, plus p2-syscall-negative on its kernel.
+  - kamrui is not a $5 KVM VPS (no steal time, no virtualized page tables), so claims stay ≤B and provisional.
+  - Thresholds are the plan's: 0.05 per fault, 0 wrong, 0 poison, 5 ms, 0.5×. kamrui is gated at the same values.
+  - P5-vps-001 commits the laptop reference metrics as `gates/p2-runner-reference.json`. isolation-fi reports the
+    kamrui/laptop ratio per timing metric and flags any ratio >2×. It never moves a threshold itself.
+  - A flagged metric may get a per-runner threshold only by a new integrator Decision in this file, naming both
+    measurements and the operator's consent. Within 2×, nothing moves.
+  - Count criteria (G0–G2, syscall, hostile) never move on any runner.
+  - A kamrui miss does not by itself flip D1: the q4-006 reversal names a real VPS (Q2).
+- **D11 wasmtime pin and config (R-ISO-2).**
+  - Version: wasmtime =50.0.0 (lock target; ≥49.0.4 floor, GHSA-897f). cranelift at whatever version passes lock-age
+    on the day P5-spec-002 runs (Q12).
+  - Features: `default-features = false` plus exactly cranelift, pooling-allocator, runtime and std. No
+    component-model in Phase 5: F14 is a core-module ABI, and R-ISO-2 lists it only as optional. No gc, threads,
+    winch, wasi, wasi-http or component-model-async. `memory64(false)` and `gc(false)` are set explicitly.
+  - Memory: 4 GiB reservation and 32 MiB guard, never shrunk.
+  - MPK = `memory_protection_keys` as a density option only, with the reservation and guard asserted unchanged
+    with and without it. All three hosts report `pku`.
+  - `epoch_interruption(true)` and `consume_fuel(true)`.
+  - The expected effective config is frozen in `supply-chain/wasmtime-config.toml`. `aegis-p2 config --json` must
+    match it.
+  - Security releases of wasmtime may bypass the 7-day lock-age only through `supply-chain/exceptions.toml`. Tenant
+    code reaches Wasmtime, so a critical wasmtime fix is treated as attacker-reachable under the q1-009 ≤48 h
+    rebuild row.
+- **D12 F-file plan:** as in "Interfaces" above. F14 is new; F8 and F1 get additive amendments; the rest are
+  unchanged.
+- **D13 scope cut.** Out of Phase 5 and into the backlog or Phase 7: the egress fetch host function, the component
+  model, WASI, out-of-process P3 modules, and density claims (MPK and pooling are gated for correctness and
+  config, while density is record-only). P2 data access goes only through F14 `data_run` to the supervisor, which
+  decodes, authorizes (CapSet, INV-NONEMPTY), audits before executing, and overwrites the tenant (the host choke
+  point of the survival table, SPEC §H).
+- **D14 trials.** At GO, the p2-fault gates run 3 trials per cell (about 90 faults per class), because 1 trial
+  resolves 0.05/fault only as "0 or >0.03". PR checks run 1 trial. The existing rule stays: re-drive a cell once,
+  for timing criteria only.
+- **D15 test-only code.** `env.host_fault`, the syscall probe and the layout report live behind aegis-p2 feature
+  `test-hooks`; the mutants live behind `mutants`/`p2-mutants`. Golden builds enable neither, and P5-bin-001 asserts
+  this with a test like X-12's golden_build.rs. Probe and fault runs build into their own target dirs
+  (target/p2-test, target/p2-mutants), so target/p2 always holds the shipped configuration.
+- **D16 placement:** as in "Placement" above. Timing-sensitive work goes to the laptop (`needs` = quiet-host),
+  build-heavy and timing-free work to the desktop through ci/remote.sh, and the VPS-class re-run to kamrui. Nothing
+  needs Docker.

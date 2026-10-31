@@ -1,0 +1,36 @@
+{
+ "id": "P5-bin-002",
+ "role": "implementer",
+ "crates": [
+  "aegis-bin (feature p2: data_run authorize + execute, audit before effect, decision mapping)"
+ ],
+ "depends_on": [
+  "P5-bin-001",
+  "P5-oracle-hostile-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-hostile-host"
+ ],
+ "spec_refs": [
+  "SPEC \u00a7H I1 (host-minted capabilities only), I6-host (audit before every host-mediated effect), I7 (tri-state combiner; failure_mode_allow forbidden)",
+  "F4 CapSet authorize, INV-NONEMPTY; F6 combine; F9 audit event; F14 data_run (op per F10 `op` rule; BACKLOG: cap Pred nesting before constructing)",
+  "Phase 4 D14 (idempotency atomic with the backend transaction) applies to data_run writes"
+ ],
+ "oracles": [
+  "oracles/hostile-modules --level host (and --self-test --mutant-subject)"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2",
+  "must": "PASS; every host-level I1/I5/I6-host/I7 case holds on both paths; mutants raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow, data-run-skips-authorize, tenant-not-overwritten red; p2-e2e stays green; the native,p2 build stays within the X-12 native ceiling (8.0 MB)"
+ },
+ "write_scope": [
+  "crates/aegis-bin/src/**",
+  "crates/aegis-bin/tests/**"
+ ],
+ "notes": "data_run: decode (depth-capped), authorize against the route CapSet (INV-NONEMPTY), overwrite tenant, audit (F9) before execute, execute through the Phase-4 adapter pairings in aegis-bin (D15), reply. Module decisions enter the tri-state combiner as one input; trap/timeout/garbage => Error => Deny.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

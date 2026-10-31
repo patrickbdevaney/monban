@@ -1,0 +1,472 @@
+# DRAFT (spec author, 2026-10-31; not yet run). Phase 5 go/no-go: P2 isolation, both paths (fork+Wasm and fresh-Wasm
+# cordon per principal) (IMPLEMENTATION_PLAN §3 Phase 5). Run: python3 -I ci/run-gates.py --phase 5
+# Plan, decisions and owner units: units/phase-5/PLAN.md and units/phase-5/*.json (owner unit in brackets).
+# Placement (PLAN D10, D16):
+#   remote = true ........ desktop via ci/remote.sh (build-heavy, timing-free; kernel 6.11, Landlock ABI 5)
+#   no remote ............ this laptop = the quiet host (timing-sensitive oracles carry `needs` = quiet-host; never
+#                          the shared desktop, as ct-dudect since 8d9351d); p2-syscall-negative also runs here
+#                          because it judges the stated kernel (6.17 + AppArmor unprivileged-userns restriction)
+#   ci/remote.sh --host kamrui (inside the cmd) .... the VPS-class re-run (p2-fault-vps); not a real VPS (claims <=B)
+#   No Phase-5 gate needs Docker. Engine gates keep their Phase-4 placement.
+# Carries every Phase-4 gate unchanged except oracles-local (adds the p2 builds; isolation-fi and p2-e2e now carry
+# needs=quiet-host, so ci/oracles.sh runs them there and no longer on the desktop). `budget` also judges the
+# aegis-p2 worker after P5-spec-002 (DEVIATIONS X-13). Phase-5 additions:
+#   faults <=0.05/fault, 0 wrong, poison 0, recovery p99 <=5 ms, loop >=0.5x: fork+Wasm ... p2-fault-forkwasm [P5-iso-002]
+#   same five criteria: fresh-Wasm cordon per principal (+ MPK cell) ...................... p2-fault-cordon   [P5-iso-003]
+#   negative syscall tests (CLONE_NEWUSER, socket, TCP_ULP, bpf, io_uring killed/ENOSYS) .. p2-syscall-negative [P5-iso-001]
+#   hostile-module corpus I1, I2 at the worker ............................................ p2-hostile-worker [P5-wasm-002]
+#   hostile-module corpus I1 (capabilities), I5, I6-host, I7 end to end ................... p2-hostile-host   [P5-bin-002]
+#   wasmtime pin/config assertions (MPK only with unchanged reservation + guards) ......... wasmtime-config   [P5-wasm-001]
+#   re-run on a quiet VPS-class runner; thresholds move only if shifted >2x ............... p2-fault-vps      [P5-vps-001]
+# Added by this plan (not in the §3 list; from the Phase-5 scope line and PLAN D3/D4):
+#   exec zygote/respawn, cordon per principal, crash budget, dumpable=0, path switch, boot .. p2-e2e [P5-bin-001]
+#   no wasmtime/cranelift in any aegis-bin build (X-13) ..................................... no-wasmtime-in-bin [P5-spec-002]
+#   unsafe: aegis-iso <=20 sites, aegis-wasm =1, each with // SAFETY: (X-14) ............... unsafe-sites [P5-spec-002]
+# Target dirs: target/p2 = shipped p2 configuration; target/p2-test = aegis-p2 with test-hooks (probe, host_fault,
+# layout report); target/p2-mutants = negative controls. Never mixed (PLAN D15).
+phase = 5
+go_no_go = "all gates pass && all self-tests pass"
+
+[[gate]]
+name = "workflow-lint"
+cmd = "zizmor --pedantic --offline .github/"
+selftest = "! zizmor --pedantic --offline ci/fixtures/bad-workflow.yml"
+
+[[gate]]
+name = "hygiene"
+cmd = "cargo fmt --all --check && ci/heavy.sh cargo clippy --workspace --all-targets --locked -q -- -D warnings && ci/heavy.sh bash -c 'for m in apps/*/Cargo.toml; do CLIPPY_CONF_DIR=\"$PWD/oracles/sdk-trybuild\" cargo clippy --manifest-path \"$m\" --all-targets --locked -q -- -D warnings -D clippy::disallowed_methods -D clippy::disallowed_types || exit 1; done'"
+remote = true
+
+[[gate]]
+name = "tests"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
+remote = true
+
+[[gate]]
+name = "layering"
+cmd = "cargo xtask layering"
+selftest = "cargo xtask layering --self-test"
+
+[[gate]]
+name = "interfaces-frozen"
+cmd = "python3 -I ci/interfaces.py check"
+selftest = "python3 -I ci/interfaces.py self-test"
+
+[[gate]]
+name = "proof"
+cmd = "ci/heavy.sh ci/gate.sh"
+selftest = "ci/gate-selftest.sh"
+heavy = true
+
+[[gate]]
+name = "deny"
+cmd = "cargo deny check"
+selftest = "ci/deny-selftest.sh"
+
+[[gate]]
+name = "audit"
+cmd = "cargo audit --deny warnings"
+
+[[gate]]
+name = "vet"
+cmd = "cargo vet --locked && python3 -I ci/vet-baseline.py"
+selftest = "python3 -I ci/vet-baseline.py --self-test"
+
+[[gate]]
+name = "repo-advisories"
+cmd = "cargo xtask repo-advisories"
+selftest = "cargo xtask repo-advisories --self-test"
+
+[[gate]]
+name = "lock-age"
+cmd = "cargo xtask lock-age --min-days 7"
+selftest = "cargo xtask lock-age --self-test"
+
+[[gate]]
+name = "lock-targets"
+cmd = "cargo xtask lock-targets"
+selftest = "cargo xtask lock-targets --self-test"
+
+[[gate]]
+name = "repro"
+cmd = "cargo fetch --locked -q && ci/repro.sh"
+selftest = "ci/repro.sh --self-test"
+heavy = true
+remote = true
+
+[[gate]]
+name = "fail-closed-boot"
+cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+remote = true
+
+[[gate]]
+name = "oracles-remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+heavy = true
+remote = true
+
+[[gate]]
+name = "oracles-local"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && ci/oracles.sh run --where local"
+selftest = "ci/heavy.sh cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && ci/oracles.sh self-test --where local"
+heavy = true
+
+[[gate]]
+name = "build-subjects"
+cmd = "ci/heavy.sh cargo build --release --locked -p admission-subject -p canon-subject -p tls-subject -p audit-subject -p upgrade-subject -p acme-subject"
+remote = true
+
+[[gate]]
+name = "admission-props"
+cmd = "ci/heavy.sh oracles/admission-props/run --subject target/release/admission-subject"
+selftest = "ci/heavy.sh oracles/admission-props/run --self-test"
+remote = true
+
+[[gate]]
+name = "canon-diff"
+cmd = "oracles/canon-diff/run --subject target/release/canon-subject"
+selftest = "oracles/canon-diff/run --self-test"
+remote = true
+
+[[gate]]
+name = "tls-verdicts"
+cmd = "ci/heavy.sh oracles/hrr-verdicts/run --file tls/verdicts.toml --subject 'target/release/tls-subject subject'"
+selftest = "ci/heavy.sh oracles/hrr-verdicts/run --self-test"
+remote = true
+
+[[gate]]
+name = "audit-tlog"
+cmd = "oracles/tlog-verify/run --subject target/release/audit-subject"
+selftest = "oracles/tlog-verify/run --self-test"
+
+[[gate]]
+name = "upgrade"
+cmd = "cargo build --release --locked -q -p upgrade-subject && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100"
+selftest = "oracles/upgrade-harness/run --self-test"
+heavy = true
+remote = true   # timing-sensitive: fails under unrelated CPU saturation on the laptop (load 76–135 measured)
+
+[[gate]]
+name = "acme-cert"
+cmd = "oracles/acme-pebble/run --subject target/release/acme-subject"
+selftest = "oracles/acme-pebble/run --self-test"
+heavy = true
+
+[[gate]]
+name = "metrics"
+cmd = "cargo xtask metrics-check"
+selftest = "cargo xtask metrics-check --self-test"
+remote = true
+
+[[gate]]
+name = "budget"
+cmd = "cargo xtask budget"
+selftest = "cargo xtask budget --self-test"
+remote = true
+
+[[gate]]
+name = "config-totality"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+remote = true
+
+[[gate]]
+name = "h2-conformance"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p transport-subject && oracles/h2-conformance/run --subject target/release/transport-subject"
+selftest = "oracles/h2-conformance/run --self-test"
+remote = true
+
+[[gate]]
+name = "systemd-hardening"
+cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+
+[[gate]]
+name = "kani-tbi"
+cmd = "ci/kani.sh"
+selftest = "ci/kani.sh --self-test"
+heavy = true
+
+[[gate]]
+name = "transport-limits"
+cmd = "oracles/transport-limits/run --subject target/release/transport-subject"
+selftest = "oracles/transport-limits/run --self-test target/release/transport-subject"
+heavy = true
+
+# OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
+[[gate]]
+name = "reverse-proxy-e2e"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+selftest = "oracles/proxy-e2e/run --self-test"
+remote = true
+
+
+[[gate]]
+name = "mcp-gateway"
+# Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
+# full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin -p aegis-pdp && ci/mcp-gate.sh run --flood-n 20000"
+selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
+remote = true
+
+[[gate]]
+name = "no-cedar-in-bin"
+cmd = "! cargo tree --locked -e normal,build -p aegis-bin --prefix none | grep -q '^cedar-policy'"
+selftest = "cargo tree --locked -e normal,build -p aegis-pdp --prefix none | grep -q '^cedar-policy'"
+
+[[gate]]
+name = "fuzz"
+cmd = "ci/fuzz.sh run --execs 100000000"
+selftest = "ci/fuzz.sh self-test"
+heavy = true
+remote = true
+
+# ======================================================================== Phase 4 additions
+
+[[gate]]
+name = "lowering-read-sqlite"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && ci/heavy.sh oracles/lowering-read/run --big --engine-pin --subject 'target/release/sqlite-subject lowering'"
+selftest = "oracles/lowering-read/run --self-test && oracles/lowering-read/run --self-test --subject 'target/release/sqlite-subject lowering'"
+heavy = true
+remote = true
+
+[[gate]]
+name = "lowering-read-pg"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p pg-subject && ci/engines.sh with pg17,pg18 -- ci/heavy.sh oracles/lowering-read/run --big --skip-sqlite --engine-pin --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17 --engine pg --dsn @pg18"
+selftest = "ci/engines.sh with pg17 -- oracles/lowering-read/run --self-test --skip-sqlite --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17"
+heavy = true
+
+[[gate]]
+name = "lowering-read-redis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p redis-subject && ci/engines.sh with valkey,redis -- ci/heavy.sh oracles/lowering-read/run --big --skip-sqlite --engine-pin --subject 'target/release/redis-subject lowering' --engine redis --url @valkey --engine redis --url @redis"
+selftest = "ci/engines.sh with valkey -- oracles/lowering-read/run --self-test --skip-sqlite --subject 'target/release/redis-subject lowering' --engine redis --url @valkey"
+heavy = true
+
+[[gate]]
+name = "lowering-write-sqlite"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && oracles/lowering-write/run --n 300 --engine-pin --skip-kv --subject 'target/release/sqlite-subject lowering'"
+selftest = "oracles/lowering-write/run --self-test && oracles/lowering-write/run --self-test --skip-kv --subject 'target/release/sqlite-subject lowering'"
+remote = true
+
+[[gate]]
+name = "lowering-write-pg"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p pg-subject && ci/engines.sh with pg17,pg18 -- oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17 --engine pg --dsn @pg18"
+selftest = "ci/engines.sh with pg17 -- oracles/lowering-write/run --self-test --skip-sqlite --subject 'target/release/pg-subject lowering' --engine pg --dsn @pg17"
+heavy = true
+
+[[gate]]
+name = "lowering-write-redis"
+# includes the kv_acl hostile-command corpus (RENAME, COPY, SORT ... STORE, EVAL, MOVE, SWAPDB, FLUSH*, KEYS)
+cmd = "ci/heavy.sh cargo build --release --locked -q -p redis-subject && ci/engines.sh with valkey,redis -- oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin --subject 'target/release/redis-subject lowering' --engine redis --url @valkey --engine redis --url @redis"
+selftest = "ci/engines.sh with valkey -- oracles/lowering-write/run --self-test --skip-sqlite --subject 'target/release/redis-subject lowering' --engine redis --url @valkey"
+heavy = true
+
+[[gate]]
+name = "schema-gate-static"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p datair-subject && oracles/schema-gate/run --static --subject 'target/release/datair-subject schema'"
+selftest = "oracles/schema-gate/run --self-test --static"
+remote = true
+
+[[gate]]
+name = "schema-gate-sqlite"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p sqlite-subject && oracles/schema-gate/run --engine sqlite --subject 'target/release/sqlite-subject schema'"
+selftest = "oracles/schema-gate/run --self-test --engine sqlite"
+remote = true
+
+[[gate]]
+name = "schema-gate-pg"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p pg-subject && ci/engines.sh with pg17,pg18 -- sh -c \"oracles/schema-gate/run --engine pg --dsn @pg17 --subject 'target/release/pg-subject schema' && oracles/schema-gate/run --engine pg --dsn @pg18 --subject 'target/release/pg-subject schema'\""
+selftest = "ci/engines.sh with pg17 -- oracles/schema-gate/run --self-test --engine pg --dsn @pg17"
+heavy = true
+
+[[gate]]
+name = "nonempty-props"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p host-subject && oracles/nonempty-props/run --cases 100000 --subject 'target/release/host-subject nonempty'"
+selftest = "oracles/nonempty-props/run --self-test && oracles/nonempty-props/run --self-test --subject 'target/release/host-subject nonempty'"
+remote = true
+
+[[gate]]
+name = "unrestricted-ledger"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && python3 -I ci/unrestricted.py check"
+selftest = "python3 -I ci/unrestricted.py --self-test"
+remote = true
+
+[[gate]]
+name = "allowlist-lock"
+cmd = "cargo xtask allowlist-lock --check"
+selftest = "cargo xtask allowlist-lock --self-test"
+
+[[gate]]
+name = "cancel-sweep"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p cancel-subject && oracles/cancel-sweep/run --seeds 200 --subject target/release/cancel-subject"
+selftest = "oracles/cancel-sweep/run --self-test && oracles/cancel-sweep/run --self-test --subject target/release/cancel-subject"
+heavy = true
+remote = true
+
+[[gate]]
+name = "crs-tls"
+# nginx CVE-2025-23419 replica (cross-vhost / cross-epoch / cross-ALPN resumption). Needs the host openssl client.
+cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/crs-diff/run --family tls-resume --subject target/release/aegis"
+selftest = "oracles/crs-diff/run --self-test --family tls-resume"
+
+[[gate]]
+name = "crs-data"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p crs-subject && ci/engines.sh with pg17,valkey -- oracles/crs-diff/run --family data --subject target/release/crs-subject --pg @pg17 --redis @valkey"
+selftest = "oracles/crs-diff/run --self-test --family data"
+heavy = true
+
+[[gate]]
+name = "sdk-trybuild"
+cmd = "ci/heavy.sh oracles/sdk-trybuild/run"
+selftest = "ci/heavy.sh oracles/sdk-trybuild/run --self-test"
+heavy = true
+remote = true
+
+[[gate]]
+name = "sdk-host"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p host-subject && oracles/sdk-host/run --subject 'target/release/host-subject sdk-host'"
+selftest = "oracles/sdk-host/run --self-test && oracles/sdk-host/run --self-test --subject 'target/release/host-subject sdk-host'"
+remote = true
+
+[[gate]]
+name = "crash-harness"
+# full size (~170k images: main + fsync EIO + double fault); subject built with libc-routed I/O for the tracer
+cmd = "CARGO_TARGET_DIR=target/crash RUSTFLAGS='--cfg rustix_use_libc' ci/heavy.sh cargo build --release --locked -q -p crash-subject && HEAVY_TIMEOUT=7200 oracles/crash-harness/run --full --jobs 8 --subject 'target/crash/release/crash-subject {dir}'"
+selftest = "oracles/crash-harness/run --self-test && oracles/crash-harness/run --self-test --subject 'target/crash/release/crash-subject {dir}'"
+heavy = true
+remote = true
+
+[[gate]]
+name = "state-props"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p state-subject && oracles/state-props/run --subject 'target/release/state-subject {dir}'"
+selftest = "oracles/state-props/run --self-test && oracles/state-props/run --self-test --subject 'target/release/state-subject {dir}'"
+remote = true
+
+[[gate]]
+name = "pg-version-floor"
+# fake PG v3 server over a version matrix; floors come from supply-chain/engine-pins.toml
+cmd = "ci/heavy.sh cargo build --release --locked -q -p pg-subject && oracles/pg-version-gate/run --subject 'target/release/pg-subject connect'"
+selftest = "oracles/pg-version-gate/run --self-test"
+remote = true
+
+[[gate]]
+name = "pg19-blocked"
+# live: postgres:19rc1 refused, postgres:17-alpine accepted. Lift only by a spec change naming the fixed minor AND a
+# passing lowering-write RLS ON CONFLICT family on that image.
+cmd = "ci/heavy.sh cargo build --release --locked -q -p pg-subject && ci/engines.sh with pg19rc1,pg17 -- oracles/pg-version-gate/run --live --subject 'target/release/pg-subject connect' --refuse @pg19rc1 --accept @pg17"
+selftest = "ci/engines.sh with pg19rc1,pg17 -- oracles/pg-version-gate/run --self-test --live --refuse @pg19rc1 --accept @pg17"
+heavy = true
+
+[[gate]]
+name = "no-pg-query-in-bin"
+cmd = "ci/no-crate.sh aegis-bin pg_query libpg_query pg_query_sys"
+selftest = "ci/no-crate.sh --self-test"
+
+[[gate]]
+name = "native-e2e"
+# PLAN D17: the data plane is the `native` build (own target dirs, so the core build in target/release and the
+# proxy-e2e `e2e-mutants` build in target/e2e-mutants are never overwritten).
+cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/aegis --pg @pg17"
+selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/aegis --mutant-subject target/native-mutants/release/aegis"
+heavy = true
+
+# ======================================================================== Phase 5 additions
+
+[[gate]]
+name = "p2-fault-forkwasm"
+# Quiet host (laptop), gate timing mode, 3 trials per cell (PLAN D14). Gated: G0-G4 on panic, abort, segv, loop, oom,
+# poison AND hostabort, hostpoison (the fork+Wasm containment claim, q4-006).
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-forkwasm.json --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}'"
+# Red on: oracle reference mutants (no-fork, no-deadline) and the real subject built with `mutants`
+# (AEGIS_P2_MUTANT = no-fork | no-deadline | reuse-instance), while the unmutated real subject passes.
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --self-test && oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}'"
+heavy = true
+
+[[gate]]
+name = "p2-fault-cordon"
+# Quiet host (laptop), gate timing mode, 3 trials. Gated: G0-G4 on the 6 guest classes; hostabort/hostpoison are
+# reported only (a per-principal cordon keeps the damage with one principal; shared cordons are unrepresentable, D1).
+# Second run: the MPK density option (PLAN D11): same thresholds, reservation and guards unchanged.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-cordon.json --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}'"
+# Red on: shared-store, recycle50, no-deadline, epoch-only-4 (real subject with `mutants`) plus the reference mutants.
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --self-test && oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}'"
+heavy = true
+
+[[gate]]
+name = "p2-syscall-negative"
+# Laptop: Linux 6.17 with kernel.apparmor_restrict_unprivileged_userns=1 (PLAN D2). Pass only on the filter's own
+# signature (SIGSYS from KILL_PROCESS; ENOSYS for clone3), never on EPERM; every probe runs an unfiltered control
+# first and records host facts. Probes both the p2-subject (both paths) and the real worker (test-hooks build).
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe'"
+# Red on: no-clone-flag-filter, no-denylist, eperm-instead-of-kill, clone3-allowed, dumpable-1, no-landlock,
+# no-child-filter (oracle reference mutants).
+selftest = "oracles/syscall-negative/run --self-test"
+heavy = true
+
+[[gate]]
+name = "p2-hostile-worker"
+# Corpus I1 (imports, handles) and I2 (fuel, epoch, memory, table, stack, host-call and byte quotas) against the
+# aegis-p2 worker with the oracle as mock supervisor over F14. Count criteria only, so the desktop is fine.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && oracles/hostile-modules/run --level worker --subject target/p2/release/aegis-p2"
+# Red on: extra-import, handle-not-cleared, no-hostcall-quota, no-fuel-no-epoch, no-limiter.
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis-p2"
+heavy = true
+remote = true
+
+[[gate]]
+name = "p2-hostile-host"
+# Corpus I1 (capabilities at the supervisor), I5, I6-host, I7 end to end through the real aegis binary (p2 + native:
+# data_run reaches the Phase-4 adapters; SQLite only, no engine container) and the release worker.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2"
+# Red on: raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow,
+# data-run-skips-authorize, tenant-not-overwritten.
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2"
+heavy = true
+remote = true
+
+[[gate]]
+name = "wasmtime-config"
+# R-ISO-2: wasmtime =50.0.0; default-features=false + cranelift, pooling-allocator, runtime, std only; no gc/threads/
+# winch/wasi/wasi-http/component-model-async; memory64=false, gc=false; 4 GiB reservation + 32 MiB guard never shrunk
+# (GHSA-6wgr, GHSA-394w shapes as recorded from the advisories); MPK only with those values unchanged; epoch + fuel on;
+# exactly one Module::deserialize site. Expected values: supply-chain/wasmtime-config.toml.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2"
+selftest = "python3 -I ci/wasmtime-config.py --self-test"
+remote = true
+
+[[gate]]
+name = "p2-fault-vps"
+# VPS-class re-run on kamrui (Intel N95, 4 cores, Linux 6.17.0-41) through ci/remote.sh --host kamrui (not
+# `remote = true`, which is the desktop). Same thresholds as the laptop; isolation-fi prints kamrui/laptop ratios
+# against gates/p2-runner-reference.json and flags >2x, but never moves a threshold (PLAN D10: only an integrator
+# Decision with both measurements may). Count criteria never move. Also re-runs the syscall probes on kamrui's kernel.
+cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/release/p2-subject probe'\""
+# The oracles must still catch their mutants on this host (a runner where the checks cannot go red proves nothing).
+selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test'"
+heavy = true
+
+[[gate]]
+name = "p2-e2e"
+# Quiet host (laptop; oracle needs=quiet-host). Real aegis (feature p2) + release worker; the exec-respawn family
+# uses the test-hooks worker (load-base report). Families: wasm: routes under both paths and across a reload that
+# switches the default; one cordon per principal; exec respawn (new pid, new load base); crash budget 3/60 s -> 429
+# for 600 s (scaled knobs + effective defaults from the config dump); dumpable=0 (root-owned /proc/<pid>);
+# fail-closed boot (missing worker, Landlock ABI < 4, shared-cordon config) -> exit 78.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
+# Red on: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1,
+# no-reload-switch, boot-without-landlock-accepted.
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && oracles/p2-e2e/run --self-test && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2"
+heavy = true
+
+[[gate]]
+name = "no-wasmtime-in-bin"
+# PLAN D3 / X-13: wasmtime and cranelift link only into the aegis-p2 worker, never into any aegis-bin build.
+cmd = "! cargo tree --locked -e normal,build -p aegis-bin --all-features --prefix none | grep -qE '^(wasmtime|wasmtime-environ|cranelift-codegen) '"
+# Positive control: the same filter finds wasmtime where it must be (as no-cedar-in-bin).
+selftest = "cargo tree --locked -e normal,build -p aegis-p2 --prefix none | grep -q '^wasmtime '"
+
+[[gate]]
+name = "unsafe-sites"
+# PLAN D4 / X-14: aegis-iso <= 20 unsafe sites, aegis-wasm exactly 1 (Module::deserialize after the digest check),
+# every site with // SAFETY:, no other crate relaxes forbid(unsafe_code).
+cmd = "cargo xtask unsafe-sites"
+selftest = "cargo xtask unsafe-sites --self-test"

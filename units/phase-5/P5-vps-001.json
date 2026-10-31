@@ -1,0 +1,39 @@
+{
+ "id": "P5-vps-001",
+ "role": "integrator",
+ "crates": [
+  "gates/p2-runner-reference.json (new)",
+  "kamrui re-run"
+ ],
+ "depends_on": [
+  "P5-iso-003",
+  "P5-oracle-fi-001",
+  "P5-oracle-syscall-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-fault-vps"
+ ],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 5 'Re-run on a quiet VPS-class runner; thresholds move only if shifted >2x'",
+  "spikes/q4-006 kamrui data (fork+Wasm loop service gap 6.78 ms pooled p99)",
+  "PLAN D10, Q1, Q2, Q5"
+ ],
+ "oracles": [
+  "oracles/isolation-fi on kamrui (both paths, 3 trials, --server-core 1 --client-cores 2,3, --reference)",
+  "oracles/syscall-negative on kamrui"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'rustup target list --installed --toolchain 1.98.0 | grep -q wasm32-unknown-unknown' && ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/release/p2-subject probe'\"",
+  "must": "kamrui run complete with every count criterion green; gates/p2-runner-reference.json committed from the laptop GO-candidate run (isolation-fi --record); every timing ratio >2x listed in the unit status with both numbers; if a timing criterion is red on kamrui, do NOT edit thresholds: report it for an integrator Decision (PLAN D10)"
+ },
+ "write_scope": [
+  "gates/p2-runner-reference.json",
+  "oracles/isolation-fi/README.md (results section only)"
+ ],
+ "notes": "If kamrui lacks the wasm32 target in ~/aegis-ci, install it there with the isolated rustup (ci/remote.sh environment), never system-wide. kamrui is also the prover box: run when no ci/kani.sh job holds it.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}
