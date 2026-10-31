@@ -1,0 +1,33 @@
+{
+ "id": "P5-oracle-e2e-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/p2-e2e (new)"
+ ],
+ "depends_on": [
+  "P5-spec-001"
+ ],
+ "start_now": false,
+ "gates": [],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 5 scope (exec zygote, per-tenant cordons, fork+Wasm, crash budgets, dumpable=0)",
+  "ARCHITECTURE \u00a73.6 R-ISO-5 (exec spawn: a respawned fork server is a BROP crash oracle; crash budget 3 in 60 s -> 429 for 10 min)",
+  "F8 p2 block, F14 status frame (P5-spec-001)",
+  "PLAN D1, D2, D7, D8, D15"
+ ],
+ "oracles": [
+  "reference: oracle-local mock of the supervisor behaviour passes; mutants each red: shared-cordon (two principals land in one cordon pid), fork-respawn (replacement zygote has the same load base), global-crash-budget (principal B gets 429), no-crash-budget, budget-counts-healthy, dumpable-1 (/proc/<pid> owned by the user, not root), no-reload-switch (route fails after forkwasm->cordon reload), boot-without-landlock-accepted"
+ ],
+ "acceptance": {
+  "cmd": "oracles/p2-e2e/run --self-test",
+  "must": "PASS; `needs` file = quiet-host; families: wasm: route correct answers under both paths and across a reload that switches the default; principal->cordon mapping (one cordon per principal, never shared); exec respawn changes the load base (test-hooks worker) and the pid; crash budget with scaled knobs plus effective defaults 3/60/600 read from the config dump; dumpable=0 seen as root-owned /proc/<pid>; fail-closed boot (missing worker, Landlock ABI <4 simulated through the test-hooks probe, F8 shared cordon) exits 78"
+ },
+ "write_scope": [
+  "oracles/p2-e2e/**"
+ ],
+ "notes": "Interfaces of the run: --subject <aegis> --worker <aegis-p2> [--test-worker <aegis-p2 test-hooks>] [--mutant-subject ... --mutant-worker ...]. default-subject is written by P5-bin-001 once green. Guests built by the oracle (wasm32-unknown-unknown, as isolation-fi).",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

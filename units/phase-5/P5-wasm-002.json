@@ -1,0 +1,38 @@
+{
+ "id": "P5-wasm-002",
+ "role": "implementer",
+ "crates": [
+  "aegis-wasm (F14 guest ABI: linker allowlist, handles, quotas, frames)"
+ ],
+ "depends_on": [
+  "P5-wasm-001",
+  "P5-iso-002",
+  "P5-oracle-hostile-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-hostile-worker"
+ ],
+ "spec_refs": [
+  "F14 (P5-spec-001)",
+  "SPEC \u00a7H I1, I2 (host-enforced budgets: epoch, limiter, host-call and I/O-byte quotas; USENIX'25 WASI I/O amplification)",
+  "ARCHITECTURE R-ISO-2 linker allowlist; no WASI",
+  "PLAN D13"
+ ],
+ "oracles": [
+  "oracles/hostile-modules --level worker (and --self-test --mutant-subject)"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants && oracles/hostile-modules/run --level worker --subject target/p2/release/aegis-p2 && oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis-p2 && ci/remote.sh ci/heavy.sh cargo test --locked -q -p aegis-wasm",
+  "must": "PASS; every worker-level I1/I2 case holds on both paths; static import check refuses non-F14 imports before instantiation; mutants extra-import, handle-not-cleared, no-hostcall-quota, no-fuel-no-epoch, no-limiter red"
+ },
+ "write_scope": [
+  "crates/aegis-wasm/src/abi/**",
+  "crates/aegis-wasm/tests/abi*.rs"
+ ],
+ "notes": "The worker forwards data_run/log/response frames to the supervisor; it enforces nothing that the supervisor must enforce (authorization and audit are P5-bin-002), but it bounds counts and bytes per request (I2) and kills the request on any quota breach.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

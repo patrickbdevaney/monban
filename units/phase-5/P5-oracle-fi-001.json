@@ -1,0 +1,34 @@
+{
+ "id": "P5-oracle-fi-001",
+ "role": "spec-author",
+ "crates": [
+  "oracles/isolation-fi"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [],
+ "spec_refs": [
+  "oracles/isolation-fi/README (G0-G4, 8 fault classes, subject protocol, timing mode)",
+  "spikes/q4-006 (kamrui loop 6.8 ms; 1 trial resolves 0.05/fault only as 0 or >0.03)",
+  "IMPLEMENTATION_PLAN Phase 5 'Re-run on a quiet VPS-class runner; thresholds move only if shifted >2x'",
+  "oracles/README needs=quiet-host (8d9351d)",
+  "PLAN D10, D14"
+ ],
+ "oracles": [
+  "isolation-fi --self-test: existing 5 reference mutants stay red",
+  "new: --mutant-subject mode (as native-e2e): the real p2-subject built with `mutants` must be red under AEGIS_P2_MUTANT in {no-fork, no-deadline, reuse-instance} (forkwasm) and {shared-store, recycle50, no-deadline, epoch-only-4} (cordon), while the unmutated real subject passes",
+  "new: --reference/--record: ratio report flags a synthetic metric 2.1x the reference and does not flag 1.9x; the PASS/FAIL verdict never depends on the reference file (a mutated reference cannot turn a red cell green)"
+ ],
+ "acceptance": {
+  "cmd": "oracles/isolation-fi/run --self-test && oracles/isolation-fi/run --trials 3",
+  "must": "PASS; `needs` file = quiet-host; `--trials N` pools N trials per cell; `--record <json>` writes per-cell metrics; `--reference <json>` prints kamrui/laptop ratios and flags >2x without changing any threshold; `--server-core/--client-cores` documented for a 4-core runner; README updated (Phase-5 real-subject section)"
+ },
+ "write_scope": [
+  "oracles/isolation-fi/**"
+ ],
+ "notes": "Keep wasmtime =50.0.0 in the oracle lock (same as the workspace lock target). The real subject speaks the existing 8-byte protocol on fd 3; hostabort/hostpoison stay gated for forkwasm and reported for cordon.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

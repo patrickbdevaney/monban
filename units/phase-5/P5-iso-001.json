@@ -1,0 +1,40 @@
+{
+ "id": "P5-iso-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-iso (sandbox)",
+  "subjects/p2-subject (new: probe mode)"
+ ],
+ "depends_on": [
+  "P5-spec-002",
+  "P5-oracle-syscall-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-syscall-negative"
+ ],
+ "spec_refs": [
+  "ARCHITECTURE \u00a73.6 R-ISO-4/5",
+  "PLAN D2 (no namespaces; Landlock ABI >= 4 else refuse), D4 (<=20 unsafe sites), D5 (filter layout)",
+  "oracles/isolation-fi/rust/host/src/main.rs landlock()/seccomp() (reference, hand-rolled over libc)",
+  "oracles/syscall-negative probe protocol"
+ ],
+ "oracles": [
+  "oracles/syscall-negative (subject: target/p2/release/p2-subject probe; both paths)"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && oracles/syscall-negative/run --self-test --subject 'target/p2/release/p2-subject probe' && cargo xtask unsafe-sites",
+  "must": "PASS on the laptop (6.17.0-14); every probe killed with SIGSYS (clone3: ENOSYS) for zygote child and cordon; PR_GET_DUMPABLE = 0 in every process; Landlock ABI detected and recorded; aegis-iso unsafe sites <= 20 with // SAFETY:"
+ },
+ "write_scope": [
+  "crates/aegis-iso/src/lib.rs",
+  "crates/aegis-iso/src/sandbox/**",
+  "crates/aegis-iso/tests/sandbox*.rs",
+  "subjects/p2-subject/**"
+ ],
+ "notes": "The gate also probes the real worker (target/p2-test aegis-p2 probe, test-hooks); that half becomes runnable with P5-iso-002 (forkwasm) and P5-iso-003 (cordon), whose acceptance runs it. API: sandbox::Profile {zygote, child, cordon} -> install(&Profile) -> Result<Installed, SandboxError> (NO_NEW_PRIVS, Landlock fs ro on given paths + net deny, seccomp per D5, dumpable 0, rlimits NOFILE/NPROC/CORE=0); fails closed if any step fails. p2-subject is path-only (aegis-iso, later aegis-wasm); no direct third-party deps.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

@@ -1,0 +1,44 @@
+{
+ "id": "P5-spec-001",
+ "role": "spec-author",
+ "crates": [
+  "interfaces (F14 new, F8 additive)",
+  "spec (F1 \u00a7H addendum)"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "interfaces-frozen (carried)"
+ ],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN \u00a73 Phase 5 (scope + gates)",
+  "ARCHITECTURE \u00a73.6 (P2 rows, R-ISO-2..5, Reverse R1-R5), \u00a72.1 AA8",
+  "SPEC_INVARIANTS \u00a7H golden extension contract: survive I1, I2, I5, I6-host, I7; host decoders in the verified TCB",
+  "spikes/q4-006 verdict (flip: fork+Wasm default; per-principal cordons; fuel <=50x p50; hostpoison class)",
+  "F10 rule: frame decode failure kills the module, never the host; F10 `op` rule reused by reference",
+  "BACKLOG 'Developer recipes and extension contracts' item 1 (Wasm handlers P2 contract)",
+  "PLAN D1, D2, D6, D7, D11, D12, D13"
+ ],
+ "oracles": [
+  "python3 -I ci/interfaces.py self-test (red on a mutated F14 after F14 joins IFACES)",
+  "python3 -I ci/statements.py self-test (if present) after the \u00a7H addendum"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/interfaces.py self-test && python3 -I ci/statements.py check spec && cargo xtask layering",
+  "must": "PASS; F14 listed in ci/interfaces.py IFACES and MANIFEST; F8 p2 block additionalProperties false with every limit bounded and no way to express a cordon shared by principals; F1 \u00a7H INV-P2 statements re-frozen; F2-F7b, F9-F13 byte-identical (git diff --stat shows no change to them); MANIFEST + statements re-frozen in the same commit with the reason"
+ },
+ "write_scope": [
+  "interfaces/F14-p2-guest-abi.cddl",
+  "interfaces/F8-config.schema.json",
+  "interfaces/MANIFEST.sha256",
+  "interfaces/README.md",
+  "spec/SPEC_INVARIANTS.md",
+  "spec/STATEMENTS.sha256",
+  "ci/interfaces.py (IFACES list: add F14 only)"
+ ],
+ "notes": "F14: (1) guest imports, closed allowlist in module `aegis`: req_head/req_body_read (canonical structured request: method, canon path, typed query, allowlisted headers, body bytes), resp_head(status, headers as structured pairs), resp_write(body), log(level, bytes: module-authored data, typed redaction), data_run(op bytes per F10 `op` rule) -> result handle, result_read, handle_drop; handles are per-request u32 with a generation tag; a stale, foreign or dropped handle traps. (2) Exports: `handle() -> u32` status. (3) Test-only import env.host_fault(code) exists only in aegis-p2 `test-hooks` builds (codes 1 abort, 2 corrupt host state, as oracles/isolation-fi). (4) Worker<->supervisor frames (CDDL): request, response head/body chunks, data_run request/reply, log, status (incl. test-hooks layout report), each length-capped (64 KiB default, F8-bounded); a decode failure kills the worker and charges the principal's crash budget. (5) Normative: the supervisor re-serializes every byte the module emits (I5); every data_run is authorized against the route CapSet and audited before execution (I1, I6-host); a module decision is one input to the tri-state combiner, error/timeout/trap => Deny (I7). F8: p2 block per PLAN 'Interfaces'. F1: \u00a7H addendum INV-P2 (q4-006 acceptance; principals never share a cordon; exec respawn; crash budget 3/60 s -> 429 for 600 s; dumpable=0; D2/D5 sandbox obligations; Landlock ABI >= 4 else refuse). Do not edit F10; if reuse of the `op` rule is impossible, stop and record (PLAN Q8).",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

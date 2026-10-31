@@ -1,0 +1,34 @@
+{
+ "id": "P5-config-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-config (F8 p2 block)"
+ ],
+ "depends_on": [
+  "P5-spec-001"
+ ],
+ "start_now": false,
+ "gates": [],
+ "spec_refs": [
+  "F8 p2 block (P5-spec-001)",
+  "SPEC \u00a7G CFG-1..4 (totality, caps, last-known-good, staged apply)",
+  "PLAN D1, D6, D7"
+ ],
+ "oracles": [
+  "config-totality (carried gate, 1e6 iterations) over a generator extended to the p2 block",
+  "unit tests: shared cordon unrepresentable; every p2 limit at bound+1 rejected; defaults 15M fuel / 100 ms / 16 MiB / 3-60-600 / forkwasm for multi-principal routes"
+ ],
+ "acceptance": {
+  "cmd": "AEGIS_CONFIG_ITERS=1000000 ci/remote.sh ci/heavy.sh cargo test --release --locked -q -p aegis-config",
+  "must": "PASS; parse_config stays total; p2 block mirrors F8 exactly (additionalProperties false)"
+ },
+ "write_scope": [
+  "crates/aegis-config/src/**",
+  "crates/aegis-config/tests/**"
+ ],
+ "notes": "No gate owned: the carried config-totality gate and the p2-e2e boot family exercise it.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

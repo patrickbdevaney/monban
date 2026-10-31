@@ -1,0 +1,45 @@
+{
+ "id": "P5-iso-002",
+ "role": "implementer",
+ "crates": [
+  "aegis-iso (exec zygote, fork+Wasm, supervisor spawn/respawn)",
+  "aegis-p2 (worker main)",
+  "subjects/p2-subject (forkwasm serve)"
+ ],
+ "depends_on": [
+  "P5-iso-001",
+  "P5-wasm-001",
+  "P5-oracle-fi-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "p2-fault-forkwasm"
+ ],
+ "spec_refs": [
+  "spikes/q4-006 decision_effect (zygote: Engine + precompiled Module + InstancePre, no compiler state; fresh instance in the child; ITIMER_REAL; Landlock + seccomp in the zygote)",
+  "ARCHITECTURE R-ISO-5 exec spawn; supervisor-held listening socket",
+  "oracles/isolation-fi subject protocol",
+  "PLAN D5 (child filter, measure install cost), D8, D14, D15"
+ ],
+ "oracles": [
+  "oracles/isolation-fi --path forkwasm (real subject, 3 trials at GO) and --self-test --mutant-subject"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe' --path forkwasm",
+  "must": "PASS on the laptop in gate timing mode: 0 healthy failures and 0 wrong answers per fault on panic, abort, segv, loop, oom, poison, hostabort, hostpoison; recovery p99 <= 5 ms; loop throughput >= 0.5x; mutants no-fork, no-deadline, reuse-instance red; child-filter install cost per fork reported (p50/p99) in the unit status"
+ },
+ "write_scope": [
+  "crates/aegis-iso/src/zygote/**",
+  "crates/aegis-iso/src/supervisor/**",
+  "crates/aegis-iso/src/lib.rs",
+  "crates/aegis-iso/tests/zygote*.rs",
+  "crates/aegis-p2/src/main.rs",
+  "crates/aegis-p2/src/zygote.rs",
+  "subjects/p2-subject/**"
+ ],
+ "notes": "Worker main subcommands: zygote, cordon (stub returning exit 78 until P5-iso-003), compile/config (P5-wasm-001 module), probe (test-hooks). The zygote re-exec rule from isofi (start from the cached precompiled module) is kept. The supervisor API (spawn by execve with the inherited listening fd, respawn by execve, never fork-from-template) lives in aegis-iso::supervisor and is consumed by aegis-bin in P5-bin-001.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

@@ -1,0 +1,33 @@
+{
+ "id": "P5-oracle-wtcfg-001",
+ "role": "spec-author",
+ "crates": [
+  "ci/wasmtime-config.py (new)",
+  "supply-chain/wasmtime-config.toml (new)"
+ ],
+ "depends_on": [],
+ "start_now": true,
+ "gates": [],
+ "spec_refs": [
+  "ARCHITECTURE \u00a73.6 R-ISO-2 (features, memory64/gc false, 4 GiB + 32 MiB guards, never guard-shrunk: GHSA-6wgr, GHSA-394w; never wasmtime-wasi-http: RUSTSEC-2026-0350/0376; never deserialize untrusted bytes: runwasi CVE-2026-47218)",
+  "ARCHITECTURE \u00a73.6 MPK density option behind the same assertions",
+  "PLAN D11"
+ ],
+ "oracles": [
+  "ci/wasmtime-config.py --self-test: fixtures each red: guard shrunk (GHSA-6wgr shape as read from the advisory), the GHSA-394w shape as read from the advisory, reservation < 4 GiB, mpk with shrunk guard, memory64 true, gc true, threads feature, component-model-async feature, wasmtime-wasi or wasmtime-wasi-http crate present, wasmtime != 50.0.0, epoch_interruption false, consume_fuel false, a second Module::deserialize site; clean fixture passes"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/wasmtime-config.py --self-test",
+  "must": "PASS; the advisory texts of GHSA-6wgr and GHSA-394w read and their affected configuration shapes recorded verbatim (URL + date) in supply-chain/wasmtime-config.toml comments; if either advisory cannot be read, stop and record it (no guessed shape); check mode compares `aegis-p2 config --json` (with and without --mpk) and `cargo tree -e features -p aegis-p2` against the frozen expectation"
+ },
+ "write_scope": [
+  "ci/wasmtime-config.py",
+  "ci/fixtures/wasmtime-config/**",
+  "supply-chain/wasmtime-config.toml"
+ ],
+ "notes": "Static half (cargo tree features, lock version, deserialize-site count) runs without a build; runtime half needs the aegis-p2 binary from P5-wasm-001. Stdlib Python only, python3 -I.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}

@@ -1,0 +1,41 @@
+{
+ "id": "P5-wasm-001",
+ "role": "implementer",
+ "crates": [
+  "aegis-wasm (engine, cwasm, store, budgets, MPK)"
+ ],
+ "depends_on": [
+  "P5-spec-001",
+  "P5-spec-002",
+  "P5-oracle-wtcfg-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "wasmtime-config"
+ ],
+ "spec_refs": [
+  "ARCHITECTURE \u00a73.6 R-ISO-2/3 (pin, features, guards, epoch + ResourceLimiter, fuel as accounting)",
+  "spikes/q4-006 (fuel 15M default; precompiled module in the zygote; 16 MiB limiter; pooling)",
+  "PLAN D4 (single deserialize site after digest check), D6, D11"
+ ],
+ "oracles": [
+  "ci/wasmtime-config.py check (+ --self-test)"
+ ],
+ "acceptance": {
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2 && python3 -I ci/wasmtime-config.py --self-test && ci/remote.sh ci/heavy.sh cargo test --locked -q -p aegis-wasm && cargo xtask unsafe-sites",
+  "must": "PASS; `aegis-p2 config --json [--mpk]` equals supply-chain/wasmtime-config.toml; exactly one unsafe site (Module::deserialize_file) preceded by the sha256 check; tests: fresh Store per request (poison guest returns the correct answer on request n+1), fuel exhaustion traps, epoch deadline traps a loop within wall_ms, limiter denies growth past memory_mib, cwasm with a wrong digest refused before deserialize"
+ },
+ "write_scope": [
+  "crates/aegis-wasm/src/lib.rs",
+  "crates/aegis-wasm/src/engine/**",
+  "crates/aegis-wasm/src/store/**",
+  "crates/aegis-wasm/src/abi/mod.rs (fail-closed stub with the F14 signatures only)",
+  "crates/aegis-wasm/tests/engine*.rs",
+  "crates/aegis-p2/src/config.rs (the `config --json` and `compile` subcommands only)"
+ ],
+ "notes": "Engine is built once per process from F8 values; the pooling allocator with default reservation and guards; MPK via memory_protection_keys only when F8 p2.mpk = true. `aegis-p2 compile` runs sandboxed (P5-iso-001 cordon profile without the network) and writes the .cwasm; the supervisor computes and passes the expected digest. crates/aegis-p2/src/main.rs is owned by P5-iso-002; config.rs is a separate module it wires in.",
+ "infeasible_exit": true,
+ "max_retries": 30,
+ "passes": false,
+ "status": "open"
+}
