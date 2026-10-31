@@ -27,6 +27,6 @@
  "notes": "Probes: clone(CLONE_NEWUSER), unshare(CLONE_NEWUSER), unshare(CLONE_NEWNET), setns, clone3, socket(AF_INET/AF_INET6/AF_UNIX/AF_NETLINK), socketpair, setsockopt(TCP_ULP,\"tls\"), bpf(BPF_PROG_LOAD), io_uring_setup, perf_event_open, ptrace, process_vm_readv, userfaultfd, keyctl, mount, execve, fork-from-child; landlock: open outside allowed dir, TCP connect. No `needs` (host-agnostic by construction: it judges against the recorded control), so ci/oracles.sh also runs its self-test on the desktop.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "open"
+ "passes": true,
+ "status": "done"
 }

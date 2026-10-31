@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# AEGIS oracle: syscall-negative (Phase-5 gate p2-syscall-negative). Contract: oracles/README.md.
+# Last line: SYSCALL-NEGATIVE: PASS|FAIL (...)  /  SYSCALL-NEGATIVE SELF-TEST: PASS|FAIL (...)
+#   ./run                       judge the oracle's reference probe (hand-rolled Landlock + seccomp, isofi design)
+#   ./run --subject '<cmd>'     judge a real subject: the oracle appends
+#                               --path forkwasm|cordon [--stage zygote] --probe <name> --allow-dir <dir> [...]
+#                               (protocol in README.md "Probe protocol")
+#   ./run --self-test           7 reference mutants must each go red, the unmutated reference must pass
+#   --keep-build                keep rust/target (default: deleted at exit, laptop disk rule)
+#   --json-out <file>           write the per-cell report as JSON
+# The build (tiny, no dependencies) and the probe runs hold the machine-wide heavy-job lock via ci/heavy.sh.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+if [ -z "${AEGIS_SYSNEG_UNDER_HEAVY:-}" ]; then
+  exec env AEGIS_SYSNEG_UNDER_HEAVY=1 HEAVY_TIMEOUT="${HEAVY_TIMEOUT:-900}" "$REPO/ci/heavy.sh" "$0" "$@"
+fi
+keep=0; args=()
+for x in "$@"; do if [ "$x" = "--keep-build" ]; then keep=1; else args+=("$x"); fi; done
+T="$HERE/rust/target"; W=$(mktemp -d "${TMPDIR:-/tmp}/aegis-sysneg.XXXXXX")
+cleanup() { [ "$keep" = 1 ] || rm -rf "$T"; rm -rf "$W"; }
+trap cleanup EXIT
+if ! "$HERE/rust/build.sh" "$T" >&2; then
+  echo "SYSCALL-NEGATIVE: FAIL (build of the reference probe failed)"; exit 1
+fi
+python3 -I "$HERE/synneg.py" --bin "$T/release/synprobe" --workdir "$W" "${args[@]}"
