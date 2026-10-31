@@ -1,15 +1,36 @@
-//! F14 guest ABI (`interfaces/F14-p2-guest-abi.cddl` Part 1): signatures only, host side fail-closed.
+//! F14 guest ABI (`interfaces/F14-p2-guest-abi.cddl` Parts 1 and 2), host side.
 //!
-//! P5-wasm-001 owns this file as a stub: it holds the closed import allowlist and the export shape, which
-//! `aegis-p2 compile` checks before it writes a `.cwasm` (a module importing anything else, or exporting anything
-//! but `memory` and `handle`, is refused). [`define_imports`] defines no host function yet, so a module that imports
-//! one of the allowlisted names still fails instantiation in the worker: fail closed. The host functions, handle
-//! table and quotas are P5-wasm-002.
+//! - [`check_module`]: the static shape check that `aegis-p2 compile` runs before it writes a `.cwasm` and that
+//!   [`F14Worker::new`] repeats before resolving: imports are exactly the closed `aegis.*` allowlist with their exact
+//!   types (no other module or name, no memory, table or global import; `env.host_fault` only in `test-hooks`
+//!   builds), exports exactly `memory` (32-bit, not shared) and `handle() -> i32`. A module outside the shape is
+//!   refused before instantiation (I1).
+//! - [`F14Worker`] / [`Session`]: the worker side of one request (fresh Store and instance, the F14 host functions,
+//!   per-request generation-tagged handles, host-call / data_run / data byte / response byte / log byte quotas,
+//!   fuel, epoch deadline and limiter) over the F14 frames ([`frame`]) on a [`Transport`].
+//! - [`mutant`]: the worker negative controls of a `mutants` build (oracles/hostile-modules self-test).
+//!
+//! The worker holds no authority: it forwards `data_run` ops verbatim, `log` bytes as opaque data and the response
+//! as frames; the supervisor decodes, authorizes, audits and re-serializes (F14 Part 3). [`define_imports`] is the
+//! import-free path of [`crate::Worker`] and defines nothing.
 #![forbid(unsafe_code)]
 
 use std::fmt;
 
 use wasmtime::{ExternType, Linker, Module, ValType};
+
+pub mod frame;
+mod headers;
+mod host;
+pub mod mutant;
+mod serve;
+
+pub use frame::End;
+pub use headers::resp_headers_ok;
+#[cfg(feature = "test-hooks")]
+pub use host::host_corrupted;
+pub use host::{Recv, Transport, trap};
+pub use serve::{Closed, F14Worker, MAX_REQ_BODY, Served, Session};
 
 /// F14 `guest-api-version`.
 pub const GUEST_API_VERSION: u32 = 1;
@@ -56,6 +77,16 @@ pub const TEST_IMPORTS: &[ImportSig] = &[ImportSig { module: "env", name: "host_
 #[cfg(not(feature = "test-hooks"))]
 pub const TEST_IMPORTS: &[ImportSig] = &[];
 
+/// MUTANT extra-import: the test-only import accepted by a build without `test-hooks` (oracle negative control).
+const MUTANT_EXTRA_IMPORTS: &[ImportSig] = &[ImportSig { module: "env", name: "host_fault", params: 1, results: 0 }];
+
+/// The imports this build accepts: [`IMPORTS`] and [`TEST_IMPORTS`] (plus the extra-import mutant's).
+fn accepted() -> impl Iterator<Item = &'static ImportSig> {
+    let extra: &[ImportSig] =
+        if mutant::is(mutant::Mutant::ExtraImport) && TEST_IMPORTS.is_empty() { MUTANT_EXTRA_IMPORTS } else { &[] };
+    IMPORTS.iter().chain(TEST_IMPORTS).chain(extra)
+}
+
 /// Why a module does not fit the F14 shape.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AbiError {
@@ -85,7 +116,7 @@ fn all_i32<'a>(mut it: impl ExactSizeIterator<Item = ValType> + 'a, n: usize) ->
 pub fn check_module(module: &Module) -> Result<(), AbiError> {
     for imp in module.imports() {
         let (m, n) = (imp.module(), imp.name());
-        let allowed = IMPORTS.iter().chain(TEST_IMPORTS).find(|s| s.module == m && s.name == n);
+        let allowed = accepted().find(|s| s.module == m && s.name == n);
         let Some(s) = allowed else {
             return Err(AbiError::Import(format!("{m}.{n} is not allowlisted")));
         };
@@ -116,8 +147,8 @@ pub fn check_module(module: &Module) -> Result<(), AbiError> {
     Ok(())
 }
 
-/// Defines the F14 host functions on `linker`. Stub: defines none, so instantiating a module that imports any of
-/// them fails (fail closed) until P5-wasm-002 lands the host side.
+/// The import-free path of [`crate::Worker`] (engine regression tests, fault-free guests): defines no host
+/// function, so a module that imports anything fails to link there. F14 modules run through [`F14Worker`].
 pub fn define_imports<T>(_linker: &mut Linker<T>) -> Result<(), AbiError> {
     Ok(())
 }

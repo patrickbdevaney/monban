@@ -1,0 +1,12 @@
+--- a/oracles/hostile-modules/hostile.py
++++ b/oracles/hostile-modules/hostile.py
+@@ -154,6 +154,9 @@
+         except f14.DecodeError as e:
+             rec["protocol"] = f"undecodable frame: {e}"
+             return rec
++        if d["t"] == "layout" and not rec["frames"] and not rec.get("layout"):
++            rec["layout"] = True  # test-hooks/mutants workers send one D8 layout frame after ready (F14 Part 2)
++            continue
+         rec["frames"].append(d["t"])
+         if d.get("rid") != rid:
+             rec["protocol"] = f"frame for unknown req-id {d.get('rid')}"
