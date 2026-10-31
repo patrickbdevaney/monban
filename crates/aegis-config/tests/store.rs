@@ -2,7 +2,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
 use aegis_config::{
-    ConfigStore, ErrorKind, Generation, Health, MAX_CONFIG_BYTES, Phase, RolloutPolicy, StageError, parse_config,
+    Config, ConfigStore, CrashBudget, ErrorKind, Generation, Health, MAX_CONFIG_BYTES, P2Limits, Phase, RolloutPolicy,
+    RouteTarget, StageError, parse_config,
 };
 
 const A: &str = r#"{"v":1,"listeners":[{"name":"web","bind":"0.0.0.0:443","profile":"P-PUBLIC-WEB","alpn":["h2"]}],
@@ -22,6 +23,19 @@ const D: &str = r#"{"v":1,"listeners":[{"name":"d","bind":"b","profile":"P-PUBLI
   "data":{"backends":[{"id":"pg","engine":"postgres","dsn_ref":"env:PG_DSN","pin":"pg18","max_conns":8},
     {"id":"kv","engine":"redis","dsn_ref":"cred:kv","pin":"redis","op_budget_ms":100},
     {"id":"lite","engine":"sqlite","dsn_ref":"path:/var/lib/a.db","pin":"sqlite"}]}}"#;
+/// F8 `p2` block (Phase 5): wasm route targets, every p2 member set, module overrides and both tenancies.
+const E: &str = r#"{"v":1,"listeners":[{"name":"e","bind":"b","profile":"P-PUBLIC-WEB"}],
+  "vhosts":[{"host":"e","routes":[
+    {"id":1,"path":"/m","to":{"wasm":"m"},"authz":"m"},
+    {"id":2,"path":"/s","to":{"wasm":"s"},"authz":"s","data":"unrestricted"},
+    {"id":3,"path":"/","to":{"upstream":"u"}}]}],
+  "p2":{"worker":"/usr/libexec/aegis-p2","cache_dir":"/run/p2","isolation":"forkwasm","fuel":15000000,"wall_ms":100,
+    "memory_mib":16,"max_host_calls":10000,"max_data_runs":64,"max_data_bytes":4194304,"max_resp_bytes":1048576,
+    "max_log_bytes":65536,"frame_max_bytes":65536,"cordon_slots":64,"max_cordons":64,"cordon_idle_s":300,
+    "crash_budget":{"crashes":3,"window_s":60,"penalty_s":600},"mpk":false,
+    "modules":[{"id":"m","path":"/srv/m.wasm","sha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"},
+      {"id":"s","path":"/srv/s.wasm","sha256":"fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+       "tenancy":"single","fuel":20000,"wall_ms":50,"memory_mib":8}]}}"#;
 
 fn hash(s: &ConfigStore) -> Option<[u8; 32]> {
     s.config_hash()
@@ -212,6 +226,17 @@ const TOKENS: &[&[u8]] = &[
     b"\n",
     b"-0",
     b"0.0",
+    // F8 p2 block (Phase 5).
+    b"\"wasm\":\"m\",",
+    b"{\"wasm\":\"m\"}",
+    b"\"forkwasm\"",
+    b"\"cordon\"",
+    b"\"single\"",
+    b"false",
+    b"\"/x.wasm\"",
+    b"\"cordon_key\":\"k\",",
+    b"\"fuel\":1000000001,",
+    b"\"crash_budget\":{},",
 ];
 
 fn mutate(rng: &mut Rng, seed: &[u8]) -> Vec<u8> {
@@ -270,14 +295,18 @@ fn totality_random_mutation() {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(if cfg!(debug_assertions) { 20_000 } else { 1_000_000 });
-    let seeds: [&[u8]; 4] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes()];
+    let seeds: [&[u8]; 5] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes(), E.as_bytes()];
+    for seed in seeds {
+        parse_config(seed).unwrap();
+    }
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
     let mut s = ConfigStore::with_policy(policy());
     s.apply(A.as_bytes()).unwrap();
     let (mut oks, mut errs) = (0u64, 0u64);
+    let (mut p2_oks, mut p2_errs) = (0u64, 0u64);
     let mut kinds = std::collections::HashSet::new();
     for i in 0..iters {
-        let input = mutate(&mut rng, seeds[(i % 4) as usize]);
+        let input = mutate(&mut rng, seeds[(i % 5) as usize]);
         let before = (s.config_hash(), s.generation());
         match s.apply(&input) {
             Ok(g) => {
@@ -286,10 +315,17 @@ fn totality_random_mutation() {
                 // A config that parses has an effective form that parses to the same hash.
                 let c = s.current().unwrap();
                 assert_eq!(parse_config(c.effective_json()).unwrap().config_hash(), c.config_hash());
+                if c.p2().is_some() {
+                    p2_oks += 1;
+                }
+                p2_invariants(c);
             }
             Err(e) => {
                 errs += 1;
                 kinds.insert(e.kind());
+                if e.pointer().starts_with("/p2") || e.pointer().contains("/to/wasm") {
+                    p2_errs += 1;
+                }
                 assert_eq!((s.config_hash(), s.generation()), before, "Err changed the served config");
                 assert!(e.pointer().is_empty() || e.pointer().starts_with('/'));
             }
@@ -305,9 +341,38 @@ fn totality_random_mutation() {
             let _ = s.rollback();
         }
     }
-    println!("totality: {iters} inputs, {oks} accepted, {errs} rejected, kinds {kinds:?}");
+    println!(
+        "totality: {iters} inputs, {oks} accepted ({p2_oks} with p2), {errs} rejected ({p2_errs} in p2), kinds {kinds:?}"
+    );
     assert_eq!(oks + errs, iters);
     // The corpus must reach the schema layer, not only the JSON parser.
     assert!(kinds.len() >= 8, "mutations reached too few error kinds: {kinds:?}");
     assert!(oks > 0);
+    // The generator reaches the p2 block on both sides.
+    assert!(p2_oks > 0 && p2_errs > 0, "p2 block not exercised: {p2_oks} accepted, {p2_errs} rejected");
+}
+
+/// What every accepted config guarantees about P2: each wasm route names a declared module, and every effective
+/// P2 limit (block, crash budget, per-module) is inside its F8 bounds.
+fn p2_invariants(c: &Config) {
+    for vh in c.vhosts() {
+        for r in &vh.routes {
+            if let RouteTarget::Wasm { module } = &r.to {
+                assert!(c.p2().and_then(|b| b.module(module)).is_some(), "wasm route {module} without module");
+            }
+        }
+    }
+    let Some(b) = c.p2() else { return };
+    for ((n, lo, hi, _), v) in P2Limits::BOUNDS.iter().zip(b.limits().values()) {
+        assert!((*lo..=*hi).contains(&v), "{n}={v}");
+    }
+    for ((n, lo, hi, _), v) in CrashBudget::BOUNDS.iter().zip(b.crash_budget().values()) {
+        assert!((*lo..=*hi).contains(&v), "{n}={v}");
+    }
+    assert!(!b.modules().is_empty());
+    for m in b.modules() {
+        assert!((P2Limits::FUEL_BOUNDS.0..=P2Limits::FUEL_BOUNDS.1).contains(&m.fuel()));
+        assert!((P2Limits::WALL_MS_BOUNDS.0..=P2Limits::WALL_MS_BOUNDS.1).contains(&m.wall_ms()));
+        assert!((P2Limits::MEMORY_MIB_BOUNDS.0..=P2Limits::MEMORY_MIB_BOUNDS.1).contains(&m.memory_mib()));
+    }
 }

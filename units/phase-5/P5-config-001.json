@@ -29,6 +29,6 @@
  "notes": "No gate owned: the carried config-totality gate and the p2-e2e boot family exercise it.",
  "infeasible_exit": true,
  "max_retries": 30,
- "passes": false,
- "status": "open"
+ "passes": true,
+ "status": "pass: F8 p2 block + {\"wasm\": id} route target in aegis-config (P2Block/P2Module/P2Limits/CrashBudget/Isolation/Tenancy; per-module overrides resolved at load; unique module ids; wasm route must name a declared module, absent p2 block => UnknownModule); acceptance AEGIS_CONFIG_ITERS=1000000 ci/remote.sh ci/heavy.sh cargo test --release --locked -q -p aegis-config EXIT 0 (451 tests); totality 1e6 inputs: 24628 accepted (3442 with p2), 975372 rejected (18742 at /p2 or /to/wasm), 15 error kinds; clippy -D warnings clean; tests/p2.rs mirrors the frozen schema file itself (member sets, required, bounds, defaults, enums, patterns, 3rd oneOf branch); every p2 limit, crash-budget knob and module override accepted at min/max and rejected at bound+1 and min-1; 8 shared-cordon attempts x 6 locations rejected UnknownField. OPEN (integrator): the new RouteTarget::Wasm variant makes aegis-bin/src/plan.rs:228 non-exhaustive (E0004); aegis-bin does not compile until a fail-closed arm is added (outside write_scope)"
 }
