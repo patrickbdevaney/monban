@@ -40,6 +40,9 @@ pub enum Kind {
     Cordon,
     /// fork+Wasm child: the small stacked filter.
     Child,
+    /// The sandboxed `aegis-p2 compile` (PLAN-5 D4): the cordon layout plus [`COMPILE_EXTRA`] (write the `.cwasm`
+    /// atomically: fsync, rename, unlink), all bounded by Landlock to the output directory.
+    Compile,
 }
 
 /// `AUDIT_ARCH_X86_64`.
@@ -119,8 +122,12 @@ pub mod nr {
     pub const KILL: u32 = 62;
     pub const UNAME: u32 = 63;
     pub const FCNTL: u32 = 72;
+    pub const FSYNC: u32 = 74;
+    pub const FDATASYNC: u32 = 75;
     pub const FTRUNCATE: u32 = 77;
     pub const GETCWD: u32 = 79;
+    pub const RENAME: u32 = 82;
+    pub const UNLINK: u32 = 87;
     pub const READLINK: u32 = 89;
     pub const PTRACE: u32 = 101;
     pub const GETUID: u32 = 102;
@@ -155,6 +162,8 @@ pub mod nr {
     pub const KEYCTL: u32 = 250;
     pub const OPENAT: u32 = 257;
     pub const NEWFSTATAT: u32 = 262;
+    pub const UNLINKAT: u32 = 263;
+    pub const RENAMEAT: u32 = 264;
     pub const READLINKAT: u32 = 267;
     pub const PPOLL: u32 = 271;
     pub const UNSHARE: u32 = 272;
@@ -174,6 +183,7 @@ pub mod nr {
     pub const PROCESS_VM_WRITEV: u32 = 311;
     pub const KCMP: u32 = 312;
     pub const FINIT_MODULE: u32 = 313;
+    pub const RENAMEAT2: u32 = 316;
     pub const SECCOMP: u32 = 317;
     pub const GETRANDOM: u32 = 318;
     pub const MEMFD_CREATE: u32 = 319;
@@ -340,6 +350,11 @@ pub const ALLOWLIST: &[u32] = &[
     nr::EXIT_GROUP,
 ];
 
+/// Added to the cordon layout for [`Kind::Compile`] only: the atomic `.cwasm` write (temp file, fsync, rename; unlink
+/// of the temp file on error). Landlock grants write, create and remove rights only beneath the output directory.
+pub const COMPILE_EXTRA: &[u32] =
+    &[nr::FSYNC, nr::FDATASYNC, nr::RENAME, nr::RENAMEAT, nr::RENAMEAT2, nr::UNLINK, nr::UNLINKAT];
+
 /// Killed by the fork+Wasm child filter.
 pub const CHILD_DENYLIST: &[u32] = &[nr::CLONE, nr::FORK, nr::VFORK, nr::EXECVE, nr::EXECVEAT];
 
@@ -408,7 +423,7 @@ pub fn program(kind: Kind) -> Result<Vec<Insn>, FilterError> {
     guard(&mut f, nr::CLONE3, vec![ret(RET_ERRNO | ENOSYS)])?;
     // clone: flags are arg0; the kernel uses only its low 32 bits (lower_32_bits(clone_flags)).
     let mut cb = vec![ld(arg_lo(0)), jset(CLONE_NEW_MASK, 0, 1), kill];
-    if kind == Kind::Cordon {
+    if matches!(kind, Kind::Cordon | Kind::Compile) {
         cb.extend([jset(CLONE_THREAD, 0, 1), allow, kill]);
     } else {
         cb.push(allow);
@@ -434,6 +449,12 @@ pub fn program(kind: Kind) -> Result<Vec<Insn>, FilterError> {
         // the fork child stacks its own filter
         f.push(jeq(nr::SECCOMP, 0, 1));
         f.push(allow);
+    }
+    if kind == Kind::Compile {
+        for &n in COMPILE_EXTRA {
+            f.push(jeq(n, 0, 1));
+            f.push(allow);
+        }
     }
     for &n in ALLOWLIST {
         f.push(jeq(n, 0, 1));

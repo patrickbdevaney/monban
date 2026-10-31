@@ -226,6 +226,7 @@ fn installed_line(a: &Args, inst: &super::Installed) {
         Stage::Zygote => "zygote",
         Stage::Cordon => "cordon",
         Stage::Child => "child",
+        Stage::Compile => "compile",
     };
     out(&format!(
         "{{\"event\":\"installed\",\"probe\":\"{}\",\"path\":\"{}\",\"stage\":\"{stage}\",\"landlock_abi\":{abi},\"landlock_scoped\":{scoped},\"filter_len\":{}}}",
