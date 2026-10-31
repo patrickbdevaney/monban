@@ -96,15 +96,15 @@ remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp -p ct-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
 selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true
 
 [[gate]]
 name = "oracles-local"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/oracles.sh run --where local"
-selftest = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && ci/oracles.sh self-test --where local"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/oracles.sh run --where local"
+selftest = "ci/heavy.sh cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && ci/oracles.sh self-test --where local"
 heavy = true
 
 [[gate]]

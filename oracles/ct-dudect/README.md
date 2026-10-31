@@ -77,8 +77,13 @@ aegis-token needed no change: `mac_valid` already compares with `aws_lc_rs::cons
   per matching byte) is detected at |t| in the hundreds to thousands, so byte-granular leaks are well within reach.
 - A statistical test: absence of evidence over 1e7 measurements on one machine, compiler and CPU, not a proof.
   Constant-time behaviour of AWS-LC's `CRYPTO_memcmp` is trusted (SECURITY_CLAIMS.md), and this measures it, not
-  verifies it. The run box (Ryzen 9 5900X) is shared; noise can raise |t| on both classes but cannot create a
-  class-dependent difference, since classes are interleaved at random.
+  verifies it.
+- Load is not harmless, although classes are interleaved at random: on the shared desktop at load average ≈ 13 the
+  Phase 4 GO runs failed twice on verify:fixed-vs-random (max |t| = 7.79, 6.70). On the same build at load ≈ 1, two
+  desktop reruns gave 1.40 and 1.52 on that test (all tests ≤ 2.61); the laptop gave all tests ≤ 2.77 twice. The
+  likely cause is the max over 102 statistics on heavy-tailed, non-stationary noise. The oracle therefore
+  `needs` `quiet-host` (2026-10-30) and runs in gate `oracles-local`, never on the shared box. The 4.5 threshold is
+  unchanged.
 - Only the Tier-L tag compare is covered; the Tier-0 handle digest compare (`Tier0Table::lookup`) and Tier-X
   ML-DSA verify are not timed here.
 - Timing of the HMAC itself depends only on the (public, fixed) caveats, not on the presented tag; it is in the

@@ -28,3 +28,4 @@ here, outside the implementer's write scope, and has been shown to FAIL on a neg
 
 `needs` value `quiet-host` (2026-10-30): the oracle has wall-clock-sensitive checks (native-e2e lands cancels inside a
 1.2 s hold), so it runs only on the local quiet runner, never on the shared LAN build box.
+ct-dudect has it too (2026-10-30): its |t| crossed 4.5 twice at desktop load ≈ 13 and stays ≤ 2.8 on a quiet box.
