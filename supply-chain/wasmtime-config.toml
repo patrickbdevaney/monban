@@ -51,7 +51,7 @@ schema = 1
 [pin]
 # Lock target (supply-chain/lock-targets.toml). Floor 49.0.4 (GHSA-897f / GHSA-mghf, ARCHITECTURE §3.6).
 crate = "wasmtime"
-version = "50.0.0"
+version = "50.0.1"
 floor = "49.0.4"
 
 [cargo_tree]

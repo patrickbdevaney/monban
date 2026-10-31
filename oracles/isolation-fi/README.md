@@ -49,7 +49,7 @@ serving host process down (abort); code 2 must corrupt that process's host state
 process is wrong (the reference XORs results with 0x5a5a). Real AEGIS hosts wire these two codes in a test-only
 build. A subject that does not honour them cannot claim the host-fault rows.
 
-Reference subjects (built from `rust/`, Wasmtime 49.0.3, pooling allocator, 16 MiB limiter, default guards,
+Reference subjects (built from `rust/`, Wasmtime 50.0.1, pooling allocator, 16 MiB limiter, default guards,
 Landlock + seccomp, dumpable=0):
 - `isofi serve cordon --threads 64 --budget fuel:15000000 --epoch-ms 100`: fresh instance per request in one
   process.
@@ -176,11 +176,13 @@ The research result reproduced here: E4 (epoch-only, 4 threads) gives loop p99 x
 
 ## Pin
 
-`wasmtime =50.0.0` (2026-10-20) is the lock target and meets the ARCHITECTURE floor of >=49.0.4 (GHSA-897f).
-It was re-pinned from 49.0.3 on 2026-10-29. cranelift is held at 0.137.0 because 0.137.1 (2026-10-29) was under the
-7-day lock age. To re-pin: edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check
+`wasmtime =50.0.1` (2026-10-29) is the lock target, matching the product pin in the workspace Cargo.toml
+(features cranelift, memory-protection-keys, pooling-allocator, runtime, std; PLAN-5 D11 as amended). It was re-pinned
+from 49.0.3 to 50.0.0 on 2026-10-29 and to 50.0.1 on 2026-10-31, because RUSTSEC-2026-0422/0423/0424 affect 50.0.0;
+50.0.1 needs cranelift 0.137.1. Both were under the 7-day lock age on 2026-10-31 and are covered until 2026-11-05 by
+the cooldown-bypass entries in supply-chain/exceptions.toml. To re-pin: edit `rust/host/Cargo.toml`, run `cargo update -p wasmtime --precise <v>`, then check
 every lock entry is at least 7 days old (`lock-dates.txt` holds the current dates; the newest are the wasmtime
-50.0.0 crates, 2026-10-20). Toolchain: Rust
+50.0.1 / cranelift 0.137.1 crates, 2026-10-29). Toolchain: Rust
 1.98.0 (`rust/rust-toolchain.toml`), the installed toolchain that has the wasm32-unknown-unknown target.
 `build.sh` changes into `rust/` so that rustup resolves that toolchain file.
 

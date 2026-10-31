@@ -10,5 +10,5 @@ path = "src/main.rs"
 
 [dependencies]
 # Pin: the lock target 50.0.0 (2026-10-20), re-pinned 2026-10-29 once it met the 7-day lock age; see README "Pin".
-wasmtime = { version = "=50.0.0", default-features = false, features = ["cranelift", "pooling-allocator", "runtime", "std"] }
+wasmtime = { version = "=50.0.1", default-features = false, features = ["cranelift", "memory-protection-keys", "pooling-allocator", "runtime", "std"] }
 libc = "=0.2.191"

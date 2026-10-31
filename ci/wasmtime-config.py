@@ -59,7 +59,7 @@ FLOOR_EFFECTIVE = {
 FLOOR_FORBIDDEN_CRATES = ("wasmtime-wasi", "wasmtime-wasi-http")
 FLOOR_FORBIDDEN_FEATURES = ("gc", "threads", "winch", "component-model", "component-model-async", "async",
                             "wmemcheck", "default")
-FLOOR_PIN = "50.0.0"
+FLOOR_PIN = "50.0.1"
 
 CRATE_RE = re.compile(r"(?:^|[\s─│├└])([A-Za-z0-9_][A-Za-z0-9_-]*) v(\d+\.\d+\.\d+[^\s]*)")
 FEAT_RE = re.compile(r"(?:^|[\s─│├└])([A-Za-z0-9_][A-Za-z0-9_-]*) feature \"([^\"]+)\"")
