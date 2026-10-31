@@ -134,6 +134,12 @@ impl Auditor {
         Ok(Self { log: Mutex::new(log), fips, dir, seq: std::sync::atomic::AtomicU64::new(1) })
     }
 
+    /// A fresh request id (unix ms, pid, sequence).
+    #[cfg_attr(not(feature = "p2"), allow(dead_code))]
+    pub fn new_req_id(&self) -> [u8; 16] {
+        self.req_id()
+    }
+
     fn req_id(&self) -> [u8; 16] {
         let mut id = [0u8; 16];
         let n = self.seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -169,6 +175,44 @@ impl Auditor {
         };
         let mut log = self.log.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         log.append_durable(&ev, crate::util::unix_ms()).map(|(seq, _)| seq).map_err(|e| format!("audit: {e:?}"))
+    }
+}
+
+impl Auditor {
+    /// One F14 `data_run` decision (feature `p2`; F14 Part 3 I6-host), appended durably like an admin event:
+    /// action `p2.data_run`, the route-bound tenant as the principal actor, outcome `allow` (authorized, written
+    /// before execution) or `deny` (refused). The collection is module-authored and logged escaped and capped.
+    /// `Err` ⇒ the event is not durable, and an authorized op must not run.
+    #[cfg_attr(not(feature = "p2"), allow(dead_code))]
+    #[allow(clippy::too_many_arguments)]
+    pub fn data_run(
+        &self,
+        tenant: u64,
+        collection: &str,
+        kind: &str,
+        module: &str,
+        allow: bool,
+        req_id: [u8; 16],
+        config_hash: [u8; 32],
+    ) -> Result<(), String> {
+        let tenant = aegis_types::TenantId::new(tenant).map_err(|_| "tenant 0".to_string())?;
+        let mut d = Detail::new();
+        for (k, v) in [("kind", kind), ("module", module)] {
+            d.insert(DetailKey::new(k).map_err(|e| e.to_string())?, text(v)).map_err(|e| e.to_string())?;
+        }
+        let ev = AuditEvent {
+            class: EventClass::DataPlane,
+            actor: Actor::principal(tenant, None),
+            action: Action::new("p2.data_run").map_err(|e| e.to_string())?,
+            object: Untrusted::object(collection.as_bytes()),
+            outcome: if allow { Outcome::Allow } else { Outcome::Deny },
+            req_id,
+            config_hash,
+            fips_status: self.fips,
+            detail: d,
+        };
+        let mut log = self.log.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        log.append_durable(&ev, crate::util::unix_ms()).map(|_| ()).map_err(|e| format!("audit: {e:?}"))
     }
 }
 

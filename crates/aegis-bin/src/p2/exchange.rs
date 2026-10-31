@@ -15,10 +15,11 @@
 //!    `layout` frame (D8, test-hooks builds) is accepted only as the first frame after `ready`; it has no
 //!    authority and is reported on stderr as `aegis-p2-layout {"pid": .., "load_base": ..}`.
 //!
-//! `data_run` is answered with the uniform F10 denial until P5-bin-002 wires decode, authorize and audit (fail
-//! closed). `log` data is module-authored: it is counted against the quota and never parsed (P5-bin-002 records
-//! it as an opaque audit field). Nothing a module wrote leaves this module except through [`Outcome::Allow`],
-//! which is produced only by `resp-end` with code 0 after a `resp-head` (I5); the caller re-serializes it.
+//! Each `data-run` is handed to the request's [`DataCtx`] (decode, tenant overwrite, authorize, audit before effect,
+//! execute; [`super::data`]) and answered with exactly one `data-reply` before the next frame is read. An op that
+//! does not decode is a decode failure of the request. `log` data is module-authored: it is counted against the
+//! quota and never parsed. Nothing a module wrote leaves this module except through [`Outcome::Allow`], which is
+//! produced only by `resp-end` with code 0 after a `resp-head` (I5); the caller re-serializes it.
 #![forbid(unsafe_code)]
 
 use std::io;
@@ -28,7 +29,9 @@ use std::time::{Duration, Instant};
 
 use aegis_adapter_host::pdp_uds::{connect_to, recv_packet, send_packet};
 
+use super::data::{self, DataCtx};
 use super::frame::{self, BODY_CHUNK, End, FRAME_MAX, Fields, HeaderLimits, Limits, W2s};
+use super::mutant::{self, Mutant};
 
 /// The only req-id on a connection (one request per connection).
 const RID: u64 = 1;
@@ -37,8 +40,8 @@ const RID: u64 = 1;
 pub const GRACE: Duration = Duration::from_secs(2);
 /// How long a worker may take to send `ready` (a cordon's first request includes its execve and engine boot).
 pub const READY_TIMEOUT: Duration = Duration::from_secs(10);
-/// The uniform F10 error code of a denied data_run (W6: no existence oracle).
-const DENIED_CODE: u8 = 1;
+/// How long the `double-response-accepted` negative control waits for frames after `resp-end`.
+const LATE_WAIT: Duration = Duration::from_millis(300);
 
 /// What the supervisor needs for one request.
 #[derive(Debug)]
@@ -52,6 +55,8 @@ pub struct Job<'a> {
     pub head: &'a [u8],
     pub body: &'a [u8],
     pub headers: HeaderLimits,
+    /// The request's data side (every `data-run` goes through it).
+    pub data: &'a DataCtx<'a>,
 }
 
 /// How the exchange ended.
@@ -186,9 +191,15 @@ fn read_reply(s: &UnixStream, job: &Job<'_>, until: Instant) -> Outcome {
                 if got != seq || seq >= l.max_data_runs || data_bytes > l.max_data_bytes {
                     return Outcome::Decode("data_run out of order or over quota");
                 }
-                let reply = frame::data_reply_denied(RID, seq, DENIED_CODE);
+                let Ok(mut result) = job.data.run(op) else { return Outcome::Decode("malformed data_run op") };
+                let mut reply = frame::data_reply(RID, seq, &result);
+                if reply.len() > FRAME_MAX {
+                    // A result that cannot travel in one frame (only a large select): the uniform error instead.
+                    result = data::result_err();
+                    reply = frame::data_reply(RID, seq, &result);
+                }
                 // The worker counts the result bytes against max_data_bytes too; so does the supervisor.
-                data_bytes = data_bytes.saturating_add(2);
+                data_bytes = data_bytes.saturating_add(u64::try_from(result.len()).unwrap_or(u64::MAX));
                 seq = seq.saturating_add(1);
                 if send_packet(s, &reply).is_err() {
                     return Outcome::Eof;
@@ -202,7 +213,10 @@ fn read_reply(s: &UnixStream, job: &Job<'_>, until: Instant) -> Outcome {
             }
             W2s::RespHead { status, headers, .. } => {
                 if head.is_some() {
-                    return Outcome::Decode("second resp-head");
+                    if !mutant::is(Mutant::DoubleResponseAccepted) {
+                        return Outcome::Decode("second resp-head");
+                    }
+                    body.clear(); // NEGATIVE CONTROL: the later head replaces the first
                 }
                 head = Some((status, headers));
             }
@@ -217,6 +231,18 @@ fn read_reply(s: &UnixStream, job: &Job<'_>, until: Instant) -> Outcome {
                 body.extend_from_slice(chunk);
             }
             W2s::RespEnd { end, .. } => {
+                if let End::Trap(_) = end {
+                    if mutant::is(Mutant::DoubleResponseAccepted)
+                        && let Some(late) = late_response(s, job)
+                    {
+                        return late; // NEGATIVE CONTROL: frames after resp-end accepted
+                    }
+                    if mutant::is(Mutant::TrapMapsToAllow) {
+                        // NEGATIVE CONTROL: the trap is treated as Allow with whatever the module wrote.
+                        let (status, headers) = head.unwrap_or((200, Vec::new()));
+                        return Outcome::Allow { status, headers, body };
+                    }
+                }
                 return match (end, head) {
                     (End::Code(0), Some((status, headers))) => Outcome::Allow { status, headers, body },
                     (End::Code(1), _) => Outcome::Deny,
@@ -224,6 +250,26 @@ fn read_reply(s: &UnixStream, job: &Job<'_>, until: Instant) -> Outcome {
                     (End::Trap(t), _) => Outcome::Trap(t),
                 };
             }
+        }
+    }
+}
+
+/// NEGATIVE CONTROL `double-response-accepted`: a late `resp-head`/`resp-body`/`resp-end(0)` after the request's
+/// `resp-end`, accepted as its answer.
+fn late_response(s: &UnixStream, job: &Job<'_>) -> Option<Outcome> {
+    let until = Instant::now() + LATE_WAIT;
+    let mut head: Option<(u16, Fields)> = None;
+    let mut body = Vec::new();
+    loop {
+        let Got::Frame(f) = recv(s, until) else { return None };
+        match frame::decode_w2s(&f, &job.headers)? {
+            W2s::RespHead { status, headers, .. } => head = Some((status, headers)),
+            W2s::RespBody { chunk, .. } => body.extend_from_slice(chunk),
+            W2s::RespEnd { end: End::Code(0), .. } => {
+                let (status, headers) = head?;
+                return Some(Outcome::Allow { status, headers, body });
+            }
+            _ => return None,
         }
     }
 }
@@ -278,7 +324,9 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(2500));
             }
         });
-        let job = Job { socket: &sock, digest: &DIGEST, limits: LIM, head: b"\x00", body: b"", headers: HL };
+        let data = DataCtx::none();
+        let job =
+            Job { socket: &sock, digest: &DIGEST, limits: LIM, head: b"\x00", body: b"", headers: HL, data: &data };
         let out = run(&job);
         let _ = t.join();
         let _ = std::fs::remove_dir_all(&dir);
@@ -329,11 +377,14 @@ mod tests {
         assert!(d(with_worker(vec![head(200), frame::Enc::new().u(22).u(0).u(1).u(1).finish()], true)));
         assert!(d(with_worker(vec![ready()], true)));
         assert!(d(with_worker(vec![vec![0xee, 1]], true)));
-        // data_run: seq must count up from 0, at most max_data_runs (2).
-        let run = |s: u64| frame::Enc::new().u(20).u(1).u(s).bytes(b"op").finish();
+        // data_run: seq must count up from 0, at most max_data_runs (2); the op must decode (F10).
+        let op = frame::Enc::new().u(1).bytes(b"notes").u(0).u(0).u(0).u(0).finish();
+        let run = |s: u64| frame::Enc::new().u(20).u(1).u(s).bytes(&op).finish();
         assert!(d(with_worker(vec![run(1)], true)));
         assert!(d(with_worker(vec![run(0), run(1), run(2)], true)));
         assert_eq!(with_worker(vec![run(0), run(1), end(0, 1)], true), Outcome::Deny);
+        let bad = frame::Enc::new().u(20).u(1).u(0).bytes(&[0xff; 10]).finish();
+        assert!(d(with_worker(vec![bad], true)));
     }
 
     #[test]

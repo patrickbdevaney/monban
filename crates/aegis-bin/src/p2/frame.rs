@@ -172,9 +172,9 @@ pub fn body_chunk(rid: u64, chunk: &[u8], last: bool) -> Vec<u8> {
     Enc::new().u(tag::BODY_CHUNK).u(rid).bytes(chunk).boolean(last).finish()
 }
 
-/// `data-reply = [2, req-id, seq, result]` with the F10 `result` [1, error-code] (the uniform denial, W6).
-pub fn data_reply_denied(rid: u64, seq: u64, code: u8) -> Vec<u8> {
-    Enc::new().u(tag::DATA_REPLY).u(rid).u(seq).u(1).u(u64::from(code)).finish()
+/// `data-reply = [2, req-id, seq, result]`; `result` is an encoded F10 `result` ([`super::data`]).
+pub fn data_reply(rid: u64, seq: u64, result: &[u8]) -> Vec<u8> {
+    Enc::new().u(tag::DATA_REPLY).u(rid).u(seq).raw(result).finish()
 }
 
 // ------------------------------------------------------------------------------------------------ decoding
@@ -315,6 +315,20 @@ fn resp_headers(d: &mut Dec<'_>, lim: &HeaderLimits) -> Option<Fields> {
     Some(out)
 }
 
+/// NEGATIVE CONTROL `raw-passthrough` (`p2-mutants` builds only): `resp-headers` decoded without the I5 rules.
+fn resp_headers_unchecked(d: &mut Dec<'_>) -> Option<Fields> {
+    let n = d.u()?;
+    if n > u64::try_from(d.remaining()).unwrap_or(0) {
+        return None;
+    }
+    let mut out = Vec::new();
+    for _ in 0..n {
+        let name = d.bytes()?.to_vec();
+        out.push((name, d.bytes()?.to_vec()));
+    }
+    Some(out)
+}
+
 fn rid(d: &mut Dec<'_>) -> Option<u64> {
     let r = d.u()?;
     (r != 0).then_some(r)
@@ -336,6 +350,12 @@ pub fn decode_w2s<'a>(frame: &'a [u8], lim: &HeaderLimits) -> Option<W2s<'a>> {
                 return None;
             }
             W2s::Ready { digest }
+        }
+        tag::RESP_HEAD if super::mutant::is(super::mutant::Mutant::RawPassthrough) => {
+            // NEGATIVE CONTROL: no status range, no header rules.
+            let rid = rid(&mut d)?;
+            let status = u16::try_from(d.u()?).ok()?;
+            W2s::RespHead { rid, status, headers: resp_headers_unchecked(&mut d)? }
         }
         tag::RESP_HEAD => {
             let rid = rid(&mut d)?;
@@ -414,7 +434,7 @@ mod tests {
         };
         assert_eq!(request(9, &l, &[0xaa]), vec![0, 9, 1, 2, 3, 4, 5, 6, 7, 8, 0xaa]);
         assert_eq!(body_chunk(9, b"x", true), vec![1, 9, 1, b'x', 1]);
-        assert_eq!(data_reply_denied(9, 0, 1), vec![2, 9, 0, 1, 1]);
+        assert_eq!(data_reply(9, 0, &[1, 1]), vec![2, 9, 0, 1, 1]);
     }
 
     #[test]

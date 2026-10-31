@@ -29,7 +29,9 @@
 //!   principal's next request gets fresh execs (D8). Other principals' groups are never touched.
 //!
 //! **Requests** ([`Runtime::serve`]): penalty check (429 before dispatch, D7), then one F14 exchange on a new
-//! connection (no pipelining, D21). Crash-attributable outcomes (trap, decode failure, abnormal exit or silence
+//! connection (no pipelining, D21). Every `data-run` of the request goes through [`data::DataCtx`]: decode
+//! (depth-capped), tenant overwrite, F4 authorize and check_schema against the route's endowment, the F9 audit
+//! event before the effect, execution on the route's backend (P5-bin-002, F14 Part 3 I1/I6-host). Crash-attributable outcomes (trap, decode failure, abnormal exit or silence
 //! past wall + grace, death of the principal's own cordon) are charged to the principal; Deny, Error codes and
 //! anything caused by the supervisor or by a reload never are. A fault seen after the request's generation was
 //! replaced, or on a cordon this supervisor tore down, is collateral and not charged.
@@ -44,6 +46,7 @@
 //! bound (at most `wall_ms`). A cordon is SIGKILLed with its group.
 #![forbid(unsafe_code)]
 
+pub mod data;
 pub mod exchange;
 pub mod frame;
 pub mod http;
@@ -56,7 +59,7 @@ use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
 use aegis_config::{Config, Isolation, RouteTarget};
@@ -65,6 +68,8 @@ use aegis_iso::crash_budget::{CrashBudget, CrashKind, Failure, Params, Verdict};
 use aegis_iso::supervisor::{self, WorkerCmd};
 use aegis_token::KeyRing;
 
+use crate::audit::Auditor;
+use data::{DataCtx, Store};
 use exchange::{Job, Outcome};
 use frame::{HeaderLimits, Limits};
 use mutant::Mutant;
@@ -285,6 +290,9 @@ pub struct Runtime {
     next_gen: AtomicU64,
     next_sock: AtomicU64,
     stop: AtomicBool,
+    /// The F9 log data_run decisions go to (set once the audit log is open; until then every authorized data_run
+    /// fails closed).
+    auditor: OnceLock<Arc<Auditor>>,
 }
 
 impl std::fmt::Debug for Runtime {
@@ -345,6 +353,7 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, runtime_dir: Option<&Path>) ->
         next_gen: AtomicU64::new(1),
         next_sock: AtomicU64::new(1),
         stop: AtomicBool::new(false),
+        auditor: OnceLock::new(),
     });
     let installed = rt.prepare(cfg).and_then(|p| rt.install(p));
     if let Err(e) = installed {
@@ -367,6 +376,11 @@ impl Runtime {
     fn socket_path(&self, prefix: &str) -> PathBuf {
         let n = self.next_sock.fetch_add(1, Ordering::Relaxed);
         self.rundir.join(format!("{prefix}{n}.sock"))
+    }
+
+    /// The audit log of this process (boot: right after it is opened, before any socket).
+    pub fn set_auditor(&self, a: Arc<Auditor>) {
+        let _ = self.auditor.set(a);
     }
 
     /// The Tier-L key ring of the current generation (`None` without wasm routes).
@@ -608,8 +622,18 @@ impl Runtime {
         None
     }
 
-    /// One request of principal `key` to module `module` (blocking; run on the blocking pool).
-    pub fn serve(&self, key: &Key, module: &str, head: &[u8], body: &[u8]) -> Served {
+    /// One request of principal `key` to module `module` (blocking; run on the blocking pool). `store` is the
+    /// route's data authority (`None`: the route holds no capability, every data_run is refused); `config_hash`
+    /// goes into the audit events.
+    pub fn serve(
+        &self,
+        key: &Key,
+        module: &str,
+        head: &[u8],
+        body: &[u8],
+        store: Option<&dyn Store>,
+        config_hash: [u8; 32],
+    ) -> Served {
         let bkey = if mutant::is(Mutant::GlobalCrashBudget) { Key::constant() } else { key.clone() };
         let ckey = if mutant::is(Mutant::SharedCordon) { Key::constant() } else { key.clone() };
         let now = Instant::now();
@@ -638,9 +662,18 @@ impl Runtime {
             };
             (generation, m, target)
         };
-        let job =
-            Job { socket: target.path(), digest: &m.digest, limits: m.limits, head, body, headers: generation.headers };
+        let dctx = DataCtx::new(key.tenant, store, self.auditor.get().map(Arc::as_ref), &m.id, config_hash);
+        let job = Job {
+            socket: target.path(),
+            digest: &m.digest,
+            limits: m.limits,
+            head,
+            body,
+            headers: generation.headers,
+            data: &dctx,
+        };
         let outcome = exchange::run(&job);
+        dctx.finish(matches!(outcome, Outcome::Trap(_) | Outcome::Decode(_) | Outcome::Eof | Outcome::Timeout));
         let (failure, tear_down) = classify(&outcome, &target);
         match &outcome {
             Outcome::Decode(why) => log(&format!("module {}: F14 decode failure: {why}", m.id)),

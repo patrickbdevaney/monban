@@ -5,13 +5,19 @@
 //! caveat}`; 401/403) → the canonical `req-head` (I5: method, canonical path, canonical query, the allowlisted
 //! request fields only, body length) → [`super::Runtime::serve`] on the blocking pool → the reply.
 //!
-//! Responses (PLAN D17): `handle()` = 0 is the module's status, headers (after the supervisor's I5 re-check) and
-//! body, re-serialized by aegis-transport with host-computed framing. Everything else (Deny, any Error: trap,
-//! fuel, wall bound, quota, worker death, decode failure, another code) is the one fixed Deny response, byte for
-//! byte, with no module byte. A principal in penalty gets 429 before dispatch.
+//! Data: the route's endowment (its F8 `data` block, resolved at boot by the native data plane) and the verified
+//! principal travel with the request as a [`super::data::Store`]; a route without `data` holds no capability.
+//!
+//! Responses (PLAN D17, F14 I7): the module's decision is one input of the F6 tri-state combiner next to the
+//! route's authz decision. `handle()` = 0 completed by `resp-end` is Allow; 1 is Deny; everything else (trap, fuel,
+//! wall bound, quota, worker death, decode failure, another code) is Error, which the combiner never turns into
+//! Allow. Allow is the module's status, headers (after the supervisor's I5 re-check) and body, re-serialized by
+//! aegis-transport with host-computed framing; anything else is the one fixed Deny response, byte for byte, with
+//! no module byte. A principal in penalty gets 429 before dispatch.
 
 use std::sync::Arc;
 
+use aegis_authz::{Decision, combine};
 use aegis_canon::header_fields;
 use aegis_canon::kind::RoutePath;
 use aegis_token::{Caveat, TokenL};
@@ -67,8 +73,13 @@ fn segments(path: &str) -> Option<Vec<String>> {
 }
 
 /// Tier-L verification; `Ok` is the request's crash-budget and cordon key (tenant, issuer kid of the verified
-/// token), `Err` 401 or 403.
-fn authenticate(keyring: &aegis_token::KeyRing, req: &Request, aud: &str, path: &str) -> Result<Key, u16> {
+/// token) with the verified principal, `Err` 401 or 403.
+fn authenticate(
+    keyring: &aegis_token::KeyRing,
+    req: &Request,
+    aud: &str,
+    path: &str,
+) -> Result<(Key, aegis_types::Principal), u16> {
     let v = header_fields(&req.headers).find(|(n, _)| *n == b"authorization").map(|(_, v)| v).ok_or(401u16)?;
     let tok = v.strip_prefix(b"Bearer ").or_else(|| v.strip_prefix(b"bearer ")).ok_or(401u16)?;
     let bytes = aegis_agent::b64::decode_url(crate::util::trim_ows(tok)).ok_or(401u16)?;
@@ -87,7 +98,8 @@ fn authenticate(keyring: &aegis_token::KeyRing, req: &Request, aud: &str, path: 
         now: u64::try_from(crate::util::unix_s()).unwrap_or(0),
     };
     match aegis_token::verify(&bytes, keyring, &r) {
-        Ok(_principal) => Ok(Key::new(tenant, t.kid)),
+        Ok(principal) if principal.tenant().get() == tenant => Ok((Key::new(tenant, t.kid), principal)),
+        Ok(_) => Err(403),
         Err(aegis_token::VerifyError::Denied) => Err(403),
         Err(_) => Err(401),
     }
@@ -176,7 +188,7 @@ pub async fn handle(shared: &Arc<Shared>, req: &Request) -> Option<Reply> {
     let Some(rt) = shared.p2.clone() else { return Some(Reply::status(503)) };
     let Some(path) = path_text(&req.path) else { return Some(Reply::status(400)) };
     let Some(keyring) = rt.keyring() else { return Some(Reply::status(503)) };
-    let key = match authenticate(&keyring, req, &vhost.host, path.0) {
+    let (key, principal) = match authenticate(&keyring, req, &vhost.host, path.0) {
         Ok(k) => k,
         Err(s) => return Some(Reply::status(s)),
     };
@@ -184,10 +196,22 @@ pub async fn handle(shared: &Arc<Shared>, req: &Request) -> Option<Reply> {
     let head = head.encode();
     let module = module.clone();
     let body = req.body.clone();
+    let store = crate::native::p2_store(shared.native.as_ref(), &snap.native, &vhost.host, route.id, principal);
+    let config_hash = snap.hash;
     drop(snap);
-    let served = tokio::task::spawn_blocking(move || rt.serve(&key, &module, &head, &body)).await;
+    let served =
+        tokio::task::spawn_blocking(move || rt.serve(&key, &module, &head, &body, store.as_deref(), config_hash)).await;
+    // The route's authz decision (allow-all, checked above) and the module's, combined (F6; I7).
+    let module_decision = match &served {
+        Ok(Served::Done(Outcome::Allow { .. })) => Decision::Allow,
+        Ok(Served::Done(Outcome::Deny)) => Decision::Deny,
+        _ => Decision::Error,
+    };
+    let decision = combine(&[Decision::Allow, module_decision]);
     Some(match served {
-        Ok(Served::Done(Outcome::Allow { status, headers, body })) => allow(status, headers, body),
+        Ok(Served::Done(Outcome::Allow { status, headers, body })) if decision == Decision::Allow => {
+            allow(status, headers, body)
+        }
         Ok(Served::Penalty) => penalty(),
         Ok(Served::Unavailable) => Reply::status(503),
         // Deny and every Error (I7, D17): the one fixed response.

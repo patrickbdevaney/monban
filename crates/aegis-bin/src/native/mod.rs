@@ -12,10 +12,15 @@
 //!   unknown collection or column fails the boot) and converted to an F4 `CapSet` (aegis-adapter-host
 //!   `endow::capset`; anything inert or refused fails the boot). A route without `data` holds no capability.
 //!
+//! The data plane also boots for a config whose only data endowments are on `{"wasm": id}` routes (feature `p2`):
+//! those endowments resolve the same way, and P2 `data_run`s reach the engines through [`p2data`] (P5-bin-002).
+//!
 //! Requests: [`http`]. Per-scope backend, commit gate and outcome record: [`scope`]. Renderers: [`engines`].
 
 pub mod engines;
 pub mod http;
+#[cfg(feature = "p2")]
+pub mod p2data;
 pub mod pg;
 pub mod scope;
 pub mod sqlite;
@@ -85,7 +90,10 @@ pub fn notes_schema() -> Schema {
 /// The Tier-L key ring loader (shared with the P2 routes, feature `p2`).
 pub use crate::keyring::load as load_keyring;
 
-/// One app route as served.
+#[cfg(feature = "p2")]
+pub use p2data::p2_store;
+
+/// One app route (or a `wasm:` route with a data block, feature `p2`) as served.
 #[derive(Clone, Debug)]
 pub struct AppRoute {
     /// The vhost host (token audience).
@@ -98,7 +106,7 @@ pub struct AppRoute {
     pub caps: Option<Arc<CapSet>>,
 }
 
-/// App routes of one config generation, by (vhost host, route id).
+/// App routes and data-endowed wasm routes of one config generation, by (vhost host, route id).
 #[derive(Debug, Default)]
 pub struct Bindings {
     routes: HashMap<(String, u64), AppRoute>,
@@ -142,6 +150,14 @@ pub fn has_app_routes(cfg: &Config) -> bool {
         .iter()
         .flat_map(|v| v.routes.iter())
         .any(|r| matches!(&r.to, RouteTarget::Upstream { upstream, .. } if upstream.starts_with(APP_PREFIX)))
+}
+
+/// True iff some `{"wasm": id}` route carries a data block (its endowment is resolved by this data plane).
+pub fn has_data_wasm_routes(cfg: &Config) -> bool {
+    cfg.vhosts()
+        .iter()
+        .flat_map(|v| v.routes.iter())
+        .any(|r| matches!(r.to, RouteTarget::Wasm { .. }) && r.data.is_some())
 }
 
 fn dsn(r: &DsnRef) -> Result<String, String> {
@@ -345,12 +361,13 @@ fn boot_pg(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Result
     Ok(EngineHandle::Pg { engine, host })
 }
 
-/// Boot the data plane, or `Ok(None)` when no route is bound to an app. Every error must fail the boot.
+/// Boot the data plane, or `Ok(None)` when no route is bound to an app and no wasm route holds a data block. Every
+/// error must fail the boot.
 pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Option<Arc<DataPlane>>, String> {
-    if !has_app_routes(cfg) {
+    if !has_app_routes(cfg) && !has_data_wasm_routes(cfg) {
         return Ok(None);
     }
-    let keyring = load_keyring(keyring.ok_or("app routes need --token-keyring (F5 Tier-L key ring)")?)?;
+    let keyring = load_keyring(keyring.ok_or("app and data routes need --token-keyring (F5 Tier-L key ring)")?)?;
     let reg = Arc::new(Registry::default());
     let mut engines = Vec::new();
     for (idx, b) in cfg.data().map(aegis_config::DataBlock::backends).unwrap_or(&[]).iter().enumerate() {
@@ -403,14 +420,21 @@ impl DataPlane {
         for (vi, v) in cfg.vhosts().iter().enumerate() {
             for (ri, r) in v.routes.iter().enumerate() {
                 let at = format!("/vhosts/{vi}/routes/{ri}");
-                let RouteTarget::Upstream { upstream, .. } = &r.to else { continue };
-                let Some(app) = upstream.strip_prefix(APP_PREFIX) else { continue };
-                if !APPS.contains(&app) {
-                    return Err(format!("{at}/to: unknown app {app:?}"));
-                }
+                let app_route = match &r.to {
+                    RouteTarget::Upstream { upstream, .. } => {
+                        let Some(app) = upstream.strip_prefix(APP_PREFIX) else { continue };
+                        if !APPS.contains(&app) {
+                            return Err(format!("{at}/to: unknown app {app:?}"));
+                        }
+                        true
+                    }
+                    // A wasm route without a data block holds no capability: no binding (every data_run refused).
+                    RouteTarget::Wasm { .. } if r.data.is_some() => false,
+                    _ => continue,
+                };
                 let res = resolved.iter().find(|x| x.host == v.host && x.route_id == r.id).map(|x| &x.data);
                 let (caps, backend) = match res {
-                    None if self.mutants.empty_caps_means_all && !self.engines.is_empty() => {
+                    None if app_route && self.mutants.empty_caps_means_all && !self.engines.is_empty() => {
                         // NEGATIVE CONTROL (e2e-mutants only): no data block read as "all ops on a backend".
                         (Some(Arc::new(CapSet::Unrestricted)), Some(0))
                     }
@@ -439,7 +463,7 @@ impl DataPlane {
                         ids.sort_unstable();
                         ids.dedup();
                         let [id] = ids.as_slice() else {
-                            return Err(format!("{at}/data: an app route's caps must name exactly one backend"));
+                            return Err(format!("{at}/data: a route's caps must name exactly one backend"));
                         };
                         let idx = self.engines.iter().position(|e| e.id == *id).ok_or(format!("{at}/data: backend"))?;
                         (conv.caps.map(Arc::new), Some(idx))

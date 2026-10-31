@@ -190,7 +190,7 @@ struct Ctl {
     store: ConfigStore,
     shared: Arc<Shared>,
     srv: Arc<Srv>,
-    auditor: Auditor,
+    auditor: Arc<Auditor>,
     tls: Tls,
     certs: CertPaths,
     notifier: Notifier,
@@ -256,7 +256,7 @@ impl Ctl {
                     // not booted cannot serve them (restart or upgrade).
                     let bindings = match &self.shared.native {
                         Some(dp) => Arc::new(dp.bind(&cfg)?),
-                        None if crate::native::has_app_routes(&cfg) => {
+                        None if crate::native::has_app_routes(&cfg) || crate::native::has_data_wasm_routes(&cfg) => {
                             return Err("app routes need the data plane booted at start (restart or upgrade)".into());
                         }
                         None => Arc::default(),
@@ -494,9 +494,13 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         return fail_closed("no audit directory (--audit-dir or StateDirectory=); admin events fail closed");
     };
     let auditor = match Auditor::open(&audit_base, &tls.fips) {
-        Ok(a) => a,
+        Ok(a) => Arc::new(a),
         Err(e) => return fail_closed(&e),
     };
+    // P2 data_run decisions go to the same log (F14 I6-host: audit before every host-mediated effect).
+    if let Some(rt) = &p2 {
+        rt.set_auditor(Arc::clone(&auditor));
+    }
     let exe = match std::env::current_exe() {
         Ok(e) => e,
         Err(e) => {

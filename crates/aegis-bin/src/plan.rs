@@ -10,11 +10,14 @@
 //!   upstream; plain HTTP to it (upstream TLS is a later unit). `framing` defaults to `h1-regenerate` (TCP) or `uds`
 //!   (unix); `uds` = HTTP/1.1 with regenerated framing over a unix socket and requires a `unix:` target;
 //! * `to.upstream = "app:<name>"` binds the route to a native app linked into this binary (modes A/D, PLAN D16);
-//!   only such a route may carry a `data` endowment (resolved at boot by [`crate::native`]);
+//!   it and a `wasm` route are the only routes that may carry a `data` endowment (resolved at boot by
+//!   [`crate::native`]);
 //! * `to.static` is refused: static file serving is not in this build;
 //! * `to.wasm = <module-id>` (Phase 5, F14) binds the route to a P2 module served by aegis-p2 workers; it needs
-//!   feature `p2` (refused otherwise), and `p2.frame_max_bytes` must be the default 65,536: the aegis-p2 worker
-//!   command line cannot carry another frame cap, so any other value is refused rather than half-applied.
+//!   feature `p2` (refused otherwise), a `data` block on it needs feature `native` too (resolved by the native data
+//!   plane, served to the module's `data_run`s, P5-bin-002), and `p2.frame_max_bytes` must be the default 65,536:
+//!   the aegis-p2 worker command line cannot carry another frame cap, so any other value is refused rather than
+//!   half-applied.
 //!
 //! Routing (documented semantics; F8 says nothing finer): a route path matches a canonical request path exactly,
 //! or as a prefix when the route path ends in `/` (`/api/` matches `/api/x`, not `/api`); the longest match wins.
@@ -268,9 +271,11 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                             "{at}/to: wasm targets need the P2 supervisor; this build has no feature `p2` (fail closed)"
                         ));
                     }
-                    if r.data.is_some() {
+                    // A data block is resolved by the native data plane, which only a `native` build has.
+                    if r.data.is_some() && !cfg!(feature = "native") {
                         return Err(format!(
-                            "{at}/data: data endowments of wasm routes are not served yet (P5-bin-002; fail closed)"
+                            "{at}/data: data endowments of wasm routes need the native data plane; this build has no \
+                             feature `native` (fail closed)"
                         ));
                     }
                     let authz = route_authz(&at, r, &mut warnings);
@@ -469,5 +474,23 @@ mod tests {
         assert!(plan(&p2_cfg(r#","frame_max_bytes":4096"#)).unwrap_err().contains("frame_max_bytes"));
         assert!(plan(&p2_cfg(r#","frame_max_bytes":65536"#)).is_ok() == cfg!(feature = "p2"));
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes","framing":"h2"}}]"#)).is_err());
+    }
+
+    #[test]
+    fn wasm_route_data_needs_the_native_data_plane() {
+        let doc = format!(
+            r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}}],
+               "data":{{"backends":[{{"id":"sq","engine":"sqlite","dsn_ref":"path:/srv/notes.db","pin":"sqlite"}}]}},
+               "p2":{{"worker":"/opt/aegis-p2","modules":[{{"id":"m","path":"/srv/m.wasm","sha256":"{}"}}]}},
+               "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"/m/","to":{{"wasm":"m"}},"authz":"allow-all",
+               "data":[{{"backend":"sq","collection":"notes","ops":["select"],"columns":["id","body"]}}]}}]}}]}}"#,
+            "ab".repeat(32)
+        );
+        let p = plan(&aegis_config::parse_config(doc.as_bytes()).unwrap());
+        match (cfg!(feature = "p2"), cfg!(feature = "native")) {
+            (true, true) => assert_eq!(p.unwrap().vhosts[0].routes[0].to, RouteTo::Wasm("m".into())),
+            (true, false) => assert!(p.unwrap_err().contains("feature `native`")),
+            (false, _) => assert!(p.unwrap_err().contains("feature `p2`")),
+        }
     }
 }
