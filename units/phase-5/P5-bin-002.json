@@ -1,36 +1,36 @@
 {
- "id": "P5-bin-002",
- "role": "implementer",
- "crates": [
-  "aegis-bin (feature p2: data_run authorize + execute, audit before effect, decision mapping)"
- ],
- "depends_on": [
-  "P5-bin-001",
-  "P5-oracle-hostile-001"
- ],
- "start_now": false,
- "gates": [
-  "p2-hostile-host"
- ],
- "spec_refs": [
-  "SPEC \u00a7H I1 (host-minted capabilities only), I6-host (audit before every host-mediated effect), I7 (tri-state combiner; failure_mode_allow forbidden)",
-  "F4 CapSet authorize, INV-NONEMPTY; F6 combine; F9 audit event; F14 data_run (op per F10 `op` rule; BACKLOG: cap Pred nesting before constructing)",
-  "Phase 4 D14 (idempotency atomic with the backend transaction) applies to data_run writes"
- ],
- "oracles": [
-  "oracles/hostile-modules --level host (and --self-test --mutant-subject)"
- ],
- "acceptance": {
-  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2",
-  "must": "PASS; every host-level I1/I5/I6-host/I7 case holds on both paths; mutants raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow, data-run-skips-authorize, tenant-not-overwritten red; p2-e2e stays green; the native,p2 build stays within the X-12 native ceiling (8.0 MB)"
- },
- "write_scope": [
-  "crates/aegis-bin/src/**",
-  "crates/aegis-bin/tests/**"
- ],
- "notes": "data_run: decode (depth-capped), authorize against the route CapSet (INV-NONEMPTY), overwrite tenant, audit (F9) before execute, execute through the Phase-4 adapter pairings in aegis-bin (D15), reply. Module decisions enter the tri-state combiner as one input; trap/timeout/garbage => Error => Deny.",
- "infeasible_exit": true,
- "max_retries": 30,
- "passes": false,
- "status": "blocked (implementer, 2026-10-31): only the native,p2 size clause is red; it was already red at baseline. Everything else in acceptance.must holds. Laptop runs, load in brackets. (1) Both release builds of the acceptance cmd (target/p2, target/p2-mutants) succeed. (2) hostile-modules --level host on the real aegis (p2,native) + release aegis-p2: PASS, 96 cells ok, 0 failed over 4 boots [load 6.17 -> 5.92]. (3) hostile-modules --self-test --level host with the mutants build: PASS. Control is green (96/96) and all 7 mutants are red: raw-passthrough 12 cells, double-response-accepted 4, audit-after-effect 2, no-audit-on-trap 6, trap-maps-to-allow 40, data-run-skips-authorize 4, tenant-not-overwritten 10 [load 5.69 -> 4.30]. (4) The gate selftest's reference run, hostile-modules --self-test (both levels): PASS, worker 68/68 + 5/5, host 96/96 + 7/7 [load 6.99 -> 7.57]. (5) p2-e2e: PASS, 161 checks, with the native,p2 binary [4.30 -> 3.69] and with a p2-only build (the gate's cmd form) [5.58 -> 5.04]. The acceptance cmd omits --test-worker. Its first run, before target/p2-test existed, FAILED 2 checks (boot.landlock-abi3.exit78, respawn.zygote.load-base-changed: 'needs --test-worker'). After building target/p2-test (aegis-p2 test-hooks, its own invocation, D18) both the literal cmd and the corrected form (--test-worker target/p2-test/release/aegis-p2) PASS. (6) Other checks: cargo xtask budget PASS (native 7,958,680 B <= 8,000,000); layering PASS; no-wasmtime-in-bin OK; aegis-bin unit tests pass and clippy is clean in all 5 feature sets (default, native, p2, p2+native, p2+native+p2-mutants). RED: the stripped native,p2 aegis is 8,068,472 B against the X-12 ceiling of 8,000,000 B. Baseline 54ed56d was already 8,045,624 B and this unit adds 22,848 B. No gate measures this combination, so it needs an integrator decision; see INFEASIBLE_REPORT.md."
+  "id": "P5-bin-002",
+  "role": "implementer",
+  "crates": [
+    "aegis-bin (feature p2: data_run authorize + execute, audit before effect, decision mapping)"
+  ],
+  "depends_on": [
+    "P5-bin-001",
+    "P5-oracle-hostile-001"
+  ],
+  "start_now": false,
+  "gates": [
+    "p2-hostile-host"
+  ],
+  "spec_refs": [
+    "SPEC \u00a7H I1 (host-minted capabilities only), I6-host (audit before every host-mediated effect), I7 (tri-state combiner; failure_mode_allow forbidden)",
+    "F4 CapSet authorize, INV-NONEMPTY; F6 combine; F9 audit event; F14 data_run (op per F10 `op` rule; BACKLOG: cap Pred nesting before constructing)",
+    "Phase 4 D14 (idempotency atomic with the backend transaction) applies to data_run writes"
+  ],
+  "oracles": [
+    "oracles/hostile-modules --level host (and --self-test --mutant-subject)"
+  ],
+  "acceptance": {
+    "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2",
+    "must": "PASS; every host-level I1/I5/I6-host/I7 case holds on both paths; mutants raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow, data-run-skips-authorize, tenant-not-overwritten red; p2-e2e stays green; the native,p2 build stays within the X-12 native ceiling (8.0 MB)"
+  },
+  "write_scope": [
+    "crates/aegis-bin/src/**",
+    "crates/aegis-bin/tests/**"
+  ],
+  "notes": "data_run: decode (depth-capped), authorize against the route CapSet (INV-NONEMPTY), overwrite tenant, audit (F9) before execute, execute through the Phase-4 adapter pairings in aegis-bin (D15), reply. Module decisions enter the tri-state combiner as one input; trap/timeout/garbage => Error => Deny.",
+  "infeasible_exit": true,
+  "max_retries": 30,
+  "passes": true,
+  "status": "passed (integrator, 2026-10-31, PLAN D24): the only failing clause (native,p2 over the X-12 8.0 MB ceiling, already over on main) is fixed by building the bundled SQLite C for size; ceiling unchanged. native,p2 7,175,712 B, native 7,065,920 B (desktop). cargo xtask budget PASS. Gate p2-hostile-host on main with D24 (desktop): cmd PASS 96/96 over 4 boots (load 12.1 to 7.3); selftest PASS (worker control 68 + 5/5 mutants; host control 96 + 7/7 mutants; load 2.4). Acceptance cmd fixed: p2-e2e step gets the test-hooks worker. Unit's own results: blocked (implementer, 2026-10-31): only the native,p2 size clause is red; it was already red at baseline. Everything else in acceptance.must holds. Laptop runs, load in brackets. (1) Both release builds of the acceptance cmd (target/p2, target/p2-mutants) succeed. (2) hostile-modules --level host on the real aegis (p2,native) + release aegis-p2: PASS, 96 cells ok, 0 failed over 4 boots [load 6.17 -> 5.92]. (3) hostile-modules --self-test --level host with the mutants build: PASS. Control is green (96/96) and all 7 mutants are red: raw-passthrough 12 cells, double-response-accepted 4, audit-after-effect 2, no-audit-on-trap 6, trap-maps-to-allow 40, data-run-skips-authorize 4, tenant-not-overwritten 10 [load 5.69 -> 4.30]. (4) The gate selftest's reference run, hostile-modules --self-test (both levels): PASS, worker 68/68 + 5/5, host 96/96 + 7/7 [load 6.99 -> 7.57]. (5) p2-e2e: PASS, 161 checks, with the native,p2 binary [4.30 -> 3.69] and with a p2-only build (the gate's cmd form) [5.58 -> 5.04]. The acceptance cmd omits --test-worker. Its first run, before target/p2-test existed, FAILED 2 checks (boot.landlock-abi3.exit78, respawn.zygote.load-base-changed: 'needs --test-worker'). After building target/p2-test (aegis-p2 test-hooks, its own invocation, D18) both the literal cmd and the corrected form (--test-worker target/p2-test/release/aegis-p2) PASS. (6) Other checks: cargo xtask budget PASS (native 7,958,680 B <= 8,000,000); layering PASS; no-wasmtime-in-bin OK; aegis-bin unit tests pass and clippy is clean in all 5 feature sets (default, native, p2, p2+native, p2+native+p2-mutants). RED: the stripped native,p2 aegis is 8,068,472 B against the X-12 ceiling of 8,000,000 B. Baseline 54ed56d was already 8,045,624 B and this unit adds 22,848 B. No gate measures this combination, so it needs an integrator decision; see INFEASIBLE_REPORT.md."
 }

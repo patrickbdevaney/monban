@@ -373,3 +373,16 @@ row is not edited here.
   integrator Decision with the operator's consent can move one, so p2-fault-vps stays red until the operator chooses:
   (a) a per-runner threshold for VPS-class hardware, or (b) treat the miss as evidence and make cordon the default
   on VPS-class runners while keeping the 5 ms gate.
+- **D24 SQLite built for size (integrator, after W5).** P5-bin-002 met everything except the clause "native,p2 within
+  the X-12 8.0 MB ceiling". The binary was 8,068,472 B on the laptop and 8,020,640 B on the desktop, and main was
+  already over before that unit. The ceiling is kept. `[profile.release.package.libsqlite3-sys] opt-level = "s"`
+  builds the bundled SQLite C for size, giving 7,175,712 B (native,p2) and 7,065,920 B (native; was 7,958,680),
+  measured on the desktop. SQLite is the data engine, not request-path Rust. Rejected alternatives: global
+  opt-level "s" (5.0 MB, but it changes every request-path crate) and per-crate "s" on aegis-bin, config and ops
+  (larger under fat LTO). Cost: SQLite query CPU may rise; no gate measures it at this point (BENCH_PLAN). Gap noted:
+  `cargo xtask budget` judges the size of default and native but not native,p2; adding native,p2 is a follow-up.
+  Accepted P5-bin-002 readings:
+  - A module data_run passes authorize, check_schema, the op budget and the render denylist, but not the notes app's
+    allowlist lock, because a module is not that app and F8 has no lock field for modules.
+  - Each data_run commits in its own transaction; a write followed by a trap stays committed and audited.
+  - Only SQLite is exercised by an oracle; the PG pairing compiles but is unverified.
