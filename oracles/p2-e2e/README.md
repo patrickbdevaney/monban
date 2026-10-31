@@ -58,11 +58,11 @@ ARCHITECTURE §3.6 R-ISO-5.
 | boot | `boot.<case>.exit78`, `.never-listened` | exit 78 and no accepted connection on the listener or admin port: missing worker; module digest mismatch; route naming an undeclared module; wasm route without a `p2` block; 7 attempts to express a shared cordon (`p2.cordon`, `p2.shared_cordon`, `p2.cordon_key`, module `cordon`, module `tenancy: "shared"`, module `principals`, route `p2`); Landlock ABI 3 simulated through the test-hooks worker (`boot.landlock-abi3`), with the control ABI 4 booting and serving (`boot.landlock-abi4-control.serves`) |
 | wasm answers | `wasm.forkwasm.answer`, `wasm.cordon.answer`, `reload.to-*.answer` | 200, the right module's marker, and an echoed `req-head` that decodes strictly (postcard, no trailing bytes) with method GET, path = request path (or the route path), query = opaque `n=<nonce>` (or typed `[("n", nonce)]`), headers only from the F14 allowlist and including `accept: text/plain` (so no `authorization`), body-len null or 0. Concurrent, several principals, both modules |
 | fork+Wasm structure | `wasm.forkwasm.zygote-observed`, `dumpable.forkwasm-*` | during a spin request a new process appears whose parent is another worker (not the supervisor), and after the request it is gone while its parent lives: that parent is the zygote. Both non-dumpable |
-| crash budget | `budget.*` (forkwasm, plus a short cordon run) | knobs 3 crashes / 4 s window / 5 s penalty. 4 Deny (403) then a healthy answer (`budget.healthy-not-counted`); 2 traps (502) then a healthy answer (below threshold); after the window, 1 trap then a healthy answer (`sliding-window`); 2 more traps: `/a/` and `/trap/` give 429 (`budget.exhausted-429`); principal B is served and its own trap does not exhaust it (`budget.other-principal-*`); after the penalty, A is served again (`penalty-expires`). If the 3 exhausting traps took longer than window - 0.5 s, `budget.<path>.timing` fails (cannot judge) and prints the load |
+| crash budget | `budget.*` (forkwasm, plus a short cordon run) | knobs 3 crashes / 4 s window / 5 s penalty. 4 Deny (403) then a healthy answer (`budget.healthy-not-counted`); 2 traps (403, Deny response) then a healthy answer (below threshold); after the window, 1 trap then a healthy answer (`sliding-window`); 2 more traps: `/a/` and `/trap/` give 429 (`budget.exhausted-429`); principal B is served and its own trap does not exhaust it (`budget.other-principal-*`); after the penalty, A is served again (`penalty-expires`). If the 3 exhausting traps took longer than window - 0.5 s, `budget.<path>.timing` fails (cannot judge) and prints the load |
 | reload switch | `reload.to-cordon.*`, `reload.to-forkwasm.*` | `isolation` forkwasm -> cordon by SIGHUP (applied = `aegis_proxy_config_reloads` advances): same routes answer correctly, each new principal gets a new long-lived worker process; cordon -> forkwasm: answers correct and a zygote is observed again |
 | one cordon per principal | `cordon.per-principal.<i>`, `.count`, `cordon.kill-isolated.*`, `cordon.respawn-after-kill.*` | boot with `cordon`: each of 4 principals' first request makes a new worker process appear that is still alive 0.3 s later; all disjoint; SIGKILL of principal 0's cordon leaves principal 1's cordon alive and serving; principal 0 is served again within 10 s by a pid not seen before the kill |
 | dumpable=0 | `dumpable.*` | every live worker (zygote, fork child, cordons, respawned ones): `/proc/<pid>/{status,maps,environ,fd}` owned by uid 0 and `/proc/<pid>/maps` unreadable (EACCES). Re-checked once after 0.2 s before failing (a just-exec'd worker may not have reached prctl yet) |
-| exec respawn (test-hooks worker) | `respawn.zygote.*`, `respawn.cordon.*`, `respawn.abort-is-502*` | forkwasm: load base L1 from the layout line of an echo request; zygote Z1 found as above; oracle SIGKILLs Z1 (explicit pid); served again within 10 s; new zygote Z2 != Z1, Z1 gone, layout load base L2 != L1 (`respawn.zygote.load-base-changed`), Z2 non-dumpable; `/abort/` gives 502 and the zygote survives the child's abort (Z3 == Z2). cordon: first request spawns cordon C1 with a layout line whose pid is C1; `/abort/` kills it (502); served again within 10 s by C2 (new pid, C1 gone) with a different load base; C2 non-dumpable |
+| exec respawn (test-hooks worker) | `respawn.zygote.*`, `respawn.cordon.*`, `respawn.abort-is-deny*` | forkwasm: load base L1 from the layout line of an echo request; zygote Z1 found as above; oracle SIGKILLs Z1 (explicit pid); served again within 10 s; new zygote Z2 != Z1, Z1 gone, layout load base L2 != L1 (`respawn.zygote.load-base-changed`), Z2 non-dumpable; `/abort/` gives the Deny response and the zygote survives the child's abort (Z3 == Z2). cordon: first request spawns cordon C1 with a layout line whose pid is C1; `/abort/` kills it (Deny response); served again within 10 s by C2 (new pid, C1 gone) with a different load base; C2 non-dumpable |
 
 ## Subject contract (what P5-bin-001 must implement)
 
@@ -90,7 +90,8 @@ budget key and the cordon key are the principal that `aegis_token::verify` mints
 
 **Responses.** `handle()` = 0: the module's status and body (the body is exactly the module's `resp_write` bytes; the
 oracle decodes it). `handle()` = 1 (Deny): **403**. Error (trap, fuel, wall bound, quota, worker death, decode
-failure, any other code): **502**, no module byte. Principal in penalty: **429** on every P2 route, before dispatch.
+failure, any other code): the Deny response, byte-identical (403, same body; PLAN D17: Error => Deny), no module
+byte. Principal in penalty: **429** on every P2 route, before dispatch.
 
 **Crash budget (D7).** A crash-attributable fault (trap, abnormal child exit, cordon death, F14 decode failure) of
 principal P is recorded at CLOCK_MONOTONIC; when P has `crashes` records within the last `window_s`, P's P2 requests
@@ -184,8 +185,10 @@ boot-refusal pattern, copied rather than imported so the directory stays self-co
 - **Load base and pids are self-reported** by the test-hooks worker through the supervisor's log line; the oracle
   cross-checks the cordon's layout pid against the process tree but cannot read `/proc/<pid>/maps` (dumpable=0 is
   the point). A dishonest test build could lie; the hook is reviewed with the worker (D15).
-- **Response mapping is fixed by this contract** (403 Deny, 502 Error, 429 penalty). F14 says only "the host's own
-  fixed response"; P5-bin-001 implements these codes, and the hostile-host oracle judges the bytes (I5).
+- **Response mapping is fixed by this contract** (403 Deny; Error = the same Deny response, PLAN D17; 429 penalty).
+  F14 says only "the host's own fixed response"; P5-bin-001 implements these codes, and the hostile-host oracle judges
+  the bytes (I5). Because Error and Deny look the same, the budget and respawn checks tell them apart by route
+  (`/deny/` vs `/trap/`, `/abort/`) and by process state, never by status.
 - **Timing.** Budget windows are seconds and respawn waits are bounded at 10 s; the run reports a timing failure
   rather than a verdict when 3 sequential traps exceed the window (prints the load). Laptop only (`needs`).
 - **The reference guests are stubs**; the Rust guests are checked structurally (`check_f14`) but have not yet been

@@ -305,3 +305,16 @@ row is not edited here.
 - **D16 placement:** as in "Placement" above. Timing-sensitive work goes to the laptop (`needs` = quiet-host),
   build-heavy and timing-free work to the desktop through ci/remote.sh, and the VPS-class re-run to kamrui. Nothing
   needs Docker.
+- **D17 Error ⇒ the Deny response (integrator, after W1).** Every Error outcome of a P2 route (trap, out of fuel, wall
+  bound, quota, worker death, decode failure, any `handle()` code other than 0 or 1) returns the host's explicit-Deny
+  response, byte-identical (403, same body), with no module byte. A principal in penalty gets 429. Reason: F14 says
+  "Error ⇒ Deny", and one response for both stops a client from telling a trap from a deny. The p2-e2e oracle first
+  expected 502 for Error and hostile-host expected the Deny bytes; p2-e2e now follows this rule and tells Error from
+  Deny by route and process state, never by status.
+- **D18 test-hooks never reach a shipped worker build.** p2-subject turns on aegis-iso/test-hooks, so p2-subject and
+  aegis-p2 are never built in the same cargo invocation; cargo unifies features only within one invocation. The
+  shipped worker is built alone (`-p aegis-p2`), and the test-hooks worker builds into target/p2-test. Gate commands
+  keep this split.
+- **D19 integrator wiring after W1.** `aegis-bin` refuses `{"wasm": id}` routes with a fail-closed error until
+  P5-bin-001 lands (plan.rs). `aegis-p2 main` dispatches `config` and `compile` (P5-wasm-001). The unsandboxed
+  `compile` refuses unless NoNewPrivs=1 and Seccomp=2, until P5-iso-002 installs the compile profile.
