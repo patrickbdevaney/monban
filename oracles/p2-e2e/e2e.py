@@ -306,7 +306,9 @@ class Subject:
 
     def reloads(self):
         for ln in self.admin_get("/metrics").split(b"\n"):
-            if ln.startswith(b"aegis_proxy_config_reloads "):
+            # OpenMetrics renders a counter sample as <family>_total (aegis-metrics; proxy-e2e reads that form); the
+            # reference subject prints the bare family name.
+            if ln.startswith(b"aegis_proxy_config_reloads ") or ln.startswith(b"aegis_proxy_config_reloads_total "):
                 try:
                     return int(float(ln.split()[1]))
                 except (IndexError, ValueError):

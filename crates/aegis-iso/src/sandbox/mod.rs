@@ -151,11 +151,27 @@ fn set_rlimit(name: &'static str, r: Resource, v: u64) -> Result<(), SandboxErro
         .map_err(|e| SandboxError::Rlimit(name, e.into()))
 }
 
+/// MUTANT dumpable-1 (oracles/p2-e2e self-test; `mutants` builds only, selected by `AEGIS_P2_MUTANT`):
+/// `PR_SET_DUMPABLE(0)` is skipped and not read back.
+#[cfg(feature = "mutants")]
+fn mutant_dumpable_1() -> bool {
+    std::env::var("AEGIS_P2_MUTANT").is_ok_and(|v| v.trim() == "dumpable-1")
+}
+
+/// Golden builds: never.
+#[cfg(not(feature = "mutants"))]
+fn mutant_dumpable_1() -> bool {
+    false
+}
+
 fn read_back() -> Result<(), SandboxError> {
     match rustix::thread::no_new_privs() {
         Ok(true) => {}
         Ok(false) => return Err(SandboxError::NoNewPrivs(None)),
         Err(e) => return Err(SandboxError::NoNewPrivs(Some(e.into()))),
+    }
+    if mutant_dumpable_1() {
+        return Ok(()); // MUTANT dumpable-1
     }
     match rustix::process::dumpable_behavior() {
         Ok(DumpableBehavior::NotDumpable) => Ok(()),
@@ -188,8 +204,10 @@ pub fn install(profile: &Profile) -> Result<Installed, SandboxError> {
     if let Some(n) = profile.nproc {
         set_rlimit("NPROC", Resource::Nproc, n)?;
     }
-    rustix::process::set_dumpable_behavior(DumpableBehavior::NotDumpable)
-        .map_err(|e| SandboxError::Dumpable(Some(e.into())))?;
+    if !mutant_dumpable_1() {
+        rustix::process::set_dumpable_behavior(DumpableBehavior::NotDumpable)
+            .map_err(|e| SandboxError::Dumpable(Some(e.into())))?;
+    }
     let ll = landlock::enforce(&profile.read_paths, &profile.write_dirs)?;
     sys::seccomp_set_filter(&prog).map_err(SandboxError::Seccomp)?;
     read_back()?;

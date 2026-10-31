@@ -347,3 +347,29 @@ row is not edited here.
     mutants builds), only in the first exchange of a connection and before any other frame. Every other unexpected
     frame is still a protocol violation. Before this fix every zygote cell of the worker self-test was red on the
     layout frame alone, so the zygote half of the self-test was vacuous.
+- **D22 P5-bin-001 integration (integrator, after W4).**
+  - **What a P2 principal is.** The crash-budget and cordon key is the verified token's (tenant, issuer kid). It is
+    not the full Principal: aegis_token's subject includes the token nonce, so every new token would be a new
+    principal, and a client could reset its crash budget by minting a token. Coarser is the safe direction here: one
+    issuer's tokens for one tenant share a budget and a cordon. Principals of different tenants or issuers never
+    share a cordon (D1 holds).
+  - **Workers load one module each.** On forkwasm the zygotes, one per module, restart together as one set when any
+    of them dies. On cordon, one group per principal holds one process per module used, and any death shuts the whole
+    group down. Both always respawn by execve (D9).
+  - **Fail-closed limits until a later unit lifts them.** frame_max_bytes other than 65536 is refused at plan time,
+    because the worker has no flag to receive it. Data endowments on wasm routes are refused and data_run always
+    answers "denied" until P5-bin-002. The request body is capped at 64 MiB on P2 routes. The supervisor re-checks
+    the configured header limits.
+  - **Accepted residuals.** No F14 cancel is sent when the client disconnects; the request is bounded by wall_ms plus
+    2 s. On a decode failure or timeout the supervisor closes the fork child's connection instead of SIGKILLing it,
+    because it does not learn the child's pid; the child dies at its next frame I/O or at its ITIMER_REAL bound.
+  - **Integrator fixes applied.** The dumpable-1 worker mutant is in aegis-iso, mutants builds only. The p2-e2e
+    oracle accepts the OpenMetrics `_total` sample of the reload counter. The p2-e2e selftest gets a mutants+test-hooks
+    worker (--mutant-test-worker). The p2-fault-vps cmd runs every step and combines the exit codes.
+- **D23 kamrui timing (open: needs the operator, D10).** P5-vps-001 on kamrui (N95) has every count criterion green,
+  but forkwasm G3 is red on timing. oom recovery p99 was 6654 µs and 7076 µs against the 5 ms limit; the laptop
+  reference is 2593 µs (×2.57 / ×2.73). loop recovery failed once at 5719 µs and passed once at 4591 µs. This matches
+  the q4-006 spike (6.78 ms). cordon passes on kamrui (oom 1584 µs). No threshold is moved. Under D10 only an
+  integrator Decision with the operator's consent can move one, so p2-fault-vps stays red until the operator chooses:
+  (a) a per-runner threshold for VPS-class hardware, or (b) treat the miss as evidence and make cordon the default
+  on VPS-class runners while keeping the 5 ms gate.

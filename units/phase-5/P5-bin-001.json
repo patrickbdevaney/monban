@@ -1,40 +1,40 @@
 {
- "id": "P5-bin-001",
- "role": "implementer",
- "crates": [
-  "aegis-bin (feature p2: supervisor wiring, wasm: routes, F14 decoder, response re-serialization)"
- ],
- "depends_on": [
-  "P5-iso-003",
-  "P5-wasm-002",
-  "P5-config-001",
-  "P5-oracle-e2e-001"
- ],
- "start_now": false,
- "gates": [
-  "p2-e2e"
- ],
- "spec_refs": [
-  "F8 p2 block, F14 frames (P5-spec-001)",
-  "SPEC \u00a7H I5 (host re-serializes everything a module emits; host decoder in the verified TCB)",
-  "budget gate: aegis-bin p2 adds no third-party crate; fail-closed-boot stays green",
-  "PLAN D1, D2, D7, D8, D15"
- ],
- "oracles": [
-  "oracles/p2-e2e (real binary + release worker; test-hooks worker for the respawn family)"
- ],
- "acceptance": {
-  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 && ci/remote.sh cargo xtask budget",
-  "must": "PASS on the laptop; golden-build test asserts the default and p2 builds enable neither test-hooks nor mutants nor p2-mutants; budget: aegis-bin builds unchanged in third-party crate count; oracles/p2-e2e/default-subject written"
- },
- "write_scope": [
-  "crates/aegis-bin/src/**",
-  "crates/aegis-bin/tests/**",
-  "oracles/p2-e2e/default-subject"
- ],
- "notes": "Route target `wasm:<module-id>`; the supervisor compiles modules at boot/reload via `aegis-p2 compile` and holds their digests; the F14 decoder caps frames and kills the worker on decode failure (charged to the principal). data_run is answered 'denied' (fail closed) until P5-bin-002.",
- "infeasible_exit": true,
- "max_retries": 30,
- "passes": false,
- "status": "blocked by write scope only (2 patches in crates/aegis-bin/tests/p2-patches/) plus one acceptance-cmd defect; with both patches applied every acceptance step passes. Laptop 6.17.0-14, Landlock ABI 7. (1) Builds target/p2, target/p2-test, target/p2-mutants as in the cmd: OK. (2) Gate cmd oracles/p2-e2e/run --subject/--worker/--test-worker: P2-E2E: PASS (161 checks) [load 7.83]; without the oracle patch the only failure is reload.to-cordon.applied (oracle defect: it reads the sample 'aegis_proxy_config_reloads ', aegis renders OpenMetrics 'aegis_proxy_config_reloads_total'; the reload is applied and counted), and the main family stops there. (3) Self-test: P2-E2E SELF-TEST: PASS (8/8 mutants red on their expected checks, baseline green on 161 checks) [load 4.84 -> 6.29]: shared-cordon 7, fork-respawn 2, global-crash-budget 8, no-crash-budget 3, budget-counts-healthy 5, dumpable-1 7, no-reload-switch 32, boot-without-landlock-accepted 2. It needs the aegis-iso dumpable-1 worker mutant (patch; no crate had it) and --mutant-test-worker target/p2-mutants-test/release/aegis-p2 (aegis-p2 mutants,test-hooks): acceptance-cmd defect, the mutants-only worker refuses the respawn family's abort guest (env.host_fault), so the baseline fails on respawn.harness; the oracle README names --mutant-test-worker for this case. Reference --self-test: PASS 8/8 with the oracle patch [11.9]. (4) ci/remote.sh cargo xtask budget: BUDGET: PASS (aegis-bin p2 45 vs 45 third-party crates, native,p2 45 vs 45). Also: clippy -D warnings on aegis-bin in default, p2, p2+p2-mutants, native, native+p2; cargo test -p aegis-bin green in default, p2, p2+p2-mutants, native+p2 (desktop); layering PASS; no-wasmtime-in-bin PASS; fail-closed-boot PASS (desktop); fmt clean. Golden-build test: crates/aegis-bin/tests/p2_golden_build.rs. default-subject written."
+  "id": "P5-bin-001",
+  "role": "implementer",
+  "crates": [
+    "aegis-bin (feature p2: supervisor wiring, wasm: routes, F14 decoder, response re-serialization)"
+  ],
+  "depends_on": [
+    "P5-iso-003",
+    "P5-wasm-002",
+    "P5-config-001",
+    "P5-oracle-e2e-001"
+  ],
+  "start_now": false,
+  "gates": [
+    "p2-e2e"
+  ],
+  "spec_refs": [
+    "F8 p2 block, F14 frames (P5-spec-001)",
+    "SPEC \u00a7H I5 (host re-serializes everything a module emits; host decoder in the verified TCB)",
+    "budget gate: aegis-bin p2 adds no third-party crate; fail-closed-boot stays green",
+    "PLAN D1, D2, D7, D8, D15"
+  ],
+  "oracles": [
+    "oracles/p2-e2e (real binary + release worker; test-hooks worker for the respawn family)"
+  ],
+  "acceptance": {
+    "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 && ci/remote.sh cargo xtask budget",
+    "must": "PASS on the laptop; golden-build test asserts the default and p2 builds enable neither test-hooks nor mutants nor p2-mutants; budget: aegis-bin builds unchanged in third-party crate count; oracles/p2-e2e/default-subject written"
+  },
+  "write_scope": [
+    "crates/aegis-bin/src/**",
+    "crates/aegis-bin/tests/**",
+    "oracles/p2-e2e/default-subject"
+  ],
+  "notes": "Route target `wasm:<module-id>`; the supervisor compiles modules at boot/reload via `aegis-p2 compile` and holds their digests; the F14 decoder caps frames and kills the worker on decode failure (charged to the principal). data_run is answered 'denied' (fail closed) until P5-bin-002.",
+  "infeasible_exit": true,
+  "max_retries": 30,
+  "passes": true,
+  "status": "passed (integrator, 2026-10-31, PLAN D22): integrator applied the two scope-blocked patches (aegis-iso dumpable-1 mutant, mutants builds only; p2-e2e oracle reads the OpenMetrics _total reload sample) and fixed the gate selftest (--test-worker + --mutant-test-worker mutants,test-hooks build). Gate p2-e2e on main: cmd P2-E2E PASS 161 checks (load 7.5-9.0); selftest PASS: reference 8/8, real subject 8/8 mutants red, baseline 161 green (load 60 at start falling to 4). Unit's own results: blocked by write scope only (2 patches in crates/aegis-bin/tests/p2-patches/) plus one acceptance-cmd defect; with both patches applied every acceptance step passes. Laptop 6.17.0-14, Landlock ABI 7. (1) Builds target/p2, target/p2-test, target/p2-mutants as in the cmd: OK. (2) Gate cmd oracles/p2-e2e/run --subject/--worker/--test-worker: P2-E2E: PASS (161 checks) [load 7.83]; without the oracle patch the only failure is reload.to-cordon.applied (oracle defect: it reads the sample 'aegis_proxy_config_reloads ', aegis renders OpenMetrics 'aegis_proxy_config_reloads_total'; the reload is applied and counted), and the main family stops there. (3) Self-test: P2-E2E SELF-TEST: PASS (8/8 mutants red on their expected checks, baseline green on 161 checks) [load 4.84 -> 6.29]: shared-cordon 7, fork-respawn 2, global-crash-budget 8, no-crash-budget 3, budget-counts-healthy 5, dumpable-1 7, no-reload-switch 32, boot-without-landlock-accepted 2. It needs the aegis-iso dumpable-1 worker mutant (patch; no crate had it) and --mutant-test-worker target/p2-mutants-test/release/aegis-p2 (aegis-p2 mutants,test-hooks): acceptance-cmd defect, the mutants-only worker refuses the respawn family's abort guest (env.host_fault), so the baseline fails on respawn.harness; the oracle README names --mutant-test-worker for this case. Reference --self-test: PASS 8/8 with the oracle patch [11.9]. (4) ci/remote.sh cargo xtask budget: BUDGET: PASS (aegis-bin p2 45 vs 45 third-party crates, native,p2 45 vs 45). Also: clippy -D warnings on aegis-bin in default, p2, p2+p2-mutants, native, native+p2; cargo test -p aegis-bin green in default, p2, p2+p2-mutants, native+p2 (desktop); layering PASS; no-wasmtime-in-bin PASS; fail-closed-boot PASS (desktop); fmt clean. Golden-build test: crates/aegis-bin/tests/p2_golden_build.rs. default-subject written."
 }

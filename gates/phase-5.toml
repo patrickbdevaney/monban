@@ -439,7 +439,8 @@ name = "p2-fault-vps"
 # `remote = true`, which is the desktop). Same thresholds as the laptop; isolation-fi prints kamrui/laptop ratios
 # against gates/p2-runner-reference.json and flags >2x, but never moves a threshold (PLAN D10: only an integrator
 # Decision with both measurements may). Count criteria never move. Also re-runs the syscall probes on kamrui's kernel.
-cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' && oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/release/p2-subject probe'\""
+# Every step runs and the exit codes are combined, so one red path does not hide the others (P5-vps-001).
+cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; exit \\$rc\""
 # The oracles must still catch their mutants on this host (a runner where the checks cannot go red proves nothing).
 selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test'"
 heavy = true
@@ -454,7 +455,9 @@ name = "p2-e2e"
 cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
 # Red on: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1,
 # no-reload-switch, boot-without-landlock-accepted.
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && oracles/p2-e2e/run --self-test && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2"
+# --mutant-test-worker: the respawn family needs a mutants+test-hooks worker (env.host_fault abort guest); a
+# mutants-only worker refuses that guest and the baseline fails on respawn.harness (P5-bin-001, D22).
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants,aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --self-test && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 --mutant-test-worker target/p2-mutants-test/release/aegis-p2"
 heavy = true
 
 [[gate]]
