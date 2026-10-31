@@ -30,6 +30,9 @@ impl Runtime {
     pub fn shutdown(&self) {
         match *self {}
     }
+    pub fn set_auditor(&self, _a: Arc<crate::audit::Auditor>) {
+        match *self {}
+    }
 }
 
 /// Mirrors `p2::Guard`.

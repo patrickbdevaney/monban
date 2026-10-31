@@ -52,14 +52,36 @@ pub fn has_app_routes(cfg: &Config) -> bool {
         .any(|r| matches!(&r.to, RouteTarget::Upstream { upstream, .. } if upstream.starts_with(APP_PREFIX)))
 }
 
+/// True iff some `{"wasm": id}` route carries a data block (refused by `plan` in this build).
+pub fn has_data_wasm_routes(cfg: &Config) -> bool {
+    cfg.vhosts()
+        .iter()
+        .flat_map(|v| v.routes.iter())
+        .any(|r| matches!(r.to, RouteTarget::Wasm { .. }) && r.data.is_some())
+}
+
+/// No data plane, so no P2 store: every data_run of a P2 route is refused (and audited as refused).
+#[cfg(feature = "p2")]
+pub fn p2_store(
+    _dp: Option<&Arc<DataPlane>>,
+    _bindings: &Bindings,
+    _host: &str,
+    _route_id: u64,
+    _principal: aegis_types::Principal,
+) -> Option<Box<dyn crate::p2::data::Store>> {
+    None
+}
+
 /// No data plane: `Ok(None)`, or a refusal when the config binds a route to an app (unreachable after `plan`).
 pub fn boot(
     cfg: &Config,
     _keyring: Option<&std::path::Path>,
     _mutants: crate::shared::Mutants,
 ) -> Result<Option<Arc<DataPlane>>, String> {
-    if has_app_routes(cfg) {
-        return Err("app routes need the native data plane: this build has no feature `native`".into());
+    if has_app_routes(cfg) || has_data_wasm_routes(cfg) {
+        return Err(
+            "app routes and data endowments need the native data plane: this build has no feature `native`".into()
+        );
     }
     Ok(None)
 }

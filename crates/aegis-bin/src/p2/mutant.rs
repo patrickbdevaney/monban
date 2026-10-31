@@ -1,4 +1,5 @@
-//! Supervisor negative controls of oracles/p2-e2e (PLAN-5 D15; feature `p2-mutants` only).
+//! Supervisor negative controls of oracles/p2-e2e and oracles/hostile-modules `--level host` (PLAN-5 D15; feature
+//! `p2-mutants` only).
 //!
 //! A `p2-mutants` build reads `AEGIS_P2_MUTANT` once per process. The variable is also passed through to the
 //! workers (aegis-iso supervisor), which ignore every name that is not one of their own. A build without
@@ -32,11 +33,28 @@ pub enum Mutant {
     /// `boot-without-landlock-accepted`: a worker's refusal at boot (compile exit 78) is ignored and the
     /// supervisor listens anyway.
     BootWithoutLandlockAccepted,
+    // oracles/hostile-modules --level host (README "Self-test"):
+    /// `raw-passthrough`: the supervisor skips its I5 re-check of `resp-head` (status range, header names and
+    /// values), so a compromised worker's header bytes reach the client unchecked.
+    RawPassthrough,
+    /// `double-response-accepted`: a second `resp-head` replaces the first, and after `resp-end(trap)` a late
+    /// `resp-head`/`resp-body`/`resp-end(0)` for the finished req-id is accepted as the answer.
+    DoubleResponseAccepted,
+    /// `audit-after-effect`: an authorized data_run executes before its audit event is appended.
+    AuditAfterEffect,
+    /// `no-audit-on-trap`: authorized data_runs are audited only when the request ends without a fault.
+    NoAuditOnTrap,
+    /// `trap-maps-to-allow`: a trap ends the request as Allow with whatever the module wrote.
+    TrapMapsToAllow,
+    /// `data-run-skips-authorize`: data_run skips the CapSet check (any route reaches the first backend).
+    DataRunSkipsAuthorize,
+    /// `tenant-not-overwritten`: data_run keeps the module's tenant field instead of the route-bound tenant.
+    TenantNotOverwritten,
 }
 
 #[cfg_attr(not(feature = "p2-mutants"), allow(dead_code))]
 impl Mutant {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 15] = [
         Self::SharedCordon,
         Self::ForkRespawn,
         Self::GlobalCrashBudget,
@@ -45,6 +63,13 @@ impl Mutant {
         Self::Dumpable1,
         Self::NoReloadSwitch,
         Self::BootWithoutLandlockAccepted,
+        Self::RawPassthrough,
+        Self::DoubleResponseAccepted,
+        Self::AuditAfterEffect,
+        Self::NoAuditOnTrap,
+        Self::TrapMapsToAllow,
+        Self::DataRunSkipsAuthorize,
+        Self::TenantNotOverwritten,
     ];
 
     pub fn name(self) -> &'static str {
@@ -57,6 +82,13 @@ impl Mutant {
             Self::Dumpable1 => "dumpable-1",
             Self::NoReloadSwitch => "no-reload-switch",
             Self::BootWithoutLandlockAccepted => "boot-without-landlock-accepted",
+            Self::RawPassthrough => "raw-passthrough",
+            Self::DoubleResponseAccepted => "double-response-accepted",
+            Self::AuditAfterEffect => "audit-after-effect",
+            Self::NoAuditOnTrap => "no-audit-on-trap",
+            Self::TrapMapsToAllow => "trap-maps-to-allow",
+            Self::DataRunSkipsAuthorize => "data-run-skips-authorize",
+            Self::TenantNotOverwritten => "tenant-not-overwritten",
         }
     }
 
