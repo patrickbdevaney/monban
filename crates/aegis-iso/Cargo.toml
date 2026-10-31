@@ -12,6 +12,33 @@ layer = 4
 
 [dependencies]
 aegis-types = { workspace = true }
+# Raw syscalls for the sandbox and zygote (PLAN-5 D4/D5): <= 20 audited unsafe sites (cargo xtask unsafe-sites).
+# Root pin; libc 0.2.191 is already in the lock and in the default aegis-bin build.
+libc = { workspace = true }
+# Safe fd passing (SCM_RIGHTS, OwnedFd) and process/prctl wrappers where rustix has them (fewer unsafe sites).
+# `fs` and `process` are already enabled in the default aegis-bin build; `thread` (no_new_privs, dumpable) is a
+# feature of the same crate, so no new crate.
+rustix = { workspace = true, features = ["fs", "process", "thread"] }
 
-[lints]
-workspace = true
+[features]
+# Test-only code (syscall probe, layout report; PLAN-5 D15), enabled through aegis-p2 `test-hooks`. Never shipped.
+test-hooks = []
+# Oracle negative controls only (aegis-p2 `mutants`, aegis-bin `p2-mutants`, PLAN-5 D15). Never shipped.
+mutants = []
+
+# Equal to [workspace.lints] except unsafe_code = "deny" (not "forbid"): each audited site carries
+# #[allow(unsafe_code)] plus a `// SAFETY:` comment; `cargo xtask unsafe-sites` caps them at 20 (DEVIATIONS X-14).
+[lints.rust]
+unsafe_code = "deny"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(aegis_kani_negative)"] }
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+indexing_slicing = "deny"
+dbg_macro = "deny"

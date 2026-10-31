@@ -1,0 +1,36 @@
+[package]
+name = "aegis-p2"
+description = "P2 worker binary: exec-spawned zygote (fork+Wasm), per-principal cordon, sandboxed module compile. The only binary that links wasmtime."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# Layer 5 (assembly), like aegis-bin and aegis-pdp: a separate binary with its own budget ceilings (PLAN-5 D3,
+# DEVIATIONS X-13). aegis-bin never depends on it; the supervisor exec-spawns it.
+[package.metadata.aegis]
+layer = 5
+
+[[bin]]
+name = "aegis-p2"
+path = "src/main.rs"
+
+[dependencies]
+aegis-iso = { workspace = true }
+aegis-types = { workspace = true }
+aegis-wasm = { workspace = true }
+# No direct third-party dependency: wasmtime arrives only through aegis-wasm. The .cwasm digest is computed and
+# held by the supervisor and checked in aegis-wasm before the single unsafe deserialize (PLAN-5 D4).
+
+[features]
+# Golden builds enable neither feature (PLAN-5 D15; asserted by P5-bin-001). Test and mutant builds use their own
+# target dirs (target/p2-test, target/p2-mutants), so target/p2 always holds the shipped configuration.
+default = []
+# F14 `env.host_fault`, the `probe` subcommand (syscall negative tests) and the load-base layout report (D8).
+test-hooks = ["aegis-wasm/test-hooks", "aegis-iso/test-hooks"]
+# Oracle negative controls selected at run time by AEGIS_P2_MUTANT. Never part of a shipped build.
+mutants = ["aegis-wasm/mutants", "aegis-iso/mutants"]
+
+[lints]
+workspace = true

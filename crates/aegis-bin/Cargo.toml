@@ -28,7 +28,10 @@ aegis-canon = { workspace = true }
 aegis-config = { workspace = true }
 aegis-data-ir = { workspace = true, optional = true }
 aegis-egress = { workspace = true }
-aegis-iso = { workspace = true }
+# P2 supervisor (spawn by execve, fd passing, respawn, crash budget): feature `p2` only. aegis-wasm (wasmtime) is
+# never a dependency of aegis-bin; the Wasm engine lives in the separate aegis-p2 worker (PLAN-5 D3, DEVIATIONS X-13,
+# gate no-wasmtime-in-bin).
+aegis-iso = { workspace = true, optional = true }
 aegis-metrics = { workspace = true }
 aegis-ops = { workspace = true }
 aegis-state = { workspace = true, optional = true }
@@ -36,7 +39,6 @@ aegis-tls = { workspace = true }
 aegis-token = { workspace = true }
 aegis-transport = { workspace = true }
 aegis-types = { workspace = true }
-aegis-wasm = { workspace = true }
 # Native applications (modes A/D, layer "app"): only L5 may depend on them (cargo xtask layering). aegis-bin itself
 # never depends on aegis-sdk (only aegis-adapter-host and apps may); the SDK host loop stays in aegis-adapter-host.
 notes = { path = "../../apps/notes", optional = true }
@@ -71,6 +73,12 @@ native = [
 # Oracle negative controls ONLY (oracles/proxy-e2e --self-test; oracles/native-e2e with `native,e2e-mutants`): env-var hooks that break forwarding, the
 # INV-NONEMPTY deny and last-known-good. Never part of a shipped build; the default build has no hook code.
 e2e-mutants = ["aegis-transport/e2e-raw-target"]
+# P2 isolation (PLAN-5 D1/D3): `wasm:` routes served by exec-spawned aegis-p2 workers. Adds only the aegis-iso
+# supervisor and the F14 decoder; no wasmtime/cranelift and no new third-party crate (budget: the default and native
+# third-party counts stay unchanged with `p2`).
+p2 = ["dep:aegis-iso"]
+# Oracle negative controls ONLY (oracles/p2-e2e, oracles/p2-hostile --self-test; PLAN-5 D15). Never shipped.
+p2-mutants = ["p2", "aegis-iso/mutants"]
 
 [lints]
 workspace = true

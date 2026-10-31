@@ -180,3 +180,55 @@ zmij:1.0.23  aegis-pdp (Cedar) dependency, out of process; not in the shipped ae
 # libsqlite3-sys 0.35.0 (bundles SQLite 3.50.2, below the 3.51.3 floor); the delta is not auditable by a solo operator.
 rusqlite:0.40.2  bundled-SQLite binding needed for SQLite 3.53.2 (floor >= 3.51.3); imports stop at 0.37.0; 23.7k-line Rust delta unaudited
 libsqlite3-sys:0.38.2  bundled SQLite 3.53.2 C (269k-line sqlite3.c); imports stop at 0.35.0; trusted-not-verified C, TCB ledger (DEVIATIONS X-10)
+# Added 2026-10-31 with P5-spec-002 (PLAN-5 D3/D11, DEVIATIONS X-13): wasmtime 50.0.1 + cranelift 0.137.1, linked only
+# into the separate aegis-p2 worker (never aegis-bin; gate no-wasmtime-in-bin). Fresh imports cover 9 of the 56 new
+# crates (allocator-api2, cobs, embedded-io x2, heck, leb128fmt, postcard, regalloc2, sha2). Bytecode Alliance does not
+# audit its own crates (its config trusts wasmtime-publish); POLICY §5 forbids `cargo vet trust` here (build.rs and
+# proc-macros); cargo-vet 0.10 also ignored 80 bytecode-alliance audits as "made with a more recent cargo-vet" (Q4).
+wasmtime:50.0.1  Wasm runtime (aegis-p2 only); security release over 50.0.0 (RUSTSEC-2026-0422/0423/0424); Bytecode Alliance self-published, no third-party audit; build.rs
+wasmtime-environ:50.0.1  wasmtime module translation/environment (aegis-p2 only); Bytecode Alliance, no import
+wasmtime-internal-component-util:50.0.1  wasmtime internal (aegis-p2 only; component model disabled); Bytecode Alliance, no import
+wasmtime-internal-core:50.0.1  wasmtime internal core types (aegis-p2 only); Bytecode Alliance, no import
+wasmtime-internal-cranelift:50.0.1  wasmtime-cranelift glue (aegis-p2 only); Bytecode Alliance, no import
+wasmtime-internal-fiber:50.0.1  wasmtime stack switching, unsafe asm (aegis-p2 only); Bytecode Alliance, no import; build.rs
+wasmtime-internal-jit-debug:50.0.1  wasmtime JIT debug registration (aegis-p2 only); Bytecode Alliance, no import; build.rs
+wasmtime-internal-jit-icache-coherence:50.0.1  wasmtime icache flush (aegis-p2 only); Bytecode Alliance, no import
+wasmtime-internal-unwinder:50.0.1  wasmtime trap unwinding (aegis-p2 only); Bytecode Alliance, no import; build.rs
+wasmtime-internal-versioned-export-macros:50.0.1  wasmtime proc-macro (aegis-p2 build time only); Bytecode Alliance, no import
+pulley-interpreter:50.0.1  wasmtime portable interpreter, pulled by wasmtime-internal-cranelift (aegis-p2 only); Bytecode Alliance, no import
+pulley-macros:50.0.1  pulley proc-macro (aegis-p2 build time only); Bytecode Alliance, no import
+cranelift-assembler-x64:0.137.1  cranelift x64 assembler (aegis-p2 only); Bytecode Alliance, no import
+cranelift-assembler-x64-meta:0.137.1  cranelift build-time generator (aegis-p2 build only); Bytecode Alliance, no import
+cranelift-bforest:0.137.1  cranelift data structure (aegis-p2 only); Bytecode Alliance, no import
+cranelift-bitset:0.137.1  cranelift data structure (aegis-p2 only); Bytecode Alliance, no import
+cranelift-codegen:0.137.1  cranelift code generator, JIT compiler TCB for P2 (aegis-p2 only); Bytecode Alliance, no import; build.rs
+cranelift-codegen-meta:0.137.1  cranelift build-time generator (aegis-p2 build only); Bytecode Alliance, no import
+cranelift-codegen-shared:0.137.1  cranelift shared defs (aegis-p2 only); Bytecode Alliance, no import
+cranelift-control:0.137.1  cranelift fuzz-control shim (aegis-p2 only); Bytecode Alliance, no import
+cranelift-entity:0.137.1  cranelift entity maps (aegis-p2 only); Bytecode Alliance, no import
+cranelift-frontend:0.137.1  cranelift IR builder (aegis-p2 only); Bytecode Alliance, no import
+cranelift-isle:0.137.1  cranelift ISLE DSL compiler (aegis-p2 build only); Bytecode Alliance, no import; build.rs
+cranelift-native:0.137.1  cranelift host ISA detection (aegis-p2 only); Bytecode Alliance, no import
+cranelift-srcgen:0.137.1  cranelift build-time source generator (aegis-p2 build only); Bytecode Alliance, no import
+wasmparser:0.261.0  Wasm binary parser, attacker-reachable in the sandboxed compile (aegis-p2 only); imports stop at 0.244.0
+wasm-encoder:0.261.0  Wasm encoder used by wasmtime-environ (aegis-p2 only); imports stop at 0.244.0
+wasmprinter:0.261.0  Wasm text printer used by wasmtime-environ (aegis-p2 only); imports stop at 0.244.0
+gimli:0.33.0  DWARF read/write for wasmtime (aegis-p2 only); imports stop at 0.32.3
+addr2line:0.26.1  symbolication for wasmtime traps (aegis-p2 only); no import for this version
+object:0.40.0  object-file read/write for .cwasm (aegis-p2 only); imports stop at 0.39.1
+cpp_demangle:0.3.5  symbol demangling for wasmtime backtraces (aegis-p2 only, 0.5.1 in the lock); exemption at 0.3.5, imported deltas reach 0.5.1
+rustc-demangle:0.1.28  symbol demangling for wasmtime backtraces (aegis-p2 only); no import for this version
+target-lexicon:0.13.5  target triple parsing (aegis-p2 only); no import for this version; build.rs
+mach2:0.6.0  macOS bindings, not built on linux targets (wasmtime dependency)
+memfd:0.6.6  memfd_create wrapper for the pooling allocator (aegis-p2 only); no import for this version
+crc32fast:1.5.3  checksum used by object (aegis-p2 only); imports stop at 1.4.2; build.rs
+libm:0.2.16  soft float math for cranelift/wasmtime (aegis-p2 only); imports stop at 0.2.6; build.rs
+anyhow:1.0.104  wasmtime error type (aegis-p2 only); no import for this version; build.rs
+arbitrary:1.5.0  wasmtime/cranelift dependency, fuzzing trait (aegis-p2 only); no import for this version
+async-trait:0.1.92  proc-macro required by wasmtime `runtime` (aegis-p2 build time only); no import for this version
+futures:0.3.34  wasmtime async support types (aegis-p2 only; async not enabled); no import for this version
+futures-channel:0.3.34  via futures (aegis-p2 only); no import for this version
+futures-io:0.3.34  via futures (aegis-p2 only); no import for this version
+rustc-hash:2.1.3  hasher used by cranelift/regalloc2 (aegis-p2 only); no import for this version
+stable_deref_trait:1.2.1  marker trait used by gimli/object (aegis-p2 only); no import for this version
+termcolor:1.4.1  via wasmprinter (aegis-p2 only); no import for this version
