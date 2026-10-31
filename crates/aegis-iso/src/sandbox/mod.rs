@@ -40,6 +40,9 @@ pub struct Profile {
     pub stage: Stage,
     /// Absolute paths granted read access (module and data paths). Ignored for [`Stage::Child`] (inherited).
     pub read_paths: Vec<PathBuf>,
+    /// Absolute directories granted write, create and remove rights for regular files ([`Profile::compile`]'s
+    /// output directory only; empty for every serving profile).
+    pub write_dirs: Vec<PathBuf>,
     /// `RLIMIT_NOFILE` (soft = hard).
     pub nofile: u64,
     /// `RLIMIT_NPROC` (soft = hard), if set. NPROC counts every process of the real uid, so a zygote or cordon
@@ -50,15 +53,26 @@ pub struct Profile {
 impl Profile {
     /// The fork+Wasm zygote: may fork, may stack the child filter.
     pub fn zygote(read_paths: Vec<PathBuf>) -> Self {
-        Self { stage: Stage::Zygote, read_paths, nofile: DEFAULT_NOFILE, nproc: None }
+        Self { stage: Stage::Zygote, read_paths, write_dirs: Vec::new(), nofile: DEFAULT_NOFILE, nproc: None }
     }
     /// A per-principal cordon: threads only, no fork.
     pub fn cordon(read_paths: Vec<PathBuf>) -> Self {
-        Self { stage: Stage::Cordon, read_paths, nofile: DEFAULT_NOFILE, nproc: None }
+        Self { stage: Stage::Cordon, read_paths, write_dirs: Vec::new(), nofile: DEFAULT_NOFILE, nproc: None }
+    }
+    /// The sandboxed module compile (PLAN-5 D4): no fork, no network, read `read_paths` (the input module), write
+    /// regular files beneath `out_dir` only (the `.cwasm`, via a temp file and rename).
+    pub fn compile(read_paths: Vec<PathBuf>, out_dir: PathBuf) -> Self {
+        Self { stage: Stage::Compile, read_paths, write_dirs: vec![out_dir], nofile: DEFAULT_NOFILE, nproc: None }
     }
     /// A fork+Wasm child (after fork, before guest code).
     pub fn child() -> Self {
-        Self { stage: Stage::Child, read_paths: Vec::new(), nofile: DEFAULT_NOFILE, nproc: Some(0) }
+        Self {
+            stage: Stage::Child,
+            read_paths: Vec::new(),
+            write_dirs: Vec::new(),
+            nofile: DEFAULT_NOFILE,
+            nproc: Some(0),
+        }
     }
 }
 
@@ -176,7 +190,7 @@ pub fn install(profile: &Profile) -> Result<Installed, SandboxError> {
     }
     rustix::process::set_dumpable_behavior(DumpableBehavior::NotDumpable)
         .map_err(|e| SandboxError::Dumpable(Some(e.into())))?;
-    let ll = landlock::enforce(&profile.read_paths)?;
+    let ll = landlock::enforce(&profile.read_paths, &profile.write_dirs)?;
     sys::seccomp_set_filter(&prog).map_err(SandboxError::Seccomp)?;
     read_back()?;
     Ok(Installed { stage: profile.stage, landlock: Some(ll), filter_len: prog.len() })
