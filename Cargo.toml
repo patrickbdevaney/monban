@@ -93,6 +93,14 @@ strip = "symbols"
 debug = false
 incremental = false
 
+# PLAN-5 D24: the bundled SQLite C (libsqlite3-sys) is built for size. It is the data engine, not request-path code,
+# and -Os is the size setting SQLite itself documents for embedded builds. This keeps the native,p2 binary within
+# the X-12 8.0 MB ceiling (measured on the desktop: 8,020,640 B at opt-level 3, 7,175,712 B with this override). Global
+# opt-level "s" (5.0 MB) was rejected: it changes every request-path crate. Per-crate "s" on aegis-bin/config/ops made
+# the fat-LTO binary larger, not smaller.
+[profile.release.package.libsqlite3-sys]
+opt-level = "s"
+
 [profile.dev]
 panic = "abort"
 # Line tables only (backtraces keep file:line): full debuginfo made target/debug 3.5 GB on a 98%-full disk.
