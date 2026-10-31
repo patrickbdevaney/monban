@@ -206,33 +206,44 @@ impl Worker {
 
     /// Serves one request in a fresh Store and instance. The epoch must be advancing (an [`crate::EpochTicker`])
     /// for the wall bound to fire; without it only fuel bounds the request.
+    ///
+    /// With MPK a Store whose pool stripe is full is replaced by a new Store (next stripe), at most
+    /// [`crate::engine::pool_retry_limit`] times; no guest code has run when the pool refuses a slot.
     pub fn handle(&self, limits: RequestLimits) -> Report {
-        let mut store = Store::new(self.engine.wasmtime(), HostState::new(&limits));
-        store.limiter(|s| s);
-        if store.set_fuel(limits.fuel).is_err() {
-            return Report { outcome: Outcome::Trapped(TrapKind::Wasm), fuel_used: 0 };
+        let mut tries = crate::engine::pool_retry_limit(&self.engine);
+        loop {
+            let mut store = Store::new(self.engine.wasmtime(), HostState::new(&limits));
+            store.limiter(|s| s);
+            if store.set_fuel(limits.fuel).is_err() {
+                return Report { outcome: Outcome::Trapped(TrapKind::Wasm), fuel_used: 0 };
+            }
+            store.set_epoch_deadline(epoch_deadline_ticks(limits.wall_ms));
+            store.epoch_deadline_trap();
+            let outcome = match self.run(&mut store) {
+                Err(e) if tries > 0 && crate::engine::is_pool_full(&e) => {
+                    tries -= 1;
+                    continue;
+                }
+                Err(e) => Outcome::Trapped(classify(&e, store.data())),
+                Ok(o) => o,
+            };
+            let left = store.get_fuel().unwrap_or(0);
+            // `store` drops after this: the instance and its memory go back to the pool, wiped by the allocator.
+            return Report { outcome, fuel_used: limits.fuel.saturating_sub(left) };
         }
-        store.set_epoch_deadline(epoch_deadline_ticks(limits.wall_ms));
-        store.epoch_deadline_trap();
-        let outcome = self.run(&mut store);
-        let left = store.get_fuel().unwrap_or(0);
-        Report { outcome, fuel_used: limits.fuel.saturating_sub(left) }
-        // `store` drops here: the instance and its memory go back to the pool, wiped by the allocator.
     }
 
-    fn run(&self, store: &mut Store<HostState>) -> Outcome {
-        let inst = match self.pre.instantiate(&mut *store) {
-            Ok(i) => i,
-            Err(e) => return Outcome::Trapped(classify(&e, store.data())),
-        };
+    /// `Err` only for an instantiation failure (classified by the caller).
+    fn run(&self, store: &mut Store<HostState>) -> Result<Outcome, wasmtime::Error> {
+        let inst = self.pre.instantiate(&mut *store)?;
         let func = match inst.get_typed_func::<(), i32>(&mut *store, abi::EXPORT_HANDLE) {
             Ok(f) => f,
-            Err(_) => return Outcome::Trapped(TrapKind::Wasm),
+            Err(_) => return Ok(Outcome::Trapped(TrapKind::Wasm)),
         };
-        match func.call(&mut *store, ()) {
+        Ok(match func.call(&mut *store, ()) {
             Ok(v) => Outcome::Returned(u32::from_ne_bytes(v.to_ne_bytes())),
             Err(e) => Outcome::Trapped(classify(&e, store.data())),
-        }
+        })
     }
 }
 

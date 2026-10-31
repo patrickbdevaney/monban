@@ -325,3 +325,25 @@ row is not edited here.
   integrator applied it. P5-wasm-002 owns the file from here on and must keep it test-hooks only. The P5-iso-002
   compile profile (Kind::Compile: cordon layout plus fsync, rename and unlink, with Landlock write access only under
   `--out`) was reviewed and accepted; the denylist is unchanged.
+- **D21 W3 integration: MPK cell, shared F14 codec, no pipelining, hostile oracle fix (integrator, after W3).**
+  P5-iso-003 and P5-wasm-002 were merged; both were blocked only by write scope. The integrator applied:
+  - **pkey_mprotect allowed** (x86_64 nr 329) in the aegis-iso seccomp ALLOWLIST. With MPK, wasmtime colours each
+    pool slot with a key on every instance allocation. pkey_alloc stays denied after install, so it grants no more
+    than mprotect on the process's own mappings. The DENYLIST, the child filter and the clone/prctl/setsockopt
+    rules are unchanged.
+  - **MPK stripe retry.** With MPK, wasmtime splits the pool into one stripe per key (64 slots over 16 keys: 4 per
+    stripe on the laptop) and refuses a new Store whose stripe is full. `engine::is_pool_full` and
+    `pool_retry_limit` (the pool size with MPK, 0 without) let `store::Worker::handle`, `fi::FiWorker::instance`
+    (still test-hooks only, D20) and `abi::Session` move a refused request to a new Store before any guest code
+    runs. The engine configuration is unchanged, and without MPK behaviour is unchanged.
+  - **One F14 codec.** The zygote fork child and the cordon both serve through `aegis_wasm::abi::F14Worker`/`Session`
+    and encode and decode frames only with `aegis_wasm::abi::frame`. The private codecs in zygote.rs and cordon.rs
+    are gone. The cordon keeps the aegis-iso registry, crash budget, idle reaping, threads on demand and the epoch
+    wall bound (wall timeout = `resp-end` trap 2).
+  - **No pipelining.** A worker connection carries one request at a time: the fork child serves exactly one, and a
+    cordon connection serves them in sequence. Cordon concurrency comes from parallel connections. The supervisor
+    (P5-bin-001) must not send a second `request` before the first one's `resp-end` or its own `cancel`.
+  - **hostile-modules oracle fix.** `exchange()` accepts exactly one D8 `layout` frame (sent by test-hooks and
+    mutants builds), only in the first exchange of a connection and before any other frame. Every other unexpected
+    frame is still a protocol violation. Before this fix every zygote cell of the worker self-test was red on the
+    layout frame alone, so the zygote half of the self-test was vacuous.

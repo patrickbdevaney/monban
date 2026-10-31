@@ -36,7 +36,10 @@ spawn the worker, so the host level can substitute the escaped worker):
 - `<w> zygote --module <c.cwasm> --sha256 <hex>` (fork+Wasm) and `<w> cordon --module <c.cwasm> --sha256 <hex>`:
   fd 3 is a listening `SOCK_SEQPACKET` Unix socket. On each accepted connection the worker sends the F14 `ready`
   frame (guest-api-version 1, the sha256 of the .cwasm it loaded, which must equal `--sha256`). The zygote forks one
-  child per connection; the child serves one request and exits. A cordon serves many requests on one connection.
+  child per connection; the child serves one request and exits. A cordon serves many requests on one connection,
+  one at a time (no pipelining). A `test-hooks`/`mutants` worker may send one D8 `layout` frame after `ready`; the
+  oracle accepts exactly one, only in the first exchange of a connection and before any other frame (PLAN D21).
+  Any other frame outside the request's own frames is still a protocol violation.
   `<hex>` is the sha256 the oracle computed over the .cwasm that `compile` produced (D4); the worker refuses
   anything else before deserializing.
 - Per request the oracle sends `request` (the F8 default limits unless the case overrides some) and the body as
