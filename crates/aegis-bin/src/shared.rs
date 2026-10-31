@@ -136,10 +136,16 @@ pub struct Shared {
     pub cert_not_after: AtomicI64,
     /// The native data plane (modes A/D), when the config binds a route to an app.
     pub native: Option<Arc<crate::native::DataPlane>>,
+    /// The P2 supervisor (feature `p2`; `None` in other builds).
+    pub p2: Option<Arc<crate::p2::Runtime>>,
 }
 
 impl Shared {
-    pub fn new(snapshot: Snapshot, native: Option<Arc<crate::native::DataPlane>>) -> Arc<Self> {
+    pub fn new(
+        snapshot: Snapshot,
+        native: Option<Arc<crate::native::DataPlane>>,
+        p2: Option<Arc<crate::p2::Runtime>>,
+    ) -> Arc<Self> {
         let s = Arc::new(Self {
             registry: Registry::new(),
             stats: ProxyStats::default(),
@@ -156,6 +162,7 @@ impl Shared {
             mutants: Mutants::from_env(),
             cert_not_after: AtomicI64::new(i64::MIN),
             native,
+            p2,
         });
         let h = s.snapshot().hash;
         s.registry.set_config_hash(&h);

@@ -11,7 +11,10 @@
 //!   (unix); `uds` = HTTP/1.1 with regenerated framing over a unix socket and requires a `unix:` target;
 //! * `to.upstream = "app:<name>"` binds the route to a native app linked into this binary (modes A/D, PLAN D16);
 //!   only such a route may carry a `data` endowment (resolved at boot by [`crate::native`]);
-//! * `to.static` is refused: static file serving is not in this build.
+//! * `to.static` is refused: static file serving is not in this build;
+//! * `to.wasm = <module-id>` (Phase 5, F14) binds the route to a P2 module served by aegis-p2 workers; it needs
+//!   feature `p2` (refused otherwise), and `p2.frame_max_bytes` must be the default 65,536: the aegis-p2 worker
+//!   command line cannot carry another frame cap, so any other value is refused rather than half-applied.
 //!
 //! Routing (documented semantics; F8 says nothing finer): a route path matches a canonical request path exactly,
 //! or as a prefix when the route path ends in `/` (`/api/` matches `/api/x`, not `/api`); the longest match wins.
@@ -93,6 +96,8 @@ pub enum RouteTo {
     Upstream(UpstreamConnConfig),
     /// A native application linked into this binary (modes A/D): `to.upstream = "app:<name>"` (PLAN D16).
     App(String),
+    /// A P2 module (feature `p2`): `to.wasm = <module-id>`, a declared `p2.modules[]` entry.
+    Wasm(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -192,9 +197,36 @@ fn parse_admin(s: Option<&str>) -> Result<AdminBind, String> {
     Ok(AdminBind::Tcp(a))
 }
 
+fn route_authz(at: &str, r: &aegis_config::Route, warnings: &mut Vec<String>) -> Authz {
+    match r.authz_requirement() {
+        AuthzRequirement::Deny => {
+            warnings.push(format!("{at}: no authz policy; every request is denied (INV-NONEMPTY)"));
+            Authz::Missing
+        }
+        AuthzRequirement::Policy(ALLOW_ALL) => Authz::AllowAll,
+        AuthzRequirement::Policy(p) => {
+            warnings
+                .push(format!("{at}/authz {p:?}: only \"{ALLOW_ALL}\" is evaluated before Phase 3 (Cedar); denied"));
+            Authz::Unknown(p.to_string())
+        }
+    }
+}
+
+/// The frame cap the aegis-p2 worker uses (F8 `p2.frame_max_bytes` default; the worker has no flag for another).
+pub const P2_FRAME_MAX: u64 = 65_536;
+
 /// Check a validated config against what this assembly can serve.
 pub fn plan(cfg: &Config) -> Result<Plan, String> {
     let mut warnings = Vec::new();
+    if let Some(p2) = cfg.p2() {
+        let fm = p2.limits().frame_max_bytes;
+        if fm != P2_FRAME_MAX {
+            return Err(format!(
+                "/p2/frame_max_bytes {fm}: the aegis-p2 worker uses {P2_FRAME_MAX} and its command line cannot carry \
+                 another value (fail closed)"
+            ));
+        }
+    }
     let mut listeners = Vec::new();
     for (i, l) in cfg.listeners().iter().enumerate() {
         let addr: SocketAddr =
@@ -230,8 +262,26 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                 RouteTarget::Static { .. } => {
                     return Err(format!("{at}/to: static targets are not served by this build (fail closed)"));
                 }
-                RouteTarget::Wasm { .. } => {
-                    return Err(format!("{at}/to: wasm targets are not served by this build (fail closed)"));
+                RouteTarget::Wasm { module } => {
+                    if !cfg!(feature = "p2") {
+                        return Err(format!(
+                            "{at}/to: wasm targets need the P2 supervisor; this build has no feature `p2` (fail closed)"
+                        ));
+                    }
+                    if r.data.is_some() {
+                        return Err(format!(
+                            "{at}/data: data endowments of wasm routes are not served yet (P5-bin-002; fail closed)"
+                        ));
+                    }
+                    let authz = route_authz(&at, r, &mut warnings);
+                    routes.push(RouteRt {
+                        id: r.id,
+                        path: r.path.as_bytes().to_vec(),
+                        prefix: r.path.ends_with('/'),
+                        to: RouteTo::Wasm(module.clone()),
+                        authz,
+                    });
+                    continue;
                 }
             };
             let to = if let Some(app) = upstream.strip_prefix(crate::native::APP_PREFIX) {
@@ -258,19 +308,7 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
                 };
                 RouteTo::Upstream(UpstreamConnConfig { target, framing, scope: v.host.as_bytes().to_vec() })
             };
-            let authz = match r.authz_requirement() {
-                AuthzRequirement::Deny => {
-                    warnings.push(format!("{at}: no authz policy; every request is denied (INV-NONEMPTY)"));
-                    Authz::Missing
-                }
-                AuthzRequirement::Policy(ALLOW_ALL) => Authz::AllowAll,
-                AuthzRequirement::Policy(p) => {
-                    warnings.push(format!(
-                        "{at}/authz {p:?}: only \"{ALLOW_ALL}\" is evaluated before Phase 3 (Cedar); denied"
-                    ));
-                    Authz::Unknown(p.to_string())
-                }
-            };
+            let authz = route_authz(&at, r, &mut warnings);
             routes.push(RouteRt {
                 id: r.id,
                 path: r.path.as_bytes().to_vec(),
@@ -405,6 +443,31 @@ mod tests {
             assert!(notes.unwrap_err().contains("feature `native`"));
         }
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:nope"}}]"#)).is_err());
+    }
+
+    fn p2_cfg(extra: &str) -> Config {
+        let doc = format!(
+            r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}}],
+               "p2":{{"worker":"/opt/aegis-p2"{extra},"modules":[{{"id":"m","path":"/srv/m.wasm","sha256":"{}"}}]}},
+               "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"/m/","to":{{"wasm":"m"}},"authz":"allow-all"}}]}}]}}"#,
+            "ab".repeat(32)
+        );
+        aegis_config::parse_config(doc.as_bytes()).unwrap()
+    }
+
+    #[test]
+    fn wasm_routes() {
+        let p = plan(&p2_cfg(""));
+        if cfg!(feature = "p2") {
+            let p = p.unwrap();
+            assert_eq!(p.vhosts[0].routes[0].to, RouteTo::Wasm("m".into()));
+            assert_eq!(p.vhosts[0].route(b"/m/x").unwrap().id, 1);
+        } else {
+            assert!(p.unwrap_err().contains("feature `p2`"));
+        }
+        // The worker cannot be told another frame cap: refused, never half-applied.
+        assert!(plan(&p2_cfg(r#","frame_max_bytes":4096"#)).unwrap_err().contains("frame_max_bytes"));
+        assert!(plan(&p2_cfg(r#","frame_max_bytes":65536"#)).is_ok() == cfg!(feature = "p2"));
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes","framing":"h2"}}]"#)).is_err());
     }
 }

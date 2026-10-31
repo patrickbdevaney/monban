@@ -10,18 +10,26 @@
 //! inbound h1 and h2 are served by `aegis_transport::Server` with the AEGIS wrapper), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
 //! clients), [`admin`] (metrics, healthz), [`audit`] (F9 admin events), [`tls`] (cert stores, profiles),
 //! [`serve`] (boot, signals, reload, upgrade), [`native`] (modes A/D: `app:<name>` routes served by linked apps over
-//! the golden SQLite/PG data plane, Tier-L tokens, idempotency, NC1/NC2/NC7/NC8).
+//! the golden SQLite/PG data plane, Tier-L tokens, idempotency, NC1/NC2/NC7/NC8), [`p2`] (feature `p2`, Phase 5:
+//! `{"wasm": <module-id>}` routes served by exec-spawned aegis-p2 workers; the F14 decoder, crash budget, cordons).
 #![forbid(unsafe_code)]
 
 mod admin;
 mod agent;
 mod audit;
 mod cli;
+#[cfg(any(feature = "native", feature = "p2"))]
+mod keyring;
 #[cfg(feature = "native")]
 mod native;
 #[cfg(not(feature = "native"))]
 #[path = "native_stub.rs"]
 mod native;
+#[cfg(feature = "p2")]
+mod p2;
+#[cfg(not(feature = "p2"))]
+#[path = "p2_stub.rs"]
+mod p2;
 mod plan;
 mod proxy;
 mod serve;

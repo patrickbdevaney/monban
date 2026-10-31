@@ -129,6 +129,49 @@ Unit acceptance `./run --self-test && ./run --trials 3` (gate timing mode, fresh
   pass; 14s)` and `ISOLATION-FI: PASS (cordon, forkwasm; 8 fault classes at 1%; 3 trial(s) per cell; 24s)`. Pooled
   oom recovery p99: cordon 2317 us, forkwasm 3670 us. Loop throughput: cordon x0.70, forkwasm x0.86.
 
+## Results: laptop reference and kamrui VPS-class re-run (P5-vps-001, 2026-10-31, PLAN D10)
+
+Real subject `p2-subject` (main c3bee5e), release build, gate timing mode, 3 trials per cell, n=3000, 1% faults.
+kamrui is an Intel N95 (4 cores, Linux 6.17.0-41), not a KVM VPS, so its numbers stay grade <=B and provisional.
+
+**Laptop reference (`--record gates/p2-runner-reference.json`).** i9-14900HX, `--server-core 2 --client-cores
+4,5,6,7`. Run while other agents' load had dropped: 1-min load 4.94 at the forkwasm start (10.49 at its end; the
+oracle itself keeps about 5 cores busy), 5.67 at the cordon start (7.02 at its end). An earlier cordon record at
+load 9.57 was replaced (same verdict, same counts). The file stores the end-of-run load in `host.loadavg`.
+
+| path | verdict | oom recovery p99 | loop recovery p99 | loop rps vs baseline |
+|---|---|---|---|---|
+| forkwasm | PASS | 2593 us | 2764 us | x0.91 |
+| cordon | PASS | 3257 us | 1040 us | x0.68 |
+
+**kamrui** (`ci/remote.sh --host kamrui`, `--server-core 1 --client-cores 2,3`, `--reference
+gates/p2-runner-reference.json`). Load averages are printed before each step.
+
+| run | load at start | verdict | G0-G2 (count) | G3/G4 (timing) |
+|---|---|---|---|---|
+| forkwasm #1 (the acceptance cmd) | 1.40 | **FAIL** | all green: 0 healthy failures, 0 wrong answers on all 9 cells, 72-100 faults per class | G3 oom recovery p99 **6654 us** > 5000 after the timing re-drive (laptop 2593 us, x2.57). loop was re-driven and passed at 4591 us |
+| cordon | 4.54 | PASS | all green on the 6 gated classes; hostabort blast 5.06/fault and hostpoison 99.6 wrong/fault, reported only | oom recovery p99 1584 us, loop 2398 us, loop rps x0.75 |
+| syscall-negative `--subject 'target/release/p2-subject probe'` | 5.41 | PASS | 77 cells on 3 stages, 5 masked controls, Landlock ABI 7 | - |
+| forkwasm #2 (confirmation) | 2.12 | **FAIL** | all green | G3 oom **7076 us** (x2.73) and G3 loop **5719 us** (x2.07) > 5000, both after the re-drive |
+
+The forkwasm G3 miss reproduces the q4-006 spike (fork+Wasm loop service gap 6.78 ms pooled p99 on the same box).
+It is a timing criterion, and no count criterion is red on either path. Per D10 no threshold was moved. A
+per-runner threshold, or treating the miss as evidence for the cordon default, needs an integrator Decision.
+
+Ratios kamrui/laptop: forkwasm flagged 31 of 52 timing metrics >2x, cordon 30 of 50. Throughput runs at about 0.4x and
+p50 at about 2.4-2.5x across the board, which is the hardware gap (N95 against i9-14900HX). The cordon's large
+ratios on sub-100 us recovery percentiles (panic recovery p50 195/14 us = x13.9, abort recovery p99 300/24 us = x12.5)
+come from tiny laptop denominators; all of them are far below 5 ms. The full lists, with both numbers, are in the
+unit status (units/phase-5/P5-vps-001.json).
+
+`p2-fault-vps` self-test on kamrui (load 0.97 at start): `ISOLATION-FI SELF-TEST: PASS (7/7 mutations caught;
+unmutated control passes; reference checks pass; 20s)` and `SYSCALL-NEGATIVE SELF-TEST: PASS (7/7 mutants red,
+reference green on 77 cells, 5 masked controls)`.
+
+Before this run kamrui's isolated toolchain (~/aegis-ci/rustup) had no Rust 1.98.0. rustup auto-installed it, and
+`wasm32-unknown-unknown` was added with `rustup target add --toolchain 1.98.0` (PLAN Q5). Nothing was installed
+system-wide.
+
 ## Re-run in this repository (2026-10-25, laptop i9-14900HX, shared machine)
 
 `./run` takes 72 s including the build; `target/` is 544 MB and is deleted at exit:

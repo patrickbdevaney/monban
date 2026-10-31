@@ -27,6 +27,9 @@ use crate::plan::{Authz, RouteRt, RouteTo, Snapshot, UpstreamConnConfig};
 use crate::shared::{Peer, Shared, bump};
 use crate::upstream::{UpError, UpRequest};
 
+/// Largest request body of a P2 route (aegis-p2 buffers at most 64 MiB, `aegis_wasm::abi::MAX_REQ_BODY`).
+const P2_MAX_REQ_BODY: u64 = 64 << 20;
+
 /// An accepted request: everything the upstream will see, built from canonical values only.
 #[derive(Debug)]
 pub struct Admitted {
@@ -92,9 +95,14 @@ fn find_route<'s>(snap: &'s Snapshot, authority: &[u8], path: &[u8]) -> Option<&
 }
 
 /// The exchange budget for the served config: the profile limits bound the body and the stall (the transport takes
-/// the tighter of this and its own limits).
-fn budget(snap: &Snapshot) -> ExchangeBudget {
-    let body = u32::try_from(snap.plan.limits.max_body_bytes).unwrap_or(u32::MAX);
+/// the tighter of this and its own limits). A P2 route's body is also capped at what the aegis-p2 worker buffers
+/// (`p2::MAX_REQ_BODY`, 64 MiB).
+fn budget(snap: &Snapshot, route: &RouteRt) -> ExchangeBudget {
+    let mut max_body = snap.plan.limits.max_body_bytes;
+    if matches!(route.to, RouteTo::Wasm(_)) {
+        max_body = max_body.min(P2_MAX_REQ_BODY);
+    }
+    let body = u32::try_from(max_body).unwrap_or(u32::MAX);
     ExchangeBudget {
         max_message_bytes: body,
         max_frame_bytes: u32::try_from(snap.plan.wl.max_frame_size).unwrap_or(u32::MAX),
@@ -174,7 +182,7 @@ impl FrontEnd for ProxyApp {
             return HeadVerdict::Reject(404);
         };
         match self.authorize(route) {
-            Ok(()) => HeadVerdict::Accept(Mode::Unary, budget(&snap)),
+            Ok(()) => HeadVerdict::Accept(Mode::Unary, budget(&snap, route)),
             Err(s) => {
                 bump(&self.shared.stats.authz_denied);
                 HeadVerdict::Reject(s)
@@ -195,6 +203,9 @@ impl App for ProxyApp {
 
     fn handle(&self, req: Request) -> HandlerFuture<'_> {
         Box::pin(async move {
+            if let Some(reply) = crate::p2::http::handle(&self.shared, &req).await {
+                return reply;
+            }
             if let Some(reply) = self.native(&req).await {
                 return reply;
             }
