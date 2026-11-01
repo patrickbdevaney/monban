@@ -18,7 +18,7 @@ MAX_CORES = float(os.environ.get("QUIET_MAX_CORES", "2.0"))
 WINDOW = float(os.environ.get("QUIET_WINDOW_S", "5"))
 SETTLE = float(os.environ.get("QUIET_SETTLE_S", "30"))
 WAIT = float(os.environ.get("QUIET_WAIT_S", "10800"))
-ATTEMPTS = int(os.environ.get("QUIET_ATTEMPTS", "3"))
+ATTEMPTS = int(os.environ.get("QUIET_ATTEMPTS", "6"))
 TICK = os.sysconf("SC_CLK_TCK")
 
 
