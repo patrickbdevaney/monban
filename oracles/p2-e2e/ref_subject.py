@@ -10,7 +10,7 @@ F14 postcard frames, and no sandbox. Never shipped, never a source of claims abo
   ref_subject.py check-config <f8.json> [--print-effective]
 
 Mutants: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1
-(in ref_worker.py), no-reload-switch, boot-without-landlock-accepted.
+(in ref_worker.py), no-reload-switch, boot-without-landlock-accepted, auto-ignores-cpus.
 """
 
 import base64
@@ -121,6 +121,26 @@ def validate(doc):
                     raise ConfigError(f"route {r.get('id')}: wasm module {to['wasm']} not declared in p2.modules")
 
 
+AUTO_CORDON_BELOW = 8  # PLAN-5 D23 option (b)
+
+
+def usable_cpus():
+    return max(1, len(os.sched_getaffinity(0)))
+
+
+def resolve(isolation, cpus):
+    if isolation == "auto":
+        return "cordon" if cpus < AUTO_CORDON_BELOW else "forkwasm"
+    return isolation
+
+
+def path_of(p2):
+    """The path multi-principal modules are served on (the effective one, unless the auto-ignores-cpus mutant)."""
+    if MUTANT == "auto-ignores-cpus" and p2["isolation"] == "auto":
+        return "forkwasm"  # negative control: auto ignores the CPU count (the dump stays truthful)
+    return p2["isolation_effective"]
+
+
 def effective(doc):
     s = _schema()
     d = copy.deepcopy(doc)
@@ -134,6 +154,9 @@ def effective(doc):
             cb.setdefault(k, p["default"])
         for m in p2["modules"]:
             m.setdefault("tenancy", "multi")
+        n = usable_cpus()
+        p2["isolation_effective"] = resolve(p2["isolation"], n)
+        p2["usable_cpus"] = n
     return d
 
 
@@ -280,10 +303,12 @@ class Runtime:
                 with open(self.modfile, "w") as f:
                     json.dump([{"id": m["id"], "path": m["path"], "sha256": m["sha256"],
                                 "wall_ms": m.get("wall_ms", p2["wall_ms"])} for m in p2["modules"]], f)
-            if old is not None and old.get("p2") and p2 and old["p2"]["isolation"] != p2["isolation"]:
+            if p2:
+                log(f"ref_subject: p2: isolation {p2['isolation']} -> {path_of(p2)} ({p2['usable_cpus']} usable CPUs)")
+            if old is not None and old.get("p2") and p2 and path_of(old["p2"]) != path_of(p2):
                 if MUTANT == "no-reload-switch":
                     self.broken = True
-                if p2["isolation"] == "cordon":
+                if path_of(p2) == "cordon":
                     self._retire_zygote()
                 else:
                     self._retire_cordons()
@@ -419,7 +444,7 @@ class Runtime:
             return 403, b"denied\n"  # D17: Error => the Deny response
         p2 = self.cfg["p2"]
         mod = next(m for m in p2["modules"] if m["id"] == module)
-        cordon = mod.get("tenancy") == "single" or p2["isolation"] == "cordon"
+        cordon = mod.get("tenancy") == "single" or path_of(p2) == "cordon"
         msg = {"module": module, "req_head": req_head.hex()}
         res = None
         try:

@@ -6,7 +6,7 @@ several principals, drives the subject over TLS (HTTP/1.1), and judges the answe
 under the subject (`/proc`), the F14 layout reports of a test-hooks worker, and the effective-config dump.
 
 aegis-bin has no `p2` code yet (P5-bin-001 builds it). For now the oracle PASSes on an oracle-local mock,
-`ref_subject.py` (supervisor) plus `ref_worker.py` (worker), goes red on each of the 8 reference mutants, and accepts
+`ref_subject.py` (supervisor) plus `ref_worker.py` (worker), goes red on each of the 9 reference mutants, and accepts
 `--subject/--worker/--test-worker` for the real binaries. `needs` = `quiet-host` (PLAN D16): the crash-budget windows
 and the respawn polling are wall-clock based, so the oracle runs on the laptop, never on the shared desktop.
 
@@ -14,7 +14,7 @@ and the respawn polling are wall-clock based, so the oracle runs on the laptop, 
 
 ```
 oracles/p2-e2e/run                       # reference subject (mock), all families
-oracles/p2-e2e/run --self-test           # reference PASS, then each of the 8 reference mutants must be red
+oracles/p2-e2e/run --self-test           # reference PASS, then each of the 9 reference mutants must be red
 oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 \
                    --test-worker target/p2-test/release/aegis-p2                                  # gate cmd
 oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 \
@@ -27,7 +27,9 @@ With `--subject` alone (as `ci/oracles.sh` calls it once P5-bin-001 writes `defa
 test worker the respawn and Landlock families fail (cannot judge). The last line is `P2-E2E: PASS|FAIL (...)` or `P2-E2E SELF-TEST: PASS|FAIL (...)`; the exit code is 0 only on PASS.
 The first line records the load average (integrator note: laptop timings are noisy under load). Stdlib Python only,
 run as `python3 -I`; needs the `openssl` CLI (throwaway P-256 certificate). The oracle refuses to judge when run as
-root (root reads every `/proc` entry, so dumpable=0 would be invisible). `--families boot,main,cordon,respawn` limits
+root (root reads every `/proc` entry, so dumpable=0 would be invisible). It needs `taskset` (util-linux) and at
+least 8 usable CPUs for the `auto` family (the laptop has 32, the desktop 24); with fewer, `auto.large.*` FAILs
+rather than being skipped. `--families boot,main,cordon,auto,respawn` limits
 a run for debugging; a gate run never passes it.
 
 Real runs build the guests first: `guest/` (Rust 1.98.0, `wasm32-unknown-unknown`, no dependencies, its own
@@ -47,14 +49,15 @@ Real runs build the guests first: `guest/` (Rust 1.98.0, `wasm32-unknown-unknown
 
 ## Families and checks
 
-Spec: PLAN D1 (both paths, one cordon per principal, switch by config + reload), D2 (Landlock ABI >= 4 else refuse),
+Spec: PLAN D1 (both paths, one cordon per principal, switch by config + reload), D23 option (b) (default `auto`:
+cordon below 8 usable CPUs, else forkwasm), D2 (Landlock ABI >= 4 else refuse),
 D7 (crash budget), D8 (exec respawn, dumpable=0), D15 (test hooks only in test builds); F8 `p2` block; F14 Part 1
 (`handle()` codes), Part 2 (`layout` frame), Part 3 (I7 Error => Deny, D7 charging); SPEC_INVARIANTS §H INV-P2;
 ARCHITECTURE §3.6 R-ISO-5.
 
 | family | checks (prefix) | what must hold |
 |---|---|---|
-| dump | `dump.defaults.*`, `dump.scaled.*` | `check-config --print-effective` of a p2 block that omits them shows `isolation` forkwasm, `fuel` 15000000, `wall_ms` 100, `memory_mib` 16, `mpk` false, `crash_budget` {3, 60, 600}; a scaled block (3/4/5 s, cordon) is reflected exactly |
+| dump | `dump.defaults.*`, `dump.scaled.*` | `check-config --print-effective` of a p2 block that omits them shows `isolation` auto, `fuel` 15000000, `wall_ms` 100, `memory_mib` 16, `mpk` false, `crash_budget` {3, 60, 600}; a scaled block (3/4/5 s, cordon) is reflected exactly |
 | boot | `boot.<case>.exit78`, `.never-listened` | exit 78 and no accepted connection on the listener or admin port: missing worker; module digest mismatch; route naming an undeclared module; wasm route without a `p2` block; 7 attempts to express a shared cordon (`p2.cordon`, `p2.shared_cordon`, `p2.cordon_key`, module `cordon`, module `tenancy: "shared"`, module `principals`, route `p2`); Landlock ABI 3 simulated through the test-hooks worker (`boot.landlock-abi3`), with the control ABI 4 booting and serving (`boot.landlock-abi4-control.serves`) |
 | wasm answers | `wasm.forkwasm.answer`, `wasm.cordon.answer`, `reload.to-*.answer` | 200, the right module's marker, and an echoed `req-head` that decodes strictly (postcard, no trailing bytes) with method GET, path = request path (or the route path), query = opaque `n=<nonce>` (or typed `[("n", nonce)]`), headers only from the F14 allowlist and including `accept: text/plain` (so no `authorization`), body-len null or 0. Concurrent, several principals, both modules |
 | fork+Wasm structure | `wasm.forkwasm.zygote-observed`, `dumpable.forkwasm-*` | during a spin request a new process appears whose parent is another worker (not the supervisor), and after the request it is gone while its parent lives: that parent is the zygote. Both non-dumpable |
@@ -62,6 +65,7 @@ ARCHITECTURE §3.6 R-ISO-5.
 | reload switch | `reload.to-cordon.*`, `reload.to-forkwasm.*` | `isolation` forkwasm -> cordon by SIGHUP (applied = `aegis_proxy_config_reloads` advances): same routes answer correctly, each new principal gets a new long-lived worker process; cordon -> forkwasm: answers correct and a zygote is observed again |
 | one cordon per principal | `cordon.per-principal.<i>`, `.count`, `cordon.kill-isolated.*`, `cordon.respawn-after-kill.*` | boot with `cordon`: each of 4 principals' first request makes a new worker process appear that is still alive 0.3 s later; all disjoint; SIGKILL of principal 0's cordon leaves principal 1's cordon alive and serving; principal 0 is served again within 10 s by a pid not seen before the kill |
 | dumpable=0 | `dumpable.*` | every live worker (zygote, fork child, cordons, respawned ones): `/proc/<pid>/{status,maps,environ,fd}` owned by uid 0 and `/proc/<pid>/maps` unreadable (EACCES). Re-checked once after 0.2 s before failing (a just-exec'd worker may not have reached prctl yet) |
+| isolation auto (D23 b) | `auto.small.*`, `auto.large.*`, `auto.explicit-*`, `dumpable.auto-*` | config with `p2.isolation` omitted. Dump under `taskset` with the first 1, 4 and 7 CPUs of the oracle's affinity set: `isolation` auto, `isolation_effective` cordon, `usable_cpus` = that count; with 8: forkwasm (`auto.*.dump.cpus<n>`). Explicit forkwasm at 1 CPU and explicit cordon at all CPUs are used as written. Serving under `taskset` (4 CPUs, as `taskset -c 0-3`): the boot log names `isolation auto -> cordon` and `4 usable CPUs`, wasm routes answer correctly, each of 3 new principals (after one warm-up principal) gets a new long-lived worker, and no fork child of a worker serves a spin request (`auto.small.no-zygote`). Serving with 8 CPUs: log `isolation auto -> forkwasm` / `8 usable CPUs`, correct answers, a zygote is observed and new principals get no new long-lived worker. A host that gives the oracle fewer than 8 CPUs FAILs `auto.large.*` (cannot judge; not a skip) |
 | exec respawn (test-hooks worker) | `respawn.zygote.*`, `respawn.cordon.*`, `respawn.abort-is-deny*` | forkwasm: load base L1 from the layout line of an echo request; zygote Z1 found as above; oracle SIGKILLs Z1 (explicit pid); served again within 10 s; new zygote Z2 != Z1, Z1 gone, layout load base L2 != L1 (`respawn.zygote.load-base-changed`), Z2 non-dumpable; `/abort/` gives the Deny response and the zygote survives the child's abort (Z3 == Z2). cordon: first request spawns cordon C1 with a layout line whose pid is C1; `/abort/` kills it (Deny response); served again within 10 s by C2 (new pid, C1 gone) with a different load base; C2 non-dumpable |
 
 ## Subject contract (what P5-bin-001 must implement)
@@ -70,13 +74,17 @@ ARCHITECTURE §3.6 R-ISO-5.
 --runtime-dir <d> --token-keyring <file>`; readiness `GET /healthz` = 200 on `admin.bind`; reload on SIGHUP, counted
 by the admin metric `aegis_proxy_config_reloads` only when applied; SIGTERM stops the process and its workers.
 `aegis check-config <f8.json> --print-effective` exits 0 and prints the effective config as one JSON object on one
-stdout line, including the `p2` block with every schema default applied (the "config dump", D7).
+stdout line, including the `p2` block with every schema default applied (the "config dump", D7). Inside `p2` the
+dump also carries `isolation_effective` (the path multi-principal modules are served on in this process's
+environment) and `usable_cpus` (the size of the process's CPU affinity set it was resolved from), D23(b).
+At boot and at each applied reload the supervisor logs (stdout or stderr) a line containing
+`isolation <configured> -> <effective>` and `<n> usable CPUs`.
 
 **Config written by the oracle.** One listener `P-PUBLIC-WEB` (`alpn ["h2","http/1.1"]`), vhost `aegis.test`,
 routes `{"id", "path": "/a/", "to": {"wasm": "echo-a"}, "authz": "allow-all"}` (one per module), and
 
 ```json
-"p2": {"worker": "<abs path>", "cache_dir": "<tmp>/p2cache", "isolation": "forkwasm|cordon",
+"p2": {"worker": "<abs path>", "cache_dir": "<tmp>/p2cache", "isolation": "forkwasm|cordon" (absent: auto),
        "crash_budget": {"crashes": 3, "window_s": 4, "penalty_s": 5},
        "modules": [{"id": "echo-a", "path": "<tmp>/mod/echo-a.wasm", "sha256": "<hex>"},
                    {"id": "spin", "path": "...", "sha256": "...", "fuel": 1000000000, "wall_ms": 1000}, ...]}
@@ -130,6 +138,7 @@ supervisor's environment (passed through to workers). Names and the check family
 | dumpable-1 | PR_SET_DUMPABLE(0) skipped: `/proc/<pid>` entries owned by the user | `dumpable.` |
 | no-reload-switch | after a forkwasm -> cordon reload the route fails | `reload.` |
 | boot-without-landlock-accepted | a worker's Landlock refusal at boot is ignored and the supervisor listens | `boot.landlock-abi3` |
+| auto-ignores-cpus | `isolation: "auto"` is served as forkwasm whatever the CPU count (the dump stays truthful, so only the serving process tree and boot log show it) | `auto.small.` |
 
 A mutant counts as caught only if at least one failed check starts with its expected prefix. In the real self-test,
 the respawn and Landlock families need the layout report and the ABI override, so the `mutants` build of aegis-p2
@@ -148,7 +157,17 @@ PR_SET_DUMPABLE=0, refusal below Landlock ABI 4, and, behind `AEGIS_REF_TEST_HOO
 the layout report (an address inside libc: randomized per execve, kept across fork) and the ABI override. It installs
 no Landlock or seccomp (oracles/syscall-negative judges those). Nothing from the mock is a claim about aegis.
 
-## Re-run in repo (laptop, 2026-10-31, Linux 6.17.0-14-generic, Landlock ABI 7)
+## Re-run with the D23 `auto` family (2026-10-31)
+
+- Laptop, reference subject, load average 150-340 (other jobs): `./run`: `P2-E2E: PASS (209 checks)`;
+  `./run --self-test`: `PASS (9/9 mutants red ...)`, auto-ignores-cpus caught by 5 checks (`auto.small.boot-log`,
+  `auto.small.cordon-per-principal.0..2`, `auto.small.no-zygote`).
+- Desktop (24 CPUs, Linux 6.11, Landlock ABI 5, load 1.4-2.5; the laptop had 13 GB free disk, below what the four
+  release builds need), the exact gate cmd and selftest through ci/remote.sh: real aegis + aegis-p2
+  `P2-E2E: PASS (209 checks)`; selftest reference 9/9 and real subject 9/9 (`target/p2-mutants`), baseline green on
+  209 checks. That host is not the quiet laptop, so this is not a substitute for the laptop gate run (needs).
+
+## Re-run in repo (laptop, 2026-10-31, Linux 6.17.0-14-generic, Landlock ABI 7; before the `auto` family)
 
 - `./run`: `P2-E2E: PASS (161 checks)`, 20.5 s, load average 5.7.
 - `./run --self-test`: `P2-E2E SELF-TEST: PASS (8/8 mutants red on their expected checks, baseline green on 161

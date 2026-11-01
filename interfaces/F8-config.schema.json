@@ -398,11 +398,12 @@
         },
         "isolation": {
           "enum": [
+            "auto",
             "forkwasm",
             "cordon"
           ],
-          "default": "forkwasm",
-          "description": "Default path for multi-principal modules (D1, q4-006 flip): forkwasm = fork child of an exec-spawned single-threaded zygote, fresh instance per request; cordon = one exec-spawned cordon per principal, fresh instance per request. Switching is a config change plus reload, no rebuild. Single-tenant modules always run in a per-principal cordon."
+          "default": "auto",
+          "description": "Default path for multi-principal modules (D1, q4-006 flip; D23 option b): forkwasm = fork child of an exec-spawned single-threaded zygote, fresh instance per request; cordon = one exec-spawned cordon per principal, fresh instance per request; auto (the default) resolves at boot and at every reload from the usable CPU count (the process's sched_getaffinity set): fewer than 8 -> cordon (VPS-class hosts, where forkwasm oom recovery p99 missed the 5 ms gate on kamrui), otherwise forkwasm. Explicit forkwasm or cordon is used as written. Switching is a config change plus reload, no rebuild. Single-tenant modules always run in a per-principal cordon."
         },
         "fuel": {
           "type": "integer",
