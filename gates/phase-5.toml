@@ -2,14 +2,17 @@
 # cordon per principal) (IMPLEMENTATION_PLAN §3 Phase 5). Run: python3 -I ci/run-gates.py --phase 5
 # Plan, decisions and owner units: units/phase-5/PLAN.md and units/phase-5/*.json (owner unit in brackets).
 # Placement (PLAN D10, D16):
-#   remote = true ........ desktop via ci/remote.sh (build-heavy, timing-free; kernel 6.11, Landlock ABI 5)
-#   no remote ............ this laptop = the quiet host (timing-sensitive oracles carry `needs` = quiet-host; never
-#                          the shared desktop, as ct-dudect since 8d9351d); p2-syscall-negative also runs here
+#   remote = true ........ desktop via ci/remote.sh (kernel 6.11, Landlock ABI 5). Since 2026-10-31 it is also the
+#                          quiet host: timing-sensitive oracles (`needs` = quiet-host) and p2-fault-forkwasm/cordon
+#                          and p2-e2e run there under ci/quiet.py, which waits for <= 2.0 cores of foreign load and
+#                          voids any attempt that saw more (the operator's laptop is never quiet for 8 hours)
+#   no remote ............ this laptop: docker/lean oracles, native-e2e (pg17 container); p2-syscall-negative also runs here
 #                          because it judges the stated kernel (6.17 + AppArmor unprivileged-userns restriction)
 #   ci/remote.sh --host kamrui (inside the cmd) .... the VPS-class re-run (p2-fault-vps); not a real VPS (claims <=B)
 #   No Phase-5 gate needs Docker. Engine gates keep their Phase-4 placement.
-# Carries every Phase-4 gate unchanged except oracles-local (adds the p2 builds; isolation-fi and p2-e2e now carry
-# needs=quiet-host, so ci/oracles.sh runs them there and no longer on the desktop). `budget` also judges the
+# Carries every Phase-4 gate unchanged except oracles-local, which since 2026-10-31 keeps only the docker/lean oracles;
+# the needs=quiet-host oracles run in oracles-quiet on the desktop under ci/quiet.py (the laptop is the operator's
+# workstation, never quiet for 8 hours), as do p2-fault-forkwasm, p2-fault-cordon and p2-e2e. `budget` also judges the
 # aegis-p2 worker after P5-spec-002 (DEVIATIONS X-13). Phase-5 additions:
 #   faults <=0.05/fault, 0 wrong, poison 0, recovery p99 <=5 ms, loop >=0.5x: fork+Wasm ... p2-fault-forkwasm [P5-iso-002]
 #   same five criteria: fresh-Wasm cordon per principal (+ MPK cell) ...................... p2-fault-cordon   [P5-iso-003]
@@ -108,9 +111,24 @@ remote = true
 
 [[gate]]
 name = "oracles-local"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/oracles.sh run --where local"
-selftest = "ci/heavy.sh cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && ci/oracles.sh self-test --where local"
+# This laptop: oracles whose needs are docker or lean. The wall-clock-sensitive quiet-host oracles moved to
+# oracles-quiet (desktop, under ci/quiet.py) on 2026-10-31: the laptop is the operator's workstation and is not
+# quiet during an 8-hour run (isolation-fi reference cordon oom rec_p99 5.2-18.8 ms at load 8-40 vs 3.26 ms quiet).
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && ci/oracles.sh run --where local"
+selftest = "ci/oracles.sh self-test --where local"
 heavy = true
+
+[[gate]]
+name = "oracles-quiet"
+# needs=quiet-host oracles (ct-dudect, isolation-fi, native-e2e, p2-e2e) on the desktop, each under ci/quiet.py:
+# it waits until foreign CPU load (host busy minus this job's cgroup) stays <= 2.0 cores for 30 s, samples it every
+# 5 s during the run, and voids any attempt with a window above 2.0 cores (re-run, up to 3; none valid = exit 75,
+# red). A valid FAIL is final. Timing criteria are gated here (no AEGIS_TIMING_GATES=advisory). Builds are separate
+# cargo invocations per feature set (D18). The selftest also proves the guard voids a run under foreign load.
+cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/oracles.sh run --where quiet"
+selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; ci/quiet-selftest.sh && cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/oracles.sh self-test --where quiet"
+heavy = true
+remote = true
 
 [[gate]]
 name = "build-subjects"
@@ -375,21 +393,25 @@ heavy = true
 name = "p2-fault-forkwasm"
 # Quiet host (laptop), gate timing mode, 3 trials per cell (PLAN D14). Gated: G0-G4 on panic, abort, segv, loop, oom,
 # poison AND hostabort, hostpoison (the fork+Wasm containment claim, q4-006).
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-forkwasm.json --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}'"
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && ci/quiet.py oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-forkwasm.json --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}'"
 # Red on: oracle reference mutants (no-fork, no-deadline) and the real subject built with `mutants`
 # (AEGIS_P2_MUTANT = no-fork | no-deadline | reuse-instance), while the unmutated real subject passes.
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --self-test && oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}'"
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && ci/quiet.py oracles/isolation-fi/run --self-test && ci/quiet.py oracles/isolation-fi/run --self-test --path forkwasm --subject 'target/p2/release/p2-subject serve forkwasm {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve forkwasm {guest} {data}'"
 heavy = true
+remote = true
+# Desktop under ci/quiet.py since 2026-10-31 (see oracles-quiet); the run voids itself under foreign load.
 
 [[gate]]
 name = "p2-fault-cordon"
 # Quiet host (laptop), gate timing mode, 3 trials. Gated: G0-G4 on the 6 guest classes; hostabort/hostpoison are
 # reported only (a per-principal cordon keeps the damage with one principal; shared cordons are unrepresentable, D1).
 # Second run: the MPK density option (PLAN D11): same thresholds, reservation and guards unchanged.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-cordon.json --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}'"
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && ci/quiet.py oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-cordon.json --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && ci/quiet.py oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}'"
 # Red on: shared-store, recycle50, no-deadline, epoch-only-4 (real subject with `mutants`) plus the reference mutants.
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --self-test && oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}'"
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && ci/quiet.py oracles/isolation-fi/run --self-test && ci/quiet.py oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}'"
 heavy = true
+remote = true
+# Desktop under ci/quiet.py since 2026-10-31 (see oracles-quiet); the run voids itself under foreign load.
 
 [[gate]]
 name = "p2-syscall-negative"
@@ -452,13 +474,15 @@ name = "p2-e2e"
 # switches the default; one cordon per principal; exec respawn (new pid, new load base); crash budget 3/60 s -> 429
 # for 600 s (scaled knobs + effective defaults from the config dump); dumpable=0 (root-owned /proc/<pid>);
 # fail-closed boot (missing worker, Landlock ABI < 4, shared-cordon config) -> exit 78.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
+cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
 # Red on: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1,
 # no-reload-switch, boot-without-landlock-accepted.
 # --mutant-test-worker: the respawn family needs a mutants+test-hooks worker (env.host_fault abort guest); a
 # mutants-only worker refuses that guest and the baseline fails on respawn.harness (P5-bin-001, D22).
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants,aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --self-test && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 --mutant-test-worker target/p2-mutants-test/release/aegis-p2"
+selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants,aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --self-test && ci/quiet.py oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 --mutant-test-worker target/p2-mutants-test/release/aegis-p2"
 heavy = true
+remote = true
+# Desktop under ci/quiet.py since 2026-10-31 (see oracles-quiet); the run voids itself under foreign load.
 
 [[gate]]
 name = "no-wasmtime-in-bin"
