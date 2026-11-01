@@ -8,7 +8,7 @@ use aegis_canon::{JsonValue, parse_json};
 
 use crate::ErrorKind as E;
 use crate::data::{self, Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine, RouteData};
-use crate::p2::{self, CrashBudget, Isolation, P2Block, P2Limits, P2Module, Tenancy};
+use crate::p2::{self, CrashBudget, IsolationSetting, P2Block, P2Limits, P2Module, Tenancy};
 use crate::{
     Admin, Alpn, Canon, Config, ConfigError, Framing, Limits, Listener, MAX_CONFIG_BYTES, MAX_ROUTE_ID, Profile,
     QueryMode, Route, RouteTarget, Vhost, emit, sha256,
@@ -778,9 +778,9 @@ fn p2_block(v: &JsonValue, p: &str) -> R<P2Block> {
         }
         cache_dir = Some(s.to_owned());
     }
-    let mut isolation = Isolation::default();
+    let mut isolation = IsolationSetting::default();
     if let Some(x) = get(m, "isolation") {
-        isolation = enum_of(x, &child(p, "isolation"), &Isolation::ALL)?;
+        isolation = enum_of(x, &child(p, "isolation"), &IsolationSetting::ALL)?;
     }
     let mut limits = P2Limits::default();
     for (name, min, max, _) in P2Limits::BOUNDS {

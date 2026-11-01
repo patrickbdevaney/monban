@@ -440,21 +440,33 @@ name = "p2-fault-vps"
 # against gates/p2-runner-reference.json and flags >2x, but never moves a threshold (PLAN D10: only an integrator
 # Decision with both measurements may). Count criteria never move. Also re-runs the syscall probes on kamrui's kernel.
 # Every step runs and the exit codes are combined, so one red path does not hide the others (P5-vps-001).
-cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; exit \\$rc\""
+# PLAN-5 D23 option (b), operator decision 2026-10-31: the 5 ms recovery threshold is kept and the fresh-Wasm cordon
+# is the DEFAULT path on VPS-class hosts (`p2.isolation` "auto": cordon below 8 usable CPUs). So on kamrui:
+#  - cordon is the path that ships by default here and stays fully gated (G0-G4, thresholds unchanged);
+#  - forkwasm is not the default here: its count criteria (G0-G2, unrecovered requests) stay gated, its timing
+#    criteria (G3 recovery p99, G4 loop throughput) are report-only (`--timing advisory`; the PASS line says
+#    "timing ADVISORY" and the kamrui/laptop ratios are still printed). This is the operator's D23 decision, not a
+#    threshold move: the laptop gates p2-fault-forkwasm / p2-fault-cordon keep both paths fully timed, and an
+#    explicit `isolation: "forkwasm"` on a small host is outside what kamrui's numbers support (claims <= B);
+#  - the last step builds aegis (feature p2) and checks that the default config resolves to cordon on this host
+#    (ci/p2-auto-resolve.py: `check-config --print-effective` shows isolation auto -> cordon at 4 usable CPUs).
+cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; echo 'p2-fault-vps: forkwasm timing (G3 recovery p99, G4 loop) is report-only on kamrui by PLAN-5 D23 option (b); its count criteria stay gated'; oracles/isolation-fi/run --timing advisory --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 && python3 -I ci/p2-auto-resolve.py --subject target/p2/release/aegis --expect cordon || rc=1; exit \\$rc\""
 # The oracles must still catch their mutants on this host (a runner where the checks cannot go red proves nothing).
-selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test'"
+# isolation-fi --self-test always gates timing (its no-deadline mutants are caught through it).
+selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test && python3 -I ci/p2-auto-resolve.py --self-test'"
 heavy = true
 
 [[gate]]
 name = "p2-e2e"
 # Quiet host (laptop; oracle needs=quiet-host). Real aegis (feature p2) + release worker; the exec-respawn family
 # uses the test-hooks worker (load-base report). Families: wasm: routes under both paths and across a reload that
-# switches the default; one cordon per principal; exec respawn (new pid, new load base); crash budget 3/60 s -> 429
+# switches the default; one cordon per principal; the default isolation "auto" (PLAN-5 D23(b)) under taskset: 4 CPUs
+# -> cordon per principal, no zygote; 8 CPUs -> zygote (this host needs >= 8 usable CPUs, else that check FAILs); exec respawn (new pid, new load base); crash budget 3/60 s -> 429
 # for 600 s (scaled knobs + effective defaults from the config dump); dumpable=0 (root-owned /proc/<pid>);
 # fail-closed boot (missing worker, Landlock ABI < 4, shared-cordon config) -> exit 78.
 cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
 # Red on: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1,
-# no-reload-switch, boot-without-landlock-accepted.
+# no-reload-switch, boot-without-landlock-accepted, auto-ignores-cpus.
 # --mutant-test-worker: the respawn family needs a mutants+test-hooks worker (env.host_fault abort guest); a
 # mutants-only worker refuses that guest and the baseline fails on respawn.harness (P5-bin-001, D22).
 selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants,aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/p2-e2e/run --self-test && oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 --mutant-test-worker target/p2-mutants-test/release/aegis-p2"

@@ -47,6 +47,7 @@ MUTANTS = {
     "dumpable-1": "dumpable.",
     "no-reload-switch": "reload.",
     "boot-without-landlock-accepted": "boot.landlock-abi3",
+    "auto-ignores-cpus": "auto.small.",
 }
 # kind -> (route path, module id, export in the guest build, needs the fault build)
 KINDS = {
@@ -62,9 +63,12 @@ GOLDEN_KINDS = ["echo_a", "echo_b", "trap", "deny", "spin"]
 # re-trigger a penalty; both are long enough for 3 sequential traps on a loaded laptop.
 CB_SCALED = {"crashes": 3, "window_s": 4, "penalty_s": 5}
 CB_LOOSE = {"crashes": 100, "window_s": 1, "penalty_s": 1}
-DEFAULTS = {"isolation": "forkwasm", "fuel": 15000000, "wall_ms": 100, "memory_mib": 16, "mpk": False,
+DEFAULTS = {"isolation": "auto", "fuel": 15000000, "wall_ms": 100, "memory_mib": 16, "mpk": False,
             "crash_budget": {"crashes": 3, "window_s": 60, "penalty_s": 600}}
 SPIN = {"fuel": 1000000000, "wall_ms": 1000}
+# PLAN-5 D23 option (b): p2.isolation "auto" (the default) = cordon below this many usable CPUs, else forkwasm.
+AUTO_CORDON_BELOW = 8
+SMALL_CPUS = 4  # the VPS-class shape (kamrui: 4 cores), as `taskset -c 0-3`
 DROP_ENV = ("NOTIFY_SOCKET", "AEGIS_UPGRADE_DIR", "AEGIS_P2_MUTANT", "AEGIS_P2_TEST_LANDLOCK_ABI",
             "AEGIS_REF_TEST_HOOKS", "AEGIS_E2E_MUTANT")
 
@@ -255,8 +259,9 @@ def ref_guests():
 
 
 class Subject:
-    def __init__(self, run, cfg, env_extra=None, worker_env=None):
+    def __init__(self, run, cfg, env_extra=None, worker_env=None, pin=None):
         self.run, self.cfg = run, cfg
+        self.pin = pin  # CPU list: start the subject under `taskset -c <list>` (D23 auto family)
         self.port = int(cfg["listeners"][0]["bind"].rsplit(":", 1)[1])
         self.aport = int(cfg["admin"]["bind"].rsplit(":", 1)[1])
         self.cfg_path = os.path.join(run.dir, f"aegis-{secrets.token_hex(4)}.json")
@@ -274,7 +279,7 @@ class Subject:
 
     def start(self, wait=True):
         self.log = open(self.log_path, "ab")
-        self.proc = subprocess.Popen(self.run.argv(self.cfg_path), stdout=self.log, stderr=subprocess.STDOUT,
+        self.proc = subprocess.Popen(taskset(self.pin) + self.run.argv(self.cfg_path), stdout=self.log, stderr=subprocess.STDOUT,
                                      env=self.run.subject_env(self.env_extra), start_new_session=True)
         self.run.started.append(self)
         if wait:
@@ -331,6 +336,13 @@ class Subject:
         try:
             with open(self.log_path, "rb") as f:
                 return f.read()[-1500:].decode(errors="replace")
+        except OSError:
+            return ""
+
+    def text(self):
+        try:
+            with open(self.log_path, "rb") as f:
+                return f.read().decode(errors="replace")
         except OSError:
             return ""
 
@@ -480,6 +492,7 @@ class Run:
         return env
 
     def config(self, kinds, isolation="forkwasm", cb=None, worker=None, omit_defaults=False):
+        """isolation=None omits only `p2.isolation` (its default, `auto`, applies); omit_defaults omits both."""
         routes, mods = [], []
         for i, k in enumerate(kinds):
             path, mid, _, _ = KINDS[k]
@@ -490,7 +503,8 @@ class Run:
             mods.append(m)
         p2 = {"worker": worker or self.worker, "cache_dir": self.cache, "modules": mods}
         if not omit_defaults:
-            p2["isolation"] = isolation
+            if isolation is not None:
+                p2["isolation"] = isolation
             p2["crash_budget"] = dict(cb or CB_SCALED)
         return {
             "v": 1,
@@ -509,7 +523,7 @@ class Run:
         try:
             self.setup()
             fams = [("boot", self.boot_family), ("main", self.main_family), ("cordon", self.cordon_family),
-                    ("respawn", self.respawn_family)]
+                    ("auto", self.auto_family), ("respawn", self.respawn_family)]
             for fam, fn in fams:
                 if not self.want(fam):
                     continue
@@ -630,12 +644,12 @@ class Run:
         return {p for p in s.workers() - before if alive(p)}
 
     # ---------------------------------------------------------------- family: boot (fail closed) + config dump
-    def check_config(self, cfg):
+    def check_config(self, cfg, pin=None):
         p = os.path.join(self.dir, f"cc-{secrets.token_hex(3)}.json")
         with open(p, "w") as f:
             json.dump(cfg, f)
-        r = subprocess.run(self.cmd + ["check-config", p, "--print-effective"], capture_output=True, timeout=30,
-                           env=self.subject_env())
+        r = subprocess.run(taskset(pin) + self.cmd + ["check-config", p, "--print-effective"], capture_output=True,
+                           timeout=30, env=self.subject_env())
         doc = None
         for ln in r.stdout.decode(errors="replace").splitlines():
             ln = ln.strip()
@@ -828,6 +842,79 @@ class Run:
         self.answer(s, "budget.other-principal-unaffected.cordon", "echo_a", B)
         s.stop()
 
+    # ---------------------------------------------------------------- family: isolation "auto" (PLAN-5 D23 option b)
+    def auto_family(self):
+        """The default `p2.isolation` ("auto") resolves from the usable CPU count (the affinity set): < 8 -> cordon,
+        else forkwasm. Judged on the dump (configured and effective path, CPU count) at 1, 4, 7 and 8 CPUs, and on
+        the serving process tree under `taskset` at 4 CPUs (cordon per principal, no zygote) and 8 CPUs (zygote)."""
+        if not shutil.which("taskset"):
+            self.check("auto.harness", False, "taskset (util-linux) not found: cannot pin the subject's CPU set")
+            return
+        aff = sorted(os.sched_getaffinity(0))
+        cfg = self.config(["echo_a", "echo_b", "spin"], isolation=None, cb=CB_LOOSE)
+        for n in (1, SMALL_CPUS, AUTO_CORDON_BELOW - 1, AUTO_CORDON_BELOW):
+            want = "cordon" if n < AUTO_CORDON_BELOW else "forkwasm"
+            label = "auto.small" if want == "cordon" else "auto.large"
+            if n > len(aff):
+                if want == "forkwasm" or n == SMALL_CPUS:
+                    self.check(f"{label}.dump.cpus{n}", False,
+                               f"this host gives the oracle only {len(aff)} usable CPUs; the {n}-CPU half of D23(b) "
+                               f"cannot be judged here (run on the laptop or the desktop)")
+                continue
+            rc, doc = self.check_config(cfg, pin=aff[:n])
+            p2 = (doc or {}).get("p2") or {}
+            got = (p2.get("isolation"), p2.get("isolation_effective"), p2.get("usable_cpus"))
+            self.check(f"{label}.dump.cpus{n}", rc == 0 and got == ("auto", want, n),
+                       f"exit {rc}; (isolation, isolation_effective, usable_cpus) = {got!r}, want ('auto', {want!r}, "
+                       f"{n})")
+        # explicit values are used as written, whatever the host
+        for iso, n in (("forkwasm", 1), ("cordon", len(aff))):
+            rc, doc = self.check_config(self.config(["echo_a"], isolation=iso, cb=CB_LOOSE), pin=aff[:n])
+            p2 = (doc or {}).get("p2") or {}
+            self.check(f"auto.explicit-{iso}.dump", rc == 0 and p2.get("isolation") == iso and
+                       p2.get("isolation_effective") == iso, f"exit {rc}; {p2.get('isolation')!r} -> "
+                       f"{p2.get('isolation_effective')!r} at {n} CPUs")
+        # serving, VPS-class shape: cordon per principal, no fork child of a worker
+        if len(aff) >= SMALL_CPUS:
+            self.auto_serve(aff[:SMALL_CPUS], "cordon")
+        if len(aff) >= AUTO_CORDON_BELOW:
+            self.auto_serve(aff[:AUTO_CORDON_BELOW], "forkwasm")
+        else:
+            self.check("auto.large.serve", False, f"this host gives the oracle only {len(aff)} usable CPUs; the "
+                       f">= {AUTO_CORDON_BELOW}-CPU half of D23(b) cannot be judged here (FAIL, not skip)")
+
+    def auto_serve(self, cpus, want):
+        label = "auto.small" if want == "cordon" else "auto.large"
+        n = len(cpus)
+        s = Subject(self, self.config(["echo_a", "echo_b", "spin"], isolation=None, cb=CB_LOOSE), pin=cpus)
+        s.start()
+        log = s.text()
+        self.check(f"{label}.boot-log", f"isolation auto -> {want}" in log and f"{n} usable CPUs" in log,
+                   f"no 'isolation auto -> {want}' / '{n} usable CPUs' line in the subject log: {log[-400:]!r}")
+        # warm-up by a throwaway principal: a subject may start its zygote lazily on the first request
+        self.answer(s, f"{label}.answer", "echo_a", self.tenant())
+        P = [self.tenant() for _ in range(3)]
+        owned = {}
+        for i, t in enumerate(P):
+            before = s.workers()
+            self.answer(s, f"{label}.answer", "echo_a", t)
+            owned[t] = self.new_workers(s, before)
+        self.answers(s, label, P)
+        (zyg, _), _ = self.find_zygote(s, None)
+        if want == "cordon":
+            for i, t in enumerate(P):
+                self.check(f"{label}.cordon-per-principal.{i}", bool(owned[t]),
+                           f"{n} CPUs: principal {i}'s first request made no new long-lived worker (not cordon)")
+            self.check(f"{label}.no-zygote", zyg is None,
+                       f"{n} CPUs: a fork child of worker {zyg} served a spin request (forkwasm, want cordon)")
+        else:
+            self.check(f"{label}.zygote-observed", zyg is not None,
+                       f"{n} CPUs: no fork child of a worker seen during spin (want forkwasm)")
+            self.check(f"{label}.no-cordon-per-principal", not any(owned.values()),
+                       f"{n} CPUs: new principals got new long-lived workers {owned} (cordon, want forkwasm)")
+        self.check_dumpable(f"auto-{want}-workers", s.workers())
+        s.stop()
+
     # ---------------------------------------------------------------- family: exec respawn (test-hooks worker)
     def respawn_family(self):
         if not self.test_worker:
@@ -899,6 +986,11 @@ class Run:
 # ------------------------------------------------------------------------------------------------ main
 
 
+def taskset(cpus):
+    """argv prefix that starts a process on exactly these CPUs (empty when not pinning)."""
+    return ["taskset", "-c", ",".join(str(c) for c in cpus)] if cpus else []
+
+
 def subject_cmd(s):
     if s.endswith(".py"):
         return [sys.executable, "-I", os.path.abspath(s)]
@@ -934,7 +1026,7 @@ def main():
     ap.add_argument("--mutant-subject", default=None)
     ap.add_argument("--mutant-worker", default=None)
     ap.add_argument("--mutant-test-worker", default=None, help="default: --mutant-worker (README 'Self-test')")
-    ap.add_argument("--families", default=None, help="comma list of boot,main,cordon,respawn (debugging only)")
+    ap.add_argument("--families", default=None, help="comma list of boot,main,cordon,auto,respawn (debugging only)")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
     fams = set(a.families.split(",")) if a.families else None

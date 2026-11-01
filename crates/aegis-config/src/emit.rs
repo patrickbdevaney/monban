@@ -142,7 +142,9 @@ fn bounded(bounds: &[(&str, u64, u64, u64)], values: Vec<u64>, out: &mut String)
 /// `tenancy` plus the resolved `fuel` / `wall_ms` / `memory_mib` (an absent override means the block's value, so
 /// printing it keeps the meaning and makes "absent" and "explicit equal" hash the same). `cache_dir` has no
 /// schema default and is printed only when present.
-fn p2_block(b: &P2Block, out: &mut String) {
+///
+/// `resolved = Some(cpus)` (the dump only, never the hashed form) adds `isolation_effective` and `usable_cpus`.
+fn p2_block(b: &P2Block, resolved: Option<usize>, out: &mut String) {
     out.push('{');
     key("worker", out);
     string(b.worker(), out);
@@ -154,6 +156,12 @@ fn p2_block(b: &P2Block, out: &mut String) {
     out.push(',');
     key("isolation", out);
     string(b.isolation().as_str(), out);
+    if let Some(cpus) = resolved {
+        out.push(',');
+        key("isolation_effective", out);
+        string(b.effective_isolation(cpus).as_str(), out);
+        let _ = write!(out, ",\"usable_cpus\":{cpus}");
+    }
     out.push(',');
     bounded(P2Limits::BOUNDS, b.limits().values(), out);
     out.push(',');
@@ -189,7 +197,7 @@ fn p2_block(b: &P2Block, out: &mut String) {
     out.push_str("]}");
 }
 
-fn text(c: &Config) -> String {
+fn text(c: &Config, resolved: Option<usize>) -> String {
     let mut o = String::with_capacity(4096);
     o.push('{');
     key("v", &mut o);
@@ -310,7 +318,7 @@ fn text(c: &Config) -> String {
     if let Some(b) = &c.p2 {
         o.push(',');
         key("p2", &mut o);
-        p2_block(b, &mut o);
+        p2_block(b, resolved, &mut o);
     }
     o.push('}');
     o
@@ -319,7 +327,7 @@ fn text(c: &Config) -> String {
 /// Canonical bytes of the effective config. CFG-2 holds the effective form to the same cap as the input
 /// (defaults and integer re-layout such as `1e9` → `1000000000` can grow a document).
 pub(crate) fn canonical(c: &Config) -> Result<Box<[u8]>, ConfigError> {
-    let t = text(c);
+    let t = text(c, None);
     let too_large = || ConfigError::new(ErrorKind::TooLarge, "", "effective config exceeds 1 MiB");
     if t.len() > MAX_CONFIG_BYTES {
         return Err(too_large());
@@ -330,6 +338,15 @@ pub(crate) fn canonical(c: &Config) -> Result<Box<[u8]>, ConfigError> {
         return Err(too_large());
     }
     Ok(b.into())
+}
+
+/// The `--print-effective` dump: the effective form plus the host-resolved P2 path (see `Config::effective_dump`).
+/// Falls back to the hashed canonical form if canonicalization fails (it cannot for a parsed config; never panic).
+pub(crate) fn dump(c: &Config, usable_cpus: usize) -> Vec<u8> {
+    match canon_json(text(c, Some(usable_cpus)).as_bytes()) {
+        Ok(d) => d.as_bytes().to_vec(),
+        Err(_) => c.effective_json().to_vec(),
+    }
 }
 
 /// `{"canon":{...},"limits":{...}}` with every schema default, canonical.

@@ -11,6 +11,8 @@
 //! * [`ConfigStore`] (CFG-3, CFG-4): last-known-good on `Err`; staged apply shadow → canary → full with
 //!   rollback, driven by explicit transitions with the clock passed in (no I/O).
 //! * [`defaults_json`]: the schema defaults as a canonical JSON document (`aegis check-config --print-effective`).
+//! * [`Config::effective_dump`]: the effective config plus the host-resolved P2 path (`p2.isolation_effective`,
+//!   `p2.usable_cpus`), canonical; what `aegis check-config --print-effective` prints. Not hashed.
 //!
 //! * [`DataBlock`] / [`RouteData`] (F8 `data`, Phase 4): backends and per-route data endowments. Absent
 //!   `routes[].data` means no data capability (never unrestricted); `"unrestricted"` only as the explicit literal
@@ -18,7 +20,8 @@
 //!   resolved at boot through [`SchemaProvider`] ([`Config::resolve_data`]). See the `data` module docs.
 //!
 //! * [`P2Block`] (F8 `p2`, Phase 5) and the `{"wasm": <module-id>}` route target ([`RouteTarget::Wasm`]): the
-//!   worker path, module table (path, sha256, tenancy, resolved limits), `isolation` (D1 default `forkwasm`),
+//!   worker path, module table (path, sha256, tenancy, resolved limits), `isolation` (D1 + D23(b): default `auto`,
+//!   resolved by [`resolve_isolation`] from the usable CPU count: < 8 → cordon, else forkwasm),
 //!   bounded fuel / wall / memory / host-call caps, the D7 crash budget and `mpk`. A cordon shared by principals
 //!   is unrepresentable (no field names a cordon). Module ids are unique and every wasm route names a declared
 //!   module (checked at load). See the `p2` module docs.
@@ -42,7 +45,10 @@ pub use data::{
     PinInfo, ResolvedCap, ResolvedData, ResolvedRoute, RouteData, SchemaProvider, UNRESTRICTED, Unresolved, engine_pin,
     engine_pins,
 };
-pub use p2::{CrashBudget, Isolation, MAX_P2_MODULES, P2Block, P2Limits, P2Module, Tenancy};
+pub use p2::{
+    AUTO_CORDON_BELOW_CPUS, CrashBudget, Isolation, IsolationSetting, MAX_P2_MODULES, P2Block, P2Limits, P2Module,
+    Tenancy, resolve_isolation,
+};
 pub use sha256::{hex, sha256};
 pub use store::{ConfigStore, Generation, Health, Phase, RolloutPolicy, StageError};
 
@@ -196,6 +202,13 @@ impl Config {
     /// Canonical JSON (aegis-canon serializer) of the effective config, defaults applied.
     pub fn effective_json(&self) -> &[u8] {
         &self.canonical
+    }
+    /// [`Config::effective_json`] plus, inside `p2` (when present), the members `isolation_effective` (the path
+    /// multi-principal modules run on, [`P2Block::effective_isolation`]) and `usable_cpus` (the count it was resolved
+    /// from), canonical. The configured `isolation` stays as written (`auto` included). These two members depend on
+    /// the host, so they are not part of [`Config::config_hash`], and the dump is not itself an F8 document.
+    pub fn effective_dump(&self, usable_cpus: usize) -> Vec<u8> {
+        emit::dump(self, usable_cpus)
     }
     /// SHA-256 of [`Config::effective_json`].
     pub fn config_hash(&self) -> [u8; 32] {

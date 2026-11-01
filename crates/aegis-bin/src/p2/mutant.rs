@@ -33,6 +33,10 @@ pub enum Mutant {
     /// `boot-without-landlock-accepted`: a worker's refusal at boot (compile exit 78) is ignored and the
     /// supervisor listens anyway.
     BootWithoutLandlockAccepted,
+    /// `auto-ignores-cpus`: `p2.isolation = "auto"` resolves to forkwasm whatever the usable CPU count (D23(b)
+    /// says cordon below 8). Only the serving runtime is mutated; the check-config dump stays truthful, so the
+    /// oracle must catch it from the process tree.
+    AutoIgnoresCpus,
     // oracles/hostile-modules --level host (README "Self-test"):
     /// `raw-passthrough`: the supervisor skips its I5 re-check of `resp-head` (status range, header names and
     /// values), so a compromised worker's header bytes reach the client unchecked.
@@ -54,7 +58,7 @@ pub enum Mutant {
 
 #[cfg_attr(not(feature = "p2-mutants"), allow(dead_code))]
 impl Mutant {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 16] = [
         Self::SharedCordon,
         Self::ForkRespawn,
         Self::GlobalCrashBudget,
@@ -63,6 +67,7 @@ impl Mutant {
         Self::Dumpable1,
         Self::NoReloadSwitch,
         Self::BootWithoutLandlockAccepted,
+        Self::AutoIgnoresCpus,
         Self::RawPassthrough,
         Self::DoubleResponseAccepted,
         Self::AuditAfterEffect,
@@ -82,6 +87,7 @@ impl Mutant {
             Self::Dumpable1 => "dumpable-1",
             Self::NoReloadSwitch => "no-reload-switch",
             Self::BootWithoutLandlockAccepted => "boot-without-landlock-accepted",
+            Self::AutoIgnoresCpus => "auto-ignores-cpus",
             Self::RawPassthrough => "raw-passthrough",
             Self::DoubleResponseAccepted => "double-response-accepted",
             Self::AuditAfterEffect => "audit-after-effect",
