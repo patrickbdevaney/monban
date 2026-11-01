@@ -184,6 +184,8 @@ row is not edited here.
   - Single-tenant routes use the cordon, keyed by principal.
   - A cordon shared by principals cannot be configured. aegis-iso refuses it at runtime because the cordon key is the
     principal.
+  - Amended by D23 (b): the F8 default is now `isolation = "auto"`, which is forkwasm with ≥ 8 usable CPUs and
+    cordon below that (VPS-class hosts). Explicit values are unchanged.
   - Switching the default is a config change plus reload, with no rebuild. If R1 fires, that switch is the whole
     response, which is why both paths are built. p2-e2e asserts that the same route serves correctly under both
     paths across a reload.
@@ -366,13 +368,42 @@ row is not edited here.
   - **Integrator fixes applied.** The dumpable-1 worker mutant is in aegis-iso, mutants builds only. The p2-e2e
     oracle accepts the OpenMetrics `_total` sample of the reload counter. The p2-e2e selftest gets a mutants+test-hooks
     worker (--mutant-test-worker). The p2-fault-vps cmd runs every step and combines the exit codes.
-- **D23 kamrui timing (open: needs the operator, D10).** P5-vps-001 on kamrui (N95) has every count criterion green,
-  but forkwasm G3 is red on timing. oom recovery p99 was 6654 µs and 7076 µs against the 5 ms limit; the laptop
-  reference is 2593 µs (×2.57 / ×2.73). loop recovery failed once at 5719 µs and passed once at 4591 µs. This matches
-  the q4-006 spike (6.78 ms). cordon passes on kamrui (oom 1584 µs). No threshold is moved. Under D10 only an
-  integrator Decision with the operator's consent can move one, so p2-fault-vps stays red until the operator chooses:
-  (a) a per-runner threshold for VPS-class hardware, or (b) treat the miss as evidence and make cordon the default
-  on VPS-class runners while keeping the 5 ms gate.
+- **D23 kamrui timing: resolved, option (b) (operator consent 2026-10-31; integrator Decision under D10).**
+  - **Measurements.** P5-vps-001 on kamrui (Intel N95, 4 cores, Linux 6.17.0-41): every count criterion green on
+    both paths. forkwasm G3 red on timing: oom recovery p99 6654 µs and 7076 µs against the 5 ms limit (laptop
+    reference 2593 µs, ×2.57 / ×2.73); loop recovery 5719 µs once, 4591 µs once. This reproduces the q4-006 spike
+    (6.78 ms). cordon passed on kamrui: oom recovery p99 1584 µs, loop 2398 µs. syscall-negative passed.
+  - **Decision (b).** The 5 ms recovery threshold is kept on every runner. No per-runner threshold is introduced.
+    Instead the fresh-Wasm cordon becomes the default isolation path on VPS-class hosts. F8 `p2.isolation` gains
+    `"auto"`, which is the default when the member is absent (re-freeze of F8, same commit as this text).
+  - **The rule.** `auto` resolves at boot and at every reload: usable CPUs < 8 → cordon, otherwise forkwasm.
+    Usable CPUs = the process's affinity set (`sched_getaffinity`, read from `Cpus_allowed_list`), so a host pinned
+    by `taskset` or a cpuset cgroup counts only its pinned CPUs. A CFS quota (`cpu.max`) is not counted. Why 8:
+    forkwasm missed 5 ms on the 4-core N95 and passed on the 32-thread laptop (the reference). The cause of the
+    miss was not isolated, and nothing between 4 and 32 CPUs was measured under the gate, so 8 is a conservative
+    split, not a measured knee. It puts typical VPS sizes (1-4 vCPU) on cordon. Explicit `"forkwasm"` / `"cordon"`
+    behave exactly as before. Single-tenant modules always get a per-principal cordon (D1). aegis logs the configured
+    value, the resolved path and the CPU count at boot and at each reload. `check-config --print-effective` adds
+    `p2.isolation_effective` and `p2.usable_cpus` to the dump. The config hash covers only the configured value, so
+    it does not depend on the host.
+  - **Gates.** p2-fault-vps (kamrui): cordon, now the default there, stays fully gated with unchanged thresholds.
+    forkwasm keeps its count criteria gated, but its timing criteria (G3, G4) are report-only on kamrui
+    (`--timing advisory`). That is allowed only because this Decision makes forkwasm a non-default path on
+    VPS-class hosts. It is not a threshold move: the laptop gates p2-fault-forkwasm and p2-fault-cordon keep both
+    paths fully timed. A new step builds aegis with feature p2 on kamrui and checks that the default resolves to
+    cordon there (`ci/p2-auto-resolve.py`). p2-e2e adds the `auto` family: under `taskset` with 4 CPUs the default
+    config resolves to cordon and serves wasm routes with one cordon per principal and no zygote; with 8 CPUs it
+    resolves to forkwasm (zygote observed). On a host with fewer than 8 usable CPUs that half FAILs; it is never
+    skipped. New supervisor mutant `auto-ignores-cpus` (always forkwasm), which must be caught by `auto.small.*`.
+  - **Claims.** kamrui is accepted as the VPS-class runner, and claims from it are capped at grade B (it is not a
+    virtualized $5 VPS, D10). The q4-006 reversal still names a real VPS (Q2).
+  - **Residual.** On a small host running the default, requests within one principal share that principal's cordon
+    process (a fresh Wasm instance per request in a 64-slot pool, fuel, a 100 ms epoch) instead of getting a fresh
+    fork per request. A fault in the cordon process affects the principal's own concurrent requests, and the
+    principal's crash budget charges it. Isolation between principals is unchanged: one exec-spawned cordon per
+    principal, never shared (D1, P2-2). hostabort/hostpoison on cordon stay report-only, as in p2-fault-cordon. An
+    operator who wants forkwasm on a small host can set it explicitly, but kamrui shows it misses the 5 ms
+    recovery bound there.
 - **D24 SQLite built for size (integrator, after W5).** P5-bin-002 met everything except the clause "native,p2 within
   the X-12 8.0 MB ceiling". The binary was 8,068,472 B on the laptop and 8,020,640 B on the desktop, and main was
   already over before that unit. The ceiling is kept. `[profile.release.package.libsqlite3-sys] opt-level = "s"`

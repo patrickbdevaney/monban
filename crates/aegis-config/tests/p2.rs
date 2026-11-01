@@ -1,13 +1,14 @@
 //! F8 `p2` block and the `{"wasm": id}` route target (P5-config-001): schema conformance against the frozen
 //! schema file itself (member sets, bounds, defaults, enums, required lists), every limit at its bounds and one
-//! past them, the D1/D6/D7/D11 defaults, the cross-field checks (unique module ids, wasm routes name a declared
+//! past them, the D1/D6/D7/D11 defaults, the D23(b) `auto` resolution (usable CPUs < 8 → cordon), the cross-field checks (unique module ids, wasm routes name a declared
 //! module) and "a cordon shared by principals is unrepresentable".
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
 use aegis_canon::{JsonValue, parse_json};
 use aegis_config::ErrorKind as K;
 use aegis_config::{
-    Config, CrashBudget, Isolation, MAX_P2_MODULES, P2Block, P2Limits, P2Module, RouteTarget, Tenancy, parse_config,
+    AUTO_CORDON_BELOW_CPUS, Config, CrashBudget, Isolation, IsolationSetting, MAX_P2_MODULES, P2Block, P2Limits,
+    P2Module, RouteTarget, Tenancy, parse_config, resolve_isolation,
 };
 
 const SHA: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -142,8 +143,8 @@ fn p2_block_mirrors_f8_exactly() {
     assert_eq!(strs(member(p2, "required")), ["worker", "modules"]);
     assert_eq!(int_bounds(p2), table(P2Limits::BOUNDS));
     let props = member(p2, "properties");
-    assert_eq!(strs(member(member(props, "isolation"), "enum")), ["forkwasm", "cordon"]);
-    assert_eq!(member(member(props, "isolation"), "default"), &JsonValue::String("forkwasm".into()));
+    assert_eq!(strs(member(member(props, "isolation"), "enum")), ["auto", "forkwasm", "cordon"]);
+    assert_eq!(member(member(props, "isolation"), "default"), &JsonValue::String("auto".into()));
     assert_eq!(member(member(props, "mpk"), "default"), &JsonValue::Bool(false));
     assert_eq!(int(member(member(props, "modules"), "maxItems")), MAX_P2_MODULES as u64);
     assert_eq!(int(member(member(props, "modules"), "minItems")), 1);
@@ -206,7 +207,7 @@ fn defaults_d1_d6_d7_d11() {
     let b = block(&c);
     assert_eq!(b.worker(), "/usr/libexec/aegis-p2");
     assert_eq!(b.cache_dir(), None);
-    assert_eq!(b.isolation(), Isolation::ForkWasm);
+    assert_eq!(b.isolation(), IsolationSetting::Auto);
     assert_eq!(b.limits(), &P2Limits::default());
     assert_eq!(b.limits().fuel, 15_000_000);
     assert_eq!(b.limits().wall_ms, 100);
@@ -220,11 +221,17 @@ fn defaults_d1_d6_d7_d11() {
     assert_eq!(hello.sha256_hex(), SHA);
     assert_eq!(hello.sha256()[0], 0x01);
     assert_eq!(hello.path(), "/srv/p2/hello.wasm");
-    // D1: multi-principal modules default to fork+Wasm; single-tenant always a per-principal cordon.
-    assert_eq!(b.isolation_for(hello), Isolation::ForkWasm);
+    // D1 + D23(b): multi-principal modules default to `auto`: fork+Wasm with >= 8 usable CPUs, cordon below;
+    // single-tenant always a per-principal cordon.
+    assert_eq!(b.isolation_for(hello, 32), Isolation::ForkWasm);
+    assert_eq!(b.isolation_for(hello, 8), Isolation::ForkWasm);
+    assert_eq!(b.isolation_for(hello, 7), Isolation::Cordon);
+    assert_eq!(b.isolation_for(hello, 4), Isolation::Cordon);
     let solo = b.module("solo").unwrap();
     assert_eq!(solo.tenancy(), Tenancy::Single);
-    assert_eq!(b.isolation_for(solo), Isolation::Cordon);
+    for cpus in [0, 1, 4, 7, 8, 32] {
+        assert_eq!(b.isolation_for(solo, cpus), Isolation::Cordon, "{cpus}");
+    }
     assert!(b.module("nope").is_none());
     assert_eq!(c.vhosts()[0].routes[0].to, RouteTarget::Wasm { module: "hello".into() });
 }
@@ -234,12 +241,63 @@ fn isolation_switch_is_a_config_change() {
     let a = ok(BASE);
     let c = ok(&p2(r#""isolation":"cordon""#));
     let b = block(&c);
-    assert_eq!(b.isolation(), Isolation::Cordon);
-    assert_eq!(b.isolation_for(b.module("hello").unwrap()), Isolation::Cordon);
-    assert_eq!(b.isolation_for(b.module("solo").unwrap()), Isolation::Cordon);
+    assert_eq!(b.isolation(), IsolationSetting::Cordon);
+    for cpus in [1, 4, 8, 32] {
+        assert_eq!(b.isolation_for(b.module("hello").unwrap(), cpus), Isolation::Cordon);
+        assert_eq!(b.isolation_for(b.module("solo").unwrap(), cpus), Isolation::Cordon);
+    }
     assert_ne!(a.config_hash(), c.config_hash());
-    // Explicit default == absent.
-    assert_eq!(a.config_hash(), ok(&p2(r#""isolation":"forkwasm""#)).config_hash());
+    // Explicit forkwasm is forkwasm on every host, small ones included (behaves exactly as before D23).
+    let f = ok(&p2(r#""isolation":"forkwasm""#));
+    let fb = block(&f);
+    assert_eq!(fb.isolation(), IsolationSetting::ForkWasm);
+    for cpus in [1, 4, 7, 8, 32] {
+        assert_eq!(fb.isolation_for(fb.module("hello").unwrap(), cpus), Isolation::ForkWasm);
+        assert_eq!(fb.isolation_for(fb.module("solo").unwrap(), cpus), Isolation::Cordon);
+    }
+    assert_ne!(a.config_hash(), f.config_hash());
+    // Explicit default (`auto`) == absent.
+    assert_eq!(a.config_hash(), ok(&p2(r#""isolation":"auto""#)).config_hash());
+}
+
+#[test]
+fn auto_resolution_d23b() {
+    assert_eq!(AUTO_CORDON_BELOW_CPUS, 8);
+    for (cpus, want) in [
+        (0, Isolation::Cordon),
+        (1, Isolation::Cordon),
+        (4, Isolation::Cordon),
+        (7, Isolation::Cordon),
+        (8, Isolation::ForkWasm),
+        (24, Isolation::ForkWasm),
+        (32, Isolation::ForkWasm),
+    ] {
+        assert_eq!(resolve_isolation(IsolationSetting::Auto, cpus), want, "auto with {cpus} CPUs");
+        assert_eq!(resolve_isolation(IsolationSetting::ForkWasm, cpus), Isolation::ForkWasm);
+        assert_eq!(resolve_isolation(IsolationSetting::Cordon, cpus), Isolation::Cordon);
+    }
+    assert_eq!(block(&ok(BASE)).effective_isolation(4), Isolation::Cordon);
+    assert_eq!(block(&ok(BASE)).effective_isolation(32), Isolation::ForkWasm);
+}
+
+#[test]
+fn effective_dump_shows_configured_and_resolved_path_but_hash_is_host_independent() {
+    let c = ok(BASE);
+    let small = String::from_utf8(c.effective_dump(4)).unwrap();
+    let big = String::from_utf8(c.effective_dump(32)).unwrap();
+    assert_eq!(aegis_canon::canon_json(small.as_bytes()).unwrap().as_bytes(), small.as_bytes());
+    for (d, eff, n) in [(&small, "cordon", 4), (&big, "forkwasm", 32)] {
+        assert!(d.contains(r#""isolation":"auto""#), "{d}");
+        assert!(d.contains(&format!(r#""isolation_effective":"{eff}""#)), "{d}");
+        assert!(d.contains(&format!(r#""usable_cpus":{n}"#)), "{d}");
+    }
+    // The hashed form carries the configured value only.
+    let e = std::str::from_utf8(c.effective_json()).unwrap();
+    assert!(!e.contains("isolation_effective") && !e.contains("usable_cpus"), "{e}");
+    let x = ok(&p2(r#""isolation":"forkwasm""#));
+    assert!(String::from_utf8(x.effective_dump(4)).unwrap().contains(r#""isolation_effective":"forkwasm""#));
+    let y = ok(&p2(r#""isolation":"cordon""#));
+    assert!(String::from_utf8(y.effective_dump(32)).unwrap().contains(r#""isolation_effective":"cordon""#));
 }
 
 #[test]
@@ -266,7 +324,7 @@ fn effective_json_prints_p2_with_every_default_and_round_trips() {
         r#""to":{"wasm":"hello"}"#,
         r#""crash_budget":{"crashes":3,"penalty_s":600,"window_s":60}"#,
         r#""fuel":15000000"#,
-        r#""isolation":"forkwasm""#,
+        r#""isolation":"auto""#,
         r#""memory_mib":16"#,
         r#""mpk":false"#,
         r#""wall_ms":100"#,

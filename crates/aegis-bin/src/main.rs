@@ -2,7 +2,8 @@
 //!
 //! * `aegis` with no arguments, or with a config that does not validate: fail-closed boot, exit 78 (EX_CONFIG)
 //!   before any socket is bound (INV-NONEMPTY: there is no implicit "serve everything" mode).
-//! * `aegis check-config <path> [--print-effective]`: CFG-1/2 validation plus the assembly's own checks.
+//! * `aegis check-config <path> [--print-effective]`: CFG-1/2 validation plus the assembly's own checks. The dump
+//!   is `Config::effective_dump`: the effective config plus `p2.isolation_effective` / `p2.usable_cpus` ([`cpus`]).
 //! * `aegis --config <path> ...`: serve (see [`serve`]).
 //! * `aegis agent --config <agent.json>`: the MCP listener gate (see [`agent`]; Phase 3, gateway mode "G").
 //!
@@ -18,6 +19,7 @@ mod admin;
 mod agent;
 mod audit;
 mod cli;
+mod cpus;
 #[cfg(any(feature = "native", feature = "p2"))]
 mod keyring;
 #[cfg(feature = "native")]
@@ -68,7 +70,8 @@ fn check_config(path: &std::path::Path, print_effective: bool) -> ExitCode {
         eprintln!("aegis: check-config: warning: {w}");
     }
     if print_effective {
-        println!("{}", String::from_utf8_lossy(cfg.effective_json()));
+        // The effective config plus the host-resolved P2 path (p2.isolation_effective, p2.usable_cpus; D23(b)).
+        println!("{}", String::from_utf8_lossy(&cfg.effective_dump(cpus::usable())));
     }
     eprintln!("aegis: check-config {}: OK (config hash {})", path.display(), cfg.config_hash_hex());
     ExitCode::SUCCESS

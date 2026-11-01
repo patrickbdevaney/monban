@@ -11,8 +11,12 @@
 //! * **A wasm route without a module.** `{"wasm": id}` must name a declared `p2.modules[]` entry; with no `p2`
 //!   block the load fails (`UnknownModule`).
 //!
-//! D1 default path: [`P2Block::isolation_for`] gives `forkwasm` for multi-principal modules unless the operator
-//! selected `cordon`; single-tenant modules always run in a per-principal cordon. D6: `fuel` is accounting,
+//! D1 default path, as amended by D23 option (b) (operator, 2026-10-31): `p2.isolation` is [`IsolationSetting`],
+//! default `auto`. [`resolve_isolation`] turns it into the effective [`Isolation`] from the usable CPU count
+//! (fewer than [`AUTO_CORDON_BELOW_CPUS`] → cordon, else forkwasm); explicit `forkwasm` / `cordon` are used as
+//! written. [`P2Block::isolation_for`] applies that to multi-principal modules; single-tenant modules always run
+//! in a per-principal cordon. The CPU count is read by the assembly (aegis-bin) at boot and at every reload; this
+//! crate stays pure, and the effective config hash covers the configured value only, so it is host-independent. D6: `fuel` is accounting,
 //! `wall_ms` is the DoS bound. D7: [`CrashBudget`] defaults 3 faults / 60 s → 429 for 600 s, minimums 1 so a gate
 //! can scale the window down. D11: `mpk` defaults to false.
 
@@ -21,19 +25,16 @@ use crate::Config;
 /// Most modules in the `p2` block (F8 `p2.modules` maxItems).
 pub const MAX_P2_MODULES: usize = 256;
 
-/// F8 `p2.isolation`: the path a multi-principal module runs on (PLAN D1).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+/// The effective path a multi-principal module runs on (PLAN D1), after [`resolve_isolation`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Isolation {
-    /// Fork child of an exec-spawned single-threaded zygote; fresh instance per request (D1 default).
-    #[default]
+    /// Fork child of an exec-spawned single-threaded zygote; fresh instance per request.
     ForkWasm,
     /// One exec-spawned cordon per principal; fresh instance per request.
     Cordon,
 }
 
 impl Isolation {
-    pub(crate) const ALL: [(&'static str, Isolation); 2] =
-        [("forkwasm", Isolation::ForkWasm), ("cordon", Isolation::Cordon)];
     pub fn as_str(self) -> &'static str {
         match self {
             Isolation::ForkWasm => "forkwasm",
@@ -42,10 +43,54 @@ impl Isolation {
     }
 }
 
+/// F8 `p2.isolation` as configured (PLAN D1, D23 option b): `auto` (default), `forkwasm` or `cordon`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub enum IsolationSetting {
+    /// Resolved from the usable CPU count at boot and at every reload ([`resolve_isolation`]).
+    #[default]
+    Auto,
+    /// Always forkwasm.
+    ForkWasm,
+    /// Always cordon.
+    Cordon,
+}
+
+impl IsolationSetting {
+    pub(crate) const ALL: [(&'static str, IsolationSetting); 3] = [
+        ("auto", IsolationSetting::Auto),
+        ("forkwasm", IsolationSetting::ForkWasm),
+        ("cordon", IsolationSetting::Cordon),
+    ];
+    pub fn as_str(self) -> &'static str {
+        match self {
+            IsolationSetting::Auto => "auto",
+            IsolationSetting::ForkWasm => "forkwasm",
+            IsolationSetting::Cordon => "cordon",
+        }
+    }
+}
+
+/// D23 option (b): `auto` picks cordon on hosts with fewer usable CPUs than this, forkwasm otherwise. kamrui
+/// (Intel N95, 4 cores) measured forkwasm oom recovery p99 at 6.7-7.1 ms against the 5 ms gate while cordon held
+/// 1.6 ms; the 32-thread laptop (the reference) passes forkwasm. Nothing between was measured, so 8 is a
+/// conservative split that puts typical VPS sizes (1-4 vCPU) on cordon (PLAN-5 D23).
+pub const AUTO_CORDON_BELOW_CPUS: usize = 8;
+
+/// The effective path for multi-principal modules (pure; D23 option b). `usable_cpus` is the size of the process's
+/// CPU affinity set (so a taskset- or cpuset-pinned process counts only its CPUs); 0 (unknown) counts as small.
+pub fn resolve_isolation(setting: IsolationSetting, usable_cpus: usize) -> Isolation {
+    match setting {
+        IsolationSetting::ForkWasm => Isolation::ForkWasm,
+        IsolationSetting::Cordon => Isolation::Cordon,
+        IsolationSetting::Auto if usable_cpus < AUTO_CORDON_BELOW_CPUS => Isolation::Cordon,
+        IsolationSetting::Auto => Isolation::ForkWasm,
+    }
+}
+
 /// F8 `p2_module.tenancy`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum Tenancy {
-    /// Runs on `p2.isolation` (default forkwasm).
+    /// Runs on `p2.isolation`, resolved (default `auto`).
     #[default]
     Multi,
     /// Always runs in a per-principal cordon (D1).
@@ -187,7 +232,7 @@ impl P2Module {
 pub struct P2Block {
     pub(crate) worker: String,
     pub(crate) cache_dir: Option<String>,
-    pub(crate) isolation: Isolation,
+    pub(crate) isolation: IsolationSetting,
     pub(crate) limits: P2Limits,
     pub(crate) crash_budget: CrashBudget,
     pub(crate) mpk: bool,
@@ -226,9 +271,13 @@ impl P2Block {
     pub fn cache_dir(&self) -> Option<&str> {
         self.cache_dir.as_deref()
     }
-    /// The configured default path for multi-principal modules (default forkwasm).
-    pub fn isolation(&self) -> Isolation {
+    /// The configured default path for multi-principal modules, as written (default `auto`).
+    pub fn isolation(&self) -> IsolationSetting {
         self.isolation
+    }
+    /// The effective path for multi-principal modules on a host with `usable_cpus` usable CPUs (D23 option b).
+    pub fn effective_isolation(&self, usable_cpus: usize) -> Isolation {
+        resolve_isolation(self.isolation, usable_cpus)
     }
     pub fn limits(&self) -> &P2Limits {
         &self.limits
@@ -246,11 +295,12 @@ impl P2Block {
     pub fn module(&self, id: &str) -> Option<&P2Module> {
         self.modules.iter().find(|m| m.id == id)
     }
-    /// The path a module runs on (D1): single-tenant → cordon (per principal); multi → `p2.isolation`.
-    pub fn isolation_for(&self, m: &P2Module) -> Isolation {
+    /// The path a module runs on (D1): single-tenant → cordon (per principal); multi → `p2.isolation` resolved for
+    /// `usable_cpus` ([`P2Block::effective_isolation`]).
+    pub fn isolation_for(&self, m: &P2Module, usable_cpus: usize) -> Isolation {
         match m.tenancy {
             Tenancy::Single => Isolation::Cordon,
-            Tenancy::Multi => self.isolation,
+            Tenancy::Multi => self.effective_isolation(usable_cpus),
         }
     }
 }

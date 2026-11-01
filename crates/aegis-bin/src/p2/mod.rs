@@ -15,7 +15,11 @@
 //!
 //! **Workers.** Each aegis-p2 process loads exactly one module (`zygote|cordon --module <c.cwasm> --sha256 <hex>`,
 //! the worker command line of oracles/hostile-modules). The supervisor therefore runs:
-//! - forkwasm (D1 default): one zygote per module, all of them started at boot/reload, each with a
+//! The path of multi-principal modules is `p2.isolation` resolved per generation (D23 option b):
+//! `auto` (the default) → cordon when this process has fewer than 8 usable CPUs ([`crate::cpus::usable`], the
+//! affinity set), else forkwasm; explicit `forkwasm` / `cordon` as written. The resolved path and the CPU count are
+//! logged at boot and at every reload.
+//! - forkwasm: one zygote per module, all of them started at boot/reload, each with a
 //!   supervisor-held listening socket at fd 3. The zygotes of one config generation are supervised as one unit,
 //!   **the zygote set**: when any member dies, every member is replaced by a fresh execve (D8). Replacing only the
 //!   dead member would leave the other members' layouts unchanged, and the p2-e2e oracle judges the zygote as one
@@ -62,7 +66,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
-use aegis_config::{Config, Isolation, RouteTarget};
+use aegis_config::{AUTO_CORDON_BELOW_CPUS, Config, Isolation, IsolationSetting, RouteTarget};
 use aegis_iso::cordon::{CordonId, Registry};
 use aegis_iso::crash_budget::{CrashBudget, CrashKind, Failure, Params, Verdict};
 use aegis_iso::supervisor::{self, WorkerCmd};
@@ -210,6 +214,7 @@ struct Gen {
     id: u64,
     worker: PathBuf,
     mpk: bool,
+    /// `p2.isolation` resolved for this generation (multi-principal modules).
     isolation: Isolation,
     cordon_slots: u64,
     max_cordons: usize,
@@ -412,11 +417,23 @@ impl Runtime {
             cb.penalty_s,
         )
         .map_err(|e| e.to_string())?;
+        let usable_cpus = crate::cpus::usable();
+        let resolve_cpus = if mutant::is(Mutant::AutoIgnoresCpus) && p2.isolation() == IsolationSetting::Auto {
+            AUTO_CORDON_BELOW_CPUS // NEGATIVE CONTROL: auto always lands on forkwasm, whatever the host has
+        } else {
+            usable_cpus
+        };
+        let isolation = p2.effective_isolation(resolve_cpus);
+        log(&format!(
+            "isolation {} -> {} ({usable_cpus} usable CPUs; auto = cordon below {AUTO_CORDON_BELOW_CPUS}, PLAN-5 D23)",
+            p2.isolation().as_str(),
+            isolation.as_str()
+        ));
         let mut generation = Gen {
             id,
             worker: PathBuf::from(p2.worker()),
             mpk: p2.mpk(),
-            isolation: p2.isolation(),
+            isolation,
             cordon_slots: lim.cordon_slots,
             max_cordons: usize::try_from(lim.max_cordons).map_err(|_| "p2.max_cordons out of range")?,
             idle_s: lim.cordon_idle_s,
@@ -490,7 +507,7 @@ impl Runtime {
                 cwasm: out,
                 digest: aegis_config::sha256(&cw),
                 limits,
-                isolation: p2.isolation_for(m),
+                isolation: p2.isolation_for(m, resolve_cpus),
             };
             generation.modules.insert(mid.to_string(), Arc::new(rt));
         }
