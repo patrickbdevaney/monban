@@ -32,5 +32,10 @@ ct-dudect has it too (2026-10-30): its |t| crossed 4.5 twice at desktop load ≈
 Since 2026-10-31 the quiet runner is the desktop under `ci/quiet.py` (`ci/oracles.sh run --where quiet`, gate
 oracles-quiet), not the laptop: the laptop is the operator's workstation and was at load 8-40 during a gate run.
 Quiet is measured, not assumed: foreign CPU load (host busy minus the job's own cgroup) must stay <= 2.0 cores for
-30 s before the run and in every 5 s window during it, or the attempt is void (re-run, at most 3; none valid = red).
+30 s before the run and in every 5 s window during it, or the attempt is void (re-run, at most 6, chosen by load only; none valid = red).
 The desktop load ≈ 13 that broke ct-dudect would void the attempt, never count as a result.
+`needs` value `reference-runner` (2026-11-01): judged on the laptop that set the timing thresholds (PLAN-5 D10),
+still under `ci/quiet.py` (`ci/oracles.sh run --where local`, gate oracles-local; it waits for a quiet window).
+isolation-fi has it: on the desktop, quiet (foreign load 0.22 cores), its reference cordon subject recovers from oom
+in p99 6591-7017 us (1 and 3 trials) against the 5000 us gate, laptop 3257 us; the production cordon subject
+recovers in 2243 us on the same desktop (gate p2-fault-cordon). The threshold does not move (D10).

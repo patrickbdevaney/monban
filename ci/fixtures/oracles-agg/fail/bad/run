@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "BAD: FAIL"
+exit 1

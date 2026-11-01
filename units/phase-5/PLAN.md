@@ -278,6 +278,10 @@ row is not edited here.
     `memory-protection-keys` (which implies `call-hook`), because `PoolingAllocationConfig::memory_protection_keys`
     only exists with that feature and the MPK density option is in scope. The oracles (isolation-fi,
     wasmtime-config) use the same pin and feature set.
+    **Note 2026-11-01:** wasmtime 50 enables MPK only on Intel CPUs (`wasmtime-internal-core` `mpk::is_intel_cpu`),
+    so the AMD desktop quiet runner cannot run the MPK variant; it is gated on kamrui (Intel N95, PKU) in
+    p2-fault-vps with unchanged thresholds. AMD production hosts run cordon without MPK (the density option is
+    off there; the engine refuses `--mpk` rather than silently dropping it).
   - Features: `default-features = false` plus exactly cranelift, pooling-allocator, runtime and std. No
     component-model in Phase 5: F14 is a core-module ABI, and R-ISO-2 lists it only as optional. No gc, threads,
     winch, wasi, wasi-http or component-model-async. `memory64(false)` and `gc(false)` are set explicitly.

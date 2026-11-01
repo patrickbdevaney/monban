@@ -115,7 +115,7 @@ name = "oracles-local"
 # oracles-quiet (desktop, under ci/quiet.py) on 2026-10-31: the laptop is the operator's workstation and is not
 # quiet during an 8-hour run (isolation-fi reference cordon oom rec_p99 5.2-18.8 ms at load 8-40 vs 3.26 ms quiet).
 cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject && ci/oracles.sh run --where local"
-selftest = "ci/oracles.sh self-test --where local"
+selftest = "ci/oracles-agg-selftest.sh && ci/oracles.sh self-test --where local"
 heavy = true
 
 [[gate]]
@@ -405,8 +405,9 @@ remote = true
 name = "p2-fault-cordon"
 # Quiet host (laptop), gate timing mode, 3 trials. Gated: G0-G4 on the 6 guest classes; hostabort/hostpoison are
 # reported only (a per-principal cordon keeps the damage with one principal; shared cordons are unrepresentable, D1).
-# Second run: the MPK density option (PLAN D11): same thresholds, reservation and guards unchanged.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && ci/quiet.py oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-cordon.json --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && ci/quiet.py oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}'"
+# The MPK density option (PLAN D11) runs in p2-fault-vps on kamrui: wasmtime 50 enables MPK only on Intel CPUs
+# (wasmtime-internal-core mpk::is_intel_cpu), and this desktop is AMD ("mpk is disabled on this system").
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && ci/quiet.py oracles/isolation-fi/run --trials 3 --record gates/out/p2-fault-cordon.json --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}'"
 # Red on: shared-store, recycle50, no-deadline, epoch-only-4 (real subject with `mutants`) plus the reference mutants.
 selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && ci/quiet.py oracles/isolation-fi/run --self-test && ci/quiet.py oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}'"
 heavy = true
@@ -470,9 +471,11 @@ name = "p2-fault-vps"
 #    "timing ADVISORY" and the kamrui/laptop ratios are still printed). This is the operator's D23 decision, not a
 #    threshold move: the quiet-runner gates p2-fault-forkwasm / p2-fault-cordon (desktop, ci/quiet.py) keep both paths fully timed, and an
 #    explicit `isolation: "forkwasm"` on a small host is outside what kamrui's numbers support (claims <= B);
+#  - cordon also runs with the MPK density option (PLAN D11), fully gated, same thresholds: kamrui is the Intel
+#    runner with PKU (wasmtime 50 enables MPK only on Intel CPUs, so the AMD desktop cannot run it);
 #  - the last step builds aegis (feature p2) and checks that the default config resolves to cordon on this host
 #    (ci/p2-auto-resolve.py: `check-config --print-effective` shows isolation auto -> cordon at 4 usable CPUs).
-cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; echo 'p2-fault-vps: forkwasm timing (G3 recovery p99, G4 loop) is report-only on kamrui by PLAN-5 D23 option (b); its count criteria stay gated'; oracles/isolation-fi/run --timing advisory --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 && python3 -I ci/p2-auto-resolve.py --subject target/p2/release/aegis --expect cordon || rc=1; exit \\$rc\""
+cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; echo 'p2-fault-vps: forkwasm timing (G3 recovery p99, G4 loop) is report-only on kamrui by PLAN-5 D23 option (b); its count criteria stay gated'; oracles/isolation-fi/run --timing advisory --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 && python3 -I ci/p2-auto-resolve.py --subject target/p2/release/aegis --expect cordon || rc=1; exit \\$rc\""
 # The oracles must still catch their mutants on this host (a runner where the checks cannot go red proves nothing).
 # isolation-fi --self-test always gates timing (its no-deadline mutants are caught through it).
 selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test && python3 -I ci/p2-auto-resolve.py --self-test'"
