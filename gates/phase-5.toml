@@ -468,7 +468,7 @@ name = "p2-fault-vps"
 #  - forkwasm is not the default here: its count criteria (G0-G2, unrecovered requests) stay gated, its timing
 #    criteria (G3 recovery p99, G4 loop throughput) are report-only (`--timing advisory`; the PASS line says
 #    "timing ADVISORY" and the kamrui/laptop ratios are still printed). This is the operator's D23 decision, not a
-#    threshold move: the laptop gates p2-fault-forkwasm / p2-fault-cordon keep both paths fully timed, and an
+#    threshold move: the quiet-runner gates p2-fault-forkwasm / p2-fault-cordon (desktop, ci/quiet.py) keep both paths fully timed, and an
 #    explicit `isolation: "forkwasm"` on a small host is outside what kamrui's numbers support (claims <= B);
 #  - the last step builds aegis (feature p2) and checks that the default config resolves to cordon on this host
 #    (ci/p2-auto-resolve.py: `check-config --print-effective` shows isolation auto -> cordon at 4 usable CPUs).
