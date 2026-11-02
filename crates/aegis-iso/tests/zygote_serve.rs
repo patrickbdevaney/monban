@@ -162,11 +162,15 @@ fn only_aegis_p2_variables_pass_through() {
     assert_eq!(keys, ["AEGIS_P2_MUTANT", "AEGIS_P2_TEST_LANDLOCK_ABI"]);
 }
 
-/// `se.slice` of the calling thread in ns, from the scheduler debug view (Linux 6.12+ shows the custom slice).
-fn own_slice_ns() -> Option<u64> {
-    let s = std::fs::read_to_string("/proc/thread-self/sched").ok()?;
-    let line = s.lines().find(|l| l.trim_start().starts_with("se.slice"))?;
-    line.rsplit(':').next()?.trim().parse::<f64>().ok().map(|v| v as u64)
+/// The `se.slice` line of the calling thread's scheduler debug view (Linux 6.12+ shows the custom slice), or why it
+/// could not be read.
+fn own_slice_line() -> Result<String, String> {
+    let s = std::fs::read_to_string("/proc/thread-self/sched").map_err(|e| format!("read: {e}"))?;
+    s.lines().find(|l| l.trim_start().starts_with("se.slice")).map(str::to_owned).ok_or_else(|| "no se.slice".into())
+}
+
+fn slice_of(line: &Result<String, String>) -> Option<u64> {
+    line.as_ref().ok()?.rsplit(':').next()?.trim().parse::<f64>().ok().map(|v| v as u64)
 }
 
 #[test]
@@ -175,20 +179,35 @@ fn zygote_and_its_fork_children_run_with_the_short_scheduler_slice() {
         eprintln!("skipped: Landlock ABI >= 4 unavailable on this host");
         return;
     }
-    let before = own_slice_ns();
+    let before = own_slice_line();
+    let want = Some(sandbox::ZYGOTE_SLICE_NS);
+    // The zygote and its fork child report what they observed on this socket; the verdict is the zygote's exit code.
+    let (mut rx, tx) = UnixStream::pair().unwrap();
     let zpid = match sandbox::fork().unwrap() {
         Forked::Child => {
+            drop(rx);
+            let mut tx = tx;
             // The forked test child is single-threaded; /proc is readable so the slice can be read back.
-            let Ok(inst) = install(&Profile::zygote(vec![PathBuf::from("/proc")])) else { sandbox::exit_now(92) };
-            if inst.slice_ns != Some(sandbox::ZYGOTE_SLICE_NS) {
+            let inst = match install(&Profile::zygote(vec![PathBuf::from("/proc")])) {
+                Ok(i) => i,
+                Err(e) => {
+                    let _ = writeln!(tx, "install: {e}");
+                    sandbox::exit_now(92)
+                }
+            };
+            let z = own_slice_line();
+            let _ = writeln!(tx, "zygote: accepted {:?}, sees {z:?}", inst.slice_ns);
+            if inst.slice_ns != want {
                 sandbox::exit_now(94);
             }
-            if before.is_some() && own_slice_ns() != Some(sandbox::ZYGOTE_SLICE_NS) {
+            if slice_of(&before).is_some() && slice_of(&z) != want {
                 sandbox::exit_now(95);
             }
             match sandbox::fork() {
                 Ok(Forked::Child) => {
-                    let ok = before.is_none() || own_slice_ns() == Some(sandbox::ZYGOTE_SLICE_NS);
+                    let c = own_slice_line();
+                    let _ = writeln!(tx, "child: sees {c:?}");
+                    let ok = slice_of(&before).is_none() || slice_of(&c) == want;
                     sandbox::exit_now(if ok { 0 } else { 96 })
                 }
                 Ok(Forked::Parent(c)) => match zygote::wait_child(c) {
@@ -200,8 +219,12 @@ fn zygote_and_its_fork_children_run_with_the_short_scheduler_slice() {
         }
         Forked::Parent(p) => p,
     };
-    assert_eq!(zygote::wait_child(zpid).unwrap(), zygote::ChildEnd::Exited(0), "94 refused, 95/96 slice not applied");
-    if before.is_none() {
-        eprintln!("note: /proc/thread-self/sched has no se.slice here; only the accepted request was checked");
+    drop(tx);
+    let end = zygote::wait_child(zpid).unwrap();
+    let mut seen = String::new();
+    let _ = rx.read_to_string(&mut seen);
+    assert_eq!(end, zygote::ChildEnd::Exited(0), "94 refused, 95/96 slice not applied; before {before:?}; {seen}");
+    if slice_of(&before).is_none() {
+        eprintln!("note: no readable se.slice here ({before:?}); only the accepted request was checked");
     }
 }
