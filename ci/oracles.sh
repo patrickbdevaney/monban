@@ -5,10 +5,9 @@
 set -uo pipefail
 # Placement: an oracle that needs host facilities lists them in `needs` (docker, lean). `--where remote` runs only
 # oracles with no needs (for the LAN build box); `--where local` runs oracles with any need other than quiet-host
-# (docker, lean, reference-runner: this laptop); `--where quiet` runs oracles whose only need is quiet-host (the
-# desktop quiet runner). Every quiet-host oracle, wherever it runs, goes under ci/quiet.py, which waits for a quiet
-# host and voids any attempt that saw foreign load. reference-runner = the laptop that set the timing thresholds
-# (PLAN-5 D10); isolation-fi's reference subjects are judged there. Default: all.
+# (docker, lean: this laptop); `--where quiet` runs oracles whose only need is quiet-host (the dedicated quiet
+# runner, ssh alias `quiet`). Every quiet-host oracle, wherever it runs, goes under ci/quiet.py, which waits for a
+# quiet host and voids any attempt that saw foreign load. Default: all.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; mode="${1:-run}"; where="all"; fail=0; n=0
 [ "${2:-}" = --where ] && where="${3:-all}"
 # ORACLES_DIR overrides the oracle directory (ci/oracles-agg-selftest.sh points it at fixtures).

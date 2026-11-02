@@ -29,13 +29,15 @@ here, outside the implementer's write scope, and has been shown to FAIL on a neg
 `needs` value `quiet-host` (2026-10-30): the oracle has wall-clock-sensitive checks (native-e2e lands cancels inside a
 1.2 s hold), so it runs only on the local quiet runner, never on the shared LAN build box.
 ct-dudect has it too (2026-10-30): its |t| crossed 4.5 twice at desktop load ≈ 13 and stays ≤ 2.8 on a quiet box.
-Since 2026-10-31 the quiet runner is the desktop under `ci/quiet.py` (`ci/oracles.sh run --where quiet`, gate
-oracles-quiet), not the laptop: the laptop is the operator's workstation and was at load 8-40 during a gate run.
+Since 2026-11-01 the quiet runner is a dedicated GCP c2-standard-8 (8 Intel Xeon vCPUs, no other work on it; ssh
+alias `quiet`, gates with `remote = "quiet"`) under `ci/quiet.py` (`ci/oracles.sh run --where quiet`, gate
+oracles-quiet). Before that it was the desktop (2026-10-31) and the laptop: both are shared workstations, and the
+2026-11-01 full run found neither quiet for 8 hours (desktop: no valid attempt in 6 for ct-dudect and the p2-e2e
+self-test; laptop: isolation-fi reference cordon oom recovery p99 17168 us in a CPU-quiet window at memory PSI
+some avg10 3.1, against 3257 us idle).
 Quiet is measured, not assumed: foreign CPU load (host busy minus the job's own cgroup) must stay <= 2.0 cores for
 30 s before the run and in every 5 s window during it, or the attempt is void (re-run, at most 6, chosen by load only; none valid = red).
 The desktop load ≈ 13 that broke ct-dudect would void the attempt, never count as a result.
-`needs` value `reference-runner` (2026-11-01): judged on the laptop that set the timing thresholds (PLAN-5 D10),
-still under `ci/quiet.py` (`ci/oracles.sh run --where local`, gate oracles-local; it waits for a quiet window).
-isolation-fi has it: on the desktop, quiet (foreign load 0.22 cores), its reference cordon subject recovers from oom
-in p99 6591-7017 us (1 and 3 trials) against the 5000 us gate, laptop 3257 us; the production cordon subject
-recovers in 2243 us on the same desktop (gate p2-fault-cordon). The threshold does not move (D10).
+The timing thresholds were set on the laptop (PLAN-5 D10) and do not move with the runner. On the desktop (AMD
+Zen 3, quiet) isolation-fi's reference cordon subject recovered from oom in p99 6591-7017 us against the 5000 us
+gate (laptop 3257 us; production cordon 2243 us on the same desktop).

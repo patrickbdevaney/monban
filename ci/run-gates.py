@@ -5,7 +5,8 @@ hash-chained journal to gates/out/phase-N.json plus per-step logs. Exit 0 only o
 Usage: python3 -I ci/run-gates.py --phase 0 [--only name,name] [--skip-heavy]
 Gate semantics: `cmd` must exit 0; `selftest` must exit 0 (it exits 0 only when a mutated input was rejected).
 `remote = true` runs the gate on the LAN build box through ci/remote.sh (timing-sensitive gates; the laptop is shared
-with other projects). Set AEGIS_NO_REMOTE=1 to force local execution.
+with other projects); `remote = "<host>"` runs it on that ssh host instead (e.g. "quiet", the dedicated quiet runner).
+Set AEGIS_NO_REMOTE=1 to force local execution.
 """
 import argparse, hashlib, json, os, shlex, subprocess, sys, time, tomllib
 
@@ -48,7 +49,8 @@ def main():
             log = os.path.join(outdir, "logs", f"phase{a.phase}-{g['name']}-{step}.log")
             cmd = g[step]
             if g.get("remote") and os.environ.get("AEGIS_NO_REMOTE") != "1":
-                cmd = "ci/remote.sh bash -c " + shlex.quote(cmd)
+                host = g["remote"] if isinstance(g["remote"], str) else None
+                cmd = "ci/remote.sh " + (f"--host {shlex.quote(host)} " if host else "") + "bash -c " + shlex.quote(cmd)
             rc, secs, h, tail = sh(cmd, log)
             passed = rc == 0
             ok &= passed

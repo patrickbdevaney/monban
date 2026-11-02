@@ -270,6 +270,23 @@ row is not edited here.
     measurements and the operator's consent. Within 2×, nothing moves.
   - Count criteria (G0–G2, syscall, hostile) never move on any runner.
   - A kamrui miss does not by itself flip D1: the q4-006 reversal names a real VPS (Q2).
+  - 2026-11-01 (operator consent): the quiet host moves to a dedicated GCP c2-standard-8 (8 Intel Xeon vCPUs, no
+    other work on it; gates `remote = "quiet"`). The laptop stays the reference that set the thresholds; the GCP
+    runner is judged at the same values, nothing moves. Why: the full run of 2026-11-01 was NO-GO only because no
+    shared machine stayed quiet (desktop: no valid quiet.py attempt in 6 for ct-dudect and the p2-e2e self-test;
+    laptop: isolation-fi reference cordon oom recovery p99 17168 us in a CPU-quiet window at memory PSI some avg10
+    3.1, vs 3257 us idle). The guest has no steal time but no `pku` either, so the MPK cell stays on kamrui.
+  - 2026-11-02 (integrator, operator chose "fix the path" over a per-runner threshold): the first GCP rehearsal
+    missed G3 on the production fork+Wasm subject, oom recovery p99 6178 us (laptop reference 2593 us, x2.38) in a
+    VALID quiet window. Cause (perf sched on the runner): an oom child costs ~8.6 ms CPU there (4096 page faults,
+    zeroing, teardown; ~25x a healthy child) and ran whole ~3 ms EEVDF slices while freshly forked healthy children
+    waited; two or three overlapping oom children stopped all completions for ~9-20 ms. Fix, no check changed:
+    `sandbox::install(Profile::zygote)` requests a 100 us slice (`sched_setattr` sched_runtime, current nice kept,
+    unprivileged, inherited by every fork child; aegis-iso unsafe sites 13 -> 14). Re-run on GCP: p2-fault-forkwasm
+    PASS, oom recovery p99 1451 us, every other cell <= 949 us, healthy rps x1.00 of baseline. Cordon is unchanged (a
+    short slice there raised healthy p50 ~145 -> ~200 us across 64 threads); it passes on GCP as is (oom 1129 us, loop
+    1931 us). Slices are a Linux >= 6.12 feature; older kernels accept and ignore the request (`Installed::slice_ns`
+    records it; the zygote_serve test checks the live slice of the zygote and a fork child).
 - **D11 wasmtime pin and config (R-ISO-2).**
   - Version: wasmtime =50.0.0 (lock target; ≥49.0.4 floor, GHSA-897f). cranelift at whatever version passes lock-age
     on the day P5-spec-002 runs (Q12).

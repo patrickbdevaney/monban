@@ -11,6 +11,12 @@
 //! 6. the seccomp filter of [`filter`] (zygote or cordon layout);
 //! 7. read back: NO_NEW_PRIVS = 1 and `PR_GET_DUMPABLE` = 0, else fail.
 //!
+//! A zygote also asks for a [`ZYGOTE_SLICE_NS`] scheduler slice before step 6, inherited by every fork child: a
+//! runaway or memory-filling child is preempted every 0.1 ms instead of running the default ~3 ms EEVDF slice
+//! while freshly forked healthy children wait (isolation-fi G3 oom recovery on a 1-core server, 2026-11-02:
+//! p99 4.2-6.2 ms -> 1.6-2.4 ms on the GCP quiet runner, healthy throughput -2%). Best effort: a scheduling hint,
+//! not a containment step; [`Installed::slice_ns`] records whether the kernel accepted it.
+//!
 //! A fork+Wasm child calls [`install`] with [`Profile::child`]: `RLIMIT_NPROC` = 0, then the small child filter
 //! stacked on the inherited zygote filter (Landlock, dumpable=0 and NO_NEW_PRIVS are inherited across fork and
 //! read back). Any failed step returns an error; the caller must exit without serving (fail closed).
@@ -32,6 +38,8 @@ pub use sys::{Forked, exit_now, fork};
 
 /// Default `RLIMIT_NOFILE` for a zygote or cordon (the isofi reference value).
 pub const DEFAULT_NOFILE: u64 = 256;
+/// EEVDF slice a zygote requests for itself and its fork children (the kernel minimum, 100 us).
+pub const ZYGOTE_SLICE_NS: u64 = 100_000;
 
 /// What a process is about to become.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,6 +93,9 @@ pub struct Installed {
     pub landlock: Option<landlock::Enforced>,
     /// Instructions in the loaded seccomp program.
     pub filter_len: usize,
+    /// The scheduler slice the kernel accepted for this process ([`ZYGOTE_SLICE_NS`] for a zygote), `None` when
+    /// not requested (other stages) or refused. Kernels before 6.12 accept and ignore it.
+    pub slice_ns: Option<u64>,
 }
 
 /// Why the sandbox could not be installed. Every variant means "do not serve".
@@ -164,6 +175,12 @@ fn mutant_dumpable_1() -> bool {
     false
 }
 
+/// Requests [`ZYGOTE_SLICE_NS`] at the current nice value (never a priority raise). `None` if refused.
+fn zygote_slice() -> Option<u64> {
+    let nice = rustix::process::getpriority_process(None).ok()?;
+    sys::set_fair_slice(ZYGOTE_SLICE_NS, nice).ok().map(|()| ZYGOTE_SLICE_NS)
+}
+
 fn read_back() -> Result<(), SandboxError> {
     match rustix::thread::no_new_privs() {
         Ok(true) => {}
@@ -192,7 +209,7 @@ pub fn install(profile: &Profile) -> Result<Installed, SandboxError> {
         read_back()?;
         set_rlimit("NPROC", Resource::Nproc, profile.nproc.unwrap_or(0))?;
         sys::seccomp_set_filter(&prog).map_err(SandboxError::Seccomp)?;
-        return Ok(Installed { stage: profile.stage, landlock: None, filter_len: prog.len() });
+        return Ok(Installed { stage: profile.stage, landlock: None, filter_len: prog.len(), slice_ns: None });
     }
     match thread_count() {
         Some(1) => {}
@@ -209,7 +226,8 @@ pub fn install(profile: &Profile) -> Result<Installed, SandboxError> {
             .map_err(|e| SandboxError::Dumpable(Some(e.into())))?;
     }
     let ll = landlock::enforce(&profile.read_paths, &profile.write_dirs)?;
+    let slice_ns = if profile.stage == Stage::Zygote { zygote_slice() } else { None };
     sys::seccomp_set_filter(&prog).map_err(SandboxError::Seccomp)?;
     read_back()?;
-    Ok(Installed { stage: profile.stage, landlock: Some(ll), filter_len: prog.len() })
+    Ok(Installed { stage: profile.stage, landlock: Some(ll), filter_len: prog.len(), slice_ns })
 }
