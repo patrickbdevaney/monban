@@ -161,3 +161,47 @@ fn only_aegis_p2_variables_pass_through() {
     let keys: Vec<String> = got.iter().map(|(k, _)| k.to_string_lossy().into_owned()).collect();
     assert_eq!(keys, ["AEGIS_P2_MUTANT", "AEGIS_P2_TEST_LANDLOCK_ABI"]);
 }
+
+/// `se.slice` of the calling thread in ns, from the scheduler debug view (Linux 6.12+ shows the custom slice).
+fn own_slice_ns() -> Option<u64> {
+    let s = std::fs::read_to_string("/proc/thread-self/sched").ok()?;
+    let line = s.lines().find(|l| l.trim_start().starts_with("se.slice"))?;
+    line.rsplit(':').next()?.trim().parse::<f64>().ok().map(|v| v as u64)
+}
+
+#[test]
+fn zygote_and_its_fork_children_run_with_the_short_scheduler_slice() {
+    if !landlock_ok() {
+        eprintln!("skipped: Landlock ABI >= 4 unavailable on this host");
+        return;
+    }
+    let before = own_slice_ns();
+    let zpid = match sandbox::fork().unwrap() {
+        Forked::Child => {
+            // The forked test child is single-threaded; /proc is readable so the slice can be read back.
+            let Ok(inst) = install(&Profile::zygote(vec![PathBuf::from("/proc")])) else { sandbox::exit_now(92) };
+            if inst.slice_ns != Some(sandbox::ZYGOTE_SLICE_NS) {
+                sandbox::exit_now(94);
+            }
+            if before.is_some() && own_slice_ns() != Some(sandbox::ZYGOTE_SLICE_NS) {
+                sandbox::exit_now(95);
+            }
+            match sandbox::fork() {
+                Ok(Forked::Child) => {
+                    let ok = before.is_none() || own_slice_ns() == Some(sandbox::ZYGOTE_SLICE_NS);
+                    sandbox::exit_now(if ok { 0 } else { 96 })
+                }
+                Ok(Forked::Parent(c)) => match zygote::wait_child(c) {
+                    Ok(zygote::ChildEnd::Exited(code)) => sandbox::exit_now(code),
+                    _ => sandbox::exit_now(97),
+                },
+                Err(_) => sandbox::exit_now(98),
+            }
+        }
+        Forked::Parent(p) => p,
+    };
+    assert_eq!(zygote::wait_child(zpid).unwrap(), zygote::ChildEnd::Exited(0), "94 refused, 95/96 slice not applied");
+    if before.is_none() {
+        eprintln!("note: /proc/thread-self/sched has no se.slice here; only the accepted request was checked");
+    }
+}

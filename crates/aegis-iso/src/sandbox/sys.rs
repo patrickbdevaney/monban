@@ -118,6 +118,30 @@ pub enum Forked {
     Child,
 }
 
+const SCHED_FLAG_KEEP_POLICY: u64 = 0x08;
+
+/// Requests an EEVDF time slice of `slice_ns` for the calling thread (`sched_setattr` with `sched_runtime`; Linux
+/// 6.12+, 100 us .. 100 ms, no privilege needed). Policy is kept and `nice` (the caller's current value) is passed
+/// back unchanged, so the call never raises priority. Inherited by threads and fork children created afterwards.
+/// Kernels before 6.12 accept the call and ignore the slice.
+pub(crate) fn set_fair_slice(slice_ns: u64, nice: i32) -> io::Result<()> {
+    let attr = libc::sched_attr {
+        size: u32::try_from(std::mem::size_of::<libc::sched_attr>()).unwrap_or(48),
+        sched_policy: 0,
+        sched_flags: SCHED_FLAG_KEEP_POLICY,
+        sched_nice: nice,
+        sched_priority: 0,
+        sched_runtime: slice_ns,
+        sched_deadline: 0,
+        sched_period: 0,
+    };
+    // SAFETY: `attr` is a live, fully initialised `struct sched_attr` borrowed for the call, and its `size` field is
+    // its own size; the kernel copies it before returning. pid 0 = the calling thread; flags 0.
+    #[allow(unsafe_code)]
+    let r = unsafe { libc::syscall(libc::SYS_sched_setattr, 0 as libc::pid_t, &raw const attr, 0 as libc::c_uint) };
+    check(r).map(|_| ())
+}
+
 /// `fork(2)`. The caller must be single-threaded (the zygote is, D1), so the child inherits no lock held by
 /// another thread; the child should only run its request and leave through [`exit_now`].
 pub fn fork() -> io::Result<Forked> {

@@ -80,9 +80,9 @@ restart). That is why hostpoison exists.
 
 ## Phase 5: real subject, trials, record and reference (unit P5-oracle-fi-001, PLAN D10/D14)
 
-`needs` = `quiet-host` + `reference-runner`: the reference-subject run is judged on the laptop (the reference runner,
-PLAN D10) under `ci/quiet.py`, so it counts only in a quiet window. The production-subject gates p2-fault-forkwasm and
-p2-fault-cordon run on the desktop quiet runner. On the desktop (AMD Zen 3) the reference cordon misses G3 oom
+`needs` = `quiet-host`: the reference-subject run and the production-subject gates p2-fault-forkwasm and
+p2-fault-cordon are all judged on the dedicated quiet runner (GCP c2-standard-8 since 2026-11-01) under `ci/quiet.py`,
+so they count only in a quiet window. Thresholds stay the laptop's (PLAN D10). On the desktop (AMD Zen 3) the reference cordon misses G3 oom
 (recovery p99 6591-7017 us vs 5000 us, quiet host; production cordon 2243 us there), see oracles/README.md.
 
 | option | meaning |
