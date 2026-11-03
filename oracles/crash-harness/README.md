@@ -18,7 +18,10 @@ oracles/crash-harness/run --subject '<cmd> {dir}'   # plug in the aegis-state st
 `run` re-executes itself under `ci/heavy.sh`, so the build and the simulation both hold the machine-wide heavy-job
 lock. It builds `rust/` (`cargo build --release --locked`), runs `python3 -I crashsim.py`, and **deletes
 `rust/target/` on exit** unless you pass `--keep-build`. The last line is `CRASH-HARNESS: PASS|FAIL (...)` and the exit
-code is 0 only on PASS. `.work/last-run.json` keeps the per-subject tallies.
+code is 0 only on PASS. `.work/last-run.json` keeps the per-subject tallies. A `state_mismatch` names the differing keys
+(missing, extra, or changed with the txn number each value encodes), and the first 8 failing images of a run are rebuilt
+from the model, with their pre-recovery bytes, under `.work/fails/` (cleared at the start of the next run; the self-test
+keeps none).
 
 ## What is checked
 
