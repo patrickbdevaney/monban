@@ -169,6 +169,13 @@ fn own_slice_line() -> Result<String, String> {
     s.lines().find(|l| l.trim_start().starts_with("se.slice")).map(str::to_owned).ok_or_else(|| "no se.slice".into())
 }
 
+/// Whether the running kernel applies custom EEVDF slices (Linux 6.12+); older kernels accept and ignore them.
+fn kernel_has_custom_slices() -> bool {
+    let rel = std::fs::read_to_string("/proc/sys/kernel/osrelease").unwrap_or_default();
+    let mut it = rel.split(|c: char| !c.is_ascii_digit()).filter_map(|x| x.parse::<u32>().ok());
+    (it.next().unwrap_or(0), it.next().unwrap_or(0)) >= (6, 12)
+}
+
 fn slice_of(line: &Result<String, String>) -> Option<u64> {
     line.as_ref().ok()?.rsplit(':').next()?.trim().parse::<f64>().ok().map(|v| v as u64)
 }
@@ -179,7 +186,8 @@ fn zygote_and_its_fork_children_run_with_the_short_scheduler_slice() {
         eprintln!("skipped: Landlock ABI >= 4 unavailable on this host");
         return;
     }
-    let before = own_slice_line();
+    // Read-back is checked where the kernel applies slices and shows them; elsewhere only the accepted request.
+    let before = if kernel_has_custom_slices() { own_slice_line() } else { Err("kernel < 6.12".into()) };
     let want = Some(sandbox::ZYGOTE_SLICE_NS);
     // The zygote and its fork child report what they observed on this socket; the verdict is the zygote's exit code.
     let (mut rx, tx) = UnixStream::pair().unwrap();
