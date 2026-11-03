@@ -128,10 +128,20 @@ def verify(subj, d, acked, timeout=60):
     info = f'c={c} acked={acked} | {integ[10:120]}'
     if c > 10**6: return 'corrupt_ctr', info
     if c != c1: return 'atomicity', f'ctrA={c} ctrB={c1} ' + info
-    if dump != EXP.get(c): return 'state_mismatch', info
+    if dump != EXP.get(c): return 'state_mismatch', info + ' | ' + state_diff(dump, EXP.get(c))
     if c < acked: return 'lost_ack', info
     if not integ.startswith('INTEGRITY ok'): return 'integrity_fail', info
     return 'ok', info
+
+def state_diff(dump, exp):
+    """Key-level difference of a recovered dump from the expected state (diagnostics only; the verdict is unchanged).
+    A changed value is shown by the txn number its first 8 bytes encode (workload `val`)."""
+    name = lambda t, k: f'{t}:{bytes.fromhex(k).decode("latin-1")}'
+    txn = lambda v: int(v[:16], 16) if len(v) >= 16 else -1
+    miss = sorted(name(*k) for k in exp if k not in dump); extra = sorted(name(*k) for k in dump if k not in exp)
+    chg = sorted(f'{name(*k)} got={txn(dump[k])} want={txn(exp[k])}' for k in exp if k in dump and dump[k] != exp[k])
+    cap = lambda l: ','.join(l[:6]) + (f',+{len(l) - 6}' if len(l) > 6 else '')
+    return f'diff missing={len(miss)}[{cap(miss)}] extra={len(extra)}[{cap(extra)}] changed={len(chg)}[{cap(chg)}]'
 
 # ------------------------------------------------------------------ trace
 def parse(log):
@@ -328,13 +338,31 @@ def materialize(img, root, dst, dirs=()):
         with open(t, 'wb') as f: f.write(b)
 
 # ------------------------------------------------------------------ engine
+FAILS_KEPT = 8  # failing images re-materialized (pre-recovery bytes) under .work/fails/ for diagnosis
+_fails_lock = threading.Lock(); _fails = [0]
+
+def keep_failure(src, d, c, b):
+    """Re-materialize a failing image from the model (verification ran recovery on `d`, so its bytes changed)."""
+    img, root, dirs = src
+    with _fails_lock:
+        if _fails[0] >= FAILS_KEPT: return None
+        _fails[0] += 1
+    dst = os.path.join(HERE, '.work', 'fails', os.path.basename(d) + '-' + c)
+    shutil.rmtree(dst, ignore_errors=True); materialize(img, root, dst, dirs)
+    with open(dst + '.txt', 'w') as f: f.write(f'{c}: {b}\n')
+    return dst
+
 class Pool:
     """Bounded verify pool: images are materialized just before submission and deleted after verification."""
     def __init__(s, jobs):
         s.ex = cf.ThreadPoolExecutor(jobs); s.fut = collections.deque(); s.cap = jobs * 4; s.res = []
-    def submit(s, subj, d, acked, tag):
+    def submit(s, subj, d, acked, tag, src=None):
         def job():
-            c, b = verify(subj, d, acked); shutil.rmtree(d, ignore_errors=True); return tag, c, b
+            c, b = verify(subj, d, acked); shutil.rmtree(d, ignore_errors=True)
+            if c != 'ok' and src is not None and not tag[0].endswith('~init'):
+                kept = keep_failure(src, d, c, b)
+                if kept: b = f'{b} [image kept: {os.path.relpath(kept, HERE)}]'
+            return tag, c, b
         s.fut.append(s.ex.submit(job))
         while len(s.fut) > s.cap: s.res.append(s.fut.popleft().result())
     def drain(s):
@@ -352,7 +380,7 @@ def replay(trace, sim, cuts, pool, subj, base, tag0, rng, policies, keep_images=
             tag = tag0 + ('~init' if k < first_b else '')
             for pol, reg in policies:
                 img = sim.image(pol, reg, rng); d = f'{base}/img-{tag0}-{k}-{pol}-{reg}'
-                materialize(img, sim.root, d, sim.dirs); pool.submit(subj, d, sim.acked, (tag, k, pol, reg, sim.acked)); n += 1
+                materialize(img, sim.root, d, sim.dirs); pool.submit(subj, d, sim.acked, (tag, k, pol, reg, sim.acked), (img, sim.root, set(sim.dirs))); n += 1
                 if keep_images is not None and (k, pol, reg) in keep_images:
                     keep_images[(k, pol, reg)] = (img, sim.acked, set(sim.dirs))
     return n
@@ -496,8 +524,11 @@ def main():
     if not os.path.exists(REFSTORE) and not a.subject:
         print('CRASH-HARNESS: FAIL (reference build missing; use ./run, which builds via ci/heavy.sh)'); return 1
     t0 = time.time(); results = []
+    global FAILS_KEPT
     if a.self_test:
+        FAILS_KEPT = 0  # mutants fail by design; keep nothing (and leave a previous run's kept images alone)
         return self_test(a, seeds)
+    shutil.rmtree(os.path.join(a.work, 'fails'), ignore_errors=True)
     subjects = [subject_from_cli(a.subject)] if a.subject else [ref('sqlite', 'wal-full'), ref('redb', '2pc'), ref('wal', 'crc')]
     print(f'crash-harness: txns={a.txns} random_cuts={a.cuts} seeds={seeds} eio_positions={a.eio} double_bases={a.double} jobs={a.jobs}')
     for s in seeds:
