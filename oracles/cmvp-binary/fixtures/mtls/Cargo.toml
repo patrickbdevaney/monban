@@ -1,0 +1,15 @@
+# D13 negative fixture: a separate package, so its client-certificate verifier source does not leak into the
+# source scan of the cmvp-fixtures package (the oracle scans the src/ of every first-party package in the graph).
+[package]
+name = "cmvp-fixtures-mtls"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+cmvp-fixtures = { path = ".." }
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+
+[[bin]]
+name = "srv_mtls"
+path = "src/main.rs"

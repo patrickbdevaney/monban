@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# fips-binary gate entry point (see fips_binary.py and README.md).
+exec python3 -I "$(dirname "$0")/fips_binary.py" "$@"
