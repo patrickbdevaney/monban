@@ -1,0 +1,29 @@
+{
+ "id": "P6-release-001",
+ "role": "implementer",
+ "depends_on": [
+  "P6-spec-002",
+  "P6-oracle-release-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "release-verify"
+ ],
+ "spec_refs": [
+  "PLAN-6 D6",
+  "PREFLIGHT D-P2"
+ ],
+ "oracles": [
+  "release-verify mutants"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out'",
+  "must": "PASS; five separate jobs each with own scratch/key dir; keys destroyed after run; nothing under target/release-out contains private key material (checked)"
+ },
+ "write_scope": [
+  "ci/release/pipeline.sh",
+  "ci/release/jobs/**",
+  "deploy/build/**"
+ ],
+ "notes": ""
+}

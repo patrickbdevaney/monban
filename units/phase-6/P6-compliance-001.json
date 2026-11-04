@@ -1,0 +1,31 @@
+{
+ "id": "P6-compliance-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P6-tls-001",
+  "P6-cmvp-001",
+  "P6-release-002",
+  "P6-conformance-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "compliance"
+ ],
+ "spec_refs": [
+  "PLAN-6 D9",
+  "research/templates/COMPLIANCE_MAP.md",
+  "PREFLIGHT D-P1, operator decision 2026-11-04"
+ ],
+ "oracles": [
+  "mutants: row with unknown gate_id; SA-17(1) theorem not in STATEMENTS; CRA file without DRAFT header; root SECURITY.md present; 'FedRAMP-ready' in text; invalid CSAF"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/compliance.py check && python3 -I ci/compliance.py --self-test",
+  "must": "PASS; nothing published; no LICENSE; no root SECURITY.md"
+ },
+ "write_scope": [
+  "compliance/**",
+  "ci/compliance.py"
+ ],
+ "notes": ""
+}

@@ -1,0 +1,28 @@
+{
+ "id": "P6-oracle-release-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P6-spec-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "release-verify"
+ ],
+ "spec_refs": [
+  "PLAN-6 D6",
+  "F1 REL-1..5",
+  "PREFLIGHT D-P2"
+ ],
+ "oracles": [
+  "mutants: 2/5 root sigs; one of the three artifact sigs wrong; sigs over different digests; test_keys metadata without --allow-test-keys; rollback (lower targets version); expired timestamp; SBOM digest != attested"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui ci/release/verify.py --self-test",
+  "must": "self-test PASS; each mutant refused with its own reason"
+ },
+ "write_scope": [
+  "ci/release/verify.py",
+  "ci/release/fixtures/**"
+ ],
+ "notes": ""
+}

@@ -1,0 +1,24 @@
+{
+ "id": "P6-oracle-ledger-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "exception-ledger"
+ ],
+ "spec_refs": [
+  "PLAN-6 D10",
+  "supply-chain/exceptions.toml line 2"
+ ],
+ "oracles": [
+  "mutants: expired entry; missing approver; advisory-accepted without evidence; evidence log not PASS; evidence log sha from another run"
+ ],
+ "acceptance": {
+  "cmd": "cargo xtask ledger-check && cargo xtask ledger-check --self-test",
+  "must": "red until P6-spec-002 lands the 0349 entry and the cmvp-client-policy log exists"
+ },
+ "write_scope": [
+  "xtask/src/ledger.rs"
+ ],
+ "notes": "xtask/src/main.rs dispatch line is added by P6-spec-002 (single writer of main.rs)."
+}

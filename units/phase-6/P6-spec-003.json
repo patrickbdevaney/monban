@@ -1,0 +1,30 @@
+{
+ "id": "P6-spec-003",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "proof",
+  "select-drt"
+ ],
+ "spec_refs": [
+  "PLAN-6 D3",
+  "spec/SPEC_INVARIANTS.md \u00a7F Select(model)",
+  "oracles/hrr-verdicts MODEL"
+ ],
+ "oracles": [
+  "ci/gate-selftest.sh still red on its mutants",
+  "select-drt --self-test: one profile order swapped in the Lean model diverges from the oracle within 1e4 cases"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh ci/gate.sh && ci/heavy.sh oracles/select-drt/run --cases 100000 && ci/heavy.sh oracles/select-drt/run --self-test",
+  "must": "PASS; AegisIR.Select with select_in_profile, pq_required_no_classical, hrr_only_if_no_share, alert_iff_empty_intersection, universal_only_11ED; no sorry; axiom allowlist unchanged; 0 divergence on 1e5 cases per profile"
+ },
+ "write_scope": [
+  "spec/AegisIR/Select.lean",
+  "spec/lakefile.toml",
+  "spec/STATEMENTS.sha256",
+  "oracles/select-drt/**"
+ ],
+ "notes": "No Mathlib. lakefile.toml only (no lakefile.lean). The Rust side of the DRT is the oracle's selection model, not rustls; record the rung as R4 + R2 correspondence."
+}

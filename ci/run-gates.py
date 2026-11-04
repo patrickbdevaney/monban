@@ -36,7 +36,11 @@ def main():
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     dirty = bool(subprocess.run(["git", "status", "--porcelain", "--", ".", ":!gates/out"], cwd=ROOT,
                                 capture_output=True, text=True).stdout.strip())
-    only = set(filter(None, a.only.split(",")))
+    # Run-start marker: gates that consume another gate's log from this run (exception-ledger, conformance) reject
+    # any log older than it (PLAN-6 D10).
+    with open(os.path.join(outdir, "logs", ".run-start"), "w") as f:
+        f.write(head + "\n")
+    only =set(filter(None, a.only.split(",")))
     results, prev, ok = [], "0" * 64, True
     for g in spec["gate"]:
         if only and g["name"] not in only:

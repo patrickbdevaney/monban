@@ -1,0 +1,34 @@
+{
+ "id": "P6-cmvp-001",
+ "role": "implementer",
+ "depends_on": [
+  "P6-tls-001",
+  "P6-spec-002",
+  "P6-oracle-fips-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "fips-binary",
+  "clienthello-cmvp"
+ ],
+ "spec_refs": [
+  "PLAN-6 D1, D2",
+  "F12 requires=cmvp rows",
+  "ARCHITECTURE R-PQC-2"
+ ],
+ "oracles": [
+  "oracle-fips mutants",
+  "hrr-verdicts --require-cmvp mutants"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'profiles/cmvp/build.sh && oracles/cmvp-binary/run --binary target/cmvp/release/aegis && oracles/hrr-verdicts/run --require-cmvp --file tls/verdicts.toml --subject \"target/cmvp/release/tls-subject subject\"'",
+  "must": "PASS; fips_status reports module AWS-LC FIPS 3.1.0 only on cmvp with fips() true; /healthz and audit carry the module string; floor build reports module None"
+ },
+ "write_scope": [
+  "crates/aegis-tls/src/**",
+  "crates/aegis-bin/src/admin.rs",
+  "crates/aegis-bin/src/main.rs",
+  "crates/aegis-audit/src/**"
+ ],
+ "notes": "Any API gap between floor and cmvp locks is closed behind cfg(feature=\"cmvp\") in the owning crate (feature defined by P6-spec-002)."
+}

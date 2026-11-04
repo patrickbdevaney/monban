@@ -1,0 +1,30 @@
+{
+ "id": "P6-tls-001",
+ "role": "implementer",
+ "depends_on": [
+  "P6-spec-001",
+  "P6-oracle-hrr-001",
+  "P6-oracle-interop-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "kx-kat"
+ ],
+ "spec_refs": [
+  "profile.rs PENDING_*",
+  "F12 re-frozen",
+  "PLAN-6 D4"
+ ],
+ "oracles": [
+  "kx-kat selftest: order-mutant feature fails kat_composite_decapsulation"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh cargo test -p aegis-tls --locked && ci/remote.sh bash -c '! cargo test -p aegis-tls --locked --features order-mutant kat_composite' && ci/heavy.sh oracles/hrr-verdicts/run --file tls/verdicts.toml --subject 'target/release/tls-subject subject' && ci/remote.sh --host kamrui oracles/kx-interop/run",
+  "must": "PASS; Universal/BsiAlt/Cnsa Active; FipsPqRequired f8_name fixed; from_fixed_keys_for_kat cfg(any(test, feature=\"kat\")) and absent from cmvp; tls-subject serves every profile; mod kani_proofs wired"
+ },
+ "write_scope": [
+  "crates/aegis-tls/src/**",
+  "subjects/tls-subject/src/**"
+ ],
+ "notes": "Feature `order-mutant` and `kat` are defined by P6-spec-002 in crates/aegis-tls/Cargo.toml."
+}

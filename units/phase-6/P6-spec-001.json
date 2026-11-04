@@ -1,0 +1,31 @@
+{
+ "id": "P6-spec-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "tls-verdicts (re-frozen F12)"
+ ],
+ "spec_refs": [
+  "PLAN-6 Interfaces",
+  "tls/verdicts.toml",
+  "interfaces/F13-conformance-report.schema.json",
+  "spec/SPEC_INVARIANTS.md \u00a7F"
+ ],
+ "oracles": [
+  "python3 -I ci/interfaces.py self-test",
+  "python3 -I ci/statements.py self-test (if present) or check"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/statements.py check spec",
+  "must": "PASS; F12 UNI-T1..T5, BSI-T1..T4, CNSA-T1..T4 rows added and the three profiles active; F13 signatures[3]; F1 \u00a7F addendum Select + REL-1..5; re-freeze in the same commit with the reason"
+ },
+ "write_scope": [
+  "tls/verdicts.toml",
+  "interfaces/F13-conformance-report.schema.json",
+  "interfaces/MANIFEST.sha256",
+  "spec/SPEC_INVARIANTS.md",
+  "spec/STATEMENTS.sha256"
+ ],
+ "notes": "Verdict offers must be expressible by oracles/hrr-verdicts (P6-oracle-hrr-001 extends it). CNSA TLS1.2 row uses the oracle's existing version-mismatch expectation."
+}

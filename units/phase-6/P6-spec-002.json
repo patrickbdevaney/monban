@@ -1,0 +1,37 @@
+{
+ "id": "P6-spec-002",
+ "role": "integrator",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "fips-lock"
+ ],
+ "spec_refs": [
+  "PLAN-6 D1, D6, D10",
+  "profiles/cmvp/pins.toml",
+  "BACKLOG fips-lock G1-G8",
+  "PREFLIGHT D-P5"
+ ],
+ "oracles": [
+  "cargo xtask fips-lock --self-test: mutants decoy 0.14.3 (exists), aws-lc-sys present in cmvp, prefer-post-quantum missing on a rustls node (G1), aws-lc-rs outside [1.15.2,1.17.1] (G3), floor rustls < 0.23.46 (G4), floor lineage broken (G5)"
+ ],
+ "acceptance": {
+  "cmd": "cargo xtask fips-lock --profile cmvp && cargo xtask fips-lock --profile floor && cargo xtask fips-lock --self-test && cargo xtask lock-age --min-days 7 && cargo xtask lock-targets && cargo deny check && cargo vet --locked",
+  "must": "PASS; profiles/cmvp/{overlay.toml,Cargo.lock,build.sh} committed; ci/remote.sh --host kamrui profiles/cmvp/build.sh --check builds aegis-bin and tls-subject (cmvp) or the gap list is recorded as D1 cfg work for P6-cmvp-001; tools pinned (cargo-auditable, cargo-cyclonedx, python-tuf+securesystemslib hash-locked, BoringSSL commit, go1.27.3); 0349 advisory-accepted entry with evidence path; expired wasmtime/pulley entries removed once lock-age passes"
+ },
+ "write_scope": [
+  "Cargo.toml",
+  "Cargo.lock",
+  "profiles/**",
+  "ci/tools.lock",
+  "ci/install-tools.sh",
+  "supply-chain/**",
+  "deny.toml",
+  "xtask/src/main.rs",
+  "xtask/src/lock.rs",
+  "units/BACKLOG.md",
+  "DEVIATIONS.md",
+  "deploy/build/al2023.Containerfile"
+ ],
+ "notes": "Containerfile: FROM amazonlinux@sha256:bb1c85fe00170acd8a653de5f68cf77c7ec67234a130b18fad7ca1de1f61e3d3, single RUN dnf --releasever=<pinned> install gcc gcc-c++ cmake perl-interpreter perl-FindBin make findutils tar gzip with tsflags=nodocs, clean docs/locale/man; assert image < 500 MB in build.sh. Go and rustup mounted read-only."
+}
