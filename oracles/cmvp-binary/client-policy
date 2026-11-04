@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# cmvp-client-policy gate entry point (see client_policy.py and README.md).
+exec python3 -I "$(dirname "$0")/client_policy.py" "$@"

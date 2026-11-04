@@ -1,0 +1,83 @@
+# oracles/cmvp-binary self-test fixtures. Own workspace (the root workspace excludes "oracles").
+# Floor profile (rustls 0.23.46 + aws-lc-rs 1.18.2, the root pins; lock ported from spikes/cmvp-client-policy/tlsbins),
+# NOT the cmvp lock: the fixtures stand in for the cmvp aegis binary until P6-cmvp-001 produces one. Built only by
+# oracles/cmvp-binary/lib/fixtures.sh (through ci/heavy.sh) into target/cmvp-binary-fixtures/.
+[package]
+name = "cmvp-fixtures"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+members = [".", "mtls"]
+
+[features]
+default = []
+# Stands in for the AEGIS features that gate every rustls client (aegis-tls/tls-client, aegis-egress/tls-client,
+# aegis-ops/acme). M1 judges first-party features by these names.
+tls-client = []
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+
+[lib]
+path = "src/lib.rs"
+
+# ---- client-policy fixtures (spike tlsbins, unchanged) ----
+# cmvp shape, mode "compiled-out": server only.
+[[bin]]
+name = "srv_only"
+# Client code present in source and crate graph but unreachable from main (LTO removes it).
+[[bin]]
+name = "dead_client"
+required-features = ["tls-client"]
+# cmvp shape, mode "pq-only": client built only by the blessed constructor.
+[[bin]]
+name = "pq_client"
+required-features = ["tls-client"]
+# Negative: default client (classical groups, in-memory session store = key-share prediction store).
+[[bin]]
+name = "bad_client"
+required-features = ["tls-client"]
+# Negative: PQ-only groups but the default resumption store.
+[[bin]]
+name = "bad_resume"
+required-features = ["tls-client"]
+# (D13 negative srv_mtls lives in the member package mtls/, see there.)
+
+# ---- fips-binary fixtures (no dependencies; `--fips-check` per the contract in ../README.md) ----
+# Positive stand-in: contiguous module string, contract line for cmvp.
+[[bin]]
+name = "fips_good"
+# Negative control (floor shape): no FIPS string, `module=none`.
+[[bin]]
+name = "fips_floor"
+# Mutant: no contiguous string in the binary (the right line is assembled at runtime from pieces).
+[[bin]]
+name = "fips_nostring"
+# Mutant: string present, runtime reports module=none (a floor build that happens to carry the bytes).
+[[bin]]
+name = "fips_rt_none"
+# Mutant: string present, runtime reports the non-FIPS module "AWS-LC 4.2.0".
+[[bin]]
+name = "fips_rt_420"
+# Mutant: string present, --fips-check line differs from the contract (fips_mode=false).
+[[bin]]
+name = "fips_mismatch"
+# Mutant: string present, but a second module identity "AWS-LC FIPS 2.0.0" is also in the binary.
+[[bin]]
+name = "fips_decoy"
+# Mutant: string present, but --fips-check is not implemented (usage on stderr, exit 2), like today's aegis.
+[[bin]]
+name = "fips_noflag"
+
+[profile.release]
+# = the root Cargo.toml [profile.release] (strip = "symbols": the shipped form). The client-policy oracle gets the
+# linker map and the unstripped twin by relinking only the final crate (cargo rustc), exactly as on the cmvp tree.
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+debug = false
+incremental = false
