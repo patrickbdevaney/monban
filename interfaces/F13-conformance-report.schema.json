@@ -5,7 +5,7 @@
   "description": "Signed JSON report emitted by conformance/ for a build or a third-party extension. Levels C0-C4; the golden reference claims only what its gates executed.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["v", "subject", "artifact_sha256", "toolchain", "generated_at", "levels", "gates", "signature"],
+  "required": ["v", "subject", "artifact_sha256", "toolchain", "generated_at", "levels", "gates", "signatures"],
   "properties": {
     "v": {"const": 1},
     "subject": {"type": "object", "additionalProperties": false, "required": ["name", "version", "kind"],
@@ -22,7 +22,18 @@
       "properties": {"name": {"type": "string"}, "result": {"enum": ["pass", "fail", "skipped"]},
                      "reason": {"type": "string"}, "log_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
     "not_claimed": {"type": "array", "items": {"type": "string"}},
-    "signature": {"type": "object", "required": ["alg", "sig"],
-      "properties": {"alg": {"enum": ["ed25519", "ml-dsa-87", "slh-dsa-sha2-128s"]}, "sig": {"type": "string"}}}
+    "test_keys": {"type": "boolean", "description": "true iff the signatures were made with per-run test keys (PLAN-6 D-P2, REL-4); absent means false. A verifier refuses a report with test_keys true unless it is run with --allow-test-keys."},
+    "signatures": {"description": "Amended 2026-11-04 (P6-spec-001, PLAN-6 Interfaces F13; was a single `signature`; v stays 1, no consumer existed). Exactly three signatures, one per algorithm, in this order, all over the same message: the same report with the `signatures` member removed, serialized as Python json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded as UTF-8 (REL-1: accepted only if all three verify).",
+      "type": "array", "minItems": 3, "maxItems": 3, "items": false,
+      "prefixItems": [
+        {"$ref": "#/$defs/sig", "properties": {"alg": {"const": "ed25519"}}},
+        {"$ref": "#/$defs/sig", "properties": {"alg": {"const": "slh-dsa-sha2-128s"}}},
+        {"$ref": "#/$defs/sig", "properties": {"alg": {"const": "ml-dsa-87"}}}
+      ]}
+  },
+  "$defs": {
+    "sig": {"type": "object", "additionalProperties": false, "required": ["alg", "sig"],
+      "properties": {"alg": {"enum": ["ed25519", "slh-dsa-sha2-128s", "ml-dsa-87"]},
+                     "sig": {"type": "string", "description": "standard base64 of the raw signature bytes", "pattern": "^[A-Za-z0-9+/]+={0,2}$"}}}
   }
 }

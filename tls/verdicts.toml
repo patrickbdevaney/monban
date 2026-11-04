@@ -5,7 +5,15 @@
 #
 # Freeze rule: any change to a [[verdict]] row (offer, profile, expected outcome) blocks a rustls / aws-lc-rs /
 # aws-lc-fips-sys bump until reviewed by the spec author (implementers are read-only on this file). Other files
-# cite verdict ids (PUB-T1..PUB-T6, FIPS-F1..FIPS-F6), never a count.
+# cite verdict ids (PUB-T1..PUB-T6, FIPS-F1..FIPS-F6, UNI-T1..UNI-T5, BSI-T1..BSI-T4, CNSA-T1..CNSA-T4), never a count.
+#
+# Amendment 2026-11-04 (Phase 6, unit P6-spec-001, PLAN-6 "Interfaces" F12; re-frozen in the same commit):
+#   - P-UNIVERSAL, P-BSI-ALT and P-CNSA: status pending -> active; new frozen verdicts UNI-T1..T5, BSI-T1..T4,
+#     CNSA-T1..T4. PUB-T1..T6 and FIPS-F1..F6 are byte-identical.
+#   - P-PUBLIC-WEB: 0x11ED (SECP384R1MLKEM1024) goes from kx_groups_target to kx_groups (aegis-tls::kx, Phase 6).
+#   - New row vocabulary (offer_versions, profile sigalg_cover) and the Select model's admission steps, defined
+#     below under "Row vocabulary added 2026-11-04". The oracle (P6-oracle-hrr-001) implements them.
+#   - UNI-T5 and CNSA-T3 freeze alert 49, not the 40 in the PLAN-6 draft: see "Admission order" below.
 #
 # Provenance (research, untrusted, re-run in-repo by the oracle):
 #   PUB-T1..T6  = r3pq.hrr-acceptance-test, research/state/raw/round-003/03-work/run1.txt (T1..T6) and
@@ -24,6 +32,42 @@
 #   requires = "cmvp"       -> group selection is checked on the floor lock (selection is rustls code, not module
 #                              code); the module half (config.fips() == true, module identity AWS-LC FIPS 3.1.0,
 #                              P-PQ5) needs the profiles/cmvp build and is reported SKIPPED until that build exists.
+#
+# Row vocabulary added 2026-11-04 (oracle field definitions; precise, so the oracle can implement them):
+#   offer_versions  (optional, [[verdict]] and mode = "probe" [[supplementary]] rows) array of version names from
+#                   {"TLS13", "TLS12"}, no duplicates, non-empty. Absent = ["TLS13"] (every row before 2026-11-04,
+#                   whose wire bytes are therefore unchanged). On the wire: the supported_versions extension
+#                   (0x002b) lists exactly these, in row order, TLS13 = 0x0304, TLS12 = 0x0303. legacy_version stays
+#                   0x0303 and cipher_suites stay [client_hello].cipher_suites; nothing else in the hello changes.
+#                   A row whose model outcome would negotiate TLS 1.2 (offer_versions without TLS13 against a profile
+#                   whose versions contain TLS12) is a load error: every profile is TLS 1.3 only (P-PQ4) and the
+#                   model does not cover TLS 1.2 negotiation.
+#   sigalg_cover    (optional, [profiles.*]) only value "all-or-none". Load-time check for every [[verdict]] and
+#                   mode = "probe" [[supplementary]] row on that profile: offer_sigalgs intersected with the
+#                   profile's sigalgs is either empty or equal to the profile's sigalgs; otherwise a load error.
+#                   Reason: these profiles allow more than one credential (ML-DSA-87 / ECDSA-P384), so a row offering
+#                   only part of the set would make the outcome depend on which credential the subject serves.
+#                   Under the rule the model's sigalg step is exact for any in-profile credential.
+#   expect_alert    unchanged meaning; new values used: 49 (access_denied), 70 (protocol_version).
+#
+# Select model as the oracle's MODEL check applies it (spec section F Select(model); SPEC_INVARIANTS section F
+# addendum 2026-11-04). For profile P and row c, the first server record is, in this order:
+#   1. version admission: if offer_versions and P.versions are disjoint            -> alert 70 (protocol_version)
+#   2. sigalg admission:  if offer_sigalgs and P.sigalgs are disjoint               -> alert 49 (access_denied)
+#   3. group selection:   Lean AegisIR.Select.select(P.kx, P.selector, c.groups, c.shares):
+#        selected = first group in c.groups that is in P.kx (client-order; server-order: first of P.kx in c.groups)
+#        none -> alert 40; selected in c.key_shares -> server_hello(selected); else -> hrr(selected)
+# Steps 1-2 are admission checks outside the Lean model (which is step 3 only); on the rows before 2026-11-04 they
+# never fire, so the model is unchanged for PUB-T1..T6, FIPS-F1..F6 and SUP-3/SUP-4.
+#
+# Admission order (why 70 and 49, read from rustls 0.23.46 src/server/hs.rs, ExpectClientHello::with_certified_key):
+#   the supported_versions check runs first and sends ProtocolVersion (70) when the client offers no enabled
+#   version; the certificate resolver runs next, before choose_suite_and_kx_group; aegis-tls wraps every
+#   resolver in ProfileCertResolver, which returns None when no offered scheme is both allowed by the profile and
+#   signable by the key, and rustls then sends AccessDenied (49) "no server certificate chain resolved". The group
+#   check (NoKxGroupsInCommon -> 40) and HRR come after. A handshake_failure (40) for "no common signature scheme"
+#   exists in rustls only in tls13 emit_certificate_verify, after the ServerHello has been sent, so it can never be
+#   the first server record: freezing 40 for UNI-T5 / CNSA-T3 would freeze an unreachable verdict.
 
 schema = "aegis.tls.verdicts/1"
 interface = "F12"
@@ -69,9 +113,8 @@ sni = "aegis.test"
 status = "active"
 listener = "public browser listener"
 selector = "client-order"
-kx_groups = ["X25519MLKEM768", "SECP256R1MLKEM768", "X25519", "SECP256R1"]
-kx_groups_target = ["X25519MLKEM768", "SECP384R1MLKEM1024", "SECP256R1MLKEM768", "X25519", "SECP256R1"]
-pending_reason = "SECP384R1MLKEM1024 (0x11ED) is not in rustls (PR #3293 closed unmerged); it is aegis-tls::kx::SecP384r1MlKem1024, Phase 6. Until then kx_groups = kx_groups_target minus 0x11ED."
+kx_groups = ["X25519MLKEM768", "SECP384R1MLKEM1024", "SECP256R1MLKEM768", "X25519", "SECP256R1"]
+kx_note = "2026-11-04: kx_groups_target became kx_groups. SECP384R1MLKEM1024 (0x11ED) is not in rustls (PR #3293 closed unmerged); it is aegis-tls::kx::SecP384r1MlKem1024 (Phase 6: kx-kat, kx-interop, kani-kx)."
 sigalgs = ["ecdsa_secp256r1_sha256"]
 credential = "ECDSA-P256 (public WebPKI; CA/B SC-106 withdrawn)"
 versions = ["TLS13"]
@@ -111,37 +154,47 @@ early_data = false
 pending_reason = "as FIPS"
 
 [profiles.P-UNIVERSAL]
-status = "pending"
+status = "active"
 listener = "government, multi-jurisdiction"
 selector = "client-order"
 kx_groups = ["SECP384R1MLKEM1024"]
 sigalgs = ["mldsa87", "ecdsa_secp384r1_sha384"]
+sigalg_cover = "all-or-none"
+credential = "ML-DSA-87 or ECDSA-P384 (either is in profile; sigalg_cover makes the verdicts independent of which one the subject serves)"
 versions = ["TLS13"]
 early_data = false
-pending_reason = "0x11ED is AEGIS-owned (Phase 6: KATs, OpenSSL 3.5+/BoringSSL interop, Kani share parsing). No F12 verdicts yet."
+kx_note = "0x11ED is AEGIS-owned (aegis-tls::kx, P-384 share first then ML-KEM-1024); activated 2026-11-04 with UNI-T1..T5. FIPS is not claimed for this profile until the 3.1.0 boundary check (ARCHITECTURE 3.2) passes."
 
 [profiles.P-BSI-ALT]
-status = "pending"
+status = "active"
 listener = "government, BSI alternative"
 selector = "client-order"
 kx_groups = ["SECP384R1MLKEM1024", "SECP256R1MLKEM768"]
 sigalgs = ["mldsa87", "ecdsa_secp384r1_sha384"]
+sigalg_cover = "all-or-none"
+credential = "ML-DSA-87 or ECDSA-P384 (as P-UNIVERSAL)"
 versions = ["TLS13"]
 early_data = false
-pending_reason = "needs 0x11ED (Phase 6). No F12 verdicts yet."
+kx_note = "activated 2026-11-04 with BSI-T1..T4. Client order: a client listing 0x11EB first gets 0x11EB (BSI-T1) until the PreferServerOrder backport."
 
 [profiles.P-CNSA]
-status = "pending"
+status = "active"
 listener = "US NSS opt-in"
 selector = "client-order"
 kx_groups = ["MLKEM1024"]
 sigalgs = ["mldsa87"]
+sigalg_cover = "all-or-none"
+credential = "ML-DSA-87"
 versions = ["TLS13"]
 early_data = false
-pending_reason = "buildable on the floor lock (kx_group::MLKEM1024, ML-DSA-87) but no F12 verdicts are frozen for it yet; pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00)."
+kx_note = "activated 2026-11-04 with CNSA-T1..T4; buildable on the floor lock (rustls kx_group::MLKEM1024, ML-DSA-87). Pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00): opt-in only."
 
-# --------------------------------------------------------------------------------------------- verdicts (12, frozen)
-# All offers use sigalgs = [ecdsa_secp256r1_sha256, rsa_pss_rsae_sha256, mldsa44, mldsa65] (the research probe set).
+# --------------------------------------------------------------------------------------------- verdicts (frozen)
+# Offer sigalg sets:
+#   research probe set = [ecdsa_secp256r1_sha256, rsa_pss_rsae_sha256, mldsa44, mldsa65]: every PUB/FIPS row, and the
+#     sigalg-negative rows UNI-T5 and CNSA-T3 (it has neither mldsa87 nor ecdsa_secp384r1_sha384).
+#   gov probe set (2026-11-04) = the research probe set plus ecdsa_secp384r1_sha384 and mldsa87: every other UNI/BSI/
+#     CNSA row; it contains every sigalg of the three government profiles, so sigalg_cover holds.
 
 [[verdict]]
 id = "PUB-T1"
@@ -299,8 +352,181 @@ requires = "cmvp"
 witnesses = ["P-PQ2", "Select", "P-PQ5"]
 note = "Both hybrid shares offered: the FIPS listener takes 0x11EB even though the client listed 0x11EC first."
 
+# Phase 6 government profiles (2026-11-04, P6-spec-001; spec-authored from PLAN-6 F12 and rustls 0.23.46 server/hs.rs,
+# not from research probes). requires = "floor": 0x11ED is aegis-tls code and MLKEM1024 / ML-DSA-87 are in the floor lock.
+
+[[verdict]]
+id = "UNI-T1"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-UNIVERSAL"
+offer_groups = ["X25519MLKEM768", "SECP384R1MLKEM1024"]
+offer_key_shares = ["X25519MLKEM768", "SECP384R1MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "server_hello"
+expect_group = "SECP384R1MLKEM1024"
+requires = "floor"
+witnesses = ["Select", "P-PQ2", "universal_only_11ED"]
+note = "0x11ED offered with a share: one round trip on 0x11ED. The client lists 0x11EC first; it is not in the profile, so the client-order pick is 0x11ED."
+
+[[verdict]]
+id = "UNI-T2"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-UNIVERSAL"
+offer_groups = ["X25519MLKEM768", "SECP256R1MLKEM768", "SECP384R1MLKEM1024"]
+offer_key_shares = ["X25519MLKEM768", "SECP256R1MLKEM768"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "hrr"
+expect_group = "SECP384R1MLKEM1024"
+requires = "floor"
+witnesses = ["Select", "P-PQ2", "hrr_only_if_no_share", "universal_only_11ED"]
+note = "Shares only for 0x11EC/0x11EB (both outside the profile), 0x11ED listed in supported_groups without a share: retry to 0x11ED, never accept a share outside the profile."
+
+[[verdict]]
+id = "UNI-T3"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-UNIVERSAL"
+offer_groups = ["X25519"]
+offer_key_shares = ["X25519"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "alert"
+expect_alert = 40
+requires = "floor"
+witnesses = ["P-PQ1", "alert_iff_empty_intersection"]
+note = "X25519-only client: handshake_failure (NoKxGroupsInCommon)."
+
+[[verdict]]
+id = "UNI-T4"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-UNIVERSAL"
+offer_groups = ["SECP384R1"]
+offer_key_shares = ["SECP384R1"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "alert"
+expect_alert = 40
+requires = "floor"
+witnesses = ["P-PQ1", "pq_required_no_classical", "alert_iff_empty_intersection"]
+note = "Classical P-384-only client (the classical half of 0x11ED alone): handshake_failure."
+
+[[verdict]]
+id = "UNI-T5"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-UNIVERSAL"
+offer_groups = ["SECP384R1MLKEM1024"]
+offer_key_shares = ["SECP384R1MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65"]
+expect = "alert"
+expect_alert = 49
+requires = "floor"
+witnesses = ["P-PQ2"]
+note = "Group fine, but the offered sigalgs contain neither mldsa87 nor ecdsa_secp384r1_sha384: no in-profile credential, ProfileCertResolver returns None, rustls sends access_denied (49) before group selection (header: Admission order). PLAN-6 draft said 40; 40 is unreachable as a first record."
+
+[[verdict]]
+id = "BSI-T1"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-BSI-ALT"
+offer_groups = ["SECP256R1MLKEM768", "SECP384R1MLKEM1024"]
+offer_key_shares = ["SECP256R1MLKEM768", "SECP384R1MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "server_hello"
+expect_group = "SECP256R1MLKEM768"
+requires = "floor"
+witnesses = ["Select", "P-PQ2", "select_in_profile"]
+note = "Client lists 0x11EB first and sends both shares: client order picks 0x11EB although the profile lists 0x11ED first. Flips to 0x11ED only by a deliberate verdict change when the PreferServerOrder backport lands (BACKLOG TLS)."
+
+[[verdict]]
+id = "BSI-T2"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-BSI-ALT"
+offer_groups = ["SECP384R1MLKEM1024"]
+offer_key_shares = ["SECP384R1MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "server_hello"
+expect_group = "SECP384R1MLKEM1024"
+requires = "floor"
+witnesses = ["Select", "P-PQ2"]
+note = "0x11ED-only client: one round trip on 0x11ED."
+
+[[verdict]]
+id = "BSI-T3"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-BSI-ALT"
+offer_groups = ["X25519MLKEM768"]
+offer_key_shares = ["X25519MLKEM768"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "alert"
+expect_alert = 40
+requires = "floor"
+witnesses = ["P-PQ2", "alert_iff_empty_intersection"]
+note = "X25519MLKEM768 is hybrid but not in the BSI list: handshake_failure."
+
+[[verdict]]
+id = "BSI-T4"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-BSI-ALT"
+offer_groups = ["X25519", "SECP256R1", "SECP384R1"]
+offer_key_shares = ["X25519"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "alert"
+expect_alert = 40
+requires = "floor"
+witnesses = ["P-PQ1", "pq_required_no_classical", "alert_iff_empty_intersection"]
+note = "Classical-only client (X25519, P-256, P-384): handshake_failure."
+
+[[verdict]]
+id = "CNSA-T1"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-CNSA"
+offer_groups = ["MLKEM1024"]
+offer_key_shares = ["MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "server_hello"
+expect_group = "MLKEM1024"
+requires = "floor"
+witnesses = ["Select", "P-PQ2"]
+note = "Pure ML-KEM-1024 with a share: one round trip on 0x0202."
+
+[[verdict]]
+id = "CNSA-T2"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-CNSA"
+offer_groups = ["SECP384R1MLKEM1024"]
+offer_key_shares = ["SECP384R1MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+expect = "alert"
+expect_alert = 40
+requires = "floor"
+witnesses = ["P-PQ2", "alert_iff_empty_intersection"]
+note = "0x11ED-only client: P-CNSA is pure ML-KEM-1024 only, so the hybrid is refused with handshake_failure."
+
+[[verdict]]
+id = "CNSA-T3"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-CNSA"
+offer_groups = ["MLKEM1024"]
+offer_key_shares = ["MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65"]
+expect = "alert"
+expect_alert = 49
+requires = "floor"
+witnesses = ["P-PQ2"]
+note = "mldsa87 absent from signature_algorithms: no in-profile credential, access_denied (49) before group selection (header: Admission order). PLAN-6 draft said 40; 40 is unreachable as a first record."
+
+[[verdict]]
+id = "CNSA-T4"
+source = "P6-spec-001 (PLAN-6 F12)"
+profile = "P-CNSA"
+offer_groups = ["MLKEM1024"]
+offer_key_shares = ["MLKEM1024"]
+offer_sigalgs = ["ecdsa_secp256r1_sha256", "ecdsa_secp384r1_sha384", "rsa_pss_rsae_sha256", "mldsa44", "mldsa65", "mldsa87"]
+offer_versions = ["TLS12"]
+expect = "alert"
+expect_alert = 70
+requires = "floor"
+witnesses = ["P-PQ4"]
+note = "TLS 1.2-only client (supported_versions = [0x0303]): protocol_version (70), rustls Tls12NotOfferedOrEnabled, before certificate and group selection. Uses offer_versions (header)."
+
 # --------------------------------------------------------------------------------------------- supplementary
-# Checked by the oracle on every run, cited by id, but NOT part of the 12 frozen verdicts. mode = "probe" is a raw
+# Checked by the oracle on every run, cited by id, but NOT frozen verdicts. mode = "probe" is a raw
 # ClientHello like the verdicts; mode = "full" is a complete in-memory handshake with a real rustls client whose
 # kx_groups = client_groups (the client chooses its own key shares); the oracle observes the negotiated group,
 # the handshake kind and the server's CertificateVerify scheme (checked against the profile's sigalgs, P-PQ2).
