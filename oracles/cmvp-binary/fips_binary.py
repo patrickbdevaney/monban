@@ -161,11 +161,15 @@ def main():
         print("usage: run --binary PATH [--metadata FILE] [--expect cmvp|floor] | run --self-test", file=sys.stderr)
         print("CMVP-BINARY: FAIL (usage)")
         return 2
+    # Resolve path arguments now: --fips-check runs the binary with cwd /, where a relative path means nothing.
+    binp = os.path.abspath(binp)
+    meta = arg("--metadata")
+    meta = os.path.abspath(meta) if meta else None
     expect = arg("--expect", "cmvp")
     if expect not in ("cmvp", "floor"):
         print("CMVP-BINARY: FAIL (--expect must be cmvp or floor)")
         return 2
-    v, bad, info = judge(binp, expect, arg("--metadata"))
+    v, bad, info = judge(binp, expect, meta)
     for line in info:
         print(line)
     for b in bad:
