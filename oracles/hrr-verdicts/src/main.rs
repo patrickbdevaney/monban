@@ -6,11 +6,14 @@
 //!   hrr-verdicts subject   [--mutate M] describe|serve PROFILE      (the reference subject over stdio)
 #![forbid(unsafe_code)]
 
+mod kx11ed;
 mod toml;
 
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::{aws_lc_rs as prov, CryptoProvider, SupportedKxGroup};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName, UnixTime};
+use rustls::server::{ClientHello, ResolvesServerCert};
+use rustls::sign::CertifiedKey;
 use rustls::{
     ClientConfig, ClientConnection, DigitallySignedStruct, ServerConfig, ServerConnection, SignatureScheme,
     SupportedProtocolVersion,
@@ -49,6 +52,8 @@ struct Profile {
     sigalgs: Vec<u16>,
     versions: Vec<String>,
     early_data: bool,
+    /// F12 `sigalg_cover` (2026-11-04): only "all-or-none"; checked at load time by `validate`.
+    sigalg_cover: Option<String>,
 }
 
 #[derive(Clone)]
@@ -56,6 +61,14 @@ struct ProbeCase {
     groups: Vec<u16>,
     shares: Vec<u16>,
     sigalgs: Vec<u16>,
+    /// F12 `offer_versions` (2026-11-04): version names in row order; absent = ["TLS13"].
+    versions: Vec<String>,
+}
+
+const VERSIONS: [(&str, u16); 2] = [("TLS13", 0x0304), ("TLS12", 0x0303)];
+
+fn tls13() -> Vec<String> {
+    vec!["TLS13".to_string()]
 }
 
 #[derive(Clone)]
@@ -179,6 +192,10 @@ fn load(path: &str) -> R<Spec> {
                     .filter_map(|x| x.str().map(String::from))
                     .collect(),
                 early_data: p.get("early_data").and_then(Value::bool).ok_or(format!("{ctx}.early_data"))?,
+                sigalg_cover: match p.get("sigalg_cover") {
+                    None => None,
+                    Some(v) => Some(v.str().map(String::from).ok_or(format!("{ctx}.sigalg_cover: not a string"))?),
+                },
             },
         );
     }
@@ -187,6 +204,15 @@ fn load(path: &str) -> R<Spec> {
             groups: codes(&groups, v, "offer_groups", ctx)?,
             shares: codes(&groups, v, "offer_key_shares", ctx)?,
             sigalgs: codes(&sigalgs, v, "offer_sigalgs", ctx)?,
+            versions: match v.get("offer_versions") {
+                None => tls13(),
+                Some(a) => a
+                    .arr()
+                    .ok_or(format!("{ctx}.offer_versions: not an array"))?
+                    .iter()
+                    .map(|x| x.str().map(String::from).ok_or(format!("{ctx}.offer_versions: non-string entry")))
+                    .collect::<R<Vec<String>>>()?,
+            },
         })
     };
     let mut verdicts = Vec::new();
@@ -219,12 +245,66 @@ fn load(path: &str) -> R<Spec> {
         };
         sups.push(Sup { id, profile, mode });
     }
-    Ok(Spec { groups, sigalgs, sni, suites, profiles, verdicts, sups })
+    let spec = Spec { groups, sigalgs, sni, suites, profiles, verdicts, sups };
+    validate(&spec)?;
+    Ok(spec)
 }
 
-/// Select(model), spec section F: client-order picks the first client-listed group the server supports;
-/// server-order the first server-listed group the client lists; HRR iff no share for the selected group.
+/// Load-time rules of the F12 row vocabulary (header "Row vocabulary added 2026-11-04"): offer_versions values,
+/// no TLS 1.2 negotiation, sigalg_cover = all-or-none.
+fn validate(spec: &Spec) -> R<()> {
+    for (name, p) in &spec.profiles {
+        match p.sigalg_cover.as_deref() {
+            None | Some("all-or-none") => {}
+            Some(o) => return Err(format!("profiles.{name}.sigalg_cover: unknown value '{o}'")),
+        }
+        for v in &p.versions {
+            if !VERSIONS.iter().any(|(n, _)| n == v) {
+                return Err(format!("profiles.{name}.versions: unknown version '{v}'"));
+            }
+        }
+    }
+    let rows = spec.verdicts.iter().map(|v| (&v.id, &v.profile, &v.probe)).chain(spec.sups.iter().filter_map(|s| match &s.mode {
+        SupMode::Probe(c, _) => Some((&s.id, &s.profile, c)),
+        SupMode::Full { .. } => None,
+    }));
+    for (id, prof, c) in rows {
+        let p = spec.profiles.get(prof).ok_or(format!("{id}: unknown profile {prof}"))?;
+        if c.versions.is_empty() {
+            return Err(format!("{id}: offer_versions is empty"));
+        }
+        for (i, v) in c.versions.iter().enumerate() {
+            if !VERSIONS.iter().any(|(n, _)| n == v) {
+                return Err(format!("{id}: offer_versions: unknown version '{v}'"));
+            }
+            if c.versions.iter().skip(i + 1).any(|w| w == v) {
+                return Err(format!("{id}: offer_versions: duplicate '{v}'"));
+            }
+        }
+        if !c.versions.iter().any(|v| v == "TLS13") && p.versions.iter().any(|v| v == "TLS12") {
+            return Err(format!("{id}: offer_versions without TLS13 against {prof} (versions contain TLS12): the model does not cover TLS 1.2 negotiation"));
+        }
+        if p.sigalg_cover.as_deref() == Some("all-or-none") {
+            let n = p.sigalgs.iter().filter(|s| c.sigalgs.contains(s)).count();
+            if n != 0 && n != p.sigalgs.len() {
+                return Err(format!("{id}: sigalg_cover all-or-none violated on {prof}: offer_sigalgs covers {n} of {} profile sigalgs", p.sigalgs.len()));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Select(model), spec section F + F12 header (2026-11-04), in order: 1. version admission (offer_versions and
+/// profile versions disjoint -> alert 70); 2. sigalg admission (offer_sigalgs and profile sigalgs disjoint -> alert
+/// 49); 3. group selection: client-order picks the first client-listed group the server supports; server-order the
+/// first server-listed group the client lists; none -> alert 40; HRR iff no share for the selected group.
 fn model(p: &Profile, c: &ProbeCase) -> Outcome {
+    if !c.versions.iter().any(|v| p.versions.contains(v)) {
+        return Outcome::Alert(70);
+    }
+    if !c.sigalgs.iter().any(|s| p.sigalgs.contains(s)) {
+        return Outcome::Alert(49);
+    }
     let sel = if p.selector == "server-order" {
         p.kx.iter().copied().find(|g| c.groups.contains(g))
     } else {
@@ -279,7 +359,13 @@ fn share(g: u16) -> R<Vec<u8>> {
 /// well-behaved client library never produces (the RUSTSEC-2026-0349 shape).
 fn client_hello(spec: &Spec, c: &ProbeCase) -> R<Vec<u8>> {
     let mut e = Vec::new();
-    e.extend(ext(0x002b, &[0x02, 0x03, 0x04]));
+    let sv = c
+        .versions
+        .iter()
+        .map(|v| VERSIONS.iter().find(|(n, _)| n == v).map(|(_, x)| *x).ok_or(format!("unknown version {v}")))
+        .collect::<R<Vec<u16>>>()?;
+    let sv: Vec<u8> = sv.iter().flat_map(|x| x.to_be_bytes()).collect();
+    e.extend(ext(0x002b, &[vec![sv.len() as u8], sv].concat()));
     let g: Vec<u8> = c.groups.iter().flat_map(|x| x.to_be_bytes()).collect();
     e.extend(ext(0x000a, &[(g.len() as u16).to_be_bytes().to_vec(), g].concat()));
     let mut ks = Vec::new();
@@ -382,9 +468,21 @@ enum Mutation {
     PublicNoHybrid,
     FipsX25519MlkemAdded,
     Tls12And0rttOnPqRequired,
+    // 2026-11-04 (P6-oracle-hrr-001)
+    UniversalAcceptsX25519,
+    UniversalPicks11EB,
+    CnsaAccepts11ED,
+    CnsaEcdsaUnfiltered,
+    CnsaTls12,
+    PublicNo11ED,
+    // describe-only: what the subject reports as module identity (checked with --require-cmvp)
+    ReportsFipsNoModule,
+    ReportsModule420,
+    ReportsCmvp310,
 }
 
-const MUTATIONS: [(Mutation, &str); 7] = [
+/// Subject mutants: each must give at least one diff in a normal run.
+const MUTATIONS: [(Mutation, &str); 13] = [
     (Mutation::PqRequiredX25519First, "pq-required-x25519-first"),
     (Mutation::PreferPqOff, "prefer-post-quantum-off"),
     (Mutation::SigalgNotInProfile, "sigalg-not-in-profile"),
@@ -392,46 +490,104 @@ const MUTATIONS: [(Mutation, &str); 7] = [
     (Mutation::PublicNoHybrid, "public-no-hybrid"),
     (Mutation::FipsX25519MlkemAdded, "fips-x25519mlkem768-added"),
     (Mutation::Tls12And0rttOnPqRequired, "tls12-and-0rtt-on-pq-required"),
+    (Mutation::UniversalAcceptsX25519, "universal-accepts-x25519"),
+    (Mutation::UniversalPicks11EB, "universal-picks-11eb"),
+    (Mutation::CnsaAccepts11ED, "cnsa-accepts-11ed"),
+    (Mutation::CnsaEcdsaUnfiltered, "cnsa-ecdsa-p384-unfiltered"),
+    (Mutation::CnsaTls12, "cnsa-tls12-enabled"),
+    (Mutation::PublicNo11ED, "public-no-11ed"),
+];
+
+/// Module-identity mutants: the first two must give diffs under --require-cmvp; the last is the positive control
+/// (a subject reporting fips=true + AWS-LC FIPS 3.1.0 must pass --require-cmvp with diff 0).
+const CMVP_MUTATIONS: [(Mutation, &str); 3] = [
+    (Mutation::ReportsFipsNoModule, "reports-fips-module-none"),
+    (Mutation::ReportsModule420, "reports-module-4.2.0"),
+    (Mutation::ReportsCmvp310, "reports-cmvp-3.1.0"),
 ];
 
 #[derive(Clone)]
-struct Cred {
-    cert: Vec<u8>,
-    key: Vec<u8>,
-}
+struct Cred(Arc<CertifiedKey>);
 
 fn cred(alg: &'static rcgen::SignatureAlgorithm) -> R<Cred> {
     let kp = rcgen::KeyPair::generate_for(alg).map_err(|e| format!("rcgen keygen: {e}"))?;
     let params = rcgen::CertificateParams::new(vec!["aegis.test".to_string()]).map_err(|e| e.to_string())?;
     let cert = params.self_signed(&kp).map_err(|e| format!("rcgen self_signed: {e}"))?;
-    Ok(Cred { cert: cert.der().to_vec(), key: kp.serialize_der() })
+    let ck = CertifiedKey::from_der(
+        vec![CertificateDer::from(cert.der().to_vec())],
+        PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(kp.serialize_der())),
+        &prov::default_provider(),
+    )
+    .map_err(|e| format!("credential: {e}"))?;
+    Ok(Cred(Arc::new(ck)))
+}
+
+/// Profile-filtered certificate resolution (the rule F12 "Admission order" relies on): returns the first credential
+/// whose key can sign one of the offered schemes that the profile allows, else None (rustls then sends
+/// access_denied 49 before group selection). `allowed = None` is the unfiltered (mutant) resolver.
+#[derive(Debug)]
+struct ProfileResolver {
+    keys: Vec<Arc<CertifiedKey>>,
+    allowed: Option<Vec<u16>>,
+}
+
+impl ResolvesServerCert for ProfileResolver {
+    fn resolve(&self, ch: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
+        match &self.allowed {
+            None => self.keys.first().cloned(),
+            Some(a) => {
+                let offered: Vec<SignatureScheme> =
+                    ch.signature_schemes().iter().copied().filter(|s| a.contains(&u16::from(*s))).collect();
+                self.keys.iter().find(|k| k.key.choose_scheme(&offered).is_some()).cloned()
+            }
+        }
+    }
+}
+
+struct Plan<'a> {
+    kx: Vec<&'static dyn SupportedKxGroup>,
+    creds: Vec<&'a Cred>,
+    allowed: Option<Vec<u16>>,
+    tls12: bool,
+    early: bool,
 }
 
 /// The reference profile builder: ARCHITECTURE.md 3.2 lists written in code, independently of the verdict file,
 /// so the static profile check is a real comparison. Replaced by the aegis-tls builder via --subject.
+#[derive(Clone)]
 struct Reference {
     m: Mutation,
     ecdsa: Cred,
+    ecdsa384: Cred,
     mldsa44: Cred,
     mldsa65: Cred,
+    mldsa87: Cred,
 }
+
+const ECDSA_P256: u16 = 0x0403;
+const ECDSA_P384: u16 = 0x0503;
+const MLDSA44: u16 = 0x0904;
+const MLDSA87: u16 = 0x0906;
 
 impl Reference {
     fn new(m: Mutation) -> R<Self> {
         Ok(Reference {
             m,
             ecdsa: cred(&rcgen::PKCS_ECDSA_P256_SHA256)?,
+            ecdsa384: cred(&rcgen::PKCS_ECDSA_P384_SHA384)?,
             mldsa44: cred(&rcgen::PKCS_ML_DSA_44)?,
             mldsa65: cred(&rcgen::PKCS_ML_DSA_65)?,
+            mldsa87: cred(&rcgen::PKCS_ML_DSA_87)?,
         })
     }
     fn with(&self, m: Mutation) -> Self {
-        Reference { m, ecdsa: self.ecdsa.clone(), mldsa44: self.mldsa44.clone(), mldsa65: self.mldsa65.clone() }
+        Reference { m, ..self.clone() }
     }
-    fn plan(&self, profile: &str) -> R<(Vec<&'static dyn SupportedKxGroup>, &Cred, bool, bool)> {
+    fn plan(&self, profile: &str) -> R<Plan<'_>> {
+        use kx11ed::SECP384R1MLKEM1024 as P384MLKEM1024;
         use prov::kx_group::*;
         let m = self.m;
-        // (kx, credential, tls12, early_data)
+        let plain = |kx, creds, allowed: &[u16]| Plan { kx, creds, allowed: Some(allowed.to_vec()), tls12: false, early: false };
         Ok(match profile {
             "P-PUBLIC-WEB" => {
                 let kx: Vec<&'static dyn SupportedKxGroup> = match m {
@@ -439,9 +595,11 @@ impl Reference {
                     // DEFAULT_KX_GROUPS without the feature): hybrid demoted to last
                     Mutation::PreferPqOff => vec![X25519, SECP256R1, SECP384R1, X25519MLKEM768],
                     Mutation::PublicNoHybrid => vec![X25519, SECP256R1],
-                    _ => vec![X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1],
+                    // the Phase-5 list (before 0x11ED moved from kx_groups_target to kx_groups)
+                    Mutation::PublicNo11ED => vec![X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1],
+                    _ => vec![X25519MLKEM768, P384MLKEM1024, SECP256R1MLKEM768, X25519, SECP256R1],
                 };
-                (kx, &self.ecdsa, false, false)
+                plain(kx, vec![&self.ecdsa], &[ECDSA_P256])
             }
             "PQ-REQUIRED" => {
                 let kx: Vec<&'static dyn SupportedKxGroup> = match m {
@@ -449,41 +607,65 @@ impl Reference {
                     Mutation::PqRequiredClassicalFallback => vec![X25519MLKEM768, X25519],
                     _ => vec![X25519MLKEM768],
                 };
-                let c = if m == Mutation::SigalgNotInProfile { &self.mldsa65 } else { &self.mldsa44 };
                 let t = m == Mutation::Tls12And0rttOnPqRequired;
-                (kx, c, t, t)
+                if m == Mutation::SigalgNotInProfile {
+                    Plan { kx, creds: vec![&self.mldsa65], allowed: None, tls12: t, early: t }
+                } else {
+                    Plan { kx, creds: vec![&self.mldsa44], allowed: Some(vec![ECDSA_P256, MLDSA44]), tls12: t, early: t }
+                }
             }
             "FIPS" => {
                 let kx: Vec<&'static dyn SupportedKxGroup> = match m {
                     Mutation::FipsX25519MlkemAdded => vec![X25519MLKEM768, SECP256R1MLKEM768, SECP256R1, SECP384R1],
                     _ => vec![SECP256R1MLKEM768, SECP256R1, SECP384R1],
                 };
-                (kx, &self.ecdsa, false, false)
+                plain(kx, vec![&self.ecdsa], &[ECDSA_P256, ECDSA_P384])
             }
-            "FIPS-PQ-REQUIRED" => (vec![SECP256R1MLKEM768], &self.ecdsa, false, false),
+            "FIPS-PQ-REQUIRED" => plain(vec![SECP256R1MLKEM768], vec![&self.ecdsa], &[ECDSA_P256, ECDSA_P384]),
+            // government profiles: both in-profile credentials loaded (ML-DSA-87 preferred on P-UNIVERSAL,
+            // ECDSA-P384 on P-BSI-ALT, so the P-PQ2 handshakes exercise both)
+            "P-UNIVERSAL" => {
+                let kx: Vec<&'static dyn SupportedKxGroup> = match m {
+                    Mutation::UniversalAcceptsX25519 => vec![P384MLKEM1024, X25519],
+                    Mutation::UniversalPicks11EB => vec![P384MLKEM1024, SECP256R1MLKEM768],
+                    _ => vec![P384MLKEM1024],
+                };
+                plain(kx, vec![&self.mldsa87, &self.ecdsa384], &[MLDSA87, ECDSA_P384])
+            }
+            "P-BSI-ALT" => {
+                plain(vec![P384MLKEM1024, SECP256R1MLKEM768], vec![&self.ecdsa384, &self.mldsa87], &[MLDSA87, ECDSA_P384])
+            }
+            "P-CNSA" => {
+                let kx: Vec<&'static dyn SupportedKxGroup> = match m {
+                    Mutation::CnsaAccepts11ED => vec![MLKEM1024, P384MLKEM1024],
+                    _ => vec![MLKEM1024],
+                };
+                match m {
+                    Mutation::CnsaEcdsaUnfiltered => Plan { kx, creds: vec![&self.ecdsa384], allowed: None, tls12: false, early: false },
+                    Mutation::CnsaTls12 => Plan { kx, creds: vec![&self.mldsa87], allowed: Some(vec![MLDSA87]), tls12: true, early: false },
+                    _ => plain(kx, vec![&self.mldsa87], &[MLDSA87]),
+                }
+            }
             p => return Err(format!("reference subject does not build profile {p}")),
         })
     }
     fn config(&self, profile: &str) -> R<(Arc<ServerConfig>, Vec<String>)> {
-        let (kx, c, tls12, early) = self.plan(profile)?;
+        let pl = self.plan(profile)?;
         let mut p = prov::default_provider();
-        p.kx_groups = kx;
+        p.kx_groups = pl.kx;
         let mut vers: Vec<&'static SupportedProtocolVersion> = vec![&rustls::version::TLS13];
-        let mut names = vec!["TLS13".to_string()];
-        if tls12 {
+        let mut names = tls13();
+        if pl.tls12 {
             vers.push(&rustls::version::TLS12);
             names.push("TLS12".into());
         }
+        let resolver = ProfileResolver { keys: pl.creds.iter().map(|c| c.0.clone()).collect(), allowed: pl.allowed };
         let mut cfg = ServerConfig::builder_with_provider(Arc::new(p))
             .with_protocol_versions(&vers)
             .map_err(|e| format!("{profile}: {e}"))?
             .with_no_client_auth()
-            .with_single_cert(
-                vec![CertificateDer::from(c.cert.clone())],
-                PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(c.key.clone())),
-            )
-            .map_err(|e| format!("{profile}: {e}"))?;
-        cfg.max_early_data_size = if early { 16384 } else { 0 };
+            .with_cert_resolver(Arc::new(resolver));
+        cfg.max_early_data_size = if pl.early { 16384 } else { 0 };
         Ok((Arc::new(cfg), names))
     }
 }
@@ -513,12 +695,18 @@ impl Conn for RefConn {
 impl Subject for Reference {
     fn describe(&self, profile: &str) -> R<Desc> {
         let (cfg, versions) = self.config(profile)?;
+        let (fips, module) = match self.m {
+            Mutation::ReportsFipsNoModule => (true, None),
+            Mutation::ReportsModule420 => (true, Some("AWS-LC FIPS 4.2.0".to_string())),
+            Mutation::ReportsCmvp310 => (true, Some(CMVP_MODULE.to_string())),
+            _ => (cfg.fips(), None),
+        };
         Ok(Desc {
             kx: cfg.crypto_provider().kx_groups.iter().map(|g| u16::from(g.name())).collect(),
             versions,
             early_data: cfg.max_early_data_size > 0,
-            fips: Some(cfg.fips()),
-            module: None,
+            fips: Some(fips),
+            module,
         })
     }
     fn connect(&self, profile: &str) -> R<Box<dyn Conn>> {
@@ -673,10 +861,10 @@ impl ServerCertVerifier for RecordingVerifier {
 
 fn kx_by_code(c: u16) -> R<&'static dyn SupportedKxGroup> {
     use prov::kx_group::*;
-    [X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1, SECP384R1, MLKEM768, MLKEM1024]
+    [X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1, SECP384R1, MLKEM768, MLKEM1024, kx11ed::SECP384R1MLKEM1024]
         .into_iter()
         .find(|g| u16::from(g.name()) == c)
-        .ok_or(format!("group 0x{c:04X} not implemented by the rustls aws-lc-rs provider (0x11ED is Phase 6)"))
+        .ok_or(format!("group 0x{c:04X} not implemented by the oracle client"))
 }
 
 struct FullResult {
@@ -794,10 +982,33 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
         }
         if !p.kx.is_empty() && p.kx.iter().all(|g| !CLASSICAL.contains(g)) {
             for g in CLASSICAL {
-                let c = ProbeCase { groups: vec![g], shares: vec![g], sigalgs: spec.sigalgs.values().copied().collect() };
+                let c = ProbeCase { groups: vec![g], shares: vec![g], sigalgs: spec.sigalgs.values().copied().collect(), versions: tls13() };
                 let got = run_probe(spec, subj, name, &c);
                 r.line(quiet, got == Outcome::Alert(40), format!("PROFILE {name} P-PQ1 classical-only {} -> {}", spec.gname(g), spec.show(&got)));
             }
+        }
+        // configured set = profile, behaviourally (P-PQ2): every [codepoints.groups] group offered alone with a share
+        // gets server_hello(g) iff g is in the profile, else alert 40 (in-profile sigalgs offered, TLS 1.3)
+        for (gn, g) in &spec.groups {
+            let c = ProbeCase { groups: vec![*g], shares: vec![*g], sigalgs: spec.sigalgs.values().copied().collect(), versions: tls13() };
+            let want = model(p, &c);
+            let got = run_probe(spec, subj, name, &c);
+            r.line(quiet, got == want, format!("PROFILE {name} group-set {gn} expect={} got={}", spec.show(&want), spec.show(&got)));
+        }
+        // sigalg admission (F12 header step 2): only out-of-profile sigalgs offered -> alert 49 before group selection
+        if p.sigalg_cover.is_some() {
+            if let Some(first) = p.kx.first() {
+                let out: Vec<u16> = spec.sigalgs.values().copied().filter(|s| !p.sigalgs.contains(s)).collect();
+                let c = ProbeCase { groups: vec![*first], shares: vec![*first], sigalgs: out, versions: tls13() };
+                let got = run_probe(spec, subj, name, &c);
+                r.line(quiet, got == Outcome::Alert(49), format!("PROFILE {name} sigalg-admission out-of-profile-only -> {}", spec.show(&got)));
+            }
+        }
+        // version admission (P-PQ4, F12 header step 1): a TLS 1.2-only hello -> alert 70 (TLS 1.3-only profiles)
+        if let (Some(first), false) = (p.kx.first(), p.versions.iter().any(|v| v == "TLS12")) {
+            let c = ProbeCase { groups: vec![*first], shares: vec![*first], sigalgs: spec.sigalgs.values().copied().collect(), versions: vec!["TLS12".into()] };
+            let got = run_probe(spec, subj, name, &c);
+            r.line(quiet, got == Outcome::Alert(70), format!("PROFILE {name} version-admission TLS12-only -> {}", spec.show(&got)));
         }
         if let Some(first) = p.kx.first() {
             match subj.connect(name).and_then(|mut c| full_handshake(spec, c.as_mut(), &[*first])) {
@@ -814,7 +1025,7 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
             }
         }
     }
-    // 3. the 12 frozen verdicts
+    // 3. the frozen verdicts
     for v in &spec.verdicts {
         let got = run_probe(spec, subj, &v.profile, &v.probe);
         r.line(quiet, got == v.expect, format!("VERDICT {} [{}] expect={} got={}", v.id, v.profile, spec.show(&v.expect), spec.show(&got)));
@@ -832,7 +1043,7 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
             }
         }
     }
-    // 4. supplementary (cited by id, not part of the 12)
+    // 4. supplementary (cited by id, not frozen verdicts)
     for sp in &spec.sups {
         let allowed = spec.profiles.get(&sp.profile).map(|p| p.sigalgs.clone()).unwrap_or_default();
         match &sp.mode {
@@ -947,6 +1158,24 @@ fn cmd_self_test(spec: &Spec) -> R<()> {
         v.expect = Outcome::Sh(0x001D);
     }
     tally("verdict-file:PUB-T4-expect-server_hello", &check(&ms, &base, false, true));
+    // the PLAN-6 draft's unreachable verdict (40 instead of 49) must be red against the model and the subject
+    let mut ms = spec.clone();
+    if let Some(v) = ms.verdicts.iter_mut().find(|v| v.id == "UNI-T5") {
+        v.expect = Outcome::Alert(40);
+    }
+    tally("verdict-file:UNI-T5-expect-alert-40", &check(&ms, &base, false, true));
+    // load-time rules: a row violating sigalg_cover, and a TLS12-only row against a profile that enables TLS 1.2
+    let as_report = |r: R<()>| Report { diffs: r.err().into_iter().map(|e| format!("LOAD {e}")).collect(), ..Report::default() };
+    let mut ms = spec.clone();
+    if let Some(v) = ms.verdicts.iter_mut().find(|v| v.id == "UNI-T1") {
+        v.probe.sigalgs.retain(|s| *s != MLDSA87);
+    }
+    tally("verdict-file:UNI-T1-partial-sigalg-cover", &as_report(validate(&ms)));
+    let mut ms = spec.clone();
+    if let Some(p) = ms.profiles.get_mut("P-CNSA") {
+        p.versions.push("TLS12".into());
+    }
+    tally("verdict-file:CNSA-T4-against-tls12-profile", &as_report(validate(&ms)));
     // the --subject hook: our own binary as an external subject, clean must pass and a mutant must be caught
     let exe = std::env::current_exe().map_err(|e| e.to_string())?.to_string_lossy().into_owned();
     let clean = check(spec, &External { argv: vec![exe.clone(), "subject".into()] }, false, true);
@@ -954,12 +1183,26 @@ fn cmd_self_test(spec: &Spec) -> R<()> {
         return Err(format!("HRR-VERDICTS SELF-TEST: FAIL (external clean subject not clean: {})", clean.diffs[0]));
     }
     println!("external hook, clean subject: diff=0 over {} checks", clean.checked);
-    let ext_m = External { argv: vec![exe, "subject".into(), "--mutate".into(), "pq-required-classical-fallback".into()] };
-    tally("external:pq-required-classical-fallback", &check(spec, &ext_m, false, true));
+    for name in ["pq-required-classical-fallback", "universal-accepts-x25519"] {
+        let ext_m = External { argv: vec![exe.clone(), "subject".into(), "--mutate".into(), name.into()] };
+        tally(&format!("external:{name}"), &check(spec, &ext_m, false, true));
+    }
     // --require-cmvp must turn the floor build's cmvp SKIPs into diffs (no silent pass)
     tally("require-cmvp-on-floor-build", &check(spec, &base, true, true));
+    // --require-cmvp: fips=true is not enough, the module identity must be exactly AWS-LC FIPS 3.1.0
+    for (m, name) in CMVP_MUTATIONS.iter().take(2) {
+        tally(&format!("require-cmvp:{name}"), &check(spec, &base.with(*m), true, true));
+    }
+    let ext_c = External { argv: vec![exe.clone(), "subject".into(), "--mutate".into(), "reports-fips-module-none".into()] };
+    tally("external:require-cmvp:reports-fips-module-none", &check(spec, &ext_c, true, true));
+    // positive control: the identity the cmvp build must report passes --require-cmvp (the mode is not always red)
+    let good = check(spec, &base.with(Mutation::ReportsCmvp310), true, true);
+    if !good.diffs.is_empty() || !good.skips.is_empty() {
+        return Err(format!("HRR-VERDICTS SELF-TEST: FAIL (--require-cmvp rejects a subject reporting fips=true module={CMVP_MODULE}: {:?} skips={:?})", good.diffs.first(), good.skips));
+    }
+    println!("--require-cmvp positive control (fips=true module={CMVP_MODULE}): diff=0 over {} checks, 0 SKIPPED", good.checked);
     if missed.is_empty() {
-        println!("HRR-VERDICTS SELF-TEST: PASS ({caught}/{total} mutants caught; baseline and external hook clean)");
+        println!("HRR-VERDICTS SELF-TEST: PASS ({caught}/{total} mutants caught; baseline, external hook and --require-cmvp control clean)");
         Ok(())
     } else {
         Err(format!("HRR-VERDICTS SELF-TEST: FAIL (not caught: {})", missed.join(", ")))
@@ -973,7 +1216,12 @@ fn cmd_subject(args: &[String]) -> R<()> {
     while i < args.len() {
         if args[i] == "--mutate" {
             let n = args.get(i + 1).ok_or("--mutate needs a name")?;
-            m = MUTATIONS.iter().find(|(_, s)| s == n).map(|(m, _)| *m).ok_or(format!("unknown mutation {n}"))?;
+            m = MUTATIONS
+                .iter()
+                .chain(CMVP_MUTATIONS.iter())
+                .find(|(_, s)| s == n)
+                .map(|(m, _)| *m)
+                .ok_or(format!("unknown mutation {n}"))?;
             i += 2;
         } else {
             rest.push(args[i].clone());
