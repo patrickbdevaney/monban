@@ -17,8 +17,9 @@
 #     against that manifest AND against the hashes in kamrui's rustup manifest for the same channel;
 #   - Go and cargo-auditable fetched on the VM from their ci/tools.lock URLs, sha256 checked against ci/tools.lock;
 #   - a fresh CARGO_HOME filled by `cargo fetch --locked` from crates.io (cargo checks every crate against Cargo.lock);
-#   - the source is `git archive <commit>` from the laptop (cmvp: the same overlay as the pipeline), and its tree
-#     sha256 must equal the tree sha256 in A's provenance;
+#   - the source is `git archive <commit>` from the laptop, exported the way A's provenance says A exported it
+#     (source kind git: the archive as is; kind tree, a git-less rsynced worktree: pipeline.sh's rsync filter applied
+#     to the archive), cmvp with the same overlay as the pipeline; its tree sha256 must equal the one A attested;
 #   - then only the build job (ci/release/jobs/build.sh from that source) runs, with builder id
 #     urn:aegis:ci:gcp-aegis-quiet:release-rebuild:v1 (A's is urn:aegis:ci:kamrui:release-pipeline:v1).
 # Gate, per profile (both must pass):
@@ -235,15 +236,17 @@ json.dump(e, open(p, "w"))' "$T/rec-$p-s/A/provenance.intoto.json"
 
 # ------------------------------------------------------------------ build B (runs on the VM)
 B_SCRIPT=$(cat << 'BEOF'
-# args: W RUN COMMIT EPOCH EPOCH_OFFSET "rustc=H cargo=H rust-std=H" PROFILES...
+# args: W RUN COMMIT EPOCH EPOCH_OFFSET "rustc=H cargo=H rust-std=H" KIND PROFILES...
 set -euo pipefail
-W="$1" RUN="$2" COMMIT="$3" EPOCH="$4" OFF="$5" KHASH="$6"; shift 6
+W="$1" RUN="$2" COMMIT="$3" EPOCH="$4" OFF="$5" KHASH="$6" KIND="$7"; shift 7
+case "$KIND" in git | tree) ;; *) echo "B: FAIL unknown source kind $KIND" >&2; exit 1 ;; esac
 UA="User-Agent: aegis-ci"
 say() { echo "B: $*"; }
 die() { echo "B: FAIL $*" >&2; exit 1; }
 mkdir -p "$W/dl" "$RUN"
 df -BG --output=avail "$HOME" | tail -1 | awk '{ if ($1+0 < 25) { print "B: FAIL less than 25 GB free on the VM"; exit 1 } else print "B: disk " $1 " free" }'
 command -v docker > /dev/null || die "docker missing (provisioning step failed)"
+command -v rsync > /dev/null || die "rsync missing"
 docker info > /dev/null 2>&1 || die "docker not usable by $USER"
 fetch() {  # $1 url, $2 sha256 -> path in $W/dl (re-verified on every run)
   local f="$W/dl/$(basename "$1")"
@@ -293,7 +296,14 @@ IMG=$("$RUN/src0/deploy/build/image.sh" | sed -n 's/^IMAGE \([^ ]*\) .*/\1/p'); 
 say "image $IMG $(docker image inspect -f '{{.Id}}' "$IMG") from base $base"
 export CARGO_HOME="$RUN/cargo-home" PATH="$TC/bin:/usr/bin:/bin"
 for P in "$@"; do
-  SRC="$RUN/src-$P"; mkdir -p "$SRC"; tar -xf "$RUN/src.tar" -C "$SRC"
+  SRC="$RUN/src-$P"; mkdir -p "$SRC"
+  if [ "$KIND" = git ]; then
+    tar -xf "$RUN/src.tar" -C "$SRC"
+  else
+    # A exported a git-less tree (pipeline.sh source kind "tree"): apply the pipeline's own export filter to the commit.
+    rsync -a --exclude /target/ --exclude /.git --exclude /.claude/ --exclude '**/target/' --exclude '**/.lake/' \
+      --exclude /research/state/raw/ --exclude '**/__pycache__/' --exclude /gates/out/ "$RUN/src0/" "$SRC/"
+  fi
   if [ "$P" = cmvp ]; then
     python3 -I "$SRC/profiles/cmvp/overlay.py" "$SRC/profiles/cmvp/overlay.toml" "$SRC/Cargo.toml" "$SRC/Cargo.toml.cmvp" \
       || die "cmvp overlay failed"
@@ -361,6 +371,15 @@ attest/attest.pub.pem SHA256SUMS artifacts/aegis-$p" | tar -x -C "$OUTROOT/$p/A"
       | python3 -I -c 'import sys, tomllib; m = tomllib.loads(sys.stdin.read()); print(" ".join(p + "=" + m["pkg"][p]["target"]["x86_64-unknown-linux-gnu"]["xz_hash"] for p in ("rustc", "cargo", "rust-std")))') \
       || { for p in "${okA[@]}"; do RES[$p]="could not read kamrui's rustup manifest"; done; okA=(); }
   fi
+  # A's recorded source kind (git: git archive; tree: pipeline.sh's rsync filter over a git-less tree). B rebuilds the
+  # same export from the commit; the tree sha256 comparison then proves A's tree was exactly that commit.
+  local kind=git
+  if [ ${#okA[@]} -gt 0 ]; then
+    kind=$(python3 -I -c 'import base64, json, sys; e = json.load(open(sys.argv[1]))
+print(json.loads(base64.b64decode(e["payload"]))["predicate"]["buildDefinition"]["externalParameters"]["source"]["kind"])' \
+      "$OUTROOT/${okA[0]}/A/provenance.intoto.json")
+    echo "rebuild: A's source kind is $kind (commit $COMMIT)"
+  fi
   # ---- B: the VM
   local vm_t0 vm_t1 vm_s=0 vm_line="VM not started (no profile reached B)"
   if [ ${#okA[@]} -gt 0 ]; then
@@ -381,7 +400,7 @@ attest/attest.pub.pem SHA256SUMS artifacts/aegis-$p" | tar -x -C "$OUTROOT/$p/A"
       printf '%s\n' "$B_SCRIPT" | "${VMSSH[@]}" "cat > $RUN/b.sh"
       # detached on the VM (a dropped laptop connection does not kill the build); followed by short polls
       "${VMSSH[@]}" "cd $RUN && setsid bash -c 'nice -n 5 bash b.sh \"\$@\" > b.log 2>&1; echo \$? > b.rc' _ \
-        $W \$HOME/$RUN $COMMIT $EPOCH $OFF '$khash' ${okA[*]} < /dev/null > /dev/null 2>&1 &"
+        $W \$HOME/$RUN $COMMIT $EPOCH $OFF '$khash' $kind ${okA[*]} < /dev/null > /dev/null 2>&1 &"
       local off=0 out body rc down=0
       while :; do
         if out=$("${VMSSH[@]}" "rc=\$(cat $RUN/b.rc 2>/dev/null); tail -c +$((off + 1)) $RUN/b.log; printf '\\n@@RC@@%s' \"\$rc\"" 2> /dev/null); then
