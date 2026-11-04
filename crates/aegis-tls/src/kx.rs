@@ -102,12 +102,32 @@ fn p384_public(private: &agreement::PrivateKey) -> Result<Vec<u8>, Error> {
 /// RFC 10024 4.3: ECDHE secret first, then the ML-KEM secret, assembled in one buffer that becomes the
 /// (zeroize-on-drop) rustls `SharedSecret`. On an error path the partial buffer is wrapped too, so it is
 /// zeroized as well.
+#[cfg(not(feature = "order-mutant"))]
 fn combine(private: &agreement::PrivateKey, peer_point: &[u8], mlkem: &[u8]) -> Result<SharedSecret, Error> {
     let mut z = Vec::with_capacity(SHARED_SECRET_LEN);
     let r = ecdh_p384_into(private, peer_point, &mut z);
     if r.is_ok() && mlkem.len() == MLKEM_SECRET_LEN {
         z.extend_from_slice(mlkem);
     }
+    let secret = SharedSecret::from(z);
+    r?;
+    if secret.secret_bytes().len() != SHARED_SECRET_LEN {
+        return Err(internal("combiner: component length"));
+    }
+    Ok(secret)
+}
+
+/// PLAN-6 D4 negative control ONLY (feature `order-mutant`, never shipped): the combiner in the WRONG order, ML-KEM
+/// secret first (the X25519MLKEM768 layout; the one bug interop caught in spike q4-026). Both ends of an
+/// order-mutant pair still agree, so only the third-party KAT (`kat_composite_decapsulation`) and real peers
+/// (kx-interop) can see it: those must go red with this feature on.
+#[cfg(feature = "order-mutant")]
+fn combine(private: &agreement::PrivateKey, peer_point: &[u8], mlkem: &[u8]) -> Result<SharedSecret, Error> {
+    let mut z = Vec::with_capacity(SHARED_SECRET_LEN);
+    if mlkem.len() == MLKEM_SECRET_LEN {
+        z.extend_from_slice(mlkem);
+    }
+    let r = ecdh_p384_into(private, peer_point, &mut z);
     let secret = SharedSecret::from(z);
     r?;
     if secret.secret_bytes().len() != SHARED_SECRET_LEN {
@@ -199,10 +219,11 @@ impl Active {
     }
 
     /// Known-answer-test constructor: fixed P-384 scalar (48 bytes) and ML-KEM-1024 decapsulation key (3168 bytes,
-    /// FIPS 203 dk format). Test-only: `kem::DecapsulationKey::new` does not exist on the cmvp lock
-    /// (aws-lc-rs 1.15.3), and a raw-dk import has no place on a live path.
-    #[cfg(test)]
-    pub(crate) fn from_fixed_keys_for_kat(p384_scalar: &[u8], mlkem_dk: &[u8]) -> Result<Self, Error> {
+    /// FIPS 203 dk format). Unit tests and feature `kat` (the kx-kat gate) only, and never in the cmvp build:
+    /// `kem::DecapsulationKey::new` does not exist on the cmvp lock (aws-lc-rs 1.15.3), and a raw-dk import has no
+    /// place on a live path.
+    #[cfg(all(any(test, feature = "kat"), not(feature = "cmvp")))]
+    pub fn from_fixed_keys_for_kat(p384_scalar: &[u8], mlkem_dk: &[u8]) -> Result<Self, Error> {
         let ecdh = agreement::PrivateKey::from_private_key(&agreement::ECDH_P384, p384_scalar)
             .map_err(|_| internal("kat: p384 scalar"))?;
         let dk = kem::DecapsulationKey::new(&kem::ML_KEM_1024, mlkem_dk).map_err(|_| internal("kat: mlkem dk"))?;
@@ -288,6 +309,7 @@ mod tests {
     /// must be g^i || ek; given the server share g^r || c the secret must be exactly girx || k (80 bytes). Pins
     /// the layout, the split, the combiner order and the x-coordinate encoding against third-party numbers,
     /// including the 5 ACVP modified-ciphertext (implicit rejection) cases.
+    #[cfg(not(feature = "cmvp"))]
     #[test]
     fn kat_composite_decapsulation() {
         let p = p384();
@@ -310,6 +332,7 @@ mod tests {
 
     /// The order mutant (ML-KEM secret first, X25519MLKEM768 style) must not match the KAT: proves the KAT can go
     /// red on the one bug interop caught in the spike.
+    #[cfg(not(feature = "cmvp"))]
     #[test]
     fn kat_rejects_swapped_combiner_order() {
         let p = p384();

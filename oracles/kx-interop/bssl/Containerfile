@@ -1,0 +1,7 @@
+# Runtime image for the BoringSSL `bssl` tool (kx-interop peer). The binary is built by build.sh in a throwaway
+# container of the same AL2023 base (deploy/build/al2023.Containerfile does not exist yet), statically linked
+# against libssl/libcrypto, libstdc++ and libgcc, then copied here. Base pinned by digest (bssl/LOCK `base`).
+ARG BASE
+FROM ${BASE}
+COPY bssl /usr/local/bin/bssl
+ENTRYPOINT ["/usr/local/bin/bssl"]

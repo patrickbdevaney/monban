@@ -41,18 +41,18 @@ pub enum Profile {
     PublicWeb,
     /// F12 `PQ-REQUIRED` (F8 `P-PQ-REQUIRED`): agent / API / internal listeners; PQ-only.
     PqRequired,
-    /// F12 `P-UNIVERSAL`: `[0x11ED]`. Pending in F12.
+    /// F12 `P-UNIVERSAL`: `[0x11ED]` + ML-DSA-87 / ECDSA-P384 (active since the 2026-11-04 re-freeze).
     Universal,
-    /// F12 `P-BSI-ALT`: `[0x11ED, 0x11EB]`. Pending in F12.
+    /// F12 `P-BSI-ALT`: `[0x11ED, 0x11EB]` + ML-DSA-87 / ECDSA-P384 (active since the 2026-11-04 re-freeze).
     BsiAlt,
-    /// F12 `P-CNSA`: `[ML-KEM-1024]` + ML-DSA-87. Pending in F12.
+    /// F12 `P-CNSA`: `[ML-KEM-1024]` + ML-DSA-87 only (active since the 2026-11-04 re-freeze).
     Cnsa,
     /// F12 `FIPS` (F8 `FIPS-FLOOR`): the FIPS group list on the floor lock (selection checked, no CMVP claim).
     FipsFloor,
     /// F8 `FIPS-CMVP`: the FIPS list on the cmvp lock with the module asserted (P-PQ5). Needs the profiles/cmvp
     /// build; pending in this build.
     FipsCmvp,
-    /// F12 `FIPS-PQ-REQUIRED`: FIPS pq-required listener on the floor lock. Not in the F8 enum (see report).
+    /// F12 / F8 `FIPS-PQ-REQUIRED`: FIPS pq-required listener on the floor lock.
     FipsPqRequired,
 }
 
@@ -107,7 +107,7 @@ impl std::error::Error for ProfileError {}
 
 use group::*;
 
-const PUBLIC_WEB_KX: &[u16] = &[X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1];
+const PUBLIC_WEB_KX: &[u16] = &[X25519MLKEM768, SECP384R1MLKEM1024, SECP256R1MLKEM768, X25519, SECP256R1];
 const PQ_REQUIRED_KX: &[u16] = &[X25519MLKEM768];
 const UNIVERSAL_KX: &[u16] = &[SECP384R1MLKEM1024];
 const BSI_ALT_KX: &[u16] = &[SECP384R1MLKEM1024, SECP256R1MLKEM768];
@@ -121,10 +121,6 @@ const GOV_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87, SignatureSchem
 const CNSA_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87];
 const FIPS_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, SignatureScheme::ECDSA_NISTP384_SHA384];
 
-const PENDING_11ED: &str =
-    "0x11ED is AEGIS-owned (Phase 6: KATs, OpenSSL 3.5+/BoringSSL interop, Kani share parsing). No F12 verdicts yet.";
-const PENDING_BSI: &str = "needs 0x11ED (Phase 6). No F12 verdicts yet.";
-const PENDING_CNSA: &str = "buildable on the floor lock (kx_group::MLKEM1024, ML-DSA-87) but no F12 verdicts are frozen for it yet; pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00).";
 #[cfg(feature = "tls-client")]
 const FIPS_FLOOR_NOT_CLIENT: &str = "P-PQ6: a FIPS-side client offers exactly [SecP256r1MLKEM768] (nothing \
      classical for a RUSTSEC-2026-0349 downgrade to land on); this list adds P-256/P-384. Use FIPS-PQ-REQUIRED.";
@@ -167,7 +163,7 @@ impl Profile {
             Self::Cnsa => Some("P-CNSA"),
             Self::FipsFloor => Some("FIPS-FLOOR"),
             Self::FipsCmvp => Some("FIPS-CMVP"),
-            Self::FipsPqRequired => None,
+            Self::FipsPqRequired => Some("FIPS-PQ-REQUIRED"),
         }
     }
 
@@ -184,18 +180,15 @@ impl Profile {
     /// F12 status.
     pub fn status(self) -> ProfileStatus {
         match self {
-            Self::PublicWeb | Self::PqRequired => ProfileStatus::Active,
+            Self::PublicWeb | Self::PqRequired | Self::Universal | Self::BsiAlt | Self::Cnsa => ProfileStatus::Active,
             Self::FipsFloor | Self::FipsPqRequired => ProfileStatus::CmvpPending,
-            Self::Universal | Self::BsiAlt | Self::Cnsa | Self::FipsCmvp => ProfileStatus::Pending,
+            Self::FipsCmvp => ProfileStatus::Pending,
         }
     }
 
     /// Why the profile is pending, if it is.
     pub fn pending_reason(self) -> Option<&'static str> {
         match self {
-            Self::Universal => Some(PENDING_11ED),
-            Self::BsiAlt => Some(PENDING_BSI),
-            Self::Cnsa => Some(PENDING_CNSA),
             Self::FipsCmvp => Some(PENDING_CMVP),
             _ => None,
         }
@@ -247,7 +240,10 @@ pub fn kx_group(codepoint: u16) -> Option<&'static dyn SupportedKxGroup> {
     })
 }
 
-fn provider_for(profile: Profile) -> Result<CryptoProvider, ProfileError> {
+/// The profile's `CryptoProvider`: kx groups = [`Profile::kx_groups`] exactly, in order; TLS 1.3 cipher suites only
+/// (AES-GCM only for the government and FIPS profiles). [`server_config`] and `client_config` both build from it; it
+/// is public so that oracle subjects (the tls-subject interop client) use this table instead of a copy.
+pub fn provider(profile: Profile) -> Result<CryptoProvider, ProfileError> {
     let kx_groups = profile
         .kx_groups()
         .iter()
@@ -272,7 +268,7 @@ pub fn server_config(
     if profile.status() == ProfileStatus::Pending {
         return Err(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
     }
-    let provider = Arc::new(provider_for(profile)?);
+    let provider = Arc::new(provider(profile)?);
     let resolver = Arc::new(ProfileCertResolver { inner: cert_resolver, allowed: profile.sigalgs() });
     let mut cfg = ServerConfig::builder_with_provider(provider)
         .with_protocol_versions(&[&rustls::version::TLS13])
@@ -357,7 +353,8 @@ pub const CLIENT_ALPN: &[u8] = b"http/1.1";
 /// spikes/cmvp-client-policy mode A). This is the only place the workspace's protocol layer builds a client config.
 ///
 /// Key exchange = the profile's own [`Profile::kx_groups`] list, in order (the same table [`server_config`] uses),
-/// so `P-PUBLIC-WEB` offers `[X25519MLKEM768, SecP256r1MLKEM768, X25519, secp256r1]` (hybrid first) and
+/// so `P-PUBLIC-WEB` offers `[X25519MLKEM768, SecP384r1MLKEM1024, SecP256r1MLKEM768, X25519, secp256r1]` (hybrid
+/// first) and
 /// `FIPS-PQ-REQUIRED` offers `[SecP256r1MLKEM768]` (the P-PQ6 client shape). Cipher suites as for the server
 /// (TLS 1.3; AES-GCM only for FIPS). TLS 1.3 only, resumption disabled and early data off, so no session ticket or
 /// key-share-prediction state is ever kept (RUSTSEC-2026-0349; the advisory exempts resumption-disabled clients).
@@ -370,7 +367,7 @@ pub fn client_config(profile: Profile, roots: rustls::RootCertStore) -> Result<r
     if let Some(e) = client_refusal(profile) {
         return Err(e);
     }
-    let provider = Arc::new(provider_for(profile)?);
+    let provider = Arc::new(provider(profile)?);
     let mut cfg = rustls::ClientConfig::builder_with_provider(provider)
         .with_protocol_versions(&[&rustls::version::TLS13])
         .map_err(|e| ProfileError::Rustls(e.to_string()))?
@@ -451,17 +448,31 @@ struct ProfileCertResolver {
 
 impl ResolvesServerCert for ProfileCertResolver {
     fn resolve(&self, client_hello: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
-        let offered: Vec<SignatureScheme> =
-            client_hello.signature_schemes().iter().copied().filter(|s| self.allowed.contains(s)).collect();
+        let offered: Vec<SignatureScheme> = client_hello.signature_schemes().to_vec();
         let ck = self.inner.resolve(client_hello)?;
-        let key: Arc<dyn SigningKey> = Arc::new(RestrictedKey { inner: ck.key.clone(), allowed: self.allowed });
-        key.choose_scheme(&offered)?;
-        Some(Arc::new(CertifiedKey { cert: ck.cert.clone(), key, ocsp: ck.ocsp.clone() }))
+        restrict(&ck, &offered, self.allowed)
     }
 
     fn only_raw_public_keys(&self) -> bool {
         self.inner.only_raw_public_keys()
     }
+}
+
+/// The served credential for a ClientHello offering `offered`: `ck` re-wrapped so it can only sign with `allowed`,
+/// or `None` (rustls: access_denied, 49; F12 UNI-T5 / CNSA-T3) when no offered scheme is both in the profile and
+/// signable by the key.
+fn restrict(
+    ck: &CertifiedKey,
+    offered: &[SignatureScheme],
+    allowed: &'static [SignatureScheme],
+) -> Option<Arc<CertifiedKey>> {
+    let in_profile: Vec<SignatureScheme> = offered.iter().copied().filter(|s| allowed.contains(s)).collect();
+    if in_profile.is_empty() {
+        return None;
+    }
+    let key: Arc<dyn SigningKey> = Arc::new(RestrictedKey { inner: ck.key.clone(), allowed });
+    key.choose_scheme(&in_profile)?;
+    Some(Arc::new(CertifiedKey { cert: ck.cert.clone(), key, ocsp: ck.ocsp.clone() }))
 }
 
 #[derive(Debug)]

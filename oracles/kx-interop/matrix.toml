@@ -1,0 +1,178 @@
+# kx-interop matrix (PLAN-6 D4, PREFLIGHT D-P4). Read by oracle.py, which REFUSES the whole matrix if a cell claims
+# a peer x group the peer's own probe does not implement (e.g. BoringSSL x 0x11ED), or if any cell of the required
+# coverage (oracle.py REQUIRED / REQUIRED_REFUSE) is missing. Cells may be added, never dropped.
+#
+#   role        = the SUBJECT's role ("server": peer is the client; "client": peer is the server)
+#   group       = the group the handshake must negotiate (checked on the wire, by the peer and by the subject)
+#   peer_groups = what the peer offers / accepts, in its order (OpenSSL and BoringSSL send a key share for the
+#                 first only; Go for the first of its fixed order 0x11ec,0x11eb,0x11ed,0x0202,x25519,...)
+#   hrr         = a HelloRetryRequest selecting `group` must be on the wire, and the first ClientHello must carry
+#                 no share for it
+#   expect      = "complete" (default) or "refuse" (no ServerHello, no completed handshake, no application data)
+#
+# 0x11ED client-direction HRR is unreachable: P-UNIVERSAL and P-BSI-ALT both list 0x11ED first, so the subject client
+# always sends a 0x11ED share. Client-direction HRR is covered on 0x11EB (P-BSI-ALT client -> 0x11EB-only server).
+
+[[cell]]
+id = "ED-OSSL-SRV"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "openssl"
+role = "server"
+peer_groups = ["0x11ed", "0x11ec", "0x001d"]
+
+[[cell]]
+id = "ED-OSSL-CLI"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "openssl"
+role = "client"
+peer_groups = ["0x11ed"]
+
+[[cell]]
+id = "ED-OSSL-SRV-HRR"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "openssl"
+role = "server"
+peer_groups = ["0x001d", "0x11ed"]
+hrr = true
+
+[[cell]]
+id = "ED-GO-SRV"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "go"
+role = "server"
+peer_groups = ["0x11ed", "0x001d"]
+
+[[cell]]
+id = "ED-GO-CLI"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "go"
+role = "client"
+peer_groups = ["0x11ed"]
+
+[[cell]]
+id = "ED-GO-SRV-HRR"
+group = "0x11ed"
+profile = "P-UNIVERSAL"
+peer = "go"
+role = "server"
+peer_groups = ["0x11ec", "0x11ed"]
+hrr = true
+
+[[cell]]
+id = "NEG-OSSL-X25519"
+profile = "P-UNIVERSAL"
+peer = "openssl"
+role = "server"
+peer_groups = ["0x001d"]
+expect = "refuse"
+
+[[cell]]
+id = "NEG-GO-X25519"
+profile = "P-UNIVERSAL"
+peer = "go"
+role = "server"
+peer_groups = ["0x001d"]
+expect = "refuse"
+
+[[cell]]
+id = "EB-OSSL-SRV"
+group = "0x11eb"
+profile = "P-BSI-ALT"
+peer = "openssl"
+role = "server"
+peer_groups = ["0x11eb"]
+
+[[cell]]
+id = "EB-OSSL-CLI-HRR"
+group = "0x11eb"
+profile = "P-BSI-ALT"
+peer = "openssl"
+role = "client"
+peer_groups = ["0x11eb"]
+hrr = true
+
+[[cell]]
+id = "EB-GO-SRV"
+group = "0x11eb"
+profile = "P-BSI-ALT"
+peer = "go"
+role = "server"
+peer_groups = ["0x11eb"]
+
+[[cell]]
+id = "EB-GO-CLI-HRR"
+group = "0x11eb"
+profile = "P-BSI-ALT"
+peer = "go"
+role = "client"
+peer_groups = ["0x11eb"]
+hrr = true
+
+[[cell]]
+id = "CN-OSSL-SRV"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "openssl"
+role = "server"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "CN-OSSL-CLI"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "openssl"
+role = "client"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "CN-BSSL-SRV"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "bssl"
+role = "server"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "CN-BSSL-CLI"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "bssl"
+role = "client"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "CN-GO-SRV"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "go"
+role = "server"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "CN-GO-CLI"
+group = "0x0202"
+profile = "P-CNSA"
+peer = "go"
+role = "client"
+peer_groups = ["0x0202"]
+
+[[cell]]
+id = "EC-BSSL-SRV"
+group = "0x11ec"
+profile = "P-PUBLIC-WEB"
+peer = "bssl"
+role = "server"
+peer_groups = ["0x11ec"]
+
+[[cell]]
+id = "EC-BSSL-CLI"
+group = "0x11ec"
+profile = "P-PUBLIC-WEB"
+peer = "bssl"
+role = "client"
+peer_groups = ["0x11ec"]

@@ -5,7 +5,8 @@
 //!   `rustls::ServerConfig`; with feature `tls-client` (off by default, off in the cmvp build:
 //!   spikes/cmvp-client-policy mode A) also [`client_config`], the only rustls `ClientConfig` builder at L3
 //!   (aegis-egress takes the built config by injection).
-//! - [`kx`]: SecP384r1MLKEM1024 (0x11ED), ported from spike q4-026.
+//! - [`kx`]: SecP384r1MLKEM1024 (0x11ED), ported from spike q4-026; in P-PUBLIC-WEB, P-UNIVERSAL and P-BSI-ALT.
+//!   Features `kat` (KAT constructor, kx-kat gate) and `order-mutant` (combiner-order negative control) are test-only.
 //!
 //! Not here yet: scoped ticketer + STEK ring (P-PQ3, P2-tls-002), PreferServerOrder backport, cmvp build (P-PQ5).
 #![forbid(unsafe_code)]

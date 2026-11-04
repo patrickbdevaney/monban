@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# AEGIS oracle: PQ key-exchange interop (PLAN-6 D4, PREFLIGHT D-P4). Contract: oracles/README.md; details: README.md.
+#   ./run [--subject "CMD ARGS"] [--only REGEX]   matrix.toml against the subject (default target/release/tls-subject,
+#                                                  rebuilt through ci/heavy.sh)
+#   ./run --self-test                              reference subject (ref-subject/) green on every cell, then mutants
+#                                                  (order, x25519-fallback, no-echo, hrr-precondition) and refused
+#                                                  matrices (bssl x 0x11ED, missing required cells)
+# Last line: KX-INTEROP: PASS|FAIL (...) / KX-INTEROP SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
+# Host: kamrui (the gate has remote = "kamrui"): /usr/bin/openssl 3.5.3, ~/aegis-ci/go1.27.3, docker. Run anywhere
+# else (e.g. ci/oracles.sh on the laptop), it re-runs itself there through ci/remote.sh --host kamrui.
+set -u
+here="$(cd "$(dirname "$0")" && pwd)"
+repo="$(cd "$here/../.." && pwd)"
+self_test=0; subject=""; pass=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --self-test) self_test=1; pass+=("$1") ;;
+    --subject) subject="${2:-}"; shift ;;
+    *) pass+=("$1") ;;
+  esac
+  shift
+done
+NAME="KX-INTEROP"; [ $self_test = 1 ] && NAME="KX-INTEROP SELF-TEST"
+die() { echo "$NAME: FAIL ($1)"; exit 1; }
+
+OPENSSL=/usr/bin/openssl
+GO="${KX_INTEROP_GO:-$HOME/aegis-ci/go1.27.3/bin/go}"
+have_peers() {
+  [ -x "$GO" ] && "$GO" version 2>/dev/null | grep -q ' go1\.27\.3 ' \
+    && "$OPENSSL" version 2>/dev/null | grep -q '^OpenSSL 3\.5\.3 ' && command -v docker >/dev/null
+}
+if ! have_peers; then
+  if [ -z "${KX_INTEROP_DELEGATED:-}" ] && [ -z "$subject" ] && ssh -o BatchMode=yes -o ConnectTimeout=5 kamrui true 2>/dev/null; then
+    echo "kx-interop: peers not on this host; running on kamrui" >&2
+    exec "$repo/ci/remote.sh" --host kamrui env KX_INTEROP_DELEGATED=1 oracles/kx-interop/run "${pass[@]}"
+  fi
+  die "this host lacks the peers (need $OPENSSL = OpenSSL 3.5.3, $GO = go1.27.3, docker); run on kamrui"
+fi
+
+T="$here/target"; mkdir -p "$T"
+# Go peer: stdlib only, no module downloads, local toolchain only.
+(cd "$here/go" && GOTOOLCHAIN=local GOFLAGS=-mod=mod GOPROXY=off GOSUMDB=off CGO_ENABLED=0 \
+  GOCACHE="$T/gocache" GOPATH="$T/gopath" "$GO" build -trimpath -o "$T/gopeer" .) >&2 || die "Go peer build failed"
+# BoringSSL peer image (built once per pinned commit; bssl/LOCK).
+img=$("$here/bssl/build.sh" "$T/bssl-work" | tail -1) || die "BoringSSL image build failed"
+[ -n "$img" ] || die "BoringSSL image build printed no tag"
+
+args=(--openssl "$OPENSSL" --gopeer "$T/gopeer" --bssl-image "$img" --work "$T/work")
+if [ $self_test = 1 ]; then
+  (cd "$here/ref-subject" && CARGO_TARGET_DIR="$T/ref" "$repo/ci/heavy.sh" cargo build --release --locked -q) >&2 \
+    || die "reference subject build failed"
+  args+=(--ref "$T/ref/release/kx-ref")
+else
+  if [ -z "$subject" ]; then
+    (cd "$repo" && ci/heavy.sh cargo build --release --locked -q -p tls-subject) >&2 || die "tls-subject build failed"
+    subject="$repo/target/release/tls-subject"
+  fi
+  args+=(--subject "$subject")
+fi
+exec python3 -I "$here/oracle.py" "${args[@]}" "${pass[@]}"

@@ -67,9 +67,11 @@ case "$MODE" in
     if ! docker image inspect "$IMG" > /dev/null 2>&1; then
       docker build -q -t "$IMG" -f "$CF" "$ROOT/deploy/build" > /dev/null
     fi
-    size=$(docker image inspect -f '{{.Size}}' "$IMG")
-    [ "$size" -lt 500000000 ] || { echo "cmvp: image $IMG is $size B (>= 500 MB limit)" >&2; exit 1; }
-    echo "cmvp: image $IMG $size B (< 500 MB)"
+    # The 500 MB rule is about the unpacked image (its root filesystem), not the compressed content size that
+    # `docker image inspect .Size` reports under the containerd store (~168 MB for ~460 MB unpacked).
+    size=$(docker run --rm --network none --entrypoint sh "$IMG" -c 'du -sxk / 2>/dev/null | tail -1' | awk '{print $1 * 1024}')
+    [ -n "$size" ] && [ "$size" -lt 500000000 ] || { echo "cmvp: image $IMG unpacked ${size:-?} B (>= 500 MB limit)" >&2; exit 1; }
+    echo "cmvp: image $IMG unpacked $size B (< 500 MB)"
     RUSTUP="$(realpath "${RUSTUP_HOME:-$HOME/.rustup}")"
     GO="$(realpath "${AEGIS_GO:-$HOME/aegis-ci/go1.27.3}")"
     [ -x "$GO/bin/go" ] || { echo "cmvp: Go not found at $GO" >&2; exit 1; }
