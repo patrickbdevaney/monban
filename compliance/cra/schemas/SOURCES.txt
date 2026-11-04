@@ -1,0 +1,9 @@
+Vendored schemas (not drafts; third-party files, unmodified)
+
+csaf_json_schema.json
+  source:  https://docs.oasis-open.org/csaf/csaf/v2.0/csaf_json_schema.json
+  fetched: 2026-11-04 (User-Agent aegis-ci)
+  sha256:  29c114b35b0a30831f1674f2ab8b3ed9b2890cfeaa63b924ac6ed9d70ef44262
+  what:    OASIS Common Security Advisory Framework Version 2.0, JSON schema (draft 2020-12).
+  note:    its external $refs to the FIRST CVSS v2.0/v3.0/v3.1 schemas are not vendored; ci/compliance.py
+           refuses any CSAF document that uses `scores` (which would need them) rather than skip validation.
