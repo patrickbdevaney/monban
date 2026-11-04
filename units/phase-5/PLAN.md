@@ -438,3 +438,15 @@ row is not edited here.
     allowlist lock, because a module is not that app and F8 has no lock field for modules.
   - Each data_run commits in its own transaction; a write followed by a trap stays committed and audited.
   - Only SQLite is exercised by an oracle; the PG pairing compiles but is unverified.
+- **Open: one unexplained crash-harness state_mismatch (2026-11-03).** The full run with chain d01db4695c0a was
+  NO-GO. Besides two disk refusals, crash-harness reported one state_mismatch in 58,190 images: seed 2, main cut
+  5352, subset/strict, c=237 acked=237, integrity ok. crash-subject and aegis-state are unchanged since the Phase 4
+  GO. The finding did not reproduce:
+  - in 75 main-stage reruns (about 513k images, seeds 1-3);
+  - in a full gate rerun;
+  - in the GO run (chain c0613bd8ecce).
+  Nothing else ran on the desktop at the time. The oracle's expected-state cache was ruled out because one failure
+  alone cannot come from it. The cause is unknown: either a rare real recovery fault or a gap in the model. Two
+  facts are relevant: SQLite's random WAL salts make each trace's bytes differ, and subset splits 4120 B WAL frames
+  at 4 KiB pages. Not dismissed as a flake. ddd5a50 makes the oracle name the differing keys and keep the
+  pre-recovery image, so a recurrence is diagnosable. Treat any recurrence as a blocking INV-DURABLE finding.
