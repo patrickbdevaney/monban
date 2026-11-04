@@ -24,14 +24,16 @@
 //!
 //! cmvp build (feature `cmvp`, PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out under `fips`, so there are no
 //! ML-DSA credentials: ECDSA-P384 only on P-UNIVERSAL and P-BSI-ALT, ECDSA-P256 on PQ-REQUIRED, and P-CNSA (ML-DSA-87
-//! only) is refused by `aegis_tls::server_config` with its reason.
+//! only) is refused by `aegis_tls::server_config` with its reason. The module string (`describe` `module=`) is the
+//! linked module's own `awslc_version_string()`, read through aegis-iso's audited sites (PLAN-6 D16) and passed to
+//! `aegis_tls::server_config_with` / `fips_status_with`; the floor build has no FIPS module and reports none.
 #![forbid(unsafe_code)]
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 use std::sync::Arc;
 
-use aegis_tls::{Profile, fips_status, negotiable_versions, server_config};
+use aegis_tls::{Profile, fips_status_with, negotiable_versions, server_config_with};
 use aws_lc_rs::encoding::AsDer;
 use aws_lc_rs::rand::SystemRandom;
 #[cfg(not(feature = "cmvp"))]
@@ -193,9 +195,17 @@ fn resolver(profile: Profile) -> R<Arc<dyn ResolvesServerCert>> {
 
 // ------------------------------------------------------------------------------------------------ protocol
 
+/// The linked AWS-LC module's version string (cmvp: aegis-iso, PLAN-6 D16; floor: none).
+fn linked_module() -> Option<&'static str> {
+    #[cfg(feature = "cmvp")]
+    return aegis_iso::fips::awslc_version_string();
+    #[cfg(not(feature = "cmvp"))]
+    None
+}
+
 fn build(name: &str) -> R<ServerConfig> {
     let profile = Profile::from_name(name).ok_or(format!("unknown profile {name}"))?;
-    server_config(profile, resolver(profile)?).map_err(|e| format!("{name}: {e}"))
+    server_config_with(profile, resolver(profile)?, linked_module()).map_err(|e| format!("{name}: {e}"))
 }
 
 fn describe(name: &str) -> R<()> {
@@ -210,7 +220,7 @@ fn describe(name: &str) -> R<()> {
             _ => "OTHER",
         })
         .collect();
-    let fips = fips_status(&cfg);
+    let fips = fips_status_with(&cfg, linked_module());
     println!("kx_groups={}", kx.join(","));
     println!("versions={}", versions.join(","));
     println!("early_data={}", cfg.max_early_data_size > 0);

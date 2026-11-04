@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use aegis_tls::profile::{group as g, kx_group};
 use aegis_tls::{
-    Profile, ProfileError, ProfileStatus, assert_profile, fips_status, negotiable_versions, server_config,
+    Profile, ProfileError, ProfileStatus, assert_profile, fips_status_with, negotiable_versions, server_config,
 };
 use aws_lc_rs::encoding::AsDer;
 use aws_lc_rs::signature::{self, EcdsaKeyPair, KeyPair, PqdsaKeyPair};
@@ -274,7 +274,7 @@ fn tls13_only_no_0rtt_no_tickets() {
         assert_eq!(negotiable_versions(&cfg), [ProtocolVersion::TLSv1_3], "{p:?}");
         assert_eq!(cfg.max_early_data_size, 0);
         assert_eq!(cfg.send_tls13_tickets, 0);
-        let st = fips_status(&cfg);
+        let st = fips_status_with(&cfg, None);
         assert_eq!(st.config_fips, cfg.fips());
         assert!(!st.cmvp_claim);
         assert_eq!(st.module, None);

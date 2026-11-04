@@ -9,6 +9,10 @@
 //!   and the cordon's multi-threaded serving loop.
 //! - [`crash_budget`] (P5-iso-003): per-principal crash budget (D7), pure logic over caller-supplied instants.
 //!
+//! Phase 6:
+//! - `fips` (feature `cmvp`, P6-cmvp-002, PLAN-6 D16): the linked AWS-LC FIPS module's version string, read at run
+//!   time for aegis-tls's P-PQ5 assertion.
+//!
 //! Spec: `spec/SPEC_INVARIANTS.md` (INV-P2), PLAN-5
 //! D1/D2/D4/D5/D6/D7/D8.
 //!
@@ -18,6 +22,8 @@
 
 pub mod cordon;
 pub mod crash_budget;
+#[cfg(feature = "cmvp")]
+pub mod fips;
 pub mod sandbox;
 pub mod supervisor;
 pub mod zygote;

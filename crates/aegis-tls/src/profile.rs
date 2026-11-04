@@ -293,9 +293,24 @@ pub fn provider(profile: Profile) -> Result<CryptoProvider, ProfileError> {
 /// Build the `ServerConfig` for a profile. TLS 1.3 only, no 0-RTT (P-PQ4); configured groups = profile exactly
 /// (P-PQ2); CertificateVerify restricted to the profile's sigalgs (P-PQ2); resumption off until the scoped
 /// ticketer lands (P-PQ3, unit P2-tls-002). Startup assertions run on the built config before it is returned.
+///
+/// No module identity is supplied, so FIPS-CMVP is refused (P-PQ5 fails closed); a caller that serves FIPS-CMVP
+/// uses [`server_config_with`] with the string the linked module reported.
 pub fn server_config(
     profile: Profile,
     cert_resolver: Arc<dyn ResolvesServerCert>,
+) -> Result<ServerConfig, ProfileError> {
+    server_config_with(profile, cert_resolver, None)
+}
+
+/// [`server_config`] with `linked`, the linked AWS-LC module's own version string as read at run time by the
+/// caller (PLAN-6 D2/D16: `aegis_iso::fips::awslc_version_string()` in aegis-bin and tls-subject; aegis-tls never
+/// reads it itself, so it needs no `unsafe` and no dependency on aegis-iso). Used only by the FIPS-CMVP P-PQ5
+/// startup assertion; `None` refuses FIPS-CMVP.
+pub fn server_config_with(
+    profile: Profile,
+    cert_resolver: Arc<dyn ResolvesServerCert>,
+    linked: Option<&'static str>,
 ) -> Result<ServerConfig, ProfileError> {
     if profile.status() == ProfileStatus::Pending {
         return Err(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
@@ -313,15 +328,15 @@ pub fn server_config(
     cfg.session_storage = Arc::new(NoServerSessionStorage {});
     assert_profile(&cfg, profile)?;
     if profile == Profile::FipsCmvp {
-        assert_cmvp_module(&cfg)?;
+        assert_cmvp_module(&cfg, linked)?;
     }
     Ok(cfg)
 }
 
 /// P-PQ5 startup assertion for FIPS-CMVP: the config is FIPS (`ServerConfig::fips()`), the module is in FIPS mode,
 /// and the linked module reports exactly `AWS-LC FIPS 3.1.0`. Fails closed when the identity cannot be read.
-fn assert_cmvp_module(cfg: &ServerConfig) -> Result<(), ProfileError> {
-    let st = fips_status(cfg);
+fn assert_cmvp_module(cfg: &ServerConfig, linked: Option<&'static str>) -> Result<(), ProfileError> {
+    let st = fips_status_with(cfg, linked);
     if st.cmvp_claim {
         return Ok(());
     }
@@ -480,14 +495,17 @@ pub struct FipsStatus {
     pub cmvp_claim: bool,
 }
 
-/// Report the FIPS status of a built config.
-pub fn fips_status(cfg: &ServerConfig) -> FipsStatus {
-    status_from(cfg.fips())
+/// Report the FIPS status of a built config. `linked` is the linked AWS-LC module's own version string, read at run
+/// time by the caller (`aegis_iso::fips::awslc_version_string()` on the cmvp build, PLAN-6 D16; `None` on the floor
+/// build, which has no FIPS module). It is reported only on the cmvp build with `config_fips` true, and a CMVP
+/// claim needs it to be exactly `AWS-LC FIPS 3.1.0`.
+pub fn fips_status_with(cfg: &ServerConfig, linked: Option<&'static str>) -> FipsStatus {
+    status_from(cfg.fips(), linked)
 }
 
-fn status_from(config_fips: bool) -> FipsStatus {
+fn status_from(config_fips: bool, linked: Option<&'static str>) -> FipsStatus {
     let module_fips_mode = aws_lc_rs::try_fips_mode().is_ok();
-    let module = if cfg!(feature = "cmvp") && config_fips { linked_module() } else { None };
+    let module = if cfg!(feature = "cmvp") && config_fips { linked } else { None };
     let cmvp_claim = cfg!(feature = "cmvp") && config_fips && module_fips_mode && module.is_some_and(is_cmvp_module);
     FipsStatus { config_fips, module_fips_mode, module, cmvp_claim }
 }
@@ -499,22 +517,25 @@ fn is_cmvp_module(m: &str) -> bool {
     parts.len() == CMVP_MODULE_VERSION.len() && parts.iter().zip(CMVP_MODULE_VERSION).all(|(p, n)| *p == n.to_string())
 }
 
-/// The linked AWS-LC module's own version string (`awslc_version_string()`), read at run time.
-///
-/// Neither aws-lc-rs 1.15.3 nor rustls 0.23.43 exposes it through a safe API: the only access is the
-/// `aws_lc_fips_sys::awslc_version_string` extern "C" function, which needs `unsafe` (forbidden in this crate,
-/// CLAUDE.md). Until an audited site is approved (units/phase-6/reports/P6-cmvp-001-INFEASIBLE.md) this returns
-/// `None`, so no build claims a module identity it has not read: `cmvp_claim` stays false, FIPS-CMVP is refused
-/// by [`server_config`], and `aegis --fips-check` exits 1.
-fn linked_module() -> Option<&'static str> {
-    None
+/// The process-level FIPS check (`aegis --fips-check`, oracles/cmvp-binary F4 contract), independent of any
+/// listener, config file or certificate: `config_fips` is `ServerConfig::fips()` of the config the boot path builds
+/// for the cmvp profile, FIPS-CMVP, with `linked` as its P-PQ5 identity (false when that profile is refused: on the
+/// floor build it is pending, on cmvp the P-PQ5 assertion fails without the exact identity); `module_fips_mode`
+/// and `module` as in [`fips_status_with`].
+pub fn fips_check_with(linked: Option<&'static str>) -> FipsStatus {
+    let config_fips =
+        server_config_with(Profile::FipsCmvp, Arc::new(NoCredential), linked).map(|c| c.fips()).unwrap_or(false);
+    status_from(config_fips, linked)
 }
 
-/// The process-level FIPS check (`aegis --fips-check`), independent of any listener: `fips_mode` is the FIPS
-/// profile provider's `CryptoProvider::fips()` and the module's FIPS mode; `module` as in [`FipsStatus`].
-pub fn fips_check() -> FipsStatus {
-    let config_fips = provider(Profile::FipsFloor).map(|p| p.fips()).unwrap_or(false);
-    status_from(config_fips)
+/// The resolver of the `--fips-check` config: no credential (the check builds the config, it never handshakes).
+#[derive(Debug)]
+struct NoCredential;
+
+impl ResolvesServerCert for NoCredential {
+    fn resolve(&self, _: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
+        None
+    }
 }
 
 /// Wraps the caller's resolver so the served key can only sign with the profile's sigalgs (P-PQ2). If the
@@ -605,7 +626,10 @@ mod tests {
     #[cfg(not(feature = "cmvp"))]
     #[test]
     fn floor_reports_no_module() {
-        let st = fips_check();
+        let st = fips_check_with(None);
+        assert_eq!((st.module, st.cmvp_claim), (None, false));
+        // the floor build never reports or claims a module, whatever the caller passes
+        let st = fips_check_with(Some("AWS-LC FIPS 3.1.0"));
         assert_eq!((st.module, st.cmvp_claim), (None, false));
         assert_eq!(Profile::FipsCmvp.status(), ProfileStatus::Pending);
         assert_eq!(Profile::Cnsa.status(), ProfileStatus::Active);
@@ -628,23 +652,30 @@ mod tests {
     }
 
     /// cmvp build: FIPS-CMVP is served only with the P-PQ5 identity established; otherwise refused at boot.
+    /// (The real identity comes from the caller, aegis-iso; here a supplied string drives both branches.)
     #[cfg(feature = "cmvp")]
     #[test]
     fn cmvp_fips_cmvp_requires_module_identity() {
-        let claim = fips_check().cmvp_claim;
-        match server_config(Profile::FipsCmvp, Arc::new(NoCert)) {
-            Ok(cfg) => {
-                assert!(claim);
-                assert!(fips_status(&cfg).module.is_some_and(is_cmvp_module));
+        let good: &'static str = Box::leak(format!("{MODULE_PREFIX}3.1.0").into_boxed_str());
+        for linked in [None, Some("AWS-LC FIPS 4.2.0"), Some(good)] {
+            let claim = fips_check_with(linked).cmvp_claim;
+            match server_config_with(Profile::FipsCmvp, Arc::new(NoCert), linked) {
+                Ok(cfg) => {
+                    assert!(claim);
+                    assert_eq!(linked, Some(good));
+                    assert!(fips_status_with(&cfg, linked).module.is_some_and(is_cmvp_module));
+                }
+                Err(ProfileError::Assertion(e)) => {
+                    assert!(!claim, "{linked:?}");
+                    assert!(e.contains("P-PQ5"), "{e}");
+                }
+                Err(e) => panic!("FIPS-CMVP: {e}"),
             }
-            Err(ProfileError::Assertion(e)) => {
-                assert!(!claim);
-                assert!(e.contains("P-PQ5"), "{e}");
-            }
-            Err(e) => panic!("FIPS-CMVP: {e}"),
         }
+        // server_config (no identity) refuses FIPS-CMVP.
+        assert!(matches!(server_config(Profile::FipsCmvp, Arc::new(NoCert)), Err(ProfileError::Assertion(_))));
         // Without config FIPS, never a module or a claim.
-        let st = status_from(false);
+        let st = status_from(false, Some(good));
         assert_eq!((st.module, st.cmvp_claim), (None, false));
     }
 }

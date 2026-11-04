@@ -45,14 +45,25 @@ KATs and interop are the kx-kat / kx-interop gates.
 For every `requires = "cmvp"` verdict the subject's `describe` of that profile must report `fips=true` **and**
 `module=AWS-LC FIPS 3.1.0` exactly; otherwise the module half is a FAIL (without the flag: `SKIP`, listed in the PASS
 line). `fips=true` with an empty/absent `module`, or any other module string (e.g. `AWS-LC FIPS 4.2.0`), fails. The
-flag changes nothing else. `--self-test --require-cmvp` (clienthello-cmvp selftest) runs the same self-test, which
-always includes the module-identity mutants and the positive control.
+flag changes nothing else, except for profiles with `cmvp = "refused"` (below). `--self-test --require-cmvp`
+(clienthello-cmvp selftest) runs the same self-test, which always includes the module-identity mutants and the
+positive control.
+
+**`cmvp = "refused"` (F12 profile field, PLAN-6 D17; P-CNSA, which also has `requires = "floor"`).** With
+`--require-cmvp`, every check of such a profile (static, behavioural, its `[[verdict]]` and `[[supplementary]]` rows)
+is replaced by one check, `PROFILE <p> cmvp refused`: the subject's `describe <p>` must exit non-zero with a reason
+(stderr, which the line prints), and `serve <p>` must answer a hello for the profile's first group with neither a
+ServerHello nor an HRR. A cmvp subject that builds or serves the profile is a FAIL. The profile's verdicts
+(CNSA-T1..T4) are judged on the floor build only (printed as `info VERDICT ... judged on the floor build only`).
+Reason: ML-DSA-87 is not in the AWS-LC FIPS 3.1.0 module (PLAN-6 D15). Load-time: `requires` only `"floor"`, `cmvp`
+only `"refused"` and only together with `requires = "floor"`.
 
 ## Self-test (`--self-test`)
 
 Baseline (unmutated reference) must be clean, the external hook with the clean subject must be clean, and the
-`--require-cmvp` positive control (reference reporting `fips=true module=AWS-LC FIPS 3.1.0`) must be clean with 0
-SKIPs; then each mutant must produce at least one diff (23 mutants):
+`--require-cmvp` positive control (reference reporting `fips=true module=AWS-LC FIPS 3.1.0` and refusing P-CNSA, in
+process and through the external hook) must be clean with 0 SKIPs; then each mutant must produce at least one diff
+(27 mutants):
 
 | mutant | what it simulates | caught by |
 |---|---|---|
@@ -77,6 +88,9 @@ SKIPs; then each mutant must produce at least one diff (23 mutants):
 | `require-cmvp-on-floor-build` | `--require-cmvp` against the floor build (`fips=false`) | cmvp SKIPs become diffs |
 | `require-cmvp:reports-fips-module-none` (+ `external:` variant) | `--require-cmvp`, subject reports `fips=true`, module None | module half FAIL |
 | `require-cmvp:reports-module-4.2.0` | `--require-cmvp`, subject reports `fips=true module=AWS-LC FIPS 4.2.0` | module half FAIL |
+| `require-cmvp:cmvp-serves-cnsa` (+ `external:` variant) | `--require-cmvp`, subject reports the cmvp identity but still builds and serves P-CNSA (D17) | `PROFILE P-CNSA cmvp refused` FAIL |
+| `verdict-file:P-CNSA-cmvp-refused-dropped` | F12 without `cmvp = "refused"` on P-CNSA, against the refusing cmvp reference | the P-CNSA describe / probe / verdict checks come back and fail |
+| `verdict-file:P-CNSA-refused-without-requires-floor` | `cmvp = "refused"` without `requires = "floor"` | LOAD |
 
 ## Subject interface (`--subject`)
 

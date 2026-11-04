@@ -54,6 +54,11 @@ struct Profile {
     early_data: bool,
     /// F12 `sigalg_cover` (2026-11-04): only "all-or-none"; checked at load time by `validate`.
     sigalg_cover: Option<String>,
+    /// F12 profile `requires` (PLAN-6 D17): only "floor" (judged on the floor build only).
+    requires: Option<String>,
+    /// F12 profile `cmvp` (PLAN-6 D17): only "refused" (needs requires = "floor"): with --require-cmvp the subject
+    /// must refuse the profile, and that one check replaces all of the profile's checks.
+    cmvp: Option<String>,
 }
 
 #[derive(Clone)]
@@ -151,6 +156,13 @@ fn expect_of(spec_groups: &BTreeMap<String, u16>, v: &Value, ctx: &str) -> R<Out
     }
 }
 
+fn opt_str(v: &Value, k: &str, ctx: &str) -> R<Option<String>> {
+    match v.get(k) {
+        None => Ok(None),
+        Some(x) => Ok(Some(x.str().map(String::from).ok_or(format!("{ctx}.{k}: not a string"))?)),
+    }
+}
+
 fn load(path: &str) -> R<Spec> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let doc = toml::parse(&src)?;
@@ -192,10 +204,9 @@ fn load(path: &str) -> R<Spec> {
                     .filter_map(|x| x.str().map(String::from))
                     .collect(),
                 early_data: p.get("early_data").and_then(Value::bool).ok_or(format!("{ctx}.early_data"))?,
-                sigalg_cover: match p.get("sigalg_cover") {
-                    None => None,
-                    Some(v) => Some(v.str().map(String::from).ok_or(format!("{ctx}.sigalg_cover: not a string"))?),
-                },
+                sigalg_cover: opt_str(p, "sigalg_cover", &ctx)?,
+                requires: opt_str(p, "requires", &ctx)?,
+                cmvp: opt_str(p, "cmvp", &ctx)?,
             },
         );
     }
@@ -257,6 +268,15 @@ fn validate(spec: &Spec) -> R<()> {
         match p.sigalg_cover.as_deref() {
             None | Some("all-or-none") => {}
             Some(o) => return Err(format!("profiles.{name}.sigalg_cover: unknown value '{o}'")),
+        }
+        match p.requires.as_deref() {
+            None | Some("floor") => {}
+            Some(o) => return Err(format!("profiles.{name}.requires: unknown value '{o}'")),
+        }
+        match (p.cmvp.as_deref(), p.requires.as_deref()) {
+            (None, _) | (Some("refused"), Some("floor")) => {}
+            (Some("refused"), _) => return Err(format!("profiles.{name}.cmvp = \"refused\" needs requires = \"floor\"")),
+            (Some(o), _) => return Err(format!("profiles.{name}.cmvp: unknown value '{o}'")),
         }
         for v in &p.versions {
             if !VERSIONS.iter().any(|(n, _)| n == v) {
@@ -479,6 +499,8 @@ enum Mutation {
     ReportsFipsNoModule,
     ReportsModule420,
     ReportsCmvp310,
+    // PLAN-6 D17: reports the cmvp identity but still serves P-CNSA (ML-DSA-87 is not in the 3.1.0 module)
+    CmvpServesCnsa,
 }
 
 /// Subject mutants: each must give at least one diff in a normal run.
@@ -498,13 +520,18 @@ const MUTATIONS: [(Mutation, &str); 13] = [
     (Mutation::PublicNo11ED, "public-no-11ed"),
 ];
 
-/// Module-identity mutants: the first two must give diffs under --require-cmvp; the last is the positive control
-/// (a subject reporting fips=true + AWS-LC FIPS 3.1.0 must pass --require-cmvp with diff 0).
-const CMVP_MUTATIONS: [(Mutation, &str); 3] = [
+/// Module-identity mutants: all but the last must give diffs under --require-cmvp; the last is the positive control
+/// (a subject reporting fips=true + AWS-LC FIPS 3.1.0 and refusing the `cmvp = "refused"` profile P-CNSA must pass
+/// --require-cmvp with diff 0).
+const CMVP_MUTATIONS: [(Mutation, &str); 4] = [
     (Mutation::ReportsFipsNoModule, "reports-fips-module-none"),
     (Mutation::ReportsModule420, "reports-module-4.2.0"),
+    (Mutation::CmvpServesCnsa, "cmvp-serves-cnsa"),
     (Mutation::ReportsCmvp310, "reports-cmvp-3.1.0"),
 ];
+
+/// The refusal reason of the cmvp reference subject for P-CNSA (PLAN-6 D15).
+const CNSA_REFUSED: &str = "P-CNSA refused on the cmvp build: ML-DSA-87 is not in the FIPS module (PLAN-6 D15)";
 
 #[derive(Clone)]
 struct Cred(Arc<CertifiedKey>);
@@ -635,6 +662,8 @@ impl Reference {
             "P-BSI-ALT" => {
                 plain(vec![P384MLKEM1024, SECP256R1MLKEM768], vec![&self.ecdsa384, &self.mldsa87], &[MLDSA87, ECDSA_P384])
             }
+            // the cmvp build (positive control) refuses P-CNSA (D15/D17); CmvpServesCnsa is the mutant that does not
+            "P-CNSA" if m == Mutation::ReportsCmvp310 => return Err(CNSA_REFUSED.to_string()),
             "P-CNSA" => {
                 let kx: Vec<&'static dyn SupportedKxGroup> = match m {
                     Mutation::CnsaAccepts11ED => vec![MLKEM1024, P384MLKEM1024],
@@ -698,7 +727,7 @@ impl Subject for Reference {
         let (fips, module) = match self.m {
             Mutation::ReportsFipsNoModule => (true, None),
             Mutation::ReportsModule420 => (true, Some("AWS-LC FIPS 4.2.0".to_string())),
-            Mutation::ReportsCmvp310 => (true, Some(CMVP_MODULE.to_string())),
+            Mutation::ReportsCmvp310 | Mutation::CmvpServesCnsa => (true, Some(CMVP_MODULE.to_string())),
             _ => (cfg.fips(), None),
         };
         Ok(Desc {
@@ -767,7 +796,8 @@ impl Subject for External {
     fn describe(&self, profile: &str) -> R<Desc> {
         let o = self.cmd().arg("describe").arg(profile).output().map_err(|e| format!("subject describe: {e}"))?;
         if !o.status.success() {
-            return Err(format!("subject describe {profile} exited {}", o.status));
+            let why = String::from_utf8_lossy(&o.stderr);
+            return Err(format!("subject describe {profile} exited {}: {}", o.status, why.trim()));
         }
         let txt = String::from_utf8_lossy(&o.stdout);
         let kv: BTreeMap<&str, &str> = txt.lines().filter_map(|l| l.split_once('=')).map(|(k, v)| (k.trim(), v.trim())).collect();
@@ -956,10 +986,33 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
     }
     // 2. profiles: static (P-PQ2 configured set = profile, P-PQ4) and behavioural (P-PQ1 sweep, P-PQ2 sigalg)
     let mut cmvp_state: BTreeMap<String, Result<(), String>> = BTreeMap::new();
+    // profiles the cmvp subject must refuse (F12 `cmvp = "refused"`, PLAN-6 D17): under --require-cmvp one check
+    // replaces all of the profile's checks; its verdict / supplementary rows are judged on the floor build only
+    let mut refused: Vec<&str> = Vec::new();
     for (name, p) in &spec.profiles {
         if p.status != "active" && p.status != "cmvp-pending" {
             if !quiet {
                 println!("info PROFILE {name}: status={} (not checked: listed for F12 completeness)", p.status);
+            }
+            continue;
+        }
+        if require_cmvp && p.cmvp.as_deref() == Some("refused") {
+            refused.push(name);
+            let probe = p.kx.first().map(|g| {
+                let c = ProbeCase { groups: vec![*g], shares: vec![*g], sigalgs: spec.sigalgs.values().copied().collect(), versions: tls13() };
+                run_probe(spec, subj, name, &c)
+            });
+            let served = matches!(probe, Some(Outcome::Sh(_) | Outcome::Hrr(_)));
+            let served_s = probe.as_ref().map(|o| spec.show(o)).unwrap_or("-".into());
+            match subj.describe(name) {
+                Err(e) if !e.trim().is_empty() && !served => {
+                    r.line(quiet, true, format!("PROFILE {name} cmvp refused (describe: {e}; serve -> {served_s})"))
+                }
+                Err(e) => r.line(quiet, false, format!("PROFILE {name} cmvp refused: describe failed ({e}) but serve -> {served_s}")),
+                Ok(d) => r.line(quiet, false, format!(
+                    "PROFILE {name} cmvp refused: the cmvp subject builds it (describe ok, fips={:?} module={:?}; serve -> {served_s})",
+                    d.fips, d.module
+                )),
             }
             continue;
         }
@@ -1027,6 +1080,12 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
     }
     // 3. the frozen verdicts
     for v in &spec.verdicts {
+        if refused.contains(&v.profile.as_str()) {
+            if !quiet {
+                println!("info VERDICT {} [{}]: judged on the floor build only (profile cmvp = \"refused\")", v.id, v.profile);
+            }
+            continue;
+        }
         let got = run_probe(spec, subj, &v.profile, &v.probe);
         r.line(quiet, got == v.expect, format!("VERDICT {} [{}] expect={} got={}", v.id, v.profile, spec.show(&v.expect), spec.show(&got)));
         if v.requires == "cmvp" {
@@ -1045,6 +1104,9 @@ fn check(spec: &Spec, subj: &dyn Subject, require_cmvp: bool, quiet: bool) -> Re
     }
     // 4. supplementary (cited by id, not frozen verdicts)
     for sp in &spec.sups {
+        if refused.contains(&sp.profile.as_str()) {
+            continue;
+        }
         let allowed = spec.profiles.get(&sp.profile).map(|p| p.sigalgs.clone()).unwrap_or_default();
         match &sp.mode {
             SupMode::Probe(c, e) => {
@@ -1190,17 +1252,39 @@ fn cmd_self_test(spec: &Spec) -> R<()> {
     // --require-cmvp must turn the floor build's cmvp SKIPs into diffs (no silent pass)
     tally("require-cmvp-on-floor-build", &check(spec, &base, true, true));
     // --require-cmvp: fips=true is not enough, the module identity must be exactly AWS-LC FIPS 3.1.0
-    for (m, name) in CMVP_MUTATIONS.iter().take(2) {
+    // ... and (D17) a cmvp subject that serves the cmvp = "refused" profile P-CNSA is red
+    for (m, name) in CMVP_MUTATIONS.iter().take(CMVP_MUTATIONS.len() - 1) {
         tally(&format!("require-cmvp:{name}"), &check(spec, &base.with(*m), true, true));
     }
-    let ext_c = External { argv: vec![exe.clone(), "subject".into(), "--mutate".into(), "reports-fips-module-none".into()] };
-    tally("external:require-cmvp:reports-fips-module-none", &check(spec, &ext_c, true, true));
+    for name in ["reports-fips-module-none", "cmvp-serves-cnsa"] {
+        let ext_c = External { argv: vec![exe.clone(), "subject".into(), "--mutate".into(), name.into()] };
+        tally(&format!("external:require-cmvp:{name}"), &check(spec, &ext_c, true, true));
+    }
+    let cmvp_ref = base.with(Mutation::ReportsCmvp310);
+    // verdict-file (D17): dropping `cmvp = "refused"` from P-CNSA makes the refusing cmvp subject red (the P-CNSA
+    // checks come back and fail); `cmvp = "refused"` without `requires = "floor"` is a load error
+    let mut ms = spec.clone();
+    if let Some(p) = ms.profiles.get_mut("P-CNSA") {
+        p.cmvp = None;
+    }
+    tally("verdict-file:P-CNSA-cmvp-refused-dropped", &check(&ms, &cmvp_ref, true, true));
+    let mut ms = spec.clone();
+    if let Some(p) = ms.profiles.get_mut("P-CNSA") {
+        p.requires = None;
+    }
+    tally("verdict-file:P-CNSA-refused-without-requires-floor", &as_report(validate(&ms)));
     // positive control: the identity the cmvp build must report passes --require-cmvp (the mode is not always red)
-    let good = check(spec, &base.with(Mutation::ReportsCmvp310), true, true);
+    let good = check(spec, &cmvp_ref, true, true);
     if !good.diffs.is_empty() || !good.skips.is_empty() {
         return Err(format!("HRR-VERDICTS SELF-TEST: FAIL (--require-cmvp rejects a subject reporting fips=true module={CMVP_MODULE}: {:?} skips={:?})", good.diffs.first(), good.skips));
     }
-    println!("--require-cmvp positive control (fips=true module={CMVP_MODULE}): diff=0 over {} checks, 0 SKIPPED", good.checked);
+    println!("--require-cmvp positive control (fips=true module={CMVP_MODULE}, P-CNSA refused): diff=0 over {} checks, 0 SKIPPED", good.checked);
+    let ext_good = External { argv: vec![exe.clone(), "subject".into(), "--mutate".into(), "reports-cmvp-3.1.0".into()] };
+    let eg = check(spec, &ext_good, true, true);
+    if !eg.diffs.is_empty() || !eg.skips.is_empty() {
+        return Err(format!("HRR-VERDICTS SELF-TEST: FAIL (external --require-cmvp positive control not clean: {:?} skips={:?})", eg.diffs.first(), eg.skips));
+    }
+    println!("external --require-cmvp positive control: diff=0 over {} checks, 0 SKIPPED", eg.checked);
     if missed.is_empty() {
         println!("HRR-VERDICTS SELF-TEST: PASS ({caught}/{total} mutants caught; baseline, external hook and --require-cmvp control clean)");
         Ok(())

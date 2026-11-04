@@ -37,7 +37,7 @@ pub struct ServeOpts {
     pub args: Vec<OsString>,
 }
 
-pub const USAGE: &str = "usage: aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>] [--token-keyring <file>]\n       aegis check-config <path> [--print-effective]";
+pub const USAGE: &str = "usage: aegis --config <path> [--cert <pem>] [--key <pem>] [--audit-dir <dir>] [--runtime-dir <dir>] [--token-keyring <file>]\n       aegis check-config <path> [--print-effective]\n       aegis --fips-check";
 
 /// A command-line error (exit 64, EX_USAGE).
 #[derive(Debug)]

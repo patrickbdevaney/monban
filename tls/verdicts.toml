@@ -15,6 +15,12 @@
 #     below under "Row vocabulary added 2026-11-04". The oracle (P6-oracle-hrr-001) implements them.
 #   - UNI-T5 and CNSA-T3 freeze alert 49, not the 40 in the PLAN-6 draft: see "Admission order" below.
 #
+# Amendment 2026-11-04 (Phase 6, unit P6-cmvp-002, PLAN-6 D17; re-frozen in the same commit):
+#   - [profiles.P-CNSA] gains `requires = "floor"` and `cmvp = "refused"` (fields defined under "Profile fields
+#     added by D17" below). Reason: ML-DSA-87 is not in the AWS-LC FIPS 3.1.0 module (aws-lc-rs 1.15.3 compiles
+#     ML-DSA out under `fips`, PLAN-6 D15), so the cmvp build cannot serve P-CNSA and refuses it at boot.
+#   - No [[verdict]] row changes: CNSA-T1..T4 stay byte-identical and are judged on the floor build only.
+#
 # Provenance (research, untrusted, re-run in-repo by the oracle):
 #   PUB-T1..T6  = r3pq.hrr-acceptance-test, research/state/raw/round-003/03-work/run1.txt (T1..T6) and
 #                 hrr_acceptance_test.rs; executed 2026-10-25 on rustls 0.23.46 + aws-lc-rs 1.18.2.
@@ -32,6 +38,16 @@
 #   requires = "cmvp"       -> group selection is checked on the floor lock (selection is rustls code, not module
 #                              code); the module half (config.fips() == true, module identity AWS-LC FIPS 3.1.0,
 #                              P-PQ5) needs the profiles/cmvp build and is reported SKIPPED until that build exists.
+#
+# Profile fields added by D17 (2026-11-04, P6-cmvp-002):
+#   requires        (optional, [profiles.*]) only value "floor": the profile's selection, admission, P-PQ1/P-PQ2
+#                   and verdict checks are judged on the floor build (root lock) only. Absent = no restriction.
+#   cmvp            (optional, [profiles.*]) only value "refused"; needs requires = "floor" (load error otherwise).
+#                   The cmvp build must refuse to build this profile. With --require-cmvp the oracle replaces every
+#                   check of the profile (static, behavioural, its [[verdict]] and [[supplementary]] rows) by one
+#                   check: `describe` of the profile exits non-zero with a reason, and `serve` of it answers a
+#                   hello for the profile's first group with neither a ServerHello nor a HelloRetryRequest. A cmvp
+#                   subject that serves the profile is a FAIL. Without --require-cmvp the field changes nothing.
 #
 # Row vocabulary added 2026-11-04 (oracle field definitions; precise, so the oracle can implement them):
 #   offer_versions  (optional, [[verdict]] and mode = "probe" [[supplementary]] rows) array of version names from
@@ -185,6 +201,8 @@ kx_groups = ["MLKEM1024"]
 sigalgs = ["mldsa87"]
 sigalg_cover = "all-or-none"
 credential = "ML-DSA-87"
+requires = "floor"
+cmvp = "refused"
 versions = ["TLS13"]
 early_data = false
 kx_note = "activated 2026-11-04 with CNSA-T1..T4; buildable on the floor lock (rustls kx_group::MLKEM1024, ML-DSA-87). Pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00): opt-in only."
