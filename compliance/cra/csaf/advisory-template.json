@@ -1,0 +1,147 @@
+{
+  "document": {
+    "category": "csaf_security_advisory",
+    "csaf_version": "2.0",
+    "notes": [
+      {
+        "category": "general",
+        "title": "Status",
+        "text": "Status: DRAFT, not published. Template only: every placeholder (OPERATOR-TO-SUPPLY, SHORT-TITLE, COMPONENT, AEGIS-YYYY-NNNN, X.Y.Z, 2000-01-01T00:00:00Z) is replaced by the PSIRT at publication. No contact channel is set up (PREFLIGHT D-P1)."
+      },
+      {
+        "category": "summary",
+        "title": "Summary",
+        "text": "One paragraph: the vulnerability, the affected AEGIS builds (floor, cmvp) and the fixed release."
+      },
+      {
+        "category": "legal_disclaimer",
+        "title": "Terms of use",
+        "text": "OPERATOR-TO-SUPPLY: terms of use, chosen together with the license (none chosen yet)."
+      }
+    ],
+    "publisher": {
+      "category": "vendor",
+      "name": "OPERATOR-TO-SUPPLY (AEGIS steward or manufacturer)",
+      "namespace": "https://example.invalid/operator-to-supply"
+    },
+    "references": [
+      {
+        "category": "self",
+        "summary": "Canonical URL of this advisory (operator to supply at publication).",
+        "url": "https://example.invalid/operator-to-supply/csaf/aegis-yyyy-nnnn.json"
+      }
+    ],
+    "title": "AEGIS: SHORT-TITLE in COMPONENT",
+    "tracking": {
+      "current_release_date": "2000-01-01T00:00:00Z",
+      "generator": {
+        "engine": {
+          "name": "hand-written template (compliance/cra/csaf)"
+        }
+      },
+      "id": "AEGIS-YYYY-NNNN",
+      "initial_release_date": "2000-01-01T00:00:00Z",
+      "revision_history": [
+        {
+          "date": "2000-01-01T00:00:00Z",
+          "number": "1",
+          "summary": "Initial draft (template)."
+        }
+      ],
+      "status": "draft",
+      "version": "1"
+    }
+  },
+  "product_tree": {
+    "branches": [
+      {
+        "category": "vendor",
+        "name": "AEGIS",
+        "branches": [
+          {
+            "category": "product_name",
+            "name": "aegis (floor build)",
+            "branches": [
+              {
+                "category": "product_version",
+                "name": "X.Y.Z",
+                "product": {
+                  "name": "aegis floor X.Y.Z",
+                  "product_id": "AEGIS-FLOOR-AFFECTED"
+                }
+              },
+              {
+                "category": "product_version",
+                "name": "X.Y.Z+1",
+                "product": {
+                  "name": "aegis floor X.Y.Z+1",
+                  "product_id": "AEGIS-FLOOR-FIXED"
+                }
+              }
+            ]
+          },
+          {
+            "category": "product_name",
+            "name": "aegis (cmvp build, AWS-LC FIPS 3.1.0, AL2023)",
+            "branches": [
+              {
+                "category": "product_version",
+                "name": "X.Y.Z",
+                "product": {
+                  "name": "aegis cmvp X.Y.Z",
+                  "product_id": "AEGIS-CMVP-AFFECTED"
+                }
+              },
+              {
+                "category": "product_version",
+                "name": "X.Y.Z+1",
+                "product": {
+                  "name": "aegis cmvp X.Y.Z+1",
+                  "product_id": "AEGIS-CMVP-FIXED"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "vulnerabilities": [
+    {
+      "ids": [
+        {
+          "system_name": "AEGIS PSIRT",
+          "text": "AEGIS-YYYY-NNNN"
+        }
+      ],
+      "notes": [
+        {
+          "category": "description",
+          "title": "Description",
+          "text": "Technical description: affected component, trigger, impact, and which SECURITY_CLAIMS.md row and rung (if any) the issue falls under."
+        }
+      ],
+      "product_status": {
+        "known_affected": [
+          "AEGIS-FLOOR-AFFECTED",
+          "AEGIS-CMVP-AFFECTED"
+        ],
+        "fixed": [
+          "AEGIS-FLOOR-FIXED",
+          "AEGIS-CMVP-FIXED"
+        ]
+      },
+      "remediations": [
+        {
+          "category": "vendor_fix",
+          "details": "Upgrade to X.Y.Z+1 (triple-signed release; verify with ci/release/verify.py against the pinned TUF root).",
+          "product_ids": [
+            "AEGIS-FLOOR-AFFECTED",
+            "AEGIS-CMVP-AFFECTED"
+          ]
+        }
+      ],
+      "title": "SHORT-TITLE"
+    }
+  ]
+}
