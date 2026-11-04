@@ -10,6 +10,8 @@
 //! Not here yet: scoped ticketer + STEK ring (P-PQ3, P2-tls-002), PreferServerOrder backport, cmvp build (P-PQ5).
 #![forbid(unsafe_code)]
 
+#[cfg(kani)]
+mod kani_proofs; // Kani harnesses for the kx share parsing (P6-kani-001), run by ci/kani.sh --crate aegis-tls
 pub mod kx;
 pub mod profile;
 
