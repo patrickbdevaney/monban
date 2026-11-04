@@ -14,6 +14,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"; mode="${1:-run}"; where="all"; fail=0;
 for d in "${ORACLES_DIR:-$ROOT/oracles}"/*/; do
   name=$(basename "$d"); r="$d/run"
   if [ "$where" = remote ] && [ -f "$d/needs" ]; then continue; fi
+  # `needs` = kamrui: the oracle has its own phase gate that runs it there (kx-interop); no aggregate runs it.
+  [ -f "$d/needs" ] && grep -qx kamrui "$d/needs" && [ "$where" != all ] && continue
   quiet=0; [ -f "$d/needs" ] && grep -qx quiet-host "$d/needs" && quiet=1
   other=0; [ -f "$d/needs" ] && awk 'NF && $1 != "quiet-host" {f=1} END {exit !f}' "$d/needs" && other=1
   if [ "$where" = local ] && [ $other = 0 ]; then continue; fi
