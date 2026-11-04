@@ -24,7 +24,7 @@ before `conformance` in that file, since such a gate's log could never be from t
                  selftest log `[ssrf-corpus] SSRF-CORPUS SELF-TEST: PASS`.
   C3 (reported)  select-drt lowering-read-{sqlite,pg,redis} lowering-write-{sqlite,pg,redis}
   C4 (reported)  no gate exists (no duvet-style traceability gate in phase 6): total 0, listed in not_claimed.
-  p2-subject (kind module): C2 only, from the hostile-module corpus (p2-hostile-worker, p2-hostile-host).
+  aegis-p2 (kind module; the P2 worker that hosts guest modules): C2 only, from the hostile-module corpus (p2-hostile-worker, p2-hostile-host).
 
 When a gate counts as passed (anything else is fail; a result is never "skipped"):
   - <logs>/.run-start exists (ci/run-gates.py writes it at the start of a run);
@@ -39,7 +39,7 @@ Artifact digest (artifact_sha256). Taken only from logs that themselves pass the
   - golden floor / cmvp: the line `RELEASE-PIPELINE: PASS (<profile>, artifacts/aegis-<profile> sha256 <hex>, ...)`
     that ci/release/pipeline.sh prints, found in the cmd logs of release-verify (floor) and release-rebuild (floor,
     cmvp) and in the subject's own gate logs;
-  - any subject: a line `CONFORMANCE-ARTIFACT: <subject> sha256 <hex>` in those same logs (p2-subject has no other
+  - any subject: a line `CONFORMANCE-ARTIFACT: <subject> sha256 <hex>` in those same logs (aegis-p2 has no other
     source: the p2-hostile-* gates must print it for the module build they exercised).
   Every digest found for a subject must be identical; none found, or two different ones, fails the subject (no
   report can be written, since F13 requires artifact_sha256) and therefore the gate.
@@ -123,7 +123,7 @@ def levels_for(profile):
 
 
 GOLDEN = [("aegis-bin-floor", "golden", "floor"), ("aegis-bin-cmvp", "golden", "cmvp")]
-SUBJECTS = GOLDEN + [("p2-subject", "module", "module")]
+SUBJECTS = GOLDEN + [("aegis-p2", "module", "module")]
 
 
 def not_claimed(profile):
@@ -706,7 +706,7 @@ def write_synth(d, gates, mutate=None):
         "release-verify": f"RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n",
         "release-rebuild": f"[A] RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n"
                            f"[A] RELEASE-PIPELINE: PASS (cmvp, artifacts/aegis-cmvp sha256 {cmvp}, 9 files)\n",
-        "p2-hostile-host": f"CONFORMANCE-ARTIFACT: p2-subject sha256 {p2}\n",
+        "p2-hostile-host": f"CONFORMANCE-ARTIFACT: aegis-p2 sha256 {p2}\n",
     }
     for name, g in gates.items():
         for step in ("cmd", "selftest"):
@@ -793,8 +793,8 @@ def self_test():
                     return False, f"{n}: signatures/test_keys"
                 if not os.path.isfile(os.path.join(o, f"{n}.json")):
                     return False, f"{n}.json not written"
-            if reports["p2-subject"]["levels"].keys() != {"C2"}:
-                return False, "p2-subject must be C2 only"
+            if reports["aegis-p2"]["levels"].keys() != {"C2"}:
+                return False, "aegis-p2 must be C2 only"
             return True, "3 reports, schema + 3 signatures verified, C0-C2 100%"
         reports, o_all, pubs_all = case("all-pass", None, True, check=all_pass_chk)
 
@@ -864,14 +864,14 @@ def self_test():
         json.dump(r, open(p, "w"), indent=1, sort_keys=True)
         q = os.path.join(o_all, "aegis-bin-cmvp.json")
         r2 = json.load(open(q))
-        other = json.load(open(os.path.join(o_all, "p2-subject.json")))
+        other = json.load(open(os.path.join(o_all, "aegis-p2.json")))
         r2["signatures"][2] = other["signatures"][2]
         json.dump(r2, open(q, "w"), indent=1, sort_keys=True)
         vok, vlines = verify_reports(o_all, names, pubs_all, signer)
         floor_bad = any("aegis-bin-floor: signatures ed25519=BAD slh-dsa-sha2-128s=BAD ml-dsa-87=BAD" in x
                         for x in vlines)
         cmvp_bad = any("aegis-bin-cmvp: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=BAD" in x for x in vlines)
-        p2_ok = any("p2-subject: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=ok" in x for x in vlines)
+        p2_ok = any("aegis-p2: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=ok" in x for x in vlines)
         good = (not vok) and floor_bad and cmvp_bad and p2_ok
         print(f"  {'ok  ' if good else 'BAD '} tamper-after-signing: floor all 3 BAD={floor_bad}, cmvp swapped "
               f"ml-dsa-87 BAD={cmvp_bad}, untouched p2 verifies={p2_ok}")
@@ -881,14 +881,14 @@ def self_test():
                 print("      " + l)
         # 10b. a fresh key set must not verify the old signatures (keys are per run)
         pubs2, _ = signer.sign([b"x"])
-        vok2, vl2 = verify_reports(o_all, ["p2-subject"], pubs2, signer)
+        vok2, vl2 = verify_reports(o_all, ["aegis-p2"], pubs2, signer)
         print(f"  {'ok  ' if not vok2 else 'BAD '} other-run-keys: p2 report under a fresh key set "
               f"{'refused' if not vok2 else 'ACCEPTED'}")
         if vok2:
             bad.append("other-run-keys")
 
         # 11. schema mutants: both validators reject each
-        base = json.load(open(os.path.join(o_all, "p2-subject.json")))
+        base = json.load(open(os.path.join(o_all, "aegis-p2.json")))
         _, jran = jsonschema_validate(base)
         muts = {
             "extra-member": lambda x: x.__setitem__("extra", 1),
