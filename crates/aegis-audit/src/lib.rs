@@ -24,7 +24,9 @@ pub use log::{
     AdminError, AppendError, Appended, CommitError, ConfigError, FailurePolicy, Log, LogConfig, OnFailure, RejectReason,
 };
 pub use merkle::{Hash, MerkleStore, leaf_hash, node_hash, verify_consistency, verify_inclusion};
-pub use note::{Ed25519NoteSigner, MlDsa87NoteSigner, NoteError, NoteSigner, NoteVerifier, open_note, sign_note};
+pub use note::{
+    Ed25519NoteSigner, MLDSA87_COSIGN, MlDsa87NoteSigner, NoteError, NoteSigner, NoteVerifier, open_note, sign_note,
+};
 pub use sink::{AuditSink, SinkError};
 pub use tile::{TileKind, TilePath};
 

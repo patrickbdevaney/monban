@@ -320,3 +320,16 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
   As a consequence, P-CNSA, P-UNIVERSAL and P-BSI-ALT on the cmvp build use ECDSA-P384 only. P-CNSA cannot be served
   on cmvp, because it requires ML-DSA-87. It is refused at boot on cmvp, with a reason. This matches the
   COMPLIANCE_MAP statement that ML-DSA is not approved in AWS-LC 3.1.0.
+- **D16 module string (resolves P6-cmvp-001-INFEASIBLE.md): option B.**
+  - aegis-iso gets a `cmvp` feature with an optional dependency on `aws-lc-fips-sys` (already in the cmvp lock; no
+    new crate) and two audited `unsafe` sites: call `awslc_version_string`, then `CStr::from_ptr`. That takes
+    aegis-iso from 14 to 16 of its 20 sites.
+  - aegis-bin (L5) and tls-subject read the value and pass it into aegis-tls with `fips_status_with`, so aegis-tls
+    never depends on aegis-iso and the layering holds.
+  - Option C, a compile-time identity only, was rejected: it weakens P-PQ5's runtime read.
+- **D17 P-CNSA on cmvp.** F12 is re-frozen: profile P-CNSA gets `requires = "floor"`, and a new field
+  `cmvp = "refused"`.
+  - Under `--require-cmvp`, the oracle requires the cmvp subject to *refuse* P-CNSA: `describe` exits non-zero with
+    the D15 reason. P-CNSA selection is judged on the floor build only.
+  - This replaces 19 unsatisfiable checks with one check that is satisfiable and red on a mutant.
+  - Reason: ML-DSA-87 is not in the AWS-LC 3.1.0 module (D15).

@@ -513,8 +513,8 @@ selftest = "cargo xtask unsafe-sites --self-test"
 
 [[gate]]
 name = "fips-lock"
-cmd = "cargo xtask fips-lock --profile cmvp && cargo xtask fips-lock --profile floor"
-selftest = "cargo xtask fips-lock --self-test"
+cmd = "cargo xtask fips-lock --profile cmvp && cargo xtask fips-lock --profile floor && ci/cmvp-supply.sh"
+selftest = "cargo xtask fips-lock --self-test && ci/cmvp-supply.sh --self-test"
 
 [[gate]]
 name = "fips-binary"
@@ -563,7 +563,7 @@ remote = true
 [[gate]]
 name = "kx-interop"
 cmd = "oracles/kx-interop/run"
-selftest = "oracles/kx-interop/run --self-test"
+selftest = "oracles/kx-interop/run --self-test && ci/heavy.sh cargo build --release --locked -q -p tls-subject --features aegis-tls/order-mutant --target-dir target/order-mutant && oracles/kx-interop/run --subject target/order-mutant/release/tls-subject | tail -1 | grep -qxF 'KX-INTEROP: FAIL (6/20 cells failed: ED-OSSL-SRV, ED-OSSL-CLI, ED-OSSL-SRV-HRR, ED-GO-SRV, ED-GO-CLI, ED-GO-SRV-HRR)'"
 heavy = true
 remote = "kamrui"
 

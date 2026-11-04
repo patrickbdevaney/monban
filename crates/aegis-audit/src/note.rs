@@ -8,17 +8,25 @@
 //!   identifier: [`MLDSA87_SIG_TYPE`] = `0xff || "aegis-mldsa87-note-v1"`. Key ID =
 //!   `SHA-256(name || 0x0A || MLDSA87_SIG_TYPE || 2592-byte public key)[:4]`. Verifiers that do not know this
 //!   key ignore the line, as signed-note requires.
+//!
+//! Feature `cmvp` (PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out under `fips` (and AWS-LC FIPS 3.1.0 does not
+//! approve it), so on the cmvp build the ML-DSA-87 cosignature is absent and reported ([`MLDSA87_COSIGN`] false):
+//! [`MlDsa87NoteSigner`] cannot be constructed ([`NoteError::Unavailable`]) and an ML-DSA-87 vkey is refused by
+//! [`NoteVerifier::parse`], so no note is ever accepted on an ML-DSA-87 signature the build cannot check.
 
-use aws_lc_rs::signature::{
-    self, ED25519, Ed25519KeyPair, KeyPair as _, ML_DSA_87, ML_DSA_87_SIGNING, PqdsaKeyPair, UnparsedPublicKey,
-};
+use aws_lc_rs::signature::{self, ED25519, Ed25519KeyPair, KeyPair as _, UnparsedPublicKey};
+#[cfg(not(feature = "cmvp"))]
+use aws_lc_rs::signature::{ML_DSA_87, ML_DSA_87_SIGNING, PqdsaKeyPair};
 
 use crate::encoding::{base64_decode, base64_encode, hex_encode};
 
 pub const ED25519_SIG_TYPE: &[u8] = &[0x01];
 pub const MLDSA87_SIG_TYPE: &[u8] = b"\xffaegis-mldsa87-note-v1";
+/// Whether this build has the ML-DSA-87 cosignature (false on the cmvp build, PLAN-6 D15: `cosign = none`).
+pub const MLDSA87_COSIGN: bool = cfg!(not(feature = "cmvp"));
 const ED25519_PK_LEN: usize = 32;
 const MLDSA87_PK_LEN: usize = 2592;
+#[cfg(not(feature = "cmvp"))]
 const MLDSA87_SIG_LEN: usize = 4627;
 /// Notes larger than this are rejected when opening (16 ML-DSA-87 signatures fit).
 pub const MAX_NOTE_BYTES: usize = 128 * 1024;
@@ -40,6 +48,8 @@ pub enum NoteError {
     BadSignature,
     /// No signature from a known key.
     NoKnownSignature,
+    /// The algorithm is compiled out of this build (ML-DSA-87 on the cmvp build, PLAN-6 D15).
+    Unavailable,
 }
 
 impl std::fmt::Display for NoteError {
@@ -140,12 +150,20 @@ impl NoteSigner for Ed25519NoteSigner {
     }
 }
 
-/// ML-DSA-87 cosigner (signature type [`MLDSA87_SIG_TYPE`]).
+/// ML-DSA-87 cosigner (signature type [`MLDSA87_SIG_TYPE`]). On the cmvp build it cannot be constructed.
 pub struct MlDsa87NoteSigner {
     name: String,
     id: u32,
+    #[cfg(not(feature = "cmvp"))]
     kp: PqdsaKeyPair,
+    #[cfg(feature = "cmvp")]
+    kp: Unconstructible,
 }
+
+/// No value of this type exists: the cmvp build's [`MlDsa87NoteSigner`] is uninhabited.
+#[cfg(feature = "cmvp")]
+#[derive(Debug)]
+enum Unconstructible {}
 
 impl std::fmt::Debug for MlDsa87NoteSigner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -153,6 +171,40 @@ impl std::fmt::Debug for MlDsa87NoteSigner {
     }
 }
 
+#[cfg(feature = "cmvp")]
+impl MlDsa87NoteSigner {
+    /// Refused: ML-DSA-87 is compiled out of the cmvp build (PLAN-6 D15).
+    pub fn from_seed(name: &str, _seed: &[u8; 32]) -> Result<Self, NoteError> {
+        check_key_name(name)?;
+        Err(NoteError::Unavailable)
+    }
+    /// Refused: ML-DSA-87 is compiled out of the cmvp build (PLAN-6 D15).
+    pub fn generate(name: &str) -> Result<Self, NoteError> {
+        check_key_name(name)?;
+        Err(NoteError::Unavailable)
+    }
+    pub fn public_key(&self) -> &[u8] {
+        match self.kp {}
+    }
+}
+
+#[cfg(feature = "cmvp")]
+impl NoteSigner for MlDsa87NoteSigner {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn key_id(&self) -> u32 {
+        self.id
+    }
+    fn sign(&self, _msg: &[u8]) -> Result<Vec<u8>, NoteError> {
+        match self.kp {}
+    }
+    fn vkey(&self) -> String {
+        match self.kp {}
+    }
+}
+
+#[cfg(not(feature = "cmvp"))]
 impl MlDsa87NoteSigner {
     /// From a 32-byte FIPS 204 seed ξ.
     pub fn from_seed(name: &str, seed: &[u8; 32]) -> Result<Self, NoteError> {
@@ -177,6 +229,7 @@ impl MlDsa87NoteSigner {
     }
 }
 
+#[cfg(not(feature = "cmvp"))]
 impl NoteSigner for MlDsa87NoteSigner {
     fn name(&self) -> &str {
         &self.name
@@ -252,6 +305,10 @@ impl NoteVerifier {
         let id = u32::from_str_radix(id_hex, 16).map_err(|_| NoteError::Malformed)?;
         let material = base64_decode(b64).ok_or(NoteError::Malformed)?;
         let (alg, sig_type, pk_len) = if material.starts_with(MLDSA87_SIG_TYPE) {
+            if !MLDSA87_COSIGN {
+                // cmvp build: an ML-DSA-87 key cannot be checked here, so it is refused, never trusted.
+                return Err(NoteError::Unavailable);
+            }
             (Alg::MlDsa87, MLDSA87_SIG_TYPE, MLDSA87_PK_LEN)
         } else if material.starts_with(ED25519_SIG_TYPE) {
             (Alg::Ed25519, ED25519_SIG_TYPE, ED25519_PK_LEN)
@@ -268,7 +325,11 @@ impl NoteVerifier {
     fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
         let alg: &'static dyn signature::VerificationAlgorithm = match self.alg {
             Alg::Ed25519 => &ED25519,
+            #[cfg(not(feature = "cmvp"))]
             Alg::MlDsa87 => &ML_DSA_87,
+            // Unreachable (parse refuses ML-DSA-87 vkeys on cmvp); fail closed regardless.
+            #[cfg(feature = "cmvp")]
+            Alg::MlDsa87 => return false,
         };
         UnparsedPublicKey::new(alg, &self.public_key).verify(msg, sig).is_ok()
     }
@@ -334,6 +395,7 @@ mod tests {
         assert_eq!(open_note(&tampered, &[v]), Err(NoteError::BadSignature));
     }
 
+    #[cfg(not(feature = "cmvp"))]
     #[test]
     fn ed25519_and_mldsa87_roundtrip() {
         let ed = Ed25519NoteSigner::from_seed("log.example/a", &[7u8; 32]).unwrap();
@@ -367,5 +429,23 @@ mod tests {
         assert_eq!(sign_note("no newline", &[&ed]), Err(NoteError::BadText));
         assert_eq!(sign_note("tab\there\n", &[&ed]), Err(NoteError::BadText));
         assert_eq!(sign_note("ok\n", &[]), Err(NoteError::NoKnownSignature));
+    }
+
+    /// cmvp build (PLAN-6 D15): the ML-DSA-87 cosignature is absent and reported, and an ML-DSA-87 vkey is refused.
+    #[cfg(feature = "cmvp")]
+    #[test]
+    fn cmvp_mldsa87_cosign_absent() {
+        const { assert!(!MLDSA87_COSIGN) };
+        assert_eq!(MlDsa87NoteSigner::from_seed("log.example/a", &[9u8; 32]).err(), Some(NoteError::Unavailable));
+        assert_eq!(MlDsa87NoteSigner::generate("log.example/a").err(), Some(NoteError::Unavailable));
+        let mut material = MLDSA87_SIG_TYPE.to_vec();
+        material.extend_from_slice(&[0u8; MLDSA87_PK_LEN]);
+        let id = key_id("log.example/a", MLDSA87_SIG_TYPE, &[0u8; MLDSA87_PK_LEN]);
+        let vk = format!("log.example/a+{}+{}", hex_encode(&id.to_be_bytes()), base64_encode(&material));
+        assert_eq!(NoteVerifier::parse(&vk), Err(NoteError::Unavailable));
+        // Ed25519 (the log signature) is unaffected.
+        let ed = Ed25519NoteSigner::from_seed("log.example/a", &[7u8; 32]).unwrap();
+        let note = sign_note("hello\n", &[&ed]).unwrap();
+        assert!(open_note(&note, &[NoteVerifier::parse(&ed.vkey()).unwrap()]).is_ok());
     }
 }

@@ -75,8 +75,11 @@ fn cfg() -> LogConfig {
 
 fn log_with(cfg: LogConfig, pq: bool) -> Log<MemSink> {
     let ed = Box::new(Ed25519NoteSigner::from_seed(ORIGIN, &[1; 32]).unwrap());
-    let co: Vec<Box<dyn NoteSigner>> =
-        if pq { vec![Box::new(MlDsa87NoteSigner::from_seed(ORIGIN, &[2; 32]).unwrap())] } else { vec![] };
+    let co: Vec<Box<dyn NoteSigner>> = if pq && MLDSA87_COSIGN {
+        vec![Box::new(MlDsa87NoteSigner::from_seed(ORIGIN, &[2; 32]).unwrap())]
+    } else {
+        vec![]
+    };
     Log::new(cfg, ed, co, MemSink::default()).unwrap()
 }
 
@@ -146,7 +149,8 @@ fn gapless_tiles_rebuild_root_and_checkpoints_consistent() {
         let cp = log.checkpoint().unwrap();
         assert_eq!(cp.checkpoint.size(), *stop);
         let (text, ids) = open_note(&cp.note, &vkeys).unwrap();
-        assert_eq!(ids.len(), 2, "Ed25519 + ML-DSA-87 both verify");
+        // Ed25519 + ML-DSA-87 both verify (Ed25519 only on the cmvp build, where the cosignature is absent).
+        assert_eq!(ids.len(), 1 + usize::from(MLDSA87_COSIGN), "Ed25519 + ML-DSA-87 both verify");
         assert_eq!(Checkpoint::parse(text).unwrap(), cp.checkpoint);
         assert_eq!(root_from_tiles(&log.sink().files, *stop), *cp.checkpoint.root(), "checkpoint {i}");
         cps.push(cp);

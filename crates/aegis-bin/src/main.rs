@@ -6,6 +6,9 @@
 //!   is `Config::effective_dump`: the effective config plus `p2.isolation_effective` / `p2.usable_cpus` ([`cpus`]).
 //! * `aegis --config <path> ...`: serve (see [`serve`]).
 //! * `aegis agent --config <agent.json>`: the MCP listener gate (see [`agent`]; Phase 3, gateway mode "G").
+//! * `aegis --fips-check`: one line, `FIPS-CHECK: module="<linked module version string>" fips_mode=<bool>` (or
+//!   `module=none`), exit 0 only when the P-PQ5 claim holds (cmvp build, FIPS mode, module `AWS-LC FIPS 3.1.0`;
+//!   PLAN-6 D2, fips-binary gate), else 1. The floor build prints `FIPS-CHECK: module=none fips_mode=false`.
 //!
 //! Modules: [`plan`] (config → listeners / routes), [`proxy`] (the `aegis_transport::App` that forwards: CANON-4;
 //! inbound h1 and h2 are served by `aegis_transport::Server` with the AEGIS wrapper), [`upstream`] (pool keyed by the whole upstream config + epoch, H1/H2
@@ -77,8 +80,22 @@ fn check_config(path: &std::path::Path, print_effective: bool) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// `aegis --fips-check` (PLAN-6 D2): the module identity as the linked module reports it, no listener needed.
+fn fips_check() -> ExitCode {
+    let st = aegis_tls::fips_check();
+    let module = match st.module {
+        Some(m) => format!("{m:?}"),
+        None => "none".to_string(),
+    };
+    println!("FIPS-CHECK: module={module} fips_mode={}", st.config_fips && st.module_fips_mode);
+    if st.cmvp_claim { ExitCode::SUCCESS } else { ExitCode::FAILURE }
+}
+
 fn main() -> ExitCode {
     let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    if args.len() == 1 && args.first().and_then(|a| a.to_str()) == Some("--fips-check") {
+        return fips_check();
+    }
     if let Some(("agent", rest)) = args.split_first().and_then(|(a, r)| a.to_str().map(|a| (a, r))) {
         return agent::run(rest);
     }

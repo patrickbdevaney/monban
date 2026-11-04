@@ -12,7 +12,12 @@ layer = "tool"
 
 [features]
 # PLAN-6 D1: the subject built against the cmvp overlay lock (profiles/cmvp/build.sh).
+# Exclusive with `interop`: profiles/cmvp/build.sh builds tls-subject with --no-default-features.
 cmvp = ["aegis-tls/cmvp"]
+# oracles/kx-interop `interop-client`: the product client builder `aegis_tls::client_config`. On in the floor build,
+# off in the cmvp build (no rustls client there, spikes/cmvp-client-policy mode A).
+default = ["interop"]
+interop = ["aegis-tls/tls-client"]
 
 [dependencies]
 aegis-tls = { workspace = true }

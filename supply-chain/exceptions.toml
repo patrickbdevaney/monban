@@ -43,11 +43,71 @@ crate = "rustls-webpki"
 version = "0.103.13"
 kind = "advisory-accepted"
 advisory = "RUSTSEC-2026-0382"
-reason = "cmvp lock only: 0382 lets certificate path building accept distrusted (emSign) intermediates, which matters only where a rustls client verifies a server chain; the cmvp build has no rustls client (client-policy gate, compiled-out) and no crate in the tree builds a client-certificate verifier; 0.103.14+ need aws-lc-rs ^1.18 (uncertified module)"
+reason = "cmvp lock only: 0382 lets certificate path building accept distrusted (emSign) intermediates, which matters only where a WebPKI chain is verified; the cmvp build has no rustls client (client-policy gate, compiled-out) and no listener verifies client certificates (P6-cmvp-001 D13: every ServerConfig is built with_no_client_auth, and ci/cmvp-supply.sh fails if any crate in the cmvp graph names a client-certificate verifier: `CMVP-PREMISE client-auth` line of the fips-lock log); 0.103.14+ need aws-lc-rs ^1.18 (uncertified module)"
 approver = "integrator (operator standing authorization 2026-11-04)"
 expires = "2027-05-04"
 evidence = "gates/out/logs/phase6-cmvp-client-policy-cmd.log"
 evidence_must = "CLIENT-POLICY: PASS (compiled-out)"
+
+# P6-cmvp-001 (PLAN-6 D12): the rest of what `cargo audit` reports on profiles/cmvp/Cargo.lock (ARCHITECTURE
+# R-PQC-2 lists the set). ci/cmvp-supply.sh (fips-lock gate) fails on any reported advisory without a live
+# advisory-accepted entry here; each entry's premise is a fixed line of that gate's log (or the client-policy log).
+# All are cmvp lock only: the root (floor) lock is at aws-lc-fips-sys >= 0.13.13-free / rustls 0.23.46.
+
+[[exception]]
+crate = "aws-lc-fips-sys"
+version = "0.13.11"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0042"
+reason = "cmvp lock only: the CRL distribution-point scope error is in AWS-LC's X509 chain verifier with X509_V_FLAG_CRL_CHECK; no Rust code in the cmvp graph calls X509_verify_cert or sets CRL checking (aws-lc-rs 1.15.3 exposes no X509 API; TLS chains go through rustls-webpki), checked per run by the ci/cmvp-supply.sh source scan; fixed in 0.13.13, which is not the certified FIPS 3.1.0 module"
+approver = "integrator (PLAN-6 D12 permission to P6-cmvp-001; operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-fips-lock-cmd.log"
+evidence_must = "CMVP-PREMISE 0042: PASS (no Rust caller of AWS-LC X509 verification or CRL checking in the cmvp graph)"
+
+[[exception]]
+crate = "aws-lc-fips-sys"
+version = "0.13.11"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0043"
+reason = "cmvp lock only: the AES-CCM tag-verification timing leak is in EVP_aes_{128,192,256}_ccm; no Rust code in the cmvp graph calls them (aws-lc-rs 1.15.3 AEADs used are AES-GCM; the TLS profiles are AES-GCM only), checked per run by the ci/cmvp-supply.sh source scan; fixed in 0.13.12, which is not the certified FIPS 3.1.0 module"
+approver = "integrator (PLAN-6 D12 permission to P6-cmvp-001; operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-fips-lock-cmd.log"
+evidence_must = "CMVP-PREMISE 0043: PASS (no Rust caller of EVP_aes_*_ccm in the cmvp graph)"
+
+[[exception]]
+crate = "rustls"
+version = "0.23.43"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0285"
+reason = "cmvp lock only: rustls accepted handshake messages across a key change in one record; the transcript stays authenticated (no handshake can be altered), the client half is compiled out (client-policy gate), and the cmvp listeners request no client certificate (no client-certificate verifier anywhere in the graph, ci/cmvp-supply.sh scan) and accept no early data (assert_profile), so the only client handshake message after ServerHello is Finished; fixed in 0.23.45, not co-resolvable with the FIPS 3.1.0 module (aws-lc-rs <=1.17.1)"
+approver = "integrator (PLAN-6 D12 permission to P6-cmvp-001; operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-fips-lock-cmd.log"
+evidence_must = "CMVP-PREMISE client-auth: PASS (no client-certificate verifier in the cmvp graph)"
+
+[[exception]]
+crate = "rustls"
+version = "0.23.43"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0346"
+reason = "cmvp lock only: the derived Debug of Tls12/Tls13ClientSessionValue exposes client resumption secrets; client-side only, and the cmvp build compiles every rustls client out (aegis-tls tls-client off, egress tls-client off), proven per run by the cmvp client-policy gate; fixed in 0.23.46, not co-resolvable with the FIPS 3.1.0 module"
+approver = "integrator (PLAN-6 D12 permission to P6-cmvp-001; operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-cmvp-client-policy-cmd.log"
+evidence_must = "CLIENT-POLICY: PASS (compiled-out)"
+
+[[exception]]
+crate = "rustls"
+version = "0.23.43"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0348"
+reason = "cmvp lock only: the 1 GiB pre-authentication allocation is in the Brotli certificate decompressor (non-default `brotli` feature), reachable by clients and by servers that request client certificates; the cmvp rustls node is resolved without `brotli` (ci/cmvp-supply.sh reads the resolve graph), there is no rustls client, and no listener requests client certificates; fixed in 0.23.46, not co-resolvable with the FIPS 3.1.0 module"
+approver = "integrator (PLAN-6 D12 permission to P6-cmvp-001; operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-fips-lock-cmd.log"
+evidence_must = "CMVP-PREMISE 0348: PASS (rustls 0.23.43 resolved without the brotli feature)"
 
 # P5-spec-002 (PLAN-5 D11): wasmtime 50.0.1 (2026-10-29) is the security release for RUSTSEC-2026-0422/0423/0424
 # (GHSA-3982-jqvv-277m, GHSA-qw58-7h65-crq2, GHSA-6fr9-xmw9-5352), all affecting 50.0.0; cargo-deny rejects 50.0.0.

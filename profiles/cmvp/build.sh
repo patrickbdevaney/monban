@@ -83,7 +83,7 @@ case "$MODE" in
     prof="${CMVP_CARGO_PROFILE:-release}"
     pkgs=(); feats=()
     for p in ${CMVP_PACKAGES:-aegis-bin tls-subject}; do pkgs+=(-p "$p"); feats+=("$p/cmvp"); done
-    flags=(--locked --keep-going "${pkgs[@]}" --features "$(IFS=,; echo "${feats[*]}")")
+    flags=(--locked --keep-going --no-default-features "${pkgs[@]}" --features "$(IFS=,; echo "${feats[*]}")")
     [ "$prof" = release ] && flags+=(--release)
     echo "cmvp: cargo build ${flags[*]} (AL2023, Go $("$GO/bin/go" version | cut -d' ' -f3))"
     docker run --rm --user "$(id -u):$(id -g)" \
