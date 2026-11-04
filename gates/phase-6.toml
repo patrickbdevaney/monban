@@ -10,6 +10,7 @@
 #   exactly one fips-sys node reachable from aws-lc-rs; floor lineage (lock half) ..... fips-lock          [P6-spec-002]
 #   'AWS-LC FIPS 3.1.0' in the cmvp binary; linked module; --fips-check ............... fips-binary        [P6-cmvp-001]
 #   cmvp client policy (compiled-out | pq-only) ........................................ cmvp-client-policy [P6-oracle-fips-001]
+#   release panic = abort (evidence for the block-buffer ledger entry) .................. panic-abort        [integrator]
 #   exception ledger valid; 0349 cites the client-policy log ............................ exception-ledger   [P6-oracle-ledger-001]
 #   ClientHello matrix, cmvp half (--require-cmvp) ...................................... clienthello-cmvp   [P6-cmvp-001]
 #   Lean group-selection model vs oracle selection, 1e5 cases/profile ................... select-drt         [P6-spec-003]
@@ -528,6 +529,11 @@ cmd = "profiles/cmvp/build.sh && oracles/cmvp-binary/client-policy --mode compil
 selftest = "oracles/cmvp-binary/client-policy --self-test"
 heavy = true
 remote = "kamrui"
+
+[[gate]]
+name = "panic-abort"
+cmd = "python3 -I ci/panic-abort.py"
+selftest = "python3 -I ci/panic-abort.py --self-test"
 
 [[gate]]
 name = "exception-ledger"

@@ -1,14 +1,12 @@
 # Backlog found while building the verify wall (not yet units)
 
 ## xtask fips-lock gaps (from the oracles/hrr-verdicts port, 2026-10-25). Phase 6 gate.
-1. G1 prefer-post-quantum on every rustls node (needs `cargo metadata`, not Cargo.lock text).
-2. G2b which aws-lc-fips-sys version aws-lc-rs actually links.
-3. G3 aws-lc-rs window [1.15.2, 1.17.1] instead of a single exact pin compare.
-4. G4 floors rustls ≥0.23.46 / webpki ≥0.103.16 and the report that cmvp cannot meet them (ledger entries).
-5. G5 floor-profile lineage (aws-lc-fips-sys ≥0.13.13) once profiles/floor exists.
-6. G6 `AWS-LC FIPS 3.1.0` string present in the binary (P-PQ5 module identity).
-7. Read `cargo metadata --locked` rather than Cargo.lock text.
-8. Add self-test mutants for G1, G3, G6.
+Done in P6-spec-002 (2026-11-04): G1, G2a/G2b (lock half), G3, G4 (with the cmvp ledger report), G5, G7, plus G2c
+(non-FIPS aws-lc-sys must be the in-tree void crate) and 16 self-test mutants. `--profile floor` = the root lock.
+Still open:
+1. G2b binary half: which aws-lc-fips-sys the release binary actually links (fips-binary gate, P6-cmvp-001).
+2. G6 `AWS-LC FIPS 3.1.0` string present in the binary (P-PQ5 module identity) and its mutant (fips-binary,
+   P6-cmvp-001).
 
 ## TLS
 - rustls 0.23.46 selects by client order: server list order never changes the outcome until the PreferServerOrder

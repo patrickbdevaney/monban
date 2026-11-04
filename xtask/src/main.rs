@@ -5,7 +5,8 @@
 //!   cargo xtask lock-targets [--self-test]
 //!   cargo xtask lock-age [--min-days N] [--self-test]
 //!   cargo xtask repo-advisories [--self-test]
-//!   cargo xtask fips-lock --profile cmvp [--self-test]
+//!   cargo xtask fips-lock --profile cmvp|floor [--self-test]
+//!   cargo xtask ledger-check [--ledger PATH] [--evidence-dir DIR] [--self-test]
 //!   cargo xtask metrics-check [--self-test]
 //!   cargo xtask budget [--self-test]
 //!   cargo xtask unsafe-sites [--self-test]
@@ -15,6 +16,7 @@
 mod allowlist;
 mod budget;
 mod json;
+mod ledger;
 mod lock;
 mod metrics;
 
@@ -46,9 +48,10 @@ fn main() -> ExitCode {
         Some("allowlist-lock") => allowlist::allowlist_lock(self_test),
         Some("metrics-check") => metrics::metrics_check(self_test),
         Some("fips-lock") => fips_lock(&opt("--profile").unwrap_or_else(|| "cmvp".into()), self_test),
+        Some("ledger-check") => ledger::run(&args),
         _ => {
             eprintln!(
-                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|metrics-check|budget|unsafe-sites|allowlist-lock> [--self-test]"
+                "usage: cargo xtask <layering|lock-targets|lock-age|repo-advisories|fips-lock|ledger-check|metrics-check|budget|unsafe-sites|allowlist-lock> [--self-test]"
             );
             return ExitCode::from(2);
         }
@@ -674,7 +677,6 @@ fn lock_targets(self_test: bool) -> Result<(), String> {
             name: n.clone(),
             version: format!("{want}-mutated"),
             source: Some("registry".into()),
-            deps: vec![],
         });
     }
     let present = targets.keys().filter(|k| pkgs.iter().any(|p| &p.name == *k)).count();
@@ -765,7 +767,13 @@ fn advisory_exceptions() -> BTreeSet<(String, String, String)> {
 }
 
 fn lock_age(min_days: u64, self_test: bool) -> Result<(), String> {
-    let pkgs = read_lock()?;
+    // The root (floor) lock plus the committed cmvp overlay lock (PLAN-6 D1: lock-age applies to both), deduplicated.
+    let mut pkgs = read_lock()?;
+    if let Ok(s) = std::fs::read_to_string(root().join("profiles/cmvp/Cargo.lock")) {
+        pkgs.extend(lock::parse_lock(&s).map_err(|e| format!("profiles/cmvp/Cargo.lock: {e}"))?);
+    }
+    let mut seen = BTreeSet::new();
+    pkgs.retain(|p| seen.insert((p.name.clone(), p.version.clone())));
     let exc = exceptions();
     let mut v = Vec::new();
     let mut ages: Vec<(String, String, i64)> = Vec::new();
@@ -817,7 +825,10 @@ fn lock_age(min_days: u64, self_test: bool) -> Result<(), String> {
             v.push(format!("{n} {ver} published {age} d ago (< {min_days} d) with no live exception"));
         }
     }
-    println!("lock-age: {} registry packages checked (min {min_days} d)", ages.len());
+    println!(
+        "lock-age: {} registry packages checked in Cargo.lock + profiles/cmvp/Cargo.lock (min {min_days} d)",
+        ages.len()
+    );
     verdict("LOCK-AGE", &v, self_test)
 }
 
@@ -925,47 +936,359 @@ fn render_json(j: &Json) -> String {
     }
 }
 
-// ---------------------------------------------------------------- FIPS lock (Phase 6 gate; usable from Phase 0)
+// ---------------------------------------------------------------- FIPS lock (PLAN-6 D1; BACKLOG G1-G5, G7)
+//
+// Input is the `cargo metadata --locked` resolve graph (G7: features per node, and cargo itself refuses a lock that
+// does not match the manifests), never Cargo.lock text.
+//   cmvp:  profiles/cmvp/build.sh --metadata (the overlay tree with profiles/cmvp/Cargo.lock)
+//   floor: the root workspace and root Cargo.lock (profiles/floor is the root lock, renamed only in reports; D1)
+// Checks (oracles/hrr-verdicts/README.md "Spec for cargo xtask fips-lock"):
+//   G1  (both) at least one rustls node, and every rustls node has feature prefer-post-quantum
+//   G2a (cmvp) exactly one aws-lc-fips-sys node (a second one is the decoy)
+//   G2b (cmvp) every aws-lc-rs node has feature fips and links exactly {pinned aws-lc-fips-sys}
+//   G2c (cmvp) no non-FIPS AWS-LC: an aws-lc-sys node must be the in-tree void crate (path, no build script), and
+//              only aws-lc-rs may depend on it
+//   G3  (cmvp) every aws-lc-rs node in [1.15.2, 1.17.1]; every node of a pinned name equals its pin
+//   G4  (both) rustls >= 0.23.46 (RUSTSEC-2026-0349), rustls-webpki >= 0.103.16 (RUSTSEC-2026-0382). In cmvp a node
+//              below a floor is REPORTED, and passes only with a live advisory-accepted ledger entry for that
+//              crate@version naming that advisory (the triangle, r4tri.no-co-resolvable-lock); in floor it fails.
+//   G5  (floor) no aws-lc-fips-sys below 0.13.13 (0.13.11/.12 carry RUSTSEC-2026-0042/0043: uncertified lineage)
+// G2b's binary half and G6 (module string in the binary) are the fips-binary gate (P6-cmvp-001).
 
-fn check_fips_lock(pkgs: &[lock::LockPkg], pins: &BTreeMap<String, String>) -> Vec<String> {
+const FIPS_AWSLCRS_WINDOW: ((u64, u64, u64), (u64, u64, u64)) = ((1, 15, 2), (1, 17, 1));
+/// (crate, floor, advisory the floor fixes).
+const FIPS_FLOORS: &[(&str, (u64, u64, u64), &str)] =
+    &[("rustls", (0, 23, 46), "RUSTSEC-2026-0349"), ("rustls-webpki", (0, 103, 16), "RUSTSEC-2026-0382")];
+const FIPS_LINEAGE_FLOOR: (u64, u64, u64) = (0, 13, 13);
+const VOID_AWS_LC_SYS: &str = "profiles/cmvp/void/aws-lc-sys";
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum FipsProfile {
+    Cmvp,
+    Floor,
+}
+
+struct FipsCtx<'a> {
+    pins: &'a BTreeMap<String, String>,
+    /// Live advisory-accepted ledger entries (crate, version, advisory).
+    accepted: &'a BTreeSet<(String, String, String)>,
+    /// Absolute manifest path the void aws-lc-sys must have in the cmvp graph.
+    void_manifest: String,
+}
+
+fn fmt_v(v: (u64, u64, u64)) -> String {
+    format!("{}.{}.{}", v.0, v.1, v.2)
+}
+
+/// Returns (violations, reports). Every violation starts with its check id.
+fn named<'a>(nodes: &'a [lock::Node], n: &'a str) -> impl Iterator<Item = &'a lock::Node> {
+    nodes.iter().filter(move |p| p.name == n)
+}
+
+fn check_fips(profile: FipsProfile, nodes: &[lock::Node], cx: &FipsCtx) -> (Vec<String>, Vec<String>) {
     let mut v = Vec::new();
-    let fips: Vec<&lock::LockPkg> = pkgs.iter().filter(|p| p.name == "aws-lc-fips-sys").collect();
-    if fips.len() != 1 {
-        v.push(format!("expected exactly one aws-lc-fips-sys node, found {}", fips.len()));
+    let mut rep = Vec::new();
+    // G1
+    let rustls: Vec<&lock::Node> = named(nodes, "rustls").collect();
+    if rustls.is_empty() {
+        v.push("G1: no rustls node in the resolve graph".into());
     }
-    if pkgs.iter().any(|p| p.name == "aws-lc-sys") {
-        v.push("non-FIPS aws-lc-sys present in the cmvp lock".into());
+    for r in rustls.iter().filter(|r| !r.has_feature("prefer-post-quantum")) {
+        v.push(format!("G1: rustls {} lacks feature prefer-post-quantum", r.version));
     }
-    let reach = pkgs.iter().any(|p| p.name == "aws-lc-rs" && p.deps.iter().any(|d| d.starts_with("aws-lc-fips-sys")));
-    if !reach {
-        v.push("aws-lc-fips-sys not reachable from aws-lc-rs".into());
-    }
-    for (n, want) in pins {
-        match pkgs.iter().find(|p| &p.name == n) {
-            Some(p) if &p.version == want => {}
-            Some(p) => v.push(format!("{n}: {} != pinned {want}", p.version)),
-            None => v.push(format!("{n}: pinned but absent")),
+    // G4
+    for (name, floor, adv) in FIPS_FLOORS {
+        for p in named(nodes, name) {
+            if lock::semver(&p.version).is_some_and(|x| x >= *floor) {
+                continue;
+            }
+            let ledgered = cx.accepted.contains(&((*name).into(), p.version.clone(), (*adv).into()));
+            let what = format!("{name} {} < floor {} ({adv})", p.version, fmt_v(*floor));
+            if profile == FipsProfile::Cmvp && ledgered {
+                rep.push(format!("G4 REPORTED: {what}, ledgered advisory-accepted"));
+            } else if profile == FipsProfile::Cmvp {
+                v.push(format!("G4: {what} and no live advisory-accepted ledger entry for {name}@{} {adv}", p.version));
+            } else {
+                v.push(format!("G4: {what}"));
+            }
         }
     }
-    v
+    match profile {
+        FipsProfile::Cmvp => {
+            let fips: Vec<&lock::Node> = named(nodes, "aws-lc-fips-sys").collect();
+            if fips.len() != 1 {
+                let vs: Vec<&str> = fips.iter().map(|p| p.version.as_str()).collect();
+                v.push(format!("G2a: expected exactly one aws-lc-fips-sys node, found {} {vs:?}", fips.len()));
+            }
+            let pin = cx.pins.get("aws-lc-fips-sys").cloned().unwrap_or_default();
+            let awslcrs: Vec<&lock::Node> = named(nodes, "aws-lc-rs").collect();
+            if awslcrs.is_empty() {
+                v.push("G2b: no aws-lc-rs node".into());
+            }
+            for a in &awslcrs {
+                if !a.has_feature("fips") {
+                    v.push(format!("G2b: aws-lc-rs {} lacks feature fips (it would link aws-lc-sys)", a.version));
+                }
+                let linked: BTreeSet<&str> =
+                    a.deps.iter().filter(|(n, _)| n == "aws-lc-fips-sys").map(|(_, ver)| ver.as_str()).collect();
+                if linked != BTreeSet::from([pin.as_str()]) {
+                    v.push(format!("G2b: aws-lc-rs {} links aws-lc-fips-sys {linked:?}, want {{{pin}}}", a.version));
+                }
+                let w = FIPS_AWSLCRS_WINDOW;
+                if !lock::semver(&a.version).is_some_and(|x| x >= w.0 && x <= w.1) {
+                    v.push(format!("G3: aws-lc-rs {} outside [{}, {}]", a.version, fmt_v(w.0), fmt_v(w.1)));
+                }
+            }
+            for s in named(nodes, "aws-lc-sys") {
+                if s.source.is_some() || s.manifest != cx.void_manifest || s.build_script {
+                    v.push(format!(
+                        "G2c: non-FIPS aws-lc-sys {} ({}) in the cmvp graph; only the void crate {VOID_AWS_LC_SYS} is allowed",
+                        s.version,
+                        s.source.as_deref().unwrap_or(&s.manifest)
+                    ));
+                }
+            }
+            for p in nodes.iter().filter(|p| p.name != "aws-lc-rs" && p.deps.iter().any(|(n, _)| n == "aws-lc-sys")) {
+                v.push(format!("G2c: {} {} depends on aws-lc-sys directly", p.name, p.version));
+            }
+            for (n, want) in cx.pins {
+                let ns: Vec<&lock::Node> = named(nodes, n).collect();
+                if ns.is_empty() {
+                    v.push(format!("G3: {n} pinned {want} but absent"));
+                }
+                for p in ns.iter().filter(|p| &p.version != want) {
+                    v.push(format!("G3: {n} {} != pinned {want}", p.version));
+                }
+            }
+        }
+        FipsProfile::Floor => {
+            for p in named(nodes, "aws-lc-fips-sys") {
+                if !lock::semver(&p.version).is_some_and(|x| x >= FIPS_LINEAGE_FLOOR) {
+                    v.push(format!(
+                        "G5: aws-lc-fips-sys {} below {} (RUSTSEC-2026-0042/0043; uncertified lineage)",
+                        p.version,
+                        fmt_v(FIPS_LINEAGE_FLOOR)
+                    ));
+                }
+            }
+        }
+    }
+    (v, rep)
+}
+
+fn fips_graph(profile: FipsProfile) -> Result<Vec<lock::Node>, String> {
+    let out = match profile {
+        FipsProfile::Cmvp => run(Command::new(root().join("profiles/cmvp/build.sh")).arg("--metadata"))?,
+        FipsProfile::Floor => {
+            run(Command::new("cargo").args(["metadata", "--locked", "--format-version", "1"]).current_dir(root()))?
+        }
+    };
+    lock::parse_metadata(&json::parse(&out)?)
+}
+
+/// The void crate's source must stay empty: only blank lines, `//` comments and inner attributes.
+fn void_crate_violations() -> Vec<String> {
+    let f = root().join(VOID_AWS_LC_SYS).join("lib.rs");
+    match std::fs::read_to_string(&f) {
+        Ok(s) => s
+            .lines()
+            .map(str::trim)
+            .filter(|l| !(l.is_empty() || l.starts_with("//") || l.starts_with("#![")))
+            .map(|l| format!("G2c: void aws-lc-sys has code: {l}"))
+            .collect(),
+        Err(e) => vec![format!("G2c: {}: {e}", f.display())],
+    }
 }
 
 fn fips_lock(profile: &str, self_test: bool) -> Result<(), String> {
-    let dir = root().join("profiles").join(profile);
-    let pins = lock::parse_kv(
-        &std::fs::read_to_string(dir.join("pins.toml")).map_err(|e| format!("{profile}/pins.toml: {e}"))?,
-    );
-    let mut pkgs = match std::fs::read_to_string(dir.join("Cargo.lock")) {
-        Ok(s) => lock::parse_lock(&s)?,
-        Err(_) => Vec::new(),
+    let pins_of = |p: &str| -> Result<BTreeMap<String, String>, String> {
+        let f = root().join("profiles").join(p).join("pins.toml");
+        Ok(lock::parse_kv(&std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?))
     };
+    let void_manifest = root().join("target/cmvp-src").join(VOID_AWS_LC_SYS).join("Cargo.toml");
+    let void_manifest = void_manifest.to_string_lossy().into_owned();
     if self_test {
-        pkgs.push(lock::LockPkg {
-            name: "aws-lc-fips-sys".into(),
-            version: "0.14.3".into(),
-            source: None,
-            deps: vec![],
-        });
+        return fips_self_test(&pins_of("cmvp")?, &void_manifest);
     }
-    verdict("FIPS-LOCK", &check_fips_lock(&pkgs, &pins), self_test)
+    let (prof, pins) = match profile {
+        "cmvp" => (FipsProfile::Cmvp, pins_of("cmvp")?),
+        "floor" => (FipsProfile::Floor, BTreeMap::new()),
+        p => return Err(format!("FIPS-LOCK: FAIL (unknown profile {p}; cmvp or floor)")),
+    };
+    let nodes =
+        fips_graph(prof).map_err(|e| format!("FIPS-LOCK ({profile}): FAIL (G7: cargo metadata --locked: {e})"))?;
+    let accepted = advisory_exceptions();
+    let (mut v, rep) = check_fips(prof, &nodes, &FipsCtx { pins: &pins, accepted: &accepted, void_manifest });
+    if prof == FipsProfile::Cmvp {
+        v.extend(void_crate_violations());
+    }
+    let ver = |n: &str| -> String {
+        let s: BTreeSet<&str> = nodes.iter().filter(|p| p.name == n).map(|p| p.version.as_str()).collect();
+        s.into_iter().collect::<Vec<_>>().join(",")
+    };
+    println!(
+        "fips-lock ({profile}): {} resolve nodes; rustls {} (prefer-post-quantum on all), rustls-webpki {}, aws-lc-rs {}, aws-lc-fips-sys [{}], aws-lc-sys [{}]",
+        nodes.len(),
+        ver("rustls"),
+        ver("rustls-webpki"),
+        ver("aws-lc-rs"),
+        ver("aws-lc-fips-sys"),
+        ver("aws-lc-sys"),
+    );
+    for r in &rep {
+        println!("  {r}");
+    }
+    verdict(&format!("FIPS-LOCK ({profile})"), &v, false)
+}
+
+/// Synthetic graphs: a clean cmvp and a clean floor baseline (both must pass), then one mutant per check, each of
+/// which must be rejected with its own check id.
+fn fips_self_test(pins: &BTreeMap<String, String>, void_manifest: &str) -> Result<(), String> {
+    const REG: &str = "registry+https://github.com/rust-lang/crates.io-index";
+    let node = |n: &str, ver: &str, feats: &[&str], deps: &[(&str, &str)]| lock::Node {
+        name: n.into(),
+        version: ver.into(),
+        source: Some(REG.into()),
+        manifest: format!("/registry/{n}-{ver}/Cargo.toml"),
+        features: feats.iter().map(|s| (*s).to_string()).collect(),
+        deps: deps.iter().map(|(a, b)| ((*a).to_string(), (*b).to_string())).collect(),
+        build_script: n.ends_with("-sys"),
+    };
+    let pin = |n: &str| pins.get(n).cloned().unwrap_or_default();
+    let (p_rustls, p_rs, p_fips) = (pin("rustls"), pin("aws-lc-rs"), pin("aws-lc-fips-sys"));
+    let mut void = node("aws-lc-sys", "0.36.0", &["prebuilt-nasm"], &[]);
+    void.source = None;
+    void.manifest = void_manifest.into();
+    void.build_script = false;
+    let cmvp = vec![
+        node("rustls", &p_rustls, &["aws_lc_rs", "fips", "prefer-post-quantum", "std"], &[("aws-lc-rs", &p_rs)]),
+        node("rustls-webpki", "0.103.13", &["aws-lc-rs", "aws-lc-rs-fips"], &[("aws-lc-rs", &p_rs)]),
+        node("aws-lc-rs", &p_rs, &["aws-lc-sys", "fips"], &[("aws-lc-fips-sys", &p_fips), ("aws-lc-sys", "0.36.0")]),
+        node("aws-lc-fips-sys", &p_fips, &[], &[]),
+        void,
+    ];
+    let floor = vec![
+        node("rustls", "0.23.46", &["aws_lc_rs", "prefer-post-quantum", "std"], &[("aws-lc-rs", "1.18.2")]),
+        node("rustls-webpki", "0.103.16", &["aws-lc-rs"], &[("aws-lc-rs", "1.18.2")]),
+        node("aws-lc-rs", "1.18.2", &["aws-lc-sys"], &[("aws-lc-sys", "0.46.0")]),
+        node("aws-lc-sys", "0.46.0", &[], &[]),
+    ];
+    let accepted: BTreeSet<(String, String, String)> =
+        [("rustls", p_rustls.as_str(), "RUSTSEC-2026-0349"), ("rustls-webpki", "0.103.13", "RUSTSEC-2026-0382")]
+            .iter()
+            .map(|(a, b, c)| ((*a).to_string(), (*b).to_string(), (*c).to_string()))
+            .collect();
+    let none = BTreeSet::new();
+    let cx = FipsCtx { pins, accepted: &accepted, void_manifest: void_manifest.into() };
+    let mut fails = Vec::new();
+    for (name, prof, g) in [("cmvp", FipsProfile::Cmvp, &cmvp), ("floor", FipsProfile::Floor, &floor)] {
+        let (v, _) = check_fips(prof, g, &cx);
+        if !v.is_empty() {
+            fails.push(format!("baseline {name} not clean: {}", v.join("; ")));
+        }
+    }
+    let set = |g: &mut Vec<lock::Node>, n: &str, f: &dyn Fn(&mut lock::Node)| {
+        g.iter_mut().filter(|p| p.name == n).for_each(f)
+    };
+    // (mutant, profile, expected check id, graph, pins override, accepted set)
+    type Mut<'a> = (&'a str, FipsProfile, &'a str, Vec<lock::Node>, Option<BTreeMap<String, String>>, bool);
+    let mut muts: Vec<Mut> = Vec::new();
+    let mut g = cmvp.clone();
+    g.push(node("aws-lc-fips-sys", "0.14.3", &[], &[]));
+    muts.push(("decoy aws-lc-fips-sys 0.14.3 beside the pin", FipsProfile::Cmvp, "G2a", g, None, true));
+    let mut g = cmvp.clone();
+    set(&mut g, "aws-lc-sys", &|p| {
+        p.source = Some(REG.into());
+        p.manifest = "/registry/aws-lc-sys-0.36.0/Cargo.toml".into();
+        p.build_script = true;
+    });
+    muts.push(("registry aws-lc-sys present in cmvp", FipsProfile::Cmvp, "G2c", g, None, true));
+    let mut g = cmvp.clone();
+    g.push(node("evil", "1.0.0", &[], &[("aws-lc-sys", "0.36.0")]));
+    muts.push(("a crate other than aws-lc-rs depends on aws-lc-sys", FipsProfile::Cmvp, "G2c", g, None, true));
+    let mut g = cmvp.clone();
+    set(&mut g, "aws-lc-rs", &|p| p.features.retain(|f| f != "fips"));
+    muts.push(("aws-lc-rs without feature fips", FipsProfile::Cmvp, "G2b", g, None, true));
+    let mut g = cmvp.clone();
+    set(&mut g, "aws-lc-rs", &|p| {
+        p.deps = vec![("aws-lc-fips-sys".into(), "0.14.3".into())];
+    });
+    g.retain(|p| p.name != "aws-lc-fips-sys");
+    g.push(node("aws-lc-fips-sys", "0.14.3", &[], &[]));
+    muts.push(("aws-lc-rs links aws-lc-fips-sys 0.14.3", FipsProfile::Cmvp, "G2b", g, None, true));
+    for (prof, base) in [(FipsProfile::Cmvp, &cmvp), (FipsProfile::Floor, &floor)] {
+        let mut g = base.clone();
+        set(&mut g, "rustls", &|p| p.features.retain(|f| f != "prefer-post-quantum"));
+        muts.push(("rustls node without prefer-post-quantum", prof, "G1", g, None, true));
+        let mut g = base.clone();
+        g.retain(|p| p.name != "rustls");
+        muts.push(("no rustls node at all", prof, "G1", g, None, true));
+    }
+    // G3: the window must catch 1.17.2 even when pins.toml is edited to agree with it (the pin cannot hide it).
+    let mut g = cmvp.clone();
+    set(&mut g, "aws-lc-rs", &|p| p.version = "1.17.2".into());
+    let mut pins2 = pins.clone();
+    pins2.insert("aws-lc-rs".into(), "1.17.2".into());
+    muts.push((
+        "aws-lc-rs 1.17.2 (outside [1.15.2,1.17.1]) with a matching pin",
+        FipsProfile::Cmvp,
+        "G3",
+        g,
+        Some(pins2),
+        true,
+    ));
+    let mut g = cmvp.clone();
+    set(&mut g, "aws-lc-rs", &|p| p.version = "1.15.1".into());
+    let mut pins2 = pins.clone();
+    pins2.insert("aws-lc-rs".into(), "1.15.1".into());
+    muts.push((
+        "aws-lc-rs 1.15.1 (below the window) with a matching pin",
+        FipsProfile::Cmvp,
+        "G3",
+        g,
+        Some(pins2),
+        true,
+    ));
+    let mut g = cmvp.clone();
+    g.push(node("rustls", "0.23.42", &["prefer-post-quantum"], &[]));
+    muts.push(("second rustls node off the pin", FipsProfile::Cmvp, "G3", g, None, true));
+    let mut g = floor.clone();
+    set(&mut g, "rustls", &|p| p.version = "0.23.45".into());
+    muts.push(("floor rustls 0.23.45 < 0.23.46", FipsProfile::Floor, "G4", g, None, true));
+    let mut g = floor.clone();
+    set(&mut g, "rustls-webpki", &|p| p.version = "0.103.15".into());
+    muts.push(("floor rustls-webpki 0.103.15 < 0.103.16", FipsProfile::Floor, "G4", g, None, true));
+    muts.push(("cmvp rustls below floor with no ledger entry", FipsProfile::Cmvp, "G4", cmvp.clone(), None, false));
+    let mut g = floor.clone();
+    set(&mut g, "aws-lc-rs", &|p| {
+        p.features.push("fips".into());
+        p.deps.push(("aws-lc-fips-sys".into(), "0.13.11".into()));
+    });
+    g.push(node("aws-lc-fips-sys", "0.13.11", &[], &[]));
+    muts.push(("floor lineage broken: aws-lc-fips-sys 0.13.11", FipsProfile::Floor, "G5", g, None, true));
+    let total = muts.len();
+    let mut caught = 0;
+    for (what, prof, id, g, p2, acc) in &muts {
+        let pins_m = p2.as_ref().unwrap_or(pins);
+        let cxm = FipsCtx {
+            pins: pins_m,
+            accepted: if *acc { &accepted } else { &none },
+            void_manifest: void_manifest.into(),
+        };
+        let (v, _) = check_fips(*prof, g, &cxm);
+        if v.iter().any(|x| x.starts_with(&format!("{id}:"))) {
+            caught += 1;
+        } else {
+            fails.push(format!("mutant '{what}' ({prof:?}) not caught by {id} (got: {v:?})"));
+        }
+    }
+    if fails.is_empty() {
+        println!("FIPS-LOCK SELF-TEST: PASS ({caught}/{total} mutants caught; cmvp and floor baselines clean)");
+        Ok(())
+    } else {
+        for f in &fails {
+            println!("  - {f}");
+        }
+        Err(format!("FIPS-LOCK SELF-TEST: FAIL ({caught}/{total} mutants caught)"))
+    }
 }

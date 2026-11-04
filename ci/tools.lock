@@ -11,3 +11,22 @@ zizmor	v1.31.1	2026-10-15	d185f726bdaf92df78273217dfdd24ebcd6b0ef48cf3ce776ff576
 #   built with `cargo install --locked --version`. Both published >= 7 days before pinning (2026-10-29).
 #fuzz:nightly	nightly-2026-10-12	2026-10-12	ffde9ecbc57fc9e4f97294b11e2d8afdc6d130c97be693f02a8342e7494ed43b	https://static.rust-lang.org/dist/2026-10-12/channel-rust-nightly.toml
 #fuzz:cargo-fuzz	0.13.2	2026-06-09	5acfd01930e49823e58c30dd8012d3338a620377d7c7d4cc140ca4b2169400e2	https://static.crates.io/crates/cargo-fuzz/cargo-fuzz-0.13.2.crate
+# Release pipeline tools (PLAN-6 D6, P6-spec-002, pinned 2026-11-04; all published >= 7 days before pinning).
+# cargo-auditable / cargo-cyclonedx: prebuilt musl release archives, installed by install-tools.sh like the rows above.
+cargo-auditable	v0.7.7	2026-10-02	7676443367c5e33d9fb22acef63cccb5e9202de12dae1b0579995eb3e2bc7a18	https://github.com/rust-secure-code/cargo-auditable/releases/download/v0.7.7/cargo-auditable-x86_64-unknown-linux-musl.tar.xz
+cargo-cyclonedx	cargo-cyclonedx-0.5.9	2026-03-19	9bd3e599314f50810c9d98b8b68a617ff9d3cc20873968d90b29d121f6b226ff	https://github.com/CycloneDX/cyclonedx-rust-cargo/releases/download/cargo-cyclonedx-0.5.9/cargo-cyclonedx-x86_64-unknown-linux-musl.tar.xz
+# Go for the AWS-LC FIPS build and the kx-interop Go peer (PREFLIGHT P2): kamrui ~/aegis-ci/go1.27.3, mounted read-only.
+#go:go	go1.27.3	2026-10-19	65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40	https://go.dev/dl/go1.27.3.linux-amd64.tar.gz
+# BoringSSL interop peer (PLAN-6 D4, D-P4), built in the AL2023 image. Pinned by commit (content-addressed): the sha256
+# column is "git-commit"; verify `rev-parse HEAD` equals the version column after fetching exactly that commit.
+# Note: e651545 (2026-10-26, included) makes server-preference curve selection the BoringSSL server default.
+#boringssl:boringssl	3769c110eab4ddbc0c159fadb4f1d0d98b2cf0cc	2026-10-27	git-commit	https://boringssl.googlesource.com/boringssl
+# python-tuf venv on kamrui (D6 tuf job, ci/release/verify.py), hash-locked: `pip install --no-deps --require-hashes`
+# over exactly these wheels (CPython 3.13, x86_64). cryptography (+cffi, pycparser) is securesystemslib's Ed25519 backend;
+# urllib3 is tuf's one required dependency. Wheel sha256 from the PyPI JSON API (2026-11-04).
+#py:tuf	7.0.1	2026-09-02	d30434bda6e079ab303fb30d1b3006d939a10ca34783b1573d61cd9b802fa45c	https://files.pythonhosted.org/packages/a2/10/171e306e4a19ff980b9029ce5a523881e34bc6a2a52750fb1853f49f0fb9/tuf-7.0.1-py3-none-any.whl
+#py:securesystemslib	1.6.0	2026-10-20	1c1aa00f058f4851f038d409c8ca4a727db854a91f07ec3a0fa047bb93e43e0e	https://files.pythonhosted.org/packages/50/1e/56bf4531475c32a8503c040ab7f05c34430a0c6b5744bf6c373246dd3c97/securesystemslib-1.6.0-py3-none-any.whl
+#py:urllib3	2.8.0	2026-09-15	0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3	https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl
+#py:cryptography	50.0.2	2026-09-30	9dab55f57c74c3cad24c323bacbbd04be4705ba6eb0d92e920b1fc4837ed5079	https://files.pythonhosted.org/packages/d3/69/2c833a049475e0a3444e94c7d0aca0aa51d166374a449b09e92ac98138de/cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl
+#py:cffi	2.1.1	2026-08-03	a931079504ecc49efed7744c476a5c343a92fabf66dec2db95edb1b2fdc770e2	https://files.pythonhosted.org/packages/95/95/86342356ff5953b3fb06f7ef7c5bee212d45e770abc7218d451b9148313c/cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+#py:pycparser	3.12	2026-10-22	a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e	https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl

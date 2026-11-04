@@ -1,0 +1,28 @@
+# Void stand-in for the non-FIPS aws-lc-sys in the cmvp overlay build only (see profiles/cmvp/overlay.toml).
+# Same name, version and feature names as aws-lc-sys 0.36.0 (sparse index), so the requirement of aws-lc-rs 1.15.3
+# (`aws-lc-sys ^0.36.0`, optional) resolves here. No build script, no `links`, no code: aws-lc-rs with `fips` never
+# references this crate. Checked by `cargo xtask fips-lock --profile cmvp`.
+[package]
+name = "aws-lc-sys"
+version = "0.36.0"
+edition = "2021"
+publish = false
+description = "AEGIS cmvp overlay: void aws-lc-sys (no non-FIPS AWS-LC in the cmvp build)."
+license = "Apache-2.0"
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["all-bindings"]
+all-bindings = []
+asan = []
+bindgen = []
+disable-prebuilt-nasm = []
+prebuilt-nasm = []
+ssl = ["bindgen", "all-bindings"]

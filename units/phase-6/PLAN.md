@@ -287,3 +287,36 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
 3. Does BoringSSL's pinned commit build without Go? The plan gives it the mounted Go 1.27.3 anyway.
 4. Is aegis-quiet's 10 GB boot disk enough for docker plus two builds? P6-release-002 checks this and resizes the
    disk if needed. That is a cost item for the operator's GCP project, reported.
+
+---
+
+## Decisions added during W0 (integrator, 2026-11-04)
+
+- **D12 cmvp lock supply chain.** P6-spec-002 found that the cmvp lock has no vet coverage. It has 12 unvetted crates,
+  including aws-lc-fips-sys (~1.66M lines), aws-lc-rs 1.15.3 and rustls 0.23.43. No gate scans the cmvp lock's
+  advisories either. Today nothing checks the cmvp lock at all, so both of the following strengthen the gates:
+  - **vet:** a frozen baseline `profiles/cmvp/vet-baseline.txt`, monotone down under the same rules as POLICY.md
+    §cargo-vet. `cargo vet --locked` runs on the overlaid cmvp tree in the fips-lock gate. Any crate later added to
+    the cmvp lock needs an audit or import, not a baseline line. Recorded as DEVIATIONS X-16, with a reverse-if: an
+    imported audit set covers these versions.
+  - **advisories:** `cargo audit` runs on `profiles/cmvp/Cargo.lock`. Every advisory it reports needs an
+    `advisory-accepted` ledger entry with evidence. ARCHITECTURE §R-PQC-2 already lists the expected set: 0042/0043
+    (fips-sys), 0349, 0285/0346/0348 (rustls) and webpki 0382. A new, unlisted advisory makes the gate red.
+  - Owner: P6-cmvp-001, with explicit integrator permission for `profiles/cmvp/vet-baseline.txt`, the cmvp ledger
+    entries in `supply-chain/exceptions.toml`, and `ci/cmvp-supply.sh`.
+- **D13 webpki 0.103.13 + RUSTSEC-2026-0382.** The cmvp lock cannot reach the 0.103.16 floor, because 0.103.16 needs
+  aws-lc-rs ^1.18. The ledger entry is accepted, citing the client-policy log, as for 0349. The premise is that the
+  server verifies no WebPKI chain in cmvp builds. P6-cmvp-001 must confirm this: no client-certificate verification
+  on cmvp listeners, or, if mTLS is on, a check that 0382's affected path is not reachable. If it can't, it writes
+  an INFEASIBLE note. This was flagged to the operator.
+- **D14 block-buffer evidence.** A new gate, `panic-abort` (`ci/panic-abort.py`, 3-mutant self-test), proves the
+  premise of that entry. Its log is now the entry's `evidence`.
+- **D15 ML-DSA on cmvp.** aws-lc-rs 1.15.3 compiles ML-DSA out under `fips`. P6-cmvp-001 therefore puts three
+  things behind `cfg(feature = "cmvp")`:
+  - audit ML-DSA-87 cosignature: absent and reported (FipsStatus and /healthz `cosign = none`);
+  - tier-X token verification: Deny, fail closed;
+  - tls-subject's ML-DSA credentials: absent.
+
+  As a consequence, P-CNSA, P-UNIVERSAL and P-BSI-ALT on the cmvp build use ECDSA-P384 only. P-CNSA cannot be served
+  on cmvp, because it requires ML-DSA-87. It is refused at boot on cmvp, with a reason. This matches the
+  COMPLIANCE_MAP statement that ML-DSA is not approved in AWS-LC 3.1.0.
