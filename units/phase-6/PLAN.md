@@ -333,3 +333,12 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
     the D15 reason. P-CNSA selection is judged on the floor build only.
   - This replaces 19 unsatisfiable checks with one check that is satisfiable and red on a mutant.
   - Reason: ML-DSA-87 is not in the AWS-LC 3.1.0 module (D15).
+- **D16 amended (P6-cmvp-002, measured).** An optional `aws-lc-fips-sys` dependency enters the root Cargo.lock even
+  when it is never enabled. It brought 11 crates that the floor never compiles, and it turned the root audit, vet
+  and deny gates red. Fixing that would have meant ledgering or baselining dead crates, which would weaken those
+  gates. What was done instead:
+  - aegis-iso's `cmvp` feature depends on aws-lc-rs, which is already in both locks. The two sites in
+    `aegis-iso/src/fips.rs` are an `extern` declaration whose `link_name` is pinned to the 0.13.11 symbol, plus
+    `CStr::from_ptr`.
+  - Any other module (a pin change, the 4.2.0 decoy, or the floor) fails to link, which fails closed.
+  - aegis-iso now uses 16 of its 20 `unsafe` sites.

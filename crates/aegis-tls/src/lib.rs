@@ -20,8 +20,8 @@ pub mod kx;
 pub mod profile;
 
 pub use profile::{
-    FipsStatus, Profile, ProfileError, ProfileStatus, assert_profile, fips_check, fips_status, negotiable_versions,
-    server_config,
+    FipsStatus, Profile, ProfileError, ProfileStatus, assert_profile, fips_check_with, fips_status_with,
+    negotiable_versions, server_config, server_config_with,
 };
 #[cfg(feature = "tls-client")]
 pub use profile::{assert_client_profile, client_config};

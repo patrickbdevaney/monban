@@ -19,8 +19,16 @@ libc = { workspace = true }
 # `fs` and `process` are already enabled in the default aegis-bin build; `thread` (no_new_privs, dumpable) is a
 # feature of the same crate, so no new crate.
 rustix = { workspace = true, features = ["fs", "process", "thread"] }
+# Feature `cmvp` only (PLAN-6 D16, module `fips`): orders the AWS-LC FIPS library that aws-lc-rs links under `fips`
+# after this crate, so `awslc_version_string` resolves. Root pin, already in both locks: no new crate. (D16's
+# literal option B, an optional aws-lc-fips-sys dependency, would add aws-lc-fips-sys 0.13.11 and 10 build crates
+# to the ROOT lock, with RUSTSEC-2026-0042/0043 and no vet coverage: units/phase-6/reports/P6-cmvp-002.md.)
+aws-lc-rs = { workspace = true, optional = true }
 
 [features]
+# PLAN-6 D16: `fips::awslc_version_string` (2 audited unsafe sites). Only with the cmvp overlay lock
+# (profiles/cmvp/build.sh); on the floor lock the 0.13.11 symbol does not exist and a binary would not link.
+cmvp = ["dep:aws-lc-rs"]
 # Test-only code (syscall probe, layout report; PLAN-5 D15), enabled through aegis-p2 `test-hooks`. Never shipped.
 test-hooks = []
 # Oracle negative controls only (aegis-p2 `mutants`, aegis-bin `p2-mutants`, PLAN-5 D15). Never shipped.

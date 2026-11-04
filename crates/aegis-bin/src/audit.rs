@@ -99,6 +99,9 @@ impl AuditSink for FileSink {
 pub struct Auditor {
     log: Mutex<Log<FileSink>>,
     fips: FipsStatus,
+    /// The linked FIPS module's version string (`aegis_tls::FipsStatus::module`, PLAN-6 D2), carried by every event
+    /// as detail `fips_module`; `None` (no detail) on the floor build.
+    module: Option<&'static str>,
     pub dir: PathBuf,
     seq: std::sync::atomic::AtomicU64,
 }
@@ -110,7 +113,7 @@ impl Auditor {
             .map(|s| PathBuf::from(s.to_string_lossy().split(':').next().unwrap_or_default().to_string()).join("audit"))
     }
 
-    pub fn open(base: &Path, fips: &aegis_tls::FipsStatus) -> Result<Self, String> {
+    pub fn open(base: &Path, fips_in: &aegis_tls::FipsStatus) -> Result<Self, String> {
         let dir = base.join(format!("{}-{}", crate::util::unix_ms(), std::process::id()));
         let sink = FileSink::new(&dir).map_err(|e| format!("audit dir {}: {e}", dir.display()))?;
         let name = "aegis.audit";
@@ -124,14 +127,14 @@ impl Auditor {
         let log = Log::new(cfg, Box::new(signer), Vec::new(), sink).map_err(|e| format!("audit log: {e:?}"))?;
         let vkeys = log.vkeys().join("\n");
         fs::write(dir.join("vkey"), format!("{vkeys}\n")).map_err(|e| format!("audit vkey: {e}"))?;
-        let fips = if fips.cmvp_claim {
+        let fips = if fips_in.cmvp_claim {
             FipsStatus::Cmvp
-        } else if fips.config_fips {
+        } else if fips_in.config_fips {
             FipsStatus::Floor
         } else {
             FipsStatus::None
         };
-        Ok(Self { log: Mutex::new(log), fips, dir, seq: std::sync::atomic::AtomicU64::new(1) })
+        Ok(Self { log: Mutex::new(log), fips, module: fips_in.module, dir, seq: std::sync::atomic::AtomicU64::new(1) })
     }
 
     /// A fresh request id (unix ms, pid, sequence).
@@ -162,6 +165,7 @@ impl Auditor {
         for (k, v) in detail {
             d.insert(DetailKey::new(k).map_err(|e| e.to_string())?, v.clone()).map_err(|e| e.to_string())?;
         }
+        self.module_detail(&mut d)?;
         let ev = AuditEvent {
             class: EventClass::Admin,
             actor: Actor::system(),
@@ -200,6 +204,7 @@ impl Auditor {
         for (k, v) in [("kind", kind), ("module", module)] {
             d.insert(DetailKey::new(k).map_err(|e| e.to_string())?, text(v)).map_err(|e| e.to_string())?;
         }
+        self.module_detail(&mut d)?;
         let ev = AuditEvent {
             class: EventClass::DataPlane,
             actor: Actor::principal(tenant, None),
@@ -213,6 +218,18 @@ impl Auditor {
         };
         let mut log = self.log.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         log.append_durable(&ev, crate::util::unix_ms()).map(|_| ()).map_err(|e| format!("audit: {e:?}"))
+    }
+}
+
+impl Auditor {
+    /// Detail `fips_module` = the linked module's version string, when there is one (cmvp build, FIPS listener).
+    fn module_detail(&self, d: &mut Detail) -> Result<(), String> {
+        match self.module {
+            None => Ok(()),
+            Some(m) => {
+                d.insert(DetailKey::new("fips_module").map_err(|e| e.to_string())?, text(m)).map_err(|e| e.to_string())
+            }
+        }
     }
 }
 

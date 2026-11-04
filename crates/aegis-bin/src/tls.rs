@@ -72,6 +72,16 @@ pub fn load(paths: &CertPaths) -> Result<(Vec<CertificateDer<'static>>, PrivateK
     Ok((chain, key))
 }
 
+/// The linked AWS-LC module's own version string, read at run time (PLAN-6 D2/D16): on the cmvp build through
+/// the audited `aegis_iso::fips` sites; the floor build links no FIPS module and reports none. aegis-tls receives
+/// it through `server_config_with` / `fips_status_with` / `fips_check_with` and decides the P-PQ5 claim.
+pub fn linked_module() -> Option<&'static str> {
+    #[cfg(feature = "cmvp")]
+    return aegis_iso::fips::awslc_version_string();
+    #[cfg(not(feature = "cmvp"))]
+    None
+}
+
 /// One cert store per distinct profile, plus the acceptor of each listener.
 pub struct Tls {
     pub stores: Vec<(aegis_tls::Profile, Arc<CertStore>)>,
@@ -91,6 +101,7 @@ impl Tls {
         let mut stores: Vec<(aegis_tls::Profile, Arc<CertStore>)> = Vec::new();
         let mut acceptors = Vec::new();
         let mut fips = None;
+        let linked = linked_module();
         for l in listeners {
             let store = match stores.iter().find(|(p, _)| *p == l.profile) {
                 Some((_, s)) => s.clone(),
@@ -103,10 +114,10 @@ impl Tls {
                     s
                 }
             };
-            let mut cfg = aegis_tls::server_config(l.profile, store)
+            let mut cfg = aegis_tls::server_config_with(l.profile, store, linked)
                 .map_err(|e| format!("listener {}: TLS profile {}: {e}", l.name, l.profile.name()))?;
             cfg.alpn_protocols = l.alpn.clone();
-            fips.get_or_insert_with(|| aegis_tls::fips_status(&cfg));
+            fips.get_or_insert_with(|| aegis_tls::fips_status_with(&cfg, linked));
             acceptors.push((l.name.clone(), TlsAcceptor::from(Arc::new(cfg))));
         }
         let fips = fips.ok_or("no listener")?;
