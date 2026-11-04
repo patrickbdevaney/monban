@@ -563,7 +563,7 @@ remote = true
 [[gate]]
 name = "kx-interop"
 cmd = "oracles/kx-interop/run"
-selftest = "oracles/kx-interop/run --self-test"
+selftest = "oracles/kx-interop/run --self-test && ci/heavy.sh cargo build --release --locked -q -p tls-subject --features aegis-tls/order-mutant --target-dir target/order-mutant && oracles/kx-interop/run --subject target/order-mutant/release/tls-subject | tail -1 | grep -qxF 'KX-INTEROP: FAIL (6/20 cells failed: ED-OSSL-SRV, ED-OSSL-CLI, ED-OSSL-SRV-HRR, ED-GO-SRV, ED-GO-CLI, ED-GO-SRV-HRR)'"
 heavy = true
 remote = "kamrui"
 
