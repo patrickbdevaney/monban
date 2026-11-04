@@ -513,8 +513,8 @@ selftest = "cargo xtask unsafe-sites --self-test"
 
 [[gate]]
 name = "fips-lock"
-cmd = "cargo xtask fips-lock --profile cmvp && cargo xtask fips-lock --profile floor"
-selftest = "cargo xtask fips-lock --self-test"
+cmd = "cargo xtask fips-lock --profile cmvp && cargo xtask fips-lock --profile floor && ci/cmvp-supply.sh"
+selftest = "cargo xtask fips-lock --self-test && ci/cmvp-supply.sh --self-test"
 
 [[gate]]
 name = "fips-binary"

@@ -244,6 +244,7 @@ fn size_and_count_caps() {
     assert!(TokenL::decode(&vec![0u8; MAX_TOKEN_BYTES + 1]).is_err());
 }
 
+#[cfg(not(feature = "cmvp"))]
 #[test]
 fn tier_x_roundtrip_and_tamper() {
     use aws_lc_rs::signature::{KeyPair as _, ML_DSA_65_SIGNING, PqdsaKeyPair};
@@ -451,4 +452,28 @@ fn tag_compare_timing_report() {
     );
     let (lo, hi) = (med.iter().cloned().fold(f64::MAX, f64::min), med.iter().cloned().fold(0.0, f64::max));
     assert!(hi <= lo * 3.0 + 5.0, "tag compare timing spread too large: {med:?}");
+}
+
+/// cmvp build (PLAN-6 D15): a Tier-X token with a valid ML-DSA-65 signature, a known key and satisfied caveats is
+/// still denied (fail closed: the build has no ML-DSA-65 verifier). Signed here with the floor lock's aws-lc-rs.
+#[cfg(feature = "cmvp")]
+#[test]
+fn tier_x_denied_on_cmvp() {
+    use aws_lc_rs::signature::{KeyPair as _, ML_DSA_65_SIGNING, PqdsaKeyPair};
+    let kp = PqdsaKeyPair::from_seed(&ML_DSA_65_SIGNING, &[5u8; 32]).unwrap();
+    let mut keys = XKeyRing::new();
+    keys.insert(KID, kp.public_key().as_ref()).unwrap();
+    let payload = XPayload {
+        kid: KID.to_vec(),
+        nonce: [2u8; 16],
+        caveats: vec![Caveat::Aud("api.example".into()), Caveat::Exp(NOW + 5), Caveat::Depth(0)],
+    }
+    .encode()
+    .unwrap();
+    let mut sig = vec![0u8; tier_x::MLDSA65_SIG_LEN];
+    kp.sign(&sig_structure(&payload), &mut sig).unwrap();
+    let env = envelope(&payload, &sig);
+    assert!(decode_envelope(&env).is_ok());
+    assert_eq!(verify_x(&env, &keys, &req()), Err(VerifyError::Denied));
+    assert_eq!(verify_x(&env, &XKeyRing::new(), &req()), Err(VerifyError::Denied));
 }

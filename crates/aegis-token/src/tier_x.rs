@@ -6,14 +6,23 @@
 //! an attached bstr holding `[1, kid, nonce, caveats]` (F5 token-l without the tag), and the signature is a
 //! 3309-byte ML-DSA-65 signature over Sig_structure `["Signature1", protected, h'', payload]`.
 //! After the signature verifies, the same caveat semantics as Tier L apply (mint shape, depth, every caveat).
+//!
+//! Feature `cmvp` (PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out under `fips`, so the cmvp build cannot check
+//! an ML-DSA-65 signature and [`verify_x`] denies every token (`VerifyError::Denied`), fail closed. Decoding is
+//! unchanged.
 
+#[cfg(not(feature = "cmvp"))]
 use aws_lc_rs::signature::{ML_DSA_65, UnparsedPublicKey};
 
 use aegis_types::Principal;
 
-use crate::caveat::{Caveat, Req, denote, depth_ok, mint_shape_ok};
+use crate::caveat::{Caveat, Req};
+#[cfg(not(feature = "cmvp"))]
+use crate::caveat::{denote, depth_ok, mint_shape_ok};
 use crate::cbor::{self, CborError, Dec};
-use crate::tier_l::{MAX_TOKEN_BYTES, NONCE_LEN, decode_body, encode_body, kid_ok, principal_for};
+#[cfg(not(feature = "cmvp"))]
+use crate::tier_l::principal_for;
+use crate::tier_l::{MAX_TOKEN_BYTES, NONCE_LEN, decode_body, encode_body, kid_ok};
 use crate::{TokenError, VerifyError};
 
 /// The only protected header accepted: canonical CBOR of {1: -49}.
@@ -45,6 +54,7 @@ impl XKeyRing {
         Ok(())
     }
 
+    #[cfg(not(feature = "cmvp"))]
     fn get(&self, kid: &[u8]) -> Option<&[u8]> {
         self.keys.iter().find(|(k, _)| k.as_slice() == kid).map(|(_, v)| v.as_slice())
     }
@@ -134,6 +144,15 @@ pub fn decode_envelope(bytes: &[u8]) -> Result<(&[u8], &[u8]), CborError> {
 
 /// Tier-X verification. Signature first (over the exact received payload bytes), then the caveat conjunction.
 /// Mints a `Principal` (tenant = `r.tenant`, subject = kid ‖ nonce) only on success.
+///
+/// cmvp build: always `Err(VerifyError::Denied)` (no ML-DSA-65 verifier; PLAN-6 D15). No `Principal` is minted.
+#[cfg(feature = "cmvp")]
+pub fn verify_x(_cose: &[u8], _keys: &XKeyRing, _r: &Req) -> Result<Principal, VerifyError> {
+    Err(VerifyError::Denied)
+}
+
+/// Tier-X verification (see the cmvp variant above for the cmvp build).
+#[cfg(not(feature = "cmvp"))]
 pub fn verify_x(cose: &[u8], keys: &XKeyRing, r: &Req) -> Result<Principal, VerifyError> {
     let (payload, sig) = decode_envelope(cose).map_err(|_| VerifyError::Malformed)?;
     let p = XPayload::decode(payload).map_err(|_| VerifyError::Malformed)?;

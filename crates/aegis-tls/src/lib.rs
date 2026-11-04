@@ -8,7 +8,10 @@
 //! - [`kx`]: SecP384r1MLKEM1024 (0x11ED), ported from spike q4-026; in P-PUBLIC-WEB, P-UNIVERSAL and P-BSI-ALT.
 //!   Features `kat` (KAT constructor, kx-kat gate) and `order-mutant` (combiner-order negative control) are test-only.
 //!
-//! Not here yet: scoped ticketer + STEK ring (P-PQ3, P2-tls-002), PreferServerOrder backport, cmvp build (P-PQ5).
+//! Feature `cmvp` (PLAN-6 D1/D15, the profiles/cmvp overlay build): P-CNSA refused (no ML-DSA-87), P-UNIVERSAL and
+//! P-BSI-ALT sign with ECDSA-P384 only, FIPS-CMVP buildable with the P-PQ5 module-identity assertion.
+//!
+//! Not here yet: scoped ticketer + STEK ring (P-PQ3, P2-tls-002), PreferServerOrder backport.
 #![forbid(unsafe_code)]
 
 #[cfg(kani)]
@@ -17,7 +20,8 @@ pub mod kx;
 pub mod profile;
 
 pub use profile::{
-    FipsStatus, Profile, ProfileError, ProfileStatus, assert_profile, fips_status, negotiable_versions, server_config,
+    FipsStatus, Profile, ProfileError, ProfileStatus, assert_profile, fips_check, fips_status, negotiable_versions,
+    server_config,
 };
 #[cfg(feature = "tls-client")]
 pub use profile::{assert_client_profile, client_config};

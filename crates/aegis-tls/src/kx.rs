@@ -278,9 +278,11 @@ mod tests {
     //! ClientHello share, `complete` = client parsing a ServerHello share). rustls maps every error from either
     //! to alert 47.
     use super::*;
+    #[cfg(not(feature = "cmvp"))]
     use std::collections::HashMap;
 
     const KAT_MLKEM: &str = include_str!("../kat/acvp-mlkem1024.txt");
+    #[cfg(not(feature = "cmvp"))]
     const KAT_P384: &str = include_str!("../kat/rfc5903-p384.txt");
 
     fn hex(s: &str) -> Vec<u8> {
@@ -288,6 +290,7 @@ mod tests {
         (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
     }
 
+    #[cfg(not(feature = "cmvp"))]
     fn p384() -> HashMap<&'static str, Vec<u8>> {
         KAT_P384
             .lines()

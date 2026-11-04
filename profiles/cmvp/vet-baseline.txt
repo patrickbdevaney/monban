@@ -1,0 +1,18 @@
+# Frozen cargo-vet baseline of the cmvp lock (profiles/cmvp/Cargo.lock; PLAN-6 D12, DEVIATIONS X-16).
+# `crate:version criteria reason`. These are the crates `cargo vet --locked` reports unvetted on the cmvp overlay tree
+# with the root supply-chain/ store (P6-spec-002 §7, re-measured by P6-cmvp-001 on 2026-11-04). Frozen: nothing may be
+# added after this file's first commit; an entry must be removed once an audit or import covers it (checked by
+# `python3 -I ci/vet-baseline.py --frozen-failures ... --baseline profiles/cmvp/vet-baseline.txt`, run by
+# ci/cmvp-supply.sh). Any crate later added to the cmvp lock needs an audit or an import, not a line here.
+aws-lc-fips-sys:0.13.11 safe-to-deploy FIPS 3.1.0 module sources (~1.66M lines C/asm); the certified module the cmvp build exists for; trusted, not verified (SECURITY_CLAIMS)
+aws-lc-rs:1.15.3 safe-to-deploy last aws-lc-rs that links fips-sys 0.13.11 (FIPS 3.1.0); root lock audits/exemptions cover 1.18.x only
+bindgen:0.72.1 safe-to-deploy build-time only: aws-lc-fips-sys build script generates bindings (not linked)
+cexpr:0.6.0 safe-to-deploy build-time only (bindgen)
+clang-sys:1.9.1 safe-to-deploy build-time only (bindgen)
+glob:0.3.4 safe-to-deploy build-time only (clang-sys); version differs from the root lock
+itertools:0.13.0 safe-to-deploy build-time only (bindgen); version differs from the root lock
+libloading:0.8.9 safe-to-deploy build-time only (clang-sys runtime loading of libclang); version differs from the root lock
+minimal-lexical:0.2.1 safe-to-deploy build-time only (nom 7, cexpr)
+nom:7.1.3 safe-to-deploy build-time only (cexpr)
+prettyplease:0.2.37 safe-to-deploy build-time only (bindgen)
+rustls:0.23.43 safe-to-deploy last rustls co-resolvable with aws-lc-rs <=1.17.1 (FIPS 3.1.0); root lock covers 0.23.46

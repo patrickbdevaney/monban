@@ -117,6 +117,7 @@ const FIPS_PQ_REQUIRED_KX: &[u16] = &[SECP256R1MLKEM768];
 
 const PUBLIC_WEB_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256];
 const PQ_REQUIRED_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, SignatureScheme::ML_DSA_44];
+#[cfg(not(feature = "cmvp"))]
 const GOV_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87, SignatureScheme::ECDSA_NISTP384_SHA384];
 const CNSA_SIG: &[SignatureScheme] = &[SignatureScheme::ML_DSA_87];
 const FIPS_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, SignatureScheme::ECDSA_NISTP384_SHA384];
@@ -124,7 +125,24 @@ const FIPS_SIG: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP256_SHA256, S
 #[cfg(feature = "tls-client")]
 const FIPS_FLOOR_NOT_CLIENT: &str = "P-PQ6: a FIPS-side client offers exactly [SecP256r1MLKEM768] (nothing \
      classical for a RUSTSEC-2026-0349 downgrade to land on); this list adds P-256/P-384. Use FIPS-PQ-REQUIRED.";
+#[cfg(not(feature = "cmvp"))]
 const PENDING_CMVP: &str = "needs the cmvp lock (rustls =0.23.43, aws-lc-rs =1.15.3 [fips], aws-lc-fips-sys =0.13.11) and the P-PQ5 module-identity gate (Phase 6); this is the floor build.";
+/// PLAN-6 D15: P-CNSA requires ML-DSA-87, which aws-lc-rs 1.15.3 compiles out under `fips` (and which AWS-LC FIPS
+/// 3.1.0 does not approve, COMPLIANCE_MAP). Refused at boot on the cmvp build, never served without ML-DSA-87.
+#[cfg(feature = "cmvp")]
+// No module version in this text: the binary must carry no `AWS-LC FIPS x.y.z` string but the module's own.
+const CNSA_NOT_ON_CMVP: &str = "P-CNSA requires ML-DSA-87, which the cmvp build (aws-lc-rs =1.15.3 [fips], the \
+     certified module) does not have (PLAN-6 D15); serve P-CNSA from the floor build";
+
+/// PLAN-6 D15: on the cmvp build the gov profiles sign with ECDSA-P384 only (no ML-DSA-87 in aws-lc-rs 1.15.3 fips).
+#[cfg(feature = "cmvp")]
+const GOV_SIG_CMVP: &[SignatureScheme] = &[SignatureScheme::ECDSA_NISTP384_SHA384];
+
+/// The module identity a cmvp build must link (P-PQ5): `AWS-LC FIPS` + this version. Kept as numbers, not as the
+/// module string, so this crate never puts an `AWS-LC FIPS x.y.z` literal into the binary (the fips-binary gate's
+/// strings check must see only the module's own copy).
+const CMVP_MODULE_VERSION: [u32; 3] = [3, 1, 0];
+const MODULE_PREFIX: &str = "AWS-LC FIPS ";
 
 impl Profile {
     /// Every profile.
@@ -180,16 +198,27 @@ impl Profile {
     /// F12 status.
     pub fn status(self) -> ProfileStatus {
         match self {
-            Self::PublicWeb | Self::PqRequired | Self::Universal | Self::BsiAlt | Self::Cnsa => ProfileStatus::Active,
+            Self::PublicWeb | Self::PqRequired | Self::Universal | Self::BsiAlt => ProfileStatus::Active,
+            #[cfg(not(feature = "cmvp"))]
+            Self::Cnsa => ProfileStatus::Active,
+            #[cfg(feature = "cmvp")]
+            Self::Cnsa => ProfileStatus::Pending,
             Self::FipsFloor | Self::FipsPqRequired => ProfileStatus::CmvpPending,
+            #[cfg(not(feature = "cmvp"))]
             Self::FipsCmvp => ProfileStatus::Pending,
+            // Buildable on the cmvp build only; `server_config` still asserts the module identity (P-PQ5).
+            #[cfg(feature = "cmvp")]
+            Self::FipsCmvp => ProfileStatus::Active,
         }
     }
 
     /// Why the profile is pending, if it is.
     pub fn pending_reason(self) -> Option<&'static str> {
         match self {
+            #[cfg(not(feature = "cmvp"))]
             Self::FipsCmvp => Some(PENDING_CMVP),
+            #[cfg(feature = "cmvp")]
+            Self::Cnsa => Some(CNSA_NOT_ON_CMVP),
             _ => None,
         }
     }
@@ -212,7 +241,10 @@ impl Profile {
         match self {
             Self::PublicWeb => PUBLIC_WEB_SIG,
             Self::PqRequired => PQ_REQUIRED_SIG,
+            #[cfg(not(feature = "cmvp"))]
             Self::Universal | Self::BsiAlt => GOV_SIG,
+            #[cfg(feature = "cmvp")]
+            Self::Universal | Self::BsiAlt => GOV_SIG_CMVP,
             Self::Cnsa => CNSA_SIG,
             Self::FipsFloor | Self::FipsCmvp | Self::FipsPqRequired => FIPS_SIG,
         }
@@ -280,7 +312,25 @@ pub fn server_config(
     cfg.send_tls13_tickets = 0;
     cfg.session_storage = Arc::new(NoServerSessionStorage {});
     assert_profile(&cfg, profile)?;
+    if profile == Profile::FipsCmvp {
+        assert_cmvp_module(&cfg)?;
+    }
     Ok(cfg)
+}
+
+/// P-PQ5 startup assertion for FIPS-CMVP: the config is FIPS (`ServerConfig::fips()`), the module is in FIPS mode,
+/// and the linked module reports exactly `AWS-LC FIPS 3.1.0`. Fails closed when the identity cannot be read.
+fn assert_cmvp_module(cfg: &ServerConfig) -> Result<(), ProfileError> {
+    let st = fips_status(cfg);
+    if st.cmvp_claim {
+        return Ok(());
+    }
+    Err(ProfileError::Assertion(format!(
+        "FIPS-CMVP: P-PQ5 module identity not established (config_fips={}, module_fips_mode={}, module={})",
+        st.config_fips,
+        st.module_fips_mode,
+        st.module.unwrap_or("none")
+    )))
 }
 
 /// Protocol versions the built config can negotiate, read from its provider: rustls negotiates a version only if a
@@ -340,7 +390,9 @@ fn client_refusal(profile: Profile) -> Option<ProfileError> {
         return Some(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
     }
     match profile {
-        Profile::FipsFloor => Some(ProfileError::NotForClients { profile, reason: FIPS_FLOOR_NOT_CLIENT }),
+        Profile::FipsFloor | Profile::FipsCmvp => {
+            Some(ProfileError::NotForClients { profile, reason: FIPS_FLOOR_NOT_CLIENT })
+        }
         _ => None,
     }
 }
@@ -420,21 +472,49 @@ pub struct FipsStatus {
     pub config_fips: bool,
     /// `aws_lc_rs::try_fips_mode().is_ok()`: blind to the module version (decoy lock).
     pub module_fips_mode: bool,
-    /// FIPS module identity linked into the binary (P-PQ5), e.g. `AWS-LC FIPS 3.1.0`. `None` on the floor build:
-    /// the identity check is the Phase-6 cmvp gate, and nothing here claims it.
+    /// FIPS module identity linked into the binary (P-PQ5), e.g. `AWS-LC FIPS 3.1.0`, as the module reports it at
+    /// run time (PLAN-6 D2). `Some` only on the cmvp build with `config_fips` true; `None` on the floor build.
     pub module: Option<&'static str>,
-    /// Whether a CMVP claim may be made. Always false in this build.
+    /// Whether a CMVP claim may be made: cmvp build, `config_fips`, `module_fips_mode`, and `module` is exactly
+    /// `AWS-LC FIPS 3.1.0`. Always false on the floor build.
     pub cmvp_claim: bool,
 }
 
 /// Report the FIPS status of a built config.
 pub fn fips_status(cfg: &ServerConfig) -> FipsStatus {
-    FipsStatus {
-        config_fips: cfg.fips(),
-        module_fips_mode: aws_lc_rs::try_fips_mode().is_ok(),
-        module: None,
-        cmvp_claim: false,
-    }
+    status_from(cfg.fips())
+}
+
+fn status_from(config_fips: bool) -> FipsStatus {
+    let module_fips_mode = aws_lc_rs::try_fips_mode().is_ok();
+    let module = if cfg!(feature = "cmvp") && config_fips { linked_module() } else { None };
+    let cmvp_claim = cfg!(feature = "cmvp") && config_fips && module_fips_mode && module.is_some_and(is_cmvp_module);
+    FipsStatus { config_fips, module_fips_mode, module, cmvp_claim }
+}
+
+/// Whether `m` is exactly `AWS-LC FIPS 3.1.0` (compared without a contiguous literal, see [`CMVP_MODULE_VERSION`]).
+fn is_cmvp_module(m: &str) -> bool {
+    let Some(v) = m.strip_prefix(MODULE_PREFIX) else { return false };
+    let parts: Vec<&str> = v.split('.').collect();
+    parts.len() == CMVP_MODULE_VERSION.len() && parts.iter().zip(CMVP_MODULE_VERSION).all(|(p, n)| *p == n.to_string())
+}
+
+/// The linked AWS-LC module's own version string (`awslc_version_string()`), read at run time.
+///
+/// Neither aws-lc-rs 1.15.3 nor rustls 0.23.43 exposes it through a safe API: the only access is the
+/// `aws_lc_fips_sys::awslc_version_string` extern "C" function, which needs `unsafe` (forbidden in this crate,
+/// CLAUDE.md). Until an audited site is approved (units/phase-6/reports/P6-cmvp-001-INFEASIBLE.md) this returns
+/// `None`, so no build claims a module identity it has not read: `cmvp_claim` stays false, FIPS-CMVP is refused
+/// by [`server_config`], and `aegis --fips-check` exits 1.
+fn linked_module() -> Option<&'static str> {
+    None
+}
+
+/// The process-level FIPS check (`aegis --fips-check`), independent of any listener: `fips_mode` is the FIPS
+/// profile provider's `CryptoProvider::fips()` and the module's FIPS mode; `module` as in [`FipsStatus`].
+pub fn fips_check() -> FipsStatus {
+    let config_fips = provider(Profile::FipsFloor).map(|p| p.fips()).unwrap_or(false);
+    status_from(config_fips)
 }
 
 /// Wraps the caller's resolver so the served key can only sign with the profile's sigalgs (P-PQ2). If the
@@ -495,5 +575,76 @@ impl SigningKey for RestrictedKey {
 
     fn algorithm(&self) -> SignatureAlgorithm {
         self.inner.algorithm()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
+    use super::*;
+
+    #[derive(Debug)]
+    struct NoCert;
+    impl ResolvesServerCert for NoCert {
+        fn resolve(&self, _: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
+            None
+        }
+    }
+
+    #[test]
+    fn module_identity_is_exact() {
+        assert!(is_cmvp_module(&format!("{MODULE_PREFIX}3.1.0")));
+        for m in
+            ["", "AWS-LC FIPS 4.2.0", "AWS-LC FIPS 3.1", "AWS-LC FIPS 3.1.0.1", "AWS-LC FIPS 3.1.00", "AWS-LC 3.1.0"]
+        {
+            assert!(!is_cmvp_module(m), "{m}");
+        }
+    }
+
+    /// Floor build: no module identity, no claim, FIPS-CMVP pending (unchanged from Phase 5).
+    #[cfg(not(feature = "cmvp"))]
+    #[test]
+    fn floor_reports_no_module() {
+        let st = fips_check();
+        assert_eq!((st.module, st.cmvp_claim), (None, false));
+        assert_eq!(Profile::FipsCmvp.status(), ProfileStatus::Pending);
+        assert_eq!(Profile::Cnsa.status(), ProfileStatus::Active);
+        let _ = NoCert;
+    }
+
+    /// cmvp build (PLAN-6 D15): P-CNSA refused at boot with the reason; gov profiles ECDSA-P384 only.
+    #[cfg(feature = "cmvp")]
+    #[test]
+    fn cmvp_refuses_cnsa_and_drops_mldsa() {
+        match server_config(Profile::Cnsa, Arc::new(NoCert)) {
+            Err(ProfileError::Pending { profile: Profile::Cnsa, reason }) => assert_eq!(reason, CNSA_NOT_ON_CMVP),
+            other => panic!("P-CNSA on cmvp: expected Pending, got {other:?}"),
+        }
+        for p in [Profile::Universal, Profile::BsiAlt] {
+            assert_eq!(p.sigalgs(), [SignatureScheme::ECDSA_NISTP384_SHA384], "{p:?}");
+            assert!(server_config(p, Arc::new(NoCert)).is_ok(), "{p:?}");
+        }
+        assert_eq!(Profile::FipsCmvp.status(), ProfileStatus::Active);
+    }
+
+    /// cmvp build: FIPS-CMVP is served only with the P-PQ5 identity established; otherwise refused at boot.
+    #[cfg(feature = "cmvp")]
+    #[test]
+    fn cmvp_fips_cmvp_requires_module_identity() {
+        let claim = fips_check().cmvp_claim;
+        match server_config(Profile::FipsCmvp, Arc::new(NoCert)) {
+            Ok(cfg) => {
+                assert!(claim);
+                assert!(fips_status(&cfg).module.is_some_and(is_cmvp_module));
+            }
+            Err(ProfileError::Assertion(e)) => {
+                assert!(!claim);
+                assert!(e.contains("P-PQ5"), "{e}");
+            }
+            Err(e) => panic!("FIPS-CMVP: {e}"),
+        }
+        // Without config FIPS, never a module or a claim.
+        let st = status_from(false);
+        assert_eq!((st.module, st.cmvp_claim), (None, false));
     }
 }

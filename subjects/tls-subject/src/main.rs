@@ -16,6 +16,10 @@
 //! The client's `CryptoProvider` is `aegis_tls::profile::provider`, the table both production builders use, so the
 //! client offers the profile's kx list exactly. Client mode is compiled out of the cmvp build (feature `cmvp`;
 //! spikes/cmvp-client-policy mode A: no rustls client in a cmvp binary).
+//!
+//! cmvp build (feature `cmvp`, PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out under `fips`, so there are no
+//! ML-DSA credentials: ECDSA-P384 only on P-UNIVERSAL and P-BSI-ALT, ECDSA-P256 on PQ-REQUIRED, and P-CNSA (ML-DSA-87
+//! only) is refused by `aegis_tls::server_config` with its reason.
 #![forbid(unsafe_code)]
 
 use std::io::{Read, Write};
@@ -25,7 +29,9 @@ use std::sync::Arc;
 use aegis_tls::{Profile, fips_status, negotiable_versions, server_config};
 use aws_lc_rs::encoding::AsDer;
 use aws_lc_rs::rand::SystemRandom;
-use aws_lc_rs::signature::{self, EcdsaKeyPair, KeyPair, PqdsaKeyPair};
+#[cfg(not(feature = "cmvp"))]
+use aws_lc_rs::signature::PqdsaKeyPair;
+use aws_lc_rs::signature::{self, EcdsaKeyPair, KeyPair};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::server::{ClientHello, ResolvesServerCert};
 use rustls::sign::CertifiedKey;
@@ -58,8 +64,10 @@ const OID_ECDSA_SHA256: &[u8] = &[0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02
 /// ecdsa-with-SHA384, 1.2.840.10045.4.3.3.
 const OID_ECDSA_SHA384: &[u8] = &[0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x03];
 /// id-ml-dsa-44, 2.16.840.1.101.3.4.3.17.
+#[cfg(not(feature = "cmvp"))]
 const OID_ML_DSA_44: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x11];
 /// id-ml-dsa-87, 2.16.840.1.101.3.4.3.19.
+#[cfg(not(feature = "cmvp"))]
 const OID_ML_DSA_87: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x13];
 const OID_CN: &[u8] = &[0x55, 0x04, 0x03];
 const OID_SAN: &[u8] = &[0x55, 0x1d, 0x11];
@@ -81,7 +89,9 @@ fn self_signed(sig_oid: &[u8], spki: &[u8], sign: impl Fn(&[u8]) -> R<Vec<u8>>) 
 enum Cred {
     EcdsaP256,
     EcdsaP384,
+    #[cfg(not(feature = "cmvp"))]
     MlDsa44,
+    #[cfg(not(feature = "cmvp"))]
     MlDsa87,
 }
 
@@ -90,7 +100,9 @@ fn credential(c: Cred) -> R<(Vec<u8>, Vec<u8>)> {
     match c {
         Cred::EcdsaP256 => ecdsa(&signature::ECDSA_P256_SHA256_ASN1_SIGNING, OID_ECDSA_SHA256),
         Cred::EcdsaP384 => ecdsa(&signature::ECDSA_P384_SHA384_ASN1_SIGNING, OID_ECDSA_SHA384),
+        #[cfg(not(feature = "cmvp"))]
         Cred::MlDsa44 => mldsa(&signature::ML_DSA_44_SIGNING, OID_ML_DSA_44),
+        #[cfg(not(feature = "cmvp"))]
         Cred::MlDsa87 => mldsa(&signature::ML_DSA_87_SIGNING, OID_ML_DSA_87),
     }
 }
@@ -106,6 +118,7 @@ fn ecdsa(alg: &'static signature::EcdsaSigningAlgorithm, oid: &[u8]) -> R<(Vec<u
     Ok((cert, key.as_ref().to_vec()))
 }
 
+#[cfg(not(feature = "cmvp"))]
 fn mldsa(alg: &'static signature::PqdsaSigningAlgorithm, oid: &[u8]) -> R<(Vec<u8>, Vec<u8>)> {
     let kp = PqdsaKeyPair::generate(alg).map_err(|e| format!("ml-dsa: {e}"))?;
     let spki = kp.public_key().as_der().map_err(|e| format!("ml-dsa spki: {e}"))?;
@@ -121,12 +134,25 @@ fn mldsa(alg: &'static signature::PqdsaSigningAlgorithm, oid: &[u8]) -> R<(Vec<u
 }
 
 /// The credentials served on a profile, in preference order (F12 `credential`).
+#[cfg(not(feature = "cmvp"))]
 fn creds(profile: Profile) -> &'static [Cred] {
     match profile {
         Profile::PqRequired => &[Cred::MlDsa44],
         Profile::Universal | Profile::BsiAlt => &[Cred::MlDsa87, Cred::EcdsaP384],
         Profile::Cnsa => &[Cred::MlDsa87],
         Profile::PublicWeb | Profile::FipsFloor | Profile::FipsCmvp | Profile::FipsPqRequired => &[Cred::EcdsaP256],
+    }
+}
+
+/// cmvp build (PLAN-6 D15): no ML-DSA credentials. P-CNSA gets none (its builder refuses it on cmvp).
+#[cfg(feature = "cmvp")]
+fn creds(profile: Profile) -> &'static [Cred] {
+    match profile {
+        Profile::Universal | Profile::BsiAlt => &[Cred::EcdsaP384],
+        Profile::Cnsa => &[],
+        Profile::PublicWeb | Profile::PqRequired | Profile::FipsFloor | Profile::FipsCmvp | Profile::FipsPqRequired => {
+            &[Cred::EcdsaP256]
+        }
     }
 }
 
