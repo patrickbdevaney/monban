@@ -343,6 +343,7 @@ gate() {
     || echo "rebuild: note: uncommitted changes; both builds use commit $COMMIT (A in tree mode would differ: checked)"
   REPO=repo; [ "$(basename "$ROOT")" = aegis ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
   mkdir -p "$OUTROOT"
+  : > "$OUTROOT/b.log"  # this run's B log only: a B-RESULT line from an earlier run must never be read
   declare -A RES
   local okA=()
   # ---- A: the attested release on kamrui
