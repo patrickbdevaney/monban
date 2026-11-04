@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# Kani proof gate for aegis-budget (unit P2-kani-tbi-001). It runs on the prover box (kamrui:~/aegis-ci) over ssh.
+# Kani proof gate (units P2-kani-tbi-001, P6-kani-001). It runs on the prover box (kamrui:~/aegis-ci) over ssh.
 #
-#   ci/kani.sh               every harness in crates/aegis-budget/src/kani_proofs.rs, plus the negative control
-#   ci/kani.sh --self-test   only the negative control (it must FAIL on its own assertion)
+#   ci/kani.sh [--crate C] [--neg N]                    every harness in crates/C/src/kani_proofs.rs, plus N
+#   ci/kani.sh [--crate C] [--neg N] --expect-neg-only  only the negative control N (it must FAIL on its own
+#                                                       assertion); --self-test is the same mode
 #
-# The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/p2-kani with a
-# generated minimal workspace manifest. It asserts the Kani checkout is a descendant of the PR #4910 merge
-# (16c774cf). Main still reports "0.68.0", so the version string proves nothing. Harnesses then run serially,
-# each in its own `systemd-run --user --scope` with MemoryMax (default 6G), swap off, nice 15 and a timeout
-# (default 1800 s). If systemd user scopes are unavailable it falls back to `ulimit -v`.
+# Defaults: --crate aegis-budget --neg negative_control_unclamped_refill, so the kani-tbi invocations
+# (`ci/kani.sh`, `ci/kani.sh --self-test`) are unchanged. kani-kx is
+# `ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split`.
+#
+# The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/<dir> with a
+# generated minimal workspace manifest (<dir> = p2-kani for aegis-budget, kani-<crate> otherwise). Third-party
+# `workspace = true` deps of the synced crates are copied verbatim from the root [workspace.dependencies], and
+# then the root Cargo.lock is synced too, so they resolve to the locked versions. If the proofs file uses
+# `kani::stub`, the harnesses run with `-Z stubbing`. It asserts the Kani checkout is a descendant of the PR #4910
+# merge (16c774cf). Main still reports "0.68.0", so the version string proves nothing. Harnesses then run
+# serially, each in its own `systemd-run --user --scope` with MemoryMax (default 6G), swap off, nice 15 and a
+# timeout (default 1800 s). If systemd user scopes are unavailable it falls back to `ulimit -v`.
 # A positive harness passes only on kani exit 0, "VERIFICATION:- SUCCESSFUL", one verified harness with
 # 0 failures, and all cover properties satisfied. Any other exit (CBMC status outside {0,10} surfaces as a
 # kani failure), an OOM, or a timeout (124/137/143) is FAIL.
@@ -24,12 +32,19 @@ PR4910_MERGE=16c774cf
 CRATE=aegis-budget
 NEG=negative_control_unclamped_refill
 
+usage() { echo "usage: ci/kani.sh [--crate CRATE] [--neg HARNESS] [--expect-neg-only|--self-test]" >&2; exit 2; }
 MODE=all
-case "${1:-}" in
-  --self-test) MODE=self ;;
-  "") ;;
-  *) echo "usage: ci/kani.sh [--self-test]" >&2; exit 2 ;;
-esac
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --self-test|--expect-neg-only) MODE=self; shift ;;
+    --crate) [ $# -ge 2 ] || usage; CRATE=$2; shift 2 ;;
+    --neg) [ $# -ge 2 ] || usage; NEG=$2; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[[ "$CRATE" =~ ^aegis-[a-z0-9-]+$ ]] || { echo "kani.sh: bad crate name $CRATE" >&2; exit 2; }
+[[ "$NEG" =~ ^[a-z_0-9]+$ ]] || { echo "kani.sh: bad harness name $NEG" >&2; exit 2; }
+if [ "$CRATE" = aegis-budget ]; then WDIR=p2-kani; else WDIR=kani-$CRATE; fi
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PROOFS=$ROOT/crates/$CRATE/src/kani_proofs.rs
@@ -51,7 +66,13 @@ mapfile -t DEPS < <(awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^aegis-
   "$ROOT/crates/$CRATE/Cargo.toml")
 for d in "${DEPS[@]}"; do [ -n "$d" ] && CRATES+=("$d"); done
 
-# Minimal workspace manifest: members + [workspace.package] + [workspace.lints.*] + aegis-* path deps.
+# Third-party `workspace = true` deps of the synced crates ([dependencies] only), taken from the root manifest.
+mapfile -t EXT < <(for c in "${CRATES[@]}"; do
+  awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^[a-z0-9_-]+ *= *\{.*workspace *= *true/ && !/^aegis-/{sub(/ *=.*/, ""); print}' \
+    "$ROOT/crates/$c/Cargo.toml"; done | sort -u)
+
+# Minimal workspace manifest: members + [workspace.package] + [workspace.lints.*] + aegis-* path deps
+# + the third-party deps above, verbatim from the root [workspace.dependencies].
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 {
@@ -60,27 +81,39 @@ trap 'rm -rf "$STAGE"' EXIT
   printf 'members = ['; for c in "${CRATES[@]}"; do printf '"crates/%s", ' "$c"; done; echo ']'
   echo
   awk '/^\[/{keep = ($0 ~ /^\[workspace\.(package|lints\.rust|lints\.clippy)\]/)} keep' "$ROOT/Cargo.toml"
-  if [ "${#CRATES[@]}" -gt 1 ]; then
+  if [ "${#CRATES[@]}" -gt 1 ] || [ "${#EXT[@]}" -gt 0 ]; then
     echo '[workspace.dependencies]'
     for c in "${CRATES[@]:1}"; do echo "$c = { path = \"crates/$c\" }"; done
+    for e in "${EXT[@]}"; do
+      line=$(awk -v k="$e" '/^\[/{w = ($0 == "[workspace.dependencies]")} w && $1 == k && $2 == "=" {print; exit}' "$ROOT/Cargo.toml")
+      [ -n "$line" ] || { echo "MISSING_WS_DEP $e"; continue; }
+      echo "$line"
+    done
   fi
 } >"$STAGE/Cargo.toml"
+grep -q '^MISSING_WS_DEP' "$STAGE/Cargo.toml" && fail_both "$(grep '^MISSING_WS_DEP' "$STAGE/Cargo.toml" | head -1) (not in the root [workspace.dependencies])"
+KZ=none
+grep -q 'kani::stub(' "$PROOFS" && KZ=stubbing
 
-ssh -o BatchMode=yes "$HOST" 'mkdir -p ~/aegis-ci/work/p2-kani/crates' || fail_both "ssh $HOST failed"
+ssh -o BatchMode=yes "$HOST" "mkdir -p ~/aegis-ci/work/$WDIR/crates" || fail_both "ssh $HOST failed"
 for c in "${CRATES[@]}"; do
-  rsync -a --delete --exclude target -e 'ssh -o BatchMode=yes' "$ROOT/crates/$c/" "$HOST:aegis-ci/work/p2-kani/crates/$c/" \
+  rsync -a --delete --exclude target -e 'ssh -o BatchMode=yes' "$ROOT/crates/$c/" "$HOST:aegis-ci/work/$WDIR/crates/$c/" \
     || fail_both "rsync of $c failed"
 done
-rsync -a -e 'ssh -o BatchMode=yes' "$STAGE/Cargo.toml" "$HOST:aegis-ci/work/p2-kani/Cargo.toml" || fail_both "rsync of manifest failed"
+rsync -a -e 'ssh -o BatchMode=yes' "$STAGE/Cargo.toml" "$HOST:aegis-ci/work/$WDIR/Cargo.toml" || fail_both "rsync of manifest failed"
+if [ "${#EXT[@]}" -gt 0 ]; then
+  rsync -a -e 'ssh -o BatchMode=yes' "$ROOT/Cargo.lock" "$HOST:aegis-ci/work/$WDIR/Cargo.lock" || fail_both "rsync of Cargo.lock failed"
+fi
 
 # Remote runner: prints one "RESULT <name> <OK|FAIL> ..." line per harness plus a "COMMIT" line.
 # shellcheck disable=SC2087
-ssh -o BatchMode=yes "$HOST" bash -s -- "$MEM" "$TMO" "$PR4910_MERGE" "$CRATE" "$NEG" "$MODE" "${POS[@]}" <<'REMOTE' | tee "$STAGE/out.txt"
+ssh -o BatchMode=yes "$HOST" bash -s -- "$MEM" "$TMO" "$PR4910_MERGE" "$CRATE" "$NEG" "$MODE" "$WDIR" "$KZ" "${POS[@]}" <<'REMOTE' | tee "$STAGE/out.txt"
 set -uo pipefail
-MEM=$1 TMO=$2 MERGE=$3 CRATE=$4 NEG=$5 MODE=$6; shift 6
+MEM=$1 TMO=$2 MERGE=$3 CRATE=$4 NEG=$5 MODE=$6 WDIR=$7 KZ=$8; shift 8
+KARGS=""; [ "$KZ" = none ] || KARGS="-Z $KZ" # one ssh word on the wire, split here
 CI=$HOME/aegis-ci
 export RUSTUP_HOME=$CI/rustup CARGO_HOME=$CI/cargo PATH=$CI/src/kani/scripts:$CI/cargo/bin:$CI/cbmc/usr/bin:$PATH
-W=$CI/work/p2-kani; mkdir -p "$W/logs"; cd "$W" || exit 3
+W=$CI/work/$WDIR; mkdir -p "$W/logs"; cd "$W" || exit 3
 K=$CI/src/kani
 commit=$(git -C "$K" rev-parse HEAD 2>/dev/null) || { echo "COMMIT FAIL no kani checkout"; exit 0; }
 if git -C "$K" merge-base --is-ancestor "$MERGE" "$commit" 2>/dev/null \
@@ -95,13 +128,13 @@ run_one() { # name rustflags
   if [ "$SCOPE" = 1 ]; then
     RUSTFLAGS="$rf" systemd-run --user --scope -q -p MemoryMax="$MEM" -p MemorySwapMax=0 nice -n 15 bash -c '
       cg=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup); s=$(date +%s.%N)
-      timeout "$0" cargo kani -p "$1" --harness "kani_proofs::harnesses::$2" --exact; rc=$?
+      timeout "$0" cargo kani -p "$1" $3 --harness "kani_proofs::harnesses::$2" --exact; rc=$?
       echo "GATE rc=$rc wall=$(echo "$(date +%s.%N) - $s" | bc) peak=$(cat "$cg/memory.peak" 2>/dev/null || echo na) oom=$(awk "/^oom_kill /{print \$2}" "$cg/memory.events" 2>/dev/null)"
-      exit $rc' "$TMO" "$CRATE" "$h" >"$log" 2>&1
+      exit $rc' "$TMO" "$CRATE" "$h" "$KARGS" >"$log" 2>&1
   else
     local kb; kb=$(numfmt --from=iec "$MEM"); kb=$((kb / 1024))
-    RUSTFLAGS="$rf" bash -c 'ulimit -v "$1"; s=$(date +%s.%N); nice -n 15 timeout "$0" cargo kani -p "$2" --harness "kani_proofs::harnesses::$3" --exact; rc=$?
-      echo "GATE rc=$rc wall=$(echo "$(date +%s.%N) - $s" | bc) peak=na oom=na"; exit $rc' "$TMO" "$kb" "$CRATE" "$h" >"$log" 2>&1
+    RUSTFLAGS="$rf" bash -c 'ulimit -v "$1"; s=$(date +%s.%N); nice -n 15 timeout "$0" cargo kani -p "$2" $4 --harness "kani_proofs::harnesses::$3" --exact; rc=$?
+      echo "GATE rc=$rc wall=$(echo "$(date +%s.%N) - $s" | bc) peak=na oom=na"; exit $rc' "$TMO" "$kb" "$CRATE" "$h" "$KARGS" >"$log" 2>&1
   fi
   local rc=$? g; g=$(grep -E '^GATE ' "$log" | tail -1)
   local rc_in wall peak oom
