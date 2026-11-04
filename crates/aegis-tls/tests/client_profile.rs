@@ -24,8 +24,10 @@ fn build(p: Profile) -> ClientConfig {
 
 #[test]
 fn floor_client_list_is_unchanged_from_egress() {
-    // The list aegis-egress shipped before the move (its former CLIENT_KX), hybrid first.
-    assert_eq!(kx(&build(Profile::PublicWeb)), [0x11EC, 0x11EB, 0x001D, 0x0017]);
+    // The list aegis-egress shipped before the move (its former CLIENT_KX), hybrid first, plus 0x11ED in second
+    // place since the 2026-11-04 F12 re-freeze (P-PUBLIC-WEB kx_groups; the client uses the profile's own table).
+    // rustls sends a key share for the first group only, so 0x11ED adds a codepoint, not a 1665-byte share.
+    assert_eq!(kx(&build(Profile::PublicWeb)), [0x11EC, 0x11ED, 0x11EB, 0x001D, 0x0017]);
 }
 
 #[test]
@@ -74,7 +76,7 @@ fn refused_profiles_are_refused_not_guessed() {
     // The assertion refuses them too, whatever the config looks like.
     let cfg = build(Profile::FipsPqRequired);
     assert!(matches!(assert_client_profile(&cfg, Profile::FipsFloor), Err(ProfileError::NotForClients { .. })));
-    assert!(matches!(assert_client_profile(&cfg, Profile::Universal), Err(ProfileError::Pending { .. })));
+    assert!(matches!(assert_client_profile(&cfg, Profile::FipsCmvp), Err(ProfileError::Pending { .. })));
 }
 
 #[test]

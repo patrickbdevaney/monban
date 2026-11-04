@@ -35,6 +35,7 @@ enum Key {
     EcdsaP384,
     MlDsa44,
     MlDsa65,
+    MlDsa87,
 }
 
 /// Server credential; the certificate bytes are a placeholder (the server never parses its own certificate,
@@ -49,6 +50,7 @@ fn resolver(k: Key) -> Arc<dyn ResolvesServerCert> {
         }
         Key::MlDsa44 => PqdsaKeyPair::generate(&signature::ML_DSA_44_SIGNING).unwrap().to_pkcs8v1().unwrap(),
         Key::MlDsa65 => PqdsaKeyPair::generate(&signature::ML_DSA_65_SIGNING).unwrap().to_pkcs8v1().unwrap(),
+        Key::MlDsa87 => PqdsaKeyPair::generate(&signature::ML_DSA_87_SIGNING).unwrap().to_pkcs8v1().unwrap(),
     };
     let der = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(pkcs8.as_ref().to_vec()));
     let key = rustls::crypto::aws_lc_rs::sign::any_supported_type(&der).unwrap();
@@ -68,6 +70,7 @@ fn share(group: u16) -> Vec<u8> {
         g::X25519MLKEM768 => [mlkem(&ML_KEM_768), ec(&X25519)].concat(),
         g::SECP256R1MLKEM768 => [ec(&ECDH_P256), mlkem(&ML_KEM_768)].concat(),
         g::SECP384R1MLKEM1024 => [ec(&ECDH_P384), mlkem(&ML_KEM_1024)].concat(),
+        g::MLKEM1024 => mlkem(&ML_KEM_1024),
         _ => panic!("no share generator for {group:04x}"),
     }
 }
@@ -180,14 +183,17 @@ fn probe(profile: Profile, key: Key, groups: &[u16], shares: &[u16]) -> Outcome 
 }
 
 fn configured(p: Profile) -> Vec<u16> {
-    let cfg = server_config(p, resolver(Key::EcdsaP256)).unwrap();
+    let cfg = server_config(p, resolver(Key::EcdsaP384)).unwrap();
     cfg.crypto_provider().kx_groups.iter().map(|x| u16::from(x.name())).collect()
 }
 
 #[test]
 fn lists_match_f12_exactly() {
     use g::*;
-    assert_eq!(Profile::PublicWeb.kx_groups(), [X25519MLKEM768, SECP256R1MLKEM768, X25519, SECP256R1]);
+    assert_eq!(
+        Profile::PublicWeb.kx_groups(),
+        [X25519MLKEM768, SECP384R1MLKEM1024, SECP256R1MLKEM768, X25519, SECP256R1]
+    );
     assert_eq!(Profile::PqRequired.kx_groups(), [X25519MLKEM768]);
     assert_eq!(Profile::FipsFloor.kx_groups(), [SECP256R1MLKEM768, SECP256R1, SECP384R1]);
     assert_eq!(Profile::FipsCmvp.kx_groups(), [SECP256R1MLKEM768, SECP256R1, SECP384R1]);
@@ -224,12 +230,24 @@ fn names_round_trip() {
     assert_eq!(Profile::from_name("PQ-REQUIRED"), Some(Profile::PqRequired));
     assert_eq!(Profile::from_name("P-PQ-REQUIRED"), Some(Profile::PqRequired));
     assert_eq!(Profile::from_name("FIPS"), Some(Profile::FipsFloor));
+    // F8 has FIPS-PQ-REQUIRED (the same spelling as F12).
+    assert_eq!(Profile::FipsPqRequired.f8_name(), Some("FIPS-PQ-REQUIRED"));
+    assert_eq!(Profile::from_name("FIPS-PQ-REQUIRED"), Some(Profile::FipsPqRequired));
     assert_eq!(Profile::from_name("nope"), None);
 }
 
 #[test]
 fn pending_profiles_are_refused_not_guessed() {
-    for p in [Profile::Universal, Profile::BsiAlt, Profile::Cnsa, Profile::FipsCmvp] {
+    // Since the 2026-11-04 F12 re-freeze only FIPS-CMVP (needs the cmvp build) is pending.
+    for p in [Profile::Universal, Profile::BsiAlt, Profile::Cnsa] {
+        assert_eq!(p.status(), ProfileStatus::Active, "{p:?}");
+        assert_eq!(p.pending_reason(), None);
+    }
+    assert_eq!(Profile::FipsCmvp.status(), ProfileStatus::Pending);
+    for p in Profile::ALL.into_iter().filter(|p| p.status() == ProfileStatus::Pending) {
+        assert_eq!(p, Profile::FipsCmvp);
+    }
+    for p in Profile::ALL.into_iter().filter(|p| p.status() == ProfileStatus::Pending) {
         assert_eq!(p.status(), ProfileStatus::Pending);
         match server_config(p, resolver(Key::EcdsaP256)) {
             Err(ProfileError::Pending { profile, reason }) => {
@@ -243,7 +261,7 @@ fn pending_profiles_are_refused_not_guessed() {
 
 #[test]
 fn configured_groups_equal_profile_and_first_is_asserted() {
-    for p in [Profile::PublicWeb, Profile::PqRequired, Profile::FipsFloor, Profile::FipsPqRequired] {
+    for p in Profile::ALL.into_iter().filter(|p| p.status() != ProfileStatus::Pending) {
         assert_eq!(configured(p), p.kx_groups(), "{p:?}");
     }
     assert_eq!(configured(Profile::PublicWeb)[0], g::X25519MLKEM768);
@@ -251,7 +269,7 @@ fn configured_groups_equal_profile_and_first_is_asserted() {
 
 #[test]
 fn tls13_only_no_0rtt_no_tickets() {
-    for p in [Profile::PublicWeb, Profile::PqRequired, Profile::FipsFloor, Profile::FipsPqRequired] {
+    for p in Profile::ALL.into_iter().filter(|p| p.status() != ProfileStatus::Pending) {
         let cfg = server_config(p, resolver(Key::EcdsaP256)).unwrap();
         assert_eq!(negotiable_versions(&cfg), [ProtocolVersion::TLSv1_3], "{p:?}");
         assert_eq!(cfg.max_early_data_size, 0);
@@ -349,6 +367,98 @@ fn tls12_only_client_refused() {
     let (o, _) =
         probe_with(Profile::PublicWeb, Key::EcdsaP256, &[X25519MLKEM768], &[X25519MLKEM768], &ALL_SIGS, &[0x03, 0x03]);
     assert!(matches!(o, Outcome::Alert(_)), "TLS 1.2-only hello: {o:?}");
+}
+
+// --- government profiles (F12 UNI/BSI/CNSA, re-frozen 2026-11-04), at unit level
+
+const NO_GOV_SIGS: [u16; 4] = [0x0403, 0x0804, 0x0904, 0x0905];
+
+#[test]
+fn uni_t1_t5_universal() {
+    use g::*;
+    for k in [Key::MlDsa87, Key::EcdsaP384] {
+        let p = Profile::Universal;
+        assert_eq!(
+            probe(p, k_clone(&k), &[X25519MLKEM768, SECP384R1MLKEM1024], &[X25519MLKEM768, SECP384R1MLKEM1024]),
+            Outcome::Sh(SECP384R1MLKEM1024),
+            "UNI-T1"
+        );
+        assert_eq!(
+            probe(
+                p,
+                k_clone(&k),
+                &[X25519MLKEM768, SECP256R1MLKEM768, SECP384R1MLKEM1024],
+                &[X25519MLKEM768, SECP256R1MLKEM768]
+            ),
+            Outcome::Hrr(SECP384R1MLKEM1024),
+            "UNI-T2"
+        );
+        assert_eq!(probe(p, k_clone(&k), &[X25519], &[X25519]), Outcome::Alert(40), "UNI-T3");
+        assert_eq!(probe(p, k_clone(&k), &[SECP384R1], &[SECP384R1]), Outcome::Alert(40), "UNI-T4");
+        let (o, _) = probe_with(p, k, &[SECP384R1MLKEM1024], &[SECP384R1MLKEM1024], &NO_GOV_SIGS, &[0x03, 0x04]);
+        assert_eq!(o, Outcome::Alert(49), "UNI-T5: no in-profile sigalg offered -> resolver None -> 49");
+    }
+}
+
+#[test]
+fn bsi_alt_selection() {
+    use g::*;
+    let p = Profile::BsiAlt;
+    assert_eq!(
+        probe(p, Key::EcdsaP384, &[SECP256R1MLKEM768, SECP384R1MLKEM1024], &[SECP256R1MLKEM768, SECP384R1MLKEM1024]),
+        Outcome::Sh(SECP256R1MLKEM768),
+        "BSI-T1 client order"
+    );
+    assert_eq!(
+        probe(p, Key::MlDsa87, &[SECP384R1MLKEM1024], &[SECP384R1MLKEM1024]),
+        Outcome::Sh(SECP384R1MLKEM1024),
+        "BSI-T2"
+    );
+    assert_eq!(probe(p, Key::MlDsa87, &[X25519MLKEM768], &[X25519MLKEM768]), Outcome::Alert(40), "BSI-T3");
+    assert_eq!(probe(p, Key::MlDsa87, &[X25519, SECP256R1, SECP384R1], &[X25519]), Outcome::Alert(40), "BSI-T4");
+    // Client lists 0x11ED first but sends only a 0x11EB share: client order picks 0x11ED, so retry to it.
+    assert_eq!(
+        probe(p, Key::MlDsa87, &[SECP384R1MLKEM1024, SECP256R1MLKEM768], &[SECP256R1MLKEM768]),
+        Outcome::Hrr(SECP384R1MLKEM1024)
+    );
+    assert_eq!(
+        probe(p, Key::MlDsa87, &[X25519MLKEM768, SECP384R1MLKEM1024], &[X25519MLKEM768]),
+        Outcome::Hrr(SECP384R1MLKEM1024)
+    );
+    assert_eq!(probe(p, Key::MlDsa87, &[X25519, SECP256R1], &[X25519]), Outcome::Alert(40));
+}
+
+#[test]
+fn cnsa_selection_and_sigalgs() {
+    use g::*;
+    let p = Profile::Cnsa;
+    assert_eq!(probe(p, Key::MlDsa87, &[MLKEM1024], &[MLKEM1024]), Outcome::Sh(MLKEM1024));
+    assert_eq!(probe(p, Key::MlDsa87, &[SECP384R1MLKEM1024], &[SECP384R1MLKEM1024]), Outcome::Alert(40));
+    // ECDSA-P384 is not a CNSA credential: never served, even when the client offers ecdsa_secp384r1_sha384.
+    assert_eq!(probe(p, Key::EcdsaP384, &[MLKEM1024], &[MLKEM1024]), Outcome::Alert(49));
+    // CNSA-T3: only out-of-profile sigalgs offered.
+    let (o, _) =
+        probe_with(p, Key::MlDsa87, &[MLKEM1024], &[MLKEM1024], &[0x0403, 0x0503, 0x0904, 0x0905], &[0x03, 0x04]);
+    assert_eq!(o, Outcome::Alert(49));
+}
+
+#[test]
+fn public_web_serves_0x11ed() {
+    use g::*;
+    assert_eq!(
+        probe(Profile::PublicWeb, Key::EcdsaP256, &[SECP384R1MLKEM1024], &[SECP384R1MLKEM1024]),
+        Outcome::Sh(SECP384R1MLKEM1024)
+    );
+}
+
+fn k_clone(k: &Key) -> Key {
+    match k {
+        Key::EcdsaP256 => Key::EcdsaP256,
+        Key::EcdsaP384 => Key::EcdsaP384,
+        Key::MlDsa44 => Key::MlDsa44,
+        Key::MlDsa65 => Key::MlDsa65,
+        Key::MlDsa87 => Key::MlDsa87,
+    }
 }
 
 // --- P-PQ2 sigalg restriction through the resolver wrapper

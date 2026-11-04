@@ -118,7 +118,7 @@ fn cert3_preflight_rejects_key_mismatch_profile_and_validity() {
     ));
     check_tls(&p384.chain, &p384.leaf_key.pkcs8(), Profile::FipsFloor, T0, &[]).unwrap();
     assert!(matches!(
-        check_tls(&p.chain, &p.leaf_key.pkcs8(), Profile::Universal, T0, &[]),
+        check_tls(&p.chain, &p.leaf_key.pkcs8(), Profile::FipsCmvp, T0, &[]),
         Err(PreflightError::ProfilePending(_))
     ));
     assert!(matches!(
