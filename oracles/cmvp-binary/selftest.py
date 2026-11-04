@@ -136,16 +136,39 @@ def fips_binary_selftest():
             ok = ok and not bad
         fails += not ok
         row(name, want + (f" {pre}" if pre else ""), v, "; ".join(bad) or info[0], ok)
-    n = len(cases)
+    # the entry point with RELATIVE --binary/--metadata (the gate passes target/cmvp/release/aegis): they must be
+    # resolved before --fips-check runs the binary with cwd /
+    rel = [os.path.relpath(b("fips_good"), T), os.path.relpath(mpath["meta_real"], T)]
+    r = subprocess.run([os.path.join(HERE, "run"), "--binary", rel[0], "--metadata", rel[1]], cwd=T,
+                       capture_output=True, text=True, timeout=600)
+    last = (r.stdout.strip().splitlines() or [""])[-1]
+    ok = r.returncode == 0 and last.startswith("CMVP-BINARY: PASS")
+    fails += not ok
+    row("entry point, relative paths", "PASS (exit 0)", "PASS" if ok else f"rc={r.returncode}", last, ok)
+    n = len(cases) + 1
     if fails:
         print(f"CMVP-BINARY SELF-TEST: FAIL ({fails}/{n} mismatches)")
         return 1
     print(f"CMVP-BINARY SELF-TEST: PASS ({n}/{n}: 2 baselines PASS (cmvp fixture on the real cmvp graph, floor "
-          f"negative control), {n - 2} mutants caught with the expected check id)")
+          f"negative control), {n - 3} mutants caught with the expected check id, entry point with relative paths)")
     return 0
 
 
 # ======================================================================== client-policy
+def relink_flag_drift(relink_flags):
+    """build.sh --check cargo flags that change what is compiled but are absent from the docker relink's flags."""
+    import re
+    import shlex
+    txt = open(os.path.join(ROOT, "profiles/cmvp/build.sh")).read()
+    m = re.search(r"^\s*flags=\((.*)\)\s*$", txt, re.M)
+    if not m:
+        raise ValueError("no flags=(...) line in profiles/cmvp/build.sh")
+    flags = [x for x in shlex.split(m.group(1)) if x.startswith("--") and x not in ("--keep-going", "--features")]
+    if re.search(r"flags\+=\(--release\)", txt):
+        flags.append("--release")
+    return [x for x in flags if x not in relink_flags]
+
+
 def client_policy_selftest():
     if not build():
         print("CLIENT-POLICY SELF-TEST: FAIL (fixture build)")
@@ -280,6 +303,31 @@ def client_policy_selftest():
                 "; ".join(why) or r.get("client_cert_line", ""), ok)
             if name in ("srv_only", "d13_srv_mtls"):
                 print("     " + r.get("client_cert_line", ""))
+    # --- the entry point with RELATIVE --binary/--manifest/--target-dir (the gate passes target/cmvp/release/aegis):
+    # unresolved, the relink's -Map= paths would be written relative to the workspace root rustc runs in -> ERROR
+    n += 1
+    r = subprocess.run([os.path.join(HERE, "client-policy"), "--mode", "compiled-out", "--binary",
+                        os.path.relpath(S, T), "--manifest", os.path.relpath(FIX, T), "--target-dir", "plain",
+                        "--relink", "host", "--work", os.path.join("selftest-cp", "relative-work"),
+                        "--mtls-justification", os.path.join("selftest-cp", "absent.toml")],
+                       cwd=T, capture_output=True, text=True, timeout=1200)
+    last = (r.stdout.strip().splitlines() or [""])[-1]
+    ok = r.returncode == 0 and last == "CLIENT-POLICY: PASS (compiled-out)"
+    fails += not ok
+    row("srv_only entry point, relative paths", "PASS (exit 0)", "PASS" if ok else f"rc={r.returncode}", last, ok)
+    # --- the docker relink uses build.sh's compile-relevant cargo flags (the R0 ERROR of P6-cmvp-002 was a missing
+    # --no-default-features); mutant: the same check against the list minus that flag must report it
+    n += 2
+    try:
+        missing, mut_missing = relink_flag_drift(cp.DOCKER_CARGO_FLAGS), \
+            relink_flag_drift([x for x in cp.DOCKER_CARGO_FLAGS if x != "--no-default-features"])
+    except (OSError, ValueError) as e:
+        missing, mut_missing = [f"cannot read build.sh: {e}"], []
+    fails += bool(missing)
+    row("relink flags == build.sh flags", "none missing", "n=" + str(len(missing)), str(missing), not missing)
+    ok = mut_missing == ["--no-default-features"]
+    fails += not ok
+    row("mut relink w/o --no-default-features", "drift caught", "n=" + str(len(mut_missing)), str(mut_missing), ok)
     # --- the real cmvp overlay graph (light): M1 baseline and feature mutants, D13 source baseline ---
     try:
         r = subprocess.run([os.path.join(ROOT, "profiles/cmvp/build.sh"), "--metadata"], capture_output=True)
@@ -317,5 +365,6 @@ def client_policy_selftest():
         print(f"CLIENT-POLICY SELF-TEST: FAIL ({fails}/{n} mismatches)")
         return 1
     print(f"CLIENT-POLICY SELF-TEST: PASS ({n}/{n}: spike's 12 ported (5 binaries + 7 mutants), cross-mode, "
-          f"map/twin/R0 mutants, D13 mTLS mutants, real cmvp graph M1 + D13 source baseline)")
+          f"map/twin/R0 mutants, D13 mTLS mutants, entry point with relative paths, relink flags vs build.sh, real cmvp graph M1 + D13 source "
+          f"baseline)")
     return 0

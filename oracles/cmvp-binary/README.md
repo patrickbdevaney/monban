@@ -73,7 +73,11 @@ and 0382 cite the compiled-out line as their `evidence_must`.
 **Real run.** The gate passes `--binary target/cmvp/release/aegis` and nothing else. The oracle then:
 - re-prepares `target/cmvp-src` with `build.sh --metadata`;
 - judges `-p aegis-bin --features aegis-bin/cmvp`;
-- relinks inside the AL2023 image, with the same mounts and environment as `build.sh --check`. Keep the two in sync.
+- relinks inside the AL2023 image, with the same mounts, environment and cargo flags (`--locked --release
+  --no-default-features`, `DOCKER_CARGO_FLAGS`) as `build.sh --check`. Keep the two in sync; the client-policy
+  self-test checks the flags against build.sh's `flags=(...)` line. Without `--no-default-features` cargo passes
+  `--cfg feature="default"` to aegis-bin, its `-C metadata` (symbol hashes) changes, and R0 is ERROR
+  (P6-oracle-fips-002, measured with `cargo build -v` vs `cargo rustc -v`).
 
 **How the spike's strip=symbols problem is solved.** The shipped binary has no symbols. So the oracle relinks only
 the final crate with `cargo rustc`, twice, into `target/cmvp/oracle-cmvp-binary/`. The dependency rlibs are reused.

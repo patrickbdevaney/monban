@@ -7,7 +7,8 @@ RUSTSEC-2026-0382 ledger entries; PLAN-6 D13). Ported from spikes/cmvp-client-po
 
 Real cmvp run (gates/phase-6.toml): `--binary target/cmvp/release/aegis` and no other option. Then:
   manifest = target/cmvp-src (re-prepared by `profiles/cmvp/build.sh --metadata`), package aegis-bin, features
-  aegis-bin/cmvp, relink = docker (the AL2023 image and mounts of profiles/cmvp/build.sh --check).
+  aegis-bin/cmvp, relink = docker (the AL2023 image, mounts, env and cargo flags of profiles/cmvp/build.sh --check,
+  including --no-default-features). Path arguments are resolved to absolute paths when parsed.
 
 Evidence views
   graph   `cargo tree` (the real feature resolver) for the package set and enabled features; source dirs from
@@ -70,6 +71,10 @@ WEBPKI_CV = "WebPkiClientVerifier"
 CLIENT_FEATURES = {"tls-client", "acme"}
 INJECTED_CONFIG_ALLOW = {}  # crate -> reason ("accepts an Arc<ClientConfig> from the caller"); none needed so far
 VERIFIER_DEFINERS = {"rustls", "rustls-webpki"}  # define the types; their own source is not "construction"
+# The cargo flags of profiles/cmvp/build.sh --check that change what is compiled (it adds -p/--features per package,
+# --release for the release profile, and --keep-going, which changes nothing that is built). The self-test checks this
+# list against build.sh's `flags=(...)` line.
+DOCKER_CARGO_FLAGS = ["--locked", "--release", "--no-default-features"]
 PQ = "secp256r1MLKEM768"
 TARGET = "x86_64-unknown-linux-gnu"
 
@@ -93,9 +98,10 @@ def sha256(p):
 
 
 # ---------------------------------------------------------------- graph
-def graph(manifest, package, features):
+def graph(manifest, package, features, no_default_features=False):
     """[(name, version, src_dir, first_party, features)] for every package in the real (cargo tree) build."""
-    sel = (["-p", package] if package else []) + (["--features", features] if features else [])
+    sel = (["-p", package] if package else []) + (["--features", features] if features else []) + \
+        (["--no-default-features"] if no_default_features else [])
     t = sh(["cargo", "tree", "--locked", "-e", "normal,no-proc-macro", "--target", TARGET, "--prefix", "none",
             "--format", "{p}|{f}", "--manifest-path", f"{manifest}/Cargo.toml"] + sel)
     if t.returncode != 0:
@@ -156,9 +162,13 @@ def relink(kind, manifest, package, bin_name, features, target_dir, extra, image
         cmd = ["cargo", "rustc", "--release", "--locked", "-q", "--manifest-path", f"{manifest}/Cargo.toml",
                "--bin", bin_name] + (["-p", package] if package else []) + \
               (["--features", features] if features else []) + ["--"] + extra
-        r = sh(cmd, env=dict(os.environ, CARGO_TARGET_DIR=target_dir))
+        # cwd = the manifest dir, as docker's -w /src: cargo finds .cargo/config.toml (the repo's rustflags) from its
+        # cwd, so a relink started elsewhere gets other rustflags and is not the shipped binary (R0 ERROR).
+        r = sh(cmd, env=dict(os.environ, CARGO_TARGET_DIR=target_dir), cwd=manifest)
     elif kind == "docker":
-        # Mirrors profiles/cmvp/build.sh --check (image, mounts, env); keep in sync.
+        # Mirrors profiles/cmvp/build.sh --check (image, mounts, env, --no-default-features); keep in sync. Without
+        # --no-default-features cargo passes `--cfg feature="default"` to aegis-bin, which changes its -C metadata
+        # (symbol hashes) and so .text/.rodata: the relink is then not the shipped binary and R0 is ERROR.
         rustup = os.path.realpath(os.environ.get("RUSTUP_HOME", os.path.expanduser("~/.rustup")))
         go = os.path.realpath(os.environ.get("AEGIS_GO", os.path.expanduser("~/aegis-ci/go1.27.3")))
         chan = re.search(r'channel *= *"(.*)"', open(os.path.join(ROOT, "rust-toolchain.toml")).read()).group(1)
@@ -176,7 +186,7 @@ def relink(kind, manifest, package, bin_name, features, target_dir, extra, image
                "-e", "GOTOOLCHAIN=local", "-e", "GOFLAGS=-mod=mod", "-e", "CARGO_INCREMENTAL=0",
                "-e", f"CARGO_BUILD_JOBS={os.environ.get('CARGO_BUILD_JOBS', '4')}",
                "-e", "PATH=/opt/rust/bin:/opt/go/bin:/usr/bin:/bin", "-w", "/src", img,
-               "cargo", "rustc", "--locked", "--release", "-q", "-p", package, "--bin", bin_name,
+               "cargo", "rustc", *DOCKER_CARGO_FLAGS, "-q", "-p", package, "--bin", bin_name,
                "--features", features, "--"] + extra
         r = sh(cmd)
     else:
@@ -291,7 +301,7 @@ def judge(o):
     if not os.path.isfile(o["binary"]):
         return err(f"binary not found: {o['binary']}")
     try:
-        pkgs = graph(o["manifest"], o["package"], o["features"])
+        pkgs = graph(o["manifest"], o["package"], o["features"], o.get("no_default_features", False))
     except RuntimeError as e:
         return err(str(e))
     c["M0_rustls_in_graph"] = any(p[0] == "rustls" for p in pkgs)
@@ -439,6 +449,7 @@ def options_from_argv():
         "bin_name": arg("--bin-name", "aegis" if real else None),
         "features": arg("--features", "aegis-bin/cmvp" if real else ""),
         "relink": arg("--relink", "docker" if real else "none"),
+        "no_default_features": real,  # build.sh builds the cmvp packages with --no-default-features
         "target_dir": arg("--target-dir", os.path.join(os.path.realpath(os.path.join(ROOT, "target")), "cmvp")),
         "map": arg("--map"),
         "twin": arg("--twin"),
@@ -449,7 +460,14 @@ def options_from_argv():
         "mtls": arg("--mtls-justification", os.path.join(HERE, "mtls-justification.toml")),
         "today": datetime.date.fromisoformat(arg("--today", datetime.date.today().isoformat())),
     }
-    o["work"] = arg("--work", os.path.join(o["target_dir"], "oracle-cmvp-binary"))
+    # Resolve every path argument now: rustc runs the linker from the workspace root (relative -Map= paths would land
+    # there), docker bind mounts need absolute paths, and later checks compare real paths.
+    for k in ("binary", "manifest", "target_dir", "map", "twin", "clippy_log", "mtls"):
+        if o[k]:
+            o[k] = os.path.abspath(o[k])
+    o["probes"] = [os.path.abspath(x) for x in o["probes"]]
+    o["src"] = [os.path.abspath(x) for x in o["src"]]
+    o["work"] = os.path.abspath(arg("--work", os.path.join(o["target_dir"], "oracle-cmvp-binary")))
     if real:
         r = sh([os.path.join(ROOT, "profiles/cmvp/build.sh"), "--metadata"])
         if r.returncode != 0:
