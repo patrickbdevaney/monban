@@ -198,6 +198,10 @@ mod tests {
     fn accept_loop_stops_and_serves() {
         let Ok(l) = TcpListener::bind("127.0.0.1:0") else { return };
         let Ok(addr) = l.local_addr() else { return };
+        // The listener's socket inode, to check below that this process holds no fd for it after the loop returns.
+        let ino = std::fs::metadata(format!("/proc/self/fd/{}", std::os::fd::AsRawFd::as_raw_fd(&l)))
+            .map(|m| std::os::unix::fs::MetadataExt::ino(&m))
+            .ok();
         let stop = Arc::new(AtomicBool::new(false));
         let st = stop.clone();
         let n = Arc::new(AtomicU64::new(0));
@@ -217,7 +221,21 @@ mod tests {
         stop.store(true, Ordering::Release);
         assert!(matches!(h.join(), Ok(Ok(()))));
         assert_eq!(n.load(Ordering::Relaxed), 5);
-        // Listener closed with no other holder: new connections are refused.
-        assert!(TcpStream::connect(addr).is_err());
+        // The loop dropped its listener: no fd in this process still refers to the socket.
+        if let Some(ino) = ino {
+            let held =
+                std::fs::read_dir("/proc/self/fd").into_iter().flatten().flatten().any(|e| {
+                    std::fs::read_link(e.path()).is_ok_and(|t| t.to_string_lossy() == format!("socket:[{ino}]"))
+                });
+            assert!(!held, "accept_loop returned but this process still holds the listener");
+        }
+        // And with no other holder, new connections are refused. Other tests in this binary spawn child processes
+        // (handover), and a child holds a copy of every fd between fork and exec, so a connect can transiently still
+        // complete; a leaked listener never becomes refusing, so require refusal within 2 s rather than at once.
+        let t1 = Instant::now();
+        while TcpStream::connect(addr).is_ok() {
+            assert!(t1.elapsed() < Duration::from_secs(2), "listener still accepting 2 s after accept_loop returned");
+            std::thread::sleep(Duration::from_millis(10));
+        }
     }
 }
