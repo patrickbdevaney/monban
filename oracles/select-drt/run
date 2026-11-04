@@ -96,12 +96,15 @@ fn main() {
             ["PROFILE", name, selector, kx] => {
                 profiles.insert(name.to_string(), Profile {
                     status: String::new(), selector: selector.to_string(), kx: hexlist(kx),
-                    sigalgs: Vec::new(), versions: Vec::new(), early_data: false,
+                    // The model's version (70) and sigalg (49) admission steps are outside Lean Select (F1 §F):
+                    // profile and offer share TLS13 and one sigalg so only group selection decides.
+                    sigalgs: vec![0x0905], versions: vec!["TLS13".to_string()], early_data: false,
+                    sigalg_cover: None,
                 });
             }
             [name, gs, ss] => {
                 let p = match profiles.get(*name) { Some(p) => p, None => { eprintln!("unknown profile {name}"); std::process::exit(2) } };
-                let c = ProbeCase { groups: hexlist(gs), shares: hexlist(ss), sigalgs: Vec::new() };
+                let c = ProbeCase { groups: hexlist(gs), shares: hexlist(ss), sigalgs: vec![0x0905], versions: vec!["TLS13".to_string()] };
                 let s = match model(p, &c) {
                     Outcome::Sh(g) => format!("sh {g:04x}"),
                     Outcome::Hrr(g) => format!("hrr {g:04x}"),
