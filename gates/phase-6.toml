@@ -435,7 +435,7 @@ remote = true
 name = "p2-hostile-host"
 # Corpus I1 (capabilities at the supervisor), I5, I6-host, I7 end to end through the real aegis binary (p2 + native:
 # data_run reaches the Phase-4 adapters; SQLite only, no engine container) and the release worker.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2"
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 && echo \"CONFORMANCE-ARTIFACT: aegis-p2 sha256 $(sha256sum target/p2/release/aegis-p2 | cut -d' ' -f1)\""
 # Red on: raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow,
 # data-run-skips-authorize, tenant-not-overwritten.
 selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2"

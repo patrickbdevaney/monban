@@ -1,0 +1,958 @@
+#!/usr/bin/env -S python3 -I
+"""AEGIS conformance runner (P6-conformance-001; PLAN-6 D8; ARCHITECTURE R-ASSURE-2 C0-C4; frozen interface F13).
+
+Usage:
+  conformance/run --logs gates/out/logs [--out gates/out/conformance] [--toml gates/phase-6.toml]
+  conformance/run --self-test
+
+What it does. It reads the gate logs of the current phase-6 run, maps the gates to conformance levels, writes one F13
+report per subject to <out>/<subject>.json, triple-signs each report with per-run throwaway test keys, validates each
+report against interfaces/F13-conformance-report.schema.json and verifies the signatures back. The gate passes iff,
+for both golden subjects (aegis-bin floor and aegis-bin cmvp), every gate of C0, C1 and C2 passed (passed == total),
+and every subject's report could be written, validated and verified. C3 and C4 are reported, not gated.
+
+Level map (real gate names from gates/phase-6.toml; the runner refuses to start if any member is not a gate defined
+before `conformance` in that file, since such a gate's log could never be from this run):
+  C0 static      fips-lock budget layering no-cedar-in-bin no-wasmtime-in-bin unsafe-sites panic-abort
+                 config-totality; cmvp adds cmvp-client-policy (linker import set: no TLS client in cmvp) and
+                 fips-binary ('AWS-LC FIPS 3.1.0' in the cmvp binary, linked module)
+  C1 behavioural tls-verdicts h2-conformance transport-limits reverse-proxy-e2e kx-interop kx-kat;
+                 cmvp adds clienthello-cmvp
+  C2 adversarial p2-hostile-host p2-hostile-worker mcp-gateway, and ssrf-corpus: there is no ssrf gate; the
+                 SSRF-CORPUS oracle runs inside gate oracles-remote (ci/oracles.sh --where remote). That member passes
+                 only if oracles-remote passes AND its cmd log carries `[ssrf-corpus] SSRF-CORPUS: PASS` and its
+                 selftest log `[ssrf-corpus] SSRF-CORPUS SELF-TEST: PASS`.
+  C3 (reported)  select-drt lowering-read-{sqlite,pg,redis} lowering-write-{sqlite,pg,redis}
+  C4 (reported)  no gate exists (no duvet-style traceability gate in phase 6): total 0, listed in not_claimed.
+  aegis-p2 (kind module; the P2 worker that hosts guest modules): C2 only, from the hostile-module corpus (p2-hostile-worker, p2-hostile-host).
+
+When a gate counts as passed (anything else is fail; a result is never "skipped"):
+  - <logs>/.run-start exists (ci/run-gates.py writes it at the start of a run);
+  - <logs>/phase6-<gate>-cmd.log exists, is a regular file, its mtime is strictly newer than .run-start, it starts
+    with `$ <cmd>` where <cmd> is the gate's cmd from the toml (plain, or wrapped by run-gates.py for remote gates),
+    and its last line is exactly `[exit 0]` (run-gates.py writes `$ cmd\\n<output>\\n[exit N]\\n`);
+  - if the gate has a selftest in the toml, <logs>/phase6-<gate>-selftest.log meets the same conditions.
+  log_sha256 = sha256 of the cmd log file bytes (sha256 of the empty string when the log is missing; the reason says
+  so); the selftest log's sha256 is given in `reason`.
+
+Artifact digest (artifact_sha256). Taken only from logs that themselves pass the rule above:
+  - golden floor / cmvp: the line `RELEASE-PIPELINE: PASS (<profile>, artifacts/aegis-<profile> sha256 <hex>, ...)`
+    that ci/release/pipeline.sh prints, found in the cmd logs of release-verify (floor) and release-rebuild (floor,
+    cmvp) and in the subject's own gate logs;
+  - any subject: a line `CONFORMANCE-ARTIFACT: <subject> sha256 <hex>` in those same logs (aegis-p2 has no other
+    source: the p2-hostile-* gates must print it for the module build they exercised).
+  Every digest found for a subject must be identical; none found, or two different ones, fails the subject (no
+  report can be written, since F13 requires artifact_sha256) and therefore the gate.
+
+Signatures (F13 `signatures`, PREFLIGHT D-P2). Message = the report without `signatures`, serialized as
+json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False) and encoded as UTF-8. The three keys
+(Ed25519, SLH-DSA-SHA2-128s, ML-DSA-87) are generated per run with /usr/bin/openssl (>= 3.5) in a mktemp dir on the
+signing host ($AEGIS_CONFORMANCE_SIGN_HOST, default kamrui; `local` runs the same script here), which is removed
+before the session ends. Only messages go over ssh (stdin) and only public keys and signatures come back; no private
+key ever leaves that temp dir. Reports carry "test_keys": true. The public keys are written to <out>/keys/<alg>.pub.pem.
+Verification sends public keys, messages and signatures to the same host (`openssl pkeyutl -verify -rawin`) and
+checks each key's type; a report is accepted only if all three verify (REL-1).
+
+Schema validation: a strict hand-written validator for exactly F13 always runs; when the `jsonschema` package is
+importable, Draft 2020-12 validation with the format checker runs as well, and both must accept.
+
+Output: one line per gate per subject, one SUBJECT line per subject, last line
+  CONFORMANCE: PASS (...)  /  CONFORMANCE: FAIL (...)            exit 0 / 1 (2 = usage)
+  CONFORMANCE SELF-TEST: PASS (...)  /  CONFORMANCE SELF-TEST: FAIL (...)
+--self-test builds synthetic log directories in a temp dir (removed afterwards) from the real gates/phase-6.toml
+and checks: all-pass is PASS; a fork subject built with tls-client on in cmvp (cmvp-client-policy log `[exit 1]`)
+fails C0; a missing log, a stale log, a failing selftest log, a missing .run-start, a missing or conflicting
+artifact digest, a wrong command line in a log, and a missing ssrf-corpus line each fail; a report tampered after
+signing, and a report with one signature swapped, fail signature verification; schema mutants are rejected.
+"""
+
+import argparse
+import base64
+import binascii
+import datetime
+import hashlib
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHASE = 6
+SCHEMA = os.path.join(ROOT, "interfaces", "F13-conformance-report.schema.json")
+ALGS = ("ed25519", "slh-dsa-sha2-128s", "ml-dsa-87")
+OSSL_ALG = {"ed25519": "ED25519", "slh-dsa-sha2-128s": "SLH-DSA-SHA2-128s", "ml-dsa-87": "ML-DSA-87"}
+SIG_LEN = {"ed25519": 64, "slh-dsa-sha2-128s": 7856, "ml-dsa-87": 4627}
+EMPTY_SHA = hashlib.sha256(b"").hexdigest()
+HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+# ---------------------------------------------------------------- level map
+
+C0_COMMON = ["fips-lock", "budget", "layering", "no-cedar-in-bin", "no-wasmtime-in-bin", "unsafe-sites",
+             "panic-abort", "config-totality"]
+C0_CMVP = ["cmvp-client-policy", "fips-binary"]
+C1_COMMON = ["tls-verdicts", "h2-conformance", "transport-limits", "reverse-proxy-e2e", "kx-interop", "kx-kat"]
+C1_CMVP = ["clienthello-cmvp"]
+SSRF = "oracles-remote[ssrf-corpus]"
+C2_COMMON = ["p2-hostile-host", "p2-hostile-worker", "mcp-gateway", SSRF]
+C3_COMMON = ["select-drt", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis",
+             "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis"]
+GATED = ("C0", "C1", "C2")
+# Members carried inside another gate's log: member -> (gate, cmd-log line regex, selftest-log line regex).
+EMBEDDED = {SSRF: ("oracles-remote", r"^\[ssrf-corpus\] SSRF-CORPUS: PASS\b",
+                   r"^\[ssrf-corpus\] SSRF-CORPUS SELF-TEST: PASS\b")}
+DIGEST_GATES = ["release-verify", "release-rebuild"]
+# Expected level members with no gate of that name in phase 6 (printed with every run, never silently dropped).
+NOT_FOUND = [
+    "ssrf-corpus: no dedicated gate; judged inside oracles-remote by its [ssrf-corpus] lines",
+    "config pin (PLAN-6 D8 C0): no gate of that name; config-totality is the C0 member",
+    "C4 traceability (duvet-style): no gate in phase 6",
+]
+
+
+def levels_for(profile):
+    if profile == "module":
+        return {"C2": ["p2-hostile-worker", "p2-hostile-host"]}
+    cm = profile == "cmvp"
+    return {"C0": C0_COMMON + (C0_CMVP if cm else []), "C1": C1_COMMON + (C1_CMVP if cm else []),
+            "C2": list(C2_COMMON), "C3": list(C3_COMMON), "C4": []}
+
+
+GOLDEN = [("aegis-bin-floor", "golden", "floor"), ("aegis-bin-cmvp", "golden", "cmvp")]
+SUBJECTS = GOLDEN + [("aegis-p2", "module", "module")]
+
+
+def not_claimed(profile):
+    nc = ["C3 and C4 are reported, not gated (PLAN-6 D8: conformance = C0-C2 100%)",
+          "C4 traceability: no gate exists in phase 6 (total 0)",
+          "proofs and differential tests cover models, not the Rust code, unless a gate log says otherwise",
+          "hyper, h2, tokio, rustls, the AWS-LC C code and rustc are trusted, not verified",
+          "signatures are made with per-run throwaway test keys (D-P2); not a release attestation"]
+    if profile == "module":
+        nc[0:2] = ["C0, C1, C3 and C4: the module subject is judged only at C2 (hostile-module corpus)"]
+    if profile == "floor":
+        nc.append("FIPS approved mode: only the cmvp subject on AL2023 makes that claim")
+    return nc
+
+
+# ---------------------------------------------------------------- toml / gate specs
+
+
+def load_gates(toml_path):
+    spec = tomllib.load(open(toml_path, "rb"))
+    gates, order = {}, []
+    for g in spec["gate"]:
+        gates[g["name"]] = g
+        order.append(g["name"])
+    return gates, order
+
+
+def check_map(gates, order):
+    """Every member must be a real gate placed before `conformance`. Returns a list of problems."""
+    bad = []
+    if "conformance" not in order:
+        return ["gate `conformance` not in the toml"]
+    limit = order.index("conformance")
+    names = set(DIGEST_GATES)
+    for _, _, prof in SUBJECTS + [("fork", "fork", "cmvp")]:
+        for members in levels_for(prof).values():
+            for m in members:
+                names.add(EMBEDDED[m][0] if m in EMBEDDED else m)
+    for n in sorted(names):
+        if n not in gates:
+            bad.append(f"{n}: not a gate in the toml")
+        elif order.index(n) > limit:
+            bad.append(f"{n}: runs after conformance, so its log can never be from this run")
+    return bad
+
+
+def logged_cmds(g, step):
+    cmd = g[step]
+    out = [cmd]
+    if g.get("remote"):
+        host = g["remote"] if isinstance(g["remote"], str) else None
+        out.append("ci/remote.sh " + (f"--host {shlex.quote(host)} " if host else "") + "bash -c " + shlex.quote(cmd))
+    return out
+
+
+# ---------------------------------------------------------------- log judgement
+
+
+class Logs:
+    def __init__(self, logdir, gates):
+        self.dir, self.gates, self.cache = logdir, gates, {}
+        rs = os.path.join(logdir, ".run-start")
+        self.run_start = os.stat(rs).st_mtime_ns if os.path.isfile(rs) else None
+        self.head = open(rs).read().strip() if self.run_start is not None else ""
+
+    def step(self, name, step):
+        """(ok, sha256, reason, text) for one log."""
+        key = (name, step)
+        if key in self.cache:
+            return self.cache[key]
+        p = os.path.join(self.dir, f"phase{PHASE}-{name}-{step}.log")
+        r = self._judge(name, step, p)
+        self.cache[key] = r
+        return r
+
+    def _judge(self, name, step, p):
+        if self.run_start is None:
+            return False, EMPTY_SHA, f"{step} log not judged: no .run-start in the log dir", ""
+        if os.path.islink(p) or (os.path.exists(p) and not os.path.isfile(p)):
+            return False, EMPTY_SHA, f"{step} log is not a regular file", ""
+        if not os.path.exists(p):
+            return False, EMPTY_SHA, f"{step} log missing ({os.path.basename(p)})", ""
+        data = open(p, "rb").read()
+        h = hashlib.sha256(data).hexdigest()
+        if os.stat(p).st_mtime_ns <= self.run_start:
+            return False, h, f"{step} log stale (not newer than .run-start)", ""
+        text = data.decode("utf-8", "replace")
+        if not any(text.startswith(f"$ {c}\n") for c in logged_cmds(self.gates[name], step)):
+            return False, h, f"{step} log does not start with this gate's command from the toml", text
+        lines = [l for l in text.splitlines() if l.strip()]
+        last = lines[-1] if lines else ""
+        if last != "[exit 0]":
+            return False, h, f"{step} log ends {last[:40]!r}, not [exit 0]", text
+        return True, h, f"{step} log fresh, [exit 0]", text
+
+    def gate(self, member):
+        """(passed, log_sha256, reason) for a level member."""
+        name, pats = (EMBEDDED[member][0], EMBEDDED[member][1:]) if member in EMBEDDED else (member, None)
+        ok, h, why, text = self.step(name, "cmd")
+        reasons = [why]
+        if ok and pats and not re.search(pats[0], text, re.M):
+            ok = False
+            reasons.append(f"cmd log lacks a line matching {pats[0]}")
+        if "selftest" in self.gates[name]:
+            sok, sh, swhy, stext = self.step(name, "selftest")
+            reasons.append(swhy + ("" if sh == EMPTY_SHA and not sok else f" (selftest log sha256 {sh})"))
+            if sok and pats and not re.search(pats[1], stext, re.M):
+                sok = False
+                reasons.append(f"selftest log lacks a line matching {pats[1]}")
+            ok = ok and sok
+        return ok, h, "; ".join(reasons)
+
+
+PIPE_RE = re.compile(r"RELEASE-PIPELINE: PASS \((floor|cmvp), artifacts/aegis-(floor|cmvp) sha256 ([0-9a-f]{64})\b")
+ART_RE = re.compile(r"CONFORMANCE-ARTIFACT: ([A-Za-z0-9._-]+) sha256 ([0-9a-f]{64})\b")
+
+
+def artifact_digest(logs, subject, profile, member_gates):
+    found = {}
+    for g in DIGEST_GATES + [m for m in member_gates if m in logs.gates]:
+        ok, _, _, text = logs.step(g, "cmd")
+        if not ok:
+            continue
+        for m in PIPE_RE.finditer(text):
+            if m[1] == m[2] == profile:
+                found.setdefault(m[3], set()).add(g)
+        for m in ART_RE.finditer(text):
+            if m[1] == subject:
+                found.setdefault(m[2], set()).add(g)
+    if not found:
+        return None, "no artifact digest in any passing log of this run (RELEASE-PIPELINE / CONFORMANCE-ARTIFACT)"
+    if len(found) > 1:
+        return None, "conflicting artifact digests: " + ", ".join(f"{d[:12]} in {sorted(s)}" for d, s in found.items())
+    d, src = next(iter(found.items()))
+    return d, "from " + ",".join(sorted(src))
+
+
+# ---------------------------------------------------------------- report
+
+
+def canonical(report):
+    body = {k: v for k, v in report.items() if k != "signatures"}
+    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def toolchain():
+    try:
+        ch = tomllib.load(open(os.path.join(ROOT, "rust-toolchain.toml"), "rb"))["toolchain"]["channel"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        ch = "unknown"
+    return f"rust {ch} (rust-toolchain.toml)"
+
+
+def ws_version():
+    try:
+        return tomllib.load(open(os.path.join(ROOT, "Cargo.toml"), "rb"))["workspace"]["package"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError):
+        return "0.0.0"
+
+
+def build_report(logs, name, kind, profile, now):
+    """Returns (report or None, gated_ok, lines)."""
+    lv = levels_for(profile)
+    lines, gates_out, levels = [], [], {}
+    gated_ok = True
+    for L in ("C0", "C1", "C2", "C3", "C4"):
+        if L not in lv:
+            continue
+        passed = 0
+        for m in lv[L]:
+            ok, h, why = logs.gate(m)
+            passed += ok
+            gates_out.append({"name": m, "result": "pass" if ok else "fail", "log_sha256": h,
+                              "reason": f"{L}{'' if L in GATED else ' (reported, not gated)'}; {why}"})
+            lines.append(f"  {'pass' if ok else 'FAIL'} {name:16s} {L} {m:30s} {why}")
+        levels[L] = {"passed": passed, "total": len(lv[L])}
+        if L in GATED and passed != len(lv[L]):
+            gated_ok = False
+    members = [m for ms in lv.values() for m in ms]
+    digest, dwhy = artifact_digest(logs, name, profile, members)
+    lines.append(f"  {'pass' if digest else 'FAIL'} {name:16s} artifact_sha256 {digest or '-'} {dwhy}")
+    if not digest:
+        return None, False, lines
+    head = logs.head[:12] if re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", logs.head) else ""
+    report = {
+        "v": 1,
+        "subject": {"name": name, "version": ws_version() + (f"+g{head}" if head else ""), "kind": kind},
+        "artifact_sha256": digest,
+        "toolchain": toolchain() + (f"; profile {profile}" if profile != "module" else ""),
+        "generated_at": now,
+        "levels": levels,
+        "gates": gates_out,
+        "not_claimed": not_claimed(profile),
+        "test_keys": True,
+    }
+    return report, gated_ok, lines
+
+
+# ---------------------------------------------------------------- strict F13 validator
+
+
+def strict_validate(r):
+    """Exactly the frozen F13 schema. Returns a list of errors (empty = valid)."""
+    e = []
+
+    def isint(x):
+        return isinstance(x, int) and not isinstance(x, bool)
+
+    if not isinstance(r, dict):
+        return ["report is not an object"]
+    allowed = {"v", "subject", "artifact_sha256", "toolchain", "generated_at", "levels", "gates", "not_claimed",
+               "test_keys", "signatures"}
+    for k in r:
+        if k not in allowed:
+            e.append(f"unknown member {k}")
+    for k in ("v", "subject", "artifact_sha256", "toolchain", "generated_at", "levels", "gates", "signatures"):
+        if k not in r:
+            e.append(f"missing {k}")
+    if "v" in r and not (isint(r["v"]) and r["v"] == 1) and not (isinstance(r["v"], float) and r["v"] == 1.0):
+        e.append("v != 1")
+    s = r.get("subject")
+    if "subject" in r:
+        if not isinstance(s, dict):
+            e.append("subject not an object")
+        else:
+            for k in s:
+                if k not in ("name", "version", "kind"):
+                    e.append(f"subject: unknown member {k}")
+            for k in ("name", "version", "kind"):
+                if k not in s:
+                    e.append(f"subject: missing {k}")
+            for k in ("name", "version"):
+                if k in s and not isinstance(s[k], str):
+                    e.append(f"subject.{k} not a string")
+            if "kind" in s and s["kind"] not in ("golden", "adapter", "module", "fork"):
+                e.append("subject.kind not in enum")
+    if "artifact_sha256" in r and not (isinstance(r["artifact_sha256"], str) and HEX64.search(r["artifact_sha256"])
+                                       and "\n" not in r["artifact_sha256"]):
+        e.append("artifact_sha256 not 64 lowercase hex")
+    if "toolchain" in r and not isinstance(r["toolchain"], str):
+        e.append("toolchain not a string")
+    if "generated_at" in r:
+        g = r["generated_at"]
+        if not isinstance(g, str) or not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})", g):
+            e.append("generated_at not an RFC 3339 date-time")
+        else:
+            try:
+                datetime.datetime.fromisoformat(g.replace("Z", "+00:00").replace("z", "+00:00"))
+            except ValueError:
+                e.append("generated_at not a valid date-time")
+    if "levels" in r:
+        lv = r["levels"]
+        if not isinstance(lv, dict):
+            e.append("levels not an object")
+        else:
+            for k, v in lv.items():
+                if not re.search(r"^C[0-4]$", k) or "\n" in k:
+                    e.append(f"levels: member {k} not allowed")
+                    continue
+                if not isinstance(v, dict):
+                    e.append(f"levels.{k} not an object")
+                    continue
+                for f in ("passed", "total"):
+                    if f not in v:
+                        e.append(f"levels.{k}: missing {f}")
+                    elif not (isint(v[f]) or (isinstance(v[f], float) and v[f].is_integer())) or v[f] < 0:
+                        e.append(f"levels.{k}.{f} not a non-negative integer")
+    if "gates" in r:
+        gs = r["gates"]
+        if not isinstance(gs, list):
+            e.append("gates not an array")
+        else:
+            for i, g in enumerate(gs):
+                if not isinstance(g, dict):
+                    e.append(f"gates[{i}] not an object")
+                    continue
+                for k in g:
+                    if k not in ("name", "result", "reason", "log_sha256"):
+                        e.append(f"gates[{i}]: unknown member {k}")
+                for k in ("name", "result", "log_sha256"):
+                    if k not in g:
+                        e.append(f"gates[{i}]: missing {k}")
+                for k in ("name", "reason"):
+                    if k in g and not isinstance(g[k], str):
+                        e.append(f"gates[{i}].{k} not a string")
+                if "result" in g and g["result"] not in ("pass", "fail", "skipped"):
+                    e.append(f"gates[{i}].result not in enum")
+                if "log_sha256" in g and not (isinstance(g["log_sha256"], str) and HEX64.search(g["log_sha256"])
+                                              and "\n" not in g["log_sha256"]):
+                    e.append(f"gates[{i}].log_sha256 not 64 lowercase hex")
+    if "not_claimed" in r and not (isinstance(r["not_claimed"], list)
+                                   and all(isinstance(x, str) for x in r["not_claimed"])):
+        e.append("not_claimed not an array of strings")
+    if "test_keys" in r and not isinstance(r["test_keys"], bool):
+        e.append("test_keys not a boolean")
+    if "signatures" in r:
+        sg = r["signatures"]
+        if not isinstance(sg, list) or len(sg) != 3:
+            e.append("signatures not an array of exactly 3")
+        else:
+            for i, (x, alg) in enumerate(zip(sg, ALGS)):
+                if not isinstance(x, dict):
+                    e.append(f"signatures[{i}] not an object")
+                    continue
+                for k in x:
+                    if k not in ("alg", "sig"):
+                        e.append(f"signatures[{i}]: unknown member {k}")
+                if x.get("alg") != alg:
+                    e.append(f"signatures[{i}].alg must be {alg}")
+                if not (isinstance(x.get("sig"), str) and re.search(r"^[A-Za-z0-9+/]+={0,2}$", x["sig"])
+                        and "\n" not in x["sig"]):
+                    e.append(f"signatures[{i}].sig not standard base64")
+    return e
+
+
+def jsonschema_validate(r):
+    """Returns (ran, errors)."""
+    try:
+        import jsonschema
+    except ImportError:
+        return False, []
+    schema = json.load(open(SCHEMA))
+    v = jsonschema.Draft202012Validator(schema, format_checker=jsonschema.Draft202012Validator.FORMAT_CHECKER)
+    return True, [f"{'/'.join(map(str, x.absolute_path))}: {x.message}" for x in v.iter_errors(r)]
+
+
+def jsonschema_checks_datetime():
+    try:
+        import jsonschema
+    except ImportError:
+        return False
+    return "date-time" in jsonschema.Draft202012Validator.FORMAT_CHECKER.checkers
+
+
+def validate(r):
+    errs = strict_validate(r)
+    ran, jerrs = jsonschema_validate(r)
+    return errs + [f"jsonschema: {x}" for x in jerrs], ran
+
+
+# ---------------------------------------------------------------- OpenSSL signer (remote)
+
+SIGN_SH = r"""
+set -euo pipefail
+umask 077
+O=/usr/bin/openssl
+v=$($O version); case "$v" in "OpenSSL 3."[5-9]*|"OpenSSL 3."[1-9][0-9]*|"OpenSSL "[4-9]*) ;; *) echo "ERR openssl $v"; exit 1;; esac
+d=$(mktemp -d)
+trap 'rm -rf "$d"' EXIT
+for a in ed25519:ED25519 slh-dsa-sha2-128s:SLH-DSA-SHA2-128s ml-dsa-87:ML-DSA-87; do
+  n=${a%%:*}
+  $O genpkey -algorithm "${a#*:}" -out "$d/$n.key" 2>/dev/null
+  echo "PUB $n $($O pkey -in "$d/$n.key" -pubout | base64 -w0)"
+done
+i=0
+while IFS= read -r line; do
+  printf '%s' "$line" | base64 -d > "$d/m"
+  for n in ed25519 slh-dsa-sha2-128s ml-dsa-87; do
+    echo "SIG $i $n $($O pkeyutl -sign -rawin -inkey "$d/$n.key" -in "$d/m" | base64 -w0)"
+  done
+  i=$((i+1))
+done
+rm -rf "$d"
+[ ! -e "$d" ] && echo "DESTROYED $i"
+"""
+
+VERIFY_SH = r"""
+set -euo pipefail
+umask 077
+O=/usr/bin/openssl
+d=$(mktemp -d)
+trap 'rm -rf "$d"' EXIT
+while IFS=' ' read -r t a b c; do
+  case "$t" in
+    PUB) printf '%s' "$b" | base64 -d > "$d/$a.pub"
+         echo "TYPE $a $($O pkey -pubin -in "$d/$a.pub" -noout -text 2>/dev/null | head -1 | tr -d '\r')" ;;
+    V) printf '%s' "$b" | base64 -d > "$d/m"; printf '%s' "$c" | base64 -d > "$d/s"
+       if $O pkeyutl -verify -rawin -pubin -inkey "$d/${a#*/}.pub" -in "$d/m" -sigfile "$d/s" 2>/dev/null \
+            | grep -q 'Signature Verified Successfully'; then echo "R $a OK"; else echo "R $a BAD"; fi ;;
+  esac
+done
+echo END
+"""
+
+
+class Signer:
+    def __init__(self, host=None):
+        self.host = host or os.environ.get("AEGIS_CONFORMANCE_SIGN_HOST", "kamrui")
+
+    def _run(self, script, stdin):
+        if self.host == "local":
+            argv = ["bash", "-c", script]
+        else:
+            argv = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", self.host, "bash -c " + shlex.quote(script)]
+        p = subprocess.run(argv, input=stdin, capture_output=True, text=True, timeout=600)
+        if p.returncode != 0:
+            raise RuntimeError(f"signing host {self.host}: exit {p.returncode}: {(p.stdout + p.stderr).strip()[-300:]}")
+        return p.stdout.splitlines()
+
+    def sign(self, messages):
+        """messages: list of bytes -> (pubs {alg: pem bytes}, sigs [ {alg: raw bytes} ])."""
+        out = self._run(SIGN_SH, "".join(base64.b64encode(m).decode() + "\n" for m in messages))
+        pubs, sigs, destroyed = {}, [dict() for _ in messages], False
+        for line in out:
+            f = line.split(" ")
+            if f[0] == "PUB" and len(f) == 3:
+                pubs[f[1]] = base64.b64decode(f[2], validate=True)
+            elif f[0] == "SIG" and len(f) == 4:
+                sigs[int(f[1])][f[2]] = base64.b64decode(f[3], validate=True)
+            elif f[0] == "DESTROYED" and f[1:] == [str(len(messages))]:
+                destroyed = True
+        if not destroyed:
+            raise RuntimeError("signing host did not confirm the key dir was destroyed")
+        for a in ALGS:
+            if a not in pubs or b"PRIVATE KEY" in pubs[a] or b"PUBLIC KEY" not in pubs[a]:
+                raise RuntimeError(f"no valid public key for {a}")
+        for s in sigs:
+            for a in ALGS:
+                if len(s.get(a, b"")) != SIG_LEN[a]:
+                    raise RuntimeError(f"{a} signature has length {len(s.get(a, b''))}, want {SIG_LEN[a]}")
+        return pubs, sigs
+
+    def verify(self, pubs, items):
+        """items: list of (message bytes, {alg: raw sig}) -> list of per-item {alg: bool}; key types are checked."""
+        lines = []
+        for a in ALGS:
+            if b"PRIVATE KEY" in pubs[a]:
+                raise RuntimeError("private key material offered for verification")
+            lines.append(f"PUB {a} {base64.b64encode(pubs[a]).decode()}")
+        for i, (msg, sg) in enumerate(items):
+            for a in ALGS:
+                lines.append(f"V {i}/{a} {base64.b64encode(msg).decode()} "
+                             f"{base64.b64encode(sg.get(a, b'')).decode() or 'AA=='}")
+        out = self._run(VERIFY_SH, "".join(l + "\n" for l in lines))
+        if not out or out[-1] != "END":
+            raise RuntimeError("verification session did not complete")
+        types = {l.split(" ", 2)[1]: l.split(" ", 2)[2] if len(l.split(" ", 2)) > 2 else ""
+                 for l in out if l.startswith("TYPE ")}
+        typeok = all(OSSL_ALG[a] in types.get(a, "") for a in ALGS)
+        res = [{a: False for a in ALGS} for _ in items]
+        for l in out:
+            f = l.split(" ")
+            if f[0] == "R" and len(f) == 3:
+                i, a = f[1].split("/", 1)
+                res[int(i)][a] = typeok and f[2] == "OK"
+        return res
+
+
+def sigs_from_report(r):
+    out = {}
+    for x in r.get("signatures", []) if isinstance(r.get("signatures"), list) else []:
+        if isinstance(x, dict) and x.get("alg") in ALGS and isinstance(x.get("sig"), str):
+            try:
+                out[x["alg"]] = base64.b64decode(x["sig"], validate=True)
+            except (binascii.Error, ValueError):
+                pass
+    # the fixed order is a schema rule; positional mismatch is caught by validate()
+    return out
+
+
+# ---------------------------------------------------------------- run
+
+
+def now_utc():
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def evaluate(logdir, outdir, toml_path, subjects, signer, gated_names):
+    """Writes reports, verifies them back. Returns (ok, lines, {name: report-or-None}, pubs)."""
+    gates, order = load_gates(toml_path)
+    lines = []
+    problems = check_map(gates, order)
+    if problems:
+        return False, [f"level map: {p}" for p in problems], {}, None
+    logs = Logs(logdir, gates)
+    if logs.run_start is None:
+        lines.append(f"  FAIL no {os.path.join(logdir, '.run-start')}: every log counts as fail")
+    os.makedirs(outdir, exist_ok=True)
+    now = now_utc()
+    reports, ok = {}, True
+    for name, kind, profile in subjects:
+        rep, gated_ok, ls = build_report(logs, name, kind, profile, now)
+        lines += ls
+        p = os.path.join(outdir, f"{name}.json")
+        if rep is None:
+            if os.path.lexists(p):
+                os.remove(p)  # never leave an earlier run's report standing for this subject
+            ok = False
+        if name in gated_names and not gated_ok:
+            ok = False
+        reports[name] = rep
+        if rep is not None:
+            summ = " ".join(f"{L} {v['passed']}/{v['total']}" for L, v in rep["levels"].items())
+            lines.append(f"SUBJECT {name}: {summ}{'' if gated_ok else ' (C0-C2 not 100%)'}")
+        else:
+            lines.append(f"SUBJECT {name}: no report (no artifact digest)")
+    todo = [n for n in reports if reports[n] is not None]
+    pubs = None
+    if todo:
+        pubs, sigs = signer.sign([canonical(reports[n]) for n in todo])
+        kd = os.path.join(outdir, "keys")
+        os.makedirs(kd, exist_ok=True)
+        for a in ALGS:
+            with open(os.path.join(kd, f"{a}.pub.pem"), "wb") as f:
+                f.write(pubs[a])
+        for n, sg in zip(todo, sigs):
+            reports[n]["signatures"] = [{"alg": a, "sig": base64.b64encode(sg[a]).decode()} for a in ALGS]
+            with open(os.path.join(outdir, f"{n}.json"), "w", encoding="utf-8") as f:
+                json.dump(reports[n], f, indent=1, sort_keys=True, ensure_ascii=False)
+                f.write("\n")
+        vok, vlines = verify_reports(outdir, todo, pubs, signer)
+        lines += vlines
+        ok = ok and vok
+    return ok, lines, reports, pubs
+
+
+def verify_reports(outdir, names, pubs, signer):
+    """Re-reads each report from disk: schema + all three signatures over its canonical bytes."""
+    ok, lines, items, loaded = True, [], [], []
+    for n in names:
+        p = os.path.join(outdir, f"{n}.json")
+        try:
+            r = json.load(open(p, encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            lines.append(f"  FAIL {n}: report unreadable: {e}")
+            ok = False
+            continue
+        errs, ran = validate(r)
+        if errs:
+            lines.append(f"  FAIL {n}: F13 schema: {'; '.join(errs[:5])}")
+            ok = False
+        else:
+            lines.append(f"  pass {n}: F13 schema (strict validator{' + jsonschema 2020-12' if ran else ''})")
+        items.append((canonical(r) if isinstance(r, dict) else b"", sigs_from_report(r) if isinstance(r, dict) else {}))
+        loaded.append(n)
+    if items:
+        res = signer.verify(pubs, items)
+        for n, rv in zip(loaded, res):
+            good = all(rv.values())
+            ok = ok and good
+            lines.append(f"  {'pass' if good else 'FAIL'} {n}: signatures "
+                         + " ".join(f"{a}={'ok' if rv[a] else 'BAD'}" for a in ALGS))
+    return ok, lines
+
+
+def main_run(a):
+    logdir = a.logs if os.path.isabs(a.logs) else os.path.join(ROOT, a.logs)
+    outdir = a.out if os.path.isabs(a.out) else os.path.join(ROOT, a.out)
+    toml_path = a.toml if os.path.isabs(a.toml) else os.path.join(ROOT, a.toml)
+    for n in NOT_FOUND:
+        print(f"note: expected member without a gate: {n}")
+    try:
+        ok, lines, reports, _ = evaluate(logdir, outdir, toml_path, SUBJECTS, Signer(), {n for n, _, _ in GOLDEN})
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        print(f"CONFORMANCE: FAIL ({e})")
+        return 1
+    for l in lines:
+        print(l)
+    summ = "; ".join(
+        f"{n} " + (" ".join(f"{L} {v['passed']}/{v['total']}" for L, v in r["levels"].items()) if r else "no report")
+        for n, r in reports.items())
+    print(f"CONFORMANCE: {'PASS' if ok else 'FAIL'} ({summ or 'level map invalid'})")
+    return 0 if ok else 1
+
+
+# ---------------------------------------------------------------- self-test
+
+
+def write_synth(d, gates, mutate=None):
+    """Synthetic all-pass phase-6 log dir. mutate(name, step, content) -> content | None (None = omit the file)."""
+    os.makedirs(d, exist_ok=True)
+    rs = os.path.join(d, ".run-start")
+    with open(rs, "w") as f:
+        f.write("0" * 40 + "\n")
+    t0 = 1_800_000_000
+    os.utime(rs, (t0, t0))
+    floor, cmvp, p2 = (hashlib.sha256(x).hexdigest() for x in (b"floor", b"cmvp", b"p2"))
+    extra = {
+        "release-verify": f"RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n",
+        "release-rebuild": f"[A] RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n"
+                           f"[A] RELEASE-PIPELINE: PASS (cmvp, artifacts/aegis-cmvp sha256 {cmvp}, 9 files)\n",
+        "p2-hostile-host": f"CONFORMANCE-ARTIFACT: aegis-p2 sha256 {p2}\n",
+    }
+    for name, g in gates.items():
+        for step in ("cmd", "selftest"):
+            if step not in g:
+                continue
+            body = f"synthetic output of {name} {step}\n" + (extra.get(name, "") if step == "cmd" else "")
+            if name == "oracles-remote":
+                body += ("[ssrf-corpus] SSRF-CORPUS: PASS (all cases)\n" if step == "cmd"
+                         else "[ssrf-corpus] SSRF-CORPUS SELF-TEST: PASS (reference passes)\n")
+            content = f"$ {g[step]}\n{body}\n[exit 0]\n"
+            mtime = t0 + 10
+            if mutate:
+                r = mutate(name, step, content)
+                if r is None:
+                    continue
+                content, mtime = r if isinstance(r, tuple) else (r, mtime)
+            p = os.path.join(d, f"phase{PHASE}-{name}-{step}.log")
+            with open(p, "w") as f:
+                f.write(content)
+            os.utime(p, (mtime, mtime))
+    return {"floor": floor, "cmvp": cmvp, "p2": p2}
+
+
+def self_test():
+    toml_path = os.path.join(ROOT, "gates", "phase-6.toml")
+    gates, order = load_gates(toml_path)
+    signer = Signer()
+    results, bad = [], []
+    tmp = tempfile.mkdtemp(prefix="aegis-conformance-st-")
+    golden = {n for n, _, _ in GOLDEN}
+    fork = ("fork-cmvp-tls-client", "fork", "cmvp")
+
+    def case(label, mutate, expect_ok, subjects=SUBJECTS, check=None):
+        d = os.path.join(tmp, label, "logs")
+        o = os.path.join(tmp, label, "out")
+        write_synth(d, gates, mutate)
+        ok, lines, reports, pubs = evaluate(d, o, toml_path, subjects, signer, golden | {fork[0]})
+        extra_ok, why = (check(lines, reports, o, pubs) if check else (True, ""))
+        good = (ok == expect_ok) and extra_ok
+        results.append(label)
+        print(f"  {'ok  ' if good else 'BAD '} {label}: run {'PASS' if ok else 'FAIL'} "
+              f"(expected {'PASS' if expect_ok else 'FAIL'}){'; ' + why if why else ''}")
+        if not good:
+            bad.append(label)
+            for l in lines:
+                print("      " + l)
+        return reports, o, pubs
+
+    def entry(reports, subj, gate):
+        r = reports.get(subj) or {}
+        return next((g for g in r.get("gates", []) if g["name"] == gate), None)
+
+    def expect_entry(subj, gate, needle, level=None):
+        def chk(lines, reports, o, pubs):
+            e = entry(reports, subj, gate)
+            if not e or e["result"] != "fail" or needle not in e.get("reason", ""):
+                return False, f"{subj}/{gate} not failed with '{needle}': {e}"
+            if level:
+                lv = reports[subj]["levels"][level]
+                if lv["passed"] != lv["total"] - 1:
+                    return False, f"{subj} {level} {lv}, want exactly one fail"
+            if any(g["result"] == "skipped" for r in reports.values() if r for g in r["gates"]):
+                return False, "a result was 'skipped'"
+            return True, f"{subj} {gate}: {e['reason'][:70]}"
+        return chk
+
+    try:
+        # 0. the level map refers only to real gates placed before conformance
+        prob = check_map(gates, order)
+        print(f"  {'ok  ' if not prob else 'BAD '} level-map: {'all members are gates before conformance' if not prob else prob}")
+        if prob:
+            bad.append("level-map")
+
+        # 1. all pass -> PASS; reports valid, signed, verified; levels 100%
+        def all_pass_chk(lines, reports, o, pubs):
+            for n, _, _ in SUBJECTS:
+                r = reports.get(n)
+                if not r:
+                    return False, f"{n}: no report"
+                for L in GATED:
+                    if L in r["levels"] and r["levels"][L]["passed"] != r["levels"][L]["total"]:
+                        return False, f"{n} {L} not 100%"
+                if len(r["signatures"]) != 3 or not r["test_keys"]:
+                    return False, f"{n}: signatures/test_keys"
+                if not os.path.isfile(os.path.join(o, f"{n}.json")):
+                    return False, f"{n}.json not written"
+            if reports["aegis-p2"]["levels"].keys() != {"C2"}:
+                return False, "aegis-p2 must be C2 only"
+            return True, "3 reports, schema + 3 signatures verified, C0-C2 100%"
+        reports, o_all, pubs_all = case("all-pass", None, True, check=all_pass_chk)
+
+        # 2. fork subject with tls-client on in cmvp: cmvp-client-policy log fails -> C0 fail
+        def tls_client(name, step, c):
+            if name == "cmvp-client-policy" and step == "cmd":
+                return c.replace("[exit 0]", "CLIENT-POLICY: FAIL (tls client symbols linked in cmvp)\n[exit 1]")
+            return c
+        case("fork-tls-client-in-cmvp", tls_client, False, subjects=SUBJECTS + [fork],
+             check=expect_entry(fork[0], "cmvp-client-policy", "not [exit 0]", level="C0"))
+
+        # 3. missing log -> fail, never skipped
+        case("missing-log", lambda n, s, c: None if (n, s) == ("budget", "cmd") else c, False,
+             check=expect_entry("aegis-bin-floor", "budget", "log missing", level="C0"))
+
+        # 4. stale log (older than .run-start)
+        case("stale-log", lambda n, s, c: (c, 1_800_000_000 - 60) if (n, s) == ("kx-kat", "cmd") else c, False,
+             check=expect_entry("aegis-bin-cmvp", "kx-kat", "stale", level="C1"))
+
+        # 5. failing selftest log
+        case("selftest-fails",
+             lambda n, s, c: c.replace("[exit 0]", "[exit 1]") if (n, s) == ("mcp-gateway", "selftest") else c,
+             False, check=expect_entry("aegis-bin-floor", "mcp-gateway", "selftest log ends", level="C2"))
+
+        # 6. missing .run-start -> everything fails
+        def no_run_start(n, s, c):
+            if (n, s) == ("layering", "cmd"):
+                os.remove(os.path.join(tmp, "no-run-start", "logs", ".run-start"))
+            return c
+        case("no-run-start", no_run_start, False,
+             check=lambda l, r, o, p: (all(x is None for x in r.values()), "no reports without .run-start"))
+
+        # 7. wrong command line in a log (a log from another gate renamed into place)
+        case("wrong-cmd-line",
+             lambda n, s, c: "$ true\n[exit 0]\n" if (n, s) == ("unsafe-sites", "cmd") else c, False,
+             check=expect_entry("aegis-bin-floor", "unsafe-sites", "does not start with", level="C0"))
+
+        # 8. ssrf-corpus line absent from oracles-remote
+        case("ssrf-line-missing",
+             lambda n, s, c: c.replace("[ssrf-corpus] SSRF-CORPUS: PASS", "[ssrf-corpus] SSRF-CORPUS: FAIL")
+             if (n, s) == ("oracles-remote", "cmd") else c, False,
+             check=expect_entry("aegis-bin-cmvp", SSRF, "lacks a line", level="C2"))
+
+        # 9. artifact digest absent (cmvp) / conflicting (floor)
+        case("digest-absent",
+             lambda n, s, c: re.sub(r".*RELEASE-PIPELINE: PASS \(cmvp.*\n", "", c) if s == "cmd" else c, False,
+             check=lambda l, r, o, p: (r.get("aegis-bin-cmvp") is None and not os.path.exists(
+                 os.path.join(o, "aegis-bin-cmvp.json")) and r.get("aegis-bin-floor") is not None,
+                 "cmvp: no digest -> no report, FAIL"))
+        case("digest-conflict",
+             lambda n, s, c: c.replace(hashlib.sha256(b"floor").hexdigest(), "f" * 64)
+             if (n, s) == ("release-verify", "cmd") else c, False,
+             check=lambda l, r, o, p: (r.get("aegis-bin-floor") is None
+                                      and any("conflicting artifact digests" in x for x in l), "floor: conflict"))
+        # 9b. a digest from a failing log is not used
+        case("digest-from-failing-log",
+             lambda n, s, c: c.replace("[exit 0]", "[exit 1]") if (n, s) == ("release-rebuild", "cmd") else c,
+             False, check=lambda l, r, o, p: (r.get("aegis-bin-cmvp") is None and r.get("aegis-bin-floor")
+                                             is not None, "cmvp digest only in a failing log -> no report"))
+
+        # 10. tamper after signing -> verification fails; one swapped signature -> that alg fails
+        names = [n for n, _, _ in SUBJECTS]
+        p = os.path.join(o_all, "aegis-bin-floor.json")
+        r = json.load(open(p))
+        r["levels"]["C0"]["passed"] = r["levels"]["C0"]["total"]
+        r["gates"][0]["result"] = "pass" if r["gates"][0]["result"] == "fail" else "fail"
+        json.dump(r, open(p, "w"), indent=1, sort_keys=True)
+        q = os.path.join(o_all, "aegis-bin-cmvp.json")
+        r2 = json.load(open(q))
+        other = json.load(open(os.path.join(o_all, "aegis-p2.json")))
+        r2["signatures"][2] = other["signatures"][2]
+        json.dump(r2, open(q, "w"), indent=1, sort_keys=True)
+        vok, vlines = verify_reports(o_all, names, pubs_all, signer)
+        floor_bad = any("aegis-bin-floor: signatures ed25519=BAD slh-dsa-sha2-128s=BAD ml-dsa-87=BAD" in x
+                        for x in vlines)
+        cmvp_bad = any("aegis-bin-cmvp: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=BAD" in x for x in vlines)
+        p2_ok = any("aegis-p2: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=ok" in x for x in vlines)
+        good = (not vok) and floor_bad and cmvp_bad and p2_ok
+        print(f"  {'ok  ' if good else 'BAD '} tamper-after-signing: floor all 3 BAD={floor_bad}, cmvp swapped "
+              f"ml-dsa-87 BAD={cmvp_bad}, untouched p2 verifies={p2_ok}")
+        if not good:
+            bad.append("tamper-after-signing")
+            for l in vlines:
+                print("      " + l)
+        # 10b. a fresh key set must not verify the old signatures (keys are per run)
+        pubs2, _ = signer.sign([b"x"])
+        vok2, vl2 = verify_reports(o_all, ["aegis-p2"], pubs2, signer)
+        print(f"  {'ok  ' if not vok2 else 'BAD '} other-run-keys: p2 report under a fresh key set "
+              f"{'refused' if not vok2 else 'ACCEPTED'}")
+        if vok2:
+            bad.append("other-run-keys")
+
+        # 11. schema mutants: both validators reject each
+        base = json.load(open(os.path.join(o_all, "aegis-p2.json")))
+        _, jran = jsonschema_validate(base)
+        muts = {
+            "extra-member": lambda x: x.__setitem__("extra", 1),
+            "sig-order-swapped": lambda x: x["signatures"].reverse(),
+            "two-signatures": lambda x: x["signatures"].pop(),
+            "bad-artifact-hex": lambda x: x.__setitem__("artifact_sha256", "A" * 64),
+            "level-C5": lambda x: x["levels"].__setitem__("C5", {"passed": 0, "total": 0}),
+            "negative-total": lambda x: x["levels"]["C2"].__setitem__("total", -1),
+            "result-not-enum": lambda x: x["gates"][0].__setitem__("result", "ok"),
+            "missing-log-sha": lambda x: x["gates"][0].pop("log_sha256"),
+            "bad-kind": lambda x: x["subject"].__setitem__("kind", "vendor"),
+            "v2": lambda x: x.__setitem__("v", 2),
+            "sig-not-b64": lambda x: x["signatures"][0].__setitem__("sig", "no t-b64!"),
+            "test-keys-str": lambda x: x.__setitem__("test_keys", "true"),
+            "bad-date": lambda x: x.__setitem__("generated_at", "yesterday"),
+        }
+        e0 = strict_validate(base)
+        _, j0 = jsonschema_validate(base)
+        sgood = not e0 and not j0
+        missed = []
+        for mname, f in muts.items():
+            m = json.loads(json.dumps(base))
+            f(m)
+            se = strict_validate(m)
+            ran, je = jsonschema_validate(m)
+            # jsonschema checks format "date-time" only when its optional rfc3339-validator is installed; the strict
+            # validator always checks it.
+            fmt_only = mname == "bad-date" and not jsonschema_checks_datetime()
+            if not se or (ran and not je and not fmt_only):
+                missed.append(f"{mname} (strict {len(se)}, jsonschema {len(je) if ran else 'n/a'})")
+        good = sgood and not missed
+        print(f"  {'ok  ' if good else 'BAD '} schema: clean report valid={sgood}, {len(muts) - len(missed)}/"
+              f"{len(muts)} mutants rejected by the strict validator{' and jsonschema' if jran else ''}"
+              f"{'; missed ' + ', '.join(missed) if missed else ''}")
+        if not good:
+            bad.append("schema")
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        bad.append(f"error: {e}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    n = len(results) + 4
+    if bad:
+        print(f"CONFORMANCE SELF-TEST: FAIL ({len(bad)} of {n} checks wrong: {', '.join(bad)})")
+        return 1
+    print(f"CONFORMANCE SELF-TEST: PASS ({n} checks: all-pass PASS; fork tls-client-in-cmvp fails C0; missing, stale, "
+          f"failing-selftest, wrong-cmd, no-run-start, ssrf-line, digest mutants FAIL; tamper and swapped signature "
+          f"refused; schema mutants rejected)")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="conformance/run")
+    ap.add_argument("--logs")
+    ap.add_argument("--out", default="gates/out/conformance")
+    ap.add_argument("--toml", default=f"gates/phase-{PHASE}.toml")
+    ap.add_argument("--self-test", action="store_true")
+    a = ap.parse_args()
+    if a.self_test:
+        return self_test()
+    if not a.logs:
+        print("usage: conformance/run --logs DIR [--out DIR] [--toml FILE] | --self-test")
+        return 2
+    return main_run(a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
