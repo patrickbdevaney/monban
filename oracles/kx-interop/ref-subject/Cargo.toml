@@ -1,0 +1,30 @@
+# kx-interop reference subject (self-test only). Own workspace (oracles/ is excluded from the main workspace), own
+# Cargo.lock = oracles/hrr-verdicts/Cargo.lock with only the root package name changed (same pins, all >= 7 days
+# old when hrr-verdicts pinned them). Build only via ci/heavy.sh (see ../run).
+[package]
+name = "kx-interop-ref"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "kx-ref"
+path = "src/main.rs"
+
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "prefer-post-quantum"] }
+aws-lc-rs = { version = "=1.18.2" }
+rustls-webpki = { version = "=0.103.15", default-features = false, features = ["alloc", "aws-lc-rs"] }
+rcgen = { version = "=0.14.10", default-features = false, features = ["aws_lc_rs", "crypto"] }
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+
+[profile.dev]
+debug = 0
+incremental = false

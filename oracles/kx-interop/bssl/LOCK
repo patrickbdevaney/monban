@@ -1,0 +1,8 @@
+# BoringSSL peer for kx-interop (PREFLIGHT D-P4). Bump only by editing this file; build.sh refuses a commit < 7 days old.
+# ci/tools.lock has no BoringSSL row yet; this file is the pin until it does.
+commit=e651545da6e26e1f4420723a3b69a78ed1b9c51d
+commit_date=2026-10-26T22:35:15Z
+pinned_on=2026-11-04
+url=https://github.com/google/boringssl/archive/e651545da6e26e1f4420723a3b69a78ed1b9c51d.tar.gz
+sha256=8df889167a2ca2237073cfed3147ac7b2f548f7dbf3daf4928a0ae6504d2013f
+base=amazonlinux@sha256:bb1c85fe00170acd8a653de5f68cf77c7ec67234a130b18fad7ca1de1f61e3d3
