@@ -19,6 +19,34 @@ reason = "build-time for cedar (cedar-policy-core -> lalrpop -> sha3 0.10 -> dig
 approver = "spec-author"
 expires = "2027-01-29"
 
+# P6-spec-002 (PLAN-6 D1/D10): the cmvp lock (profiles/cmvp/Cargo.lock, FIPS 3.1.0 triangle) cannot reach the
+# rustls 0.23.46 / rustls-webpki 0.103.16 floors: both need aws-lc-rs ^1.18, whose fips feature links the uncertified
+# AWS-LC FIPS 4.2.0. These entries apply to the cmvp lock only (`cargo xtask fips-lock --profile cmvp` G4 requires
+# them); the root (floor) lock is at the floors. Each stays valid only while the cmvp client-policy gate passes in
+# the same run with every rustls client compiled out (ARCHITECTURE R-PQC cmvp ledger, condition 1).
+
+[[exception]]
+crate = "rustls"
+version = "0.23.43"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0349"
+reason = "cmvp lock only: 0349 is a client-side bug (an unauthenticated ServerHello poisons the per-name key-share record); the cmvp build compiles every rustls client out (aegis-tls tls-client off, egress tls-client off), proven per run by the cmvp client-policy gate; fixed in 0.23.46, which the FIPS 3.1.0 module (aws-lc-rs <=1.17.1) cannot be co-resolved with"
+approver = "integrator (operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-cmvp-client-policy-cmd.log"
+evidence_must = "CLIENT-POLICY: PASS (compiled-out)"
+
+[[exception]]
+crate = "rustls-webpki"
+version = "0.103.13"
+kind = "advisory-accepted"
+advisory = "RUSTSEC-2026-0382"
+reason = "cmvp lock only: 0382 lets certificate path building accept distrusted (emSign) intermediates, which matters only where a rustls client verifies a server chain; the cmvp build has no rustls client (client-policy gate, compiled-out) and no crate in the tree builds a client-certificate verifier; 0.103.14+ need aws-lc-rs ^1.18 (uncertified module)"
+approver = "integrator (operator standing authorization 2026-11-04)"
+expires = "2027-05-04"
+evidence = "gates/out/logs/phase6-cmvp-client-policy-cmd.log"
+evidence_must = "CLIENT-POLICY: PASS (compiled-out)"
+
 # P5-spec-002 (PLAN-5 D11): wasmtime 50.0.1 (2026-10-29) is the security release for RUSTSEC-2026-0422/0423/0424
 # (GHSA-3982-jqvv-277m, GHSA-qw58-7h65-crq2, GHSA-6fr9-xmw9-5352), all affecting 50.0.0; cargo-deny rejects 50.0.0.
 # It requires cranelift ^0.137.1 (same day). Tenant code reaches Wasmtime, so the fix is taken under the q1-009

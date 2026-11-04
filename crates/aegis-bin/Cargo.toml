@@ -79,6 +79,8 @@ e2e-mutants = ["aegis-transport/e2e-raw-target"]
 p2 = ["dep:aegis-iso"]
 # Oracle negative controls ONLY (oracles/p2-e2e, oracles/p2-hostile --self-test; PLAN-5 D15). Never shipped.
 p2-mutants = ["p2", "aegis-iso/mutants"]
+# PLAN-6 D1: the cmvp build (profiles/cmvp/build.sh with the overlay lock). Forwards to the owning crates' cmvp cfg.
+cmvp = ["aegis-tls/cmvp"]
 
 [lints]
 workspace = true

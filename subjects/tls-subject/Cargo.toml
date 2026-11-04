@@ -10,6 +10,10 @@ publish = false
 [package.metadata.aegis]
 layer = "tool"
 
+[features]
+# PLAN-6 D1: the subject built against the cmvp overlay lock (profiles/cmvp/build.sh).
+cmvp = ["aegis-tls/cmvp"]
+
 [dependencies]
 aegis-tls = { workspace = true }
 rustls = { workspace = true }

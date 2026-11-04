@@ -1,0 +1,24 @@
+# cmvp overlay (PLAN-6 D1): applied by profiles/cmvp/build.sh to a scratch copy of the tree, never to the root
+# manifest. Each [workspace.dependencies] key here replaces the root line of the same key (which must exist exactly
+# once). The resolve is committed as profiles/cmvp/Cargo.lock and checked by `cargo xtask fips-lock --profile cmvp`.
+#
+# rustls =0.23.43 is the newest rustls that accepts aws-lc-rs 1.15.x (0.23.44+ need aws-lc-rs ^1.18, whose fips
+# feature links aws-lc-fips-sys 0.14.x = uncertified AWS-LC FIPS 4.2.0). It is below the 0.23.46 floor
+# (RUSTSEC-2026-0349): accepted in supply-chain/exceptions.toml only while the cmvp client-policy gate passes.
+# aws-lc-rs =1.15.3 with `fips` links aws-lc-fips-sys =0.13.11 = AWS-LC FIPS 3.1.0 (CMVP #5298/#5314); the
+# version window [1.15.2, 1.17.1] is G3 of fips-lock.
+# rustls-webpki =0.103.13 is the newest webpki that accepts aws-lc-rs 1.15.x (0.103.14+ need ^1.18; sparse index
+# 2026-11-04). It is below the 0.103.16 floor (RUSTSEC-2026-0382): accepted in supply-chain/exceptions.toml on the
+# same client-policy evidence (no certificate verifier is built in cmvp).
+[workspace.dependencies]
+rustls = { version = "=0.23.43", default-features = false, features = ["aws_lc_rs", "prefer-post-quantum", "std", "fips"] }
+rustls-webpki = { version = "=0.103.13", default-features = false }
+aws-lc-rs = { version = "=1.15.3", default-features = false, features = ["fips"] }
+
+# rustls's `aws_lc_rs` feature (and webpki's `aws-lc-rs`) always switch on `aws-lc-rs/aws-lc-sys`, so without this
+# patch the cmvp graph would also compile the non-FIPS AWS-LC 0.36.0 C library (aws-lc-rs 1.15.3 links only
+# aws-lc-fips-sys when `fips` is on: `#[cfg(not(feature = "fips"))] extern crate aws_lc_sys`). The in-tree void crate
+# has no build script, no `links` key and no code, so no non-FIPS AWS-LC code is compiled into the cmvp build at all.
+# fips-lock rejects any aws-lc-sys node that is not this exact path crate.
+[patch.crates-io]
+aws-lc-sys = { path = "profiles/cmvp/void/aws-lc-sys" }
