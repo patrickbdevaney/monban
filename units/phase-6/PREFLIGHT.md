@@ -108,3 +108,15 @@ a plan gate.** Until then the plan is written this way and the change is flagged
 4. **Optional:** enable GitHub Actions, or make the repo public, if GitHub-hosted rebuilds and attestations are wanted.
 5. **Confirm D-P4,** the change to the BoringSSL gate text.
 6. **Decide whether to keep or delete the stopped aegis-quiet VM.** D-P5 uses it.
+
+---
+
+## Operator decision (2026-11-04)
+
+"dont choose a license yet, cra yet, license yet or github actions- have all phases proceed. use kamrui for ci and gcp
+vm as needed". Read as:
+- No license, no CRA publication (D-P1 drafts only), GitHub Actions stays disabled. P4 items 1, 2 and 4 are closed
+  as "not now".
+- Phases proceed through Phase 7 under the standing authorization. D-P4 (Go as second 0x11ED peer, BoringSSL on its
+  own groups) is accepted as part of "proceed".
+- CI runs on kamrui. The aegis-quiet VM is used as needed, which keeps it (P4 item 6) as the D-P5 second runner.
