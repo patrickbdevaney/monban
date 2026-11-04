@@ -1,0 +1,15 @@
+# select-drt: the Lean executable side of the Select(model) differential test (PLAN-6 D3). TOML only (no
+# lakefile.lean: no Lake DSL code execution). The one dependency is the golden spec package by path (no network,
+# no Mathlib); the spec package itself keeps zero dependencies.
+name = "selectDrt"
+version = "0.1.0"
+defaultTargets = ["select-drt"]
+leanOptions = { autoImplicit = false }
+
+[[require]]
+name = "aegisIR"
+path = "../../spec"
+
+[[lean_exe]]
+name = "select-drt"
+root = "Main"
