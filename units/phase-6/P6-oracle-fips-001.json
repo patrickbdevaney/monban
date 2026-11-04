@@ -1,0 +1,28 @@
+{
+ "id": "P6-oracle-fips-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P6-spec-002"
+ ],
+ "start_now": false,
+ "gates": [
+  "cmvp-client-policy"
+ ],
+ "spec_refs": [
+  "spikes/cmvp-client-policy",
+  "ARCHITECTURE 0349 correction",
+  "PLAN-6 D2"
+ ],
+ "oracles": [
+  "the spike's 12 mutants ported",
+  "fips-binary mutants: binary without the string; string present but linked module 4.2.0 (floor build); --fips-check output mismatch"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui oracles/cmvp-binary/run --self-test",
+  "must": "self-test PASS; run on the cmvp build red until P6-cmvp-001"
+ },
+ "write_scope": [
+  "oracles/cmvp-binary/**"
+ ],
+ "notes": ""
+}

@@ -1,0 +1,27 @@
+{
+ "id": "P6-oracle-interop-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "kx-interop"
+ ],
+ "spec_refs": [
+  "PLAN-6 D4",
+  "PREFLIGHT D-P4",
+  "spikes/q4-026/interop"
+ ],
+ "oracles": [
+  "order-mutant build (ML-KEM first) fails every 0x11ED cell",
+  "a peer offering only X25519 against P-UNIVERSAL must not complete",
+  "BoringSSL cell for 0x11ED absent -> the runner refuses a matrix that claims it"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui oracles/kx-interop/run && ci/remote.sh --host kamrui oracles/kx-interop/run --self-test",
+  "must": "red before P6-tls-001 adds the subject's interop mode; matrix: 0x11ED x {OpenSSL 3.5.3, Go 1.27.3} both directions + HRR; 0x11EB x {OpenSSL, Go}; 0x0202 x {OpenSSL, BoringSSL, Go}; 0x11EC x {BoringSSL}"
+ },
+ "write_scope": [
+  "oracles/kx-interop/**"
+ ],
+ "notes": "Peers: host openssl on kamrui (check version >= 3.5), Go program under oracles/kx-interop/go built with ~/aegis-ci/go1.27.3 (GOFLAGS=-mod=vendor-free, stdlib only), BoringSSL built in the AL2023 image at the commit pinned in ci/tools.lock."
+}

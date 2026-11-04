@@ -1,0 +1,28 @@
+{
+ "id": "P6-release-002",
+ "role": "implementer",
+ "depends_on": [
+  "P6-release-001",
+  "P6-cmvp-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "release-rebuild"
+ ],
+ "spec_refs": [
+  "PLAN-6 D7",
+  "PREFLIGHT D-P5"
+ ],
+ "oracles": [
+  "mutant SOURCE_DATE_EPOCH on B mismatches; attestation naming another digest fails"
+ ],
+ "acceptance": {
+  "cmd": "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && ci/release/rebuild.sh --self-test",
+  "must": "PASS; sha256(A)=sha256(B)=attested digest for floor and cmvp; VM stopped afterwards (checked by gcloud describe)"
+ },
+ "write_scope": [
+  "ci/release/rebuild.sh",
+  "ci/release/vm.sh"
+ ],
+ "notes": ""
+}

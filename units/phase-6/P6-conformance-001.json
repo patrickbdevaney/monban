@@ -1,0 +1,29 @@
+{
+ "id": "P6-conformance-001",
+ "role": "implementer",
+ "depends_on": [
+  "P6-spec-001",
+  "P6-tls-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "conformance"
+ ],
+ "spec_refs": [
+  "PLAN-6 D8",
+  "research/ARCHITECTURE-DRAFT.md:918 C0-C4",
+  "F13"
+ ],
+ "oracles": [
+  "fork subject with tls-client in cmvp fails C0",
+  "a missing gate log counts as fail, never skip"
+ ],
+ "acceptance": {
+  "cmd": "conformance/run --logs gates/out/logs && conformance/run --self-test",
+  "must": "C0-C2 passed==total for golden floor and cmvp; reports validate against F13 and carry 3 signatures"
+ },
+ "write_scope": [
+  "conformance/**"
+ ],
+ "notes": ""
+}

@@ -1,0 +1,26 @@
+{
+ "id": "P6-kani-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "kani-kx"
+ ],
+ "spec_refs": [
+  "PLAN-6 D5",
+  "ARCHITECTURE \u00a73.2 0x11ED Kani harness (Phase-6 gate)"
+ ],
+ "oracles": [
+  "negative control harness over an indexing copy fails",
+  "kani-tbi unchanged (default args)"
+ ],
+ "acceptance": {
+  "cmd": "ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split",
+  "must": "PASS with all harnesses verified and the negative control FAILED as expected; kani-tbi still PASS"
+ },
+ "write_scope": [
+  "ci/kani.sh",
+  "crates/aegis-tls/src/kani_proofs.rs"
+ ],
+ "notes": "kani_proofs.rs is cfg(kani) only; the `mod kani_proofs;` line in lib.rs is added by P6-tls-001 (single writer)."
+}

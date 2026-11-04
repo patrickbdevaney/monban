@@ -1,0 +1,27 @@
+{
+ "id": "P6-oracle-hrr-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P6-spec-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "tls-verdicts",
+  "clienthello-cmvp"
+ ],
+ "spec_refs": [
+  "PLAN-6 Interfaces F12",
+  "oracles/hrr-verdicts/README.md G1-G8"
+ ],
+ "oracles": [
+  "new mutants: subject accepts X25519 on P-UNIVERSAL; subject picks 0x11EB on P-UNIVERSAL; P-CNSA accepts 0x11ED; --require-cmvp with module=None"
+ ],
+ "acceptance": {
+  "cmd": "ci/heavy.sh oracles/hrr-verdicts/run --self-test",
+  "must": "self-test PASS with all new mutants red; run against the current subject is red on UNI/BSI/CNSA until P6-tls-001"
+ },
+ "write_scope": [
+  "oracles/hrr-verdicts/**"
+ ],
+ "notes": ""
+}
