@@ -74,3 +74,8 @@ not verified, and the oracle's executed handshakes (hrr-verdicts, R1) are the li
 - `run --cases 100000` -> `SELECT-DRT: PASS (8 profiles x 100000 cases = 800000, seed 1, 0 divergence; Lean table == F12; ...)`
 - `run --self-test` -> `SELECT-DRT SELF-TEST: PASS (7/7 mutants caught within 10000 cases per profile; baseline clean; equivalent mutant 0 divergence)`
 - Build output: `.lake/` 4.8 MB and `target/` 8.8 MB, both git-ignored and deleted after the run.
+
+## Placement
+
+`needs` = `lean`: it builds the Lean table with lake, so the aggregate runs it only in `oracles-local` (this laptop,
+which has the pinned elan toolchain). The `select-drt` gate runs it again at 100000 cases per profile.
