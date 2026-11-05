@@ -20,13 +20,21 @@ elif ! ssh -o BatchMode=yes -o ConnectTimeout=5 desktop true 2>/dev/null; then
   echo "remote.sh: desktop unreachable, using kamrui" >&2; HOST=kamrui
 fi
 MEM=12G JOBS=8; [ "$HOST" = kamrui ] && { MEM=9G; JOBS=4; }
+# quiet (the GCP VM; ephemeral IP): reach it at the address ci/release/vm.sh start recorded, with its pinned host key
+# (the ssh alias's HostName goes stale on every start). Other hosts: no extra options.
+HOPTS=()
+if [ "$HOST" = quiet ]; then
+  mapfile -t HOPTS < <("$ROOT/ci/release/vm.sh" scp-opts)
+  [ ${#HOPTS[@]} -gt 0 ] || { echo "remote.sh: quiet VM address unknown (run ci/release/vm.sh start)" >&2; exit 255; }
+fi
+RSH="ssh -o BatchMode=yes"; [ ${#HOPTS[@]} -eq 0 ] || RSH="$RSH $(printf '%q ' "${HOPTS[@]}")"
 [ $# -gt 0 ] || { echo "usage: ci/remote.sh [--host H] <command...>"; exit 2; }
 # One remote tree per local checkout, so parallel worktrees (agents) never rsync --delete over each other's source.
 REPO=repo; [ "$(basename "$ROOT")" = aegis ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
 rsync -az --delete \
   --exclude /target/ --exclude /.claude/ --exclude '**/target/' --exclude '**/.lake/' --exclude '/research/state/raw/' \
   --exclude '**/__pycache__/' --exclude '/gates/out/' \
-  -e "ssh -o BatchMode=yes" "$ROOT/" "$HOST:aegis-ci/$REPO/"
+  -e "$RSH" "$ROOT/" "$HOST:aegis-ci/$REPO/"
 cmd_b64=$(printf '%q ' "$@" | base64 -w0)
 remote_script='
 set -euo pipefail
@@ -56,11 +64,11 @@ else
   exec "${JOB[@]}"
 fi
 '
-SSH=(ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
+SSH=(ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 "${HOPTS[@]}")
 mode=attach
-[ "$(ssh -o BatchMode=yes "$HOST" 'loginctl show-user "$USER" -p Linger --value' 2>/dev/null)" = yes ] && mode=detach
+[ "$(ssh -o BatchMode=yes "${HOPTS[@]}" "$HOST" 'loginctl show-user "$USER" -p Linger --value' 2>/dev/null)" = yes ] && mode=detach
 if [ $mode = attach ]; then
-  exec ssh -o BatchMode=yes "$HOST" bash -c "$(printf '%q' "$remote_script")" _ "$cmd_b64" "$REPO" "$MEM" "$JOBS" attach
+  exec ssh -o BatchMode=yes "${HOPTS[@]}" "$HOST" bash -c "$(printf '%q' "$remote_script")" _ "$cmd_b64" "$REPO" "$MEM" "$JOBS" attach
 fi
 read -r id pid < <("${SSH[@]}" "$HOST" bash -c "$(printf '%q' "$remote_script")" _ "$cmd_b64" "$REPO" "$MEM" "$JOBS" detach)
 [ -n "${pid:-}" ] || { echo "remote.sh: could not start the detached job on $HOST" >&2; exit 255; }

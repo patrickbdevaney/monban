@@ -41,6 +41,22 @@ def main():
     with open(os.path.join(outdir, "logs", ".run-start"), "w") as f:
         f.write(head + "\n")
     only =set(filter(None, a.only.split(",")))
+    vm = os.path.join(ROOT, "ci", "release", "vm.sh")
+    quiet_used = False
+
+    def ensure_quiet(log):
+        # remote = "quiet" is the GCP VM: start it if stopped (an earlier release-rebuild stops it), so the gate is
+        # judged on the VM and not on an unreachable address. A failed start fails that step with the gcloud error.
+        st = subprocess.run([vm, "status"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        if st == "RUNNING" and os.path.exists(os.path.join(ROOT, "target", "release-rebuild", "vm", "ip")):
+            return None
+        p = subprocess.run([vm, "start"], cwd=ROOT, capture_output=True, text=True)
+        if p.returncode != 0:
+            with open(log, "w") as f:
+                f.write(f"$ ci/release/vm.sh start\n{p.stdout}{p.stderr}\n[exit {p.returncode}]\n")
+            return p.returncode
+        return None
+
     results, prev, ok = [], "0" * 64, True
     for g in spec["gate"]:
         if only and g["name"] not in only:
@@ -55,7 +71,15 @@ def main():
             if g.get("remote") and os.environ.get("AEGIS_NO_REMOTE") != "1":
                 host = g["remote"] if isinstance(g["remote"], str) else None
                 cmd = "ci/remote.sh " + (f"--host {shlex.quote(host)} " if host else "") + "bash -c " + shlex.quote(cmd)
-            rc, secs, h, tail = sh(cmd, log)
+            bad = None
+            if g.get("remote") == "quiet" and os.environ.get("AEGIS_NO_REMOTE") != "1":
+                quiet_used = True
+                bad = ensure_quiet(log)
+            if bad is not None:
+                rc, secs, tail = bad, 0.0, "quiet VM did not start (see log)"
+                h = hashlib.sha256(open(log).read().encode()).hexdigest()
+            else:
+                rc, secs, h, tail = sh(cmd, log)
             passed = rc == 0
             ok &= passed
             entry = {"name": g["name"], "step": step, "pass": passed, "exit": rc, "secs": secs, "log_sha256": h, "tail": tail, "prev": prev}
@@ -63,6 +87,8 @@ def main():
             entry["hash"] = prev
             results.append(entry)
             print(f"{'PASS' if passed else 'FAIL'}  {g['name']:18s} {step:8s} {secs:7.1f}s  {tail}", flush=True)
+    if quiet_used:  # the VM is billed while RUNNING: never leave it up after a run
+        subprocess.run([vm, "stop"], cwd=ROOT, capture_output=True, text=True)
     go = ok and not only and not dirty
     journal = {"phase": a.phase, "git_head": head, "dirty_tree": dirty, "partial": bool(only) or a.skip_heavy,
                "go": go, "results": results, "chain_head": prev}
