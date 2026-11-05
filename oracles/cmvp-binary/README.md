@@ -195,3 +195,8 @@ are red until P6-cmvp-001.
   runs compiled-out.
 - **The `/healthz` `module` field (D2) is not checked here.** It needs a booted server; conformance and the cmvp
   ClientHello gate boot one.
+
+## Placement
+
+`needs` = `kamrui`: the oracle is run by its own gates (`fips-binary`, `cmvp-client-policy`, both
+`remote = "kamrui"`, where Go, docker and the AL2023 image live). No `ci/oracles.sh` aggregate runs it.

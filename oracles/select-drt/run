@@ -99,7 +99,7 @@ fn main() {
                     // The model's version (70) and sigalg (49) admission steps are outside Lean Select (F1 §F):
                     // profile and offer share TLS13 and one sigalg so only group selection decides.
                     sigalgs: vec![0x0905], versions: vec!["TLS13".to_string()], early_data: false,
-                    sigalg_cover: None,
+                    sigalg_cover: None, requires: None, cmvp: None,
                 });
             }
             [name, gs, ss] => {
