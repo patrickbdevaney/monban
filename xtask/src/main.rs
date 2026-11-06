@@ -138,7 +138,7 @@ const SEPARATE_BINARIES: &[&str] = &["aegis-pdp", "aegis-p2", "aegis-otlp"];
 const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm", "aegis-uring"];
 /// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): aegis-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
 /// setitimer, fd adoption, _exit); aegis-wasm ≤ 1 (the digest-checked `Module::deserialize_file`). Every crate in
-/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0. aegis-uring ≤ 6 (DEVIATIONS X-15:
+/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0. aegis-uring ≤ 6 (DEVIATIONS X-19:
 /// io-uring 0.7.15 `SubmissionQueue::push` and ring setup are `unsafe fn`; opt-in feature `uring` only).
 const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("aegis-iso", 20), ("aegis-wasm", 1), ("aegis-uring", 6)];
 

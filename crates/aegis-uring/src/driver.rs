@@ -90,7 +90,7 @@ pub(crate) fn open_ring(setup: &Setup, entries: u32) -> Result<IoUring, UringErr
     Ok(ring)
 }
 
-/// The only `unsafe` in the crate (DEVIATIONS X-15 cap 6; this crate uses 1).
+/// The only `unsafe` in the crate (DEVIATIONS X-19 cap 6; this crate uses 1).
 fn push(sq: &mut SubmissionQueue<'_>, e: &squeue::Entry) -> Result<(), squeue::PushError> {
     // SAFETY: every pointer inside `e` was built by `Driver::entry` from heap memory owned by the operation table
     // (`Driver::ops`): a `Vec<u8>` data buffer that is not resized or read while its op is listed, or a `Box`ed
