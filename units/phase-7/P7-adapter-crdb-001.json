@@ -24,7 +24,8 @@
  },
  "write_scope": [
   "crates/aegis-adapter-pg/src/**",
-  "subjects/crdb-subject/src/**"
+  "subjects/crdb-subject/src/**",
+  "crates/aegis-adapter-pg/build.rs"
  ],
  "notes": ""
 }
