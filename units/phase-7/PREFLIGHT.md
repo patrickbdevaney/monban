@@ -117,3 +117,13 @@ does not expose `trust_anchors`, the selector reads it from the same ClientHello
    (`bench/scaling --gcp c2d-standard-64`) and costs about an hour of VM time.
 2. Unchanged from Phase 6: license, CRA publication, real release keys, D-P4 BoringSSL text.
 3. HTTP/3 re-check on or after 2027-03-30 (`ci/h3-precondition.py`).
+
+## P5. Added during the phase
+
+- **io-uring 0.7.15 vet audit** (P7-spec-002): no import set covered it at safe-to-deploy, so the zero-exemption rule
+  forced an own audit (all ~5.9k hand-written lines, ~87 unsafe sites read). Its `who` records an agent review: the
+  operator should countersign or replace it with a human audit before the `uring` feature is used in production.
+- **aegis-uring unsafe budget** (DEVIATIONS X-15): io-uring's submission API is `unsafe fn`, so aegis-uring may hold
+  ≤ 6 audited sites; `cargo xtask unsafe-sites` enforces it.
+- **F8 admission.per_ip** (P7-spec-001, wired by P7-bin-001): the S1 per-IP GCRA (1000/s, burst 2000) was hard-coded;
+  the scaling bench from one source IP was all 429s. Absent = today's values.
