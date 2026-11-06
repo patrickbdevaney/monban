@@ -28,7 +28,7 @@ use aegis_data_ir::{
 };
 use aegis_types::TenantId;
 
-use crate::lower::{PgClass, PgColumn, PgForeignKey, PgTable, is_tenant_guard};
+use crate::lower::{Dialect, PgClass, PgColumn, PgForeignKey, PgTable, is_tenant_guard};
 use crate::wire::{Connection, Error as WireError};
 
 /// Why a collection is not admitted (or could not be inspected).
@@ -173,6 +173,27 @@ pub fn check_live_schema(
     declared: &Schema,
     deadline: Instant,
 ) -> Result<LiveTable, LiveSchemaError> {
+    check_live_schema_dialect(conn, namespace, declared, deadline, Dialect::Postgres)
+}
+
+/// [`check_live_schema`] for `dialect`. `Postgres` is the gate described above, unchanged.
+///
+/// `Crdb` (feature `crdb`; oracles/schema-gate README "MariaDB and CockroachDB modes"): the same pg_catalog reads,
+/// with CockroachDB's catalog semantics. A plain STRING has collation `default`, which is byte order (binary, NO PAD)
+/// on CockroachDB whatever the database locale, so no pg_database lookup; a COLLATE'd STRING has a collation oid with
+/// no pg_collation row, so it is never binary. CockroachDB has no rewrite rules, exclusion constraints, PG
+/// partitioning or `pg_partition_tree`, so those reads are skipped (the trigger and FK-action checks cover the
+/// collection itself). RLS is not part of the crdb dialect (no `rls_policy` / `rls_bind`, PREFLIGHT D-P7.8), so
+/// FORCE RLS is not required: tenant scoping on crdb rests on the rendered tenant conjunct and the upsert guard
+/// alone. Referenced table names for the renderer's FK check come from a pg_class join instead of `::regclass`.
+pub fn check_live_schema_dialect(
+    conn: &mut Connection,
+    namespace: &str,
+    declared: &Schema,
+    deadline: Instant,
+    dialect: Dialect,
+) -> Result<LiveTable, LiveSchemaError> {
+    let crdb = dialect.is_crdb();
     if let Some(enc) = conn.parameter("server_encoding")
         && enc != "UTF8"
     {
@@ -190,20 +211,25 @@ pub fn check_live_schema(
     let Some(r) = rel.first() else { return Err(LiveSchemaError::NotATable) };
     let oid = int(r, 0)?;
     let relkind = cell(r, 1)?.to_owned();
-    let (rls, force) = (boolean(r, 2)?, boolean(r, 3)?);
+    // CockroachDB leaves relrowsecurity / relforcerowsecurity NULL; RLS is not read for the crdb dialect at all.
+    let (rls, force) = if crdb { (false, false) } else { (boolean(r, 2)?, boolean(r, 3)?) };
     if relkind != "r" && relkind != "p" {
         return Err(LiveSchemaError::NotATable);
     }
     let oid_s = oid.to_string();
 
-    let db = q(
-        conn,
-        "SELECT datcollate::text, datlocprovider::text FROM pg_catalog.pg_database WHERE datname = current_database()",
-        &[],
-        deadline,
-    )?;
-    let Some(d) = db.first() else { return Err(LiveSchemaError::Catalog("no pg_database row".into())) };
-    let db_default_c = matches!(cell(d, 0)?, "C" | "POSIX") && cell(d, 1)? == "c";
+    let db_default_c = if crdb {
+        true
+    } else {
+        let db = q(
+            conn,
+            "SELECT datcollate::text, datlocprovider::text FROM pg_catalog.pg_database WHERE datname = current_database()",
+            &[],
+            deadline,
+        )?;
+        let Some(d) = db.first() else { return Err(LiveSchemaError::Catalog("no pg_database row".into())) };
+        matches!(cell(d, 0)?, "C" | "POSIX") && cell(d, 1)? == "c"
+    };
     let binary_coll = |name: &str, provider: &str| {
         (matches!(name, "C" | "POSIX") && matches!(provider, "c" | "d")) || (name == "default" && db_default_c)
     };
@@ -264,9 +290,15 @@ pub fn check_live_schema(
     let governs = |f: Field| f == tf || columns.iter().any(|c| c.key && c.field == f);
 
     // Every unique index (incl. the primary key); expression / partial parts make it a "prefix" index.
+    // CockroachDB leaves collprovider NULL (so its `C` / `POSIX` rows never count as binary, as in the reference;
+    // only `default` does, via `db_default_c`).
     let colls: Vec<(i64, String, String)> = q(
         conn,
-        "SELECT oid::int8::text, collname::text, collprovider::text FROM pg_catalog.pg_collation",
+        if crdb {
+            "SELECT oid::int8::text, collname::text, coalesce(collprovider::text, '') FROM pg_catalog.pg_collation"
+        } else {
+            "SELECT oid::int8::text, collname::text, collprovider::text FROM pg_catalog.pg_collation"
+        },
         &[],
         deadline,
     )?
@@ -314,13 +346,17 @@ pub fn check_live_schema(
         unique_indexes.push(UniqueIndex { fields, prefix });
         pg_unique.push(plain);
     }
-    let excl = q(
-        conn,
-        "SELECT count(*)::int8::text FROM pg_catalog.pg_constraint WHERE conrelid = $1::oid AND contype = 'x'",
-        &[&oid_s],
-        deadline,
-    )?;
-    let n_excl = excl.first().map(|r| int(r, 0)).transpose()?.unwrap_or(0);
+    let n_excl = if crdb {
+        0
+    } else {
+        let excl = q(
+            conn,
+            "SELECT count(*)::int8::text FROM pg_catalog.pg_constraint WHERE conrelid = $1::oid AND contype = 'x'",
+            &[&oid_s],
+            deadline,
+        )?;
+        excl.first().map(|r| int(r, 0)).transpose()?.unwrap_or(0)
+    };
     for _ in 0..n_excl {
         unique_indexes.push(UniqueIndex { fields: Vec::new(), prefix: true });
         pg_unique.push(Vec::new());
@@ -351,7 +387,11 @@ pub fn check_live_schema(
         return Err(LiveSchemaError::TenantNotText);
     }
     // The collection plus every partition (pg_partition_tree is empty for an ordinary table).
-    let tree = "(SELECT $1::oid UNION SELECT relid FROM pg_catalog.pg_partition_tree($1::oid::regclass))";
+    let tree = if crdb {
+        "($1::oid)"
+    } else {
+        "(SELECT $1::oid UNION SELECT relid FROM pg_catalog.pg_partition_tree($1::oid::regclass))"
+    };
     let count = |conn: &mut Connection, sql: String| -> Result<i64, LiveSchemaError> {
         let r = q(conn, &sql, &[&oid_s], deadline)?;
         r.first().map(|r| int(r, 0)).transpose().map(|n| n.unwrap_or(0))
@@ -363,12 +403,13 @@ pub fn check_live_schema(
     {
         return Err(LiveSchemaError::TriggerOnCollection);
     }
-    if count(
-        conn,
-        format!(
-            "SELECT count(*)::int8::text FROM pg_catalog.pg_rewrite WHERE ev_class IN {tree} AND rulename <> '_RETURN'"
-        ),
-    )? > 0
+    if !crdb
+        && count(
+            conn,
+            format!(
+                "SELECT count(*)::int8::text FROM pg_catalog.pg_rewrite WHERE ev_class IN {tree} AND rulename <> '_RETURN'"
+            ),
+        )? > 0
     {
         return Err(LiveSchemaError::RuleOnCollection);
     }
@@ -382,7 +423,7 @@ pub fn check_live_schema(
     {
         return Err(LiveSchemaError::ForeignKeyAction);
     }
-    if relkind == "p" {
+    if relkind == "p" && !crdb {
         let pr = q(
             conn,
             "SELECT partstrat::text, partattrs::text, partclass::text, partcollation::text, partexprs IS NOT NULL \
@@ -420,40 +461,44 @@ pub fn check_live_schema(
             }
         }
     }
-    if !(rls && force) {
-        return Err(LiveSchemaError::RlsNotForced);
-    }
-    let pols = q(
-        conn,
-        "SELECT polcmd::text, polpermissive, pg_catalog.pg_get_expr(polqual, polrelid), \
-         pg_catalog.pg_get_expr(polwithcheck, polrelid) FROM pg_catalog.pg_policy WHERE polrelid = $1::oid",
-        &[&oid_s],
-        deadline,
-    )?;
-    if pols.is_empty() {
-        return Err(LiveSchemaError::RlsNotForced);
-    }
     let tname = tenant_attr.name.as_str();
-    for p in &pols {
-        let cmd = cell(p, 0)?;
-        let qual = opt_cell(p, 2)?;
-        let check = opt_cell(p, 3)?;
-        if matches!(cmd, "*" | "a" | "w") && check.is_none() {
-            return Err(LiveSchemaError::RlsPolicyWithoutCheck);
+    if !crdb {
+        if !(rls && force) {
+            return Err(LiveSchemaError::RlsNotForced);
         }
-        if boolean(p, 1)? && [qual, check].iter().flatten().any(|e| !is_tenant_guard(e, tname)) {
-            return Err(LiveSchemaError::RlsPolicyNotTenantScoped);
+        let pols = q(
+            conn,
+            "SELECT polcmd::text, polpermissive, pg_catalog.pg_get_expr(polqual, polrelid), \
+             pg_catalog.pg_get_expr(polwithcheck, polrelid) FROM pg_catalog.pg_policy WHERE polrelid = $1::oid",
+            &[&oid_s],
+            deadline,
+        )?;
+        if pols.is_empty() {
+            return Err(LiveSchemaError::RlsNotForced);
+        }
+        for p in &pols {
+            let cmd = cell(p, 0)?;
+            let qual = opt_cell(p, 2)?;
+            let check = opt_cell(p, 3)?;
+            if matches!(cmd, "*" | "a" | "w") && check.is_none() {
+                return Err(LiveSchemaError::RlsPolicyWithoutCheck);
+            }
+            if boolean(p, 1)? && [qual, check].iter().flatten().any(|e| !is_tenant_guard(e, tname)) {
+                return Err(LiveSchemaError::RlsPolicyNotTenantScoped);
+            }
         }
     }
 
     // Foreign keys out of the collection, for the renderer's W6 check.
-    let fk_rows = q(
-        conn,
+    let fk_sql = if crdb {
+        "SELECT con.conkey::text, con.confkey::text, con.confrelid::int8::text, r.relname::text \
+         FROM pg_catalog.pg_constraint con JOIN pg_catalog.pg_class r ON r.oid = con.confrelid \
+         WHERE con.conrelid = $1::oid AND con.contype = 'f'"
+    } else {
         "SELECT con.conkey::text, con.confkey::text, con.confrelid::int8::text, con.confrelid::regclass::text \
-         FROM pg_catalog.pg_constraint con WHERE con.conrelid = $1::oid AND con.contype = 'f'",
-        &[&oid_s],
-        deadline,
-    )?;
+         FROM pg_catalog.pg_constraint con WHERE con.conrelid = $1::oid AND con.contype = 'f'"
+    };
+    let fk_rows = q(conn, fk_sql, &[&oid_s], deadline)?;
     let mut fks = Vec::with_capacity(fk_rows.len());
     for r in &fk_rows {
         let local = ints(cell(r, 0)?)?;

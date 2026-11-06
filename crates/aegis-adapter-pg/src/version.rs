@@ -145,6 +145,11 @@ pub struct AdmittedVersion {
 }
 
 impl AdmittedVersion {
+    /// Only gates in this crate admit (the PG gate here, the CockroachDB gate in `crdb`).
+    #[cfg(feature = "crdb")]
+    pub(crate) fn new(token: String, version: EngineVersion) -> AdmittedVersion {
+        AdmittedVersion { token, version }
+    }
     pub fn token(&self) -> &str {
         &self.token
     }

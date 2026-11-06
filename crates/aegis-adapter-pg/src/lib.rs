@@ -7,11 +7,18 @@
 //! P4-pg-003: the connection pool keyed by (principal, tenant, login role, epoch) ([`pool`]; CRS C2/C5, R-DB-5) and
 //! the NC3 release path ([`checkin`]: checkin predicate, quarantine, recovery within the op budget without a
 //! CancelRequest, discard with a CancelRequest, NC4 charges, C8 reset on recycle).
+//! P7-adapter-crdb-001 (feature `crdb`, PREFLIGHT D-P7.8): [`Dialect`]`::Crdb` for the renderer
+//! ([`render_dialect`]: the q4-005 upsert guard fix, never `UPSERT`) and the schema gate
+//! ([`check_live_schema_dialect`]), plus [`crdb`]: the CockroachDB version gate (floors compiled from the
+//! `kind = "crdb"` pins) and the bounded whole-transaction SERIALIZABLE retry on 40001. Without the feature the
+//! crate behaves exactly as before (`Dialect` has only `Postgres`).
 //! Spec: `spec/SPEC_INVARIANTS.md`.
 #![forbid(unsafe_code)]
 
 pub mod auth;
 pub mod checkin;
+#[cfg(feature = "crdb")]
+pub mod crdb;
 pub mod lower;
 pub mod pool;
 pub mod schema;
@@ -28,13 +35,13 @@ pub use checkin::{
     Charge, DISCARD_COST, Nc3Observer, NoObserver, PgConn, PgSession, Release, Released, ResetError, checkin_predicate,
 };
 pub use lower::{
-    Param, PgClass, PgColumn, PgForeignKey, PgTable, RenderError, Rendered, render, render_filter, render_op, rls_bind,
-    rls_policy,
+    Dialect, Param, PgClass, PgColumn, PgForeignKey, PgTable, RenderError, Rendered, render, render_dialect,
+    render_filter, render_op, render_op_dialect, rls_bind, rls_policy,
 };
 pub use pool::{
     AcquireError, Checkout, ConnId, Epoch, Idled, KeyError, PlainReuse, Pool, PoolConfig, PoolKey, Pooled, ResetPending,
 };
-pub use schema::{LiveSchemaError, LiveTable, check_live_schema};
+pub use schema::{LiveSchemaError, LiveTable, check_live_schema, check_live_schema_dialect};
 pub use version::{AdmittedVersion, VersionRefusal, admit_server_version, recheck};
 pub use wire::{ConnectConfig, Connection};
 
