@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# One-off: install the approved public load tool h2load (nghttp2 1.69.0) on a box without docker, from the same
+# digest-pinned image oracles/transport-limits uses (oracles/transport-limits/Dockerfile).
+#   bench/scaling/provision-h2load [--build-host kamrui] [--to desktop]
+# The image is built on the build host (it has docker); the h2load binary and its musl shared-library closure are
+# copied out of it and unpacked on the target under ~/aegis-ci/tools/h2load-1.69.0, with a wrapper at
+# ~/aegis-ci/tools/bin/h2load (on PATH inside ci/remote.sh). Nothing outside ~/aegis-ci is touched; no apt, no sudo.
+# Idempotent: the tree and wrapper are replaced, and a version check runs at the end.
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../.." && pwd)"
+BUILD=kamrui TO=desktop
+while [ $# -gt 0 ]; do case "$1" in
+  --build-host) BUILD="$2"; shift 2;; --to) TO="$2"; shift 2;;
+  *) echo "usage: provision-h2load [--build-host H] [--to H]"; exit 2;; esac; done
+IMG=aegis-h2load:1.69.0 V=h2load-1.69.0
+ssh -o BatchMode=yes "$BUILD" "docker image inspect $IMG >/dev/null 2>&1 || docker build -q -t $IMG -" \
+  < "$ROOT/oracles/transport-limits/Dockerfile" >/dev/null
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+# The closure: the binary, every ldd-resolved library, and the musl loader (libc and loader are one file on musl).
+# shellcheck disable=SC2016
+inner='tar -chf - /usr/bin/h2load /lib/ld-musl-x86_64.so.1 $(ldd /usr/bin/h2load | awk "/=> \\// {print \$3}")'
+ssh -o BatchMode=yes "$BUILD" "docker run --rm $IMG sh -c $(printf '%q' "$inner")" > "$tmp/h2load.tar"
+tar -tf "$tmp/h2load.tar" | grep -q 'usr/bin/h2load' || { echo "provision-h2load: no h2load in the image closure"; exit 1; }
+sha=$(sha256sum "$tmp/h2load.tar" | cut -c1-16)
+scp -q -o BatchMode=yes "$tmp/h2load.tar" "$TO:aegis-ci/$V.tar"
+ssh -o BatchMode=yes "$TO" bash -s "$V" <<'REMOTE'
+set -euo pipefail
+V=$1; T=$HOME/aegis-ci/tools; D=$T/$V
+rm -rf "$D"; mkdir -p "$D" "$T/bin"; tar -xf "$HOME/aegis-ci/$V.tar" -C "$D"; rm -f "$HOME/aegis-ci/$V.tar"
+cat > "$T/bin/h2load" <<W
+#!/bin/sh
+# nghttp2 1.69.0 h2load from the pinned alpine image (bench/scaling/provision-h2load), run through its own musl loader.
+exec "$D/lib/ld-musl-x86_64.so.1" --library-path "$D/usr/lib:$D/lib" "$D/usr/bin/h2load" "\$@"
+W
+chmod 0755 "$T/bin/h2load"
+"$T/bin/h2load" --version
+REMOTE
+echo "provision-h2load: installed on $TO (closure tar sha256 $sha...)"
