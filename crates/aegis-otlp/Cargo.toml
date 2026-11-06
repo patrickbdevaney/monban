@@ -28,7 +28,7 @@ aegis-egress = { workspace = true, features = ["tls-client"] }
 # The rustls CLIENT profile builder (`client_config`).
 aegis-tls = { workspace = true, features = ["tls-client"] }
 # Root pins only, every crate already in Cargo.lock; no new crate. No tokio `macros` (tokio-macros is not in the lock).
-tokio = { workspace = true, features = ["rt", "net", "time", "io-util", "sync"] }
+tokio = { workspace = true, features = ["rt", "net", "time", "io-util", "sync", "signal"] }
 rustls = { workspace = true }
 http = { workspace = true }
 hyper = { workspace = true }

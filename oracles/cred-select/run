@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# AEGIS oracle: MTC CredentialSelector decision table, F1 SEL-1..3 (unit P7-oracle-sel-001). Contract: oracles/README.md.
+# Last line: CRED-SELECT: PASS|FAIL (...)  /  CRED-SELECT SELF-TEST: PASS|FAIL (...).
+#   ./run --n 10000 --subject 'target/release/tls-subject select'   drive the subject over the select line protocol
+#   ./run                    the same against the Python reference selector (ref_selector.py)
+#   ./run --self-test        reference must PASS; every selector, protocol and corpus mutant must be red
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/oracle.py" "$@"
