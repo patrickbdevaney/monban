@@ -1,0 +1,28 @@
+{
+ "id": "P8-spec-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "config-totality"
+ ],
+ "spec_refs": [
+  "PLAN-8 Interfaces",
+  "PREFLIGHT R5,R12,R13,R4"
+ ],
+ "oracles": [
+  "config-totality: worker_threads 0 / 1025 refused; retention 59 refused; a route path '/a/../b' refused at load",
+  "data-ir denylist: each MariaDB denylist form in a fixture lock is refused"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/statements.py check spec && ci/remote.sh cargo test -p aegis-config --locked",
+  "must": "F8 runtime.worker_threads, state.idempotency_retention_s, route path canon refusal; F4/F10 EngineFamily::Mariadb + denylist (spec text + aegis-types/aegis-config parse); F1 FIPS-B1, SOAK-1; re-frozen same commit; absent fields = today's behaviour"
+ },
+ "write_scope": [
+  "spec/**",
+  "interfaces/**",
+  "crates/aegis-config/**",
+  "crates/aegis-types/**"
+ ],
+ "notes": ""
+}

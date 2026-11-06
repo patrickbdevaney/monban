@@ -1,0 +1,28 @@
+{
+ "id": "P8-mariadb-001",
+ "role": "implementer",
+ "depends_on": [
+  "P8-spec-001",
+  "P8-oracle-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "native-e2e-mariadb",
+  "allowlist-lock"
+ ],
+ "spec_refs": [
+  "PREFLIGHT R4"
+ ],
+ "oracles": [
+  "native-e2e mariadb self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features adapter-mariadb && ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/aegis'",
+  "must": "aegis-data-ir EngineFamily::Mariadb + denylist; apps/notes allowlist.notes-mariadb.lock regenerating byte-identically (allowlist-lock gate); aegis-bin boots mariadb (P8-bin-001 wires); per-request connection with is_reusable, documented"
+ },
+ "write_scope": [
+  "crates/aegis-data-ir/src/**",
+  "apps/notes/**"
+ ],
+ "notes": ""
+}

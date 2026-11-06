@@ -1,0 +1,25 @@
+{
+ "id": "P8-otlp-001",
+ "role": "implementer",
+ "depends_on": [
+  "P8-oracle-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "otlp-export"
+ ],
+ "spec_refs": [
+  "PREFLIGHT R9"
+ ],
+ "oracles": [
+  "otlp-export self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh bash -c 'cargo build --release --locked -q -p aegis-otlp && oracles/otlp-export/run --exporter target/release/aegis-otlp'",
+  "must": "https endpoint via aegis-tls client profile + --ca-file; bounded retry with backoff then drop-and-count"
+ },
+ "write_scope": [
+  "crates/aegis-otlp/src/**"
+ ],
+ "notes": ""
+}

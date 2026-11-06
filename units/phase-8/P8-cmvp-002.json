@@ -1,0 +1,26 @@
+{
+ "id": "P8-cmvp-002",
+ "role": "implementer",
+ "depends_on": [
+  "P8-spec-002"
+ ],
+ "start_now": false,
+ "gates": [
+  "fips-indicator"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P8.2"
+ ],
+ "oracles": [
+  "oracle self-test: a subject that reports Approved without calling the indicator -> red; a non-approved primitive (e.g. X25519) reported Approved -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c \"profiles/cmvp/build.sh && oracles/fips-indicator/run --subject 'target/cmvp/release/tls-subject indicator'\"",
+  "must": "tls-subject indicator mode (cmvp): ECDH P-384, ML-KEM-1024 encap/decap, HKDF each Approved via the module indicator; X25519 reported NonApproved (control); 0x11ED handshake reported; oracle in oracles/fips-indicator"
+ },
+ "write_scope": [
+  "subjects/tls-subject/src/**",
+  "oracles/fips-indicator/**"
+ ],
+ "notes": "Spec-author writes oracles/fips-indicator first in the same unit (red before the subject mode). If the indicator symbols are absent from the release module: INFEASIBLE_REPORT, keep fips-boundary."
+}

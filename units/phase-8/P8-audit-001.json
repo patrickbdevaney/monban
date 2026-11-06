@@ -1,0 +1,23 @@
+{
+ "id": "P8-audit-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "tlog-mldsa-openssl"
+ ],
+ "spec_refs": [
+  "BACKLOG Audit"
+ ],
+ "oracles": [
+  "a checkpoint with one flipped cosignature byte -> OpenSSL verify red; wrong public key -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'cargo build --release --locked -q -p aegis-bin && oracles/tlog-verify/run --openssl-mldsa --binary target/release/aegis && oracles/tlog-verify/run --openssl-mldsa --self-test'",
+  "must": "tlog-verify --openssl-mldsa: extract the signed-note body + ML-DSA-87 cosignature from aegis-bin's audit log, verify with OpenSSL 3.5.3 pkeyutl -verify (raw ML-DSA-87, no prehash) against the published key"
+ },
+ "write_scope": [
+  "oracles/tlog-verify/**"
+ ],
+ "notes": ""
+}

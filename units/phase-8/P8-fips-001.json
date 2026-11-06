@@ -1,0 +1,31 @@
+{
+ "id": "P8-fips-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "fips-boundary"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P8.1",
+  "140sp5314.pdf v1.2",
+  "SP 800-227 4.6.2",
+  "RFC 10024"
+ ],
+ "oracles": [
+  "unqualified '0x11ED is FIPS-approved' in SECURITY_CLAIMS -> red",
+  "TLS 1.3 KDF listed as approved -> red",
+  "policy sha256 mismatch -> red",
+  "cert #5298 cited for the static build -> red"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/fips-boundary.py && python3 -I ci/fips-boundary.py --self-test",
+  "must": "compliance/fips-boundary.toml (cert 5314, policy sha256, per-component table/row, combiner argument, TLS 1.3 KDF NOT CLAIMED); checker scans SECURITY_CLAIMS.md, compliance/**, README/docs for claim text"
+ },
+ "write_scope": [
+  "compliance/fips-boundary.toml",
+  "ci/fips-boundary.py",
+  "ci/fixtures/fips-boundary/**"
+ ],
+ "notes": "Fetch 140sp5314.pdf with User-Agent aegis-ci to compute its sha256; do not vendor it."
+}

@@ -1,0 +1,35 @@
+{
+ "id": "P8-compliance-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P8-fips-001",
+  "P8-cmvp-002",
+  "P8-bin-001",
+  "P8-soak-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "tcb-lines",
+  "compliance",
+  "fips-boundary"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P8.1",
+  "PLAN-8 Claims"
+ ],
+ "oracles": [
+  "tcb-lines/fips-boundary mutants as defined"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/tcb-lines.py && python3 -I ci/compliance.py check && python3 -I ci/fips-boundary.py",
+  "must": "SECURITY_CLAIMS + COMPLIANCE_MAP updated with the D-P8.1 0x11ED text, cert #5314 for the static build, Kani client rung, C0-C4 gated, MariaDB servable, soak rung; Phase-7 residual rows closed or carried with reason; rustls #3376 closed-unmerged recorded under R-PQC-4"
+ },
+ "write_scope": [
+  "SECURITY_CLAIMS.md",
+  "compliance/**",
+  "DEVIATIONS.md",
+  "ci/tcb-lines.py",
+  "ci/fixtures/tcb-lines/**"
+ ],
+ "notes": ""
+}

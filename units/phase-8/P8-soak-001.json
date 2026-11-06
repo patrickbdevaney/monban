@@ -1,0 +1,23 @@
+{
+ "id": "P8-soak-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "soak"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P8.4"
+ ],
+ "oracles": [
+  "self-test: a fake subject leaking 2 MiB/h -> red; an fd not released -> red; one error -> red"
+ ],
+ "acceptance": {
+  "cmd": "oracles/soak/run --self-test && ci/remote.sh --host quiet oracles/soak/run --hours 0.25",
+  "must": "oracles/soak: h2load steady load (50% of measured 4-core throughput), PROXY + selector + crdb-less config (sqlite native route) + aegis-otlp sidecar; samples RSS/fds/tasks from /proc and metrics; RSS slope <= 1 MiB/h after 15 min warm-up; fds/tasks baseline +-5 after load; 0 errors; audit log verifies; --hours 24 record-only"
+ },
+ "write_scope": [
+  "oracles/soak/**"
+ ],
+ "notes": "VM via ci/release/vm.sh start/stop (the gate runner handles it for the GO run; for acceptance start and stop it yourself)."
+}
