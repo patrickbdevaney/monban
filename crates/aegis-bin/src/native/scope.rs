@@ -386,11 +386,28 @@ pub type SqliteEngine = aegis_adapter_host::dispatch::Engine<CtxRenderer<SqliteR
 pub type PgEngine = aegis_adapter_host::dispatch::Engine<CtxRenderer<PgRenderer>, CtxExec<PgExecutor<PgConn>>>;
 pub type SqliteHost = Host<EngineBackends<CtxRenderer<SqliteRenderer>, CtxExec<SqliteExec>>>;
 pub type PgHost = Host<EngineBackends<CtxRenderer<PgRenderer>, CtxExec<PgExecutor<PgConn>>>>;
+#[cfg(feature = "adapter-crdb")]
+pub type CrdbEngine =
+    aegis_adapter_host::dispatch::Engine<CtxRenderer<super::engines::CrdbRenderer>, CtxExec<PgExecutor<PgConn>>>;
+#[cfg(feature = "adapter-crdb")]
+pub type CrdbHost = Host<EngineBackends<CtxRenderer<super::engines::CrdbRenderer>, CtxExec<PgExecutor<PgConn>>>>;
 
 /// One configured backend's engine and its SDK host (one blocking pool per backend).
 pub enum EngineHandle {
-    Sqlite { engine: Arc<SqliteEngine>, host: SqliteHost },
-    Pg { engine: Arc<PgEngine>, host: PgHost },
+    Sqlite {
+        engine: Arc<SqliteEngine>,
+        host: SqliteHost,
+    },
+    Pg {
+        engine: Arc<PgEngine>,
+        host: PgHost,
+    },
+    /// CockroachDB (feature `adapter-crdb`): the PG wire and pool, crdb dialect, no RLS.
+    #[cfg(feature = "adapter-crdb")]
+    Crdb {
+        engine: Arc<CrdbEngine>,
+        host: CrdbHost,
+    },
 }
 
 impl std::fmt::Debug for EngineHandle {
@@ -398,6 +415,8 @@ impl std::fmt::Debug for EngineHandle {
         match self {
             EngineHandle::Sqlite { .. } => f.write_str("Sqlite"),
             EngineHandle::Pg { .. } => f.write_str("Pg"),
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { .. } => f.write_str("Crdb"),
         }
     }
 }
@@ -415,6 +434,8 @@ impl EngineHandle {
         match self {
             EngineHandle::Sqlite { host, .. } => host.call(app, session),
             EngineHandle::Pg { host, .. } => host.call(app, session),
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { host, .. } => host.call(app, session),
         }
     }
 
@@ -422,6 +443,8 @@ impl EngineHandle {
         match self {
             EngineHandle::Sqlite { host, .. } => host.pool(),
             EngineHandle::Pg { host, .. } => host.pool(),
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { host, .. } => host.pool(),
         }
     }
 }

@@ -79,13 +79,17 @@ impl Mutants {
     }
 }
 
-/// Provisional admission numbers (ARCHITECTURE §3.4 numbers are D-grade): generous per-IP rate, no expensive tier
-/// (every proxied request costs 1, below `exp_cost`), concurrency cap 4096.
-pub fn admission_config() -> aegis_admission::Config {
-    let per_ip = Gcra::new(1_000_000, 2_000); // 1000/s sustained, burst 2000
+/// The admission pipeline's numbers from F8 `admission` (P7-spec-001; ARCHITECTURE §3.4 numbers are D-grade). An
+/// absent block is [`aegis_config::Admission::default`], exactly the pre-Phase-7 constants: per IP 1000/s, burst
+/// 2000 (`Gcra::new(1_000_000, 2_000)`), S1 store 65536, 16384 connections, 4096 per prefix, concurrency 4096.
+/// `per_ip` is the S1 per-source limit and also the S3 anon/session/verified per-identity limit (as before). No
+/// expensive tier (every proxied request costs 1, below `exp_cost`), so the aggregate limiters never apply.
+pub fn admission_config(a: &aegis_config::Admission) -> aegis_admission::Config {
+    let per_ip = Gcra::new(a.per_ip.emission_interval_ns(), a.per_ip.burst);
+    let store = usize::try_from(a.per_ip_store).unwrap_or(usize::MAX);
     aegis_admission::Config {
         s1: per_ip,
-        s1_store: 65_536,
+        s1_store: store,
         s3_store: 65_536,
         anon: per_ip,
         session: per_ip,
@@ -95,9 +99,9 @@ pub fn admission_config() -> aegis_admission::Config {
         exp_cost: u64::MAX,
         stepup_cost: u64::MAX,
         stepup_bits: 0,
-        limit: 4096,
-        max_conns: 16_384,
-        prefix_cap: 4096,
+        limit: a.concurrency,
+        max_conns: a.max_conns,
+        prefix_cap: a.per_prefix_conns,
         fresh_age_ns: 3_600_000_000_000,
     }
 }
@@ -146,12 +150,13 @@ impl Shared {
         native: Option<Arc<crate::native::DataPlane>>,
         p2: Option<Arc<crate::p2::Runtime>>,
     ) -> Arc<Self> {
+        let admission = Mutex::new(Admission::new(admission_config(&snapshot.plan.admission)));
         let s = Arc::new(Self {
             registry: Registry::new(),
             stats: ProxyStats::default(),
             pool: Pool::new(snapshot.epoch),
             snapshot: RwLock::new(Arc::new(snapshot)),
-            admission: Mutex::new(Admission::new(admission_config())),
+            admission,
             started: Instant::now(),
             next_id: AtomicU64::new(1),
             draining: AtomicBool::new(false),
@@ -283,5 +288,47 @@ impl ConnGuard {
 impl Drop for ConnGuard {
     fn drop(&mut self) {
         self.0.live_conns.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
+    use super::*;
+
+    fn cfg(extra: &str) -> aegis_config::Config {
+        let doc = format!(
+            r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}}]{extra},
+               "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"/","to":{{"upstream":"127.0.0.1:9"}},"authz":"allow-all"}}]}}]}}"#
+        );
+        aegis_config::parse_config(doc.as_bytes()).unwrap()
+    }
+
+    /// Absent `admission` = exactly the pre-Phase-7 constants.
+    #[test]
+    fn absent_admission_is_todays_constants() {
+        let c = admission_config(cfg("").admission());
+        let per_ip = Gcra::new(1_000_000, 2_000);
+        assert_eq!((c.s1, c.anon, c.session, c.verified), (per_ip, per_ip, per_ip, per_ip));
+        assert_eq!((c.s1_store, c.s3_store), (65_536, 65_536));
+        assert_eq!((c.limit, c.max_conns, c.prefix_cap), (4096, 16_384, 4096));
+        assert_eq!((c.agg_f, c.agg_e), (per_ip, per_ip));
+        assert_eq!(
+            (c.exp_cost, c.stepup_cost, c.stepup_bits, c.fresh_age_ns),
+            (u64::MAX, u64::MAX, 0, 3_600_000_000_000)
+        );
+    }
+
+    /// A configured block reaches S0 / S1 / S3 / S5.
+    #[test]
+    fn configured_admission_is_wired() {
+        let c = admission_config(
+            cfg(r#","admission":{"per_ip":{"rate_per_s":200000,"burst":400000},"per_ip_store":2048,
+                  "max_conns":100,"per_prefix_conns":50,"concurrency":64}"#)
+            .admission(),
+        );
+        let per_ip = Gcra::new(5_000, 400_000);
+        assert_eq!((c.s1, c.anon, c.session, c.verified), (per_ip, per_ip, per_ip, per_ip));
+        assert_eq!((c.s1_store, c.limit, c.max_conns, c.prefix_cap), (2048, 64, 100, 50));
     }
 }

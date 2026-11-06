@@ -125,6 +125,12 @@ pub struct ListenerPlan {
     pub addr: SocketAddr,
     pub profile: aegis_tls::Profile,
     pub alpn: Vec<Vec<u8>>,
+    /// F8 `proxy_protocol` (PROXY-1..3; feature `proxy-protocol`, refused by [`plan`] otherwise).
+    pub proxy: Option<aegis_config::ProxyProtocol>,
+    /// F8 `l4` (L4-1/L4-2; feature `l4`, refused by [`plan`] otherwise): an SNI-passthrough listener, never HTTP.
+    pub l4: Option<Vec<aegis_config::L4Route>>,
+    /// F8 `front` (FRONT-1; `uring` needs feature `uring`). The `--front` flag overrides it at serve time.
+    pub front: aegis_config::Front,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -151,6 +157,8 @@ pub struct Plan {
     pub limits: aegis_config::Limits,
     /// The same limits mapped by name onto the transport's wrapper limits (plus its golden non-F8 settings).
     pub wl: aegis_transport::WrapperLimits,
+    /// F8 `admission` with defaults applied (absent = the pre-Phase-7 constants); fixed for the process.
+    pub admission: aegis_config::Admission,
     /// Non-fatal findings for `check-config`.
     pub warnings: Vec<String>,
 }
@@ -160,6 +168,10 @@ impl Plan {
     /// change goes through the zero-downtime upgrade, SIGUSR2).
     pub fn same_sockets(&self, other: &Plan) -> bool {
         self.listeners == other.listeners && self.admin == other.admin
+    }
+    /// The admission limiter is built once per process: a reload may not change F8 `admission`.
+    pub fn same_admission(&self, other: &Plan) -> bool {
+        self.admission == other.admission
     }
 }
 
@@ -243,7 +255,46 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
             Some(v) => v.iter().map(|a| a.as_str().as_bytes().to_vec()).collect(),
             None => vec![b"h2".to_vec(), b"http/1.1".to_vec()],
         };
-        listeners.push(ListenerPlan { name: l.name.clone(), addr, profile, alpn });
+        // A Phase-7 member whose feature is not built is refused (fail closed, exit 78): it is never ignored.
+        if l.proxy_protocol.is_some() && !cfg!(feature = "proxy-protocol") {
+            return Err(format!(
+                "/listeners/{i}/proxy_protocol: this build has no feature `proxy-protocol` (fail closed)"
+            ));
+        }
+        if l.l4.is_some() && !cfg!(feature = "l4") {
+            return Err(format!("/listeners/{i}/l4: this build has no feature `l4` (fail closed)"));
+        }
+        if l.front == aegis_config::Front::Uring && !cfg!(feature = "uring") {
+            return Err(format!("/listeners/{i}/front \"uring\": this build has no feature `uring` (fail closed)"));
+        }
+        listeners.push(ListenerPlan {
+            name: l.name.clone(),
+            addr,
+            profile,
+            alpn,
+            proxy: l.proxy_protocol.clone(),
+            l4: l.l4.clone(),
+            front: l.front,
+        });
+    }
+    if cfg.tls().is_some() && !cfg!(all(feature = "mtc", not(feature = "cmvp"))) {
+        return Err("/tls: credential selection needs feature `mtc` (compiled out of the cmvp build); this build has \
+                    none (fail closed)"
+            .into());
+    }
+    for a in cfg.data().map(aegis_config::DataBlock::adapters).unwrap_or(&[]) {
+        let built = match a.family {
+            aegis_config::AdapterFamily::Mariadb => cfg!(feature = "adapter-mariadb"),
+            aegis_config::AdapterFamily::Crdb => cfg!(feature = "adapter-crdb"),
+        };
+        if !built {
+            return Err(format!(
+                "/data/backends {:?}: engine {} needs feature `adapter-{}`; this build has none (fail closed)",
+                a.id,
+                a.family.as_str(),
+                a.family.as_str()
+            ));
+        }
     }
     let admin = parse_admin(cfg.admin().and_then(|a| a.bind.as_deref()))?;
     let mut vhosts = Vec::new();
@@ -333,7 +384,7 @@ pub fn plan(cfg: &Config) -> Result<Plan, String> {
         wl.set_f8(name, v).map_err(|e| format!("/limits/{name}: {e}"))?;
     }
     wl.validate().map_err(|e| format!("/limits: {e}"))?;
-    Ok(Plan { listeners, admin, vhosts, query, limits: *cfg.limits(), wl, warnings })
+    Ok(Plan { listeners, admin, vhosts, query, limits: *cfg.limits(), wl, admission: *cfg.admission(), warnings })
 }
 
 /// The routing table of one config generation, with the vhost authorities expanded for the listener ports.
@@ -474,6 +525,51 @@ mod tests {
         assert!(plan(&p2_cfg(r#","frame_max_bytes":4096"#)).unwrap_err().contains("frame_max_bytes"));
         assert!(plan(&p2_cfg(r#","frame_max_bytes":65536"#)).is_ok() == cfg!(feature = "p2"));
         assert!(plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes","framing":"h2"}}]"#)).is_err());
+    }
+
+    fn p7(listener: &str, root: &str) -> Result<Plan, String> {
+        let doc = format!(
+            r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"{listener}}}]{root},
+               "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"/","to":{{"upstream":"127.0.0.1:9"}},"authz":"allow-all"}}]}}]}}"#
+        );
+        plan(&aegis_config::parse_config(doc.as_bytes()).unwrap())
+    }
+
+    /// A Phase-7 member whose feature is not built fails the boot (exit 78); with the feature it is planned.
+    #[test]
+    fn phase7_members_need_their_feature() {
+        let cases: [(&str, &str, bool, &str); 6] = [
+            (r#","proxy_protocol":{"trusted":["10.0.0.0/8"]}"#, "", cfg!(feature = "proxy-protocol"), "proxy-protocol"),
+            (r#","l4":[{"sni":"a.test","upstream":"127.0.0.1:9"}]"#, "", cfg!(feature = "l4"), "`l4`"),
+            (r#","front":"uring""#, "", cfg!(feature = "uring"), "`uring`"),
+            (
+                "",
+                r#","tls":{"credentials":[{"id":"c","kind":"x509","chain":"path:/c.pem","key":"path:/k.pem"}]}"#,
+                cfg!(all(feature = "mtc", not(feature = "cmvp"))),
+                "`mtc`",
+            ),
+            (
+                "",
+                r#","data":{"backends":[{"id":"cr","engine":"crdb","dsn_ref":"env:X","pin":"crdb"}]}"#,
+                cfg!(feature = "adapter-crdb"),
+                "adapter-crdb",
+            ),
+            (
+                "",
+                r#","data":{"backends":[{"id":"my","engine":"mariadb","dsn_ref":"env:X","pin":"mariadb"}]}"#,
+                cfg!(feature = "adapter-mariadb"),
+                "adapter-mariadb",
+            ),
+        ];
+        for (l, r, built, name) in cases {
+            match p7(l, r) {
+                Ok(_) => assert!(built, "{name}: planned without the feature"),
+                Err(e) => assert!(!built && e.contains(name) && e.contains("fail closed"), "{name}: {e}"),
+            }
+        }
+        let p = p7("", "").unwrap();
+        assert_eq!(p.admission, aegis_config::Admission::default());
+        assert_eq!(p.listeners[0].front, aegis_config::Front::Epoll);
     }
 
     #[test]

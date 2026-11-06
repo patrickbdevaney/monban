@@ -107,3 +107,35 @@ impl Renderer for PgRenderer {
         Ok(r)
     }
 }
+
+/// CockroachDB (feature `adapter-crdb`, non-golden until its gates are recorded; D-P7.8): the PG renderer in the
+/// crdb dialect (`render_op_dialect(.., Dialect::Crdb)`: the q4-005 upsert guard), over `check_live_schema_dialect`
+/// tables. CockroachDB speaks the PostgreSQL dialect, so the F4 denylist scan and the allowlist lock are the
+/// PostgreSQL ones (the lock's family is `postgres`; its op lines are IR shapes, not engine text).
+#[cfg(feature = "adapter-crdb")]
+#[derive(Debug)]
+pub struct CrdbRenderer(pub PgRenderer);
+
+#[cfg(feature = "adapter-crdb")]
+impl Renderer for CrdbRenderer {
+    type Rendered = aegis_adapter_pg::Rendered;
+    fn backend_id(&self) -> &str {
+        self.0.backend_id()
+    }
+    fn fidelity(&self) -> Fidelity {
+        Fidelity::Exact
+    }
+    fn schema(&self, collection: &str) -> Option<&Schema> {
+        self.0.schema(collection)
+    }
+    fn allowlist(&self) -> Option<&Allowlist> {
+        self.0.allowlist()
+    }
+    fn render(&self, op: &Op, schema: &Schema) -> Result<Self::Rendered, EngineError> {
+        let lt = self.0.tables.get(&op.collection).ok_or_else(|| EngineError::Refused("no table".into()))?;
+        let r = aegis_adapter_pg::render_op_dialect(op, schema, &lt.table, aegis_adapter_pg::Dialect::Crdb)
+            .map_err(|e| EngineError::Refused(e.to_string()))?;
+        deny_scan(EngineFamily::Postgres, &r.sql)?;
+        Ok(r)
+    }
+}

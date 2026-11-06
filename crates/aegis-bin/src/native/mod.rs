@@ -17,6 +17,19 @@
 //!
 //! Requests: [`http`]. Per-scope backend, commit gate and outcome record: [`scope`]. Renderers: [`engines`].
 
+#[cfg(any(feature = "adapter-crdb", feature = "adapter-mariadb"))]
+pub mod adapters;
+#[cfg(not(any(feature = "adapter-crdb", feature = "adapter-mariadb")))]
+mod adapters {
+    //! No adapter family is built: plan() already refused any adapter backend (exit 78).
+    pub fn boot(
+        a: &aegis_config::AdapterBackend,
+        _reg: &std::sync::Arc<super::scope::Registry>,
+        _idx: usize,
+    ) -> Result<super::scope::EngineHandle, String> {
+        Err(format!("engine {} is not built into this binary (fail closed)", a.family.as_str()))
+    }
+}
 pub mod engines;
 pub mod http;
 #[cfg(feature = "p2")]
@@ -355,6 +368,8 @@ fn boot_pg(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Result
         epoch: 1,
         op_budget_ms: b.op_budget_ms,
         charges: Arc::new(PrincipalLedger::new()),
+        #[cfg(feature = "adapter-crdb")]
+        crdb: false,
     });
     let engine = Arc::new(wrap(engines::PgRenderer::new(&b.id, vec![live], lock), exec, reg, idx));
     let host = Host::new(pool()?, EngineBackends::new(Arc::clone(&engine), Remaining::DEFAULT));
@@ -382,6 +397,13 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Op
         .map_err(|e| format!("data backend {:?} ({}): {e}", b.id, b.engine.as_str()))?;
         engines.push(Backend { id: b.id.clone(), engine: e, budget_ms: b.op_budget_ms });
     }
+    // Phase-7 adapter families (features `adapter-crdb`, `adapter-mariadb`; plan() refused any family not built).
+    for a in cfg.data().map(aegis_config::DataBlock::adapters).unwrap_or(&[]) {
+        let idx = engines.len();
+        let e = adapters::boot(a, &reg, idx)
+            .map_err(|e| format!("data backend {:?} ({}): {e}", a.id, a.family.as_str()))?;
+        engines.push(Backend { id: a.id.clone(), engine: e, budget_ms: a.op_budget_ms });
+    }
     let dp = DataPlane {
         reg,
         engines,
@@ -403,6 +425,28 @@ impl SchemaProvider for Provider<'_> {
         let s = match &b.engine {
             EngineHandle::Sqlite { engine, .. } => engine.renderer.schema(collection),
             EngineHandle::Pg { engine, .. } => engine.renderer.schema(collection),
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { .. } => return Err(Unresolved::Unavailable), // never a golden backend id
+        }
+        .ok_or(Unresolved::NoCollection)?;
+        s.columns.iter().find(|c| c.name == column).map(|c| c.field).ok_or(Unresolved::NoColumn)
+    }
+
+    /// The Phase-7 adapter families this build serves (P7-spec-001: the default refuses every family). Only a
+    /// backend booted as that family resolves (a crdb id never resolves against a golden engine, and vice versa).
+    #[cfg(feature = "adapter-crdb")]
+    fn adapter_field(
+        &self,
+        backend: &aegis_config::AdapterBackend,
+        collection: &str,
+        column: &str,
+    ) -> Result<FieldId, Unresolved> {
+        let b = self.0.engines.iter().find(|e| e.id == backend.id).ok_or(Unresolved::Unavailable)?;
+        let s = match (&b.engine, backend.family) {
+            (EngineHandle::Crdb { engine, .. }, aegis_config::AdapterFamily::Crdb) => {
+                engine.renderer.schema(collection)
+            }
+            _ => return Err(Unresolved::Unavailable),
         }
         .ok_or(Unresolved::NoCollection)?;
         s.columns.iter().find(|c| c.name == column).map(|c| c.field).ok_or(Unresolved::NoColumn)
@@ -481,8 +525,11 @@ impl DataPlane {
     /// CRS C5: a new config epoch retires pooled PG connections of older epochs.
     pub fn bump_epoch(&self, epoch: u64) {
         for e in &self.engines {
-            if let EngineHandle::Pg { engine, .. } = &e.engine {
-                engine.executor.inner.bump_epoch(epoch);
+            match &e.engine {
+                EngineHandle::Pg { engine, .. } => engine.executor.inner.bump_epoch(epoch),
+                #[cfg(feature = "adapter-crdb")]
+                EngineHandle::Crdb { engine, .. } => engine.executor.inner.bump_epoch(epoch),
+                EngineHandle::Sqlite { .. } => {}
             }
         }
     }
@@ -521,6 +568,23 @@ impl DataPlane {
                     &mut tx,
                     "SELECT status::text, body FROM aegis_idem WHERE principal = $1 AND k = $2",
                     &[Some(ph.as_str()), Some(key)],
+                    1,
+                );
+                x.rollback(tx);
+                r.map_err(|e| e.to_string())?.rows
+            }
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { engine, .. } => {
+                // No RLS on CockroachDB: the tenant predicate is the guard (the table's rows carry the tenant).
+                let x = &engine.executor.inner;
+                let cancel = CancelToken::new();
+                let info = ScopeInfo { principal, tenant: principal.tenant(), cancel: &cancel };
+                let tenant = aegis_data_ir::tenant_text(principal.tenant());
+                let mut tx = x.begin(&info).map_err(|e| e.to_string())?;
+                let r = x.raw(
+                    &mut tx,
+                    "SELECT status::text, body FROM aegis_idem WHERE tenant = $1 AND principal = $2 AND k = $3",
+                    &[Some(tenant.as_str()), Some(ph.as_str()), Some(key)],
                     1,
                 );
                 x.rollback(tx);

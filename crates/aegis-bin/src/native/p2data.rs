@@ -135,6 +135,8 @@ impl Store for P2Store {
         match &self.dp.engines.get(idx)?.engine {
             EngineHandle::Sqlite { engine, .. } => stage_on(engine, caps, &op, &self.principal),
             EngineHandle::Pg { engine, .. } => stage_on(engine, caps, &op, &self.principal),
+            #[cfg(feature = "adapter-crdb")]
+            EngineHandle::Crdb { engine, .. } => stage_on(engine, caps, &op, &self.principal),
         }
     }
 }
