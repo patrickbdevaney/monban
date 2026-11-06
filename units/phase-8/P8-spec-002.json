@@ -1,0 +1,35 @@
+{
+ "id": "P8-spec-002",
+ "role": "integrator",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "engine-pins-kamrui",
+  "no-test-faults"
+ ],
+ "spec_refs": [
+  "PLAN-8 Roles",
+  "PREFLIGHT R16,D-P8.2"
+ ],
+ "oracles": [
+  "engines self-test: a pin whose config_digest mismatches -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'ci/engines.sh check && ci/engines.sh with pg17,pg18,valkey -- ci/engines.sh versions' && cargo xtask layering && cargo xtask unsafe-sites && cargo xtask lock-age --min-days 7",
+  "must": "aegis-ops feature test-faults (off; acme-subject enables it); tls-subject feature indicator (cmvp only) + aegis-iso cmvp indicator FFI sites (<= 2, cap 20 kept, // SAFETY:); fuzz target pg_message registered (stub); engine-pins config_digest for every pin so the same pins work on laptop and kamrui; no new crates"
+ },
+ "write_scope": [
+  "Cargo.toml",
+  "Cargo.lock",
+  "crates/*/Cargo.toml",
+  "subjects/*/Cargo.toml",
+  "supply-chain/**",
+  "ci/engines.sh",
+  "ci/fuzz.sh",
+  "fuzz/**",
+  "crates/aegis-iso/src/fips.rs",
+  "xtask/**",
+  "profiles/cmvp/**"
+ ],
+ "notes": ""
+}

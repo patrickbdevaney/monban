@@ -1,0 +1,35 @@
+{
+ "id": "P8-oracle-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "native-e2e-mariadb",
+  "bin-residuals",
+  "crdb-live",
+  "otlp-export",
+  "reverse-proxy-e2e"
+ ],
+ "spec_refs": [
+  "PREFLIGHT R4,R6-R9"
+ ],
+ "oracles": [
+  "bin-residuals: reference with SEL-2 broken, idle timeout ignored, two responses -> red",
+  "crdb-live: reference that answers a 40001 as success with stale data -> red; cancel ignored -> red",
+  "native-e2e mariadb: drop-tenant reference -> red",
+  "otlp: https endpoint skipped -> red; no retry -> red",
+  "proxy-e2e: two responses for one bad chunked request -> red"
+ ],
+ "acceptance": {
+  "cmd": "oracles/bin-residuals/run --self-test && ci/remote.sh --host kamrui bash -c 'ci/engines.sh with crdb -- oracles/crdb-live/run --self-test --dsn @crdb' && oracles/otlp-export/run --self-test",
+  "must": "new oracles bin-residuals, crdb-live (own-gate needs), native-e2e --engine mariadb, otlp-export https+retry cases, proxy-e2e one-response case; each red today against the current binary where the residual exists"
+ },
+ "write_scope": [
+  "oracles/bin-residuals/**",
+  "oracles/crdb-live/**",
+  "oracles/native-e2e/**",
+  "oracles/otlp-export/**",
+  "oracles/proxy-e2e/**"
+ ],
+ "notes": ""
+}

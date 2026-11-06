@@ -1,0 +1,42 @@
+{
+ "id": "P8-hardening-001",
+ "role": "implementer",
+ "depends_on": [
+  "P8-spec-001",
+  "P8-spec-002"
+ ],
+ "start_now": false,
+ "gates": [
+  "no-test-faults",
+  "egress-tls-e2e",
+  "state-props",
+  "config-totality",
+  "fuzz"
+ ],
+ "spec_refs": [
+  "PREFLIGHT R11-R15"
+ ],
+ "oracles": [
+  "no-test-faults: a fixture graph enabling test-faults in aegis-bin -> red",
+  "egress-tls: subject accepting an untrusted upstream -> red"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/no-test-faults.py && ci/remote.sh bash -c 'cargo build --release --locked -q -p egress-subject --features tls-client && oracles/egress-tls/run --subject target/release/egress-subject' && ci/remote.sh ci/fuzz.sh run --execs 10000000 --targets pg_message",
+  "must": "aegis-ops Faults behind test-faults; aegis-state idempotency retention (F8) with state-props case; aegis-config route path refusal wired; aegis-adapter-pg: pg_message fuzz target body, Unix-socket connect timeout, SASLprep (RFC 4013) for SCRAM; aegis-egress + egress-subject real TLS e2e; ci/no-test-faults.py + oracles/egress-tls (this unit writes both, spec-author part first, red before code)"
+ },
+ "write_scope": [
+  "crates/aegis-ops/src/**",
+  "crates/aegis-state/src/**",
+  "crates/aegis-config/src/**",
+  "crates/aegis-adapter-pg/src/**",
+  "crates/aegis-egress/src/**",
+  "subjects/egress-subject/src/**",
+  "subjects/acme-subject/src/**",
+  "fuzz/fuzz_targets/pg_message.rs",
+  "ci/no-test-faults.py",
+  "ci/fixtures/no-test-faults/**",
+  "oracles/egress-tls/**",
+  "oracles/state-props/**"
+ ],
+ "notes": "Mixed unit: write the oracle/checker parts first and show them red."
+}

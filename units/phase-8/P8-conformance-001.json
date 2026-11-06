@@ -1,0 +1,30 @@
+{
+ "id": "P8-conformance-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "conformance-full"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P8.5",
+  "PLAN-6 D8"
+ ],
+ "oracles": [
+  "a DRT log with divergence 1 -> C3 red",
+  "an F1 statement with no TRACE row -> C4 red",
+  "a mapped gate without a log from this run -> C4 red",
+  "subject booted with a different effective-config hash -> config-pin red"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I conformance/run --self-test --require C0,C1,C2,C3,C4 --config-pin",
+  "must": "spec/TRACE.toml mapping every F1 statement id to >= 1 gate id; conformance/run --require and --config-pin; F13 report gains C3/C4 levels and config hash (F13 additive re-freeze if needed, in P8-spec-001's style)"
+ },
+ "write_scope": [
+  "conformance/**",
+  "spec/TRACE.toml",
+  "interfaces/F13-conformance-report.schema.json",
+  "interfaces/MANIFEST.sha256"
+ ],
+ "notes": ""
+}
