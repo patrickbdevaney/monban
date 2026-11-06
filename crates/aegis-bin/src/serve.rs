@@ -39,6 +39,9 @@ pub const EX_CONFIG: u8 = 78;
 const EX_SOFTWARE: u8 = 70;
 const EX_OSERR: u8 = 71;
 const EX_IOERR: u8 = 74;
+/// `--front uring` without a usable io_uring (EX_UNAVAILABLE): refused before anything is bound.
+#[cfg_attr(not(feature = "uring"), allow(dead_code))]
+const EX_UNAVAILABLE: u8 = 69;
 /// UP-4 drain deadline D (upgrade).
 const DRAIN_DEADLINE: Duration = Duration::from_secs(10);
 /// NC8: SIGTERM to exit within T_drain = 10 s (PLAN D16). Connections get 8 s, then in-flight app scopes (pool
@@ -72,9 +75,18 @@ fn fail_closed(msg: &str) -> ExitCode {
 /// The inbound server: aegis-transport (h1 + h2 with the AEGIS wrapper) in front of the proxy.
 pub type Srv = Server<ProxyApp>;
 
+/// A public listener: the transport, its TLS acceptor and its Phase-7 front matter (PROXY, L4, MTC), if any.
+#[derive(Clone)]
+struct Public {
+    srv: Arc<Srv>,
+    acc: TlsAcceptor,
+    #[cfg(any(feature = "proxy-protocol", feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
+    front: Option<Arc<crate::front::Front>>,
+}
+
 #[derive(Clone)]
 enum Kind {
-    Public(Arc<Srv>, TlsAcceptor),
+    Public(Public),
     Admin(Arc<aegis_tls::FipsStatus>),
 }
 
@@ -104,8 +116,9 @@ async fn accept_tcp(shared: Arc<Shared>, l: TcpListener, kind: Kind) {
             Either::Left(Ok((sock, addr))) => {
                 let shared = shared.clone();
                 match &kind {
-                    Kind::Public(srv, acc) => {
-                        tokio::spawn(public_conn(shared, srv.clone(), sock, addr, acc.clone()));
+                    Kind::Public(p) => {
+                        let _ = sock.set_nodelay(true);
+                        tokio::spawn(public_conn(shared, p.clone(), sock, addr));
                     }
                     Kind::Admin(f) => {
                         let f = f.clone();
@@ -141,16 +154,39 @@ async fn accept_unix(shared: Arc<Shared>, l: UnixListener, fips: Arc<aegis_tls::
     }
 }
 
-async fn public_conn(
-    shared: Arc<Shared>,
-    srv: Arc<Srv>,
-    sock: tokio::net::TcpStream,
-    addr: std::net::SocketAddr,
-    acc: TlsAcceptor,
-) {
+/// The io_uring front's accept loop (feature `uring`; D-P7.3): accept and connection I/O go through the ring, the
+/// listener and its connections are never registered with tokio's epoll. Same stop/drain handling as [`accept_tcp`].
+#[cfg(feature = "uring")]
+async fn accept_uring(shared: Arc<Shared>, l: aegis_uring::UringListener, p: Public) {
+    let _g = AcceptGuard::new(&shared);
+    loop {
+        let notified = shared.stop_notify.notified();
+        let mut notified = pin!(notified);
+        notified.as_mut().enable();
+        if shared.stop_accept.load(Ordering::Acquire) {
+            break;
+        }
+        match race(l.accept(), notified).await {
+            Either::Left(Ok((sock, addr))) => {
+                tokio::spawn(public_conn(shared.clone(), p.clone(), sock, addr));
+            }
+            Either::Left(Err(_)) => tokio::time::sleep(Duration::from_millis(20)).await, // EMFILE etc.
+            Either::Right(()) => break,
+        }
+    }
+    drop(l); // the ring driver closes the listener once its last stream is gone
+}
+
+async fn public_conn<IO>(shared: Arc<Shared>, p: Public, sock: IO, addr: std::net::SocketAddr)
+where
+    IO: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     let _g = ConnGuard::new(&shared);
-    let _ = sock.set_nodelay(true);
-    srv.serve_tls_from(sock, acc, Some(addr)).await;
+    #[cfg(any(feature = "proxy-protocol", feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
+    if let Some(f) = p.front {
+        return crate::front::serve(shared, p.srv, f, sock, addr, p.acc).await;
+    }
+    p.srv.serve_tls_from(sock, p.acc, Some(addr)).await;
 }
 
 /// Upgrade hooks: the parent stops accepting and drains (UP-1/UP-4).
@@ -251,6 +287,9 @@ impl Ctl {
                         return Err(
                             "listener or admin change: use the zero-downtime upgrade (SIGUSR2) after editing".into()
                         );
+                    }
+                    if !p.same_admission(&cur.plan) {
+                        return Err("admission change: the limiter is built at start (restart or upgrade)".into());
                     }
                     // App routes are re-resolved against the schemas introspected at boot; a data plane that was
                     // not booted cannot serve them (restart or upgrade).
@@ -463,6 +502,19 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     for w in &p.warnings {
         log(&format!("warning: {w}"));
     }
+    // The front of each listener: `--front` overrides F8 `listeners[].front` (FRONT-1). io_uring is probed before
+    // anything is bound, and a refusal is final: there is no epoll fallback (D-P7.3).
+    let fronts: Vec<(String, aegis_config::Front)> =
+        p.listeners.iter().map(|l| (l.name.clone(), opts.front.unwrap_or(l.front))).collect();
+    if fronts.iter().any(|(_, f)| *f == aegis_config::Front::Uring) {
+        #[cfg(feature = "uring")]
+        if let Err(e) = aegis_uring::uring_available() {
+            log(&format!("--front uring: {e}"));
+            return ExitCode::from(EX_UNAVAILABLE);
+        }
+        #[cfg(not(feature = "uring"))]
+        return fail_closed("front uring: this build has no feature `uring`");
+    }
     // Native data plane (modes A/D): backends opened and introspected, endowments resolved, before any socket.
     let native = match crate::native::boot(&cfg, opts.token_keyring.as_deref(), crate::shared::Mutants::from_env()) {
         Ok(n) => n,
@@ -488,6 +540,12 @@ pub fn run(opts: ServeOpts) -> ExitCode {
     };
     let tls = match Tls::build(&p.listeners, &certs) {
         Ok(t) => t,
+        Err(e) => return fail_closed(&e),
+    };
+    // MTC credential selectors (feature `mtc`): every credential loaded and checked before any socket.
+    #[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+    let selectors = match crate::tls::selectors(&cfg, &p.listeners) {
+        Ok(s) => s,
         Err(e) => return fail_closed(&e),
     };
     let Some(audit_base) = opts.audit_dir.clone().or_else(Auditor::default_dir) else {
@@ -584,12 +642,12 @@ pub fn run(opts: ServeOpts) -> ExitCode {
             log(&format!("listener {name} missing after takeover; the parent keeps serving"));
             return ExitCode::from(EX_SOFTWARE);
         };
-        let (desc, offer, tl) = match (|| -> std::io::Result<_> {
+        let uring = name != ADMIN_NAME && fronts.iter().any(|(n, f)| n == name && *f == aegis_config::Front::Uring);
+        let (desc, offer, mine) = match (|| -> std::io::Result<_> {
             let desc = describe_tcp(name, l)?;
             let offer = l.try_clone()?;
             let mine = l.try_clone()?;
-            mine.set_nonblocking(true)?;
-            Ok((desc, offer, TcpListener::from_std(mine)?))
+            Ok((desc, offer, mine))
         })() {
             Ok(v) => v,
             Err(e) => {
@@ -600,13 +658,64 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         let kind = if name == ADMIN_NAME {
             Kind::Admin(fips.clone())
         } else {
-            match tls.acceptors.iter().find(|(n, _)| n == name) {
-                Some((_, a)) => Kind::Public(srv.clone(), a.clone()),
-                None => return fail_closed(&format!("no TLS acceptor for listener {name}")),
-            }
+            let Some((_, a)) = tls.acceptors.iter().find(|(n, _)| n == name) else {
+                return fail_closed(&format!("no TLS acceptor for listener {name}"));
+            };
+            #[cfg(any(feature = "proxy-protocol", feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
+            let front = {
+                #[cfg_attr(not(any(feature = "proxy-protocol", feature = "l4")), allow(unused_variables))]
+                let lp = snap.plan.listeners.iter().find(|l| &l.name == name);
+                let f = crate::front::Front {
+                    name: name.clone(),
+                    #[cfg(feature = "proxy-protocol")]
+                    proxy: lp.and_then(|l| l.proxy.clone()),
+                    #[cfg(feature = "l4")]
+                    l4: lp.and_then(|l| l.l4.clone()),
+                    #[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+                    selector: selectors.iter().find(|(n, _)| n == name).map(|(_, s)| Arc::clone(s)),
+                    auditor: Arc::clone(&auditor),
+                };
+                f.active().then(|| Arc::new(f))
+            };
+            Kind::Public(Public {
+                srv: srv.clone(),
+                acc: a.clone(),
+                #[cfg(any(feature = "proxy-protocol", feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
+                front,
+            })
         };
-        let addr = tl.local_addr().map(|a| a.to_string()).unwrap_or_default();
-        tokio::spawn(accept_tcp(shared.clone(), tl, kind));
+        let addr = if uring {
+            #[cfg(feature = "uring")]
+            {
+                let Kind::Public(p) = kind else { return fail_closed("the admin listener has no io_uring front") };
+                let ul = match aegis_uring::UringListener::bind(mine) {
+                    Ok(u) => u,
+                    Err(e) => {
+                        log(&format!("listener {name}: {e}"));
+                        return ExitCode::from(EX_UNAVAILABLE);
+                    }
+                };
+                let addr = ul.local_addr().to_string();
+                tokio::spawn(accept_uring(shared.clone(), ul, p));
+                addr
+            }
+            #[cfg(not(feature = "uring"))]
+            {
+                drop((mine, kind));
+                return fail_closed("front uring: this build has no feature `uring`");
+            }
+        } else {
+            let tl = match mine.set_nonblocking(true).and_then(|()| TcpListener::from_std(mine)) {
+                Ok(t) => t,
+                Err(e) => {
+                    log(&format!("listener {name}: {e}"));
+                    return ExitCode::from(EX_OSERR);
+                }
+            };
+            let addr = tl.local_addr().map(|a| a.to_string()).unwrap_or_default();
+            tokio::spawn(accept_tcp(shared.clone(), tl, kind));
+            addr
+        };
         descs.push(desc);
         offers.push(offer);
         let _ = auditor.admin(

@@ -9,6 +9,9 @@
 //!                                                   kx-interop: one client connection on stdin/stdout to
 //!                                                   `aegis.test` with `aegis_tls::client_config` (roots = CA_PEM);
 //!                                                   sends `<NONCE>\n` and waits for the echo
+//!   tls-subject [subject] select                    oracles/cred-select (feature `mtc`; never in the cmvp build):
+//!                                                   one `<case> <credential id>|handshake_failure` line per
+//!                                                   request line, from `aegis_tls::CredentialSelector`
 //!
 //! Every `ServerConfig` comes from `aegis_tls::server_config` (the production builder); this binary only supplies
 //! credentials (self-signed certificates generated at start-up) and reads the built config back. Reported
@@ -409,6 +412,170 @@ fn interop(r: R<()>) -> R<()> {
     r.map_err(|e| format!("interop: error {e}"))
 }
 
+// ------------------------------------------------------------------------------------------------ cred-select
+
+/// `select` (feature `mtc`, never in the cmvp build): the oracles/cred-select line protocol (README "Subject
+/// protocol"). One request line in, one answer line out, in order; exit 0 at EOF. Each line builds a fresh
+/// `aegis_tls::CredentialSelector` over fresh keys of the listed schemes and answers with the id of
+/// `CredentialSelector::select` on the raw ClientHello bytes (the aegis-wire peek), or `handshake_failure`.
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+mod cred_select {
+    use std::io::{BufRead, Write};
+    use std::sync::Arc;
+
+    use aegis_tls::{Credential, CredentialKind, CredentialSelector, Profile};
+    use aws_lc_rs::encoding::AsDer;
+    use aws_lc_rs::signature::{self, EcdsaKeyPair, Ed25519KeyPair, KeyPair, PqdsaKeyPair};
+    use rustls::SignatureScheme;
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+    use rustls::sign::CertifiedKey;
+
+    use super::{OID_ECDSA_SHA256, OID_ECDSA_SHA384, OID_ML_DSA_44, OID_ML_DSA_87, R, self_signed};
+
+    /// id-ml-dsa-65, 2.16.840.1.101.3.4.3.18.
+    const OID_ML_DSA_65: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x12];
+    /// id-Ed25519, 1.3.101.112.
+    const OID_ED25519: &[u8] = &[0x2b, 0x65, 0x70];
+
+    /// The chain: a self-signed certificate over `spki`, or the opaque bytes (an MTC: AEGIS neither issues nor
+    /// verifies it, D-P7.4).
+    fn chain(opaque: &Option<Vec<u8>>, oid: &[u8], spki: &[u8], sign: impl Fn(&[u8]) -> R<Vec<u8>>) -> R<Vec<u8>> {
+        match opaque {
+            Some(o) => Ok(o.clone()),
+            None => self_signed(oid, spki, sign),
+        }
+    }
+
+    fn ecdsa(
+        alg: &'static signature::EcdsaSigningAlgorithm,
+        oid: &[u8],
+        opaque: &Option<Vec<u8>>,
+    ) -> R<(Vec<u8>, Vec<u8>)> {
+        let kp = EcdsaKeyPair::generate(alg).map_err(|e| format!("ecdsa: {e}"))?;
+        let spki = kp.public_key().as_der().map_err(|e| format!("ecdsa spki: {e}"))?;
+        let rng = aws_lc_rs::rand::SystemRandom::new();
+        let c = chain(opaque, oid, spki.as_ref(), |m| {
+            kp.sign(&rng, m).map(|s| s.as_ref().to_vec()).map_err(|e| format!("ecdsa sign: {e}"))
+        })?;
+        Ok((c, kp.to_pkcs8v1().map_err(|e| format!("ecdsa pkcs8: {e}"))?.as_ref().to_vec()))
+    }
+
+    fn mldsa(
+        alg: &'static signature::PqdsaSigningAlgorithm,
+        oid: &[u8],
+        opaque: &Option<Vec<u8>>,
+    ) -> R<(Vec<u8>, Vec<u8>)> {
+        let kp = PqdsaKeyPair::generate(alg).map_err(|e| format!("ml-dsa: {e}"))?;
+        let spki = kp.public_key().as_der().map_err(|e| format!("ml-dsa spki: {e}"))?;
+        let c = chain(opaque, oid, spki.as_ref(), |m| {
+            // Largest ML-DSA signature (ML-DSA-87, FIPS 204 table 2); `sign` returns the actual length.
+            let mut sig = vec![0u8; 4627];
+            let n = kp.sign(m, &mut sig).map_err(|e| format!("ml-dsa sign: {e}"))?;
+            sig.truncate(n);
+            Ok(sig)
+        })?;
+        Ok((c, kp.to_pkcs8v1().map_err(|e| format!("ml-dsa pkcs8: {e}"))?.as_ref().to_vec()))
+    }
+
+    fn ed25519(opaque: &Option<Vec<u8>>) -> R<(Vec<u8>, Vec<u8>)> {
+        let kp = Ed25519KeyPair::generate().map_err(|e| format!("ed25519: {e}"))?;
+        let spki = kp.public_key().as_der().map_err(|e| format!("ed25519 spki: {e}"))?;
+        let c = chain(opaque, OID_ED25519, spki.as_ref(), |m| Ok(kp.sign(m).as_ref().to_vec()))?;
+        Ok((c, kp.to_pkcs8v1().map_err(|e| format!("ed25519 pkcs8: {e}"))?.as_ref().to_vec()))
+    }
+
+    /// (chain, PKCS#8 v1 key) of a fresh key signing with `scheme`.
+    fn material(scheme: u16, opaque: &Option<Vec<u8>>) -> R<(Vec<u8>, Vec<u8>)> {
+        match scheme {
+            0x0403 => ecdsa(&signature::ECDSA_P256_SHA256_ASN1_SIGNING, OID_ECDSA_SHA256, opaque),
+            0x0503 => ecdsa(&signature::ECDSA_P384_SHA384_ASN1_SIGNING, OID_ECDSA_SHA384, opaque),
+            0x0807 => ed25519(opaque),
+            0x0904 => mldsa(&signature::ML_DSA_44_SIGNING, OID_ML_DSA_44, opaque),
+            0x0905 => mldsa(&signature::ML_DSA_65_SIGNING, OID_ML_DSA_65, opaque),
+            0x0906 => mldsa(&signature::ML_DSA_87_SIGNING, OID_ML_DSA_87, opaque),
+            s => Err(format!("unsupported scheme {s:04x}")),
+        }
+    }
+
+    fn nibble(c: u8) -> R<u8> {
+        match c {
+            b'0'..=b'9' => Ok(c - b'0'),
+            b'a'..=b'f' => Ok(c - b'a' + 10),
+            b'A'..=b'F' => Ok(c - b'A' + 10),
+            _ => Err("bad hex digit".into()),
+        }
+    }
+
+    fn hex(s: &str) -> R<Vec<u8>> {
+        let (pairs, rest) = s.as_bytes().as_chunks::<2>();
+        if !rest.is_empty() {
+            return Err("odd-length hex".into());
+        }
+        pairs.iter().map(|[h, l]| Ok((nibble(*h)? << 4) | nibble(*l)?)).collect()
+    }
+
+    /// `id,listener,kind,scheme,trust_anchor_id`.
+    fn credential(tok: &str) -> R<Credential> {
+        let f: Vec<&str> = tok.split(',').collect();
+        let [id, listener, kind, scheme, ta] = f.as_slice() else { return Err(format!("bad credential {tok}")) };
+        let kind = CredentialKind::from_name(kind).ok_or(format!("bad kind {kind}"))?;
+        if scheme.len() != 4 {
+            return Err(format!("bad scheme {scheme}"));
+        }
+        let code = u16::from_str_radix(scheme, 16).map_err(|_| format!("bad scheme {scheme}"))?;
+        let ta = match (*ta, kind) {
+            ("-", CredentialKind::X509 | CredentialKind::MlDsa) => None,
+            (t, CredentialKind::Mtc) if t != "-" => Some(hex(t)?),
+            _ => return Err(format!("bad trust_anchor_id for {id}")),
+        };
+        let opaque = (kind == CredentialKind::Mtc).then(|| format!("opaque MTC blob for {id}").into_bytes());
+        let (chain, key) = material(code, &opaque)?;
+        let key = rustls::crypto::aws_lc_rs::default_provider()
+            .key_provider
+            .load_private_key(PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key)))
+            .map_err(|e| format!("credential {id}: {e}"))?;
+        let ck = Arc::new(CertifiedKey::new(vec![CertificateDer::from(chain)], key));
+        Credential::new(*id, *listener, kind, SignatureScheme::from(code), ta, ck).map_err(|e| e.to_string())
+    }
+
+    /// The answer to one request line after its case number.
+    fn answer(rest: &[&str]) -> R<String> {
+        let [profile, listener, ncred, more @ ..] = rest else { return Err("short line".into()) };
+        let profile = Profile::from_name(profile).ok_or(format!("unknown profile {profile}"))?;
+        let n: usize = ncred.parse().map_err(|_| format!("bad ncred {ncred}"))?;
+        let [creds @ .., hello] = more else { return Err("no client_hello".into()) };
+        if creds.len() != n {
+            return Err(format!("ncred {n} but {} credential tokens", creds.len()));
+        }
+        let pool = creds.iter().map(|t| credential(t)).collect::<R<Vec<_>>>()?;
+        let selector = CredentialSelector::new(profile, listener, pool).map_err(|e| e.to_string())?;
+        let raw = hex(hello)?;
+        Ok(selector.select(&raw).map_or_else(|| "handshake_failure".to_string(), |c| c.id().to_string()))
+    }
+
+    pub(super) fn run() -> R<()> {
+        let mut out = std::io::BufWriter::new(std::io::stdout().lock());
+        for line in std::io::stdin().lock().lines() {
+            let line = line.map_err(|e| e.to_string())?;
+            let toks: Vec<&str> = line.split(' ').collect();
+            let (case, rest) = toks.split_first().ok_or("empty line")?;
+            let a = answer(rest).unwrap_or_else(|e| format!("error {}", e.replace(['\n', '\r'], " ")));
+            writeln!(out, "{case} {a}").map_err(|e| e.to_string())?;
+        }
+        out.flush().map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+fn select() -> R<()> {
+    cred_select::run()
+}
+
+#[cfg(not(all(feature = "mtc", not(feature = "cmvp"))))]
+fn select() -> R<()> {
+    Err("select is compiled out of this build (feature `mtc` off; never in the cmvp build, PREFLIGHT D-P7.4)".into())
+}
+
 #[cfg(all(feature = "cmvp", feature = "interop"))]
 compile_error!(
     "tls-subject: features `cmvp` and `interop` are exclusive (interop enables aegis-tls `tls-client`; the cmvp build \
@@ -423,8 +590,9 @@ fn main() -> ExitCode {
         ["serve", p] => serve(p),
         ["interop-server", p] => interop(interop_server(p)),
         ["interop-client", p, ca, nonce] => interop(interop_client(p, ca, nonce)),
+        ["select"] => select(),
         _ => Err("usage: tls-subject [subject] describe|serve|interop-server PROFILE \
-                  | tls-subject [subject] interop-client PROFILE CA_PEM NONCE"
+                  | tls-subject [subject] interop-client PROFILE CA_PEM NONCE | tls-subject [subject] select"
             .into()),
     };
     match r {

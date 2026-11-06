@@ -166,6 +166,10 @@ def config_doc(port, aport, up_port):
             "listeners": [{"name": "pub", "bind": f"127.0.0.1:{port}", "profile": "P-PUBLIC-WEB",
                            "alpn": ["h2", "http/1.1"]}],
             "admin": {"bind": f"127.0.0.1:{aport}"},
+            # One client IP (127.0.0.1) drives every point: lift the S1 per-IP GCRA (F8 admission, P7-spec-001) and the
+            # per-connection stream cap (h2load does not reconnect after 32 conns x 10,000 streams; P7-bin-001).
+            "admission": {"per_ip": {"rate_per_s": 1000000, "burst": 10000000}},
+            "limits": {"max_streams_per_conn": 100000},
             "vhosts": [{"host": "localhost", "routes": [
                 {"id": 1, "path": "/", "to": {"upstream": f"127.0.0.1:{up_port}"}, "authz": "allow-all"}]}]}
 

@@ -69,6 +69,10 @@ pub struct PgExecutor<C: PgSql> {
     epoch: AtomicU64,
     op_budget_ms: u64,
     charges: Arc<dyn ChargeSink>,
+    /// CockroachDB (feature `adapter-crdb`): no RLS role switch or tenant GUC (the tenant conjunct, the upsert guard
+    /// and the schema gate are the isolation, P7-oracle-adapters-001); `BEGIN ... SERIALIZABLE`.
+    #[cfg(feature = "adapter-crdb")]
+    crdb: bool,
 }
 
 impl<C: PgSql> fmt::Debug for PgExecutor<C> {
@@ -95,6 +99,9 @@ pub struct PgExecConfig<C> {
     /// Op budget in ms: statement_timeout, T_recover and the release budget.
     pub op_budget_ms: u64,
     pub charges: Arc<dyn ChargeSink>,
+    /// A CockroachDB backend (feature `adapter-crdb`); see [`PgExecutor`].
+    #[cfg(feature = "adapter-crdb")]
+    pub crdb: bool,
 }
 
 impl<C: PgSql> PgExecutor<C> {
@@ -108,6 +115,8 @@ impl<C: PgSql> PgExecutor<C> {
             epoch: AtomicU64::new(cfg.epoch),
             op_budget_ms: cfg.op_budget_ms,
             charges: cfg.charges,
+            #[cfg(feature = "adapter-crdb")]
+            crdb: cfg.crdb,
         }
     }
 
@@ -196,6 +205,14 @@ fn plain(sql: &str) -> Rendered {
     Rendered { sql: sql.into(), params: Vec::new() }
 }
 
+/// The transaction-local `statement_timeout` = op budget.
+fn statement_timeout(budget_ms: u64) -> Rendered {
+    Rendered {
+        sql: "SELECT pg_catalog.set_config('statement_timeout', $1, true)".into(),
+        params: vec![aegis_adapter_pg::Param::Text(format!("{budget_ms}ms"))],
+    }
+}
+
 impl<C: PgSql> PgExecutor<C> {
     /// A host-owned statement inside the open transaction of `tx` (after `rls_bind`, so it runs as the RLS role with
     /// the scope's tenant bound). A cancellation point like every statement.
@@ -245,6 +262,13 @@ impl<C: PgSql> Executor<Rendered> for PgExecutor<C> {
             }
         }
         let lim = ResultLimits { max_rows: 1, max_bytes: 4096 };
+        #[cfg(feature = "adapter-crdb")]
+        if self.crdb {
+            let c = tx.session()?;
+            run_sql(c, &plain("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE"), budget, lim)?;
+            run_sql(c, &statement_timeout(budget), budget, lim)?;
+            return Ok(tx);
+        }
         let binds =
             rls_bind(scope.tenant, &self.rls_role, &self.setting).map_err(|e| EngineError::Refused(e.to_string()))?;
         let c = tx.session()?;
@@ -252,11 +276,7 @@ impl<C: PgSql> Executor<Rendered> for PgExecutor<C> {
         for b in &binds {
             run_sql(c, b, budget, lim)?; // rls_bind right after BEGIN
         }
-        let timeout = Rendered {
-            sql: "SELECT pg_catalog.set_config('statement_timeout', $1, true)".into(),
-            params: vec![aegis_adapter_pg::Param::Text(format!("{budget}ms"))],
-        };
-        run_sql(c, &timeout, budget, lim)?;
+        run_sql(c, &statement_timeout(budget), budget, lim)?;
         Ok(tx)
     }
 
@@ -401,6 +421,8 @@ mod tests {
             epoch: 1,
             op_budget_ms: 100,
             charges: ledger.clone(),
+            #[cfg(feature = "adapter-crdb")]
+            crdb: false,
         });
         (ex, log, ledger)
     }

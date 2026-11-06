@@ -316,7 +316,7 @@ pub fn server_config_with(
         return Err(ProfileError::Pending { profile, reason: profile.pending_reason().unwrap_or("pending") });
     }
     let provider = Arc::new(provider(profile)?);
-    let resolver = Arc::new(ProfileCertResolver { inner: cert_resolver, allowed: profile.sigalgs() });
+    let resolver = ProfileCertResolver::wrap(cert_resolver, profile);
     let mut cfg = ServerConfig::builder_with_provider(provider)
         .with_protocol_versions(&[&rustls::version::TLS13])
         .map_err(|e| ProfileError::Rustls(e.to_string()))?
@@ -530,7 +530,7 @@ pub fn fips_check_with(linked: Option<&'static str>) -> FipsStatus {
 
 /// The resolver of the `--fips-check` config: no credential (the check builds the config, it never handshakes).
 #[derive(Debug)]
-struct NoCredential;
+pub(crate) struct NoCredential;
 
 impl ResolvesServerCert for NoCredential {
     fn resolve(&self, _: ClientHello<'_>) -> Option<Arc<CertifiedKey>> {
@@ -542,9 +542,17 @@ impl ResolvesServerCert for NoCredential {
 /// resolved key cannot sign with any scheme that is both offered and allowed, no certificate is served and the
 /// handshake fails (rustls sends access_denied, 49) instead of using an out-of-profile scheme.
 #[derive(Debug)]
-struct ProfileCertResolver {
+pub(crate) struct ProfileCertResolver {
     inner: Arc<dyn ResolvesServerCert>,
     allowed: &'static [SignatureScheme],
+}
+
+impl ProfileCertResolver {
+    /// `inner` wrapped with `profile`'s sigalgs (P-PQ2): the one way a resolver reaches a built `ServerConfig`
+    /// (used by [`server_config_with`] and, feature `mtc`, by `select::CredentialSelector::config_for`).
+    pub(crate) fn wrap(inner: Arc<dyn ResolvesServerCert>, profile: Profile) -> Arc<dyn ResolvesServerCert> {
+        Arc::new(ProfileCertResolver { inner, allowed: profile.sigalgs() })
+    }
 }
 
 impl ResolvesServerCert for ProfileCertResolver {

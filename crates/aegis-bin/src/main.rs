@@ -4,7 +4,11 @@
 //!   before any socket is bound (INV-NONEMPTY: there is no implicit "serve everything" mode).
 //! * `aegis check-config <path> [--print-effective]`: CFG-1/2 validation plus the assembly's own checks. The dump
 //!   is `Config::effective_dump`: the effective config plus `p2.isolation_effective` / `p2.usable_cpus` ([`cpus`]).
-//! * `aegis --config <path> ...`: serve (see [`serve`]).
+//! * `aegis --config <path> ...`: serve (see [`serve`]). Phase 7, each behind its own feature and refused at boot
+//!   (exit 78) by a build without it: PROXY v2 and L4 SNI passthrough (`front`, features `proxy-protocol` / `l4`),
+//!   the MTC credential selector (feature `mtc`), `--front uring` / `listeners[].front` (feature `uring`), the
+//!   crdb / mariadb adapter families (`native::adapters`). F8 `admission` sets the admission numbers
+//!   ([`shared::admission_config`]; absent = the pre-Phase-7 constants).
 //! * `aegis agent --config <agent.json>`: the MCP listener gate (see [`agent`]; Phase 3, gateway mode "G").
 //! * `aegis --fips-check`: one line, `FIPS-CHECK: module="<linked module version string>" fips_mode=<bool>
 //!   config_fips=<bool>` (or `module=none`), exit 0 (PLAN-6 D2, oracles/cmvp-binary F4 contract). `module` is the
@@ -25,6 +29,8 @@ mod agent;
 mod audit;
 mod cli;
 mod cpus;
+#[cfg(any(feature = "proxy-protocol", feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
+mod front;
 #[cfg(any(feature = "native", feature = "p2"))]
 mod keyring;
 #[cfg(feature = "native")]

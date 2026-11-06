@@ -67,3 +67,7 @@ For case 2, change the gate's core list to `1,2,4,8,16,18` on the desktop, or de
 marked as such (not implemented: the harness never overlaps today). The integrator owns gates/phase-7.toml.
 
 The harness needs no change for either: once admission admits the load, the same command records real points.
+
+---
+
+**Resolution (integrator, 2026-11-06):** F8 `admission.per_ip` (P7-spec-001) is wired (P7-bin-001); the harness config lifts it and `limits.max_streams_per_conn` (the "320,000 response ceiling" was 32 conns x 10,000 streams, not h2load). Desktop run 1,2,4,8,16,18 cores: SCALING PASS, 0 errors. **Finding:** req/s plateaus at ~31-42k from 2 cores up because `crates/aegis-bin/src/serve.rs` builds tokio with `worker_threads(2)`; the curve measures that cap, not core scaling. Making worker threads an F8 knob is a Phase 8 item; the 64-core point additionally needs GCP quota.
