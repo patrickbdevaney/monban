@@ -1,0 +1,42 @@
+{
+ "id": "P7-spec-002",
+ "role": "integrator",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "default-graph"
+ ],
+ "spec_refs": [
+  "PLAN-7 Roles",
+  "PREFLIGHT D-P7.3"
+ ],
+ "oracles": [
+  "default-graph self-test: a fixture where aegis-bin default features pull io-uring -> red; one where aegis-adapter-mysql appears in the default graph -> red; one with a changed default crate set vs the recorded baseline -> red"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/default-graph.py && python3 -I ci/default-graph.py --self-test && cargo xtask layering && cargo xtask lock-age --min-days 7 && cargo xtask lock-targets && ci/remote.sh cargo xtask budget",
+  "must": "PASS; workspace members crates/aegis-wire (L2), crates/aegis-adapter-mysql (L4), crates/aegis-uring (L4), crates/aegis-otlp (L5 bin, not depended on by aegis-bin), subjects/mariadb-subject, subjects/crdb-subject as compiling fail-closed stubs; aegis-bin features proxy-protocol, l4, mtc, uring, adapter-mariadb, adapter-crdb (all off by default); aegis-tls feature mtc; io-uring =0.7.15 pinned, vet-covered with zero exemptions, deny-allowed, lock target recorded; fuzz targets proxy_v2 and client_hello_peek registered in ci/fuzz.sh TARGETS_ALL as stubs calling aegis-wire; ci/kani.sh accepts -p aegis-wire; default build budget unchanged"
+ },
+ "write_scope": [
+  "Cargo.toml",
+  "Cargo.lock",
+  "supply-chain/**",
+  "crates/*/Cargo.toml",
+  "crates/aegis-wire/**",
+  "crates/aegis-adapter-mysql/src/lib.rs",
+  "crates/aegis-uring/src/lib.rs",
+  "crates/aegis-otlp/src/main.rs",
+  "subjects/mariadb-subject/**",
+  "subjects/crdb-subject/**",
+  "ci/default-graph.py",
+  "ci/fixtures/default-graph/**",
+  "ci/fuzz.sh",
+  "ci/kani.sh",
+  "fuzz/Cargo.toml",
+  "fuzz/Cargo.lock",
+  "fuzz/fuzz_targets/proxy_v2.rs",
+  "fuzz/fuzz_targets/client_hello_peek.rs",
+  "xtask/**"
+ ],
+ "notes": "Baseline for default-graph = the `cargo tree -p aegis-bin -e normal,build --target all` package set at e06550e, committed under ci/fixtures/default-graph/baseline.txt. Stubs must fail closed (Err / refuse), no todo!()."
+}

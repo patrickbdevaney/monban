@@ -1,0 +1,27 @@
+{
+ "id": "P7-oracle-otlp-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "otlp-export"
+ ],
+ "spec_refs": [
+  "PLAN-7 Gate -> unit",
+  "PREFLIGHT"
+ ],
+ "oracles": [
+  "exporter emits a counter as a gauge -> red",
+  "drops the resource attribute service.name -> red",
+  "sends protobuf content-type with a JSON body -> red",
+  "log severity mapped wrong -> red"
+ ],
+ "acceptance": {
+  "cmd": "oracles/otlp-export/run --self-test",
+  "must": "red before P7-otlp-001; Python collector on loopback validating OTLP/HTTP JSON per opentelemetry-proto JSON mapping (metrics: sum monotonic/cumulative for counters, gauge, histogram; logs: severityNumber, body, attributes); feeds a recorded aegis /metrics text and JSON log stream"
+ },
+ "write_scope": [
+  "oracles/otlp-export/**"
+ ],
+ "notes": "Stdlib only."
+}

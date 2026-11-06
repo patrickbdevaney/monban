@@ -1,0 +1,29 @@
+{
+ "id": "P7-oracle-sel-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P7-spec-001"
+ ],
+ "start_now": true,
+ "gates": [
+  "cred-select"
+ ],
+ "spec_refs": [
+  "PLAN-7 Gate -> unit",
+  "PREFLIGHT"
+ ],
+ "oracles": [
+  "MTC chosen without a matching trust anchor id -> red (SEL-1)",
+  "ML-DSA credential on a P-PUBLIC-WEB listener -> red (SEL-2)",
+  "fallback to another listener's credential -> red (SEL-3)",
+  "trust_anchors parsed from the wrong extension codepoint -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh oracles/cred-select/run --self-test",
+  "must": "red before P7-mtc-001; Python reference selector from the decision table; ClientHello generator (trust_anchors per draft-ietf-tls-trust-anchor-ids-07, sigalgs, SNI) shared with proxy-l4's ClientHello builder; >=1e4 cases, 0 divergence"
+ },
+ "write_scope": [
+  "oracles/cred-select/**"
+ ],
+ "notes": "Record the trust_anchors extension codepoint and its source (draft -07 or IANA) in the oracle README."
+}

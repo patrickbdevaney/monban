@@ -1,0 +1,32 @@
+{
+ "id": "P7-bin-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-wire-001",
+  "P7-mtc-001",
+  "P7-uring-001",
+  "P7-adapter-mysql-001",
+  "P7-adapter-crdb-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "proxy-l4",
+  "front-equiv",
+  "default-graph"
+ ],
+ "spec_refs": [
+  "F8 additions",
+  "F1 PROXY/L4/FRONT"
+ ],
+ "oracles": [
+  "proxy-l4 and front-equiv self-tests"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features proxy-protocol,l4 && oracles/proxy-l4/run --binary target/release/aegis' && ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features uring && oracles/front-equiv/run --binary target/release/aegis' && python3 -I ci/default-graph.py",
+  "must": "PASS; aegis-bin wires PROXY (before TLS, trusted CIDR from F8), L4 listeners (peek, route by SNI, splice with idle/stall deadlines), --front uring, the mtc selector and the mariadb/crdb adapter families, each behind its feature; every carried gate still PASS; default graph unchanged"
+ },
+ "write_scope": [
+  "crates/aegis-bin/src/**"
+ ],
+ "notes": ""
+}

@@ -1,0 +1,27 @@
+{
+ "id": "P7-oracle-uring-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "front-equiv"
+ ],
+ "spec_refs": [
+  "PLAN-7 Gate -> unit",
+  "PREFLIGHT"
+ ],
+ "oracles": [
+  "a front that drops the last chunk of a response -> red",
+  "a front that reorders pipelined responses -> red",
+  "hardened unit admits io_uring_setup without the drop-in -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh oracles/front-equiv/run --self-test",
+  "must": "red before P7-uring-001; drives the proxy-e2e request corpus (incl. strict-H1 rejects, h2 limits via h2load) against --front epoll and --front uring on the same binary; compares status, headers, body bytes, close behaviour; systemd-analyze syscall-filter check of deploy/aegis-hardened.service vs deploy/uring.conf drop-in"
+ },
+ "write_scope": [
+  "oracles/front-equiv/**",
+  "deploy/uring.conf"
+ ],
+ "notes": "Desktop only (io_uring_disabled=0)."
+}

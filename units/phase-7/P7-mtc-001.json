@@ -1,0 +1,29 @@
+{
+ "id": "P7-mtc-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-wire-001",
+  "P7-oracle-sel-001",
+  "P7-spec-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "cred-select"
+ ],
+ "spec_refs": [
+  "F1 SEL-1..3",
+  "PREFLIGHT D-P7.4"
+ ],
+ "oracles": [
+  "cred-select self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh cargo test -p aegis-tls --locked --features mtc && ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p tls-subject --features mtc && oracles/cred-select/run --n 10000 --subject \"target/release/tls-subject select\"'",
+  "must": "PASS; aegis-tls `CredentialSelector` (feature mtc): ResolvesServerCert taking the aegis-wire Peek of the raw ClientHello plus rustls ClientHello; credentials kind x509 | mldsa | mtc; SEL-1..3; tls-subject `select` mode prints the chosen credential id per ClientHello; every carried tls gate (tls-verdicts, kx-kat, kx-interop, clienthello-cmvp) unchanged; mtc absent from the cmvp build"
+ },
+ "write_scope": [
+  "crates/aegis-tls/src/**",
+  "subjects/tls-subject/src/**"
+ ],
+ "notes": ""
+}

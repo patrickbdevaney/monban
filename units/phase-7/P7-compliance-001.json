@@ -1,0 +1,33 @@
+{
+ "id": "P7-compliance-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P7-bin-001",
+  "P7-otlp-001",
+  "P7-libcrux-001",
+  "P7-scaling-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "tcb-lines"
+ ],
+ "spec_refs": [
+  "IMPLEMENTATION_PLAN Phase 7 'own TCB line'",
+  "SECURITY_CLAIMS.md"
+ ],
+ "oracles": [
+  "tcb-lines self-test: a Phase-7 feature without a TCB line -> red; a TCB line without a rung -> red; HTTP/3 described as 'unsupported by design' instead of deferred with dated evidence -> red; a claim calling io-uring/hyper/AWS-LC 'proven' -> red"
+ ],
+ "acceptance": {
+  "cmd": "python3 -I ci/tcb-lines.py && python3 -I ci/tcb-lines.py --self-test",
+  "must": "PASS; SECURITY_CLAIMS.md and COMPLIANCE_MAP gain one TCB line per Phase-7 feature (proxy-protocol, l4, uring, mtc, adapter-mariadb, adapter-crdb, aegis-otlp, libcrux spike) naming new crates/C/kernel surface, gate ids and rung; HTTP/3 + WebTransport recorded as deferred with the 2026-11-06 evidence and the 2027-03-30 re-check; 64-core run recorded as blocked on quota; DEVIATIONS updated"
+ },
+ "write_scope": [
+  "SECURITY_CLAIMS.md",
+  "compliance/**",
+  "DEVIATIONS.md",
+  "ci/tcb-lines.py",
+  "ci/fixtures/tcb-lines/**"
+ ],
+ "notes": ""
+}
