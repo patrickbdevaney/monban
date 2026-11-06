@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True
 sys.path.insert(0, HERE)
 import lowir as L  # noqa: E402
+import lowmy as M  # noqa: E402  (MariaDB / CockroachDB dialects; lowir.py stays byte-identical and unmodified)
 
 NAME = "LOWERING-WRITE"
 SEEDS = [1, 2, 3, 20261025]
@@ -107,6 +108,50 @@ PG_GATE_ONLY = {
 }
 W6_PG = {k: ([d.replace("integer", "int") for d in v[0]],) + v[1:] for k, v in W6_SQ.items()}
 
+# ----- MariaDB (P7-oracle-adapters-001, D-P7.8; spikes/q4-005). x/y/grp keep the server default collation
+# (utf8mb4_uca1400_ai_ci: case- AND accent-insensitive, PAD SPACE), deliberately adversarial for the atoms.
+MY_ENG = "default charset=utf8mb4 engine=innodb"
+MY_T = "tenant varchar(32)"
+MY_REST = "grp varchar(16), x varchar(16), y varchar(16), secret varchar(16)"
+MARIA = {
+    "plain id PK, tenant utf8mb4_general_ci": (f"create table t(id int primary key, {MY_T} collate utf8mb4_general_ci not null, {MY_REST}) {MY_ENG}", ["id"]),
+    "plain id PK, tenant default uca1400_ai_ci": (f"create table t(id int primary key, {MY_T} not null, {MY_REST}) {MY_ENG}", ["id"]),
+    "composite PK, tenant utf8mb4_nopad_bin": (f"create table t(id int, {MY_T} collate utf8mb4_nopad_bin not null, {MY_REST}, primary key (tenant,id)) {MY_ENG}", ["tenant", "id"]),
+    "composite PK, tenant VARBINARY": (f"create table t(id int, tenant varbinary(64) not null, {MY_REST}, primary key (tenant,id)) {MY_ENG}", ["tenant", "id"]),
+}
+MARIA_GATE_ONLY = {   # q4-005 W3 counterexamples: the schema gate must refuse them; information only
+    "composite PK, tenant utf8mb4_bin (PAD SPACE; schema gate must refuse)": (f"create table t(id int, {MY_T} collate utf8mb4_bin not null, {MY_REST}, primary key (tenant,id)) {MY_ENG}", ["tenant", "id"]),
+    "composite PK, tenant utf8mb4_general_ci (schema gate must refuse)": (f"create table t(id int, {MY_T} collate utf8mb4_general_ci not null, {MY_REST}, primary key (tenant,id)) {MY_ENG}", ["tenant", "id"]),
+    "composite PK, tenant default uca1400_ai_ci (schema gate must refuse)": (f"create table t(id int, {MY_T} not null, {MY_REST}, primary key (tenant,id)) {MY_ENG}", ["tenant", "id"]),
+    "composite PK nopad_bin + second UNIQUE(id) (schema gate must refuse)": (f"create table t(id int, {MY_T} collate utf8mb4_nopad_bin not null, {MY_REST}, primary key (tenant,id), unique key (id)) {MY_ENG}", ["tenant", "id"]),
+}
+_NB = "collate utf8mb4_nopad_bin"
+W6_MY = {
+    "composite PK + composite FK (tenant,grp)->p(tenant,gid)": (
+        [f"create table p(tenant varchar(32) {_NB} not null, gid varchar(16) {_NB} not null, primary key (tenant,gid)) {MY_ENG}",
+         f"create table t(id int, tenant varchar(32) {_NB} not null, grp varchar(16) {_NB}, x varchar(16), y varchar(16), secret varchar(16), "
+         f"primary key (tenant,id), foreign key (tenant,grp) references p(tenant,gid)) {MY_ENG}"],) + W6_SQ["composite PK + composite FK (tenant,grp)->p(tenant,gid)"][1:],
+    "global id PK + composite FK": (
+        [f"create table p(tenant varchar(32) {_NB} not null, gid varchar(16) {_NB} not null, primary key (tenant,gid)) {MY_ENG}",
+         f"create table t(id int primary key, tenant varchar(32) {_NB} not null, grp varchar(16) {_NB}, x varchar(16), y varchar(16), secret varchar(16), "
+         f"foreign key (tenant,grp) references p(tenant,gid)) {MY_ENG}"],) + W6_SQ["global id PK + composite FK"][1:],
+    "composite PK + global FK grp->p(gid)": (
+        [f"create table p(tenant varchar(32) {_NB} not null, gid varchar(16) {_NB} primary key) {MY_ENG}",
+         f"create table t(id int, tenant varchar(32) {_NB} not null, grp varchar(16) {_NB}, x varchar(16), y varchar(16), secret varchar(16), "
+         f"primary key (tenant,id), foreign key (grp) references p(gid)) {MY_ENG}"],) + W6_SQ["composite PK + global FK grp->p(gid)"][1:],
+}
+# ----- CockroachDB (dialect "crdb"; spikes/q4-005)
+CRDB = {
+    "plain id PK": ("create table t(id int primary key, tenant string not null, grp string, x string, y string, secret string)", ["id"]),
+    "composite PK (tenant,id)": ("create table t(id int, tenant string not null, grp string, x string, y string, secret string, primary key (tenant,id))", ["tenant", "id"]),
+    "collated tenant en_u_ks_level2, id PK": ("create table t(id int primary key, tenant string collate en_u_ks_level2 not null, grp string, x string, y string, secret string)", ["id"]),
+}
+CRDB_GATE_ONLY = {
+    "composite PK, tenant collate en_u_ks_level2 (schema gate must refuse)": ("create table t(id int, tenant string collate en_u_ks_level2 not null, grp string, x string, y string, secret string, primary key (tenant,id))", ["tenant", "id"]),
+    "composite PK + second UNIQUE(id) (schema gate must refuse)": ("create table t(id int, tenant string not null, grp string, x string, y string, secret string, primary key (tenant,id), unique (id))", ["tenant", "id"]),
+}
+W6_CRDB = W6_PG
+
 class SqliteEng:
     dialect = "sqlite"
     def __init__(self, ddl, rows, conn, parents=None):
@@ -151,6 +196,43 @@ class PgEng:
     def errclass(self, e): return getattr(e, "sqlstate", "") or type(e).__name__
     def close(self): pass
 
+def _my_norm(v):
+    return v.decode("utf-8", "surrogateescape") if isinstance(v, (bytes, bytearray)) else v
+
+class MariaEng:
+    dialect = "mariadb"
+    def __init__(self, my, ddl, rows, parents=None):
+        self.my = my
+        my.simple("drop table if exists t"); my.simple("drop table if exists p")
+        for d in (ddl if isinstance(ddl, list) else [ddl]): my.simple(d)
+        for (t, g) in (parents or []): my.query("insert into p(tenant,gid) values (?,?)", (t, g))
+        for r in rows:
+            my.query("insert into t(id,tenant,grp,x,y,secret) values (?,?,?,?,?,?)", tuple(r[c] for c in COLS))
+        self.decl = {"id": "int", "tenant": "text", "grp": "text", "x": "text", "y": "text", "secret": "text"}
+    def snap(self):
+        return [dict(zip(COLS, map(_my_norm, r))) for r in self.my.query("select id,tenant,grp,x,y,secret from t")[1]]
+    def begin(self): self.my.simple("begin")
+    def rollback(self): self.my.simple("rollback")
+    def exec(self, sql, params): self.my.query(sql, params)
+    def run(self, sql, params):
+        names, rows = self.my.query(sql, params)
+        return (names or []), [tuple(map(_my_norm, r)) for r in rows]
+    def run_reply(self, rep):
+        """MariaDB has no UPDATE .. RETURNING: a requested RETURNING arrives as rep["returning_select"] (SELECT ..
+        FOR UPDATE with the same lowered WHERE), run immediately before the statement in the same transaction; its
+        rows are the statement's RETURNING rows (checked by W4 / E like any RETURNING)."""
+        rs = rep.get("returning_select")
+        if rs:
+            names, rows = self.run(rs["sql"], rs.get("params") or [])
+            self.run(rep["sql"], rep["params"])
+            return names, rows
+        return self.run(rep["sql"], rep["params"])
+    def errclass(self, e): return getattr(e, "state", "") or type(e).__name__
+    def close(self): pass
+
+class CrdbEng(PgEng):
+    dialect = "crdb"
+
 # =========================================================================================== checks
 class Stats(dict):
     KEYS = ("cases", "W1", "W2", "W4", "W6", "W7", "E", "FORM", "REFUSE", "BIND", "ACL", "blocked", "refused", "illformed", "errors_wellformed")
@@ -172,7 +254,7 @@ def model_keeps(t, p, r):
 VERB = {"update": "UPDATE", "delete": "DELETE", "insert": "INSERT", "upsert": "INSERT"}
 FORBIDDEN_WORDS = {"MERGE", "WITH", "REPLACE", "IGNORE", "RULE"}
 
-def form_violation(op, sql):
+def form_violation(op, sql, dialect=None, req=None):
     """Mandated forms (SPEC E): one statement, verb first, no MERGE / CTE / REPLACE / IGNORE / INSERT OR, ON CONFLICT
     names its key. Returns a reason or None."""
     w = L.sql_words(sql)
@@ -184,7 +266,126 @@ def form_violation(op, sql):
     for i in range(len(w) - 1):
         if w[i] == "ON" and w[i + 1] == "CONFLICT" and (i + 2 >= len(w) or w[i + 2] != "("):
             return "ON CONFLICT without a named conflict key"
-    if op == "upsert" and "CONFLICT" not in w: return "upsert without ON CONFLICT"
+    if op == "upsert" and "CONFLICT" not in w and dialect != "mariadb": return "upsert without ON CONFLICT"
+    if dialect == "mariadb": return my_form(op, sql, req or {})
+    if dialect == "crdb": return crdb_form(op, sql, req or {})
+    return None
+
+# ----- dialect forms (P7-oracle-adapters-001; q4-005 mandated forms and denylist). Token-level, outside literals.
+def sql_tokens(sql):
+    """Like lowir.sql_words, but quoted identifiers keep their name as "I:<name>"; bare words are upper-cased."""
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        c = sql[i]
+        if c in "'\"`":
+            j = i + 1
+            while j < n:
+                if sql[j] == c:
+                    if j + 1 < n and sql[j + 1] == c: j += 2; continue
+                    break
+                j += 1
+            out.append("<lit>" if c == "'" else "I:" + sql[i + 1:j].replace(c + c, c)); i = j + 1
+        elif sql.startswith("--", i):
+            j = sql.find("\n", i); i = n if j < 0 else j + 1
+        elif sql.startswith("/*", i):
+            j = sql.find("*/", i + 2); i = n if j < 0 else j + 2
+        elif c.isalpha() or c == "_":
+            j = i
+            while j < n and (sql[j].isalnum() or sql[j] in "_$"): j += 1
+            out.append(sql[i:j].upper()); i = j
+        elif c.isspace():
+            i += 1
+        else:
+            out.append(c); i += 1
+    return out
+
+def _is_id(tok, name):
+    return tok == "I:" + name or tok == str(name).upper()
+
+def _split_top(toks, sep=","):
+    parts, cur, depth = [], [], 0
+    for t in toks:
+        if t == "(": depth += 1
+        elif t == ")": depth -= 1
+        if t == sep and depth == 0: parts.append(cur); cur = []
+        else: cur.append(t)
+    parts.append(cur)
+    return parts
+
+def _top_index(toks, word, start=0):
+    depth = 0
+    for i in range(len(toks)):
+        t = toks[i]
+        if t == "(": depth += 1
+        elif t == ")": depth -= 1
+        elif i >= start and depth == 0 and t == word: return i
+    return -1
+
+def my_form(op, sql, req):
+    """MariaDB mandated forms: no ON CONFLICT (not MariaDB) and no UPDATE .. RETURNING (use returning_select); an
+    upsert with update columns is ON DUPLICATE KEY UPDATE whose EVERY assignment is the tenant-guarded
+    `c = IF(CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY), VALUES(c), c)`; an upsert without update columns is
+    `INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS (SELECT ..)` (never INSERT IGNORE)."""
+    tk = sql_tokens(sql)
+    w = [x for x in tk if not x.startswith("I:")]
+    if "CONFLICT" in w: return "ON CONFLICT is not a MariaDB form"
+    if op == "update" and "RETURNING" in w: return "UPDATE .. RETURNING (MariaDB has none; requested RETURNING goes in returning_select)"
+    if op != "upsert": return None
+    tf, key = req.get("tenant_field", "tenant"), list(req.get("key") or [])
+    if req.get("update"):
+        i = next((k for k in range(len(tk) - 3) if tk[k:k + 4] == ["ON", "DUPLICATE", "KEY", "UPDATE"]), -1)
+        if i < 0: return "upsert with update columns without ON DUPLICATE KEY UPDATE"
+        tail = tk[i + 4:]
+        r = _top_index(tail, "RETURNING")
+        if r >= 0: tail = tail[:r]
+        for a in _split_top(tail):
+            if len(a) != 28 or a[1] != "=": return "ON DUPLICATE KEY UPDATE assignment is not the tenant-guarded IF(..) form"
+            c = a[0]
+            if any(_is_id(c, k) for k in [tf] + key): return "ON DUPLICATE KEY UPDATE assigns the tenant / a key column"
+            want = ["IF", "(", "CAST", "(", None, "AS", "BINARY", ")", "=", "CAST", "(", "VALUES", "(", None, ")", "AS",
+                    "BINARY", ")", ",", "VALUES", "(", c, ")", ",", c, ")"]
+            got = a[2:]
+            if not all((x is None and _is_id(y, tf)) or x == y for x, y in zip(want, got)):
+                return "ON DUPLICATE KEY UPDATE assignment lacks the CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY) guard"
+        return None
+    if "DUPLICATE" in w: return "upsert without update columns must not use ON DUPLICATE KEY UPDATE"
+    if not any(tk[k:k + 7] == ["FROM", "DUAL", "WHERE", "NOT", "EXISTS", "(", "SELECT"] for k in range(len(tk))):
+        return "upsert without update columns is not INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS (SELECT ..)"
+    return None
+
+def crdb_form(op, sql, req):
+    """CockroachDB: never the UPSERT statement (primary-key arbiter, no guard); DO UPDATE must carry exactly the q4-005
+    guard `WHERE <table>.<tenant>::text = excluded.<tenant>::text COLLATE "C"` (the postgres guard without the casts
+    is case-insensitive on a collated tenant column on CockroachDB)."""
+    tk = sql_tokens(sql)
+    if "UPSERT" in tk: return "UPSERT statement (CockroachDB denylist)"
+    if op != "upsert": return None
+    k = next((j for j in range(len(tk) - 1) if tk[j:j + 2] == ["DO", "UPDATE"]), -1)
+    if k < 0: return None
+    j = _top_index(tk, "WHERE", k)
+    if j < 0: return "ON CONFLICT DO UPDATE without the tenant guard"
+    g = tk[j + 1:]
+    r = _top_index(g, "RETURNING")
+    if r >= 0: g = g[:r]
+    tf, tbl = req.get("tenant_field", "tenant"), req.get("table", "t")
+    want = [("id", tbl), ".", ("id", tf), ":", ":", "TEXT", "=", "EXCLUDED", ".", ("id", tf), ":", ":", "TEXT", "COLLATE", "I:C"]
+    if len(g) != len(want) or not all((_is_id(y, x[1]) if isinstance(x, tuple) else x == y) for x, y in zip(want, g)):
+        return 'upsert guard is not <t>.<tenant>::text = excluded.<tenant>::text COLLATE "C" (q4-005 CockroachDB fix)'
+    return None
+
+def reply_form(op, rep, req):
+    """FORM over a whole reply: the statement, plus MariaDB's returning_select (SELECT .. FOR UPDATE, update only)."""
+    d = req.get("dialect")
+    fv = form_violation(op, rep["sql"], d, req)
+    if fv: return fv
+    rs = rep.get("returning_select")
+    if rs is None: return None
+    if d != "mariadb" or op != "update": return "returning_select is only the MariaDB UPDATE RETURNING emulation"
+    if not isinstance(rs, dict) or not isinstance(rs.get("sql"), str): return "malformed returning_select"
+    w = L.sql_words(rs["sql"])
+    if not w or w[0] != "SELECT": return "returning_select does not start with SELECT"
+    if ";" in w or FORBIDDEN_WORDS & set(w): return "returning_select: ';' or forbidden keyword"
+    if w[-2:] != ["FOR", "UPDATE"]: return "returning_select is not ... FOR UPDATE (rows must be locked before the UPDATE)"
     return None
 
 def expected(op, t, req, pre, key):
@@ -259,11 +460,11 @@ def run_case(st, eng, subject, op, t, req, wellformed, key):
             check(st, op, t, req, True, pre, pre, [], [], key, dict(ex, refused=rep["refuse"]))
         return
     ex["sql"] = rep["sql"]
-    fv = form_violation(op, rep["sql"])
+    fv = reply_form(op, rep, req)
     if fv: st.viol("FORM", dict(ex, violation=f"FORM: {fv}"))
     eng.begin()
     try:
-        names, rows = eng.run(rep["sql"], rep["params"])
+        names, rows = eng.run_reply(rep) if hasattr(eng, "run_reply") else eng.run(rep["sql"], rep["params"])
         post = eng.snap()
     except Exception as e:
         st["blocked"] += 1
@@ -360,7 +561,7 @@ def w6_family(eng_factory, dialect, schemas, subject, cfg, fams, prefix=""):
                     if composite and not g.startswith("gx"):
                         st.viol("E", dict(ex, violation="E: well-formed insert refused", refused=rep["refuse"]))
                     continue
-                fv = form_violation("insert", rep["sql"])
+                fv = reply_form("insert", rep, req)
                 if fv: st.viol("FORM", dict(ex, violation=f"FORM: {fv}", sql=rep["sql"]))
                 o0 = outcome(eng, rep["sql"], rep["params"], [], t)
                 o1 = outcome(eng, rep["sql"], rep["params"], extra, t)
@@ -1052,7 +1253,9 @@ class Cfg:
         self.seeds, self.n = a.seeds, a.n
         self.engines = set(a.engine) - ({"sqlite"} if a.skip_sqlite else set())
         self.skip_kv = bool(getattr(a, "skip_kv", False))
-        self.dsns, self.urls = list(a.dsn or []), list(a.url or [])
+        sp = M.split_dsns(list(a.dsn or []), self.engines)
+        self.dsns, self.urls = sp["pg"], list(a.url or [])
+        self.my_dsns, self.crdb_dsns = sp["mariadb"], sp["crdb"]
         self.gate_only = not a.no_gate_demo
         self.exec = getattr(a, "_exec", None)
         self.sqlite_version = self.exec.version if self.exec else sqlite3.sqlite_version
@@ -1082,6 +1285,29 @@ def evaluate(subject, cfg, log=print):
             w6_family(lambda d, r, p: PgEng(pg, d, r, p), "postgres", W6_PG, subject, cfg, fams, tag)
             if cfg.gate_only: sql_families(lambda d, r: PgEng(pg, d, r), "postgres", PG_GATE_ONLY, subject, cfg, info, tag)
             rls_family(pg, dsn, subject, cfg, fams, tag)
+            pg.simple("drop table if exists t"); pg.simple("drop table if exists p"); pg.close()
+    if "mariadb" in cfg.engines:
+        for dsn in cfg.my_dsns:
+            my = M.my_connect(dsn)
+            v = M.my_version(my); versions.append(("mariadb", v, dsn))
+            log(f"  mariadb {v} collation_connection={my.simple('select @@collation_connection')[1][0][0]}")
+            tag = f"mariadb{v} "
+            mk = lambda d, r: MariaEng(my, d, r)
+            refusal_family(subject, "mariadb", fams.setdefault(f"{tag}refusals (non-canonical handle, merge/cte/replace/raw_sql)", Stats()))
+            sql_families(mk, "mariadb", MARIA, subject, cfg, fams, tag)
+            w6_family(lambda d, r, p: MariaEng(my, d, r, p), "mariadb", W6_MY, subject, cfg, fams, tag)
+            if cfg.gate_only: sql_families(mk, "mariadb", MARIA_GATE_ONLY, subject, cfg, info, tag)
+            my.simple("drop table if exists t"); my.simple("drop table if exists p"); my.close()
+    if "crdb" in cfg.engines:
+        for dsn in cfg.crdb_dsns:
+            pg = L.Pg(dsn)
+            v = M.crdb_version(pg); versions.append(("crdb", v, dsn))
+            log(f"  cockroach {v}; isolation={pg.simple('show transaction isolation level')[1][0][0]}")
+            tag = f"crdb{v} "
+            refusal_family(subject, "crdb", fams.setdefault(f"{tag}refusals (non-canonical handle, merge/cte/replace/raw_sql)", Stats()))
+            sql_families(lambda d, r: CrdbEng(pg, d, r), "crdb", CRDB, subject, cfg, fams, tag)
+            w6_family(lambda d, r, p: CrdbEng(pg, d, r, p), "crdb", W6_CRDB, subject, cfg, fams, tag)
+            if cfg.gate_only: sql_families(lambda d, r: CrdbEng(pg, d, r), "crdb", CRDB_GATE_ONLY, subject, cfg, info, tag)
             pg.simple("drop table if exists t"); pg.simple("drop table if exists p"); pg.close()
     if "redis" in cfg.engines:
         for url in cfg.urls:
@@ -1146,17 +1372,32 @@ ENGINE_MUTANTS = {
            ("rls-no-check", "FORM"), ("rls-wrong-column", "W4"), ("rls-session-setting", "BIND")],
     "redis": [("kv-naive", "W1"), ("kv-escaped-colon", "W7"), ("kv-no-escape", "E"), ("drop-tenant", "W1"),
               ("kv-acl-all", "ACL"), ("kv-acl-allkeys", "ACL"), ("kv-acl-no-brace", "ACL"), ("kv-acl-eval", "ACL")],
+    # P7-oracle-adapters-001: every SQL write mutant of the SQLite / PG lists (RLS and kv mutants need PG RLS / Redis
+    # ACLs, which these dialects do not have), plus the q4-005 engine-specific ones
+    "mariadb": [("drop-tenant", "W1"), ("or-precedence", "W1"), ("upsert-global-arbiter", "W1"), ("replace-into", "W1"),
+                ("returning-star", "W4"), ("set-tenant-passthrough", "W2"), ("upsert-tenant-from-row", "W2"),
+                ("like-prefix", "W1"), ("refuse-all", "E"), ("lenient-handle", "REFUSE"), ("insert-global-key", "W6"),
+                ("fk-global", "W6"), ("upsert-as-merge", "FORM"), ("update-via-cte", "FORM"), ("accept-merge", "REFUSE"),
+                ("my-column-collation", "W1"), ("my-bin-padspace", "W1"), ("my-update-returning-naive", "W4"),
+                ("my-odku-unguarded", "FORM")],
+    "crdb": [("drop-tenant", "W1"), ("or-precedence", "W1"), ("upsert-global-arbiter", "W1"), ("returning-star", "W4"),
+             ("set-tenant-passthrough", "W2"), ("upsert-tenant-from-row", "W2"), ("like-prefix", "W1"), ("refuse-all", "E"),
+             ("lenient-handle", "REFUSE"), ("insert-global-key", "W6"), ("fk-global", "W6"), ("upsert-as-merge", "FORM"),
+             ("update-via-cte", "FORM"), ("accept-merge", "REFUSE"),
+             ("crdb-upsert-stmt", "W1"), ("crdb-column-collation", "W1"), ("crdb-reference-guard", "FORM")],
 }
+EXT_ENGINES = ("mariadb", "crdb")
 
 def small_ns(a, engines, n=150):
     s = argparse.Namespace(**vars(a)); s.seeds = [20261025]; s.n = n; s.engine = engines; s.no_gate_demo = True; s.skip_sqlite = False; s.skip_kv = False
     return s
 
 def self_test(a):
-    live = [e for e in (a.engine or []) if e in ("pg", "redis")]
+    live = [e for e in (a.engine or []) if e in ("pg", "redis") + EXT_ENGINES]
     use_sqlite = not a.skip_sqlite
     if not use_sqlite and not live:
-        print(f"{NAME} SELF-TEST: FAIL (--skip-sqlite without any --engine pg/redis leaves nothing to test)"); return 1
+        print(f"{NAME} SELF-TEST: FAIL (--skip-sqlite without any --engine pg/redis/mariadb/crdb leaves nothing to test)"); return 1
+    ref = lambda muts=(), eng=None: M.ExtLocalSubject(muts) if eng in EXT_ENGINES else L.LocalSubject(muts)
     caught = n = 0
     if use_sqlite:
         cfg = Cfg(small_ns(a, ["sqlite"]))
@@ -1169,18 +1410,18 @@ def self_test(a):
     pos = True
     for eng in live:
         c2 = Cfg(small_ns(a, [eng], 100))
-        _, _, tot, _, vers = evaluate(L.LocalSubject(), c2, log=lambda *x: None)
+        _, _, tot, _, vers = evaluate(ref((), eng), c2, log=lambda *x: None)
         ok = not bad_of(tot); pos = pos and ok
         print(f"  [{eng} {' '.join(v for _, v, _ in vers)}] positive control (reference): cases={tot['cases']} " +
               " ".join(f"{k}={tot[k]}" for k in BAD_KEYS) + f" -> {'PASS' if ok else 'FAIL'}")
         for mut, counter in ENGINE_MUTANTS[eng]:
-            _, _, tot, _, _ = evaluate(L.LocalSubject([mut]), c2, log=lambda *x: None)
+            _, _, tot, _, _ = evaluate(ref([mut], eng), c2, log=lambda *x: None)
             okm = tot.get(counter, 0) > 0; n += 1; caught += okm
             print(f"  [{eng}] mutant {mut:24s} expect {counter}>0: " + " ".join(f"{k}={tot[k]}" for k in BAD_KEYS[:10]) +
                   f" -> {'CAUGHT' if okm else 'NOT CAUGHT'}")
     ctl = Cfg(small_ns(a, (["sqlite"] if use_sqlite else []) + live, 100))
     ctl.skip_kv = bool(getattr(a, "skip_kv", False))   # subject-side only: the reference mutants above keep every family
-    cmd = a.subject or L.reference_cmd(HERE)
+    cmd = a.subject or (M.reference_cmd(HERE) if set(live) & set(EXT_ENGINES) else L.reference_cmd(HERE))
     sub = L.ProcSubject(cmd); _, _, tot, wall, _ = evaluate(sub, ctl, log=lambda *x: None); sub.close()
     ok = not bad_of(tot); pos = pos and ok
     print(f"  positive control via --subject {cmd!r}: cases={tot['cases']} " + " ".join(f"{k}={tot[k]}" for k in BAD_KEYS) +
@@ -1200,8 +1441,10 @@ def self_test(a):
 def main():
     ap = argparse.ArgumentParser(prog="run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--subject"); ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis"])
-    ap.add_argument("--dsn", action="append"); ap.add_argument("--url", action="append")
+    ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis", "mariadb", "crdb"])
+    ap.add_argument("--dsn", action="append", help="postgresql:// (pg, crdb: CockroachDB iff its version() says so) or "
+                    "mysql:// (mariadb); repeatable; throwaway (tables t and p are dropped)")
+    ap.add_argument("--url", action="append")
     ap.add_argument("--skip-sqlite", action="store_true", help="no SQLite families (kv-only or pg-only subjects); also in --self-test")
     ap.add_argument("--skip-kv", action="store_true", help="no offline Redis-model families for a SQL-only subject (the Redis gates "
                     "cover them with the KV renderer); applies to --subject runs only, never to the oracle's reference mutants")
@@ -1222,6 +1465,8 @@ def main():
     if not a.engine: a.engine = ["sqlite"]
     if "pg" in a.engine and not a.dsn: ap.error("--engine pg needs --dsn")
     if "redis" in a.engine and not a.url: ap.error("--engine redis needs --url")
+    for e in EXT_ENGINES:
+        if e in a.engine and not a.dsn: ap.error(f"--engine {e} needs --dsn")
     if a.self_test: sys.exit(self_test(a))
     cleanup = None; a._exec = None
     try:
@@ -1229,7 +1474,7 @@ def main():
             binary, cleanup = L.build_sqlite_exec(HERE)
             a._exec = L.SqliteExec(binary)
         cfg = Cfg(a)
-        subject = L.make_subject(a.subject)
+        subject = L.make_subject(a.subject) if (a.subject or not set(cfg.engines) & set(EXT_ENGINES)) else M.ExtLocalSubject()
         print(f"{NAME}: subject={subject.name} engines={sorted(cfg.engines)} sqlite={cfg.sqlite_version}"
               f"{' (sqlite-exec helper)' if cfg.exec else ' (python stdlib)'} seeds={cfg.seeds} n/family/schema/seed={cfg.n}", flush=True)
         fams, info, tot, wall, versions = evaluate(subject, cfg)

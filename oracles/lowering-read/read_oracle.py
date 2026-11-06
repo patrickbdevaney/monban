@@ -28,6 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True
 sys.path.insert(0, HERE)
 import lowir as L  # noqa: E402
+import lowmy as M  # noqa: E402  (MariaDB / CockroachDB dialects; lowir.py stays byte-identical and unmodified)
 
 NAME = "LOWERING-READ"
 SEEDS = [1, 2, 3, 20261025]           # research seeds; the 4th was only ever run pre-fix (calibration r4c12)
@@ -305,6 +306,88 @@ def pg_coerce(r):
     t = r["tenant"]
     return {"id": r["id"], "tenant": None if t is None else str(t), "x": s(r["x"]),
             "y": r["y"] if type(r["y"]) is int and L.INT64_MIN <= r["y"] <= L.INT64_MAX else None}
+
+# ----- MariaDB (P7-oracle-adapters-001, D-P7.8; q4-005). Columns are declared to the subject as IR types (text / int)
+# whatever the physical collation: the adversarial collations below are what the CAST(.. AS BINARY) atoms must defeat.
+MY_TAIL = "default charset=utf8mb4 engine=innodb"
+MY_SCHEMAS = {
+    "default utf8mb4_uca1400_ai_ci tenant,x (case+accent-insensitive, PAD SPACE)":
+        f"create table t(id int primary key, tenant varchar(64), x varchar(64), y bigint) {MY_TAIL}",
+    "utf8mb4_general_ci tenant,x":
+        f"create table t(id int primary key, tenant varchar(64) collate utf8mb4_general_ci, x varchar(64) collate utf8mb4_general_ci, y bigint) {MY_TAIL}",
+    "utf8mb4_bin tenant,x (binary but PAD SPACE)":
+        f"create table t(id int primary key, tenant varchar(64) collate utf8mb4_bin, x varchar(64) collate utf8mb4_bin, y bigint) {MY_TAIL}",
+    "VARBINARY tenant, utf8mb4_nopad_bin x":
+        f"create table t(id int primary key, tenant varbinary(64), x varchar(64) collate utf8mb4_nopad_bin, y bigint) {MY_TAIL}",
+}
+MY_CEX_SCHEMAS = {
+    "T": f"create table t(id int primary key, tenant varchar(64), x varchar(64), y varchar(64)) {MY_TAIL}",
+    "GCI": f"create table t(id int primary key, tenant varchar(64) collate utf8mb4_general_ci, x varchar(64) collate utf8mb4_general_ci, y varchar(64)) {MY_TAIL}",
+    "BIN": f"create table t(id int primary key, tenant varchar(64) collate utf8mb4_bin, x varchar(64) collate utf8mb4_bin, y varchar(64)) {MY_TAIL}",
+}
+MY_CEX = [   # q4-005 confusers: each would leak under a column-collation / LIKE / coercing comparison
+    ("collation: tenant uca1400_ai_ci (case)", "T", ("ACME", "v", None), "acme", ["andN", []]),
+    ("collation: tenant utf8mb4_general_ci (case)", "GCI", ("ACME", "v", None), "acme", ["andN", []]),
+    ("PAD SPACE: tenant 'acme ' under utf8mb4_bin", "BIN", ("acme ", "v", None), "acme", ["andN", []]),
+    ("PAD SPACE: tenant 'acme ' under uca1400_ai_ci", "T", ("acme ", "v", None), "acme", ["andN", []]),
+    ("PAD SPACE: field 'a ' = 'a' under utf8mb4_bin", "BIN", ("acme", "a ", None), "acme", ["eq", "x", "a"]),
+    ("accent-insensitive: 'ä' = 'a' under uca1400_ai_ci", "T", ("acme", "ä", None), "acme", ["eq", "x", "a"]),
+    ("expansion: 'ß' = 'ss' under uca1400_ai_ci", "T", ("acme", "ß", None), "acme", ["eq", "x", "ss"]),
+    ("LIKE prefix: case-insensitive", "T", ("acme", "ADMIN-x", None), "acme", ["pfx", "x", "admin"]),
+    ("LIKE prefix: '_' wildcard", "BIN", ("acme", "aXb", None), "acme", ["pfx", "x", "a_"]),
+    ("LIKE prefix: backslash escape", "BIN", ("acme", "a\\x", None), "acme", ["pfx", "x", "a\\"]),
+    ("coercion: int literal vs VARCHAR '1'", "T", ("acme", "1", None), "acme", ["eq", "x", 1]),
+    ("coercion: int literal vs VARCHAR '1e0'", "T", ("acme", "1e0", None), "acme", ["eq", "x", 1]),
+    ("collation range: 'B' in ['a','b'] under uca1400_ai_ci", "T", ("acme", "B", None), "acme", ["range", "x", "a", "b"]),
+    ("empty Or([]) rendered TRUE", "T", ("acme", "z", None), "acme", ["orN", []]),
+    ("NULL x vs Eq", "T", ("acme", None, None), "acme", ["eq", "x", "a"]),
+    ("NUL: tenant 'acme\\0evil' vs handle 'acme'", "BIN", ("acme\x00evil", "v", None), "acme", ["tt"]),
+]
+MY_COLS = {"id": "int", "tenant": "text", "x": "text", "y": "bigint"}
+
+def _my_norm(v):
+    return v.decode("utf-8", "surrogateescape") if isinstance(v, (bytes, bytearray)) else v
+
+class MyDB:
+    dialect = "mariadb"
+    def __init__(self, my, ddl, rows, coerce):
+        self.my = my
+        my.simple("drop table if exists t")
+        my.simple(ddl)
+        for r in rows:
+            r = coerce(r)
+            my.query("insert into t(id,tenant,x,y) values (?,?,?,?)", (r["id"], r["tenant"], r["x"], r["y"]))
+        got = my.simple("select id, tenant, x, y from t")[1]
+        self.stored = {i: {"id": i, "tenant": _my_norm(t), "x": _my_norm(x), "y": _my_norm(y)} for (i, t, x, y) in got}
+    def ids(self, sql, params):
+        return [tuple(_my_norm(c) for c in r) for r in self.my.query(sql, params)[1]]
+    def close(self): pass
+
+# ----- CockroachDB (dialect "crdb": postgres forms; q4-005 collated-column findings)
+CRDB_SCHEMAS = {
+    "STRING (byte order) tenant,x; INT8 y": "create table t(id int primary key, tenant string, x string, y int8)",
+    "collated en_u_ks_level2 tenant,x (case-insensitive)":
+        "create table t(id int primary key, tenant string collate en_u_ks_level2, x string collate en_u_ks_level2, y int8)",
+    "collated en_u_ks_level1 tenant,x (case+accent-insensitive)":
+        "create table t(id int primary key, tenant string collate en_u_ks_level1, x string collate en_u_ks_level1, y int8)",
+}
+CRDB_CEX_SCHEMAS = {
+    "T": "create table t(id int primary key, tenant string, x string, y string)",
+    "CI": "create table t(id int primary key, tenant string collate en_u_ks_level2, x string collate en_u_ks_level2, y string)",
+    "AI": "create table t(id int primary key, tenant string collate en_u_ks_level1, x string collate en_u_ks_level1, y string)",
+}
+CRDB_CEX = [
+    ("collation: tenant en_u_ks_level2 (case)", "CI", ("ACME", "v", None), "acme", ["andN", []]),
+    ("collation: tenant en_u_ks_level1 (case, accent)", "AI", ("Acme", "v", None), "acme", ["andN", []]),
+    ("collation: field en_u_ks_level2 eq (case)", "CI", ("acme", "SECRET", None), "acme", ["eq", "x", "secret"]),
+    ("collation: field en_u_ks_level1 eq (accent)", "AI", ("acme", "ä", None), "acme", ["eq", "x", "a"]),
+    ("collation range: 'A' in ['a','b'] under en_u_ks_level2", "CI", ("acme", "A", None), "acme", ["range", "x", "a", "b"]),
+    ("LIKE prefix '_' wildcard", "T", ("acme", "aXb", None), "acme", ["pfx", "x", "a_"]),
+    ("LIKE prefix backslash escape", "T", ("acme", "a\\x", None), "acme", ["pfx", "x", "a\\"]),
+    ("trailing space: 'acme ' vs 'acme'", "T", ("acme ", "v", None), "acme", ["andN", []]),
+    ("empty Or([]) rendered TRUE", "T", ("acme", "z", None), "acme", ["orN", []]),
+    ("NULL x vs Eq", "T", ("acme", None, None), "acme", ["eq", "x", "a"]),
+]
 
 # =========================================================================================== core check
 class Stats(dict):
@@ -656,9 +739,50 @@ def run_pg(subject, cfg, dsn, log, versions):
     pg.close()
     return fam
 
+def run_sqlx(subject, cfg, engine, dsn, log, versions):
+    """MariaDB (engine "mariadb") or CockroachDB (engine "crdb"): non-canonical handles, the engine's cex corpus, the
+    Lean-generated corpus over every schema (cfg.my_cases / cfg.crdb_cases per seed) and the self-join family."""
+    fam = {}
+    if engine == "mariadb":
+        conn = M.my_connect(dsn); v = M.my_version(conn); versions.append(("mariadb", v, dsn)); tag = f"mariadb{v}"
+        mk = lambda ddl, rows, co: MyDB(conn, ddl, rows, co)
+        schemas, cex_schemas, cex, ncases, nul, cols = MY_SCHEMAS, MY_CEX_SCHEMAS, MY_CEX, cfg.my_cases, True, MY_COLS
+        cexcols = {"id": "int", "tenant": "text", "x": "text", "y": "text"}
+    else:
+        conn = L.Pg(dsn); v = M.crdb_version(conn); versions.append(("crdb", v, dsn)); tag = f"crdb{v}"
+        mk = lambda ddl, rows, co: PgDB(conn, ddl, rows, co)
+        schemas, cex_schemas, cex, ncases, nul, cols = CRDB_SCHEMAS, CRDB_CEX_SCHEMAS, CRDB_CEX, cfg.crdb_cases, False, PG_COLS
+        cexcols = {"id": "int", "tenant": "text", "x": "text", "y": "text"}
+    log(f"  {engine} version {v}")
+    dialect = engine
+    bad_handle_family(subject, dialect, cols, fam.setdefault(f"{tag} non-canonical tenant handles (must refuse)", Stats()))
+    st = fam.setdefault(f"{tag} cex (q4-005 collation / PAD SPACE / LIKE / coercion confusers)", Stats())
+    for (name, sk, (tn, x, y), t, p) in cex:
+        db = mk(cex_schemas[sk], [{"id": 1, "tenant": S(tn), "x": x, "y": y}], lambda r: r)
+        db.dialect = dialect; db.idx = index_by_tenant(db.stored)
+        check_case(subject, db, cexcols, H(t), p, st, cfg.miss_vs_2vl)
+    lits, pf = [v_ for v_ in G_LITS if nul or _nn(v_)], [v_ for v_ in G_PFX if nul or _nn(v_)]
+    for seed in cfg.seeds:
+        rows, cases = lean_corpus(seed, cfg.rows, ncases, nul=nul)
+        for sname, ddl in schemas.items():
+            db = mk(ddl, rows, pg_coerce); db.dialect = dialect; db.idx = index_by_tenant(db.stored)
+            st = fam.setdefault(f"{tag} lean-generated | {sname}", Stats())
+            for t, p in cases: check_case(subject, db, cols, t, p, st, cfg.miss_vs_2vl)
+        rng = random.Random(seed + 4242)
+        rows2, _ = lean_corpus(seed + 1, 60, 0, nul=nul)
+        sj = [(rng.choice(G_HANDLES), g_pred(rng, lits=lits, pfx=pf), g_pred(rng, lits=lits, pfx=pf),
+               rng.choice(["join", "exists"])) for _ in range(max(1, cfg.selfjoin // 2))]
+        sname = next(iter(schemas))
+        db = mk(schemas[sname], rows2, pg_coerce); db.dialect = dialect; db.idx = index_by_tenant(db.stored)
+        st = fam.setdefault(f"{tag} self-join | {sname}", Stats())
+        for t, pa, pb, shape in sj:
+            check_selfjoin(subject, db, cols, t, pa, pb, shape, st)
+    (conn.simple("drop table if exists t"), conn.close())
+    return fam
+
 def evaluate(subject, cfg, log=print):
     t0 = time.time()
-    fams, versions, counts = {}, [], {"sqlite": 0, "pg": 0, "redis": 0}
+    fams, versions, counts = {}, [], {"sqlite": 0, "pg": 0, "redis": 0, "mariadb": 0, "crdb": 0}
     skipped = 0
     if "sqlite" in cfg.engines:
         f, skipped = run_sqlite(subject, cfg, log); fams.update(f)
@@ -668,6 +792,11 @@ def evaluate(subject, cfg, log=print):
         for dsn in cfg.dsns:
             fams.update(run_pg(subject, cfg, dsn, log, versions))
         counts["pg"] = cfg.pg_cases * len(cfg.seeds)
+    for eng, dsns, n in (("mariadb", cfg.my_dsns, cfg.my_cases), ("crdb", cfg.crdb_dsns, cfg.crdb_cases)):
+        if eng in cfg.engines:
+            for dsn in dsns:
+                fams.update(run_sqlx(subject, cfg, eng, dsn, log, versions))
+            counts[eng] = n * len(cfg.seeds)
     if "redis" in cfg.engines:
         per = []
         for url in cfg.urls:
@@ -701,7 +830,10 @@ class Cfg:
         self.research_cases = 3000
         self.selfjoin = a.selfjoin
         self.engines = set(a.engine) - ({"sqlite"} if a.skip_sqlite else set())
-        self.dsns, self.urls = list(a.dsn or []), list(a.url or [])
+        sp = M.split_dsns(list(a.dsn or []), self.engines)
+        self.dsns, self.urls = sp["pg"], list(a.url or [])
+        self.my_dsns, self.crdb_dsns = sp["mariadb"], sp["crdb"]
+        self.my_cases, self.crdb_cases = a.my_cases, a.crdb_cases
         self.pg_cases = a.pg_cases
         self.kv_cases = a.kv_cases
         self.miss_vs_2vl = a.miss_vs_2vl
@@ -781,14 +913,26 @@ ENGINE_MUTANTS = {
     "pg": [("pg-no-collate-c", "leak"), ("naive-bound", "leak"), ("like-prefix", "leak"), ("two-valued-not", "widen"),
            ("drop-tenant", "leak"), ("lenient-handle", "unrefused")],
     "redis": [("kv-naive", "leak"), ("kv-escaped-colon", "leak"), ("kv-no-escape", "leak"), ("drop-tenant", "leak")],
+    # P7-oracle-adapters-001: every SQL-renderer mutant of the SQLite / PG lists that the dialect can express, plus the
+    # q4-005 engine-specific ones
+    "mariadb": [("drop-tenant", "leak"), ("two-valued-not", "widen"), ("or-precedence", "leak"), ("like-prefix", "leak"),
+                ("empty-or-true", "leak"), ("naive-bound", "leak"), ("range-exclusive", "miss"), ("selfjoin-alias", "leak"),
+                ("refuse-all", "miss"), ("lenient-handle", "unrefused"),
+                ("my-column-collation", "leak"), ("my-bin-padspace", "leak")],
+    "crdb": [("drop-tenant", "leak"), ("two-valued-not", "widen"), ("or-precedence", "leak"), ("like-prefix", "leak"),
+             ("empty-or-true", "leak"), ("naive-bound", "leak"), ("range-exclusive", "miss"), ("selfjoin-alias", "leak"),
+             ("refuse-all", "miss"), ("lenient-handle", "unrefused"), ("crdb-column-collation", "leak")],
 }
+EXT_ENGINES = ("mariadb", "crdb")
 
 def pin_selftest():
     """--engine-pin logic: a matching allow pin passes; a version mismatch, an unknown version and a blocked pin fail."""
     pins = {"sqlite": {"version": "3.53.2"}, "engines": {
         "pg17": {"kind": "postgres", "version": "17.11", "policy": "allow"},
         "pg19rc1": {"kind": "postgres", "version": "19rc1", "policy": "blocked", "blocked_reason": "R-DB-8"},
-        "valkey": {"kind": "valkey", "version": "9.1.2", "policy": "allow"}}}
+        "valkey": {"kind": "valkey", "version": "9.1.2", "policy": "allow"},
+        "mariadb": {"kind": "mariadb", "version": "11.8.9", "policy": "allow"},
+        "crdb": {"kind": "crdb", "version": "25.4.19", "policy": "allow"}}}
     env = {"AEGIS_ENGINE_PG17": "postgresql://x@127.0.0.1:1/postgres"}
     checks = [
         (L.pin_check(pins, "sqlite", "3.53.2")[0], True),
@@ -799,6 +943,10 @@ def pin_selftest():
         (L.pin_check(pins, "postgres", "19rc1", "postgresql://other", env)[0], False),
         (L.pin_check(pins, "redis", "9.1.2", "redis://other", env)[0], False),
         (L.pin_check(pins, "valkey", "9.1.2", "redis://other", env)[0], True),
+        (L.pin_check(pins, "mariadb", "11.8.9", "mysql://other", env)[0], True),
+        (L.pin_check(pins, "mariadb", "11.8.8", "mysql://other", env)[0], False),
+        (L.pin_check(pins, "crdb", "25.4.19", "postgresql://other", env)[0], True),
+        (L.pin_check(pins, "postgres", "25.4.19", "postgresql://other", env)[0], False),
     ]
     return all(got == want for got, want in checks), len(checks)
 
@@ -806,13 +954,15 @@ def small_ns(a, engines):
     s = argparse.Namespace(**vars(a))
     s.seeds = [20261025]; s.cases_per_seed = 600; s.rows = 120; s.no_research = True
     s.selfjoin = 120; s.engine = engines; s.pg_cases = 400; s.kv_cases = 400; s.skip_sqlite = False
+    s.my_cases = s.crdb_cases = 400
     return s
 
 def self_test(a):
-    live = [e for e in (a.engine or []) if e in ("pg", "redis")]
+    live = [e for e in (a.engine or []) if e in ("pg", "redis") + EXT_ENGINES]
     use_sqlite = not a.skip_sqlite
     if not use_sqlite and not live:
-        print(f"{NAME} SELF-TEST: FAIL (--skip-sqlite without any --engine pg/redis leaves nothing to test)"); return 1
+        print(f"{NAME} SELF-TEST: FAIL (--skip-sqlite without any --engine pg/redis/mariadb/crdb leaves nothing to test)"); return 1
+    ref = lambda muts=(), eng=None: M.ExtLocalSubject(muts) if eng in EXT_ENGINES else L.LocalSubject(muts)
     caught, n, lines = 0, 0, []
     repro_ok = rn_ok = True
     if use_sqlite:
@@ -849,13 +999,13 @@ def self_test(a):
     pos_ok = True
     for eng in live:
         c2 = Cfg(small_ns(a, [eng]))
-        _, tot, _, _, vers, _ = evaluate(L.LocalSubject(), c2, log=lambda *x: None)
+        _, tot, _, _, vers, _ = evaluate(ref((), eng), c2, log=lambda *x: None)
         ok = not verdict(tot, c2, 1)
         print(f"  [{eng} {' '.join(v for _, v, _ in vers)}] positive control (reference): cases={tot['cases']} leak={tot['leak']} "
               f"widen={tot['widen']} miss={tot['miss']} -> {'PASS' if ok else 'FAIL'}")
         pos_ok = pos_ok and ok
         for mut, counter in ENGINE_MUTANTS[eng]:
-            _, tot, _, _, _, _ = evaluate(L.LocalSubject([mut]), c2, log=lambda *x: None)
+            _, tot, _, _, _, _ = evaluate(ref([mut], eng), c2, log=lambda *x: None)
             okm = tot.get(counter, 0) > 0
             n += 1; caught += okm
             print(f"  [{eng}] mutant {mut:16s} expect {counter}>0: leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
@@ -863,7 +1013,7 @@ def self_test(a):
     # positive control through the out-of-process --subject protocol (the given --subject, else lowir.py serve),
     # and the same command with --mutant drop-tenant must go red (proves the subject path is really checked)
     ctl = Cfg(small_ns(a, (["sqlite"] if use_sqlite else []) + live))
-    cmd = a.subject or L.reference_cmd(HERE)
+    cmd = a.subject or (M.reference_cmd(HERE) if set(live) & set(EXT_ENGINES) else L.reference_cmd(HERE))
     sub = L.ProcSubject(cmd)
     _, tot, _, wall, _, _ = evaluate(sub, ctl, log=lambda *x: None); sub.close()
     ok = not verdict(tot, ctl, 1)
@@ -889,8 +1039,10 @@ def main():
     ap = argparse.ArgumentParser(prog="run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--subject", help="command speaking the line protocol (README.md); default: in-process reference renderer")
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis"], help="repeatable; default sqlite")
-    ap.add_argument("--dsn", action="append", help="postgresql://user:pw@host:port/db, repeatable (throwaway databases: tables are dropped)")
+    ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "redis", "mariadb", "crdb"], help="repeatable; default sqlite")
+    ap.add_argument("--dsn", action="append", help="postgresql://user:pw@host:port/db (pg, crdb) or mysql://user:pw@host:port/db "
+                    "(mariadb), repeatable (throwaway databases: tables are dropped); a postgresql DSN is CockroachDB iff the "
+                    "server's version() says so")
     ap.add_argument("--url", action="append", help="redis://host:port/db, repeatable (throwaway db: it is FLUSHDB'ed)")
     ap.add_argument("--skip-sqlite", action="store_true", help="no SQLite families (kv-only or pg-only subjects); also in --self-test")
     ap.add_argument("--engine-pin", action="store_true", help="check every engine against supply-chain/engine-pins.toml and "
@@ -906,6 +1058,8 @@ def main():
     ap.add_argument("--selfjoin", type=int, default=250, help="self-join cases per seed")
     ap.add_argument("--pg-cases", type=int, default=1500)
     ap.add_argument("--kv-cases", type=int, default=2500, help="unique Redis keyspace cases per seed")
+    ap.add_argument("--my-cases", type=int, default=25000, help="MariaDB generated cases per seed (default: >=100k per engine)")
+    ap.add_argument("--crdb-cases", type=int, default=25000, help="CockroachDB generated cases per seed (default: >=100k per engine)")
     ap.add_argument("--no-research", action="store_true", help="skip the research-replay family")
     ap.add_argument("--miss-vs-2vl", action="store_true",
                     help="information: count GAP (permitted by the old two-valued refQ, denied by refQ3) as MISS")
@@ -914,6 +1068,8 @@ def main():
     if not a.engine: a.engine = ["sqlite"]
     if "pg" in a.engine and not a.dsn: ap.error("--engine pg needs --dsn")
     if "redis" in a.engine and not a.url: ap.error("--engine redis needs --url")
+    for e in EXT_ENGINES:
+        if e in a.engine and not a.dsn: ap.error(f"--engine {e} needs --dsn")
     if a.big: a.cases_per_seed = a.pg_cases = a.kv_cases = 25000
     if a.self_test:
         sys.exit(self_test(a))
@@ -924,7 +1080,7 @@ def main():
             binary, cleanup = L.build_sqlite_exec(HERE)
             a._exec = L.SqliteExec(binary)
         cfg = Cfg(a)
-        subject = L.make_subject(a.subject)
+        subject = L.make_subject(a.subject) if (a.subject or not set(cfg.engines) & set(EXT_ENGINES)) else M.ExtLocalSubject()
         print(f"{NAME}: subject={subject.name} engines={sorted(cfg.engines)} sqlite={cfg.sqlite_version}"
               f"{' (sqlite-exec helper)' if cfg.exec else ' (python stdlib)'} seeds={cfg.seeds} "
               f"cases/seed={cfg.cases} rows={cfg.rows} pg_cases/seed={cfg.pg_cases} kv_cases/seed={cfg.kv_cases}", flush=True)
@@ -947,7 +1103,7 @@ def main():
             json.dump({"families": fams, "total": tot, "skipped_float": skipped, "wall_s": wall, "bad": bad,
                        "versions": versions, "unique_cases": counts}, fh, indent=1, ensure_ascii=True, default=str)
     gen = sum(s["cases"] for n, s in fams.items() if " lean-generated | " in n and n.startswith("sqlite"))
-    uniq = " ".join(f"{k}={v}" for k, v in counts.items() if k in ("sqlite", "pg", "redis") and v or k == "redis_model")
+    uniq = " ".join(f"{k}={v}" for k, v in counts.items() if k in ("sqlite", "pg", "redis", "mariadb", "crdb") and v or k == "redis_model")
     summary = (f"cases={tot['cases']} generated_unique[{uniq}] (sqlite x{len(SQLITE_SCHEMAS)} schemas={gen}; pg x{len(PG_SCHEMAS)} schemas "
                f"x{len(cfg.dsns) if 'pg' in cfg.engines else 0} engines) leak={tot['leak']} widen={tot['widen']} miss={tot['miss']} "
                f"gap_vs_2vl(info)={tot['gap']} errors={tot['errors']} unrefused={tot['unrefused']}{pins_txt}")

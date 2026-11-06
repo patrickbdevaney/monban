@@ -286,6 +286,41 @@ These close BACKLOG "re-run PG and Redis after the refQ3 switch".
 * `--self-test`: `LOWERING-READ SELF-TEST: PASS (20/20 mutants caught; research naive LEAKs reproduced; positive control PASS; subject drop-tenant caught; pin fixtures 8/8)`;
   with `--engine pg --dsn @pg17 --engine redis --url @valkey` (unit acceptance): 30/30, `RC=0`.
 
+## MariaDB and CockroachDB (P7-oracle-adapters-001, PREFLIGHT D-P7.8, spikes/q4-005)
+
+`lowmy.py` sha256 973213e3688587ced334fd4b4757cb83963766136971022261a945aae8e6d324 (byte-identical in lowering-read and lowering-write); `lowir.py` unchanged (3eb7d790...).
+
+```
+ci/engines.sh with mariadb -- oracles/lowering-read/run --engine-pin --skip-sqlite --subject 'target/release/mariadb-subject lowering' --engine mariadb --dsn @mariadb
+ci/engines.sh with crdb    -- oracles/lowering-read/run --engine-pin --skip-sqlite --subject 'target/release/crdb-subject lowering' --engine crdb --dsn @crdb
+ci/engines.sh with mariadb,crdb -- oracles/lowering-read/run --self-test --skip-sqlite --engine mariadb --dsn @mariadb --engine crdb --dsn @crdb
+```
+
+`--engine mariadb` takes `mysql://user:pw@host:port/db`, `--engine crdb` a `postgresql://` DSN (CockroachDB iff its
+`version()` says so). `--my-cases` / `--crdb-cases` default to 25,000 generated cases per seed, so the gate command
+(no `--big`) runs >= 100k unique cases per engine with the 4 default seeds, each over every schema below. The check
+(LEAK / WIDEN / MISS against `refQ3`, theorem checks, refusals of non-canonical handles) is unchanged; the engines add
+a driver (`MyDB` over `lowmy.My`; CockroachDB reuses `PgDB`), schemas, a q4-005 cex corpus and the reference
+dialects in `lowmy.py` (byte-identical copy in `oracles/lowering-write/`; it imports `lowir.py` unmodified).
+
+| engine | schemas (tenant, x physical types; y bigint / INT8; requests declare IR types text / int) | cex corpus |
+|---|---|---|
+| mariadb 11.8.9 | default `utf8mb4_uca1400_ai_ci` (case+accent-insensitive, PAD SPACE); `utf8mb4_general_ci`; `utf8mb4_bin` (binary, PAD SPACE); `VARBINARY` tenant + `utf8mb4_nopad_bin` x. NUL-bearing values included. | 16 cases: case / PAD SPACE / accent / `ß`=`ss` collation confusers, LIKE case + `_` + backslash, int-vs-VARCHAR coercion (`'1'`, `'1e0'`), collation range, empty Or, NULL, NUL tenant |
+| crdb 25.4.19 | `STRING` (byte order); `COLLATE en_u_ks_level2`; `COLLATE en_u_ks_level1` (tenant and x). No NUL (PG wire text). | 10 cases: collated tenant / field case and accent, collated range, LIKE `_` / backslash, trailing space, empty Or, NULL |
+
+Plus the non-canonical handle family and a self-join family per seed. Subject contract: requests carry
+`"dialect":"mariadb"` (placeholders `?`, atoms `CAST(c AS BINARY) <op> CAST(? AS BINARY)`, prefix
+`LEFT(CAST(c AS BINARY), <utf-8 bytes>) = CAST(? AS BINARY)`, `TRUE`/`FALSE`, NULL column -> NULL) or
+`"dialect":"crdb"` (the postgres forms: `$n`, `c::text = $n::text COLLATE "C"`, `::bigint`); the reply is the same
+`{"sql": <boolean expression>, "params": [...]}`.
+
+Self-test mutants (expected counter): mariadb drop-tenant, two-valued-not (widen), or-precedence, like-prefix,
+empty-or-true, naive-bound, range-exclusive (miss), selfjoin-alias, refuse-all (miss), lenient-handle (unrefused),
+my-column-collation, my-bin-padspace (leak unless noted); crdb the same generic list plus crdb-column-collation.
+`pg-no-collate-c` is not in the crdb list: on CockroachDB `::text` already drops a collated string's locale, so it is
+equivalent there (q4-005). The local q4-004 mutants (in-nil-const-false, two-valued-not-absent) subclass the
+reference postgres / sqlite renderer and stay in the SQLite list. `--engine-pin` knows kinds `mariadb` and `crdb`.
+
 ## Known limits / pending
 
 * The default run (and every self-test) executes SQLite with Python's stdlib 3.45.3; only `--engine-pin` /

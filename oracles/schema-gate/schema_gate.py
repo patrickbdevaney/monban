@@ -5,11 +5,12 @@ PASS iff, in every selected mode, every counterexample schema is refused with it
 schema is accepted. Modes: --static (F4 Schema JSON), --engine sqlite (DDL on a throwaway file), --engine pg
 (DDL on a throwaway PostgreSQL; the namespace `aegis_sg` is dropped and recreated per case).
 """
-import argparse, json, os, queue, shlex, sqlite3, subprocess, sys, tempfile, threading, time
+import argparse, json, os, queue, shlex, sqlite3, subprocess, sys, tempfile, threading, time, tomllib, urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from pgwire import Pg, PgError  # noqa: E402
+from mywire import My, MyError  # noqa: E402
 
 NAME = "SCHEMA-GATE"
 REF = [sys.executable, "-I", os.path.join(HERE, "refsubject.py"), "serve"]
@@ -303,6 +304,141 @@ PG_DEFAULT_COLL = ("tenant with the database default collation (non-C)",
                    f"create table notes(tenant text not null, id int not null, x text, y bigint, {PK});" + rls(),
                    {"NonBinaryCollation"})
 
+# ================================================================================================ MariaDB corpus
+# P7-oracle-adapters-001 (D-P7.8): spikes/q4-005 reproducers 1-6 and the W3 amendment (binary AND NO PAD, no prefix
+# key part, the arbiter is the ONLY unique index). Each case is a list of statements run in the throwaway database
+# `aegis_sg` (dropped and recreated per case); every table is InnoDB utf8mb4 unless the case says otherwise.
+MYT = "tenant varchar(32) collate utf8mb4_nopad_bin not null"
+MYE = "default charset=utf8mb4 engine=innodb"
+MYPK = "primary key (tenant, id)"
+MY = [
+    ("golden: tenant utf8mb4_nopad_bin, int id, PK(tenant,id), x default uca1400_ai_ci",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"], None),
+    ("golden: tenant VARBINARY(64)",
+     [f"create table notes(tenant varbinary(64) not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"], None),
+    ("golden: text key, both utf8mb4_nopad_bin",
+     [f"create table notes({MYT}, id varchar(32) collate utf8mb4_nopad_bin not null, x varchar(32), y bigint, {MYPK}) {MYE}"], None),
+    ("golden: sole unique index instead of a PK",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, unique key notes_tk (tenant, id)) {MYE}"], None),
+    ("golden: non-key x utf8mb4_general_ci + plain index on x",
+     [f"create table notes({MYT}, id int not null, x varchar(32) collate utf8mb4_general_ci, y bigint, {MYPK}, key (x)) {MYE}"], None),
+    ("nullable tenant (unique index)",
+     [f"create table notes(tenant varchar(32) collate utf8mb4_nopad_bin, id int not null, x varchar(32), y bigint, "
+      f"unique key notes_tk (tenant, id)) {MYE}"], {"TenantFieldNullable"}),
+    ("tenant utf8mb4_bin (binary but PAD SPACE, q4-005 reproducer 1)",
+     [f"create table notes(tenant varchar(32) collate utf8mb4_bin not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant utf8mb4_general_ci (q4-005 reproducer 2)",
+     [f"create table notes(tenant varchar(32) collate utf8mb4_general_ci not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant with the 11.8 server default utf8mb4_uca1400_ai_ci",
+     [f"create table notes(tenant varchar(32) not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant utf8mb4_uca1400_as_cs (case/accent-sensitive, still not byte-wise)",
+     [f"create table notes(tenant varchar(32) collate utf8mb4_uca1400_as_cs not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant CHAR(16) utf8mb4_nopad_bin (CHAR strips trailing spaces)",
+     [f"create table notes(tenant char(16) collate utf8mb4_nopad_bin not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant BINARY(16) (0x00-padded)",
+     [f"create table notes(tenant binary(16) not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("key column utf8mb4_general_ci",
+     [f"create table notes({MYT}, id varchar(32) collate utf8mb4_general_ci not null, x varchar(32), y bigint, {MYPK}) {MYE}"],
+     {"NonBinaryCollation"}),
+    ("tenant BIGINT",
+     [f"create table notes(tenant bigint not null, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}"], {"TenantNotText"}),
+    ("PK without tenant (id only)",
+     [f"create table notes({MYT}, id int not null primary key, x varchar(32), y bigint) {MYE}"], {"UpsertArbiterNotTenantScoped"}),
+    ("second unique index UNIQUE(id) (q4-005 reproducer 4: ODKU arbiter = ANY unique key)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, {MYPK}, unique key (id)) {MYE}"],
+     {"UpsertArbiterNotTenantScoped"}),
+    ("second unique index UNIQUE(tenant,x) (q4-005 reproducer 5)",
+     [f"create table notes({MYT}, id int not null, x varchar(32) collate utf8mb4_nopad_bin, y bigint, {MYPK}, unique key (tenant, x)) {MYE}"],
+     {"UpsertArbiterNotTenantScoped"}),
+    ("prefix key part PRIMARY KEY (tenant(3), id) (q4-005 reproducer 3)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, primary key (tenant(3), id)) {MYE}"],
+     {"UpsertArbiterNotTenantScoped"}),
+    ("no unique index (InnoDB hidden clustered key only)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint) {MYE}"], {"UpsertArbiterNotTenantScoped"}),
+    ("trigger on the collection (W5, D8)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}",
+      f"create table audit(v varchar(32)) {MYE}",
+      "create trigger notes_ai after insert on notes for each row insert into audit values (new.x)"], {"TriggerOnCollection"}),
+    ("FK from another table into the collection ON DELETE CASCADE (D8)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}",
+      f"create table child(tenant varchar(32) collate utf8mb4_nopad_bin, nid int, foreign key (tenant, nid) references notes(tenant, id) "
+      f"on delete cascade) {MYE}"], {"ForeignKeyAction"}),
+    ("FK from the collection to a parent ON UPDATE SET NULL (D8)",
+     [f"create table parent(k varchar(32) collate utf8mb4_nopad_bin primary key) {MYE}",
+      f"create table notes({MYT}, id int not null, x varchar(32) collate utf8mb4_nopad_bin, y bigint, {MYPK}, "
+      f"foreign key (x) references parent(k) on update set null) {MYE}"], {"ForeignKeyAction"}),
+    ("generated tenant column (STORED, from raw) with a unique index",
+     [f"create table notes(raw varchar(64) collate utf8mb4_nopad_bin not null, tenant varchar(32) collate utf8mb4_nopad_bin "
+      f"as (left(raw, 16)) stored, id int not null, x varchar(32), y bigint, unique key notes_tk (tenant, id)) {MYE}"],
+     {"GeneratedTenant", "TenantFieldNullable"}),
+    ("view as collection",
+     [f"create table base({MYT}, id int not null, x varchar(32), y bigint, {MYPK}) {MYE}",
+      "create view notes as select * from base"], {"NotATable"}),
+    ("MyISAM collection (no transactions, no row locks: FOR UPDATE and ROLLBACK are no-ops)",
+     [f"create table notes({MYT}, id int not null, x varchar(32), y bigint, {MYPK}) default charset=utf8mb4 engine=myisam"],
+     {"NonTransactionalEngine"}),
+]
+
+# ================================================================================================ CockroachDB corpus
+# STRING without COLLATE compares byte-wise on CockroachDB (binary, NO PAD); every COLLATE'd STRING is a locale
+# collation (q4-005: en_u_ks_level2 lets 'ACME' arbitrate onto 'acme'). Statements run one by one in schema aegis_sg.
+CRT = "tenant string not null"
+CR = [
+    ("golden: STRING tenant, INT8 id, PK(tenant,id)", [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})"], None),
+    ("golden: STRING key", [f"create table notes({CRT}, id string not null, x string, y int8, {PK})"], None),
+    ("golden: varchar(32) tenant", [f"create table notes(tenant varchar(32) not null, id int8 not null, x string, y int8, {PK})"], None),
+    ("golden: non-key x collate en_u_ks_level2 + plain index on x",
+     [f"create table notes({CRT}, id int8 not null, x string collate en_u_ks_level2, y int8, {PK})", "create index notes_x on notes(x)"],
+     None),
+    ("nullable tenant (PK(id) + unique (tenant,id))",
+     ["create table notes(tenant string, id int8 not null primary key, x string, y int8)",
+      "create unique index notes_tk on notes(tenant, id)"], {"TenantFieldNullable"}),
+    ("tenant collate en_u_ks_level2 (q4-005: arbiter 'ACME' captures 'acme')",
+     [f"create table notes(tenant string collate en_u_ks_level2 not null, id int8 not null, x string, y int8, {PK})"],
+     {"NonBinaryCollation"}),
+    ("tenant collate en_u_ks_level1 (case- and accent-insensitive)",
+     [f"create table notes(tenant string collate en_u_ks_level1 not null, id int8 not null, x string, y int8, {PK})"],
+     {"NonBinaryCollation"}),
+    ("tenant collate de (locale order, deterministic)",
+     [f"create table notes(tenant string collate de not null, id int8 not null, x string, y int8, {PK})"], {"NonBinaryCollation"}),
+    ("key column collate en_u_ks_level2",
+     [f"create table notes({CRT}, id string collate en_u_ks_level2 not null, x string, y int8, {PK})"], {"NonBinaryCollation"}),
+    ("tenant INT8", [f"create table notes(tenant int8 not null, id int8 not null, x string, y int8, {PK})"], {"TenantNotText"}),
+    ("tenant BYTES", [f"create table notes(tenant bytes not null, id int8 not null, x string, y int8, {PK})"], {"TenantNotText"}),
+    ("PK without tenant", [f"create table notes({CRT}, id int8 primary key, x string, y int8)"], {"UpsertArbiterNotTenantScoped"}),
+    ("second unique index UNIQUE(id) (q4-005: 23505 fail-closed, but the arbiter is not the only key)",
+     [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK}, unique (id))"], {"UpsertArbiterNotTenantScoped"}),
+    ("expression unique index beside the PK: (tenant, lower(x))",
+     [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})", "create unique index notes_tx on notes(tenant, lower(x))"],
+     {"UpsertArbiterNotTenantScoped"}),
+    ("partial unique index beside the PK: (tenant, x) WHERE y > 0",
+     [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})",
+      "create unique index notes_tp on notes(tenant, x) where y > 0"], {"UpsertArbiterNotTenantScoped"}),
+    ("FK from another table into the collection ON DELETE CASCADE (D8)",
+     [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})",
+      "create table child(tenant string, nid int8, foreign key (tenant, nid) references notes(tenant, id) on delete cascade)"],
+     {"ForeignKeyAction"}),
+    ("FK from the collection to a parent ON UPDATE SET NULL (D8)",
+     ["create table parent(k string primary key)",
+      f"create table notes({CRT}, id int8 not null, x string references parent(k) on update set null, y int8, {PK})"],
+     {"ForeignKeyAction"}),
+    ("trigger on the collection (W5, D8)",
+     [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})",
+      "create function aegis_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$",
+      "create trigger notes_bi before insert on notes for each row execute function aegis_sg.tf()"], {"TriggerOnCollection"}),
+    ("computed tenant column (STORED, from raw)",
+     [f"create table notes(raw string not null, tenant string not null as (left(raw, 16)) stored, id int8 not null, x string, "
+      f"y int8, {PK})"], {"GeneratedTenant"}),
+    ("view as collection",
+     [f"create table base({CRT}, id int8 not null, x string, y int8, {PK})", "create view notes as select * from base"], {"NotATable"}),
+]
+
 # ================================================================================================ mutants per mode
 COMMON_MUT = ["refuse-all", "accept-all", "ignore-collation", "ignore-second-unique", "ignore-prefix-index",
               "ignore-nullable-tenant", "class-blind"]
@@ -312,7 +448,17 @@ MUTANTS = {
     "static": COMMON_MUT,
     "sqlite": COMMON_MUT + LIVE_MUT + ["ignore-rowid-alias"],
     "pg": COMMON_MUT + LIVE_MUT + ["ignore-rules", "ignore-exclusion", "ignore-rls", "ignore-partition"],
+    # MariaDB has no per-index collation (ignore-index-collation has no counterexample there); CockroachDB has no
+    # RLS / rules / exclusion constraints / PG partitioning in the crdb dialect (README)
+    # and no NOT NULL generated column (a generated tenant is always also nullable: ignore-generated is masked by the
+    # nullability check, which comes first in check_schema order)
+    "mariadb": COMMON_MUT + [x for x in LIVE_MUT if x not in ("ignore-index-collation", "ignore-generated")] + ["ignore-engine"],
+    # CockroachDB has no per-index-column COLLATE either (an index key part uses the column's collation), and every
+    # table has a primary key (a hidden rowid one otherwise), so an expression / partial unique index is always a
+    # SECOND unique index: ignore-prefix-index is masked by the only-unique-index check there
+    "crdb": [x for x in COMMON_MUT if x != "ignore-prefix-index"] + [x for x in LIVE_MUT if x != "ignore-index-collation"],
 }
+LIVE_MODES = ("pg", "mariadb", "crdb")
 
 
 # ================================================================================================ subject process
@@ -452,6 +598,116 @@ def run_pg(subj, log, dsn):
     return fails, len(corpus)
 
 
+def run_my(subj, log, dsn):
+    fails = []
+    my = My(dsn)
+    try:
+        for name, stmts, exp in MY:
+            try:
+                my.simple("drop database if exists aegis_sg")
+                my.simple("create database aegis_sg default charset utf8mb4")
+                my.simple("use aegis_sg")
+                for st in stmts:
+                    my.simple(st)
+            except MyError as e:
+                raise SystemExit(f"{NAME}: FAIL (oracle setup error in mariadb case {name!r}: {e})")
+            got, det = subj.ask({"op": "schema", "mode": "mariadb", "dsn": dsn, "namespace": NS, "collection": COLL,
+                                 "declared": DECLARED})
+            v = verdict(name, exp, got, det)
+            if v:
+                fails.append(v)
+            log(f"  mariadb {'FAIL' if v else 'ok  '} {name}: {got} {det or ''}")
+        my.simple("drop database if exists aegis_sg")
+    finally:
+        my.close()
+    return fails, len(MY)
+
+
+def run_crdb(subj, log, dsn):
+    fails = []
+    pg = Pg(dsn)
+    try:
+        for name, stmts, exp in CR:
+            try:
+                pg.simple(f"drop schema if exists {NS} cascade")
+                pg.simple(f"create schema {NS}")
+                pg.simple(f"set search_path = {NS}, public")
+                for st in stmts:
+                    pg.simple(st)
+            except PgError as e:
+                raise SystemExit(f"{NAME}: FAIL (oracle setup error in crdb case {name!r}: {e})")
+            got, det = subj.ask({"op": "schema", "mode": "crdb", "dsn": dsn, "namespace": NS, "collection": COLL,
+                                 "declared": DECLARED})
+            v = verdict(name, exp, got, det)
+            if v:
+                fails.append(v)
+            log(f"  crdb    {'FAIL' if v else 'ok  '} {name}: {got} {det or ''}")
+        pg.simple(f"drop schema if exists {NS} cascade")
+    finally:
+        pg.close()
+    return fails, len(CR)
+
+
+def is_crdb(dsn):
+    pg = Pg(dsn)
+    try:
+        return pg.simple("select version()")[1][0][0].startswith("CockroachDB")
+    finally:
+        pg.close()
+
+
+def route_dsns(dsns, modes):
+    """--dsn values -> {mode: dsn}: mysql:// is MariaDB; a postgresql:// DSN is CockroachDB iff version() says so."""
+    out = {}
+    for d in dsns:
+        sch = urllib.parse.urlparse(d).scheme
+        if sch in ("mysql", "mariadb"):
+            out.setdefault("mariadb", d)
+        elif sch in ("postgres", "postgresql"):
+            live = [m for m in ("pg", "crdb") if m in modes]
+            k = live[0] if len(live) == 1 else ("crdb" if is_crdb(d) else "pg")
+            out.setdefault(k, d)
+    return out
+
+
+def engine_version(mode, dsn):
+    """(pin kind, version) of the live engine behind dsn."""
+    if mode == "mariadb":
+        my = My(dsn)
+        try:
+            v = my.server_version
+        finally:
+            my.close()
+        v = v[len("5.5.5-"):] if v.startswith("5.5.5-") else v
+        return "mariadb", v.split("-")[0]
+    pg = Pg(dsn)
+    try:
+        if mode == "crdb":
+            tok = pg.simple("select version()")[1][0][0].split()[2]
+            return "crdb", tok[1:] if tok.startswith("v") else tok
+        return "postgres", pg.simple("show server_version")[1][0][0].split(" ")[0]
+    finally:
+        pg.close()
+
+
+def pin_check(pins_path, kind, version, dsn):
+    """ENGINE_PIN (supply-chain/engine-pins.toml; same rule as lowir.pin_check): the engine ci/engines.sh started for
+    this DSN (AEGIS_ENGINE_<NAME>), else any pin of that kind and exact version; exact version, policy allow."""
+    with open(pins_path, "rb") as f:
+        engines = tomllib.load(f).get("engines") or {}
+    name = next((k[len("AEGIS_ENGINE_"):].lower() for k, v in os.environ.items() if k.startswith("AEGIS_ENGINE_") and v == dsn), None)
+    cands = [(name, engines[name])] if name in engines else [(n, e) for n, e in engines.items()
+                                                              if e.get("kind") == kind and e.get("version") == version]
+    if not cands:
+        return False, f"{kind} {version}: no engine pin of that kind and version"
+    n, e = cands[0]
+    if e.get("kind") != kind or e.get("version") != version:
+        return False, f"{n}: live {kind} {version} != pin {e.get('kind')} {e.get('version')}"
+    if e.get("policy") != "allow":
+        return False, f"{n} {version}: pin policy {e.get('policy')}"
+    return True, f"{n}={version}"
+
+
 def run_modes(argv, modes, dsn, log):
     """Run the corpus of every mode against one subject process. Returns (fails, counts)."""
     subj = Subject(argv)
@@ -463,8 +719,12 @@ def run_modes(argv, modes, dsn, log):
                     f, n = run_static(subj, log)
                 elif m == "sqlite":
                     f, n = run_sqlite(subj, log, tmp)
+                elif m == "mariadb":
+                    f, n = run_my(subj, log, dsn["mariadb"])
+                elif m == "crdb":
+                    f, n = run_crdb(subj, log, dsn["crdb"])
                 else:
-                    f, n = run_pg(subj, log, dsn)
+                    f, n = run_pg(subj, log, dsn["pg"])
                 fails += [f"[{m}] {x}" for x in f]
                 counts[m] = n
     finally:
@@ -494,7 +754,7 @@ def witnesses():
     return out
 
 
-def self_test(modes, dsn, verbose):
+def self_test(modes, dsn, verbose, subject=None):
     quiet = (lambda s: print(s)) if verbose else (lambda s: None)
     problems, caught, total = [], 0, 0
     # positive control: the reference through the process protocol
@@ -521,6 +781,13 @@ def self_test(modes, dsn, verbose):
         w = witnesses()
         problems += w
         print(f"{NAME} self-test: sqlite hazard witnesses {'reproduced' if not w else w}", flush=True)
+    if subject:
+        # P7: the gate's subject must pass the same corpus (positive control through the subject protocol)
+        f, counts = run_modes(shlex.split(subject), modes, dsn, quiet)
+        if f:
+            problems.append(f"subject {subject!r} failed {len(f)} case(s): {f[:3]}")
+        print(f"{NAME} self-test: subject {subject!r} {'PASS' if not f else 'FAIL'} {counts}"
+              f"{'' if not f else '; e.g. ' + f[0]}", flush=True)
     return problems, caught, total
 
 
@@ -529,39 +796,54 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--subject", help="subject command (shell-split); default: the reference refsubject.py")
     ap.add_argument("--static", action="store_true", help="static mode (F4 Schema JSON)")
-    ap.add_argument("--engine", action="append", choices=["sqlite", "pg"], default=[], help="live engine mode")
-    ap.add_argument("--dsn", help="throwaway PostgreSQL DSN for --engine pg (namespace aegis_sg is dropped)")
+    ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "mariadb", "crdb"], default=[], help="live engine mode")
+    ap.add_argument("--dsn", action="append", default=[], help="throwaway DSN for a live mode, repeatable: postgresql:// (pg; "
+                    "crdb iff the server's version() says CockroachDB) or mysql:// (mariadb). pg/crdb: schema aegis_sg is "
+                    "dropped; mariadb: database aegis_sg is dropped")
+    ap.add_argument("--skip-sqlite", action="store_true", help="no default static+sqlite modes (they are only the default "
+                    "when no mode is given; accepted for the lowering-oracle CLI contract)")
+    ap.add_argument("--engine-pin", action="store_true", help="the live engines must match supply-chain/engine-pins.toml")
+    ap.add_argument("--pins", default=os.path.join(os.path.dirname(os.path.dirname(HERE)), "supply-chain", "engine-pins.toml"))
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--verbose", "-v", action="store_true")
     a = ap.parse_args()
-    modes = (["static"] if a.static else []) + [m for m in ("sqlite", "pg") if m in a.engine]
+    modes = (["static"] if a.static else []) + [m for m in ("sqlite",) + LIVE_MODES if m in a.engine]
     if not modes:
-        modes = ["static", "sqlite"]
-    if "pg" in modes and not a.dsn:
-        print(f"{NAME}: FAIL (--engine pg needs --dsn)")
-        return 1
+        modes = ["static"] if a.skip_sqlite else ["static", "sqlite"]
+    dsn = route_dsns(a.dsn, modes)
+    for m in LIVE_MODES:
+        if m in modes and m not in dsn:
+            print(f"{NAME}: FAIL (--engine {m} needs a matching --dsn)")
+            return 1
+    pins_txt = ""
+    if a.engine_pin:
+        res = [pin_check(a.pins, *engine_version(m, dsn[m]), dsn[m]) for m in LIVE_MODES if m in modes]
+        for ok, label in res:
+            print(f"  engine-pin: {label} -> {'OK' if ok else 'MISMATCH'}")
+        if not all(ok for ok, _ in res):
+            print(f"{NAME}: FAIL (engine_pin {'; '.join(l for ok, l in res if not ok)})")
+            return 1
+        pins_txt = " engine_pin=[" + ", ".join(l for _, l in res) + "]"
     t0 = time.time()
     if a.self_test:
-        if a.subject:
-            print(f"{NAME} SELF-TEST: FAIL (--self-test runs the reference and its mutants; no --subject)")
-            return 1
-        problems, caught, total = self_test(modes, a.dsn, a.verbose)
+        problems, caught, total = self_test(modes, dsn, a.verbose, a.subject)
         if problems:
             print(f"{NAME} SELF-TEST: FAIL ({'; '.join(problems)})")
             return 1
         print(f"{NAME} SELF-TEST: PASS ({caught}/{total} mutants caught over {'+'.join(modes)}; reference passes "
-              f"through the subject protocol; dead subject caught; {time.time() - t0:.1f}s)")
+              f"through the subject protocol; dead subject caught{'; subject passes' if a.subject else ''}{pins_txt}; "
+              f"{time.time() - t0:.1f}s)")
         return 0
     argv = shlex.split(a.subject) if a.subject else REF
     log = (lambda s: print(s)) if a.verbose else (lambda s: None)
-    fails, counts = run_modes(argv, modes, a.dsn, log)
+    fails, counts = run_modes(argv, modes, dsn, log)
     for x in fails:
         print(x)
     summary = " ".join(f"{m}={n}" for m, n in counts.items())
     if fails:
         print(f"{NAME}: FAIL ({len(fails)} failing cases; {summary})")
         return 1
-    print(f"{NAME}: PASS (every counterexample refused with its class, every golden accepted; {summary}; "
+    print(f"{NAME}: PASS (every counterexample refused with its class, every golden accepted; {summary}{pins_txt}; "
           f"{time.time() - t0:.1f}s)")
     return 0
 
