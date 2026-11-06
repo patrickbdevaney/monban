@@ -1,0 +1,94 @@
+# tcb-lines self-test fixture: only the gates the fixture's TCB lines cite (names only; never run).
+phase = 7
+
+[[gate]]
+name = "cred-select"
+cmd = "true"
+
+[[gate]]
+name = "default-graph"
+cmd = "true"
+
+[[gate]]
+name = "front-equiv"
+cmd = "true"
+
+[[gate]]
+name = "fuzz"
+cmd = "true"
+
+[[gate]]
+name = "kani-wire"
+cmd = "true"
+
+[[gate]]
+name = "libcrux-spike"
+cmd = "true"
+
+[[gate]]
+name = "lowering-read-crdb"
+cmd = "true"
+
+[[gate]]
+name = "lowering-read-mariadb"
+cmd = "true"
+
+[[gate]]
+name = "lowering-write-crdb"
+cmd = "true"
+
+[[gate]]
+name = "lowering-write-mariadb"
+cmd = "true"
+
+[[gate]]
+name = "no-otel-in-bin"
+cmd = "true"
+
+[[gate]]
+name = "no-quic"
+cmd = "true"
+
+[[gate]]
+name = "otlp-export"
+cmd = "true"
+
+[[gate]]
+name = "pg-version-floor"
+cmd = "true"
+
+[[gate]]
+name = "proxy-l4"
+cmd = "true"
+
+[[gate]]
+name = "schema-gate-crdb"
+cmd = "true"
+
+[[gate]]
+name = "schema-gate-mariadb"
+cmd = "true"
+
+[[gate]]
+name = "systemd-hardening"
+cmd = "true"
+
+[[gate]]
+name = "tls-verdicts"
+cmd = "true"
+
+[[gate]]
+name = "unsafe-sites"
+cmd = "true"
+
+[[gate]]
+name = "vet"
+cmd = "true"
+
+[[gate]]
+name = "scaling"
+cmd = "true"
+
+[[gate]]
+name = "tests"
+cmd = "true"

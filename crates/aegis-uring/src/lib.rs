@@ -10,7 +10,7 @@
 //! an old kernel without the needed opcodes), [`uring_available`] and [`UringListener::bind`] return
 //! [`UringError::Unavailable`], whose message names `io_uring`. There is no epoll fallback anywhere in this crate.
 //!
-//! **Buffer ownership** (the argument behind the one `unsafe` site, DEVIATIONS X-15): every buffer the kernel reads
+//! **Buffer ownership** (the argument behind the one `unsafe` site, DEVIATIONS X-19): every buffer the kernel reads
 //! or writes is heap memory owned by the driver's operation table from the moment its SQE is queued until its CQE is
 //! reaped. Streams hand buffers over by value and get them back by value; nothing borrowed crosses an `.await`.
 //! Dropping a stream with operations in flight cancels its reads, lets accepted writes finish (bounded by

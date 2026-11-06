@@ -20,7 +20,7 @@ io-uring = { workspace = true }
 tokio = { workspace = true, features = ["rt", "net", "io-util", "sync"] }
 
 # Equal to [workspace.lints] except unsafe_code = "deny" (not "forbid"): io-uring's submission API is `unsafe fn`;
-# each site carries #[allow(unsafe_code)] plus `// SAFETY:`; `cargo xtask unsafe-sites` caps them at 6 (DEVIATIONS X-15).
+# each site carries #[allow(unsafe_code)] plus `// SAFETY:`; `cargo xtask unsafe-sites` caps them at 6 (DEVIATIONS X-19).
 [lints.rust]
 unsafe_code = "deny"
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(aegis_kani_negative)"] }
