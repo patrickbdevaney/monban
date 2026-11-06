@@ -177,3 +177,13 @@ run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 cr
 - ci/oracles.sh has no "own gate, no aggregate" marker other than `needs = kamrui` (front-equiv uses it though it
   runs on the desktop). Add a proper `own-gate` marker.
 - io-uring 0.7.15 vet audit is an agent review: operator countersign before production use of `uring`.
+- aegis-bin `serve.rs` hard-codes tokio `worker_threads(2)`: scaling plateaus at ~31-42k req/s from 2 cores up
+  (bench/scaling, 2026-11-06). Make it an F8 knob (default 2 keeps every timing gate) before the 64-core run.
+- MariaDB backend boots fail closed (exit 78) in aegis-bin: aegis-data-ir has no EngineFamily::Mariadb + MySQL denylist
+  and apps/notes has no allowlist.notes-mariadb.lock (P7-bin-001). Spec-author work, Phase 8.
+- MariaDB adapter: no pool/cancel (KILL QUERY), loopback only (no TLS), Rust client not live-tested on write forms.
+- CockroachDB reuses the PG denylist and notes PG allowlist lock; 40001 surfaces as a conflict (no whole-txn retry
+  through the SDK host); CancelRequest path and L4 idle timeout after routing have no oracle.
+- native-e2e PG half and unrestricted-ledger need the laptop (>= 10 GB free) or kamrui-valid pg image pins
+  (kamrui rejects the laptop-style pg image Ids).
+- No gate drives the MTC selector through aegis-bin (cred-select uses tls-subject).

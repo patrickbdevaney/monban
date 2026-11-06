@@ -1,10 +1,10 @@
 {
  "aegis": {
-  "binary": "/home/patrickd/aegis-ci/repo-bcc4ff76a5b4/target/release/aegis",
+  "binary": "/home/patrickd/aegis-ci/repo/target/release/aegis",
   "build": "default features, --release --locked"
  },
  "cpu_order": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23",
- "date": "2026-11-06T12:30:23+00:00",
+ "date": "2026-11-06T18:56:42+00:00",
  "h2load": "h2load nghttp2/1.69.0",
  "host": "patrickd-B550-AORUS-ELITE-AX-V2",
  "host_cpus": 24,
@@ -22,10 +22,8 @@
  "note": "advisory record_only (PREFLIGHT D-P7.7); shared host, run at nice 15 under the ci lock",
  "points": [
   {
-   "aegis_admission_rejects": 315330,
-   "aegis_admission_rejects_by_stage": {
-    "{stage=\"S1\"}": 315330
-   },
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
    "cores": 1,
    "cpus": {
     "aegis": "0",
@@ -33,34 +31,32 @@
     "upstream": "18,19"
    },
    "disjoint": true,
-   "errored": 283,
-   "errors": 315896,
-   "failed": 315613,
-   "h2load_req_s": 32000.0,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 18791.8,
    "h2load_summary": [
-    "finished in 10.04s, 32000.00 req/s",
-    "requests: 320283 total, 320283 started, 320283 done, 4670 succeeded, 315613 failed, 283 errored, 0 timeout",
-    "status codes: 4670 2xx, 0 3xx, 315330 4xx, 0 5xx"
+    "finished in 10.01s, 18791.80 req/s",
+    "requests: 187918 total, 188430 started, 187918 done, 187918 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 187918 2xx, 0 3xx, 0 4xx, 0 5xx"
    ],
-   "latency_samples": 320283,
-   "measured_s": 10.04,
-   "p50_ms": 2.006,
-   "p99_ms": 12.771,
-   "req_s": 465.1,
-   "requests_done": 320283,
-   "status_2xx": 4670,
+   "latency_samples": 187918,
+   "measured_s": 10.01,
+   "p50_ms": 24.703,
+   "p99_ms": 66.726,
+   "req_s": 18773.0,
+   "requests_done": 187918,
+   "status_2xx": 187918,
    "status_3xx": 0,
-   "status_4xx": 315330,
+   "status_4xx": 0,
    "status_5xx": 0,
-   "succeeded": 4670,
+   "succeeded": 187918,
    "timeout": 0,
    "usable_cpus": 1
   },
   {
-   "aegis_admission_rejects": 316073,
-   "aegis_admission_rejects_by_stage": {
-    "{stage=\"S1\"}": 316073
-   },
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
    "cores": 2,
    "cpus": {
     "aegis": "0,1",
@@ -68,34 +64,32 @@
     "upstream": "18,19"
    },
    "disjoint": true,
-   "errored": 248,
-   "errors": 316569,
-   "failed": 316321,
-   "h2load_req_s": 32000.0,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 31210.0,
    "h2load_summary": [
-    "finished in 10.04s, 32000.00 req/s",
-    "requests: 320248 total, 320248 started, 320248 done, 3927 succeeded, 316321 failed, 248 errored, 0 timeout",
-    "status codes: 3927 2xx, 0 3xx, 316073 4xx, 0 5xx"
+    "finished in 10.02s, 31210.00 req/s",
+    "requests: 312100 total, 312612 started, 312100 done, 312100 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 312100 2xx, 0 3xx, 0 4xx, 0 5xx"
    ],
-   "latency_samples": 320248,
-   "measured_s": 10.04,
-   "p50_ms": 1.198,
-   "p99_ms": 6.15,
-   "req_s": 391.1,
-   "requests_done": 320248,
-   "status_2xx": 3927,
+   "latency_samples": 312100,
+   "measured_s": 10.02,
+   "p50_ms": 8.498,
+   "p99_ms": 76.71,
+   "req_s": 31147.7,
+   "requests_done": 312100,
+   "status_2xx": 312100,
    "status_3xx": 0,
-   "status_4xx": 316073,
+   "status_4xx": 0,
    "status_5xx": 0,
-   "succeeded": 3927,
+   "succeeded": 312100,
    "timeout": 0,
    "usable_cpus": 2
   },
   {
-   "aegis_admission_rejects": 316493,
-   "aegis_admission_rejects_by_stage": {
-    "{stage=\"S1\"}": 316493
-   },
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
    "cores": 4,
    "cpus": {
     "aegis": "0,1,2,3",
@@ -103,34 +97,32 @@
     "upstream": "18,19"
    },
    "disjoint": true,
-   "errored": 244,
-   "errors": 316981,
-   "failed": 316737,
-   "h2load_req_s": 32000.0,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 41790.5,
    "h2load_summary": [
-    "finished in 10.04s, 32000.00 req/s",
-    "requests: 320244 total, 320244 started, 320244 done, 3507 succeeded, 316737 failed, 244 errored, 0 timeout",
-    "status codes: 3507 2xx, 0 3xx, 316493 4xx, 0 5xx"
+    "finished in 10.01s, 41790.50 req/s",
+    "requests: 417905 total, 418417 started, 417905 done, 417905 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 417905 2xx, 0 3xx, 0 4xx, 0 5xx"
    ],
-   "latency_samples": 320244,
-   "measured_s": 10.04,
-   "p50_ms": 1.152,
-   "p99_ms": 2.751,
-   "req_s": 349.3,
-   "requests_done": 320244,
-   "status_2xx": 3507,
+   "latency_samples": 417905,
+   "measured_s": 10.01,
+   "p50_ms": 7.337,
+   "p99_ms": 43.768,
+   "req_s": 41748.8,
+   "requests_done": 417905,
+   "status_2xx": 417905,
    "status_3xx": 0,
-   "status_4xx": 316493,
+   "status_4xx": 0,
    "status_5xx": 0,
-   "succeeded": 3507,
+   "succeeded": 417905,
    "timeout": 0,
    "usable_cpus": 4
   },
   {
-   "aegis_admission_rejects": 316215,
-   "aegis_admission_rejects_by_stage": {
-    "{stage=\"S1\"}": 316215
-   },
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
    "cores": 8,
    "cpus": {
     "aegis": "0,1,2,3,4,5,6,7",
@@ -138,34 +130,32 @@
     "upstream": "18,19"
    },
    "disjoint": true,
-   "errored": 246,
-   "errors": 316707,
-   "failed": 316461,
-   "h2load_req_s": 32000.0,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 34920.6,
    "h2load_summary": [
-    "finished in 10.04s, 32000.00 req/s",
-    "requests: 320246 total, 320246 started, 320246 done, 3785 succeeded, 316461 failed, 246 errored, 0 timeout",
-    "status codes: 3785 2xx, 0 3xx, 316215 4xx, 0 5xx"
+    "finished in 10.01s, 34920.60 req/s",
+    "requests: 349206 total, 349718 started, 349206 done, 349206 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 349206 2xx, 0 3xx, 0 4xx, 0 5xx"
    ],
-   "latency_samples": 320246,
-   "measured_s": 10.04,
-   "p50_ms": 1.103,
-   "p99_ms": 3.279,
-   "req_s": 377.0,
-   "requests_done": 320246,
-   "status_2xx": 3785,
+   "latency_samples": 349206,
+   "measured_s": 10.01,
+   "p50_ms": 8.085,
+   "p99_ms": 54.968,
+   "req_s": 34885.7,
+   "requests_done": 349206,
+   "status_2xx": 349206,
    "status_3xx": 0,
-   "status_4xx": 316215,
+   "status_4xx": 0,
    "status_5xx": 0,
-   "succeeded": 3785,
+   "succeeded": 349206,
    "timeout": 0,
    "usable_cpus": 8
   },
   {
-   "aegis_admission_rejects": 316508,
-   "aegis_admission_rejects_by_stage": {
-    "{stage=\"S1\"}": 316508
-   },
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
    "cores": 16,
    "cpus": {
     "aegis": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
@@ -173,32 +163,61 @@
     "upstream": "18,19"
    },
    "disjoint": true,
-   "errored": 269,
-   "errors": 317046,
-   "failed": 316777,
-   "h2load_req_s": 32000.0,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 31110.7,
    "h2load_summary": [
-    "finished in 10.04s, 32000.00 req/s",
-    "requests: 320269 total, 320269 started, 320269 done, 3492 succeeded, 316777 failed, 269 errored, 0 timeout",
-    "status codes: 3492 2xx, 0 3xx, 316508 4xx, 0 5xx"
+    "finished in 10.00s, 31110.70 req/s",
+    "requests: 311107 total, 311619 started, 311107 done, 311107 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 311107 2xx, 0 3xx, 0 4xx, 0 5xx"
    ],
-   "latency_samples": 320269,
-   "measured_s": 10.04,
-   "p50_ms": 1.321,
-   "p99_ms": 2.858,
-   "req_s": 347.8,
-   "requests_done": 320269,
-   "status_2xx": 3492,
+   "latency_samples": 311107,
+   "measured_s": 10.0,
+   "p50_ms": 8.167,
+   "p99_ms": 82.128,
+   "req_s": 31110.7,
+   "requests_done": 311107,
+   "status_2xx": 311107,
    "status_3xx": 0,
-   "status_4xx": 316508,
+   "status_4xx": 0,
    "status_5xx": 0,
-   "succeeded": 3492,
+   "succeeded": 311107,
    "timeout": 0,
    "usable_cpus": 16
   },
   {
-   "cores": 24,
-   "error": "does not fit disjointly: 24 aegis + 4 h2load + 2 upstream > 24 CPUs"
+   "aegis_admission_rejects": 0,
+   "aegis_admission_rejects_by_stage": {},
+   "cores": 18,
+   "cpus": {
+    "aegis": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17",
+    "h2load": "20,21,22,23",
+    "upstream": "18,19"
+   },
+   "disjoint": true,
+   "errored": 0,
+   "errors": 0,
+   "failed": 0,
+   "h2load_req_s": 32835.0,
+   "h2load_summary": [
+    "finished in 10.02s, 32835.00 req/s",
+    "requests: 328350 total, 328862 started, 328350 done, 328350 succeeded, 0 failed, 0 errored, 0 timeout",
+    "status codes: 328350 2xx, 0 3xx, 0 4xx, 0 5xx"
+   ],
+   "latency_samples": 328350,
+   "measured_s": 10.02,
+   "p50_ms": 8.337,
+   "p99_ms": 64.246,
+   "req_s": 32769.5,
+   "requests_done": 328350,
+   "status_2xx": 328350,
+   "status_3xx": 0,
+   "status_4xx": 0,
+   "status_5xx": 0,
+   "succeeded": 328350,
+   "timeout": 0,
+   "usable_cpus": 18
   }
  ],
  "provisional": true,
