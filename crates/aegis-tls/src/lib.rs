@@ -11,6 +11,9 @@
 //! Feature `cmvp` (PLAN-6 D1/D15, the profiles/cmvp overlay build): P-CNSA refused (no ML-DSA-87), P-UNIVERSAL and
 //! P-BSI-ALT sign with ECDSA-P384 only, FIPS-CMVP buildable with the P-PQ5 module-identity assertion.
 //!
+//! Feature `mtc` (PLAN-7 D-P7.4, off by default, never with `cmvp`): [`select`], the MTC CredentialSelector over the
+//! aegis-wire ClientHello peek.
+//!
 //! Not here yet: scoped ticketer + STEK ring (P-PQ3, P2-tls-002), PreferServerOrder backport.
 #![forbid(unsafe_code)]
 
@@ -18,6 +21,10 @@
 mod kani_proofs; // Kani harnesses for the kx share parsing (P6-kani-001), run by ci/kani.sh --crate aegis-tls
 pub mod kx;
 pub mod profile;
+/// Feature `mtc` (PREFLIGHT D-P7.4): the per-ClientHello [`CredentialSelector`] (F1 SEL-1..3). Compiled out of the
+/// cmvp build even if both features are on, so MTC selection never reaches the certified-module binary.
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+pub mod select;
 
 pub use profile::{
     FipsStatus, Profile, ProfileError, ProfileStatus, assert_profile, fips_check_with, fips_status_with,
@@ -25,3 +32,5 @@ pub use profile::{
 };
 #[cfg(feature = "tls-client")]
 pub use profile::{assert_client_profile, client_config};
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+pub use select::{BoundSelector, Credential, CredentialKind, CredentialSelector, SelectError, key_scheme};
