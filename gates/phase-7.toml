@@ -620,7 +620,7 @@ name = "kani-wire"
 cmd = "ci/kani.sh --serial --mem 6G -p aegis-wire"
 selftest = "ci/kani.sh --self-test -p aegis-wire"
 heavy = true
-remote = "kamrui"
+# no remote key: ci/kani.sh itself drives kamrui (as kani-tbi / kani-kx)
 
 [[gate]]
 name = "cred-select"
