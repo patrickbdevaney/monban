@@ -168,3 +168,12 @@ run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 cr
 - D18: Redis native mode. Add +multi +exec +discard to kv_acl (oracle reference + aegis-adapter-redis), confirm the hostile family stays red, wire the MULTI/EXEC executor in aegis-bin, and run native-e2e with --kv @valkey.
 - adapter-host: pass a per-call session/context id through ScopeBackend, so aegis-bin can drop its per-(backend, tenant) request serialization (correct and fail-closed, but it limits throughput).
 - F8: fields for the PG provisioning role and tenant setting names (aegis-bin hardcodes aegis_app / aegis.tenant).
+
+## Phase 7 findings (2026-11-06)
+- aegis-transport: a bad chunk-size line or bare-LF chunk line yields TWO 400 responses for one request (hyper's,
+  with `date`, then the strict filter's, without), then close (45/45, P7-oracle-uring-001). One request must get one
+  response. Owner: Phase 8 (transport).
+- Admission per-IP GCRA numbers were hard-coded (now F8 `admission`, P7-spec-001); load oracles sized around it.
+- ci/oracles.sh has no "own gate, no aggregate" marker other than `needs = kamrui` (front-equiv uses it though it
+  runs on the desktop). Add a proper `own-gate` marker.
+- io-uring 0.7.15 vet audit is an agent review: operator countersign before production use of `uring`.
