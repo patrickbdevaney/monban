@@ -15,6 +15,7 @@ import json, re, sqlite3, sys, urllib.parse
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pgwire import Pg, PgError  # noqa: E402
+from mywire import My, MyError  # noqa: E402
 
 MUTANTS = [
     "refuse-all",                 # refuses everything (golden rejected -> red)
@@ -36,6 +37,7 @@ MUTANTS = [
     "ignore-not-a-table",         # views / virtual tables admitted as collections
     "declared-not-introspected",  # trusts the declared Schema instead of the catalog
     "class-blind",                # right accept/refuse decisions, constant refusal class
+    "ignore-engine",              # MariaDB storage engine not checked (MyISAM / MEMORY: no transactions, no row locks)
 ]
 
 
@@ -209,18 +211,23 @@ def sqlite_check(req, m):
 
 
 # ---------------------------------------------------------------------------------------------- PostgreSQL (live)
-def pg_check(req, m):
+def pg_check(req, m, crdb=False):
     declared = parse_schema(req["declared"])
     if m == "declared-not-introspected":
         return check_schema_probe(declared, m)
     pg = Pg(req["dsn"])
     try:
-        return _pg_check(pg, req, declared, m)
+        return _pg_check(pg, req, declared, m, crdb)
     finally:
         pg.close()
 
 
-def _pg_check(pg, req, declared, m):
+def _pg_check(pg, req, declared, m, crdb=False):
+    """PG catalogs; `crdb` = CockroachDB (P7-oracle-adapters-001): its pg_catalog carries the same columns, a plain
+    STRING has the collation `default`, which on CockroachDB is byte order (binary, NO PAD) whatever the database
+    locale, and a COLLATE'd STRING has a collation oid with no pg_collation row (never binary). CockroachDB has no
+    rewrite rules, exclusion constraints, PG partitioning or pg_partition_tree; RLS is not part of the crdb dialect
+    (no rls_policy / rls_bind; lowering-write runs no RLS family on crdb), so those checks are PG-only."""
     nsp, coll = req["namespace"], req["collection"]
     _, rows = pg.query("SELECT c.oid::int8, c.relkind::text, c.relrowsecurity, c.relforcerowsecurity "
                        "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
@@ -230,8 +237,11 @@ def _pg_check(pg, req, declared, m):
     oid, relkind, rls, force = rows[0]
     if relkind not in ("r", "p") and m != "ignore-not-a-table":
         raise Refuse("NotATable")
-    _, drow = pg.query("SELECT datcollate, datlocprovider::text FROM pg_database WHERE datname = current_database()")
-    db_default_c = drow[0][0] in ("C", "POSIX") and drow[0][1] == "c"
+    if crdb:
+        db_default_c = True
+    else:
+        _, drow = pg.query("SELECT datcollate, datlocprovider::text FROM pg_database WHERE datname = current_database()")
+        db_default_c = drow[0][0] in ("C", "POSIX") and drow[0][1] == "c"
 
     def binary_coll(coll_oid, collname, provider):
         if collname in ("C", "POSIX") and provider in ("c", "d"):
@@ -293,7 +303,7 @@ def _pg_check(pg, req, declared, m):
         if m == "ignore-prefix-index":
             prefix = False
         s["unique_indexes"].append({"fields": fields, "prefix": prefix})
-    if m != "ignore-exclusion":
+    if m != "ignore-exclusion" and not crdb:
         _, xr = pg.query("SELECT count(*)::int FROM pg_constraint WHERE conrelid = $1 AND contype = 'x'", (oid,))
         s["unique_indexes"].extend({"fields": [], "prefix": True} for _ in range(xr[0][0]))
     check_schema_probe(s, m)
@@ -303,12 +313,13 @@ def _pg_check(pg, req, declared, m):
     if m != "ignore-tenant-type" and tr[4] not in ("text", "varchar"):
         raise Refuse("TenantNotText")
     # the collection plus every partition (pg_partition_tree returns nothing for an ordinary table)
-    tree = f"(SELECT {int(oid)}::oid UNION SELECT relid FROM pg_partition_tree({int(oid)}::regclass))"
+    tree = (f"({int(oid)}::oid)" if crdb else
+            f"(SELECT {int(oid)}::oid UNION SELECT relid FROM pg_partition_tree({int(oid)}::regclass))")
     if m != "ignore-triggers":
         _, t = pg.query(f"SELECT count(*)::int FROM pg_trigger WHERE tgrelid IN {tree} AND NOT tgisinternal")
         if t[0][0]:
             raise Refuse("TriggerOnCollection")
-    if m != "ignore-rules":
+    if m != "ignore-rules" and not crdb:
         _, t = pg.query(f"SELECT count(*)::int FROM pg_rewrite WHERE ev_class IN {tree} AND rulename <> '_RETURN'")
         if t[0][0]:
             raise Refuse("RuleOnCollection")
@@ -317,7 +328,7 @@ def _pg_check(pg, req, declared, m):
                         f"confrelid IN {tree}) AND (confupdtype NOT IN ('a','r') OR confdeltype NOT IN ('a','r'))")
         if t[0][0]:
             raise Refuse("ForeignKeyAction")
-    if m != "ignore-partition" and relkind == "p":
+    if m != "ignore-partition" and relkind == "p" and not crdb:
         _, pr = pg.query("SELECT partstrat::text, partattrs::text, partclass::text, partcollation::text, "
                          "partexprs IS NOT NULL FROM pg_partitioned_table WHERE partrelid = $1", (oid,))
         strat, attrs, classes, pcolls, pexpr = pr[0]
@@ -332,7 +343,7 @@ def _pg_check(pg, req, declared, m):
                             "WHERE opc.opcintype = $1 AND opc.opcdefault AND am.amname = $2", (r[5], am))
             if not d or d[0][0] != int(cl) or int(pc) != r[6]:
                 raise Refuse("PartitionKeyMismatch")
-    if m != "ignore-rls":
+    if m != "ignore-rls" and not crdb:
         if not (rls and force):
             raise Refuse("RlsNotForced")
         _, pols = pg.query("SELECT polcmd::text, polpermissive, pg_get_expr(polqual, polrelid), "
@@ -346,6 +357,103 @@ def _pg_check(pg, req, declared, m):
                 for e in (qual, check):
                     if e is not None and not tenant_scoped(e, tname):
                         raise Refuse("RlsPolicyNotTenantScoped")
+
+
+# ---------------------------------------------------------------------------------------------- MariaDB (live)
+MY_BINARY_NONSTRING = {"tinyint", "smallint", "mediumint", "int", "bigint", "varbinary"}
+
+
+def my_collation(dtype, coll):
+    """F4 Collation of a MariaDB column (q4-005 W3 amendment): byte-exact AND NO PAD only for VARBINARY, integers and
+    *_nopad_bin collations. CHAR / BINARY are padded (CHAR strips trailing spaces, BINARY pads with 0x00) whatever
+    the collation; *_bin is binary but PAD SPACE ('acme ' = 'acme'); *_ci (incl. uca1400_ai_ci, the 11.8 server
+    default) is case-insensitive; anything else (as_cs, unicode, ...) is not byte-wise."""
+    d = (dtype or "").lower()
+    if d in ("char", "binary"):
+        return "PadSpace"
+    if coll is None:
+        return "Binary" if d in MY_BINARY_NONSTRING else "Nondeterministic"
+    c = coll.lower()
+    if c.endswith("_nopad_bin"):
+        return "Binary"
+    if c.endswith("_bin"):
+        return "PadSpace"
+    if c.endswith("_ci"):
+        return "CaseInsensitive"
+    return "Nondeterministic"
+
+
+def my_check(req, m):
+    declared = parse_schema(req["declared"])
+    if m == "declared-not-introspected":
+        return check_schema_probe(declared, m)
+    my = My(req["dsn"])
+    try:
+        return _my_check(my, req, declared, m)
+    finally:
+        my.close()
+
+
+def _my_check(my, req, declared, m):
+    """information_schema of the `namespace` database (P7-oracle-adapters-001; q4-005 reproducers 1-6)."""
+    db, coll = req["namespace"], req["collection"]
+
+    def q(sql, *params):
+        return my.query(sql, params)[1]
+    r = q("SELECT TABLE_TYPE, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", db, coll)
+    if not r:
+        raise Refuse("NotATable")
+    ttype, engine = r[0]
+    if ttype != "BASE TABLE" and m != "ignore-not-a-table":
+        raise Refuse("NotATable")
+    crow = q("SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLLATION_NAME, IS_GENERATED FROM information_schema.COLUMNS "
+             "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?", db, coll)
+    live = {r[0]: r for r in crow}
+    field_of = {c["name"]: c["field"] for c in declared["columns"]}
+    s = {"collection": coll, "tenant_field": declared["tenant_field"], "columns": [],
+         "permitted": declared["permitted"], "unique_indexes": []}
+    tname = None
+    for c in declared["columns"]:
+        r = live.get(c["name"])
+        if r is None:
+            raise Refuse(f"UnknownField({c['field']})")
+        if c["field"] == declared["tenant_field"]:
+            tname = c["name"]
+        s["columns"].append({"field": c["field"], "name": c["name"], "nullable": r[1] == "YES",
+                             "collation": my_collation(r[2], r[3]), "key": c["key"]})
+    # unique keys: PRIMARY and every UNIQUE index; a prefix key part (SUB_PART) or a non-BTREE (long-unique HASH)
+    # index is never the exact (t, key) arbiter. MariaDB has no per-index collation: key parts use the column's.
+    idx = {}
+    for name, _seq, col, sub, itype in q("SELECT INDEX_NAME, SEQ_IN_INDEX, COLUMN_NAME, SUB_PART, INDEX_TYPE FROM "
+                                         "information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND "
+                                         "NON_UNIQUE = 0 ORDER BY INDEX_NAME, SEQ_IN_INDEX", db, coll):
+        u = idx.setdefault(name, {"fields": [], "prefix": False})
+        u["fields"].append(field_of.get(col, -1000 - len(u["fields"])))
+        if sub is not None or (itype or "").upper() != "BTREE":
+            u["prefix"] = True
+    for u in idx.values():
+        if m == "ignore-prefix-index":
+            u["prefix"] = False
+        s["unique_indexes"].append(u)
+    check_schema_probe(s, m)
+    tr = live[tname]
+    if m != "ignore-generated" and (tr[4] or "NEVER") != "NEVER":
+        raise Refuse("GeneratedTenant")
+    if m != "ignore-tenant-type" and (tr[2] or "").lower() not in ("varchar", "varbinary"):
+        raise Refuse("TenantNotText")
+    if m != "ignore-triggers":
+        if q("SELECT count(*) FROM information_schema.TRIGGERS WHERE EVENT_OBJECT_SCHEMA = ? AND EVENT_OBJECT_TABLE = ?",
+             db, coll)[0][0]:
+            raise Refuse("TriggerOnCollection")
+    if m != "ignore-fk-actions":
+        if q("SELECT count(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = ? AND "
+             "(TABLE_NAME = ? OR REFERENCED_TABLE_NAME = ?) AND (UPDATE_RULE NOT IN ('RESTRICT', 'NO ACTION') OR "
+             "DELETE_RULE NOT IN ('RESTRICT', 'NO ACTION'))", db, coll, coll)[0][0]:
+            raise Refuse("ForeignKeyAction")
+    # The mandated forms need transactions and row locks (UPDATE RETURNING = SELECT .. FOR UPDATE + UPDATE in one
+    # transaction; every oracle case is BEGIN .. ROLLBACK): MyISAM / MEMORY / ARIA ignore both.
+    if m != "ignore-engine" and (engine or "").upper() != "INNODB":
+        raise Refuse("NonTransactionalEngine")
 
 
 def tenant_scoped(expr, tname):
@@ -375,13 +483,17 @@ def handle(req, m):
             sqlite_check(req, m)
         elif mode == "pg":
             pg_check(req, m)
+        elif mode == "crdb":
+            pg_check(req, m, crdb=True)
+        elif mode == "mariadb":
+            my_check(req, m)
         else:
             return {"error": f"unknown mode {mode!r}"}
     except Refuse as r:
         return {"refuse": "NonBinaryCollation" if m == "class-blind" else str(r)}
     except (KeyError, ValueError, TypeError) as e:
         return {"refuse": f"Malformed({type(e).__name__})"}
-    except (sqlite3.Error, PgError, OSError) as e:
+    except (sqlite3.Error, PgError, MyError, OSError) as e:
         return {"error": f"{type(e).__name__}: {e}"}
     return {"ok": True}
 

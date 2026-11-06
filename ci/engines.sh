@@ -8,6 +8,9 @@
 #       SIGTERM) and exits with <cmd>'s status. Also exported: AEGIS_ENGINES=<names>, AEGIS_ENGINE_<NAME>=<url>.
 #         postgres: postgresql://postgres:<random>@127.0.0.1:<port>/postgres   (SCRAM-SHA-256)
 #         valkey/redis: redis://127.0.0.1:<port>                               (default user, no password)
+#         mariadb:  mysql://root:<random>@127.0.0.1:<port>/aegis                (mysql_native_password; P7)
+#         crdb:     postgresql://root@127.0.0.1:<port>/defaultdb              (start-single-node --insecure,
+#                   in-memory store: loopback-only throwaway, never a deployment shape; P7)
 #   ci/engines.sh versions      (inside `with`) probe each running engine from the host over its URL, compare with
 #                               the pins; prints one line per engine; non-zero on any mismatch.
 #   ci/engines.sh check         validate the pins file and the local images (digest, Id, size) without starting.
@@ -15,6 +18,9 @@
 #                               version below floor or not matching pin are refused; mutants of this script go red.
 #   ci/engines.sh reap          remove leftover containers labelled aegis.engines=1 (crashed runs only; it never
 #                               touches unlabelled containers).
+# Image size: max(docker inspect .Size, sum of `docker history` layer sizes). On a containerd-snapshotter store
+# (kamrui, docker 29) .Size is the compressed content size and Id is the index digest; the history sum is the unpacked
+# size there, and equals .Size on the classic store.
 # Env: ENGINES_PINS (pins file), ENGINES_DOCKER (docker binary), ENGINES_TIMEOUT (readiness seconds, default 90),
 #      ENGINES_PULL=0 to refuse pulling a missing image (default: pull by digest, then size-check, remove if oversize).
 # Refusals happen before any container starts: every requested image is validated first.
@@ -68,6 +74,17 @@ def floor_ok(e, version):
         if not ver_ge(version, floor):
             return f"{version} below floor {floor} ({e.get('advisory', '')})"
         return None
+    if kind in ("mariadb", "crdb"):
+        # release series = major.minor (MariaDB 11.8 LTS, CockroachDB v25.4); same series only, numeric compare
+        floor = e["floor"]
+        (tv, pv), (tf, _) = parse_ver(version), parse_ver(floor)
+        if pv:
+            return f"pre-release {version} not accepted"
+        if tv[:2] != tf[:2]:
+            return f"series {tv[0]}.{tv[1]} != floor series {tf[0]}.{tf[1]}"
+        if not ver_ge(version, floor):
+            return f"{version} below floor {floor} ({e.get('advisory', '')})"
+        return None
     if kind in ("valkey", "redis"):
         tv, pv = parse_ver(version)
         if pv:
@@ -81,6 +98,8 @@ def floor_ok(e, version):
 
 # ------------------------------------------------------------------ pins --------------------------------------------
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+KINDS = ("postgres", "valkey", "redis", "mariadb", "crdb")
+FLOOR_KINDS = ("postgres", "mariadb", "crdb")
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*$")
 
 def load_pins(path=None):
@@ -112,17 +131,19 @@ def validate_pin(name, e, limit):
             raise Refuse(f"{where}: image_id missing or not sha256")
         if ":" in e["image"].split("/")[-1] or "@" in e["image"]:
             raise Refuse(f"{where}: image must be a bare repository (tag/digest go in tag/digest)")
-    if e["kind"] not in ("postgres", "valkey", "redis"):
+    if e["kind"] not in KINDS:
         raise Refuse(f"{where}: unknown kind {e['kind']}")
+    if "memory" in e and not re.match(r"^[1-4]g$", str(e["memory"])):
+        raise Refuse(f"{where}: memory must be 1g..4g")
     if MUTANT != "no-size-check":
         b = e.get("bytes")
         if not isinstance(b, int) or b > limit:
             raise Refuse(f"{where}: recorded bytes {b} exceeds max_image_bytes {limit}")
     parse_ver(e["version"])
     if e["policy"] == "allow":
-        if e["kind"] == "postgres" and "floor" not in e:
+        if e["kind"] in FLOOR_KINDS and "floor" not in e:
             raise Refuse(f"{where}: policy allow needs floor")
-        if e["kind"] != "postgres" and not e.get("fixed_in"):
+        if e["kind"] not in FLOOR_KINDS and not e.get("fixed_in"):
             raise Refuse(f"{where}: policy allow needs fixed_in")
         why = floor_ok(e, e["version"])
         if why:
@@ -161,6 +182,12 @@ def check_image(name, e, limit, allow_pull):
     else:
         pulled = False
     size = img.get("Size")
+    if isinstance(size, int):
+        # containerd store: inspect .Size is the compressed content; the unpacked size is the sum of the layer sizes
+        h = docker("history", "--no-trunc", "--human=false", "--format", "{{.Size}}", ref(e), check=False)
+        if h.returncode == 0:
+            layers = [int(x) for x in h.stdout.split() if x.isdigit()]
+            size = max(size, sum(layers))
     if MUTANT != "no-size-check" and (not isinstance(size, int) or size > limit):
         if pulled:
             docker("rmi", ref(e), check=False)
@@ -170,7 +197,9 @@ def check_image(name, e, limit, allow_pull):
         if not any(x.endswith("@" + e["digest"]) and x.split("@")[0].split("/")[-1] == e["image"].split("/")[-1]
                    for x in rd):
             raise Refuse(f"{name}: local image does not carry pinned digest {e['digest']} (RepoDigests={rd})")
-        if img.get("Id") != e["image_id"]:
+        # image_id is what the pinning host's store reports as Id (containerd store: the index digest); config_digest
+        # (optional) is the Id a classic store reports for the same image
+        if img.get("Id") not in {e["image_id"], e.get("config_digest") or e["image_id"]}:
             raise Refuse(f"{name}: image Id {img.get('Id')} != pinned image_id {e['image_id']}")
     return size
 
@@ -265,18 +294,110 @@ def probe_kv(kind, host, port, timeout=5.0):
         raise ConnectionError(f"INFO lacks {key}")
     return info[key].strip()
 
+def _my_read(s):
+    h = _recv_exact(s, 4)
+    return _recv_exact(s, int.from_bytes(h[:3], "little")), h[3]
+
+def _my_send(s, seq, payload):
+    s.sendall(len(payload).to_bytes(3, "little") + bytes([seq & 0xff]) + payload)
+
+def _my_lenenc(b, o):
+    c = b[o]
+    if c < 0xfb: return c, o + 1
+    if c == 0xfc: return int.from_bytes(b[o + 1:o + 3], "little"), o + 3
+    if c == 0xfd: return int.from_bytes(b[o + 1:o + 4], "little"), o + 4
+    return int.from_bytes(b[o + 1:o + 9], "little"), o + 9
+
+def probe_my(host, port, user, password, db, timeout=5.0):
+    """MySQL protocol: handshake v10, mysql_native_password (incl. auth switch), then `select version()`. The
+    greeting's version could come from the entrypoint's temporary init server, so readiness = an authenticated query."""
+    with socket.create_connection((host, port), timeout=timeout) as s:
+        s.settimeout(timeout)
+        g, _ = _my_read(s)
+        if g[:1] == b"\xff":
+            raise ConnectionError("server error in greeting: " + g[3:].decode(errors="replace")[:120])
+        if g[:1] != b"\x0a":
+            raise ConnectionError("not a MySQL protocol v10 greeting")
+        e = g.index(b"\0", 1); o = e + 1 + 4
+        salt = g[o:o + 8]; o += 9 + 2 + 1 + 2 + 2
+        alen = g[o]; o += 1 + 10
+        salt += g[o:o + max(13, alen - 8)].rstrip(b"\0")
+        def scramble(pw, sl):
+            if not pw: return b""
+            h1 = hashlib.sha1(pw).digest(); h2 = hashlib.sha1(h1).digest()
+            return bytes(a ^ b for a, b in zip(h1, hashlib.sha1(sl[:20] + h2).digest()))
+        auth = scramble(password.encode(), salt)
+        caps = 0x1 | 0x8 | 0x200 | 0x8000 | 0x80000
+        _my_send(s, 1, struct.pack("<IIB", caps, 1 << 24, 45) + b"\0" * 23 + user.encode() + b"\0" + bytes([len(auth)]) + auth
+                 + db.encode() + b"\0" + b"mysql_native_password\0")
+        while True:
+            r, seq = _my_read(s)
+            if r[:1] == b"\x00": break
+            if r[:1] == b"\xfe" and len(r) > 1:     # auth switch
+                e = r.index(b"\0", 1)
+                if r[1:e] != b"mysql_native_password":
+                    raise ConnectionError(f"refusing auth plugin {r[1:e]!r}")
+                _my_send(s, seq + 1, scramble(password.encode(), r[e + 1:].rstrip(b"\0"))); continue
+            raise ConnectionError("auth failed: " + r[3:].decode(errors="replace")[:120])
+        _my_send(s, 0, b"\x03select version()")
+        r, _ = _my_read(s)
+        if r[:1] == b"\xff":
+            raise ConnectionError("query error: " + r[3:].decode(errors="replace")[:120])
+        while True:                                   # column definitions until EOF
+            r, _ = _my_read(s)
+            if r[:1] == b"\xfe" and len(r) < 9: break
+        r, _ = _my_read(s)
+        n, o = _my_lenenc(r, 0)
+        v = r[o:o + n].decode(errors="replace")
+        _my_send(s, 0, b"\x01")
+    v = v[len("5.5.5-"):] if v.startswith("5.5.5-") else v
+    return v.split("-")[0]
+
+def probe_crdb(host, port, user, db, timeout=5.0):
+    """PG v3 startup (insecure single node: trust only, any other auth refused) + `select version()`:
+    'CockroachDB CCL v25.4.19 (...)' -> '25.4.19'. server_version (13.0.0) is the PG-compat level, not the release."""
+    with socket.create_connection((host, port), timeout=timeout) as s:
+        s.settimeout(timeout)
+        body = struct.pack("!i", 196608) + b"user\0" + user.encode() + b"\0database\0" + db.encode() + b"\0\0"
+        s.sendall(struct.pack("!i", len(body) + 4) + body)
+        sent, ver = False, None
+        while True:
+            t, p = _pg_msg(s)
+            if t == b"E":
+                raise ConnectionError("server error: " + p.decode(errors="replace")[:200])
+            if t == b"R" and struct.unpack("!i", p[:4])[0] != 0:
+                raise ConnectionError("refusing auth (insecure throwaway node expected)")
+            if t == b"D":
+                (ln,) = struct.unpack("!i", p[2:6]); ver = p[6:6 + ln].decode(errors="replace")
+            if t == b"Z":
+                if not sent:
+                    q = b"select version()\0"; s.sendall(b"Q" + struct.pack("!i", len(q) + 4) + q); sent = True; continue
+                s.sendall(b"X" + struct.pack("!i", 4))
+                if not ver or not ver.startswith("CockroachDB"):
+                    raise ConnectionError(f"not a CockroachDB server: {ver!r}")
+                tok = ver.split()[2]
+                return tok[1:] if tok.startswith("v") else tok
+
 def url_for(e, port, password):
     if e["kind"] == "postgres":
         return f"postgresql://postgres:{password}@127.0.0.1:{port}/postgres"
+    if e["kind"] == "mariadb":
+        return f"mysql://root:{password}@127.0.0.1:{port}/aegis"
+    if e["kind"] == "crdb":
+        return f"postgresql://root@127.0.0.1:{port}/defaultdb"
     return f"redis://127.0.0.1:{port}"
 
 def probe_url(kind, url):
-    m = re.match(r"^(postgresql|redis)://(?:([^:@/]*)(?::([^@/]*))?@)?([0-9.]+):(\d+)(?:/(.*))?$", url)
+    m = re.match(r"^(postgresql|redis|mysql)://(?:([^:@/]*)(?::([^@/]*))?@)?([0-9.]+):(\d+)(?:/(.*))?$", url)
     if not m:
         raise Refuse(f"bad url {url}")
     scheme, user, pw, host, port, db = m.groups()
     if host != "127.0.0.1":
         raise Refuse(f"engine not on loopback: {url}")
+    if scheme == "mysql":
+        return probe_my(host, int(port), user or "root", pw or "", db or "")
+    if scheme == "postgresql" and kind == "crdb":
+        return probe_crdb(host, int(port), user or "root", db or "defaultdb")
     if scheme == "postgresql":
         return probe_pg(host, int(port), user or "postgres", pw or "", db or "postgres")
     return probe_kv(kind, host, int(port))
@@ -293,7 +414,7 @@ class Run:
         args = ["run", "-d", "--rm", "--name", cname,
                 "--label", f"{LABEL}=1", "--label", f"{LABEL}.run={self.run_id}", "--label", f"{LABEL}.engine={name}",
                 "-p", f"127.0.0.1::{e['port']}",
-                "--memory", "1g", "--pids-limit", "512", "--security-opt", "no-new-privileges",
+                "--memory", str(e.get("memory", "1g")), "--pids-limit", "512", "--security-opt", "no-new-privileges",
                 "--cap-drop", "ALL", "--cap-add", "CHOWN", "--cap-add", "SETUID", "--cap-add", "SETGID",
                 "--cap-add", "DAC_OVERRIDE", "--cap-add", "FOWNER"]
         if e.get("tmpfs"):
@@ -301,7 +422,13 @@ class Run:
         if e["kind"] == "postgres":
             args += ["-e", f"POSTGRES_PASSWORD={password}", "-e", "POSTGRES_HOST_AUTH_METHOD=scram-sha-256",
                      "-e", "POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256", "--shm-size", "256m"]
+        if e["kind"] == "mariadb":
+            args += ["-e", f"MARIADB_ROOT_PASSWORD={password}", "-e", "MARIADB_DATABASE=aegis"]
         args.append(ref(e))
+        if e["kind"] == "crdb":
+            # in-memory store (>= 640 MiB is CockroachDB's minimum), admin UI on the container's own loopback only
+            args += ["start-single-node", "--insecure", "--store=type=mem,size=640MiB", "--cache=64MiB",
+                     "--max-sql-memory=256MiB", "--http-addr=127.0.0.1:8080"]
         if e["kind"] in ("valkey", "redis"):
             # explicit server flags: no persistence (throwaway), protected-mode off only because publish is loopback
             exe = "valkey-server" if e["kind"] == "valkey" else "redis-server"
@@ -439,7 +566,7 @@ def cmd_versions(argv):
             print(f"{n:8} FAIL {why}")
             bad += 1
             continue
-        rule = f"floor {e['floor']}" if e["kind"] == "postgres" else f"fixed_in {'/'.join(e['fixed_in'])}"
+        rule = f"floor {e['floor']}" if e["kind"] in FLOOR_KINDS else f"fixed_in {'/'.join(e['fixed_in'])}"
         print(f"{n:8} OK    {e['kind']} {v} == pin, {rule} ({e.get('advisory', '')}) 127.0.0.1:{port}")
     print(f"ENGINES VERSIONS: {'PASS' if not bad else 'FAIL'} ({len(names) - bad}/{len(names)})")
     return 1 if bad else 0
@@ -473,6 +600,12 @@ if a[:2] == ["image", "inspect"]:
     if img is None:
         sys.stderr.write("No such image\n"); sys.exit(1)
     print(json.dumps([img])); sys.exit(0)
+if a[0] == "history":
+    img = cfg["images"].get(a[-1])
+    if img is None:
+        sys.stderr.write("No such image\n"); sys.exit(1)
+    for n in img.get("_layers", [img["Size"]]): print(n)
+    sys.exit(0)
 if a[0] == "pull":
     sys.stderr.write("pull disabled in fixture\n"); sys.exit(1)
 if a[0] == "run":
@@ -512,6 +645,33 @@ class FakeServer:
                 c.close()
 
     def serve(self, c):
+        if self.kind == "mariadb":
+            def pkt(seq, b):
+                return len(b).to_bytes(3, "little") + bytes([seq]) + b
+            greet = (b"\x0a" + self.version.encode() + b"-MariaDB-fake\0" + struct.pack("<I", 7) + b"12345678\0"
+                     + struct.pack("<H", 0xf7ff) + b"\x2d" + struct.pack("<H", 2) + struct.pack("<H", 0x81ff) + bytes([21])
+                     + b"\0" * 10 + b"123456789012\0" + b"mysql_native_password\0")
+            c.sendall(pkt(0, greet))
+            c.recv(4096)
+            c.sendall(pkt(2, b"\x00\x00\x00\x02\x00\x00\x00"))
+            c.recv(4096)
+            v = (self.version + "-MariaDB-fake").encode()
+            c.sendall(pkt(1, b"\x01") + pkt(2, b"\x03def\0\0\0\x09version()\0\x0c\x21\0\0\0\0\xfd\0\0\0\0\0")
+                      + pkt(3, b"\xfe\0\0\x02\0") + pkt(4, bytes([len(v)]) + v) + pkt(5, b"\xfe\0\0\x02\0"))
+            c.recv(16)
+            return
+        if self.kind == "crdb":
+            (ln,) = struct.unpack("!i", _recv_exact(c, 4))
+            _recv_exact(c, ln - 4)
+            def m(t, p):
+                return t + struct.pack("!i", len(p) + 4) + p
+            c.sendall(m(b"R", struct.pack("!i", 0)) + m(b"S", b"server_version\x0013.0.0\0") + m(b"Z", b"I"))
+            _recv_exact(c, 1); (ln,) = struct.unpack("!i", _recv_exact(c, 4)); _recv_exact(c, ln - 4)
+            v = f"CockroachDB CCL v{self.version} (x86_64-pc-linux-gnu, fake)".encode()
+            c.sendall(m(b"T", struct.pack("!h", 1) + b"version\0" + struct.pack("!ihihih", 0, 0, 25, -1, -1, 0))
+                      + m(b"D", struct.pack("!h", 1) + struct.pack("!i", len(v)) + v) + m(b"C", b"SELECT 1\0") + m(b"Z", b"I"))
+            c.recv(16)
+            return
         if self.kind == "postgres":
             (ln,) = struct.unpack("!i", _recv_exact(c, 4))
             _recv_exact(c, ln - 4)
@@ -554,17 +714,24 @@ ID1 = "sha256:" + "c" * 64
 def base_pin(kind="postgres", version="17.11", **kw):
     e = {"kind": kind, "image": "postgres" if kind == "postgres" else kind, "tag": "t", "digest": D1,
          "image_id": ID1, "bytes": 1000, "version": version, "policy": "allow",
-         "port": 5432 if kind == "postgres" else 6379}
+         "port": {"postgres": 5432, "mariadb": 3306, "crdb": 26257}.get(kind, 6379)}
     if kind == "postgres":
         e["floor"] = "17.11"
+    elif kind == "mariadb":
+        e["floor"] = "11.8.9"
+    elif kind == "crdb":
+        e["floor"] = "25.4.18"
     else:
         e["fixed_in"] = ["8.0.7", "8.1.6", "9.0.3", "9.1.0"] if kind == "valkey" else ["8.6.1", "8.10.0"]
     e.update(kw)
     return e
 
-def base_image(e, size=1000, digests=None, image_id=ID1):
-    return {"Id": image_id, "Size": size,
-            "RepoDigests": digests if digests is not None else [f"{e['image']}@{e['digest']}"]}
+def base_image(e, size=1000, digests=None, image_id=ID1, layers=None):
+    img = {"Id": image_id, "Size": size,
+           "RepoDigests": digests if digests is not None else [f"{e['image']}@{e['digest']}"]}
+    if layers is not None:
+        img["_layers"] = layers
+    return img
 
 def run_case(tmp, case):
     """Returns (rc, stderr+stdout, docker call log)."""
@@ -599,6 +766,8 @@ def cases():
     pg = base_pin()
     vk = base_pin("valkey", "9.1.2")
     rd = base_pin("redis", "8.10.2")
+    my = base_pin("mariadb", "11.8.9")
+    cr = base_pin("crdb", "25.4.19")
     def refused(substr, started=False):
         def chk(rc, out, calls):
             if rc == 0:
@@ -615,7 +784,8 @@ def cases():
         def chk(rc, out, calls):
             if rc != rc_want:
                 return f"rc {rc} != {rc_want}: {out.strip().splitlines()[-2:]}"
-            if not re.search(r"URL=(postgresql://postgres:[0-9a-f]{32}@|redis://)127\.0\.0\.1:\d+", out):
+            if not re.search(r"URL=(postgresql://postgres:[0-9a-f]{32}@|redis://|mysql://root:[0-9a-f]{32}@|postgresql://root@)"
+                             r"127\.0\.0\.1:\d+", out):
                 return "@name not substituted with a loopback URL"
             if not removed(calls):
                 return "not torn down"
@@ -625,6 +795,13 @@ def cases():
         ("positive control: pg 17.11 at pin", dict(pin=pg), accepted()),
         ("positive control: valkey 9.1.2 (valkey_version, not compat redis_version 7.2.4)", dict(pin=vk), accepted()),
         ("positive control: redis 8.10.2", dict(pin=rd), accepted()),
+        ("positive control: mariadb 11.8.9 (authenticated select version())", dict(pin=my), accepted()),
+        ("positive control: crdb 25.4.19 (select version(), not server_version 13.0.0)", dict(pin=cr), accepted()),
+        ("mariadb server reports 11.8.8, pin 11.8.9 -> teardown + refuse", dict(pin=my, serves="11.8.8"), refused("pin says", started=True)),
+        ("crdb pin below floor (25.4.17 < 25.4.18) refused", dict(pin=base_pin("crdb", "25.4.17")), refused("below floor")),
+        ("mariadb pin from another series (11.4.13 vs floor 11.8.9) refused", dict(pin=base_pin("mariadb", "11.4.13")), refused("series")),
+        ("containerd store: inspect Size (compressed) 200 MB but unpacked layers 600 MB refused",
+         dict(pin=cr, image=base_image(cr, size=200_000_000, layers=[300_000_000, 300_000_000])), refused("exceeds")),
         ("cmd exit status propagates and teardown still runs", dict(pin=pg, cmd_rc=7), accepted(7)),
         ("oversize image (inspect Size 500000001) refused before run",
          dict(pin=pg, image=base_image(pg, size=500_000_001)), refused("exceeds")),
@@ -656,11 +833,16 @@ def unit_checks():
     pg18 = {"kind": "postgres", "floor": "18.6", "advisory": "x"}
     vk = {"kind": "valkey", "fixed_in": ["7.2.12", "8.0.7", "8.1.6", "9.0.3", "9.1.0"]}
     rd = {"kind": "redis", "fixed_in": ["7.2.13", "7.4.8", "8.0.6", "8.2.5", "8.4.2", "8.6.1", "8.10.0"]}
+    myk = {"kind": "mariadb", "floor": "11.8.9", "advisory": "x"}
+    crk = {"kind": "crdb", "floor": "25.4.18", "advisory": "x"}
     want = [(pg17, "17.11", True), (pg17, "17.12", True), (pg17, "17.10", False), (pg17, "17.9", False),
             (pg17, "18.6", False), (pg18, "18.5", False), (pg18, "18.6", True), (pg18, "18.10", True),
             (pg18, "19rc1", False), (vk, "9.1.2", True), (vk, "9.0.2", False), (vk, "9.0.3", True),
             (vk, "8.1.5", False), (vk, "9.2.0", False), (rd, "8.10.2", True), (rd, "8.8.4", False),
-            (rd, "8.6.0", False), (rd, "8.6.1", True), (rd, "7.4.10", True)]
+            (rd, "8.6.0", False), (rd, "8.6.1", True), (rd, "7.4.10", True),
+            (myk, "11.8.9", True), (myk, "11.8.10", True), (myk, "11.8.8", False), (myk, "11.4.13", False),
+            (myk, "12.3.3", False), (crk, "25.4.18", True), (crk, "25.4.19", True), (crk, "25.4.9", False),
+            (crk, "25.3.30", False), (crk, "26.1.0", False)]
     return [(f"floor {e['kind']} {e.get('floor', '')} {v} -> {'accept' if ok else 'refuse'}", (floor_ok(e, v) is None) == ok)
             for e, v, ok in want]
 

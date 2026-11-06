@@ -172,6 +172,57 @@ where tenant `...AB` overwrites tenant `...ab`.
 | 09ef3bb1bcbe877571dbe7fbee6914e987ebdb3680f86f196cc72f0fcedcbcec | spikes/q4-005/verdict.json | W3 amendment text |
 | e5774a4bbb32420a9fcaf4288b62085c5cf59d687bdbaff94ac6a40e792be5b4 | oracles/lowering-read/lowir.py | `pgwire.py` is a verbatim copy of its `PgError`/`Pg` (lines 570-700); lowering-read/-write schema layouts (goldens) and `ci_nd`/`nd_canon` collations |
 
+## MariaDB and CockroachDB modes (P7-oracle-adapters-001, PREFLIGHT D-P7.8, spikes/q4-005)
+
+```
+ci/engines.sh with mariadb -- oracles/schema-gate/run --engine-pin --skip-sqlite --subject 'target/release/mariadb-subject schema' --engine mariadb --dsn @mariadb
+ci/engines.sh with crdb    -- oracles/schema-gate/run --engine-pin --skip-sqlite --subject 'target/release/crdb-subject schema' --engine crdb --dsn @crdb
+ci/engines.sh with mariadb,crdb -- oracles/schema-gate/run --self-test --skip-sqlite --engine mariadb --dsn @mariadb --engine crdb --dsn @crdb
+```
+
+New flags (all modes): `--dsn` is repeatable and routed by scheme (`mysql://` = mariadb; a `postgresql://` DSN is
+crdb iff `version()` says CockroachDB); `--engine-pin` checks each live engine against
+`supply-chain/engine-pins.toml` (same rule as `lowir.pin_check`); `--skip-sqlite` only stops the default
+static+sqlite modes. `--self-test --subject CMD` (new; it used to be an error) runs the usual reference + mutant
+self-test and then requires CMD to pass the same corpus.
+
+Requests: `{"v":1,"id":N,"op":"schema","mode":"mariadb","dsn":"mysql://..","namespace":"aegis_sg","collection":"notes","declared":{F4 Schema}}`
+(namespace = the database the oracle drops and recreates per case) and the same with `"mode":"crdb"` and a
+`postgresql://` DSN (namespace = schema in `defaultdb`). As for pg, the subject must introspect the live catalog,
+never `declared`.
+
+**MariaDB corpus (25: 5 golden, 20 counterexamples).** Goldens: tenant `utf8mb4_nopad_bin` + int id PK(tenant,id);
+tenant `VARBINARY`; text key `nopad_bin`; a sole unique index; a non-key `general_ci` column with a plain index.
+Counterexamples: nullable tenant; tenant `utf8mb4_bin` (PAD SPACE, q4-005 reproducer 1), `general_ci` (2), the 11.8
+default `uca1400_ai_ci`, `uca1400_as_cs`, `CHAR(16) nopad_bin`, `BINARY(16)`; a `general_ci` key column; tenant
+`BIGINT` (TenantNotText); PK without tenant; second `UNIQUE(id)` (4); second `UNIQUE(tenant,x)` (5);
+`PRIMARY KEY (tenant(3), id)` (3); no unique index; trigger; FK cascade in; FK set-null out; generated tenant
+(MariaDB generated columns cannot be NOT NULL, so TenantFieldNullable or GeneratedTenant); a view; a MyISAM table.
+Collation mapping (W3 amendment): Binary only for VARBINARY, integer types and `*_nopad_bin`; `CHAR`/`BINARY` and
+`*_bin` -> PadSpace; `*_ci` -> CaseInsensitive; anything else -> Nondeterministic. A `SUB_PART` or non-BTREE (long
+unique HASH) index is a prefix index.
+
+New refusal class **`NonTransactionalEngine`** (adapter, mariadb only): the collection's storage engine is not InnoDB.
+MyISAM / MEMORY / Aria ignore transactions and row locks, and the mandated MariaDB UPDATE RETURNING form
+(`SELECT .. FOR UPDATE` + `UPDATE` in one transaction) depends on both.
+
+**CockroachDB corpus (20: 4 golden, 16 counterexamples).** Goldens: STRING tenant + INT8 id PK; STRING key;
+varchar(32) tenant; a non-key `COLLATE en_u_ks_level2` column with an index. Counterexamples: nullable tenant (PK(id)
++ unique(tenant,id)); tenant `COLLATE en_u_ks_level2` (q4-005), `en_u_ks_level1`, `de`; a collated key column; tenant
+INT8 and BYTES (TenantNotText); PK without tenant; second `UNIQUE(id)`; expression and partial unique indexes beside
+the PK; FK cascade in / set-null out; a trigger; a computed tenant; a view. The reference reuses the pg introspection
+with `crdb` flavour: a plain STRING has collation `default`, which is byte order on CockroachDB; a COLLATE'd STRING has
+no pg_collation row (never binary); no rules / exclusion constraints / PG partitioning; **no RLS requirement** (RLS is
+not part of the crdb dialect).
+
+Mutants: mariadb = the common seven + ignore-triggers, ignore-fk-actions, ignore-tenant-type, ignore-not-a-table,
+declared-not-introspected, ignore-engine (ignore-index-collation and ignore-generated have no isolating
+counterexample on MariaDB: no per-index collation, no NOT NULL generated column); crdb = the common seven without
+ignore-prefix-index + the live list without ignore-index-collation (no per-index-column COLLATE; every CockroachDB
+table has a primary key, a hidden rowid one otherwise, so an expression / partial unique index is always a second
+unique index and the prefix flag is masked by the only-unique-index check). The unit's "NOCASE / uca1400_ai_ci tenant accepted
+-> red" is ignore-collation (and accept-all) on the `uca1400_ai_ci`, `general_ci` and `en_u_ks_level2` cases.
+
 ## Known limits
 
 * **Stricter than the F4 doc comment.** `Collation::Binary` says "PG "C" or deterministic ICU". This gate refuses

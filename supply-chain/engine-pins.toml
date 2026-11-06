@@ -149,3 +149,70 @@ sources = [
   "https://github.com/redis/redis/commit/61e49e1998de (8.6 backport of #826)",
   "https://github.com/redis/redis/pull/15496 (unstable, first in 8.10-rc2)",
 ]
+
+# ---------------------------------------------------------------- MariaDB / CockroachDB (Phase 7, D-P7.8) ----------
+# Added 2026-11-06 by P7-oracle-adapters-001 after reading the advisories below (User-Agent aegis-ci for registry
+# and API calls). Measured on kamrui (docker 29.1.3, containerd snapshotter store): there `docker image inspect` Id is
+# the index digest (recorded as image_id; config_digest is the Id a classic store reports) and .Size is the
+# compressed content, so `bytes` is the unpacked size = sum of `docker history` layer sizes, which ci/engines.sh
+# checks (max(inspect .Size, history sum) <= max_image_bytes). registry_* fields were measured by streaming and
+# gunzipping every amd64 layer from registry-1.docker.io (nothing stored). Both are >= 7 days old on 2026-11-06.
+# floor (mariadb, crdb): same release series (major.minor) only, numeric compare, no pre-releases.
+# MySQL stays out: mysql:8.4 is 829.2 MB unpacked (> 500 MB; spikes/q4-005).
+
+# MariaDB 11.8 LTS. 11.8.9 is the fixed release for every 2026 MariaDB advisory affecting 11.8 that OSV lists:
+# CVE-2026-107815..107818, -107821..107823 (CONNECT DOS OOB write, qc_info, mysql_json, wsrep-new-cluster, FRM
+# parsing, ACL cache key, view FRM newline) and CVE-2026-85745, -85746, -85985, -86047, -92262, -97380 (GRANT PROXY
+# empty password), all "fixed in ... 11.8.9"; plus the Oracle July CPU replication / performance-schema set
+# (CVE-2026-47023, -60184, -60331, -60585, -60747, -61081) and the 11.8.8 set (CVE-2026-49261 wsrep_notify_cmd,
+# -48163, -48165, -44168..44173). Image tag 11.8 / 11.8.9 (noble) rebuilt 2026-10-27.
+[engines.mariadb]
+kind = "mariadb"
+image = "mariadb"
+tag = "11.8.9"
+digest = "sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd"
+image_id = "sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd"
+config_digest = "sha256:0f2506b4b989879f5e004ba606b1d6711d467dee12be80c81799dd046fcc753c"
+bytes = 349_528_064               # kamrui docker history sum (unpacked); inspect .Size 103_927_812
+registry_compressed_bytes = 103_911_440
+registry_unpacked_bytes = 334_460_928
+version = "11.8.9"
+policy = "allow"
+floor = "11.8.9"
+port = 3306
+tmpfs = "/var/lib/mysql"
+advisory = "CVE-2026-97380, CVE-2026-107815 and the rest of the 11.8.9 set"
+sources = [
+  "https://api.osv.dev/v1/vulns/CVE-2026-107815 (fixed in 10.6.28, 10.11.19, 11.4.13, 11.8.9, 12.3.3, 13.0.2)",
+  "https://api.osv.dev/v1/vulns/CVE-2026-97380",
+  "https://api.osv.dev/v1/query {mariadb, Debian:13, 1:11.8.9+ds-1} (every listed CVE fixed at or before 11.8.9)",
+  "https://github.com/MariaDB/server/releases/tag/mariadb-11.8.9",
+  "https://hub.docker.com/v2/repositories/library/mariadb/tags?name=11.8 (11.8.9 pushed 2026-10-27)",
+]
+
+# CockroachDB v25.4. Advisories (docs.cockroachlabs.com/docs/advisories, read 2026-11-06): S-26102609 (2026-10-26,
+# eMudhra CA compromise via Go's TLS trust store) fixed in v25.4.18; S-26100614 (privilege escalation + SSRF) fixed in
+# v25.4.12; S-26052016 fixed in v25.4.7; A-166122 / A-162085 / A-161317 data-loss bugs end at v25.4.8 / .4 / .3.
+# v25.4.19 (2026-10-29) is the newest patch outside the 7-day cooldown (v25.4.20 is from 2026-11-04). Unpacked
+# 486.6 MB (history) / 480.2 MB (registry): under the 500 MB cap with little margin; re-measure on every bump.
+# Runs `start-single-node --insecure` with an in-memory store on 127.0.0.1 only (throwaway oracle target).
+[engines.crdb]
+kind = "crdb"
+image = "cockroachdb/cockroach"
+tag = "v25.4.19"
+digest = "sha256:5f4ea15c81baedabf439ce53fc3fd0793c4d577e4abe295e9343d765112ce199"
+image_id = "sha256:5f4ea15c81baedabf439ce53fc3fd0793c4d577e4abe295e9343d765112ce199"
+config_digest = "sha256:e4d539078bea2bcf3ea043f33290bc1d950e3ab5e09b3975ab957ded7f552aef"
+bytes = 486_612_992               # kamrui docker history sum (unpacked); inspect .Size 187_309_522
+registry_compressed_bytes = 187_296_626
+registry_unpacked_bytes = 480_153_600
+version = "25.4.19"
+policy = "allow"
+floor = "25.4.18"
+port = 26257
+memory = "2g"
+advisory = "S-26102609 (fixed v25.4.18)"
+sources = [
+  "https://docs.cockroachlabs.com/docs/advisories/",
+  "https://hub.docker.com/v2/repositories/cockroachdb/cockroach/tags?name=v25.4 (v25.4.19 pushed 2026-10-29)",
+]

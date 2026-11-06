@@ -338,6 +338,77 @@ denylist, read at run time).
 * `--self-test`: `LOWERING-WRITE SELF-TEST: PASS (12/12 mutants caught; positive control PASS)`; with PG 17.11 + Valkey: 19/19.
 * `--engine pg --engine redis` (postgres:17 = 17.11, valkey/valkey:alpine): `LOWERING-WRITE: PASS (cases=12000 families=10 W1=0 W2=0 W4=0 W7=0 E=0)`, 21 s.
 
+## MariaDB and CockroachDB (P7-oracle-adapters-001, PREFLIGHT D-P7.8, spikes/q4-005)
+
+`lowmy.py` sha256 973213e3688587ced334fd4b4757cb83963766136971022261a945aae8e6d324 (byte-identical in lowering-read and lowering-write); `lowir.py` unchanged (3eb7d790...).
+
+```
+ci/engines.sh with mariadb -- oracles/lowering-write/run --engine-pin --skip-sqlite --subject 'target/release/mariadb-subject lowering' --engine mariadb --dsn @mariadb
+ci/engines.sh with crdb    -- oracles/lowering-write/run --engine-pin --skip-sqlite --subject 'target/release/crdb-subject lowering' --engine crdb --dsn @crdb
+ci/engines.sh with mariadb,crdb -- oracles/lowering-write/run --self-test --skip-sqlite --engine mariadb --dsn @mariadb --engine crdb --dsn @crdb
+```
+
+`--engine mariadb` takes a `mysql://user:pw@host:port/db` DSN, `--engine crdb` a `postgresql://` DSN (a postgresql DSN is
+CockroachDB iff its `version()` says so, so `--engine pg --dsn A --engine crdb --dsn B` pairs). Engines run on kamrui
+(gates `lowering-write-mariadb`, `lowering-write-crdb`). The oracle core (row / Pred generators, Lean effect model,
+W1/W2/W4/W6/E checks, family drivers) is unchanged; the engines add a driver (`MariaEng` over the in-file MySQL
+client `lowmy.My`, `CrdbEng` = `PgEng`), schemas, two dialect FORM rules, and the reference renderers in `lowmy.py`.
+Default `--n 300` x 4 seeds = 1200 cases per family per schema per engine (>= 300 x 4 as the unit requires).
+
+Families per engine: refusals; U / D / UP / UPG over the schemas below; W6 (three FK / unique schemas, InnoDB for
+MariaDB); schema-gate demo schemas (information only). No RLS family (neither dialect has `rls_policy` / `rls_bind`;
+CockroachDB RLS is not claimed) and no kv families.
+
+| engine | verdict schemas | gate-demo schemas (must be refused by schema-gate-*) |
+|---|---|---|
+| mariadb 11.8.9 | id PK + tenant `utf8mb4_general_ci`; id PK + tenant default `utf8mb4_uca1400_ai_ci`; composite PK tenant `utf8mb4_nopad_bin`; composite PK tenant `VARBINARY` (x/y/grp keep the server default `uca1400_ai_ci`) | composite PK tenant `utf8mb4_bin` (PAD SPACE), `utf8mb4_general_ci`, default `uca1400_ai_ci`; `nopad_bin` + second `UNIQUE(id)` |
+| crdb 25.4.19 | id PK; composite PK; id PK + tenant `COLLATE en_u_ks_level2` | composite PK tenant `en_u_ks_level2`; composite PK + `UNIQUE(id)` |
+
+Dialect FORM rules (token-level, outside literals; added to the existing FORM check, which still applies):
+
+* **mariadb**: no `ON CONFLICT`; no `UPDATE .. RETURNING` (MariaDB has none); an upsert with update columns is
+  `INSERT .. VALUES .. ON DUPLICATE KEY UPDATE` and **every** assignment is exactly
+  `c = IF(CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY), VALUES(c), c)` (c never the tenant or a key column); an
+  upsert without update columns is `INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS (SELECT ..)`. REPLACE / IGNORE /
+  MERGE / WITH stay forbidden by the base rule.
+* **crdb**: no `UPSERT` statement; `ON CONFLICT (..) DO UPDATE` carries exactly the guard
+  `WHERE <table>.<tenant>::text = excluded.<tenant>::text COLLATE "C"` (q4-005: the postgres guard without the casts is
+  evaluated under the tenant column's collation on CockroachDB and lets `ACME` update `acme`).
+
+### Subject contract additions (protocol v2, unchanged envelope)
+
+Requests carry `"dialect":"mariadb"` or `"dialect":"crdb"`. `columns` are IR types (`int` / `text`), never the
+physical collation: the subject must neutralise the column collation itself.
+
+* **mariadb** placeholders are `?` (binary prepared statements; the oracle never interpolates). String atoms
+  `CAST(c AS BINARY) <op> CAST(? AS BINARY)`; prefix `LEFT(CAST(c AS BINARY), <utf-8 byte length>) = CAST(? AS
+  BINARY)`; ints `c = ?` on int columns only; class mismatch -> FALSE; NULL column -> NULL (`CASE WHEN c IS NULL THEN
+  NULL ELSE .. END`). The oracle session pins `sql_mode = 'STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION,
+  ERROR_FOR_DIVISION_BY_ZERO'` (the adapter must too). An UPDATE with a non-empty `returning` replies
+  `{"sql":"UPDATE ..","params":[..],"returning_select":{"sql":"SELECT <post-image projection> FROM t WHERE
+  <same lowered WHERE incl. tenant> FOR UPDATE","params":[..]}}`; the oracle runs `returning_select` immediately
+  before `sql` in the same transaction and checks its rows exactly as RETURNING rows (W4 / E). `returning_select` in
+  any other reply, or any dialect other than mariadb, is FORM. DELETE / INSERT / upsert use `RETURNING`.
+* **crdb** is the postgres forms (`$n`, `::text .. COLLATE "C"` atoms, `::bigint`) with the upsert guard above.
+
+### Self-test (`--engine mariadb` / `--engine crdb`)
+
+Positive control (reference `lowmy.py`) PASS, then every SQL write mutant of the SQLite / PG lists plus the q4-005
+ones must be caught:
+
+| engine | mutants (expected counter) |
+|---|---|
+| mariadb | drop-tenant W1, or-precedence W1, upsert-global-arbiter W1, replace-into W1, returning-star W4, set-tenant-passthrough W2, upsert-tenant-from-row W2, like-prefix W1, refuse-all E, lenient-handle REFUSE, insert-global-key W6, fk-global W6, upsert-as-merge FORM, update-via-cte FORM, accept-merge REFUSE, **my-column-collation W1, my-bin-padspace W1, my-update-returning-naive W4, my-odku-unguarded FORM** (the naive MariaDB upsert) |
+| crdb | drop-tenant W1, or-precedence W1, upsert-global-arbiter W1, returning-star W4, set-tenant-passthrough W2, upsert-tenant-from-row W2, like-prefix W1, refuse-all E, lenient-handle REFUSE, insert-global-key W6, fk-global W6, upsert-as-merge FORM, update-via-cte FORM, accept-merge REFUSE, **crdb-upsert-stmt W1, crdb-column-collation W1, crdb-reference-guard FORM** (the guard without the q4-005 fix) |
+
+Then the `--subject` (default `lowmy.py serve`) must PASS and `<subject> --mutant drop-tenant` must go red. Not run
+on these engines: two-valued-not (near-equivalent on typed columns, as on PG), the RLS and kv mutants (no such
+feature in the dialect).
+
+Limits: single-node CockroachDB with an in-memory store, no concurrency (the SERIALIZABLE 40001 retry is the
+adapter's, see q4-005 probes); MariaDB `my-odku-unguarded` is behaviourally safe on gate-passing schemas (the arbiter
+is exactly (t, key)), so it is caught by FORM, and by W4 only on the gate-demo schemas.
+
 ## Known limits / pending
 
 * The pass-1 pending items (RLS-native families, PG19rc1 ON CONFLICT information run, kv_acl hostile-command
