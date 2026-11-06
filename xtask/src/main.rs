@@ -624,7 +624,12 @@ fn unsafe_sites_self_test() -> Result<(), String> {
     let mutants: Vec<UnsafeMutant> = vec![
         ("21st aegis-iso site", with("aegis-iso", src_n(21)), manifests.clone(), "aegis-iso: 21 unsafe sites > cap 20"),
         ("2nd aegis-wasm site", with("aegis-wasm", src_n(2)), manifests.clone(), "aegis-wasm: 2 unsafe sites > cap 1"),
-        ("7th aegis-uring site", with("aegis-uring", src_n(7)), deny(&["aegis-iso", "aegis-wasm", "aegis-uring"]), "aegis-uring: 7 unsafe sites > cap 6"),
+        (
+            "7th aegis-uring site",
+            with("aegis-uring", src_n(7)),
+            deny(&["aegis-iso", "aegis-wasm", "aegis-uring"]),
+            "aegis-uring: 7 unsafe sites > cap 6",
+        ),
         (
             "site without // SAFETY:",
             with("aegis-iso", "fn z() {\n    // the fd is open\n    unsafe { f() };\n}\n".into()),

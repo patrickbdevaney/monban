@@ -1,4 +1,4 @@
-kamrui
-# The line above is ci/oracles.sh's only way to say "own phase gate, no aggregate runs it". front-equiv's own gate
-# (gates/phase-7.toml front-equiv, remote = true) runs it on the DESKTOP, not kamrui; it needs h2load (fetched pinned,
-# h2load.lock), systemd-run --user, curl with HTTP2, openssl, and kernel.io_uring_disabled=0.
+own-gate
+# Own phase gate (gates/phase-7.toml front-equiv, remote = true, on the DESKTOP): it needs an aegis built with
+# --features uring, h2load (fetched pinned, h2load.lock), systemd-run --user, curl with HTTP2, openssl and
+# kernel.io_uring_disabled=0. ci/oracles.sh skips own-gate oracles in every aggregate.
