@@ -1,0 +1,4 @@
+c-surface lcx: files=0 (c=0 cxx=0 asm=0) crate_files=0 generated=0 invocations=0 crates={} native_libs=[]
+c-surface awslc: files=395 (c=274 cxx=0 asm=121) crate_files=381 generated=14 invocations=422 crates={'aws-lc-sys-0.46.0': 381} native_libs=['aws-lc-sys:static=aws_lc_0_46_0_crypto']
+binary /home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/awslc/release/awslc-server 4301808
+binary /home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/lcx/release/lcx-server 2313904

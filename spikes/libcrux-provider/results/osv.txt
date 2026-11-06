@@ -1,0 +1,2 @@
+osv: 115 lock packages queried (48 compiled for 3 shipped targets): 1 advisories
+  proc-macro-error2@2.0.1: RUSTSEC-2026-0173 (not compiled for any of x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-unknown-linux-musl)

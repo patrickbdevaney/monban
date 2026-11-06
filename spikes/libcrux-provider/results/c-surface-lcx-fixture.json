@@ -1,0 +1,21 @@
+{
+ "label": "lcx-fixture",
+ "files": 3,
+ "c": 3,
+ "cxx": 0,
+ "asm": 0,
+ "crate_files": 1,
+ "generated": 2,
+ "invocations": 5,
+ "by_crate": {
+  "cfixture": 1
+ },
+ "native_libs": [
+  "cfixture:static=cfixture"
+ ],
+ "sources": [
+  "/home/patrickd/aegis-ci/repo-cf50c902b26e/spikes/libcrux-provider/cfixture/src/fixture.c",
+  "/home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/st-fix/release/build/cfixture-439fda771ddebc2c/out/9182082016847167514detect_compiler_family.c",
+  "/home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/st-fix/release/build/cfixture-439fda771ddebc2c/out/flag_check.c"
+ ]
+}

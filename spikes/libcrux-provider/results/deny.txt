@@ -1,0 +1,41 @@
+warning[unmatched-skip]: skipped crate 'itertools = =0.14.0' was not encountered
+   ┌─ /home/patrickd/aegis-ci/repo-cf50c902b26e/deny.toml:27:14
+   │
+27 │   { crate = "itertools@0.14.0", reason = "cedar-policy (aegis-pdp only)" },
+   │              ━━━━━━━━━━━━━━━━             ───────────────────────────── reason
+   │              │                             
+   │              unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'syn = =2.0.119' was not encountered
+   ┌─ /home/patrickd/aegis-ci/repo-cf50c902b26e/deny.toml:28:14
+   │
+28 │   { crate = "syn@2.0.119", reason = "cedar-policy proc-macros (aegis-pdp only, build time)" },
+   │              ━━━━━━━━━━━             ───────────────────────────────────────────────────── reason
+   │              │                        
+   │              unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'unicode-width = =0.1.14' was not encountered
+   ┌─ /home/patrickd/aegis-ci/repo-cf50c902b26e/deny.toml:29:14
+   │
+29 │   { crate = "unicode-width@0.1.14", reason = "cedar-policy (aegis-pdp only)" },
+   │              ━━━━━━━━━━━━━━━━━━━━             ───────────────────────────── reason
+   │              │                                 
+   │              unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'hashbrown = =0.16.1' was not encountered
+   ┌─ /home/patrickd/aegis-ci/repo-cf50c902b26e/deny.toml:32:14
+   │
+32 │   { crate = "hashbrown@0.16.1", reason = "gimli 0.33 (wasmtime/cranelift; aegis-p2 only) vs 0.17.1 (indexmap)" },
+   │              ━━━━━━━━━━━━━━━━             ─────────────────────────────────────────────────────────────────── reason
+   │              │                             
+   │              unmatched skip configuration
+
+warning[unmatched-skip]: skipped crate 'object = =0.39.1' was not encountered
+   ┌─ /home/patrickd/aegis-ci/repo-cf50c902b26e/deny.toml:33:14
+   │
+33 │   { crate = "object@0.39.1", reason = "ar_archive_writer -> psm -> stacker (cedar-policy build time, aegis-pdp only) vs 0.40.0 (wasmtime, aegis-p2 only)" },
+   │              ━━━━━━━━━━━━━             ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── reason
+   │              │                          
+   │              unmatched skip configuration
+
+advisories ok, bans ok, licenses ok, sources ok

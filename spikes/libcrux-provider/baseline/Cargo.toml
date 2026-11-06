@@ -1,0 +1,19 @@
+# Comparison build: the same server on rustls' aws-lc-rs provider (C-surface count baseline).
+[package]
+name = "lcx-baseline"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "awslc-server"
+path = "src/main.rs"
+
+[dependencies]
+rustls = { workspace = true, features = ["aws_lc_rs", "prefer-post-quantum"] }
+# Pinned to the version in the shipped root lock, so the comparison is against what AEGIS links today.
+aws-lc-rs.workspace = true
+
+[lints]
+workspace = true

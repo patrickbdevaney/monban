@@ -1,0 +1,45 @@
+[package]
+name = "lcx-provider"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lib]
+name = "lcx"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lcx-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "lcx-kat"
+path = "src/bin/kat.rs"
+
+[features]
+# Self-test mutants (gate.sh --self-test). Never enabled in the measured build.
+mutant-gcm-notag = []
+mutant-kx-swap = []
+# C-surface fixture: pulls in a crate whose build.rs compiles one C file through cc::Build.
+c-fixture = ["dep:cfixture"]
+
+[dependencies]
+rustls.workspace = true
+libcrux-ml-kem.workspace = true
+libcrux-curve25519.workspace = true
+libcrux-p256.workspace = true
+libcrux-chacha20poly1305.workspace = true
+libcrux-aes.workspace = true
+libcrux-hmac.workspace = true
+libcrux-hkdf.workspace = true
+libcrux-ecdsa.workspace = true
+libcrux-ed25519.workspace = true
+libcrux-sha2.workspace = true
+libcrux-traits.workspace = true
+getrandom.workspace = true
+zeroize.workspace = true
+cfixture = { path = "../cfixture", optional = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+cell x25519mlkem768-aes128gcm-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-aes128gcm-ecdsa-go: pass -> ok
+cell x25519mlkem768-aes256gcm-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-aes256gcm-ecdsa-go: pass -> ok
+cell x25519mlkem768-chacha20-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-chacha20-ecdsa-go: pass -> ok
+cell x25519-aes128gcm-ecdsa-openssl: pass -> ok
+cell x25519-aes128gcm-ecdsa-go: pass -> ok
+cell x25519-aes256gcm-ecdsa-openssl: pass -> ok
+cell x25519-aes256gcm-ecdsa-go: pass -> ok
+cell x25519-chacha20-ecdsa-openssl: pass -> ok
+cell x25519-chacha20-ecdsa-go: pass -> ok
+cell secp256r1-aes128gcm-ecdsa-openssl: pass -> ok
+cell secp256r1-aes128gcm-ecdsa-go: pass -> ok
+cell secp256r1-aes256gcm-ecdsa-openssl: pass -> ok
+cell secp256r1-aes256gcm-ecdsa-go: pass -> ok
+cell secp256r1-chacha20-ecdsa-openssl: pass -> ok
+cell secp256r1-chacha20-ecdsa-go: pass -> ok
+cell x25519mlkem768-chacha20-ed25519-openssl: pass -> ok
+cell x25519mlkem768-chacha20-ed25519-go: pass -> ok
+cell x25519-chacha20-ed25519-openssl: pass -> ok
+cell x25519-chacha20-ed25519-go: pass -> ok
+cell secp256r1-chacha20-ed25519-openssl: pass -> ok
+cell secp256r1-chacha20-ed25519-go: pass -> ok
+LCX-INTEROP: PASS (24/24 cells as expected)
