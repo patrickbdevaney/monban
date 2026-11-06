@@ -1,0 +1,231 @@
+Excerpts from open-telemetry/opentelemetry-proto at commit 169f2f2c7c1550c364d5eecb05d1b6163a011b06
+(fetched 2026-11-06 with User-Agent aegis-ci; Apache-2.0). Only the parts the oracle checks; comments stripped.
+sha256 of the full upstream files:
+  9663b2670f980041e73a71a7c09fdf4fe0bc64056be762f2fcbd2642c4d112a3  opentelemetry/proto/metrics/v1/metrics.proto
+  0c9d0c45eea723d38ef28ee13135ff61c037387f41cacc476ccac3485d6c138a  opentelemetry/proto/logs/v1/logs.proto
+  4c8c143ac8c190544a3d31dcd5719d6fbc943b89037faa1cef6015c76cbdefc1  opentelemetry/proto/common/v1/common.proto
+  34fe1c26b8959f09d97656348ae03b105d15a5f07ada0f8f1614ef5dff7d1569  opentelemetry/proto/resource/v1/resource.proto
+  59a8e654a1208abfbbd9aa970a31d270f3c2bb5bb2909f30784a7909be4ee2e7  docs/specification.md
+
+=== docs/specification.md, 'JSON Protobuf Encoding' (lines 447-491, verbatim) ===
+#### JSON Protobuf Encoding
+
+JSON Protobuf encoded payloads use proto3 standard defined
+[JSON Mapping](https://developers.google.com/protocol-buffers/docs/proto3#json)
+for mapping between Protobuf and JSON, with the following deviations from that mapping:
+
+- The `traceId` and `spanId` byte arrays are represented as
+  [case-insensitive hex-encoded strings](https://tools.ietf.org/html/rfc4648#section-8);
+  they are not base64-encoded as is defined in the standard
+  [Protobuf JSON Mapping](https://developers.google.com/protocol-buffers/docs/proto3#json).
+  Hex encoding is used for `traceId` and `spanId` fields in all OTLP
+  Protobuf messages, e.g., the `Span`, `Link`, `LogRecord`, etc. messages.
+  For example, the `traceId` field in a Span can be represented like this:
+  { "traceId": "5B8EFFF798038103D269B633813FC60C", ... }
+
+- Values of enum fields MUST be encoded as integer values. Unlike the standard
+  [Protobuf JSON Mapping](https://developers.google.com/protocol-buffers/docs/proto3#json),
+  which allows values of enum fields to be encoded as either integer values or
+  as enum name strings, only integer enum values are allowed in OTLP JSON
+  Protobuf Encoding; the enum name strings MUST NOT be used. For example, the
+  `kind` field with a value of SPAN_KIND_SERVER in a Span can be represented
+  like this: { "kind": 2, ... }
+
+- OTLP/JSON receivers MUST ignore message fields with unknown names and MUST
+  unmarshal the message as if the unknown field was not present in the payload.
+  This aligns with the behavior of the Binary Protobuf unmarshaler and ensures
+  that adding new fields to OTLP messages does not break existing receivers.
+
+- The keys of JSON objects are field names converted to lowerCamelCase. Original
+  field names are not valid to use as keys for JSON objects.
+  For example, this is a valid JSON representation of a Resource:
+  `{ "attributes": {...}, "droppedAttributesCount": 123 }`, and this is NOT a valid
+  representation:
+  `{ "attributes": {...}, "dropped_attributes_count": 123 }`.
+
+Note that according to [Protobuf specs](
+https://developers.google.com/protocol-buffers/docs/proto3#json) 64-bit integer
+numbers (`int64`, `sint64`, `uint64`, `fixed64`, `sfixed64`) in JSON-encoded
+payloads are encoded as decimal strings, and either numbers or strings are accepted
+when decoding. This also applies to timestamp fields (such as `timeUnixNano`,
+`startTimeUnixNano`, `endTimeUnixNano`, and `observedTimeUnixNano`) that are defined as `fixed64`.
+
+The client and the server MUST set "Content-Type: application/json" request and
+response headers when sending JSON Protobuf encoded payload.
+
+
+=== docs/specification.md, OTLP/HTTP default paths (verbatim) ===
+The default URL path for requests that carry trace data is `/v1/traces` (for
+The default URL path for requests that carry metric data is `/v1/metrics` and
+The default URL path for requests that carry log data is `/v1/logs` and the
+The default URL path for requests that carry profiling data is
+Non-default URL paths for requests MAY be configured on the client and server
+
+=== metrics.proto (messages/enums used by the oracle; comments stripped) ===
+message MetricsData {
+  repeated ResourceMetrics resource_metrics = 1;
+}
+message ResourceMetrics {
+  reserved 1000;
+  opentelemetry.proto.resource.v1.Resource resource = 1;
+  repeated ScopeMetrics scope_metrics = 2;
+  string schema_url = 3;
+}
+message ScopeMetrics {
+  opentelemetry.proto.common.v1.InstrumentationScope scope = 1;
+  repeated Metric metrics = 2;
+  string schema_url = 3;
+}
+message Metric {
+  reserved 4, 6, 8;
+  string name = 1;
+  string description = 2;
+  string unit = 3;
+  oneof data {
+    Gauge gauge = 5;
+    Sum sum = 7;
+    Histogram histogram = 9;
+    ExponentialHistogram exponential_histogram = 10;
+    Summary summary = 11;
+  }
+  repeated opentelemetry.proto.common.v1.KeyValue metadata = 12;
+}
+message Gauge {
+  repeated NumberDataPoint data_points = 1;
+}
+message Sum {
+  repeated NumberDataPoint data_points = 1;
+  AggregationTemporality aggregation_temporality = 2;
+  bool is_monotonic = 3;
+}
+message Histogram {
+  repeated HistogramDataPoint data_points = 1;
+  AggregationTemporality aggregation_temporality = 2;
+}
+enum AggregationTemporality {
+  AGGREGATION_TEMPORALITY_UNSPECIFIED = 0;
+  AGGREGATION_TEMPORALITY_DELTA = 1;
+  AGGREGATION_TEMPORALITY_CUMULATIVE = 2;
+}
+message NumberDataPoint {
+  reserved 1;
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 7;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  oneof value {
+    double as_double = 4;
+    sfixed64 as_int = 6;
+  }
+  repeated Exemplar exemplars = 5;
+  uint32 flags = 8;
+}
+message HistogramDataPoint {
+  reserved 1;
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 9;
+  fixed64 start_time_unix_nano = 2;
+  fixed64 time_unix_nano = 3;
+  fixed64 count = 4;
+  optional double sum = 5;
+  repeated fixed64 bucket_counts = 6;
+  repeated double explicit_bounds = 7;
+  repeated Exemplar exemplars = 8;
+  uint32 flags = 10;
+  optional double min = 11;
+  optional double max = 12;
+}
+
+=== logs.proto (messages/enums used by the oracle; comments stripped) ===
+message LogsData {
+  repeated ResourceLogs resource_logs = 1;
+}
+message ResourceLogs {
+  reserved 1000;
+  opentelemetry.proto.resource.v1.Resource resource = 1;
+  repeated ScopeLogs scope_logs = 2;
+  string schema_url = 3;
+}
+message ScopeLogs {
+  opentelemetry.proto.common.v1.InstrumentationScope scope = 1;
+  repeated LogRecord log_records = 2;
+  string schema_url = 3;
+}
+enum SeverityNumber {
+  SEVERITY_NUMBER_UNSPECIFIED = 0;
+  SEVERITY_NUMBER_TRACE  = 1;
+  SEVERITY_NUMBER_TRACE2 = 2;
+  SEVERITY_NUMBER_TRACE3 = 3;
+  SEVERITY_NUMBER_TRACE4 = 4;
+  SEVERITY_NUMBER_DEBUG  = 5;
+  SEVERITY_NUMBER_DEBUG2 = 6;
+  SEVERITY_NUMBER_DEBUG3 = 7;
+  SEVERITY_NUMBER_DEBUG4 = 8;
+  SEVERITY_NUMBER_INFO   = 9;
+  SEVERITY_NUMBER_INFO2  = 10;
+  SEVERITY_NUMBER_INFO3  = 11;
+  SEVERITY_NUMBER_INFO4  = 12;
+  SEVERITY_NUMBER_WARN   = 13;
+  SEVERITY_NUMBER_WARN2  = 14;
+  SEVERITY_NUMBER_WARN3  = 15;
+  SEVERITY_NUMBER_WARN4  = 16;
+  SEVERITY_NUMBER_ERROR  = 17;
+  SEVERITY_NUMBER_ERROR2 = 18;
+  SEVERITY_NUMBER_ERROR3 = 19;
+  SEVERITY_NUMBER_ERROR4 = 20;
+  SEVERITY_NUMBER_FATAL  = 21;
+  SEVERITY_NUMBER_FATAL2 = 22;
+  SEVERITY_NUMBER_FATAL3 = 23;
+  SEVERITY_NUMBER_FATAL4 = 24;
+}
+message LogRecord {
+  reserved 4;
+  fixed64 time_unix_nano = 1;
+  fixed64 observed_time_unix_nano = 11;
+  SeverityNumber severity_number = 2;
+  string severity_text = 3;
+  opentelemetry.proto.common.v1.AnyValue body = 5;
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 6;
+  uint32 dropped_attributes_count = 7;
+  fixed32 flags = 8;
+  bytes trace_id = 9;
+  bytes span_id = 10;
+  string event_name = 12;
+}
+
+=== common.proto (messages/enums used by the oracle; comments stripped) ===
+message AnyValue {
+  oneof value {
+    string string_value = 1;
+    bool bool_value = 2;
+    int64 int_value = 3;
+    double double_value = 4;
+    ArrayValue array_value = 5;
+    KeyValueList kvlist_value = 6;
+    bytes bytes_value = 7;
+    int32 string_value_strindex = 8;
+  }
+}
+message ArrayValue {
+  repeated AnyValue values = 1;
+}
+message KeyValueList {
+  repeated KeyValue values = 1;
+}
+message KeyValue {
+  string key = 1;
+  AnyValue value = 2;
+  int32 key_strindex = 3;
+}
+message InstrumentationScope {
+  string name = 1;
+  string version = 2;
+  repeated KeyValue attributes = 3;
+  uint32 dropped_attributes_count = 4;
+}
+
+=== resource.proto (messages/enums used by the oracle; comments stripped) ===
+message Resource {
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 1;
+  uint32 dropped_attributes_count = 2;
+  repeated opentelemetry.proto.common.v1.EntityRef entity_refs = 3;
+}
+

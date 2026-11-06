@@ -1,0 +1,31 @@
+# TYPE aegis_synth_events counter
+# HELP aegis_synth_events Synthetic counter with \"escapes\", a back\\slash\nand a second line.
+aegis_synth_events_total{kind="a\"b",path="c\\d\ne"} 9007199254740993
+aegis_synth_events_created{kind="a\"b",path="c\\d\ne"} 1793900000.25
+aegis_synth_events_total{kind="plain",path="/"} 0
+aegis_synth_events_created{kind="plain",path="/"} 1793900001.5
+# TYPE aegis_synth_ratio gauge
+# HELP aegis_synth_ratio Synthetic float gauge.
+aegis_synth_ratio{shard="0"} 0.25
+aegis_synth_ratio{shard="1"} -1.5e3
+aegis_synth_ratio{shard="2"} -42
+# TYPE aegis_synth_request_duration_seconds histogram
+# UNIT aegis_synth_request_duration_seconds seconds
+# HELP aegis_synth_request_duration_seconds Synthetic histogram; aegis emits no histogram today.
+aegis_synth_request_duration_seconds_bucket{route="api",le="0.005"} 2
+aegis_synth_request_duration_seconds_bucket{route="api",le="0.05"} 5
+aegis_synth_request_duration_seconds_bucket{route="api",le="0.5"} 9
+aegis_synth_request_duration_seconds_bucket{route="api",le="+Inf"} 10
+aegis_synth_request_duration_seconds_count{route="api"} 10
+aegis_synth_request_duration_seconds_sum{route="api"} 1.875
+aegis_synth_request_duration_seconds_created{route="api"} 1793900000.5
+aegis_synth_request_duration_seconds_bucket{route="admin",le="0.005"} 0
+aegis_synth_request_duration_seconds_bucket{route="admin",le="0.05"} 0
+aegis_synth_request_duration_seconds_bucket{route="admin",le="0.5"} 3
+aegis_synth_request_duration_seconds_bucket{route="admin",le="+Inf"} 3
+aegis_synth_request_duration_seconds_count{route="admin"} 3
+aegis_synth_request_duration_seconds_sum{route="admin"} 0.75
+# TYPE aegis_synth_up gauge
+# HELP aegis_synth_up Synthetic unlabelled gauge.
+aegis_synth_up 1
+# EOF

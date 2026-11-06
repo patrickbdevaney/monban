@@ -1,0 +1,57 @@
+# TYPE aegis_admission_rejects counter
+# HELP aegis_admission_rejects Requests rejected by the admission pipeline, by stage.
+aegis_admission_rejects_total{stage="S0"} 0
+aegis_admission_rejects_total{stage="S1"} 0
+aegis_admission_rejects_total{stage="S2"} 0
+aegis_admission_rejects_total{stage="S3"} 0
+aegis_admission_rejects_total{stage="S3A"} 0
+aegis_admission_rejects_total{stage="S4"} 0
+aegis_admission_rejects_total{stage="S5"} 0
+aegis_admission_rejects_total{stage="S6"} 0
+# TYPE aegis_budget_debits counter
+# HELP aegis_budget_debits Successful budget debits, by budget scope.
+aegis_budget_debits_total{scope="ip"} 4
+aegis_budget_debits_total{scope="identity"} 4
+aegis_budget_debits_total{scope="expensive_tier"} 0
+# TYPE aegis_crash_budget_trips counter
+# HELP aegis_crash_budget_trips Times a per-principal crash budget tripped.
+aegis_crash_budget_trips_total 0
+# TYPE aegis_cert_seconds_to_expiry gauge
+# HELP aegis_cert_seconds_to_expiry Seconds until the certificate in this slot expires; negative once expired.
+aegis_cert_seconds_to_expiry{slot="serving"} 2592000
+aegis_cert_seconds_to_expiry{slot="admin"} 0
+aegis_cert_seconds_to_expiry{slot="upstream_client"} 0
+# TYPE aegis_fips_status gauge
+# HELP aegis_fips_status 1 when the FIPS-validated crypto provider is active, else 0.
+aegis_fips_status 0
+# TYPE aegis_config_generation_hash gauge
+# HELP aegis_config_generation_hash First 48 bits (big-endian) of the active config generation hash.
+aegis_config_generation_hash 14283538101851
+# TYPE aegis_config_lkg_fallbacks counter
+# HELP aegis_config_lkg_fallbacks Config loads that failed and fell back to the last-known-good generation.
+aegis_config_lkg_fallbacks_total 0
+# TYPE aegis_upgrade_forced_closes counter
+# HELP aegis_upgrade_forced_closes Connections force-closed at the upgrade drain deadline.
+aegis_upgrade_forced_closes_total 0
+# TYPE aegis_proxy_requests counter
+# HELP aegis_proxy_requests Inbound requests that reached the proxy pipeline.
+aegis_proxy_requests_total 4
+# TYPE aegis_proxy_forwarded counter
+# HELP aegis_proxy_forwarded Requests forwarded upstream that got a response.
+aegis_proxy_forwarded_total 0
+# TYPE aegis_proxy_authz_denied counter
+# HELP aegis_proxy_authz_denied Requests denied by the route authz requirement (INV-NONEMPTY / unknown policy).
+aegis_proxy_authz_denied_total 1
+# TYPE aegis_proxy_canon_rejects counter
+# HELP aegis_proxy_canon_rejects Requests refused by canonicalization or routing (308/400/404/421/501...).
+aegis_proxy_canon_rejects_total 1
+# TYPE aegis_proxy_upstream_errors counter
+# HELP aegis_proxy_upstream_errors Upstream exchanges that failed (502/504).
+aegis_proxy_upstream_errors_total 2
+# TYPE aegis_proxy_upstream_connects counter
+# HELP aegis_proxy_upstream_connects New upstream connections opened.
+aegis_proxy_upstream_connects_total 0
+# TYPE aegis_proxy_config_reloads counter
+# HELP aegis_proxy_config_reloads Config reloads applied (SIGHUP).
+aegis_proxy_config_reloads_total 1
+# EOF

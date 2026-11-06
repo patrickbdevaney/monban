@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# AEGIS scaling harness (unit P7-scaling-001, PREFLIGHT D-P7.7; gate `scaling`, advisory record_only).
+# Last line: SCALING: PASS|FAIL (...)  /  SCALING SELF-TEST: PASS|FAIL (...)  /  SCALING GCP: REFUSED|... (...)
+#   run --cores 1,2,4,8,16,24 --record bench/scaling/out   h2load vs default-build aegis, one point per core count
+#   run --self-test                                        negative controls (fake h2load; light)
+#   run --gcp <machine-type> [--region R]                  quota preflight for the large-VM point (README)
+# A measuring run is a load test, so it re-executes itself under ci/heavy.sh unless already inside it (ci/remote.sh
+# and heavy.sh set AEGIS_HEAVY_HELD=1).
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+case " $* " in
+  *" --self-test "*|*" --gcp "*) ;;
+  *) [ "${AEGIS_HEAVY_HELD:-0}" = 1 ] || exec "$REPO/ci/heavy.sh" "$HERE/run" "$@";;
+esac
+exec python3 -I "$HERE/scaling.py" "$@"
