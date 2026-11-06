@@ -1,0 +1,30 @@
+{
+ "id": "P7-oracle-proxy-001",
+ "role": "spec-author",
+ "depends_on": [
+  "P7-spec-001"
+ ],
+ "start_now": true,
+ "gates": [
+  "proxy-l4"
+ ],
+ "spec_refs": [
+  "PLAN-7 Gate -> unit",
+  "PREFLIGHT"
+ ],
+ "oracles": [
+  "PROXY accepted from an untrusted source -> red (PROXY-1)",
+  "peer address taken from PROXY when untrusted -> red (PROXY-2)",
+  "v1 header accepted / declared len 537 accepted -> red (PROXY-3)",
+  "unknown SNI routed to a default upstream -> red (L4-1)",
+  "L4 bytes parsed as HTTP (a request line on an L4 listener gets an HTTP response) -> red (L4-2)"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh oracles/proxy-l4/run --self-test",
+  "must": "red before P7-wire-001/P7-bin-001 (subject lacks the features); spec vectors from haproxy proxy-protocol.txt \u00a72.2 (TCP4, TCP6, UNIX, LOCAL, TLVs incl. CRC32C and SSL), >=200 hostile headers, trusted-CIDR matrix, L4 SNI routing to two upstreams via openssl/ python ssl clients, PROXY+L4 combined; admission/audit see the PROXY source address"
+ },
+ "write_scope": [
+  "oracles/proxy-l4/**"
+ ],
+ "notes": "Python stdlib only for the sender; upstreams are local echo/TLS servers."
+}

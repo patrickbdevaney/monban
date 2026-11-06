@@ -1,0 +1,34 @@
+{
+ "id": "P7-wire-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-spec-001",
+  "P7-spec-002",
+  "P7-oracle-proxy-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "kani-wire",
+  "fuzz"
+ ],
+ "spec_refs": [
+  "F1 PROXY-1..3, L4-1",
+  "PREFLIGHT D-P7.2"
+ ],
+ "oracles": [
+  "kani-wire self-test: a planted out-of-bounds read in a copy of the parser fails verification",
+  "fuzz self-test: planted panic in each new target"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh cargo test -p aegis-wire --locked && ci/remote.sh --host kamrui ci/kani.sh --serial --mem 6G -p aegis-wire && ci/remote.sh ci/fuzz.sh run --execs 10000000 --targets proxy_v2,client_hello_peek",
+  "must": "PASS; aegis-wire (L2, no_std-friendly, no alloc in the hot path, forbid(unsafe)): proxy::parse_v2(&[u8]) -> Result<(Header, consumed)> with v1 refused and len <= 536; tls_peek::client_hello(&[u8]) -> Result<Peek{sni, alpn, versions, sigalgs, trust_anchors}> reading one record <= 16 KiB; Kani: no panic, consumed <= input, no read past declared length; oracle vectors pass at the parser level"
+ },
+ "write_scope": [
+  "crates/aegis-wire/src/**",
+  "fuzz/fuzz_targets/proxy_v2.rs",
+  "fuzz/fuzz_targets/client_hello_peek.rs",
+  "fuzz/corpus/proxy_v2/**",
+  "fuzz/corpus/client_hello_peek/**"
+ ],
+ "notes": ""
+}

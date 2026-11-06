@@ -1,0 +1,27 @@
+{
+ "id": "P7-uring-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-spec-002",
+  "P7-oracle-uring-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "front-equiv"
+ ],
+ "spec_refs": [
+  "F1 FRONT-1",
+  "PREFLIGHT D-P7.3"
+ ],
+ "oracles": [
+  "front-equiv self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh cargo test -p aegis-uring --locked && ci/remote.sh oracles/front-equiv/run --binary-from-build",
+  "must": "PASS; aegis-uring (L4): accept + recv/send on io-uring 0.7.15 with bounded submission queue, exposed as tokio AsyncRead/AsyncWrite streams the existing server consumes unchanged; the only unsafe needed lives behind io-uring's safe API or is refused (forbid(unsafe_code) stays; if impossible, INFEASIBLE_REPORT instead of unsafe outside aegis-iso); falls back closed: --front uring on a kernel with io_uring disabled refuses to start (exit != 0, clear message), never silently uses epoll"
+ },
+ "write_scope": [
+  "crates/aegis-uring/src/**"
+ ],
+ "notes": "io-uring's submission API is unsafe (buffer lifetimes). If the front cannot be written without unsafe, the unit may propose moving it into aegis-iso's audited-site budget (<=20 sites, each // SAFETY:) via INFEASIBLE_REPORT for the spec author; it must not add unsafe elsewhere."
+}

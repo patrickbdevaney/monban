@@ -1,0 +1,31 @@
+{
+ "id": "P7-adapter-mysql-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-spec-002",
+  "P7-oracle-adapters-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "lowering-read-mariadb",
+  "lowering-write-mariadb",
+  "schema-gate-mariadb"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P7.8",
+  "F4/F10",
+  "spikes/q4-005"
+ ],
+ "oracles": [
+  "the three mariadb gates' self-tests"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'ci/heavy.sh cargo build --release --locked -q -p mariadb-subject && ci/engines.sh with mariadb -- oracles/lowering-write/run --engine-pin --skip-sqlite --subject \"target/release/mariadb-subject lowering\" --engine mariadb --dsn @mariadb'",
+  "must": "PASS on all three mariadb gates; own MySQL wire client (handshake v10, mysql_native_password, auth switch; caching_sha2 refused with a clear error until TLS path exists; COM_STMT_PREPARE/EXECUTE binary protocol only, never text-protocol interpolation); q4-005 mandated forms; tenant/key collation must be binary (W3); connect timeout; packet length caps; fuzz-safe parser (no indexing panics)"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-mysql/src/**",
+  "subjects/mariadb-subject/src/**"
+ ],
+ "notes": "Non-golden until all three gates pass; then golden at rung R2 per q4-005."
+}

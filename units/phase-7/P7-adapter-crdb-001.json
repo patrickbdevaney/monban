@@ -1,0 +1,30 @@
+{
+ "id": "P7-adapter-crdb-001",
+ "role": "implementer",
+ "depends_on": [
+  "P7-spec-002",
+  "P7-oracle-adapters-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "lowering-read-crdb",
+  "lowering-write-crdb",
+  "schema-gate-crdb"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P7.8",
+  "spikes/q4-005"
+ ],
+ "oracles": [
+  "the three crdb gates' self-tests"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui bash -c 'ci/heavy.sh cargo build --release --locked -q -p crdb-subject && ci/engines.sh with crdb -- oracles/lowering-write/run --engine-pin --skip-sqlite --subject \"target/release/crdb-subject lowering\" --engine crdb --dsn @crdb'",
+  "must": "PASS on all three crdb gates and every carried PG gate (lowering-*-pg, schema-gate-pg, pg-version-floor, pg19-blocked); `Dialect::Crdb` in aegis-adapter-pg: q4-005 upsert guard fix, SERIALIZABLE retry (40001) bounded, crdb version floor from engine-pins"
+ },
+ "write_scope": [
+  "crates/aegis-adapter-pg/src/**",
+  "subjects/crdb-subject/src/**"
+ ],
+ "notes": ""
+}

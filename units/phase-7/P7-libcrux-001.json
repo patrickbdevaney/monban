@@ -1,0 +1,24 @@
+{
+ "id": "P7-libcrux-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "libcrux-spike"
+ ],
+ "spec_refs": [
+  "PREFLIGHT D-P7.5",
+  "BACKLOG TCB reduction"
+ ],
+ "oracles": [
+  "gate --self-test: a provider build with the AES-GCM tag check disabled fails the KAT; a kx group swapped (X25519 share reported as MLKEM) fails OpenSSL interop; a C-surface count fixture with an added cc::Build is reported as larger"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui spikes/libcrux-provider/gate.sh && ci/remote.sh --host kamrui spikes/libcrux-provider/gate.sh --self-test",
+  "must": "PASS; own Cargo.lock under spikes/libcrux-provider (not in either shipped lock), every crate >=7 d old, cargo-deny + OSV clean; rustls CryptoProvider: kx X25519MLKEM768/X25519/secp256r1, AES-128/256-GCM + ChaCha20-Poly1305, SHA-256/384 HMAC/HKDF, ECDSA-P256 + Ed25519 signing; KATs (RFC 7748, ACVP ML-KEM-768, NIST GCM, RFC 8439, RFC 5869); interop server<->OpenSSL 3.5.3 s_client and Go 1.27.3 for every kx x AEAD; VERDICT.md with C files compiled (libcrux build vs aws-lc-rs build), handshake cost vs aws-lc-rs (kamrui, provisional), rung, and the upstream 'not verified side-channel resistant' caveat"
+ },
+ "write_scope": [
+  "spikes/libcrux-provider/**"
+ ],
+ "notes": "Server side only; FIPS stays on AWS-LC. Do not use the unpublished celabshq provider or the single-author rustls-provider-libcrux-pq crate; build on libcrux-* primitives from crates.io. If a primitive is missing (e.g. libcrux-sha2 absent), record it and use the nearest pure-Rust RustCrypto crate, counted separately in the verdict."
+}

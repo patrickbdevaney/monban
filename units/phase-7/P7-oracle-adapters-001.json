@@ -1,0 +1,36 @@
+{
+ "id": "P7-oracle-adapters-001",
+ "role": "spec-author",
+ "depends_on": [],
+ "start_now": true,
+ "gates": [
+  "lowering-read-mariadb",
+  "lowering-write-mariadb",
+  "schema-gate-mariadb",
+  "lowering-read-crdb",
+  "lowering-write-crdb",
+  "schema-gate-crdb"
+ ],
+ "spec_refs": [
+  "PLAN-7 Gate -> unit",
+  "PREFLIGHT"
+ ],
+ "oracles": [
+  "each gate's existing self-test mutants run on the new engine",
+  "MariaDB naive upsert form accepted -> red",
+  "CockroachDB upsert guard without the q4-005 fix -> red",
+  "a NOCASE/uca1400_ai_ci tenant column accepted by the schema gate -> red"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui ci/engines.sh self-test && ci/remote.sh --host kamrui bash -c 'ci/engines.sh with mariadb,crdb -- ci/engines.sh versions'",
+  "must": "red before the adapter units; engine-pins.toml gains mariadb 11.8.x and cockroach v25.4.x (digest, image_id, bytes < 500 MB, version, policy) with advisories read; ci/engines.sh starts both; oracles/lowering-read, lowering-write, schema-gate gain --engine mariadb|crdb (q4-005 renderers and mywire client ported, unmodified oracle core); >=100k read cases and 300x4 write cases per family per engine"
+ },
+ "write_scope": [
+  "oracles/lowering-read/**",
+  "oracles/lowering-write/**",
+  "oracles/schema-gate/**",
+  "ci/engines.sh",
+  "supply-chain/engine-pins.toml"
+ ],
+ "notes": "Source: spikes/q4-005 (renderers, mywire.py, probes). MySQL stays out (829 MB image)."
+}
