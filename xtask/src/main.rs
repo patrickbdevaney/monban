@@ -135,11 +135,12 @@ const PINNED_LAYERS: &[(&str, u8)] =
 /// never links them (X-8 aegis-pdp, X-13 aegis-p2, PREFLIGHT D-P7.6 aegis-otlp).
 const SEPARATE_BINARIES: &[&str] = &["aegis-pdp", "aegis-p2", "aegis-otlp"];
 /// Crates permitted to relax `forbid(unsafe_code)` (each site audited and capped by `cargo xtask unsafe-sites`).
-const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm"];
+const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm", "aegis-uring"];
 /// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): aegis-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
 /// setitimer, fd adoption, _exit); aegis-wasm ≤ 1 (the digest-checked `Module::deserialize_file`). Every crate in
-/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0.
-const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("aegis-iso", 20), ("aegis-wasm", 1)];
+/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0. aegis-uring ≤ 6 (DEVIATIONS X-15:
+/// io-uring 0.7.15 `SubmissionQueue::push` and ring setup are `unsafe fn`; opt-in feature `uring` only).
+const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("aegis-iso", 20), ("aegis-wasm", 1), ("aegis-uring", 6)];
 
 fn workspace_model() -> Result<Vec<Pkg>, String> {
     let out = run(Command::new("cargo")
@@ -623,6 +624,7 @@ fn unsafe_sites_self_test() -> Result<(), String> {
     let mutants: Vec<UnsafeMutant> = vec![
         ("21st aegis-iso site", with("aegis-iso", src_n(21)), manifests.clone(), "aegis-iso: 21 unsafe sites > cap 20"),
         ("2nd aegis-wasm site", with("aegis-wasm", src_n(2)), manifests.clone(), "aegis-wasm: 2 unsafe sites > cap 1"),
+        ("7th aegis-uring site", with("aegis-uring", src_n(7)), deny(&["aegis-iso", "aegis-wasm", "aegis-uring"]), "aegis-uring: 7 unsafe sites > cap 6"),
         (
             "site without // SAFETY:",
             with("aegis-iso", "fn z() {\n    // the fd is open\n    unsafe { f() };\n}\n".into()),
