@@ -1,0 +1,60 @@
+== supply
+isolation: 2 shipped locks checked: 0 violations
+lockage: 115 registry packages, min 7 d, today 2026-11-06: 0 violations
+advisories ok, bans ok, licenses ok, sources ok
+osv: 115 lock packages queried (48 compiled for 3 shipped targets): 1 advisories
+  proc-macro-error2@2.0.1: RUSTSEC-2026-0173 (not compiled for any of x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-unknown-linux-musl)
+== build
+c-surface lcx: files=0 (c=0 cxx=0 asm=0) crate_files=0 generated=0 invocations=0 crates={} native_libs=[]
+c-surface awslc: files=395 (c=274 cxx=0 asm=121) crate_files=381 generated=14 invocations=422 crates={'aws-lc-sys-0.46.0': 381} native_libs=['aws-lc-sys:static=aws_lc_0_46_0_crypto']
+binary /home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/awslc/release/awslc-server 4301808
+binary /home/patrickd/aegis-ci/target-repo-cf50c902b26e/libcrux-spike/lcx/release/lcx-server 2313904
+== lint
+== kat
+kat RFC 7748 X25519: 10 checks, 0 failed
+kat NIST CAVP AES-GCM: 372 checks, 0 failed
+kat RFC 8439 ChaCha20-Poly1305: 10 checks, 0 failed
+kat RFC 5869 HKDF-SHA-256: 9 checks, 0 failed
+kat RFC 4231 HMAC-SHA-256/384: 18 checks, 0 failed
+kat RFC 8032 Ed25519: 6 checks, 0 failed
+kat RFC 5903 P-256 ECDH + ECDSA: 8 checks, 0 failed
+kat ACVP ML-KEM-768: 40 checks, 0 failed
+kat SHA-2 / group round trips / record layer: 17 checks, 0 failed
+LCX-KAT: PASS (490 checks)
+== interop
+cell x25519mlkem768-aes128gcm-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-aes128gcm-ecdsa-go: pass -> ok
+cell x25519mlkem768-aes256gcm-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-aes256gcm-ecdsa-go: pass -> ok
+cell x25519mlkem768-chacha20-ecdsa-openssl: pass -> ok
+cell x25519mlkem768-chacha20-ecdsa-go: pass -> ok
+cell x25519-aes128gcm-ecdsa-openssl: pass -> ok
+cell x25519-aes128gcm-ecdsa-go: pass -> ok
+cell x25519-aes256gcm-ecdsa-openssl: pass -> ok
+cell x25519-aes256gcm-ecdsa-go: pass -> ok
+cell x25519-chacha20-ecdsa-openssl: pass -> ok
+cell x25519-chacha20-ecdsa-go: pass -> ok
+cell secp256r1-aes128gcm-ecdsa-openssl: pass -> ok
+cell secp256r1-aes128gcm-ecdsa-go: pass -> ok
+cell secp256r1-aes256gcm-ecdsa-openssl: pass -> ok
+cell secp256r1-aes256gcm-ecdsa-go: pass -> ok
+cell secp256r1-chacha20-ecdsa-openssl: pass -> ok
+cell secp256r1-chacha20-ecdsa-go: pass -> ok
+cell x25519mlkem768-chacha20-ed25519-openssl: pass -> ok
+cell x25519mlkem768-chacha20-ed25519-go: pass -> ok
+cell x25519-chacha20-ed25519-openssl: pass -> ok
+cell x25519-chacha20-ed25519-go: pass -> ok
+cell secp256r1-chacha20-ed25519-openssl: pass -> ok
+cell secp256r1-chacha20-ed25519-go: pass -> ok
+LCX-INTEROP: PASS (24/24 cells as expected)
+== bench
+# 2026-11-06T14:31:35Z host=patrickd-kamrui cpu=Intel(R) N95
+# rustls 0.23.46 in-memory TLS 1.3 handshakes, ECDSA-P256 leaf, AES-128-GCM, aws-lc-rs 1.18.2 client
+bench group=x25519mlkem768 server=lcx n=400 server_us_p50=1059 server_us_p90=1106 total_us_p50=1971
+bench group=x25519mlkem768 server=awslc n=400 server_us_p50=429 server_us_p90=472 total_us_p50=1321
+bench group=x25519 server=lcx n=400 server_us_p50=922 server_us_p90=976 total_us_p50=1685
+bench group=x25519 server=awslc n=400 server_us_p50=355 server_us_p90=392 total_us_p50=1102
+bench group=secp256r1 server=lcx n=400 server_us_p50=1387 server_us_p90=1473 total_us_p50=2265
+bench group=secp256r1 server=awslc n=400 server_us_p50=455 server_us_p90=488 total_us_p50=1317
+LIBCRUX-SPIKE: FAIL (supply: OSV: proc-macro-error2@2.0.1: RUSTSEC-2026-0173 (not compiled for any of x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, x86_64-unknown-linux-musl)) [passed: C files: libcrux 0 vs aws-lc-rs 395; clippy clean; KAT 490 checks; interop 24/24 cells as expected; bench recorded (results/bench.txt)]
+rc=1

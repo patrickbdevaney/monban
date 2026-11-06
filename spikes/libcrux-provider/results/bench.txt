@@ -1,0 +1,8 @@
+# 2026-11-06T14:31:35Z host=patrickd-kamrui cpu=Intel(R) N95
+# rustls 0.23.46 in-memory TLS 1.3 handshakes, ECDSA-P256 leaf, AES-128-GCM, aws-lc-rs 1.18.2 client
+bench group=x25519mlkem768 server=lcx n=400 server_us_p50=1059 server_us_p90=1106 total_us_p50=1971
+bench group=x25519mlkem768 server=awslc n=400 server_us_p50=429 server_us_p90=472 total_us_p50=1321
+bench group=x25519 server=lcx n=400 server_us_p50=922 server_us_p90=976 total_us_p50=1685
+bench group=x25519 server=awslc n=400 server_us_p50=355 server_us_p90=392 total_us_p50=1102
+bench group=secp256r1 server=lcx n=400 server_us_p50=1387 server_us_p90=1473 total_us_p50=2265
+bench group=secp256r1 server=awslc n=400 server_us_p50=455 server_us_p90=488 total_us_p50=1317

@@ -1,0 +1,10 @@
+kat RFC 7748 X25519: 10 checks, 0 failed
+kat NIST CAVP AES-GCM: 372 checks, 0 failed
+kat RFC 8439 ChaCha20-Poly1305: 10 checks, 0 failed
+kat RFC 5869 HKDF-SHA-256: 9 checks, 0 failed
+kat RFC 4231 HMAC-SHA-256/384: 18 checks, 0 failed
+kat RFC 8032 Ed25519: 6 checks, 0 failed
+kat RFC 5903 P-256 ECDH + ECDSA: 8 checks, 0 failed
+kat ACVP ML-KEM-768: 40 checks, 0 failed
+kat SHA-2 / group round trips / record layer: 17 checks, 0 failed
+LCX-KAT: PASS (490 checks)

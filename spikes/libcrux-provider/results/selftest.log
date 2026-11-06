@@ -1,0 +1,11 @@
+  FAIL record-aes256gcm-reject-tamper
+kat SHA-2 / group round trips / record layer: 17 checks, 2 failed
+LCX-KAT: FAIL (230/490: gcm-gcm-enc-0-reject-tag, gcm-gcm-enc-0-reject-aad, gcm-gcm-enc-1-reject-tag, gcm-gcm-enc-1-reject-aad, gcm-gcm-enc-2-reject-tag, gcm-gcm-enc-2-reject-aad)
+cell x25519mlkem768-aes128gcm-ecdsa-openssl: fail (expected fail) -> ok [openssl: cipher not TLS_AES_128_GCM_SHA256; openssl: nonce not echoed; server rc=1: interop: error handshake: received fatal alert: InternalError]
+cell x25519mlkem768-aes128gcm-ecdsa-go: fail (expected fail) -> ok [go: handshake/group/suite: HANDSHAKE fail err="tls: invalid server key share"; go: echo failed rc=1; server rc=1: interop: error handshake: received fatal alert: IllegalParameter]
+cell x25519mlkem768-aes256gcm-ecdsa-openssl: fail (expected fail) -> ok [openssl: cipher not TLS_AES_256_GCM_SHA384; openssl: nonce not echoed; server rc=1: interop: error handshake: received fatal alert: InternalError]
+cell x25519mlkem768-aes256gcm-ecdsa-go: fail (expected fail) -> ok [go: handshake/group/suite: HANDSHAKE fail err="tls: invalid server key share"; go: echo failed rc=1; server rc=1: interop: error handshake: received fatal alert: IllegalParameter]
+LCX-INTEROP: PASS (24/24 cells as expected, 8 expected-fail cells failed)
+c-surface lcx-fixture: files=3 (c=3 cxx=0 asm=0) crate_files=1 generated=2 invocations=5 crates={'cfixture': 1} native_libs=['cfixture:static=cfixture']
+LIBCRUX-SPIKE SELF-TEST: PASS (gcm-notag: KAT red, 230 GCM checks failed; kx-swap: 8/8 X25519MLKEM768 cells red (OpenSSL+Go), 16 other cells green; c-fixture: C files 0 -> 3 (cfixture/src/fixture.c counted); supply: OSV names a planted h2 0.3.0, lock-age red as of 2026-10-08)
+rc=0

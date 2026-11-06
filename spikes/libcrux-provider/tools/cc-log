@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# C-surface counter (P7-libcrux-001): stands in for $CC/$CXX during a cargo build, appends every C/C++/assembly
+# source argument to $LCX_CC_LOG (one "src\t<absolute path>" line each, resolved against the compiler's cwd, plus one
+# "invoke" line per call), then runs
+# the real compiler ($LCX_REAL_CC / $LCX_REAL_CXX, default cc / c++). Picked by name: cc-log-cxx -> C++.
+set -u
+real="${LCX_REAL_CC:-cc}"
+case "$(basename "$0")" in *cxx*) real="${LCX_REAL_CXX:-c++}" ;; esac
+if [ -n "${LCX_CC_LOG:-}" ]; then
+  {
+    printf 'invoke\t%s\n' "$real"
+    for a in "$@"; do
+      case "$a" in
+        *.c|*.cc|*.cpp|*.cxx|*.S|*.s|*.asm) printf 'src\t%s\n' "$(realpath -m -- "$a")" ;;
+      esac
+    done
+  } >> "$LCX_CC_LOG"
+fi
+exec "$real" "$@"

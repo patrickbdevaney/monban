@@ -1,0 +1,20 @@
+# In-memory handshake cost: libcrux-provider server vs aws-lc-rs server, same aws-lc-rs client.
+[package]
+name = "lcx-bench"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "lcx-bench"
+path = "src/main.rs"
+
+[dependencies]
+lcx-provider = { path = "../provider" }
+rustls = { workspace = true, features = ["aws_lc_rs", "prefer-post-quantum"] }
+# Pinned to the version in the shipped root lock, so the comparison is against what AEGIS links today.
+aws-lc-rs.workspace = true
+
+[lints]
+workspace = true

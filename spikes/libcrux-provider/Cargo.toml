@@ -1,0 +1,42 @@
+# Spike P7-libcrux-001 (PREFLIGHT D-P7.5): a server-only rustls CryptoProvider on libcrux-* primitives.
+# Standalone workspace with its own Cargo.lock: the root Cargo.toml does not exclude spikes/, and this [workspace]
+# table makes cargo treat this directory as a separate workspace, so nothing here enters the root or cmvp lock.
+# Build only through ci/remote.sh --host kamrui spikes/libcrux-provider/gate.sh (see README).
+[workspace]
+resolver = "3"
+members = ["provider", "baseline", "bench", "cfixture"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0"
+
+[workspace.dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["std"] }
+# simd256: AVX2/AES-NI code paths, selected at run time by libcrux-platform (portable fallback otherwise).
+libcrux-ml-kem = { version = "=0.0.11", default-features = false, features = ["mlkem768", "simd256"] }
+libcrux-curve25519 = { version = "=0.0.9" }
+libcrux-p256 = { version = "=0.0.9" }
+libcrux-chacha20poly1305 = { version = "=0.0.10" }
+libcrux-aes = { version = "=0.0.10", features = ["simd256"] }
+libcrux-hmac = { version = "=0.0.9" }
+libcrux-hkdf = { version = "=0.0.9" }
+libcrux-ecdsa = { version = "=0.0.9" }
+libcrux-ed25519 = { version = "=0.0.10" }
+libcrux-sha2 = { version = "=0.0.9" }
+libcrux-traits = { version = "=0.0.9" }
+# Not libcrux: OS randomness and secret wiping (counted separately in VERDICT.md).
+getrandom = { version = "=0.4.3", features = ["sys_rng"] }
+zeroize = { version = "=1.9.1" }
+aws-lc-rs = { version = "=1.18.2", default-features = false, features = ["aws-lc-sys"] }  # as in the root workspace
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+
+[profile.release]
+debug = 0
+incremental = false
