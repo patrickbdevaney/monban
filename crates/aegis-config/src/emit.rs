@@ -5,9 +5,10 @@ use std::fmt::Write as _;
 
 use aegis_canon::canon_json;
 
+use crate::data::Decl;
 use crate::{
-    Canon, Config, ConfigError, CrashBudget, DataBlock, ErrorKind, Limits, MAX_CONFIG_BYTES, P2Block, P2Limits,
-    RouteData, RouteTarget,
+    Admission, Canon, Config, ConfigError, CrashBudget, DataBlock, DsnRef, ErrorKind, Front, Limits, Listener,
+    MAX_CONFIG_BYTES, P2Block, P2Limits, RouteData, RouteTarget, TlsBlock,
 };
 
 fn string(s: &str, out: &mut String) {
@@ -96,32 +97,138 @@ fn route_data(d: &RouteData, out: &mut String) {
     }
 }
 
-/// The `data` block with backend defaults (`max_conns`, `op_budget_ms`) applied.
+/// One backend object (golden or adapter family), defaults applied.
+fn backend(id: &str, engine: &str, dsn: &DsnRef, pin: &str, max_conns: u64, op_budget_ms: u64, out: &mut String) {
+    out.push('{');
+    key("id", out);
+    string(id, out);
+    out.push(',');
+    key("engine", out);
+    string(engine, out);
+    out.push(',');
+    key("dsn_ref", out);
+    string(&dsn.to_f8(), out);
+    out.push(',');
+    key("pin", out);
+    string(pin, out);
+    out.push(',');
+    key("max_conns", out);
+    let _ = write!(out, "{max_conns},");
+    key("op_budget_ms", out);
+    let _ = write!(out, "{op_budget_ms}");
+    out.push('}');
+}
+
+/// The `data` block with backend defaults (`max_conns`, `op_budget_ms`) applied, backends in document order.
 fn data_block(d: &DataBlock, out: &mut String) {
     out.push('{');
     key("backends", out);
     out.push('[');
-    for (i, b) in d.backends().iter().enumerate() {
+    // `order` indexes exist by construction (the parser pushes both together); a missing one is skipped, never a
+    // panic.
+    let mut items: Vec<String> = Vec::with_capacity(d.order.len());
+    for decl in &d.order {
+        let mut o = String::new();
+        match *decl {
+            Decl::Golden(i) => {
+                if let Some(b) = d.backends.get(i) {
+                    backend(&b.id, b.engine.as_str(), &b.dsn_ref, &b.pin, b.max_conns, b.op_budget_ms, &mut o);
+                }
+            }
+            Decl::Adapter(i) => {
+                if let Some(b) = d.adapters.get(i) {
+                    backend(&b.id, b.family.as_str(), &b.dsn_ref, &b.pin, b.max_conns, b.op_budget_ms, &mut o);
+                }
+            }
+        }
+        if !o.is_empty() {
+            items.push(o);
+        }
+    }
+    out.push_str(&items.join(","));
+    out.push_str("]}");
+}
+
+/// Phase-7 listener members. `front` is printed only when it is not the default or when `dump` is set, so a
+/// pre-Phase-7 config keeps its hashed effective form (and an explicit `"front":"epoll"` hashes like an absent one).
+fn listener_p7(l: &Listener, dump: bool, out: &mut String) {
+    if let Some(pp) = &l.proxy_protocol {
+        out.push(',');
+        key("proxy_protocol", out);
+        out.push('{');
+        key("trusted", out);
+        out.push('[');
+        for (i, c) in pp.trusted().iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            string(&c.to_string(), out);
+        }
+        out.push_str("]}");
+    }
+    if let Some(routes) = &l.l4 {
+        out.push(',');
+        key("l4", out);
+        out.push('[');
+        for (i, r) in routes.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            out.push('{');
+            key("sni", out);
+            string(&r.sni, out);
+            out.push(',');
+            key("upstream", out);
+            string(&r.upstream(), out);
+            out.push('}');
+        }
+        out.push(']');
+    }
+    if dump || l.front != Front::Epoll {
+        out.push(',');
+        key("front", out);
+        string(l.front.as_str(), out);
+    }
+}
+
+/// The `admission` block with every default applied.
+fn admission_block(a: &Admission, out: &mut String) {
+    let _ = write!(out, "{{\"per_ip\":{{\"rate_per_s\":{},\"burst\":{}}},", a.per_ip.rate_per_s, a.per_ip.burst);
+    bounded(Admission::BOUNDS, a.values(), out);
+    out.push('}');
+}
+
+/// The `tls` block (no defaults to apply; `trust_anchor_id` and `listeners` printed only when present).
+fn tls_block(t: &TlsBlock, out: &mut String) {
+    out.push('{');
+    key("credentials", out);
+    out.push('[');
+    for (i, c) in t.credentials().iter().enumerate() {
         if i > 0 {
             out.push(',');
         }
         out.push('{');
         key("id", out);
-        string(&b.id, out);
+        string(c.id(), out);
         out.push(',');
-        key("engine", out);
-        string(b.engine.as_str(), out);
+        key("kind", out);
+        string(c.kind().as_str(), out);
+        if let Some(tai) = c.trust_anchor_id() {
+            out.push(',');
+            key("trust_anchor_id", out);
+            string(&tai.to_string(), out);
+        }
         out.push(',');
-        key("dsn_ref", out);
-        string(&b.dsn_ref.to_f8(), out);
+        key("chain", out);
+        string(&c.chain().to_f8(), out);
         out.push(',');
-        key("pin", out);
-        string(&b.pin, out);
-        out.push(',');
-        key("max_conns", out);
-        let _ = write!(out, "{},", b.max_conns);
-        key("op_budget_ms", out);
-        let _ = write!(out, "{}", b.op_budget_ms);
+        key("key", out);
+        string(&c.key().to_f8(), out);
+        if let Some(ls) = c.listeners() {
+            out.push(',');
+            key("listeners", out);
+            str_array(ls.iter().map(String::as_str), out);
+        }
         out.push('}');
     }
     out.push_str("]}");
@@ -229,6 +336,7 @@ fn text(c: &Config, resolved: Option<usize>) -> String {
             }
             o.push(']');
         }
+        listener_p7(l, resolved.is_some(), &mut o);
         o.push('}');
     }
     o.push_str("],");
@@ -319,6 +427,19 @@ fn text(c: &Config, resolved: Option<usize>) -> String {
         o.push(',');
         key("p2", &mut o);
         p2_block(b, resolved, &mut o);
+    }
+    // The admission block is printed only when it differs from the pre-Phase-7 constants (its defaults), so absent
+    // and explicit-default documents hash the same and a pre-Phase-7 config keeps its hash. The dump always shows it.
+    if resolved.is_some() || c.admission != Admission::default() {
+        o.push(',');
+        key("admission", &mut o);
+        admission_block(&c.admission, &mut o);
+    }
+    // Absent tls block is omitted (never `null`).
+    if let Some(t) = &c.tls {
+        o.push(',');
+        key("tls", &mut o);
+        tls_block(t, &mut o);
     }
     o.push('}');
     o

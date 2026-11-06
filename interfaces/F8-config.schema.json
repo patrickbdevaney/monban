@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aegis:interfaces:F8:config:1",
   "title": "AEGIS configuration (frozen interface F8)",
-  "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 per-clause reject/308/accept decided by spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3).",
+  "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 per-clause reject/308/accept decided by spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3). Phase 7 (P7-spec-001, PLAN-7 Interfaces) adds, all optional and off when absent: listeners[].proxy_protocol, listeners[].l4, listeners[].front, the root `tls` block, the root `admission` block and the backend engine families mariadb and crdb. A document without them means exactly what it meant before Phase 7, and its effective form and config_hash are unchanged.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -84,6 +84,12 @@
     },
     "p2": {
       "$ref": "#/$defs/p2"
+    },
+    "tls": {
+      "$ref": "#/$defs/tls"
+    },
+    "admission": {
+      "$ref": "#/$defs/admission"
     }
   },
   "$defs": {
@@ -113,7 +119,8 @@
             "FIPS-FLOOR",
             "FIPS-PQ-REQUIRED",
             "FIPS-CMVP"
-          ]
+          ],
+          "description": "TLS profile (F12). Required on every listener; an L4 listener (`l4` present) does not terminate TLS, so its profile selects nothing and the TLS layer never sees its bytes."
         },
         "alpn": {
           "type": "array",
@@ -124,7 +131,240 @@
             ]
           },
           "minItems": 1,
-          "uniqueItems": true
+          "uniqueItems": true,
+          "description": "ALPN ids offered on an HTTP listener. Not allowed on an L4 listener (it is never parsed as HTTP, L4-2)."
+        },
+        "proxy_protocol": {
+          "$ref": "#/$defs/proxy_protocol"
+        },
+        "l4": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/l4_route"
+          },
+          "description": "Phase 7 (feature `l4`, D-P7.2; SPEC_INVARIANTS F L4-1, L4-2). Present: this listener is an L4 SNI-passthrough listener and never an HTTP listener: it reads at most one TLS ClientHello record (<= 16 KiB, deadline limits.stall_timeout_ms), routes by the exact SNI to that entry's upstream and splices bytes; it never terminates TLS and never parses HTTP. An unknown SNI or a ClientHello without SNI closes the connection: there is no default upstream and no wildcard (sni is an exact A-label). sni values are unique within the listener (checked at load). Absent: an HTTP listener, as before Phase 7. A build without the `l4` feature refuses a config with an L4 listener at boot (fail closed), never serves it as HTTP."
+        },
+        "front": {
+          "enum": [
+            "epoll",
+            "uring"
+          ],
+          "default": "epoll",
+          "description": "Phase 7 (feature `uring`, D-P7.3; SPEC_INVARIANTS F FRONT-1). The accept/read/write front: epoll (tokio, as before Phase 7) or io_uring. Responses and rejects are a function of the request bytes, never of the front. `uring` additionally needs the runtime flag `--front uring` and, under the hardened systemd unit, the io_uring drop-in; a build without the feature, or a process without the flag, refuses a listener set to uring at boot (fail closed), never silently falls back. The default `epoll` is omitted from the hashed effective form, so a pre-Phase-7 config keeps its config_hash; `check-config --print-effective` shows it."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "l4"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "alpn"
+              ]
+            }
+          },
+          "description": "A listener is L4 or HTTP, never both: an L4 listener carries no alpn."
+        }
+      ]
+    },
+    "proxy_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trusted"
+      ],
+      "description": "Phase 7 (feature `proxy-protocol`, D-P7.2; SPEC_INVARIANTS F PROXY-1..3). Absent: no PROXY header is ever accepted on this listener (as before Phase 7). Present: a connection whose source address is in `trusted` must start with a PROXY protocol v2 header (haproxy proxy-protocol.txt \u00a72.2; v1 is refused, a declared length over 536 is refused); a connection from any other source that sends a PROXY header is closed before any byte is read as TLS or HTTP. Never auto-detected. Only an admitted header replaces the peer address used for admission, audit and rate limits (PROXY-2). A build without the feature refuses a config with this block at boot (fail closed).",
+      "properties": {
+        "trusted": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "anyOf": [
+              {
+                "pattern": "^(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3}/([1-9]|[12][0-9]|3[0-2])$"
+              },
+              {
+                "pattern": "^[0-9a-f:]{2,39}/([1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])$"
+              }
+            ]
+          },
+          "description": "Trusted source prefixes: IPv4 a.b.c.d/1..32 or IPv6 (RFC 5952 canonical text, lower case, no embedded IPv4 and no IPv4-mapped prefix) /1..128. Checked at load beyond the pattern: the address must parse and print back to exactly the same text, and every host bit below the prefix length must be zero (reject, don't repair: 10.0.0.1/8 is refused). /0 is not representable: trusting every source would let any client choose its own peer address."
+        }
+      }
+    },
+    "l4_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sni",
+        "upstream"
+      ],
+      "description": "One L4 route: exact SNI -> upstream. The upstream receives the client's bytes unchanged (TLS is not terminated).",
+      "properties": {
+        "sni": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$",
+          "description": "ASCII-lowercase A-label, exact match against the ClientHello server_name (CANON-6); no wildcard."
+        },
+        "upstream": {
+          "type": "string",
+          "pattern": "^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*|\\[[0-9a-f:]{2,39}\\]):(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})$",
+          "description": "host:port, [ipv6]:port (RFC 5952 canonical, checked at load) or a.b.c.d:port; port 1..65535 without leading zeros. A host name is resolved by the assembly, never taken from the ClientHello."
+        }
+      }
+    },
+    "tls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credentials"
+      ],
+      "description": "Phase 7 (feature `mtc`, D-P7.4; SPEC_INVARIANTS F SEL-1..3). Absent: certificates come from the process options or systemd credentials (tls.crt/tls.key), as before Phase 7. Present: the CredentialSelector picks, per ClientHello and per listener, among the credentials that serve that listener: an `mtc` credential only when the client's trust_anchors extension names its trust_anchor_id (SEL-1); never an `mldsa` credential on a P-PUBLIC-WEB listener (SEL-2, the SC-106 withdrawal); with no matching credential the handshake fails with handshake_failure and never uses another listener's credential (SEL-3). AEGIS neither issues nor verifies MTCs: the MTC credential is an operator-supplied opaque blob. Credential ids are unique, mtc trust_anchor_ids are unique, every `listeners` entry names a declared HTTP listener, and an mldsa credential may not name a P-PUBLIC-WEB listener (all checked at load). A build without the `mtc` feature refuses a config with a tls block at boot (fail closed), never ignores it.",
+      "properties": {
+        "credentials": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/credential"
+          }
+        }
+      }
+    },
+    "credential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "chain",
+        "key"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$",
+          "description": "Unique credential id (what the selector reports)."
+        },
+        "kind": {
+          "enum": [
+            "x509",
+            "mldsa",
+            "mtc"
+          ],
+          "description": "x509: a classical WebPKI chain (the profile's F12 sigalgs apply); mldsa: an ML-DSA chain for private hops, never chosen on P-PUBLIC-WEB; mtc: a Merkle Tree Certificate credential (draft-ietf-plants-merkle-tree-certs), opaque to AEGIS."
+        },
+        "trust_anchor_id": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,9})(\\.(0|[1-9][0-9]{0,9})){0,31}$",
+          "description": "Required for kind mtc, not allowed otherwise. The trust anchor ID (draft-ietf-tls-trust-anchor-ids-07) as a dotted-decimal relative OID; each component < 2^32 (checked at load). It is compared with the client's trust_anchors entries in its binary form, the contents octets of the DER RELATIVE-OID (base 128, big-endian, high bit on every octet but the last of each component)."
+        },
+        "chain": {
+          "type": "string",
+          "pattern": "^(cred:[A-Za-z0-9_.-]{1,64}|path:/[A-Za-z0-9._/-]{1,255})$",
+          "description": "Where the chain comes from: cred:NAME (systemd credential) or path:/abs. For kind mtc it is the opaque MTC credential. Never inline."
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(cred:[A-Za-z0-9_.-]{1,64}|path:/[A-Za-z0-9._/-]{1,255})$",
+          "description": "Where the private key comes from: cred:NAME or path:/abs. Never inline."
+        },
+        "listeners": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+          },
+          "description": "Listeners this credential serves; absent = every HTTP listener. Each name must be a declared listener that is not L4; an mldsa credential may not name a P-PUBLIC-WEB listener."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "mtc"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "trust_anchor_id"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "trust_anchor_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Phase 7 (integrator request for P7-bin-001; the scaling bench drives one source IP and operators behind a load balancer see one source per balancer): the S0/S1/S5 admission numbers that were constants in the assembly. Every member is bounded and defaults to exactly the pre-Phase-7 constant, so an absent block is today's behaviour; a block equal to the defaults is not printed in the hashed effective form, so it hashes like an absent one. Admission invariants I1-I11 are unchanged: only their parameters move.",
+      "properties": {
+        "per_ip": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "S1 per-source-IP GCRA (cost 1 per request), today also the per-identity anon/session/verified limit. Emission interval = floor(1e9 / rate_per_s) ns. burst >= rate_per_s (checked at load: a burst under one second of the rate is refused).",
+          "properties": {
+            "rate_per_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1000
+            },
+            "burst": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000,
+              "default": 2000
+            }
+          }
+        },
+        "per_ip_store": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 1048576,
+          "default": 65536,
+          "description": "S1 limiter store capacity (keys); an evicted key restarts at the anonymous burst (I4)."
+        },
+        "max_conns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576,
+          "default": 16384,
+          "description": "S0 open-connection cap."
+        },
+        "per_prefix_conns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576,
+          "default": 4096,
+          "description": "S0 per-prefix connection cap."
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576,
+          "default": 4096,
+          "description": "S5 concurrency limit L."
         }
       }
     },
@@ -276,9 +516,11 @@
             "sqlite",
             "postgres",
             "redis",
-            "valkey"
+            "valkey",
+            "mariadb",
+            "crdb"
           ],
-          "description": "F4 EngineFamily name"
+          "description": "F4 EngineFamily name. Phase 7 (D-P7.8) adds the adapter families mariadb (feature `adapter-mariadb`, aegis-adapter-mysql) and crdb (feature `adapter-crdb`, the PG wire with the crdb dialect); both are network engines (dsn_ref env:/cred:). Their `pin` must name an engine-pins.toml entry whose `kind` is the same family name. A build without the family's feature refuses a backend of that family at boot (fail closed), and an endowment on it never resolves to another family."
         },
         "dsn_ref": {
           "type": "string",

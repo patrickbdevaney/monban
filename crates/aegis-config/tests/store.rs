@@ -37,6 +37,19 @@ const E: &str = r#"{"v":1,"listeners":[{"name":"e","bind":"b","profile":"P-PUBLI
       {"id":"s","path":"/srv/s.wasm","sha256":"fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
        "tenancy":"single","fuel":20000,"wall_ms":50,"memory_mib":8}]}}"#;
 
+/// F8 Phase-7 members (P7-spec-001): PROXY trusted prefixes, an L4 listener, the uring front and a `tls` block with
+/// all three credential kinds.
+const F: &str = r#"{"v":1,"listeners":[{"name":"f","bind":"b","profile":"P-PUBLIC-WEB","alpn":["h2"],
+    "proxy_protocol":{"trusted":["10.0.0.0/8","2001:db8::/32"]},"front":"uring"},
+   {"name":"g","bind":"c","profile":"P-PUBLIC-WEB","l4":[{"sni":"a.example","upstream":"10.0.0.2:443"},
+    {"sni":"b.example","upstream":"[2001:db8::2]:8443"}]},
+   {"name":"h","bind":"d","profile":"P-PQ-REQUIRED"}],
+  "vhosts":[{"host":"f","routes":[{"id":1,"path":"/","to":{"upstream":"u"},"authz":"f"}]}],
+  "admission":{"per_ip":{"rate_per_s":50000,"burst":100000},"per_ip_store":4096,"max_conns":1000,"per_prefix_conns":100,"concurrency":512},
+  "tls":{"credentials":[{"id":"x","kind":"x509","chain":"cred:x.crt","key":"cred:x.key"},
+    {"id":"m","kind":"mtc","trust_anchor_id":"32473.1","chain":"path:/etc/m.bin","key":"cred:m.key","listeners":["f"]},
+    {"id":"q","kind":"mldsa","chain":"cred:q.crt","key":"cred:q.key","listeners":["h"]}]}}"#;
+
 fn hash(s: &ConfigStore) -> Option<[u8; 32]> {
     s.config_hash()
 }
@@ -237,6 +250,21 @@ const TOKENS: &[&[u8]] = &[
     b"\"cordon_key\":\"k\",",
     b"\"fuel\":1000000001,",
     b"\"crash_budget\":{},",
+    // F8 Phase-7 members.
+    b"\"front\":\"epoll\",",
+    b"\"uring\"",
+    b"\"10.0.0.1/8\"",
+    b"\"0.0.0.0/0\"",
+    b"\"::ffff:10.0.0.0/104\"",
+    b"\"alpn\":[\"h2\"],",
+    b"\"l4\":[{\"sni\":\"a.example\",\"upstream\":\"h:443\"}],",
+    b"\"mldsa\"",
+    b"\"mtc\"",
+    b"\"trust_anchor_id\":\"1.2\",",
+    b"\"listeners\":[\"f\"],",
+    b"\"mariadb\"",
+    b"\"burst\":1,",
+    b"\"rate_per_s\":1000001,",
 ];
 
 fn mutate(rng: &mut Rng, seed: &[u8]) -> Vec<u8> {
@@ -295,7 +323,7 @@ fn totality_random_mutation() {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(if cfg!(debug_assertions) { 20_000 } else { 1_000_000 });
-    let seeds: [&[u8]; 5] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes(), E.as_bytes()];
+    let seeds: [&[u8]; 6] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes(), E.as_bytes(), F.as_bytes()];
     for seed in seeds {
         parse_config(seed).unwrap();
     }
@@ -304,9 +332,10 @@ fn totality_random_mutation() {
     s.apply(A.as_bytes()).unwrap();
     let (mut oks, mut errs) = (0u64, 0u64);
     let (mut p2_oks, mut p2_errs) = (0u64, 0u64);
+    let (mut p7_oks, mut p7_errs) = (0u64, 0u64);
     let mut kinds = std::collections::HashSet::new();
     for i in 0..iters {
-        let input = mutate(&mut rng, seeds[(i % 5) as usize]);
+        let input = mutate(&mut rng, seeds[(i % 6) as usize]);
         let before = (s.config_hash(), s.generation());
         match s.apply(&input) {
             Ok(g) => {
@@ -318,13 +347,27 @@ fn totality_random_mutation() {
                 if c.p2().is_some() {
                     p2_oks += 1;
                 }
+                if c.tls().is_some() || c.listeners().iter().any(|l| l.is_l4() || l.proxy_protocol.is_some()) {
+                    p7_oks += 1;
+                }
                 p2_invariants(c);
+                p7_invariants(c);
             }
             Err(e) => {
                 errs += 1;
                 kinds.insert(e.kind());
                 if e.pointer().starts_with("/p2") || e.pointer().contains("/to/wasm") {
                     p2_errs += 1;
+                }
+                let ptr = e.pointer();
+                if ptr.starts_with("/tls")
+                    || ptr.starts_with("/admission")
+                    || ptr.contains("/proxy_protocol")
+                    || ptr.contains("/l4")
+                    || ptr.ends_with("/front")
+                    || e.kind() == ErrorKind::Forbidden
+                {
+                    p7_errs += 1;
                 }
                 assert_eq!((s.config_hash(), s.generation()), before, "Err changed the served config");
                 assert!(e.pointer().is_empty() || e.pointer().starts_with('/'));
@@ -342,7 +385,8 @@ fn totality_random_mutation() {
         }
     }
     println!(
-        "totality: {iters} inputs, {oks} accepted ({p2_oks} with p2), {errs} rejected ({p2_errs} in p2), kinds {kinds:?}"
+        "totality: {iters} inputs, {oks} accepted ({p2_oks} with p2, {p7_oks} with phase-7 members), {errs} rejected \
+         ({p2_errs} in p2, {p7_errs} in phase-7 members), kinds {kinds:?}"
     );
     assert_eq!(oks + errs, iters);
     // The corpus must reach the schema layer, not only the JSON parser.
@@ -350,6 +394,45 @@ fn totality_random_mutation() {
     assert!(oks > 0);
     // The generator reaches the p2 block on both sides.
     assert!(p2_oks > 0 && p2_errs > 0, "p2 block not exercised: {p2_oks} accepted, {p2_errs} rejected");
+    // ... and the Phase-7 members on both sides.
+    assert!(p7_oks > 0 && p7_errs > 0, "phase-7 members not exercised: {p7_oks} accepted, {p7_errs} rejected");
+}
+
+/// What every accepted config guarantees about the Phase-7 members: an L4 listener carries no alpn and unique SNIs,
+/// PROXY trust is non-empty and never /0, mtc credentials (and only they) carry a trust anchor, and no mldsa
+/// credential is a candidate on a P-PUBLIC-WEB listener.
+fn p7_invariants(c: &Config) {
+    let a = c.admission();
+    assert!(a.per_ip.rate_per_s >= 1 && a.per_ip.burst >= a.per_ip.rate_per_s && a.per_ip.burst <= 10_000_000);
+    for ((n, lo, hi, _), v) in aegis_config::Admission::BOUNDS.iter().zip(a.values()) {
+        assert!((*lo..=*hi).contains(&v), "admission.{n}={v}");
+    }
+    for l in c.listeners() {
+        if let Some(r) = &l.l4 {
+            assert!(l.alpn.is_none() && !r.is_empty());
+            for (i, a) in r.iter().enumerate() {
+                assert!(r.iter().skip(i + 1).all(|b| b.sni != a.sni));
+                assert!(a.upstream_port >= 1);
+            }
+        }
+        if let Some(pp) = &l.proxy_protocol {
+            assert!(!pp.trusted().is_empty());
+            assert!(pp.trusted().iter().all(|t| t.prefix() >= 1));
+        }
+    }
+    let Some(t) = c.tls() else { return };
+    assert!(!t.credentials().is_empty());
+    for cr in t.credentials() {
+        assert_eq!(cr.trust_anchor_id().is_some(), cr.kind() == aegis_config::CredentialKind::Mtc);
+    }
+    for l in c.listeners() {
+        for cand in t.candidates(c, &l.name) {
+            assert!(
+                !(l.profile == aegis_config::Profile::PublicWeb && cand.kind() == aegis_config::CredentialKind::MlDsa)
+            );
+            assert!(!l.is_l4());
+        }
+    }
 }
 
 /// What every accepted config guarantees about P2: each wasm route names a declared module, and every effective
