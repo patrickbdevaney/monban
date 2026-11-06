@@ -93,6 +93,49 @@ impl DsnRef {
     }
 }
 
+/// F8 `backend.engine` Phase-7 adapter families (D-P7.8). Kept apart from [`Engine`] (the Phase-4 golden
+/// families) so an assembly that predates them cannot route an endowment on one to a golden engine: a cap on an
+/// adapter backend resolves only through [`SchemaProvider::adapter_field`], whose default refuses
+/// ([`Unresolved::Unavailable`], the boot fails).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum AdapterFamily {
+    /// MariaDB (feature `adapter-mariadb`, aegis-adapter-mysql; own MySQL wire client).
+    Mariadb,
+    /// CockroachDB (feature `adapter-crdb`; the PG wire, aegis-adapter-pg with the crdb dialect).
+    Crdb,
+}
+
+impl AdapterFamily {
+    pub(crate) const ALL: [(&'static str, AdapterFamily); 2] =
+        [("mariadb", AdapterFamily::Mariadb), ("crdb", AdapterFamily::Crdb)];
+    /// The F8 family name (also the engine-pins.toml `kind` of its pins).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AdapterFamily::Mariadb => "mariadb",
+            AdapterFamily::Crdb => "crdb",
+        }
+    }
+    pub fn from_name(s: &str) -> Option<AdapterFamily> {
+        Self::ALL.iter().find(|(n, _)| *n == s).map(|(_, e)| *e)
+    }
+}
+
+/// One declared backend of a Phase-7 adapter family, schema defaults applied (network engine: `dsn_ref` is
+/// `env:` or `cred:`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AdapterBackend {
+    /// `^[a-z][a-z0-9-]{0,31}$`, unique within the block (across both kinds of backend).
+    pub id: String,
+    pub family: AdapterFamily,
+    pub dsn_ref: DsnRef,
+    /// Name of an entry in `supply-chain/engine-pins.toml` whose `kind` is this family (checked at load).
+    pub pin: String,
+    /// Same bounds and default as [`Backend::max_conns`].
+    pub max_conns: u64,
+    /// Same bounds and default as [`Backend::op_budget_ms`].
+    pub op_budget_ms: u64,
+}
+
 /// One declared backend, schema defaults applied.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Backend {
@@ -115,18 +158,44 @@ impl Backend {
     pub const OP_BUDGET_MS_BOUNDS: (u64, u64) = (10, 60_000);
 }
 
+/// Position of one declared backend in document order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Decl {
+    Golden(usize),
+    Adapter(usize),
+}
+
 /// The F8 `data` block: 1..=64 backends with unique ids. Constructible only by the parser.
+///
+/// Golden-family backends ([`Engine`]) are in [`DataBlock::backends`] and Phase-7 adapter-family backends
+/// ([`AdapterFamily`]) in [`DataBlock::adapters`]; ids are unique across both. A config without adapter backends
+/// has exactly the Phase-4 view.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DataBlock {
     pub(crate) backends: Vec<Backend>,
+    pub(crate) adapters: Vec<AdapterBackend>,
+    /// Document order of every declared backend (the effective form keeps it).
+    pub(crate) order: Vec<Decl>,
 }
 
 impl DataBlock {
+    /// The golden-family backends, in document order.
     pub fn backends(&self) -> &[Backend] {
         &self.backends
     }
     pub fn backend(&self, id: &str) -> Option<&Backend> {
         self.backends.iter().find(|b| b.id == id)
+    }
+    /// The Phase-7 adapter-family backends (mariadb, crdb), in document order.
+    pub fn adapters(&self) -> &[AdapterBackend] {
+        &self.adapters
+    }
+    pub fn adapter(&self, id: &str) -> Option<&AdapterBackend> {
+        self.adapters.iter().find(|b| b.id == id)
+    }
+    /// Whether `id` names a declared backend of either kind.
+    pub fn declares(&self, id: &str) -> bool {
+        self.backend(id).is_some() || self.adapter(id).is_some()
     }
 }
 
@@ -238,6 +307,31 @@ pub enum RouteData {
 
 // ------------------------------------------------------------------------------------------------ engine pins
 
+/// One entry of `supply-chain/engine-pins.toml` whose `kind` is a Phase-7 adapter family (`mariadb`, `crdb`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AdapterPinInfo {
+    pub name: String,
+    pub family: AdapterFamily,
+    /// `policy` other than "allow".
+    pub blocked: bool,
+}
+
+/// Every pin of the catalogue, by kind.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Pins {
+    pub(crate) golden: Vec<PinInfo>,
+    pub(crate) adapter: Vec<AdapterPinInfo>,
+}
+
+impl Pins {
+    pub(crate) fn golden(&self, name: &str) -> Option<&PinInfo> {
+        self.golden.iter().find(|p| p.name == name)
+    }
+    pub(crate) fn adapter(&self, name: &str) -> Option<&AdapterPinInfo> {
+        self.adapter.iter().find(|p| p.name == name)
+    }
+}
+
 /// One entry of `supply-chain/engine-pins.toml`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PinInfo {
@@ -278,26 +372,43 @@ fn kv_line(line: &str) -> Option<(&str, &str)> {
 /// Parse the pin catalogue. Deliberately narrow: table headers and the `kind` / `policy` keys. An `[engines.X]`
 /// table without a known `kind`, or with a name outside the F8 pin grammar, yields no entry (fail closed: a config
 /// naming it is refused). Duplicate names keep none of the duplicates.
+#[cfg(test)]
 pub(crate) fn parse_pins(text: &str) -> Vec<PinInfo> {
+    parse_all_pins(text).golden
+}
+
+/// [`parse_pins`] plus the Phase-7 adapter-family pins (`kind = "mariadb"` / `"crdb"`). A name used twice, by
+/// either kind, keeps none of its entries.
+pub(crate) fn parse_all_pins(text: &str) -> Pins {
+    #[derive(Clone, Copy)]
+    enum Fam {
+        Golden(Engine),
+        Adapter(AdapterFamily),
+    }
     struct Cur {
         name: String,
-        engine: Option<Engine>,
+        engine: Option<Fam>,
         blocked: bool,
         top_sqlite: bool,
     }
-    fn flush(cur: Option<Cur>, out: &mut Vec<PinInfo>, dup: &mut Vec<String>) {
+    fn flush(cur: Option<Cur>, out: &mut Pins, dup: &mut Vec<String>) {
         if let Some(c) = cur
-            && let Some(engine) = c.engine
+            && let Some(fam) = c.engine
             && is_pin_name(&c.name)
         {
-            if out.iter().any(|p| p.name == c.name) {
+            if out.golden.iter().any(|p| p.name == c.name) || out.adapter.iter().any(|p| p.name == c.name) {
                 dup.push(c.name);
             } else {
-                out.push(PinInfo { name: c.name, engine, blocked: c.blocked });
+                match fam {
+                    Fam::Golden(engine) => out.golden.push(PinInfo { name: c.name, engine, blocked: c.blocked }),
+                    Fam::Adapter(family) => {
+                        out.adapter.push(AdapterPinInfo { name: c.name, family, blocked: c.blocked });
+                    }
+                }
             }
         }
     }
-    let mut out = Vec::new();
+    let mut out = Pins::default();
     let mut dup = Vec::new();
     let mut cur: Option<Cur> = None;
     for raw in text.lines() {
@@ -312,8 +423,12 @@ pub(crate) fn parse_pins(text: &str) -> Vec<PinInfo> {
             }
             let name = h.split(']').next().unwrap_or("").trim();
             if name == "sqlite" {
-                cur =
-                    Some(Cur { name: name.to_owned(), engine: Some(Engine::Sqlite), blocked: false, top_sqlite: true });
+                cur = Some(Cur {
+                    name: name.to_owned(),
+                    engine: Some(Fam::Golden(Engine::Sqlite)),
+                    blocked: false,
+                    top_sqlite: true,
+                });
             } else if let Some(n) = name.strip_prefix("engines.") {
                 cur = Some(Cur { name: n.to_owned(), engine: None, blocked: false, top_sqlite: false });
             }
@@ -322,21 +437,41 @@ pub(crate) fn parse_pins(text: &str) -> Vec<PinInfo> {
         if let (Some(c), Some((k, v))) = (cur.as_mut(), kv_line(line)) {
             match k {
                 // `[sqlite]` is SQLite by position; an `[engines.X]` table takes its family from `kind`.
-                "kind" if !c.top_sqlite => c.engine = Engine::from_name(v),
+                "kind" if !c.top_sqlite => {
+                    c.engine =
+                        Engine::from_name(v).map(Fam::Golden).or_else(|| AdapterFamily::from_name(v).map(Fam::Adapter));
+                }
                 "policy" => c.blocked = v != "allow",
                 _ => {}
             }
         }
     }
     flush(cur, &mut out, &mut dup);
-    out.retain(|p| !dup.contains(&p.name));
+    out.golden.retain(|p| !dup.contains(&p.name));
+    out.adapter.retain(|p| !dup.contains(&p.name));
     out
+}
+
+/// The whole pin catalogue compiled into this binary.
+pub(crate) fn pins() -> &'static Pins {
+    static PINS: OnceLock<Pins> = OnceLock::new();
+    PINS.get_or_init(|| parse_all_pins(ENGINE_PINS_TOML))
 }
 
 /// The engine pins compiled into this binary from `supply-chain/engine-pins.toml`.
 pub fn engine_pins() -> &'static [PinInfo] {
-    static PINS: OnceLock<Vec<PinInfo>> = OnceLock::new();
-    PINS.get_or_init(|| parse_pins(ENGINE_PINS_TOML))
+    &pins().golden
+}
+
+/// The Phase-7 adapter-family pins compiled into this binary (empty until engine-pins.toml carries a `kind =
+/// "mariadb"` or `kind = "crdb"` entry; until then a backend of those families is refused with `UnknownPin`).
+pub fn adapter_pins() -> &'static [AdapterPinInfo] {
+    &pins().adapter
+}
+
+/// The adapter-family pin named `name`, if any.
+pub fn adapter_pin(name: &str) -> Option<&'static AdapterPinInfo> {
+    adapter_pins().iter().find(|p| p.name == name)
 }
 
 /// Look up a pin by name.
@@ -362,6 +497,14 @@ pub enum Unresolved {
 pub trait SchemaProvider {
     /// The field id of `column` in `collection` on `backend`.
     fn field(&self, backend: &Backend, collection: &str, column: &str) -> Result<FieldId, Unresolved>;
+
+    /// The same for a Phase-7 adapter-family backend. The default refuses ([`Unresolved::Unavailable`]), so an
+    /// assembly that does not wire the family fails the boot on any endowment that names such a backend, instead of
+    /// resolving it against another engine.
+    fn adapter_field(&self, backend: &AdapterBackend, collection: &str, column: &str) -> Result<FieldId, Unresolved> {
+        let _ = (backend, collection, column);
+        Err(Unresolved::Unavailable)
+    }
 }
 
 /// One cap with its columns resolved: the arguments of `aegis_data_ir::DataCap::new`.
@@ -411,16 +554,24 @@ impl Config {
                         let mut caps = Vec::with_capacity(list.len());
                         for (k, c) in list.as_slice().iter().enumerate() {
                             let p = format!("/vhosts/{i}/routes/{j}/data/{k}");
-                            let Some(b) = self.data.as_ref().and_then(|d| d.backend(&c.backend)) else {
+                            let d = self.data.as_ref();
+                            let golden = d.and_then(|d| d.backend(&c.backend));
+                            let adapter = d.and_then(|d| d.adapter(&c.backend));
+                            if golden.is_none() && adapter.is_none() {
                                 return Err(ConfigError::new(
                                     ErrorKind::UnknownBackend,
                                     format!("{p}/backend"),
                                     "cap names an undeclared backend",
                                 ));
+                            }
+                            let lookup = |col: &str| match (golden, adapter) {
+                                (Some(b), _) => schema.field(b, &c.collection, col),
+                                (None, Some(a)) => schema.adapter_field(a, &c.collection, col),
+                                (None, None) => Err(Unresolved::Unavailable),
                             };
                             let mut fields = Vec::with_capacity(c.columns.len());
                             for (m, col) in c.columns.iter().enumerate() {
-                                match schema.field(b, &c.collection, col) {
+                                match lookup(col) {
                                     Ok(f) => fields.push(f),
                                     Err(Unresolved::NoCollection) => {
                                         return Err(ConfigError::new(
@@ -519,5 +670,33 @@ kind = "redis"
             vec![("sqlite", Engine::Sqlite, false), ("pga", Engine::Postgres, false), ("pgb", Engine::Postgres, true)]
         );
         assert!(parse_pins("").is_empty());
+    }
+
+    #[test]
+    fn adapter_pins_parse_apart_and_duplicates_across_kinds_drop_both() {
+        let t = r#"
+[engines.pg18]
+kind = "postgres"
+[engines.maria118]
+kind = "mariadb"
+policy = "allow"
+[engines.crdb254]
+kind = "crdb"
+policy = "blocked"
+[engines.both]
+kind = "postgres"
+[engines.both]
+kind = "mariadb"
+[engines.mysql84]
+kind = "mysql"
+"#;
+        let p = parse_all_pins(t);
+        let g: Vec<&str> = p.golden.iter().map(|x| x.name.as_str()).collect();
+        assert_eq!(g, vec!["pg18"]);
+        let a: Vec<(&str, AdapterFamily, bool)> =
+            p.adapter.iter().map(|x| (x.name.as_str(), x.family, x.blocked)).collect();
+        assert_eq!(a, vec![("maria118", AdapterFamily::Mariadb, false), ("crdb254", AdapterFamily::Crdb, true)]);
+        // The golden view is unchanged by adapter entries.
+        assert_eq!(parse_pins(t).len(), 1);
     }
 }

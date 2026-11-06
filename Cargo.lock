@@ -43,6 +43,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aegis-adapter-mysql"
+version = "0.0.0"
+dependencies = [
+ "aegis-data-ir",
+ "aegis-types",
+ "aws-lc-rs",
+ "rustix",
+]
+
+[[package]]
 name = "aegis-adapter-pg"
 version = "0.0.0"
 dependencies = [
@@ -109,6 +119,7 @@ name = "aegis-bin"
 version = "0.0.0"
 dependencies = [
  "aegis-adapter-host",
+ "aegis-adapter-mysql",
  "aegis-adapter-pg",
  "aegis-adapter-redis",
  "aegis-adapter-sqlite",
@@ -129,6 +140,8 @@ dependencies = [
  "aegis-token",
  "aegis-transport",
  "aegis-types",
+ "aegis-uring",
+ "aegis-wire",
  "h2",
  "http",
  "hyper",
@@ -206,6 +219,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aegis-otlp"
+version = "0.0.0"
+dependencies = [
+ "aegis-canon",
+ "aegis-egress",
+ "aegis-tls",
+ "aegis-types",
+ "http",
+ "hyper",
+ "rustls",
+ "tokio",
+]
+
+[[package]]
 name = "aegis-p2"
 version = "0.0.0"
 dependencies = [
@@ -250,6 +277,7 @@ name = "aegis-tls"
 version = "0.0.0"
 dependencies = [
  "aegis-types",
+ "aegis-wire",
  "aws-lc-rs",
  "rustls",
  "rustls-webpki",
@@ -282,6 +310,14 @@ name = "aegis-types"
 version = "0.0.0"
 
 [[package]]
+name = "aegis-uring"
+version = "0.0.0"
+dependencies = [
+ "io-uring",
+ "tokio",
+]
+
+[[package]]
 name = "aegis-wasm"
 version = "0.0.0"
 dependencies = [
@@ -290,6 +326,10 @@ dependencies = [
  "sha2",
  "wasmtime",
 ]
+
+[[package]]
+name = "aegis-wire"
+version = "0.0.0"
 
 [[package]]
 name = "aho-corasick"
@@ -798,6 +838,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ba106e844045ddc02c20768ac4b0b7cb45f2cc2ecbd833ac9f5dacb183c2055"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "crdb-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-pg",
 ]
 
 [[package]]
@@ -1339,6 +1386,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-uring"
+version = "0.7.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed3bd0ecfbb87805f538bb7b32e5239ca0763890c623e349860ecba69469f2bb"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "libc",
+]
+
+[[package]]
 name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1583,6 +1641,13 @@ name = "mach2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
+
+[[package]]
+name = "mariadb-subject"
+version = "0.0.0"
+dependencies = [
+ "aegis-adapter-mysql",
+]
 
 [[package]]
 name = "memchr"

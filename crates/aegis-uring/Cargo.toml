@@ -1,0 +1,37 @@
+[package]
+name = "aegis-uring"
+description = "Opt-in io_uring front (PREFLIGHT D-P7.3): accept + recv/send on io-uring 0.7.15 behind tokio AsyncRead/AsyncWrite; off in every shipped profile, refuses to start where io_uring is disabled."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# Layer 4 (effects). Pre-wired by P7-spec-002; the front is P7-uring-001. Linked only by aegis-bin feature `uring`
+# (gate default-graph keeps it out of the default build). TCB line: the kernel io_uring surface (SECURITY_CLAIMS).
+[package.metadata.aegis]
+layer = 4
+
+[dependencies]
+# Exact pin (PREFLIGHT D-P7.3): io-uring 0.7.15 directly, not a stale runtime crate. Adds one crate to the lock
+# (bitflags 2, cfg-if and libc are already there); vet-covered by an own audit, zero exemptions.
+io-uring = { workspace = true }
+# Root pins, already in Cargo.lock. `net` + `io-util` for the AsyncRead/AsyncWrite streams the server consumes.
+tokio = { workspace = true, features = ["rt", "net", "io-util", "sync"] }
+
+# Equal to [workspace.lints] except unsafe_code = "deny" (not "forbid"): io-uring's submission API is `unsafe fn`;
+# each site carries #[allow(unsafe_code)] plus `// SAFETY:`; `cargo xtask unsafe-sites` caps them at 6 (DEVIATIONS X-15).
+[lints.rust]
+unsafe_code = "deny"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(aegis_kani_negative)"] }
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+indexing_slicing = "deny"
+dbg_macro = "deny"

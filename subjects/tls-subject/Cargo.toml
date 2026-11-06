@@ -15,6 +15,8 @@ layer = "tool"
 # Exclusive with `interop`: profiles/cmvp/build.sh builds tls-subject with --no-default-features.
 # aegis-iso/cmvp: the linked module's version string for `describe` (PLAN-6 D16).
 cmvp = ["aegis-tls/cmvp", "dep:aegis-iso", "aegis-iso/cmvp"]
+# P7-mtc-001: CredentialSelector (PLAN-7 D-P7.4); never in the cmvp build.
+mtc = ["aegis-tls/mtc"]
 # oracles/kx-interop `interop-client`: the product client builder `aegis_tls::client_config`. On in the floor build,
 # off in the cmvp build (no rustls client there, spikes/cmvp-client-policy mode A).
 default = ["interop"]

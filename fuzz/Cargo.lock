@@ -69,6 +69,7 @@ dependencies = [
  "aegis-token",
  "aegis-transport",
  "aegis-types",
+ "aegis-wire",
  "libfuzzer-sys",
  "tokio",
 ]
@@ -97,6 +98,10 @@ dependencies = [
 
 [[package]]
 name = "aegis-types"
+version = "0.0.0"
+
+[[package]]
+name = "aegis-wire"
 version = "0.0.0"
 
 [[package]]

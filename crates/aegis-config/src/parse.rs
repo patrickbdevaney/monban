@@ -7,8 +7,15 @@ use std::collections::HashSet;
 use aegis_canon::{JsonValue, parse_json};
 
 use crate::ErrorKind as E;
-use crate::data::{self, Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine, RouteData};
+use crate::data::{
+    self, AdapterBackend, AdapterFamily, Backend, CapList, CapSpec, DataBlock, DataOp, Decl, DsnRef, Engine, Pins,
+    RouteData,
+};
 use crate::p2::{self, CrashBudget, IsolationSetting, P2Block, P2Limits, P2Module, Tenancy};
+use crate::p7::{
+    self, Admission, Cidr, Credential, CredentialKind, Front, L4Route, ProxyProtocol, RateLimit, SecretRef, TlsBlock,
+    TrustAnchorId,
+};
 use crate::{
     Admin, Alpn, Canon, Config, ConfigError, Framing, Limits, Listener, MAX_CONFIG_BYTES, MAX_ROUTE_ID, Profile,
     QueryMode, Route, RouteTarget, Vhost, emit, sha256,
@@ -18,6 +25,12 @@ type Members = [(String, JsonValue)];
 type R<T> = Result<T, ConfigError>;
 
 pub(crate) fn parse(input: &[u8]) -> R<Config> {
+    parse_with(input, data::pins())
+}
+
+/// [`parse`] against an explicit engine-pin catalogue (the embedded one in production; unit tests inject pins the
+/// catalogue does not carry yet, such as the Phase-7 adapter families).
+pub(crate) fn parse_with(input: &[u8], pins: &Pins) -> R<Config> {
     // CFG-2: the byte cap comes first, before any parsing work.
     if input.len() > MAX_CONFIG_BYTES {
         return Err(ConfigError::new(E::TooLarge, "", "document exceeds 1 MiB"));
@@ -26,7 +39,7 @@ pub(crate) fn parse(input: &[u8]) -> R<Config> {
         let kind = if r.status() == 413 { E::TooLarge } else { E::Syntax };
         ConfigError::new(kind, "", r.reason())
     })?;
-    root(&v)
+    root(&v, pins)
 }
 
 // ------------------------------------------------------------------------------------------------ helpers
@@ -200,12 +213,12 @@ pub(crate) fn is_route_path(s: &str) -> bool {
 
 // ------------------------------------------------------------------------------------------------ schema
 
-fn root(v: &JsonValue) -> R<Config> {
+fn root(v: &JsonValue, pins: &Pins) -> R<Config> {
     let m = object(v, "")?;
     fields(
         m,
         "",
-        &["v", "listeners", "vhosts", "admin", "limits", "canon", "data", "p2"],
+        &["v", "listeners", "vhosts", "admin", "limits", "canon", "data", "p2", "tls", "admission"],
         &["v", "listeners", "vhosts"],
     )?;
 
@@ -286,7 +299,7 @@ fn root(v: &JsonValue) -> R<Config> {
     }
 
     let data = match get(m, "data") {
-        Some(dv) => Some(data_block(dv, "/data")?),
+        Some(dv) => Some(data_block(dv, "/data", pins)?),
         None => None,
     };
     cap_backends(&vhosts, data.as_ref())?;
@@ -297,8 +310,29 @@ fn root(v: &JsonValue) -> R<Config> {
     };
     wasm_modules(&vhosts, p2.as_ref())?;
 
-    let mut cfg =
-        Config { listeners, vhosts, admin, limits, canon, data, p2, canonical: Box::default(), hash: [0; 32] };
+    let tls = match get(m, "tls") {
+        Some(tv) => Some(tls_block(tv, "/tls", &listeners)?),
+        None => None,
+    };
+
+    let admission = match get(m, "admission") {
+        Some(av) => admission_block(av, "/admission")?,
+        None => Admission::default(),
+    };
+
+    let mut cfg = Config {
+        listeners,
+        vhosts,
+        admin,
+        limits,
+        canon,
+        data,
+        p2,
+        tls,
+        admission,
+        canonical: Box::default(),
+        hash: [0; 32],
+    };
     let canonical = emit::canonical(&cfg)?;
     cfg.hash = sha256::sha256(&canonical);
     cfg.canonical = canonical;
@@ -307,7 +341,7 @@ fn root(v: &JsonValue) -> R<Config> {
 
 fn listener(v: &JsonValue, p: &str) -> R<Listener> {
     let m = object(v, p)?;
-    fields(m, p, &["name", "bind", "profile", "alpn"], &["name", "bind", "profile"])?;
+    fields(m, p, &["name", "bind", "profile", "alpn", "proxy_protocol", "l4", "front"], &["name", "bind", "profile"])?;
     let (mut name, mut bind, mut profile, mut alpn) = (String::new(), String::new(), Profile::PublicWeb, None);
     if let Some(x) = get(m, "name") {
         let pp = child(p, "name");
@@ -338,7 +372,257 @@ fn listener(v: &JsonValue, p: &str) -> R<Listener> {
         }
         alpn = Some(out);
     }
-    Ok(Listener { name, bind, profile, alpn })
+    let mut proxy = None;
+    if let Some(x) = get(m, "proxy_protocol") {
+        proxy = Some(proxy_protocol(x, &child(p, "proxy_protocol"))?);
+    }
+    let mut l4 = None;
+    if let Some(x) = get(m, "l4") {
+        l4 = Some(l4_routes(x, &child(p, "l4"))?);
+    }
+    let mut front = Front::default();
+    if let Some(x) = get(m, "front") {
+        front = enum_of(x, &child(p, "front"), &Front::ALL)?;
+    }
+    // allOf: a listener is L4 or HTTP, never both (L4-2).
+    if l4.is_some() && alpn.is_some() {
+        return Err(ConfigError::new(E::Forbidden, child(p, "alpn"), "an L4 listener carries no alpn"));
+    }
+    Ok(Listener { name, bind, profile, alpn, proxy_protocol: proxy, l4, front })
+}
+
+// ------------------------------------------------------------------------------------------------ Phase 7 (F8)
+
+fn proxy_protocol(v: &JsonValue, p: &str) -> R<ProxyProtocol> {
+    let m = object(v, p)?;
+    fields(m, p, &["trusted"], &["trusted"])?;
+    let mut trusted: Vec<Cidr> = Vec::new();
+    if let Some(x) = get(m, "trusted") {
+        let pp = child(p, "trusted");
+        let items = array(x, &pp, 1, p7::MAX_TRUSTED)?;
+        for (i, it) in items.iter().enumerate() {
+            let ip = index(&pp, i);
+            let s = string(it, &ip)?;
+            let Some(c) = Cidr::parse(s) else {
+                return Err(ConfigError::new(
+                    E::Pattern,
+                    ip,
+                    "trusted must be a canonical IPv4 /1..32 or IPv6 /1..128 prefix with zero host bits",
+                ));
+            };
+            if trusted.contains(&c) {
+                return Err(ConfigError::new(E::UniqueItems, pp, "trusted items must be unique"));
+            }
+            trusted.push(c);
+        }
+    }
+    if trusted.is_empty() {
+        // Unreachable after the required/minItems checks; fail closed rather than trust nobody silently.
+        return Err(ConfigError::new(E::MinItems, child(p, "trusted"), "no trusted prefix"));
+    }
+    Ok(ProxyProtocol { trusted })
+}
+
+fn l4_routes(v: &JsonValue, p: &str) -> R<Vec<L4Route>> {
+    let items = array(v, p, 1, p7::MAX_L4_ROUTES)?;
+    let mut out: Vec<L4Route> = Vec::with_capacity(items.len());
+    for (i, it) in items.iter().enumerate() {
+        let rp = index(p, i);
+        let m = object(it, &rp)?;
+        fields(m, &rp, &["sni", "upstream"], &["sni", "upstream"])?;
+        let mut sni = String::new();
+        if let Some(x) = get(m, "sni") {
+            let pp = child(&rp, "sni");
+            let s = string(x, &pp)?;
+            if !is_host(s) {
+                return Err(ConfigError::new(E::Pattern, pp, "sni must be an ASCII-lowercase A-label (no wildcard)"));
+            }
+            sni = s.to_owned();
+        }
+        let (mut upstream_host, mut upstream_port) = (String::new(), 0u16);
+        if let Some(x) = get(m, "upstream") {
+            let pp = child(&rp, "upstream");
+            let s = string(x, &pp)?;
+            let Some((h, port)) = p7::upstream(s) else {
+                return Err(ConfigError::new(
+                    E::Pattern,
+                    pp,
+                    "upstream must be host:port or [ipv6]:port, port 1..65535",
+                ));
+            };
+            (upstream_host, upstream_port) = (h, port);
+        }
+        if out.iter().any(|r| r.sni == sni) {
+            return Err(ConfigError::new(E::DuplicateSni, child(&rp, "sni"), "duplicate sni in l4 listener"));
+        }
+        out.push(L4Route { sni, upstream_host, upstream_port });
+    }
+    Ok(out)
+}
+
+fn admission_block(v: &JsonValue, p: &str) -> R<Admission> {
+    let m = object(v, p)?;
+    let mut names: Vec<&str> = vec!["per_ip"];
+    names.extend(Admission::BOUNDS.iter().map(|(n, ..)| *n));
+    fields(m, p, &names, &[])?;
+    let mut a = Admission::default();
+    if let Some(x) = get(m, "per_ip") {
+        let pp = child(p, "per_ip");
+        let pm = object(x, &pp)?;
+        fields(pm, &pp, &["rate_per_s", "burst"], &[])?;
+        let mut r = Admission::DEFAULT_PER_IP;
+        if let Some(y) = get(pm, "rate_per_s") {
+            let (lo, hi) = RateLimit::RATE_BOUNDS;
+            r.rate_per_s = integer(y, &child(&pp, "rate_per_s"), lo, hi)?;
+        }
+        if let Some(y) = get(pm, "burst") {
+            let (lo, hi) = RateLimit::BURST_BOUNDS;
+            r.burst = integer(y, &child(&pp, "burst"), lo, hi)?;
+        }
+        if r.burst < r.rate_per_s {
+            return Err(ConfigError::new(E::BurstBelowRate, child(&pp, "burst"), "burst must be >= rate_per_s"));
+        }
+        a.per_ip = r;
+    }
+    for (name, min, max, _) in Admission::BOUNDS {
+        if let Some(x) = get(m, name) {
+            a.set(name, integer(x, &child(p, name), *min, *max)?);
+        }
+    }
+    Ok(a)
+}
+
+fn secret_ref(v: &JsonValue, p: &str) -> R<SecretRef> {
+    let s = string(v, p)?;
+    SecretRef::parse(s).ok_or_else(|| ConfigError::new(E::Pattern, p, "must be cred:NAME or path:/abs"))
+}
+
+fn tls_block(v: &JsonValue, p: &str, listeners: &[Listener]) -> R<TlsBlock> {
+    let m = object(v, p)?;
+    fields(m, p, &["credentials"], &["credentials"])?;
+    let mut creds: Vec<Credential> = Vec::new();
+    if let Some(x) = get(m, "credentials") {
+        let pp = child(p, "credentials");
+        let items = array(x, &pp, 1, p7::MAX_CREDENTIALS)?;
+        for (i, it) in items.iter().enumerate() {
+            let cp = index(&pp, i);
+            let c = credential(it, &cp, listeners)?;
+            if creds.iter().any(|o| o.id == c.id) {
+                return Err(ConfigError::new(E::DuplicateCredential, child(&cp, "id"), "duplicate credential id"));
+            }
+            if let Some(t) = &c.trust_anchor_id
+                && creds.iter().any(|o| o.trust_anchor_id.as_ref() == Some(t))
+            {
+                return Err(ConfigError::new(
+                    E::DuplicateTrustAnchor,
+                    child(&cp, "trust_anchor_id"),
+                    "two mtc credentials share a trust_anchor_id",
+                ));
+            }
+            creds.push(c);
+        }
+    }
+    if creds.is_empty() {
+        // Unreachable after the required/minItems checks; fail closed.
+        return Err(ConfigError::new(E::MinItems, child(p, "credentials"), "no credential"));
+    }
+    Ok(TlsBlock { credentials: creds })
+}
+
+fn credential(v: &JsonValue, p: &str, listeners: &[Listener]) -> R<Credential> {
+    let m = object(v, p)?;
+    fields(m, p, &["id", "kind", "trust_anchor_id", "chain", "key", "listeners"], &["id", "kind", "chain", "key"])?;
+    let mut id = String::new();
+    if let Some(x) = get(m, "id") {
+        let pp = child(p, "id");
+        let s = string(x, &pp)?;
+        if !is_listener_name(s) {
+            return Err(ConfigError::new(E::Pattern, pp, "credential id must match ^[a-z][a-z0-9-]{0,31}$"));
+        }
+        id = s.to_owned();
+    }
+    // Required, so present after `fields`; the fallback is never used for an accepted config.
+    let mut kind = CredentialKind::X509;
+    if let Some(x) = get(m, "kind") {
+        kind = enum_of(x, &child(p, "kind"), &CredentialKind::ALL)?;
+    }
+    let mut trust_anchor_id = None;
+    if let Some(x) = get(m, "trust_anchor_id") {
+        let pp = child(p, "trust_anchor_id");
+        let s = string(x, &pp)?;
+        let Some(t) = TrustAnchorId::parse(s) else {
+            return Err(ConfigError::new(
+                E::Pattern,
+                pp,
+                "trust_anchor_id must be a dotted-decimal relative OID (1..32 components, each < 2^32)",
+            ));
+        };
+        trust_anchor_id = Some(t);
+    }
+    let mut chain = SecretRef::Path(String::new());
+    if let Some(x) = get(m, "chain") {
+        chain = secret_ref(x, &child(p, "chain"))?;
+    }
+    let mut key = SecretRef::Path(String::new());
+    if let Some(x) = get(m, "key") {
+        key = secret_ref(x, &child(p, "key"))?;
+    }
+    let mut scope = None;
+    if let Some(x) = get(m, "listeners") {
+        let pp = child(p, "listeners");
+        let items = array(x, &pp, 1, p7::MAX_CREDENTIALS)?;
+        let mut names: Vec<String> = Vec::with_capacity(items.len());
+        for (k, it) in items.iter().enumerate() {
+            let ip = index(&pp, k);
+            let s = string(it, &ip)?;
+            if !is_listener_name(s) {
+                return Err(ConfigError::new(E::Pattern, ip, "listener name must match ^[a-z][a-z0-9-]{0,31}$"));
+            }
+            if names.iter().any(|n| n == s) {
+                return Err(ConfigError::new(E::UniqueItems, pp, "listeners items must be unique"));
+            }
+            names.push(s.to_owned());
+        }
+        scope = Some(names);
+    }
+    // allOf if/then/else: trust_anchor_id is required for mtc and not allowed otherwise (SEL-1).
+    match (kind, &trust_anchor_id) {
+        (CredentialKind::Mtc, None) => {
+            return Err(ConfigError::new(
+                E::MissingField,
+                child(p, "trust_anchor_id"),
+                "an mtc credential needs a trust_anchor_id",
+            ));
+        }
+        (CredentialKind::X509 | CredentialKind::MlDsa, Some(_)) => {
+            return Err(ConfigError::new(
+                E::Forbidden,
+                child(p, "trust_anchor_id"),
+                "trust_anchor_id is only allowed on an mtc credential",
+            ));
+        }
+        _ => {}
+    }
+    // Cross-field: the scope names declared HTTP listeners; never an mldsa credential on P-PUBLIC-WEB (SEL-2).
+    if let Some(names) = &scope {
+        for (k, n) in names.iter().enumerate() {
+            let ip = format!("{p}/listeners/{k}");
+            let Some(l) = listeners.iter().find(|l| &l.name == n) else {
+                return Err(ConfigError::new(E::UnknownListener, ip, "credential names an undeclared listener"));
+            };
+            if l.l4.is_some() {
+                return Err(ConfigError::new(E::CredentialScope, ip, "an L4 listener terminates no TLS"));
+            }
+            if kind == CredentialKind::MlDsa && l.profile == Profile::PublicWeb {
+                return Err(ConfigError::new(
+                    E::CredentialScope,
+                    ip,
+                    "an mldsa credential is never served on a P-PUBLIC-WEB listener (SEL-2)",
+                ));
+            }
+        }
+    }
+    Ok(Credential { id, kind, trust_anchor_id, chain, key, listeners: scope })
 }
 
 fn vhost(v: &JsonValue, p: &str) -> R<Vhost> {
@@ -519,26 +803,67 @@ pub(crate) fn dsn_ref(s: &str) -> Option<DsnRef> {
     None
 }
 
-fn data_block(v: &JsonValue, p: &str) -> R<DataBlock> {
+fn data_block(v: &JsonValue, p: &str, pins: &Pins) -> R<DataBlock> {
     let m = object(v, p)?;
     fields(m, p, &["backends"], &["backends"])?;
     let mut backends: Vec<Backend> = Vec::new();
+    let mut adapters: Vec<AdapterBackend> = Vec::new();
+    let mut order: Vec<Decl> = Vec::new();
     if let Some(x) = get(m, "backends") {
         let pp = child(p, "backends");
         let items = array(x, &pp, 1, data::MAX_BACKENDS)?;
         for (i, it) in items.iter().enumerate() {
             let bp = index(&pp, i);
-            let b = backend(it, &bp)?;
-            if backends.iter().any(|o| o.id == b.id) {
+            let b = backend(it, &bp, pins)?;
+            let id = match &b {
+                Parsed::Golden(g) => &g.id,
+                Parsed::Adapter(a) => &a.id,
+            };
+            if backends.iter().any(|o| &o.id == id) || adapters.iter().any(|o| &o.id == id) {
                 return Err(ConfigError::new(E::DuplicateBackend, child(&bp, "id"), "duplicate backend id"));
             }
-            backends.push(b);
+            match b {
+                Parsed::Golden(g) => {
+                    order.push(Decl::Golden(backends.len()));
+                    backends.push(g);
+                }
+                Parsed::Adapter(a) => {
+                    order.push(Decl::Adapter(adapters.len()));
+                    adapters.push(a);
+                }
+            }
         }
     }
-    Ok(DataBlock { backends })
+    Ok(DataBlock { backends, adapters, order })
 }
 
-fn backend(v: &JsonValue, p: &str) -> R<Backend> {
+/// F8 `backend.engine`: a golden family ([`Engine`]) or a Phase-7 adapter family ([`AdapterFamily`]).
+#[derive(Clone, Copy)]
+enum Family {
+    Golden(Engine),
+    Adapter(AdapterFamily),
+}
+
+impl Family {
+    const ALL: [(&'static str, Family); 6] = [
+        ("sqlite", Family::Golden(Engine::Sqlite)),
+        ("postgres", Family::Golden(Engine::Postgres)),
+        ("redis", Family::Golden(Engine::Redis)),
+        ("valkey", Family::Golden(Engine::Valkey)),
+        ("mariadb", Family::Adapter(AdapterFamily::Mariadb)),
+        ("crdb", Family::Adapter(AdapterFamily::Crdb)),
+    ];
+    fn is_embedded(self) -> bool {
+        matches!(self, Family::Golden(e) if e.is_embedded())
+    }
+}
+
+enum Parsed {
+    Golden(Backend),
+    Adapter(AdapterBackend),
+}
+
+fn backend(v: &JsonValue, p: &str, pins: &Pins) -> R<Parsed> {
     let m = object(v, p)?;
     fields(
         m,
@@ -556,9 +881,9 @@ fn backend(v: &JsonValue, p: &str) -> R<Backend> {
         id = s.to_owned();
     }
     // Required, so present after `fields`; the fallback is never used for an accepted config.
-    let mut engine = Engine::Sqlite;
+    let mut engine = Family::Golden(Engine::Sqlite);
     if let Some(x) = get(m, "engine") {
-        engine = enum_of(x, &child(p, "engine"), &Engine::ALL)?;
+        engine = enum_of(x, &child(p, "engine"), &Family::ALL)?;
     }
     let mut dsn = DsnRef::Path(String::new());
     if let Some(x) = get(m, "dsn_ref") {
@@ -587,12 +912,16 @@ fn backend(v: &JsonValue, p: &str) -> R<Backend> {
         if !data::is_pin_name(s) {
             return Err(ConfigError::new(E::Pattern, pp, "pin must match ^[a-z][a-z0-9]{0,15}$"));
         }
-        match data::engine_pin(s) {
-            None => return Err(ConfigError::new(E::UnknownPin, pp, "pin not in supply-chain/engine-pins.toml")),
-            Some(info) if info.engine != engine => {
-                return Err(ConfigError::new(E::PinEngineMismatch, pp, "pin family differs from engine"));
+        let same = match (engine, pins.golden(s), pins.adapter(s)) {
+            (_, None, None) => {
+                return Err(ConfigError::new(E::UnknownPin, pp, "pin not in supply-chain/engine-pins.toml"));
             }
-            Some(_) => {}
+            (Family::Golden(e), Some(info), _) => info.engine == e,
+            (Family::Adapter(f), _, Some(info)) => info.family == f,
+            _ => false,
+        };
+        if !same {
+            return Err(ConfigError::new(E::PinEngineMismatch, pp, "pin family differs from engine"));
         }
         pin = s.to_owned();
     }
@@ -606,7 +935,12 @@ fn backend(v: &JsonValue, p: &str) -> R<Backend> {
         let (lo, hi) = Backend::OP_BUDGET_MS_BOUNDS;
         op_budget_ms = integer(x, &child(p, "op_budget_ms"), lo, hi)?;
     }
-    Ok(Backend { id, engine, dsn_ref: dsn, pin, max_conns, op_budget_ms })
+    Ok(match engine {
+        Family::Golden(engine) => Parsed::Golden(Backend { id, engine, dsn_ref: dsn, pin, max_conns, op_budget_ms }),
+        Family::Adapter(family) => {
+            Parsed::Adapter(AdapterBackend { id, family, dsn_ref: dsn, pin, max_conns, op_budget_ms })
+        }
+    })
 }
 
 /// `oneOf` [array 1..256 of data_cap, const "unrestricted"]. The branches are disjoint by JSON type, so an array
@@ -693,7 +1027,7 @@ fn cap_backends(vhosts: &[Vhost], data: Option<&DataBlock>) -> R<()> {
         for (j, r) in vh.routes.iter().enumerate() {
             if let Some(RouteData::Caps(list)) = &r.data {
                 for (k, c) in list.as_slice().iter().enumerate() {
-                    if data.and_then(|d| d.backend(&c.backend)).is_none() {
+                    if !data.is_some_and(|d| d.declares(&c.backend)) {
                         return Err(ConfigError::new(
                             E::UnknownBackend,
                             format!("/vhosts/{i}/routes/{j}/data/{k}/backend"),
@@ -888,4 +1222,116 @@ fn wasm_modules(vhosts: &[Vhost], p2: Option<&P2Block>) -> R<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::indexing_slicing, clippy::panic)]
+mod tests {
+    //! Phase-7 adapter families against an injected pin catalogue (the embedded engine-pins.toml carries no
+    //! mariadb/crdb entry until P7-oracle-adapters-001 adds them; until then the real parser refuses them with
+    //! `UnknownPin`, see tests/p7.rs).
+    use super::*;
+    use crate::data::parse_all_pins;
+    use crate::{FieldId, ResolvedData, SchemaProvider, Unresolved};
+
+    const PINS: &str = r#"
+[sqlite]
+version = "3.53.2"
+[engines.pg18]
+kind = "postgres"
+policy = "allow"
+[engines.maria118]
+kind = "mariadb"
+policy = "allow"
+[engines.crdb254]
+kind = "crdb"
+policy = "allow"
+"#;
+
+    fn doc(backends: &str, data: &str) -> String {
+        format!(
+            r#"{{"v":1,"listeners":[{{"name":"a","bind":"b","profile":"P-PUBLIC-WEB"}}],
+ "vhosts":[{{"host":"a","routes":[{{"id":1,"path":"/n","to":{{"upstream":"u"}},"authz":"n","data":{data}}}]}}],
+ "data":{{"backends":{backends}}}}}"#
+        )
+    }
+
+    const MIXED: &str = r#"[{"id":"m","engine":"mariadb","dsn_ref":"env:MARIA_DSN","pin":"maria118"},
+ {"id":"pg","engine":"postgres","dsn_ref":"env:PG_DSN","pin":"pg18"},
+ {"id":"c","engine":"crdb","dsn_ref":"cred:crdb","pin":"crdb254","max_conns":4}]"#;
+    const CAP_M: &str = r#"[{"backend":"m","collection":"notes","ops":["select"],"columns":["id"]}]"#;
+    const CAP_PG: &str = r#"[{"backend":"pg","collection":"notes","ops":["select"],"columns":["id"]}]"#;
+
+    fn parse_t(s: &str) -> R<Config> {
+        parse_with(s.as_bytes(), &parse_all_pins(PINS))
+    }
+
+    #[test]
+    fn adapter_families_parse_apart_from_golden_backends_in_document_order() {
+        let c = parse_t(&doc(MIXED, CAP_M)).unwrap();
+        let d = c.data().unwrap();
+        assert_eq!(d.backends().iter().map(|b| b.id.as_str()).collect::<Vec<_>>(), vec!["pg"]);
+        let a: Vec<(&str, AdapterFamily, u64)> =
+            d.adapters().iter().map(|b| (b.id.as_str(), b.family, b.max_conns)).collect();
+        assert_eq!(a, vec![("m", AdapterFamily::Mariadb, 16), ("c", AdapterFamily::Crdb, 4)]);
+        assert!(d.declares("m") && d.declares("pg") && !d.declares("x"));
+        // The effective form keeps document order and the family names, and round-trips to the same hash.
+        let eff = std::str::from_utf8(c.effective_json()).unwrap();
+        let im = eff.find("\"mariadb\"").unwrap();
+        let ipg = eff.find("\"postgres\"").unwrap();
+        let ic = eff.find("\"crdb\"").unwrap();
+        assert!(im < ipg && ipg < ic, "{eff}");
+        assert_eq!(parse_t(eff).unwrap().config_hash(), c.config_hash());
+    }
+
+    #[test]
+    fn adapter_family_pin_rules() {
+        let one = |e: &str, dsn: &str, pin: &str| {
+            parse_t(&doc(&format!(r#"[{{"id":"m","engine":"{e}","dsn_ref":"{dsn}","pin":"{pin}"}}]"#), CAP_M))
+        };
+        assert!(one("mariadb", "env:X", "maria118").is_ok());
+        assert!(one("crdb", "env:X", "crdb254").is_ok());
+        let k = |r: R<Config>| r.err().map(|e| (e.kind(), e.pointer().to_owned()));
+        let at = |s: &str| format!("/data/backends/0/{s}");
+        assert_eq!(k(one("mariadb", "env:X", "crdb254")), Some((E::PinEngineMismatch, at("pin"))));
+        assert_eq!(k(one("crdb", "env:X", "pg18")), Some((E::PinEngineMismatch, at("pin"))));
+        assert_eq!(k(one("postgres", "env:X", "crdb254")), Some((E::PinEngineMismatch, at("pin"))));
+        assert_eq!(k(one("mariadb", "env:X", "maria999")), Some((E::UnknownPin, at("pin"))));
+        // Network engines: path: is refused.
+        assert_eq!(k(one("mariadb", "path:/x.db", "maria118")), Some((E::Pattern, at("dsn_ref"))));
+        assert_eq!(k(one("mysql", "env:X", "maria118")), Some((E::Enum, at("engine"))));
+        // Ids are unique across golden and adapter backends.
+        let dup = r#"[{"id":"m","engine":"postgres","dsn_ref":"env:A","pin":"pg18"},
+          {"id":"m","engine":"mariadb","dsn_ref":"env:B","pin":"maria118"}]"#;
+        assert_eq!(k(parse_t(&doc(dup, CAP_M))), Some((E::DuplicateBackend, "/data/backends/1/id".to_owned())));
+    }
+
+    /// A provider that knows golden backends only, like every assembly before Phase 7.
+    struct GoldenOnly;
+    impl SchemaProvider for GoldenOnly {
+        fn field(&self, _: &Backend, _: &str, _: &str) -> Result<FieldId, Unresolved> {
+            Ok(1)
+        }
+    }
+    struct Both;
+    impl SchemaProvider for Both {
+        fn field(&self, _: &Backend, _: &str, _: &str) -> Result<FieldId, Unresolved> {
+            Ok(1)
+        }
+        fn adapter_field(&self, b: &AdapterBackend, _: &str, _: &str) -> Result<FieldId, Unresolved> {
+            if b.family == AdapterFamily::Mariadb { Ok(7) } else { Err(Unresolved::NoCollection) }
+        }
+    }
+
+    #[test]
+    fn an_endowment_on_an_adapter_backend_fails_closed_unless_the_assembly_wires_the_family() {
+        let c = parse_t(&doc(MIXED, CAP_M)).unwrap();
+        let e = c.resolve_data(&GoldenOnly).unwrap_err();
+        assert_eq!((e.kind(), e.pointer()), (E::SchemaUnavailable, "/vhosts/0/routes/0/data/0/backend"));
+        let r = c.resolve_data(&Both).unwrap();
+        assert!(matches!(&r[0].data, ResolvedData::Caps(caps) if caps[0].fields == vec![7] && caps[0].backend == "m"));
+        // Golden caps resolve exactly as before, whatever adapter backends are declared.
+        let g = parse_t(&doc(MIXED, CAP_PG)).unwrap();
+        assert!(g.resolve_data(&GoldenOnly).is_ok());
+    }
 }

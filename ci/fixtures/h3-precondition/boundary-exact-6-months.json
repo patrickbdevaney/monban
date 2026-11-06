@@ -1,0 +1,588 @@
+{
+ "as_of": "2027-03-30",
+ "expect": "MET",
+ "note": "synthetic: as met.json, as_of = last HIGH (2026-09-30) + 6 calendar months: the clock has just run out",
+ "responses": {
+  "GET https://api.github.com/repos/hyperium/h3/pulls/366": {
+   "merged_at": "2027-01-10T12:00:00Z",
+   "number": 366,
+   "state": "closed",
+   "title": "Bound buffered frames by their declared length, before reading the payload"
+  },
+  "GET https://api.github.com/repos/hyperium/h3/pulls/377": {
+   "merged_at": "2027-01-12T12:00:00Z",
+   "number": 377,
+   "state": "closed",
+   "title": "Bound decoded header memory: finite default limit, no HeaderMap panic, frame-length ceiling"
+  },
+  "GET https://api.github.com/repos/hyperium/h3/pulls/378": {
+   "merged_at": "2027-01-15T12:00:00Z",
+   "number": 378,
+   "state": "closed",
+   "title": "fix: mitigate QPACK header amplification attacks (\"Header Accordions\")"
+  },
+  "GET https://api.github.com/repos/quinn-rs/quinn/security-advisories?per_page=100": [
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-53rm-773f-4q8c",
+    "published_at": "2026-09-30T07:34:11Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-wppq-2f6r-wfvm",
+    "published_at": "2026-09-30T10:24:18Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-6pp4-4cxf-xf88",
+    "published_at": "2026-09-30T07:41:29Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-udp"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-3g6h-r5qx-f6hq",
+    "published_at": "2026-09-14T10:10:39Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-ppcp-v39w-8jq2",
+    "published_at": "2026-09-14T10:11:50Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-465w-v9q3-7j98",
+    "published_at": "2026-09-14T10:14:13Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-2hv7-gw8g-gpq5",
+    "published_at": "2026-08-17T17:34:37Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-hmxj-32vh-65vr",
+    "published_at": "2026-08-17T17:35:14Z",
+    "severity": "medium",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-qfwj-vfxf-92j2",
+    "published_at": "2026-08-17T17:33:50Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": null,
+    "ghsa_id": "GHSA-4w2j-m93h-cj5j",
+    "published_at": "2026-06-22T09:46:17Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": "CVE-2026-31812",
+    "ghsa_id": "GHSA-6xvm-j4wr-6v98",
+    "published_at": "2026-03-09T10:24:08Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": "CVE-2024-45311",
+    "ghsa_id": "GHSA-vr26-jcq5-fjj8",
+    "published_at": "2024-09-02T09:02:58Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   },
+   {
+    "cve_id": "CVE-2023-42805",
+    "ghsa_id": "GHSA-q8wc-j5m9-27w3",
+    "published_at": "2023-09-21T09:51:05Z",
+    "severity": "high",
+    "state": "published",
+    "vulnerabilities": [
+     {
+      "package": {
+       "name": "quinn-proto"
+      }
+     }
+    ],
+    "withdrawn_at": null
+   }
+  ],
+  "GET https://api.osv.dev/v1/vulns/GHSA-4w2j-m93h-cj5j": {
+   "aliases": [
+    "CVE-2026-25800",
+    "RUSTSEC-2026-0185"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "id": "GHSA-4w2j-m93h-cj5j",
+   "published": "2026-07-24T14:07:54Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/GHSA-6xvm-j4wr-6v98": {
+   "aliases": [
+    "CVE-2026-31812",
+    "RUSTSEC-2026-0037"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "id": "GHSA-6xvm-j4wr-6v98",
+   "published": "2026-03-11T00:09:19Z",
+   "severity": [
+    {
+     "score": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+     "type": "CVSS_V4"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/GHSA-fhv4-fx3v-77w6": {
+   "aliases": [
+    "CVE-2021-28036",
+    "RUSTSEC-2021-0035"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "id": "GHSA-fhv4-fx3v-77w6",
+   "published": "2021-08-25T20:52:05Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/GHSA-q8wc-j5m9-27w3": {
+   "aliases": [
+    "CVE-2023-42805",
+    "RUSTSEC-2023-0063"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "id": "GHSA-q8wc-j5m9-27w3",
+   "published": "2023-09-21T17:16:54Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/GHSA-vr26-jcq5-fjj8": {
+   "aliases": [
+    "CVE-2024-45311",
+    "RUSTSEC-2024-0373"
+   ],
+   "database_specific": {
+    "severity": "HIGH"
+   },
+   "id": "GHSA-vr26-jcq5-fjj8",
+   "published": "2024-09-03T20:49:26Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    },
+    {
+     "score": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+     "type": "CVSS_V4"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2021-0035": {
+   "aliases": [
+    "CVE-2021-28036",
+    "GHSA-fhv4-fx3v-77w6"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2021-0035",
+   "published": "2021-03-04T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2023-0063": {
+   "aliases": [
+    "CVE-2023-42805",
+    "GHSA-q8wc-j5m9-27w3"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2023-0063",
+   "published": "2023-09-21T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2024-0373": {
+   "aliases": [
+    "CVE-2024-45311",
+    "GHSA-vr26-jcq5-fjj8"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2024-0373",
+   "published": "2024-09-02T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0037": {
+   "aliases": [
+    "CVE-2026-31812",
+    "GHSA-6xvm-j4wr-6v98"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0037",
+   "published": "2026-03-09T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+     "type": "CVSS_V4"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0185": {
+   "aliases": [
+    "CVE-2026-25800",
+    "GHSA-4w2j-m93h-cj5j"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0185",
+   "published": "2026-06-22T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0338": {
+   "aliases": [
+    "GHSA-465w-v9q3-7j98"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0338",
+   "published": "2026-09-14T12:00:00Z",
+   "severity": [],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0339": {
+   "aliases": [
+    "GHSA-hmxj-32vh-65vr"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0339",
+   "published": "2026-08-17T12:00:00Z",
+   "severity": [],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0340": {
+   "aliases": [
+    "GHSA-3g6h-r5qx-f6hq"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0340",
+   "published": "2026-09-14T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0341": {
+   "aliases": [
+    "GHSA-qfwj-vfxf-92j2"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0341",
+   "published": "2026-08-17T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0342": {
+   "aliases": [
+    "GHSA-2hv7-gw8g-gpq5"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0342",
+   "published": "2026-08-17T12:00:00Z",
+   "severity": [],
+   "withdrawn": null
+  },
+  "GET https://api.osv.dev/v1/vulns/RUSTSEC-2026-0343": {
+   "aliases": [
+    "GHSA-ppcp-v39w-8jq2"
+   ],
+   "database_specific": {},
+   "id": "RUSTSEC-2026-0343",
+   "published": "2026-09-14T12:00:00Z",
+   "severity": [
+    {
+     "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+     "type": "CVSS_V3"
+    }
+   ],
+   "withdrawn": null
+  },
+  "GET https://crates.io/api/v1/crates/h3": {
+   "versions": [
+    {
+     "created_at": "2027-02-01T10:00:00Z",
+     "num": "0.0.9",
+     "yanked": false
+    },
+    {
+     "created_at": "2025-05-06T15:37:32.883527Z",
+     "num": "0.0.8",
+     "yanked": false
+    },
+    {
+     "created_at": "2025-03-15T10:35:53.698947Z",
+     "num": "0.0.7",
+     "yanked": false
+    },
+    {
+     "created_at": "2024-07-01T13:32:32.319110Z",
+     "num": "0.0.6",
+     "yanked": false
+    },
+    {
+     "created_at": "2024-05-20T13:06:46.414316Z",
+     "num": "0.0.5",
+     "yanked": false
+    },
+    {
+     "created_at": "2024-01-24T17:53:27.035982Z",
+     "num": "0.0.4",
+     "yanked": false
+    },
+    {
+     "created_at": "2023-10-23T19:06:49.517801Z",
+     "num": "0.0.3",
+     "yanked": false
+    },
+    {
+     "created_at": "2023-04-11T18:50:46.491447Z",
+     "num": "0.0.2",
+     "yanked": false
+    },
+    {
+     "created_at": "2023-03-09T18:24:41.110667Z",
+     "num": "0.0.1",
+     "yanked": false
+    },
+    {
+     "created_at": "2019-03-06T17:53:03.455980Z",
+     "num": "0.0.0",
+     "yanked": false
+    }
+   ]
+  },
+  "POST https://api.osv.dev/v1/querybatch {\"queries\":[{\"package\":{\"ecosystem\":\"crates.io\",\"name\":\"quinn\"}},{\"package\":{\"ecosystem\":\"crates.io\",\"name\":\"quinn-proto\"}},{\"package\":{\"ecosystem\":\"crates.io\",\"name\":\"quinn-udp\"}}]}": {
+   "results": [
+    {
+     "vulns": [
+      {
+       "id": "GHSA-fhv4-fx3v-77w6"
+      },
+      {
+       "id": "RUSTSEC-2021-0035"
+      }
+     ]
+    },
+    {
+     "vulns": [
+      {
+       "id": "GHSA-4w2j-m93h-cj5j"
+      },
+      {
+       "id": "GHSA-6xvm-j4wr-6v98"
+      },
+      {
+       "id": "GHSA-q8wc-j5m9-27w3"
+      },
+      {
+       "id": "GHSA-vr26-jcq5-fjj8"
+      },
+      {
+       "id": "RUSTSEC-2023-0063"
+      },
+      {
+       "id": "RUSTSEC-2024-0373"
+      },
+      {
+       "id": "RUSTSEC-2026-0037"
+      },
+      {
+       "id": "RUSTSEC-2026-0185"
+      },
+      {
+       "id": "RUSTSEC-2026-0338"
+      },
+      {
+       "id": "RUSTSEC-2026-0339"
+      },
+      {
+       "id": "RUSTSEC-2026-0340"
+      },
+      {
+       "id": "RUSTSEC-2026-0341"
+      },
+      {
+       "id": "RUSTSEC-2026-0342"
+      },
+      {
+       "id": "RUSTSEC-2026-0343"
+      }
+     ]
+    },
+    {
+     "vulns": []
+    }
+   ]
+  }
+ }
+}

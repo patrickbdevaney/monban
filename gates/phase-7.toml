@@ -598,7 +598,7 @@ selftest = "python3 -I ci/no-quic.py --self-test"
 
 [[gate]]
 name = "no-otel-in-bin"
-cmd = "! cargo tree --locked -e normal,build -p aegis-bin --all-features --prefix none | grep -qE '^(opentelemetry[a-z_-]*|prost|tonic) '"
+cmd = "! cargo tree --locked -e normal,build --target all -p aegis-bin --all-features --prefix none | grep -qE '^(opentelemetry[a-z_-]*|prost|tonic) '"
 # Positive control: the filter finds prost/opentelemetry in a fixture tree that contains them.
 selftest = "python3 -I ci/no-quic.py --self-test-otel"
 

@@ -26,6 +26,15 @@
 //!   is unrepresentable (no field names a cordon). Module ids are unique and every wasm route names a declared
 //!   module (checked at load). See the `p2` module docs.
 //!
+//! * Phase 7 (P7-spec-001, PLAN-7 Interfaces; all optional, absent = the pre-Phase-7 meaning, effective form and
+//!   hash): [`Listener::proxy_protocol`] ([`ProxyProtocol`], trusted CIDRs, PROXY-1..3), [`Listener::l4`]
+//!   ([`L4Route`], SNI passthrough, L4-1/L4-2; an L4 listener carries no `alpn`), [`Listener::front`] ([`Front`],
+//!   FRONT-1; the default `epoll` is not printed in the hashed form), the root [`TlsBlock`] (credential selector
+//!   inputs, SEL-1..3) and the backend families [`AdapterFamily`] (`mariadb`, `crdb`, kept apart from the golden
+//!   [`Engine`] so an assembly that predates them fails closed on them), and the root [`Admission`] block (S0/S1/S5
+//!   numbers formerly hard-coded in aegis-bin; defaults = those constants, not hashed when equal to them). See the
+//!   `p7` module docs.
+//!
 //! INV-NONEMPTY: a route without an `authz` policy (or with an empty policy name) is denied
 //! ([`Route::authz_requirement`]); every limit has a schema maximum and a default, so no effective limit is
 //! unbounded.
@@ -34,6 +43,7 @@
 mod data;
 mod emit;
 mod p2;
+mod p7;
 mod parse;
 mod sha256;
 mod store;
@@ -41,13 +51,17 @@ mod store;
 use std::fmt;
 
 pub use data::{
-    Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine, FieldId, MAX_BACKENDS, MAX_CAP_COLUMNS, MAX_CAPS,
-    PinInfo, ResolvedCap, ResolvedData, ResolvedRoute, RouteData, SchemaProvider, UNRESTRICTED, Unresolved, engine_pin,
-    engine_pins,
+    AdapterBackend, AdapterFamily, AdapterPinInfo, Backend, CapList, CapSpec, DataBlock, DataOp, DsnRef, Engine,
+    FieldId, MAX_BACKENDS, MAX_CAP_COLUMNS, MAX_CAPS, PinInfo, ResolvedCap, ResolvedData, ResolvedRoute, RouteData,
+    SchemaProvider, UNRESTRICTED, Unresolved, adapter_pin, adapter_pins, engine_pin, engine_pins,
 };
 pub use p2::{
     AUTO_CORDON_BELOW_CPUS, CrashBudget, Isolation, IsolationSetting, MAX_P2_MODULES, P2Block, P2Limits, P2Module,
     Tenancy, resolve_isolation,
+};
+pub use p7::{
+    Admission, Cidr, Credential, CredentialKind, Front, L4Route, MAX_CREDENTIALS, MAX_L4_ROUTES, MAX_TAI_COMPONENTS,
+    MAX_TRUSTED, ProxyProtocol, RateLimit, SecretRef, TlsBlock, TrustAnchorId,
 };
 pub use sha256::{hex, sha256};
 pub use store::{ConfigStore, Generation, Health, Phase, RolloutPolicy, StageError};
@@ -128,6 +142,22 @@ pub enum ErrorKind {
     /// Cross-field: a `{"wasm": id}` route target names no declared `p2.modules[]` entry (or there is no `p2`
     /// block).
     UnknownModule,
+    /// A member that is valid alone but not in this combination (Phase 7): `alpn` on an L4 listener (a listener is
+    /// L4 or HTTP, never both), `trust_anchor_id` on a credential whose kind is not `mtc`.
+    Forbidden,
+    /// Cross-field: two `l4` entries of one listener share an SNI.
+    DuplicateSni,
+    /// Cross-field: two `tls.credentials` share an id.
+    DuplicateCredential,
+    /// Cross-field: two `mtc` credentials share a trust_anchor_id (the selector would have two readings).
+    DuplicateTrustAnchor,
+    /// Cross-field: a credential's `listeners` entry names no declared listener.
+    UnknownListener,
+    /// Cross-field: a credential is scoped to a listener it may never serve: an L4 listener (no TLS termination), or,
+    /// for an `mldsa` credential, a P-PUBLIC-WEB listener (SEL-2).
+    CredentialScope,
+    /// Cross-field: `admission.per_ip.burst` is below `rate_per_s` (less than one second of the rate).
+    BurstBelowRate,
 }
 
 /// A rejected config: kind, JSON pointer to the offending value (`""` is the document root) and a static detail.
@@ -179,6 +209,10 @@ pub struct Config {
     data: Option<DataBlock>,
     /// F8 `p2`; `None` when absent.
     p2: Option<P2Block>,
+    /// F8 `tls` (Phase 7); `None` when absent (certificates from process options / systemd credentials).
+    tls: Option<TlsBlock>,
+    /// F8 `admission` (Phase 7) with defaults applied; the pre-Phase-7 constants when absent.
+    admission: Admission,
     canonical: Box<[u8]>,
     hash: [u8; 32],
 }
@@ -198,6 +232,14 @@ impl Config {
     }
     pub fn canon(&self) -> &Canon {
         &self.canon
+    }
+    /// F8 `tls` (Phase 7, D-P7.4); `None` when absent.
+    pub fn tls(&self) -> Option<&TlsBlock> {
+        self.tls.as_ref()
+    }
+    /// F8 `admission` (Phase 7) with defaults applied: [`Admission::default`] (the pre-Phase-7 constants) when absent.
+    pub fn admission(&self) -> &Admission {
+        &self.admission
     }
     /// Canonical JSON (aegis-canon serializer) of the effective config, defaults applied.
     pub fn effective_json(&self) -> &[u8] {
@@ -271,8 +313,21 @@ pub struct Listener {
     pub name: String,
     pub bind: String,
     pub profile: Profile,
-    /// `None` when absent (the schema gives no default; the TLS layer decides).
+    /// `None` when absent (the schema gives no default; the TLS layer decides). Always `None` on an L4 listener.
     pub alpn: Option<Vec<Alpn>>,
+    /// F8 `proxy_protocol` (Phase 7, PROXY-1..3); `None` = no PROXY header is ever accepted.
+    pub proxy_protocol: Option<ProxyProtocol>,
+    /// F8 `l4` (Phase 7, L4-1/L4-2); `Some` = an L4 SNI-passthrough listener (non-empty, unique SNI), never HTTP.
+    pub l4: Option<Vec<L4Route>>,
+    /// F8 `front` (Phase 7, FRONT-1); default [`Front::Epoll`].
+    pub front: Front,
+}
+
+impl Listener {
+    /// An L4 SNI-passthrough listener (never parses HTTP, never terminates TLS).
+    pub fn is_l4(&self) -> bool {
+        self.l4.is_some()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

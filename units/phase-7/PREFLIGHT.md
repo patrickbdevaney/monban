@@ -16,7 +16,7 @@ needed. Every probe below was run on 2026-11-06 and names its host or URL.
 | item | probe | result | decision |
 |---|---|---|---|
 | HTTP/3 precondition (a): h3 #366/#377/#378 | github.com/hyperium/h3/pull/366, /377, /378 | **All three are open, unmerged PRs** (frame-length bounds, decoded-header memory, QPACK "Header Accordions"). Latest h3 0.0.8 / h3-quinn 0.0.10 are from 2025-05-06, so no release has the fixes. | **not met** |
-| HTTP/3 precondition (b): 6 months without a HIGH quinn advisory | github.com/quinn-rs/quinn/security/advisories, api.osv.dev | **10 HIGH + 1 MEDIUM in 2026-05-06..2026-11-06.** The latest HIGH are GHSA-53rm-773f-4q8c, -wppq-2f6r-wfvm and -6pp4-4cxf-xf88, all on 2026-09-30. | **not met**. The earliest the clock can run out is 2027-03-30, if no further HIGH lands. |
+| HTTP/3 precondition (b): 6 months without a HIGH quinn advisory | github.com/quinn-rs/quinn/security/advisories, api.osv.dev | **10 HIGH + 1 MEDIUM in 2026-05-06..2026-11-06** (9 HIGH after de-duplication, per P7-spec-001 h3-precondition live run). The latest HIGH are GHSA-53rm-773f-4q8c, -wppq-2f6r-wfvm and -6pp4-4cxf-xf88, all on 2026-09-30. | **not met**. The earliest the clock can run out is 2027-03-30, if no further HIGH lands. |
 | WebTransport | datatracker webtrans-http3-17 / -http2-16 (both 2026-11-02, WG Last Call); crates wtransport 0.7.2, web-transport-quinn 0.13.6 | Every Rust implementation is HTTP/3 (quinn). There is no Rust WebTransport over HTTP/2, and neither draft is an RFC. | blocked on HTTP/3 (D-P7.1) |
 | PROXY protocol v2 | haproxy.org/download/3.2/doc/proxy-protocol.txt; crates ppp 2.3.0, proxy-header 0.1.3, no OSV advisories | The spec is stable and small. | own parser (D-P7.2) |
 | MTC | draft-ietf-plants-merkle-tree-certs-08 (2026-11-02); draft-ietf-tls-trust-anchor-ids-07; Google blog 2026-02-27 | Negotiation is the `trust_anchors` extension, with no new SignatureScheme. Chrome is in a Phase 1 experiment with Cloudflare, X.509 fallback always present; Phase 3 is planned for Q3 2027. The Rust crates (`mtcs` 0.3.1, `synta-mtc` 0.5.1) are young and unaudited. | selector only, MTC credential opaque (D-P7.4) |
@@ -117,3 +117,13 @@ does not expose `trust_anchors`, the selector reads it from the same ClientHello
    (`bench/scaling --gcp c2d-standard-64`) and costs about an hour of VM time.
 2. Unchanged from Phase 6: license, CRA publication, real release keys, D-P4 BoringSSL text.
 3. HTTP/3 re-check on or after 2027-03-30 (`ci/h3-precondition.py`).
+
+## P5. Added during the phase
+
+- **io-uring 0.7.15 vet audit** (P7-spec-002): no import set covered it at safe-to-deploy, so the zero-exemption rule
+  forced an own audit (all ~5.9k hand-written lines, ~87 unsafe sites read). Its `who` records an agent review: the
+  operator should countersign or replace it with a human audit before the `uring` feature is used in production.
+- **aegis-uring unsafe budget** (DEVIATIONS X-15): io-uring's submission API is `unsafe fn`, so aegis-uring may hold
+  ≤ 6 audited sites; `cargo xtask unsafe-sites` enforces it.
+- **F8 admission.per_ip** (P7-spec-001, wired by P7-bin-001): the S1 per-IP GCRA (1000/s, burst 2000) was hard-coded;
+  the scaling bench from one source IP was all 429s. Absent = today's values.
