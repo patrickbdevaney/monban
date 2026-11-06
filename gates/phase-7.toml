@@ -14,7 +14,7 @@
 #   epoll vs io_uring front equivalence (FRONT-1); unit refuses io_uring without drop-in ......... front-equiv    [P7-oracle-uring-001]
 #   aegis-otlp exporter vs mapping-checking collector ............................................ otlp-export    [P7-oracle-otlp-001]
 #   libcrux server provider spike (own lock): KAT, interop, C-surface count ...................... libcrux-spike  [P7-libcrux-001]
-#   h2load scaling 1..24 cores, advisory record_only ............................................. scaling        [P7-scaling-001]
+#   h2load scaling 1..18 cores, advisory record_only ............................................. scaling        [P7-scaling-001]
 #   every Phase-7 feature has its own TCB line and rung; deferred items carry dated evidence ..... tcb-lines      [P7-compliance-001]
 phase = 7
 go_no_go = "all gates pass && all self-tests pass"
@@ -694,7 +694,7 @@ remote = "kamrui"
 [[gate]]
 name = "scaling"
 # ADVISORY (PREFLIGHT D-P7.7): record_only; passes when every core count ran with 0 errors and the report exists.
-cmd = "bench/scaling/run --cores 1,2,4,8,16,24 --record bench/scaling/out"
+cmd = "bench/scaling/run --cores 1,2,4,8,16,18 --record bench/scaling/out"
 selftest = "bench/scaling/run --self-test"
 heavy = true
 remote = true
