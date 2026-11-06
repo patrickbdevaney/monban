@@ -1,0 +1,16 @@
+# h2load (nghttp2 1.69.0) for front-equiv, as the Alpine 3.22 packages the transport-limits image installs
+# (oracles/transport-limits/Dockerfile: nghttp2=1.69.0-r0), fetched without Docker or apt: equiv.py downloads these exact
+# files over HTTPS, checks each sha256, unpacks them with tarfile (filter="data") into
+# $AEGIS_TOOLS/h2load-1.69.0 (default ~/.cache/aegis-tools) and runs usr/bin/h2load through the bundled musl loader.
+# Closure of `nghttp2` runtime dependencies from the v3.22/main APKINDEX, pinned 2026-11-06. Columns: package sha256 url.
+# Alpine keeps only the newest revision per branch: if a URL 404s, re-pin from the current APKINDEX (never unpinned).
+c-ares-1.34.9-r0	9b23aa07901ed64bde0be7ec544f8d2b29de80d996277dc861218c54fff8bc97	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/c-ares-1.34.9-r0.apk
+libcrypto3-3.5.9-r0	3f5825ced5fde1c66a5376a3f6076b3c08538ad52d9ef23f069857e212d9175a	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libcrypto3-3.5.9-r0.apk
+libev-4.33-r1	5a3047f3ec29620b439809800ab1354f5b6ceb22fb02e47272abace4b64441f2	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libev-4.33-r1.apk
+libgcc-14.2.0-r6	04f3467bc967e705221a843fe4d3de5850db826e571686e0c0ed453d38cb5c59	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libgcc-14.2.0-r6.apk
+libssl3-3.5.9-r0	6801c740b9760b5b08da8db6367ebc18b2cc4dbaf371f7148429538b8bb04e23	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libssl3-3.5.9-r0.apk
+libstdc++-14.2.0-r6	939f7c99898f3e8154207a17f4acbe8bc40437e1bb1b43f5525620ca9e452a2e	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/libstdc++-14.2.0-r6.apk
+musl-1.2.5-r13	359890bc7c4dc5fee7a85192de60a471c987e4664767288578beca60a44db2c8	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/musl-1.2.5-r13.apk
+nghttp2-1.69.0-r0	a29778d1ab3876b954daf0b65f670e65e0746e7d63b2780e6c63d1bc6a10444a	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/nghttp2-1.69.0-r0.apk
+nghttp2-libs-1.69.0-r0	d6ee515d30d703e94b55ef9c0a02aea053313f654acbd2c655d18e3907ecb66a	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/nghttp2-libs-1.69.0-r0.apk
+zlib-1.3.2-r1	af24e502645e2b392cae833856d776691ac21655362e5db69d7b89f147f76216	https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/zlib-1.3.2-r1.apk
