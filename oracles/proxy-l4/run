@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# AEGIS oracle: PROXY v2 + L4 SNI passthrough (unit P7-oracle-proxy-001). Contract: oracles/README.md.
+# Last line: PROXY-L4: PASS|FAIL (...)  /  PROXY-L4 SELF-TEST: PASS|FAIL (...).
+#   ./run --binary target/release/aegis   drive aegis (built with --features proxy-protocol,l4) with the F8 config in
+#                                         README.md: PROXY v2 vectors + >=200 hostile headers, trusted-CIDR matrix,
+#                                         L4 SNI routing to two TLS upstreams (python ssl + openssl s_client),
+#                                         PROXY over L4, stall deadlines, audit events, fail-closed boot
+#   ./run --self-test                     the same checks against ref_server.py (must PASS) and against each planted
+#                                         mutant (must FAIL); reference parsers vs vectors; parser mutants diverge
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/oracle.py" "$@"
