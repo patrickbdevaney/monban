@@ -70,17 +70,57 @@ def osv(lock, manifest, deny):
         print(f"osv: FAIL (asked {len(pkgs)}, got {len(res)} results)")
         return 1
     targets, built = compiled(manifest, deny)
-    hits = []
+    accepted = load_accepted(os.path.join(os.path.dirname(os.path.abspath(manifest)), "accepted-advisories.toml"))
+    hits, ok = [], []
     for p, r in zip(pkgs, res):
         key = f"{p['name']}@{p['version']}"
         for v in r.get("vulns") or []:
             where = "COMPILED for a shipped target" if key in built else f"not compiled for any of {', '.join(targets)}"
-            hits.append(f"{key}: {v['id']} ({where})")
+            why = accept_reason(accepted, key, v["id"], key in built, informational(v["id"]))
+            (ok if why else hits).append(f"{key}: {v['id']} ({where}){' ACCEPTED: ' + why if why else ''}")
     print(f"osv: {len(pkgs)} lock packages queried ({len(built)} compiled for {len(targets)} shipped targets): "
-          f"{len(hits)} advisories")
-    for h in hits:
+          f"{len(hits)} advisories, {len(ok)} accepted")
+    for h in hits + ok:
         print("  " + h)
     return 1 if hits else 0
+
+
+# Spike-local acceptance ledger (integrator decision 2026-11-06, mirrors supply-chain/exceptions.toml): an OSV hit is
+# accepted only when ALL hold: an entry names exactly crate@version and the advisory id; it has not expired; the crate
+# is NOT compiled for any shipped target (live `compiled()` evidence, re-checked every run); and OSV classes the
+# advisory as informational "unmaintained" (not a vulnerability). Anything else stays red.
+TODAY = os.environ.get("AEGIS_SPIKE_TODAY") or __import__("datetime").date.today().isoformat()
+
+
+def load_accepted(path):
+    if not os.path.exists(path):
+        return []
+    return tomllib.load(open(path, "rb")).get("accept", [])
+
+
+def informational(vid):
+    if os.environ.get("AEGIS_SPIKE_INFO_OVERRIDE"):
+        return os.environ["AEGIS_SPIKE_INFO_OVERRIDE"]
+    req = urllib.request.Request(f"https://api.osv.dev/v1/vulns/{vid}", headers=UA)
+    try:
+        d = json.load(urllib.request.urlopen(req, timeout=60))
+    except Exception:  # unknown classification fails closed
+        return ""
+    for a in d.get("affected") or []:
+        info = (a.get("database_specific") or {}).get("informational")
+        if info:
+            return info
+    return ""
+
+
+def accept_reason(accepted, key, vid, is_built, info):
+    for e in accepted:
+        if f"{e.get('crate')}@{e.get('version')}" != key or e.get("advisory") != vid:
+            continue
+        if str(e.get("expires", "")) < TODAY or is_built or info != "unmaintained":
+            return ""
+        return f"{e.get('reason', '')} (expires {e['expires']})"
+    return ""
 
 
 def isolation(spike, shipped):

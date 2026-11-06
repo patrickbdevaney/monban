@@ -355,8 +355,55 @@ fn tenant_carried(table: &PgTable, tf: Field) -> Result<(), RenderError> {
     Ok(())
 }
 
+/// The SQL dialect a statement is rendered for. Every dialect speaks the PostgreSQL forms above; they differ only
+/// where an engine evaluates one of those forms differently.
+///
+/// * `Postgres`: the golden PG forms (default).
+/// * `Crdb` (feature `crdb`, PREFLIGHT D-P7.8, spikes/q4-005): CockroachDB over the PG wire. The upsert guard is
+///   `WHERE <table>.<tenant>::text = excluded.<tenant>::text COLLATE "C"`: CockroachDB evaluates
+///   `t.tenant = excluded.tenant COLLATE "C"` under the LEFT operand's collation, so on a collated tenant column
+///   tenant `'ACME'` would update tenant `'acme'` (q4-005 finding 2); the casts drop the locale on both sides. The
+///   `UPSERT` statement (primary-key arbiter, no guard) is never rendered. Text atoms already cast with `::text`,
+///   which drops a collated string's locale on CockroachDB, so they are unchanged.
+///
+/// `#[non_exhaustive]`: matches outside this crate need a wildcard arm, so enabling `crdb` through feature
+/// unification never breaks a crate that only knows `Postgres`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Dialect {
+    #[default]
+    Postgres,
+    #[cfg(feature = "crdb")]
+    Crdb,
+}
+
+impl Dialect {
+    /// Whether this is the CockroachDB dialect (always false without feature `crdb`).
+    pub const fn is_crdb(self) -> bool {
+        match self {
+            Dialect::Postgres => false,
+            #[cfg(feature = "crdb")]
+            Dialect::Crdb => true,
+        }
+    }
+}
+
+/// The DO UPDATE guard of the upsert for `dialect` (`tname`, `g` already quoted).
+fn upsert_guard(dialect: Dialect, tname: &str, g: &str) -> String {
+    if dialect.is_crdb() {
+        format!("{tname}.{g}::text = excluded.{g}::text COLLATE \"C\"")
+    } else {
+        format!("({tname}.{g}::text COLLATE \"C\") = (excluded.{g}::text COLLATE \"C\")")
+    }
+}
+
 /// Render one lowered op as a single PG statement. The tenant column must be a text column of `table`.
 pub fn render(l: &Lowered, table: &PgTable) -> Result<Rendered, RenderError> {
+    render_dialect(l, table, Dialect::Postgres)
+}
+
+/// [`render`] for `dialect`. Only the upsert guard differs between dialects (see [`Dialect`]).
+pub fn render_dialect(l: &Lowered, table: &PgTable, dialect: Dialect) -> Result<Rendered, RenderError> {
     if l.collection != table.name {
         return Err(RenderError::CollectionMismatch);
     }
@@ -439,10 +486,7 @@ pub fn render(l: &Lowered, table: &PgTable) -> Result<Rendered, RenderError> {
                             }
                             let g = w.col(*guard)?.0;
                             let tname = quote_ident(&table.name)?;
-                            format!(
-                                "DO UPDATE SET {} WHERE ({tname}.{g}::text COLLATE \"C\") = (excluded.{g}::text COLLATE \"C\")",
-                                parts.join(", ")
-                            )
+                            format!("DO UPDATE SET {} WHERE {}", parts.join(", "), upsert_guard(dialect, &tname, &g))
                         }
                     };
                     format!("{ins} ON CONFLICT ({}) {act}{ret}", arb.join(", "))
@@ -458,6 +502,12 @@ pub fn render(l: &Lowered, table: &PgTable) -> Result<Rendered, RenderError> {
 pub fn render_op(op: &Op, schema: &Schema, table: &PgTable) -> Result<Rendered, RenderError> {
     let l = lower_op(op, schema, Fidelity::Exact)?;
     render(&l, table)
+}
+
+/// [`render_op`] for `dialect`.
+pub fn render_op_dialect(op: &Op, schema: &Schema, table: &PgTable, dialect: Dialect) -> Result<Rendered, RenderError> {
+    let l = lower_op(op, schema, Fidelity::Exact)?;
+    render_dialect(&l, table, dialect)
 }
 
 // ------------------------------------------------------------------------------------------- RLS (R-DB-1, W-forms)

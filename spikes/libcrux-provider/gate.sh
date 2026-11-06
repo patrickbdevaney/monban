@@ -141,6 +141,12 @@ if [ $self_test = 1 ]; then
   out=$(python3 -I "$here/tools/supply.py" lockage "$here/Cargo.lock" --min 7 --today 2026-10-08)
   [ $? != 0 ] && echo "$out" | grep -q 'libcrux-ml-kem@0.0.11' || die "lock-age: stayed green with a 1-day-old libcrux"
   summary+=("supply: OSV names a planted h2 0.3.0, lock-age red as of 2026-10-08")
+  # The acceptance ledger cannot hide a vulnerability or an expired entry (accepted-advisories.toml rules).
+  AEGIS_SPIKE_INFO_OVERRIDE=vulnerability python3 -I "$here/tools/supply.py" osv "$here/Cargo.lock" "$here/Cargo.toml" "$repo/deny.toml" >/dev/null \
+    && die "osv ledger: an accepted id re-classed as a vulnerability stayed green"
+  AEGIS_SPIKE_TODAY=2027-02-07 python3 -I "$here/tools/supply.py" osv "$here/Cargo.lock" "$here/Cargo.toml" "$repo/deny.toml" >/dev/null \
+    && die "osv ledger: an expired acceptance stayed green"
+  summary+=("osv ledger: vulnerability-class and expired acceptances red")
   rm -rf "$T/mut-gcm" "$T/mut-kx" "$T/st-lcx" "$T/st-fix" "$T/mut-kx-work" "$T/osv-mut"
   rm -f "$RES/c-surface-lcx-st.json" "$RES/cc-lcx-st.log" "$RES/cc-lcx-fixture.log"
   echo "$NAME: PASS ($(IFS=';'; echo "${summary[*]}" | sed 's/;/; /g'))"
