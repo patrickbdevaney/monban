@@ -16,6 +16,9 @@ for d in "${ORACLES_DIR:-$ROOT/oracles}"/*/; do
   if [ "$where" = remote ] && [ -f "$d/needs" ]; then continue; fi
   # `needs` = kamrui: the oracle has its own phase gate that runs it there (kx-interop); no aggregate runs it.
   [ -f "$d/needs" ] && grep -qx kamrui "$d/needs" && [ "$where" != all ] && continue
+  # `needs` = own-gate: the oracle judges a feature build that only its own phase gate builds (proxy-l4, front-equiv);
+  # no aggregate runs it, wherever.
+  [ -f "$d/needs" ] && grep -qx own-gate "$d/needs" && continue
   quiet=0; [ -f "$d/needs" ] && grep -qx quiet-host "$d/needs" && quiet=1
   other=0; [ -f "$d/needs" ] && awk 'NF && $1 != "quiet-host" {f=1} END {exit !f}' "$d/needs" && other=1
   if [ "$where" = local ] && [ $other = 0 ]; then continue; fi
