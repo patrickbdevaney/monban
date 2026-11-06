@@ -47,3 +47,7 @@ The gate therefore stays red on this one line. It runs every other step anyway, 
    with an expiry, valid only while `cargo tree` shows the crate is never compiled; `tools/supply.py` already
    prints that fact.
 3. A spec-author decision that "OSV clean" applies to the compiled graph, the scope cargo-deny already uses.
+
+---
+
+**Resolution (integrator, 2026-11-06, ca9c388):** accepted through the spike-local `accepted-advisories.toml` ledger. The acceptance is mechanical, not a waiver: it needs the exact crate@version+id, an unexpired entry (2027-02-06), live evidence that the crate is not compiled for any shipped target, and OSV class `unmaintained`; self-test mutants prove a vulnerability-class or expired acceptance stays red. Upstream fix still wanted.
