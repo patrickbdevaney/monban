@@ -1,0 +1,18 @@
+[package]
+name = "crdb-subject"
+description = "Oracle subject: aegis-adapter-pg with the CockroachDB dialect (feature `crdb`) for oracles/lowering-read, lowering-write and schema-gate (`--engine crdb`) over JSON lines. Never linked into aegis."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.aegis]
+layer = "tool"
+
+# Pre-wired by P7-spec-002; the subject is P7-adapter-crdb-001. No third-party dependencies.
+[dependencies]
+aegis-adapter-pg = { workspace = true, features = ["crdb"] }
+
+[lints]
+workspace = true

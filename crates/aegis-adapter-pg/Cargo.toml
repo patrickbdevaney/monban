@@ -10,6 +10,13 @@ publish = false
 [package.metadata.aegis]
 layer = 4
 
+[features]
+default = []
+# PREFLIGHT D-P7.8 (P7-spec-002 pre-wiring; dialect by P7-adapter-crdb-001): the CockroachDB dialect over the PG wire
+# (upsert guard fix, bounded SERIALIZABLE 40001 retry, crdb version floor). Off by default: the golden PG build and
+# every carried PG gate compile without it. Enabled by aegis-bin `adapter-crdb` and subjects/crdb-subject.
+crdb = []
+
 [dependencies]
 aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }

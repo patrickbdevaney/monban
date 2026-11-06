@@ -1,0 +1,66 @@
+{
+ "aegis-adapter-pg": {
+  "crdb": [],
+  "default": []
+ },
+ "aegis-bin": {
+  "adapter-crdb": [
+   "native",
+   "aegis-adapter-pg/crdb"
+  ],
+  "adapter-mariadb": [
+   "native",
+   "dep:aegis-adapter-mysql"
+  ],
+  "cmvp": [
+   "aegis-tls/cmvp",
+   "aegis-audit/cmvp",
+   "aegis-token/cmvp",
+   "dep:aegis-iso",
+   "aegis-iso/cmvp"
+  ],
+  "default": [],
+  "e2e-mutants": [
+   "aegis-transport/e2e-raw-target"
+  ],
+  "l4": [
+   "dep:aegis-wire"
+  ],
+  "mtc": [
+   "aegis-tls/mtc",
+   "dep:aegis-wire"
+  ],
+  "native": [
+   "dep:aegis-adapter-pg",
+   "dep:aegis-adapter-redis",
+   "dep:aegis-adapter-sqlite",
+   "dep:aegis-data-ir",
+   "dep:aegis-state",
+   "dep:notes",
+   "dep:rusqlite"
+  ],
+  "p2": [
+   "dep:aegis-iso"
+  ],
+  "p2-mutants": [
+   "p2",
+   "aegis-iso/mutants"
+  ],
+  "proxy-protocol": [
+   "dep:aegis-wire"
+  ],
+  "uring": [
+   "dep:aegis-uring"
+  ]
+ },
+ "aegis-tls": {
+  "cmvp": [],
+  "default": [],
+  "kat": [],
+  "mtc": [
+   "dep:aegis-wire"
+  ],
+  "order-mutant": [],
+  "tls-client": []
+ }
+}

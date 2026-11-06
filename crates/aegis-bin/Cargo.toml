@@ -16,6 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 aegis-adapter-host = { workspace = true }
+# MariaDB adapter (PREFLIGHT D-P7.8): feature `adapter-mariadb` only.
+aegis-adapter-mysql = { workspace = true, optional = true }
 aegis-adapter-pg = { workspace = true, optional = true }
 aegis-adapter-redis = { workspace = true, optional = true }
 aegis-adapter-sqlite = { workspace = true, optional = true }
@@ -39,6 +41,10 @@ aegis-tls = { workspace = true }
 aegis-token = { workspace = true }
 aegis-transport = { workspace = true }
 aegis-types = { workspace = true }
+# Phase 7 (P7-spec-002 pre-wiring; wired by P7-bin-001). The io_uring front: feature `uring` only (PREFLIGHT D-P7.3).
+aegis-uring = { workspace = true, optional = true }
+# PROXY v2 header and ClientHello peek parsers (PREFLIGHT D-P7.2): features `proxy-protocol`, `l4`, `mtc` only.
+aegis-wire = { workspace = true, optional = true }
 # Native applications (modes A/D, layer "app"): only L5 may depend on them (cargo xtask layering). aegis-bin itself
 # never depends on aegis-sdk (only aegis-adapter-host and apps may); the SDK host loop stays in aegis-adapter-host.
 notes = { path = "../../apps/notes", optional = true }
@@ -82,6 +88,20 @@ p2-mutants = ["p2", "aegis-iso/mutants"]
 # PLAN-6 D1: the cmvp build (profiles/cmvp/build.sh with the overlay lock). Forwards to the owning crates' cmvp cfg;
 # aegis-iso/cmvp reads the linked module's version string for FipsStatus and FIPS-CMVP (D16; no new crate).
 cmvp = ["aegis-tls/cmvp", "aegis-audit/cmvp", "aegis-token/cmvp", "dep:aegis-iso", "aegis-iso/cmvp"]
+# Phase 7 (IMPLEMENTATION_PLAN §3: "each off by default, own TCB line"). Pre-wired by P7-spec-002; the code behind each
+# is P7-bin-001. None is in `default`, and gate default-graph checks the default aegis-bin graph stays the e06550e
+# baseline (no io-uring, no aegis-wire, no aegis-uring, no aegis-adapter-mysql). Not part of the cmvp build.
+# PROXY protocol v2 on listeners with `proxy_protocol.trusted` CIDRs (F8; F1 PROXY-1..3). Own parser (D-P7.2).
+proxy-protocol = ["dep:aegis-wire"]
+# L4 SNI passthrough listeners (F8 `listener.l4`; F1 L4-1, L4-2): ClientHello peek, route by SNI, splice.
+l4 = ["dep:aegis-wire"]
+# MTC CredentialSelector (D-P7.4; F1 SEL-1..3): selection only, the MTC credential is an opaque operator blob.
+mtc = ["aegis-tls/mtc", "dep:aegis-wire"]
+# The io_uring front (`listener.front = "uring"` / `--front uring`; D-P7.3, F1 FRONT-1). Widens the kernel surface.
+uring = ["dep:aegis-uring"]
+# Adapter families `mariadb` and `crdb` (D-P7.8) on the native data plane. Non-golden until their gates pass.
+adapter-mariadb = ["native", "dep:aegis-adapter-mysql"]
+adapter-crdb = ["native", "aegis-adapter-pg/crdb"]
 
 [lints]
 workspace = true

@@ -8,6 +8,10 @@
 # Defaults: --crate aegis-budget --neg negative_control_unclamped_refill, so the kani-tbi invocations
 # (`ci/kani.sh`, `ci/kani.sh --self-test`) are unchanged. kani-kx is
 # `ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split`.
+# kani-wire (P7-spec-002) is `ci/kani.sh --serial --mem 6G -p aegis-wire` / `ci/kani.sh --self-test -p aegis-wire`:
+# `-p C` is `--crate C`; `--mem M` sets the per-harness MemoryMax (as KANI_MEM); `--serial` is accepted for clarity
+# (harnesses always run one at a time). Without --neg the negative control is the crate's own: aegis-wire
+# negative_control_planted_oob, every other crate negative_control_unclamped_refill (the aegis-budget one, as before).
 #
 # The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/<dir> with a
 # generated minimal workspace manifest (<dir> = p2-kani for aegis-budget, kani-<crate> otherwise). Third-party
@@ -30,18 +34,27 @@ MEM=${KANI_MEM:-6G}
 TMO=${KANI_TIMEOUT:-1800}
 PR4910_MERGE=16c774cf
 CRATE=aegis-budget
-NEG=negative_control_unclamped_refill
+NEG=
 
-usage() { echo "usage: ci/kani.sh [--crate CRATE] [--neg HARNESS] [--expect-neg-only|--self-test]" >&2; exit 2; }
+usage() { echo "usage: ci/kani.sh [--crate|-p CRATE] [--neg HARNESS] [--mem M] [--serial] [--expect-neg-only|--self-test]" >&2; exit 2; }
 MODE=all
 while [ $# -gt 0 ]; do
   case "$1" in
     --self-test|--expect-neg-only) MODE=self; shift ;;
-    --crate) [ $# -ge 2 ] || usage; CRATE=$2; shift 2 ;;
+    --crate|-p) [ $# -ge 2 ] || usage; CRATE=$2; shift 2 ;;
     --neg) [ $# -ge 2 ] || usage; NEG=$2; shift 2 ;;
+    --mem) [ $# -ge 2 ] || usage; MEM=$2; shift 2 ;;
+    --serial) shift ;;
     *) usage ;;
   esac
 done
+if [ -z "$NEG" ]; then
+  case "$CRATE" in
+    aegis-wire) NEG=negative_control_planted_oob ;;
+    *) NEG=negative_control_unclamped_refill ;;
+  esac
+fi
+[[ "$MEM" =~ ^[0-9]+[KMG]$ ]] || { echo "kani.sh: bad --mem $MEM (e.g. 6G)" >&2; exit 2; }
 [[ "$CRATE" =~ ^aegis-[a-z0-9-]+$ ]] || { echo "kani.sh: bad crate name $CRATE" >&2; exit 2; }
 [[ "$NEG" =~ ^[a-z_0-9]+$ ]] || { echo "kani.sh: bad harness name $NEG" >&2; exit 2; }
 if [ "$CRATE" = aegis-budget ]; then WDIR=p2-kani; else WDIR=kani-$CRATE; fi

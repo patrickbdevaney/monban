@@ -128,6 +128,12 @@ const INTRA_LAYER: &[(&str, &str)] =
     &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon"), ("aegis-adapter-host", "aegis-state")];
 /// Layered crates allowed to depend on the SDK (the F7 host; D2(b)). Apps and these are its only dependents.
 const SDK_HOSTS: &[&str] = &["aegis-adapter-host"];
+/// Phase 7 crates whose layer PLAN-7 fixes (P7-spec-002): moving one in its manifest fails layering.
+const PINNED_LAYERS: &[(&str, u8)] =
+    &[("aegis-wire", 2), ("aegis-adapter-mysql", 4), ("aegis-uring", 4), ("aegis-otlp", 5)];
+/// Separate binaries (layer 5) that no package may depend on, of any kind: aegis-bin execs or sits beside them and
+/// never links them (X-8 aegis-pdp, X-13 aegis-p2, PREFLIGHT D-P7.6 aegis-otlp).
+const SEPARATE_BINARIES: &[&str] = &["aegis-pdp", "aegis-p2", "aegis-otlp"];
 /// Crates permitted to relax `forbid(unsafe_code)` (each site audited and capped by `cargo xtask unsafe-sites`).
 const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm"];
 /// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): aegis-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
@@ -185,7 +191,19 @@ fn workspace_model() -> Result<Vec<Pkg>, String> {
 fn check_layering(pkgs: &[Pkg]) -> Vec<String> {
     let mut v = Vec::new();
     let layer_of: BTreeMap<&str, &Option<Layer>> = pkgs.iter().map(|p| (p.name.as_str(), &p.layer)).collect();
+    for (name, want) in PINNED_LAYERS {
+        match layer_of.get(name) {
+            Some(Some(Layer::N(l))) if l == want => {}
+            Some(got) => v.push(format!("{name}: layer {got:?}, PLAN-7 fixes it at {want}")),
+            None => v.push(format!("{name}: missing (PLAN-7 workspace member, layer {want})")),
+        }
+    }
     for p in pkgs {
+        for (dn, kind, _) in &p.deps {
+            if SEPARATE_BINARIES.contains(&dn.as_str()) {
+                v.push(format!("{} -> {dn} [{kind}]: {dn} is a separate binary; nothing may depend on it", p.name));
+            }
+        }
         let Some(pl) = &p.layer else {
             v.push(format!("{}: missing [package.metadata.aegis] layer", p.name));
             continue;
@@ -351,6 +369,17 @@ fn layering(self_test: bool) -> Result<(), String> {
         if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-bin") {
             t.fwd.push("aegis-sdk?/host".into());
         }
+        // P7-spec-002: aegis-bin linking the aegis-otlp exporter binary; the L2 parser crate reaching an L4 adapter;
+        // a Phase 7 crate moved off its PLAN-7 layer.
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-bin") {
+            t.deps.push(("aegis-otlp".into(), "normal".into(), vec![]));
+        }
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-wire") {
+            t.deps.push(("aegis-adapter-mysql".into(), "normal".into(), vec![]));
+        }
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-uring") {
+            t.layer = Some(Layer::N(3));
+        }
         pkgs.push(Pkg {
             name: "selftest-app".into(),
             dir: PathBuf::new(),
@@ -401,6 +430,10 @@ fn layering(self_test: bool) -> Result<(), String> {
             "aegis-state (N(4)) -> aegis-sdk (Sdk)",
             "aegis-bin enables aegis-sdk/host (forwarded feature)",
             "selftest-app (App) -> aegis-data-ir",
+            "aegis-bin -> aegis-otlp [normal]: aegis-otlp is a separate binary",
+            "aegis-bin (N(5)) -> aegis-otlp (N(5))",
+            "aegis-wire (N(2)) -> aegis-adapter-mysql (N(4))",
+            "aegis-uring: layer Some(N(3)), PLAN-7 fixes it at 4",
         ]
         .iter()
         .map(|s| s.to_string())

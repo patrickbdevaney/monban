@@ -11,9 +11,10 @@ rust-version = "1.99.1"
 license = "Apache-2.0"
 
 # Pin rule (REPO_LAYOUT §1): caret ranges + security floors here; the golden Cargo.lock targets are
-# enforced by `xtask lock-targets`. Exact `=` pins live only in profiles/cmvp/.
+# enforced by `xtask lock-targets`. Exact `=` pins live only in profiles/cmvp/, except io-uring (PREFLIGHT D-P7.3).
 [workspace.dependencies]
 aegis-adapter-host = { path = "crates/aegis-adapter-host" }
+aegis-adapter-mysql = { path = "crates/aegis-adapter-mysql" }
 aegis-adapter-pg = { path = "crates/aegis-adapter-pg" }
 aegis-adapter-redis = { path = "crates/aegis-adapter-redis" }
 aegis-adapter-sqlite = { path = "crates/aegis-adapter-sqlite" }
@@ -35,7 +36,9 @@ aegis-tls = { path = "crates/aegis-tls" }
 aegis-token = { path = "crates/aegis-token" }
 aegis-transport = { path = "crates/aegis-transport" }
 aegis-types = { path = "crates/aegis-types" }
+aegis-uring = { path = "crates/aegis-uring" }
 aegis-wasm = { path = "crates/aegis-wasm" }
+aegis-wire = { path = "crates/aegis-wire" }
 aegis-sdk = { path = "sdk/aegis-sdk" }
 
 # Third-party floors (REPO_LAYOUT §1). Lock targets: supply-chain/lock-targets.toml. 7-day cooldown via
@@ -69,6 +72,11 @@ sha2 = { version = "0.10.9", default-features = false }
 # aegis-iso raw syscalls (fork, prctl, seccomp, landlock_*, setitimer, _exit; PLAN-5 D4). Already in the lock and
 # in the default aegis-bin build (tokio/rustix); a root pin only, no new crate.
 libc = { version = "0.2.191", default-features = false, features = ["std"] }
+# PREFLIGHT D-P7.3 (P7-spec-002): the opt-in io_uring front (aegis-uring, aegis-bin feature `uring`, off in every shipped
+# profile; gate default-graph). Exact pin: io-uring 0.7.15 (2026-09-07) directly, not a stale runtime crate (tokio-uring,
+# monoio). No features: no `bindgen` (build-time C header parsing), no `direct-syscall` (sc). Adds one crate to the lock;
+# bitflags 2, cfg-if and libc are already there. Vet: own safe-to-deploy audit (supply-chain/audits.toml), zero exemptions.
+io-uring = { version = "=0.7.15", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -24,9 +24,14 @@ kat = []
 # PLAN-6 D4 negative control ONLY (kx-interop, kx-kat self-tests): emits the 0x11ED share in the wrong component
 # order (ML-KEM first). Never part of a shipped build.
 order-mutant = []
+# PREFLIGHT D-P7.4 (P7-spec-002 pre-wiring; selector by P7-mtc-001): the MTC CredentialSelector, which reads
+# trust_anchors from the aegis-wire ClientHello peek (rustls 0.23 does not expose it). Off by default; never in cmvp.
+mtc = ["dep:aegis-wire"]
 
 [dependencies]
 aegis-types = { workspace = true }
+# Feature `mtc` only (L2 pure parser; no third-party crate).
+aegis-wire = { workspace = true, optional = true }
 rustls = { workspace = true }
 aws-lc-rs = { workspace = true }
 # Direct dependency only to hold the security floor (RUSTSEC-2026-0382) in this crate's resolve; rustls uses it.
