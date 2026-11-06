@@ -73,6 +73,8 @@ IPAccounting=yes
 SystemCallArchitectures=native
 SystemCallFilter=@system-service
 SystemCallFilter=~@privileged @resources @mount @swap @reboot @raw-io @module @obsolete @cpu-emulation @debug @clock
+# PLAN-7 D-P7.3 / FRONT: io_uring (in @aio, so in @system-service) is denied unless deploy/uring.conf is installed.
+SystemCallFilter=~io_uring_setup io_uring_enter io_uring_register
 SystemCallErrorNumber=EPERM
 
 # Resources (provisional; ARCHITECTURE §6)
