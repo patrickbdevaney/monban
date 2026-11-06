@@ -1,0 +1,9 @@
+# Spike-local OSV acceptance ledger (integrator, 2026-11-06). Rules in tools/supply.py `accept_reason`: exact
+# crate@version + advisory, not expired, crate NOT compiled for any shipped target (re-checked live each run), and OSV
+# classes it informational "unmaintained". A vulnerability, a compiled crate, or an expired entry is always red.
+[[accept]]
+crate = "proc-macro-error2"
+version = "2.0.1"
+advisory = "RUSTSEC-2026-0173"
+reason = "unmaintained (not a vulnerability); reached only through cfg(hax) edges of libcrux, never compiled for x86_64/aarch64 gnu or x86_64 musl; libcrux pins its intrinsics crate exactly, no >=7 d release avoids it"
+expires = "2027-02-06"
