@@ -683,6 +683,7 @@ name = "otlp-export"
 cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-otlp && oracles/otlp-export/run --exporter target/release/aegis-otlp"
 selftest = "oracles/otlp-export/run --self-test"
 heavy = true
+remote = true
 
 [[gate]]
 name = "libcrux-spike"

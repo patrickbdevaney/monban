@@ -280,7 +280,27 @@ fn main() -> ExitCode {
         eprintln!("aegis-otlp: stdin reader: {e}");
         return ExitCode::from(2);
     }
-    let stop = AtomicBool::new(false);
+    let stop = Arc::new(AtomicBool::new(false));
+    // SIGTERM / SIGINT stop the loop; `run` flushes the queued logs before it returns, then exit 0.
+    for kind in [tokio::signal::unix::SignalKind::terminate(), tokio::signal::unix::SignalKind::interrupt()] {
+        let sig = {
+            let _rt = rt.enter();
+            tokio::signal::unix::signal(kind)
+        };
+        match sig {
+            Ok(mut sig) => {
+                let stop = stop.clone();
+                rt.spawn(async move {
+                    sig.recv().await;
+                    stop.store(true, Ordering::SeqCst);
+                });
+            }
+            Err(e) => {
+                eprintln!("aegis-otlp: signal handler: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    }
     rt.block_on(ex.run(&stop));
     ExitCode::SUCCESS
 }
