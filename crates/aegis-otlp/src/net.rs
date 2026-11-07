@@ -128,16 +128,33 @@ impl Poster {
         resp.map(|r| r.status).map_err(|e| e.to_string())
     }
 
-    /// POST one JSON request; `Ok` only for a 2xx answer.
-    pub async fn post(&self, url: &Url, body: &[u8]) -> Result<(), String> {
-        let r =
-            tokio::time::timeout(TIMEOUT, self.post_inner(url, body)).await.unwrap_or_else(|_| Err("timeout".into()));
+    /// POST one JSON request within `timeout`; `Ok` only for a 2xx answer. A failure says whether the OTLP/HTTP
+    /// specification ("Failures") allows a retry: 429, 502, 503, 504 and transport failures (connect, TLS, I/O,
+    /// timeout) do; every other answer is final.
+    pub async fn post(&self, url: &Url, body: &[u8], timeout: Duration) -> Result<(), PostError> {
+        let r = tokio::time::timeout(timeout.min(TIMEOUT), self.post_inner(url, body))
+            .await
+            .unwrap_or_else(|_| Err("timeout".into()));
         match r {
             Ok(s) if (200..300).contains(&s) => Ok(()),
-            Ok(s) => Err(format!("POST {}: HTTP {s}", url.path())),
-            Err(e) => Err(format!("POST {}: {e}", url.path())),
+            Ok(s) => Err(PostError { msg: format!("POST {}: HTTP {s}", url.path()), retryable: retryable_status(s) }),
+            Err(e) => Err(PostError { msg: format!("POST {}: {e}", url.path()), retryable: true }),
         }
     }
+}
+
+/// A failed POST.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PostError {
+    /// What went wrong (for the log).
+    pub msg: String,
+    /// Whether another attempt may be made.
+    pub retryable: bool,
+}
+
+/// OTLP/HTTP "Failures": the status codes a client may retry.
+pub fn retryable_status(s: u16) -> bool {
+    matches!(s, 429 | 502 | 503 | 504)
 }
 
 /// Build the client config for an https collector: the aegis-tls client profile over the roots in `ca_pem`.

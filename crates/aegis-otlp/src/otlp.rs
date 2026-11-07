@@ -260,6 +260,31 @@ pub fn metrics(out: &mut String, fams: &[Family], t: Times) -> Result<usize, OmE
     Ok(n)
 }
 
+/// Data points [`metrics`] writes for `fams` (one per counter or gauge series, one per histogram label set): what
+/// `aegis_otlp_dropped_metric_points` counts when a metrics request is dropped.
+pub fn points(fams: &[Family]) -> u64 {
+    let mut n = 0u64;
+    for f in fams {
+        let k = match f.kind {
+            Kind::Counter => f.samples.iter().filter(|s| s.suffix == "_total").count(),
+            Kind::Gauge | Kind::Unknown => f.samples.iter().filter(|s| s.suffix.is_empty()).count(),
+            Kind::Histogram => {
+                let mut sets: Vec<Vec<(String, String)>> = f
+                    .samples
+                    .iter()
+                    .map(|s| sorted(&s.labels.iter().filter(|(k, _)| k != "le").cloned().collect::<Vec<_>>()))
+                    .collect();
+                sets.sort();
+                sets.dedup();
+                sets.len()
+            }
+            Kind::Skipped => 0,
+        };
+        n = n.saturating_add(u64::try_from(k).unwrap_or(u64::MAX));
+    }
+    n
+}
+
 /// The shared Resource and scope.
 #[derive(Clone, Debug)]
 pub struct Envelope {
