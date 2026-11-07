@@ -54,10 +54,12 @@ def pg_quote(v):
 class PgConn:
     def __init__(self, dsn, timeout=10.0):
         p = parse_pg_dsn(dsn)
-        self.s = socket.create_connection((p["host"], p["port"]), timeout=timeout)
+        self.addr = (p["host"], p["port"])
+        self.s = socket.create_connection(self.addr, timeout=timeout)
         self.s.settimeout(timeout)
         self.params = {}
         self.txn_status = b"I"
+        self.backend_key = None  # (process id, secret key) from BackendKeyData, for CancelRequest
         self._startup(p["user"], p["password"], p["db"])
 
     def _msg(self):
@@ -111,6 +113,8 @@ class PgConn:
             if t == b"S":
                 k, v = p[:-1].split(b"\0", 1)
                 self.params[k.decode()] = v.decode()
+            elif t == b"K" and len(p) >= 8:
+                self.backend_key = struct.unpack("!ii", p[:8])
             elif t == b"Z":
                 self.txn_status = p[:1]
                 return
@@ -143,6 +147,18 @@ class PgConn:
                 if err is not None:
                     raise DbError(err.get("M", "error"), err.get("C", ""))
                 return rows
+
+    def cancel(self):
+        """PG CancelRequest (protocol 3.0 section 53.2.7) on a fresh connection to the same server: asks it to cancel
+        whatever this session is running. Returns False if the server sent no BackendKeyData."""
+        if self.backend_key is None:
+            return False
+        try:
+            with socket.create_connection(self.addr, timeout=5) as c:
+                c.sendall(struct.pack("!iiii", 16, 80877102, *self.backend_key))
+        except OSError:
+            return False
+        return True
 
     def close(self):
         try:

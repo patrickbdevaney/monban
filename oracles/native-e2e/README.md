@@ -191,3 +191,69 @@ Runs on 2026-10-30, laptop:
   refusals (judged by oracles/schema-gate; this oracle only provisions an admitted PG table, see Schema), PG
   per-tenant credentials, and `unrestricted`. If P4-oracle-schema-001 requires more of the schema, the spec author
   amends `Store.setup` / `pg_provision` here.
+
+## MariaDB backend (P8-oracle-001, gate native-e2e-mariadb; PREFLIGHT R4)
+
+```
+ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/aegis   # gate (aegis --features adapter-mariadb)
+ci/engines.sh with mariadb -- oracles/native-e2e/run --self-test --engine mariadb --dsn @mariadb                     # reference + mutants
+```
+
+`--engine mariadb --dsn <mysql://root:..@127.0.0.1:P/aegis>` adds a backend `my` next to SQLite (`--binary` is an alias
+of `--subject`; `--engine`/`--dsn` pair up in order). Every `<b>.*` check group above then runs for `my` too
+(CRUD, idempotency, cross-tenant uniform denial, auth, NC1, NC7, NC2), plus `cap.*` on SQLite and the NC8 drain over
+both backends.
+
+**Config.** `{"id":"my","engine":"mariadb","dsn_ref":"env:AEGIS_E2E_MARIADB_DSN","pin":"mariadb","op_budget_ms":5000}`
+and the route `{"id":N,"path":"/my/","to":{"upstream":"app:notes"},"authz":"allow-all","data":[{"backend":"my",
+"collection":"notes","ops":[all five],"columns":["id","body"]}]}`.
+
+**Schema (created by the oracle as root, recreated per run, database from the DSN path).** The golden MariaDB shape of
+oracles/schema-gate (`aegis_adapter_mysql::check_live_schema`):
+
+```sql
+CREATE TABLE notes (tenant VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
+                    id VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
+                    body TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
+                    PRIMARY KEY (tenant, id)) ENGINE=InnoDB;
+CREATE TABLE aegis_idem (tenant VARCHAR(16) .. nopad_bin NOT NULL, principal VARCHAR(255) .. nopad_bin NOT NULL,
+                         k VARCHAR(64) .. nopad_bin NOT NULL, status INT NOT NULL, body MEDIUMTEXT .. nopad_bin NOT NULL,
+                         PRIMARY KEY (principal, k)) ENGINE=InnoDB;
+```
+
+`aegis_idem` is the in-band idempotency table (PLAN D14) provisioned so the login user never needs DDL; a subject
+that keeps idempotency elsewhere ignores it, and P8-bin-001 may ask the spec author for a different shape.
+MariaDB has no row-level security: tenant isolation is the rendered tenant conjunct alone. The subject logs in as
+`aegis_app@'%'` (`mysql_native_password`, fresh random password per run) with `SELECT, INSERT, UPDATE, DELETE` on
+`notes` and `SELECT, INSERT` on `aegis_idem`, and no global privilege (the oracle checks `Super_priv`, `File_priv`,
+`Create_priv` = N before boot). `AEGIS_E2E_MARIADB_DSN` = `mysql://aegis_app:<pw>@127.0.0.1:<port>/aegis`; root is
+never given to the subject. Durable rows are read as root.
+
+**Schema refusal (boot).** Before the real boot the oracle recreates `notes` wrongly and boots the subject with the
+otherwise good config; it must exit 78 without ever accepting a connection:
+
+| check | variant | live schema gate class |
+|---|---|---|
+| `boot.mariadb-schema-tenant-ci.exit78` / `.never-listened` | tenant `utf8mb4_general_ci` | `CaseInsensitive` (W3 amendment) |
+| `boot.mariadb-schema-myisam.exit78` / `.never-listened` | `ENGINE=MyISAM` | `NonTransactionalEngine` |
+
+**Reference.** `ref_subject.py` engine `mariadb` (`MyTx`, over `mywire.py`, a verbatim copy of
+oracles/schema-gate/mywire.py): one connection per transaction, `START TRANSACTION`, prepared statements only, the
+tenant conjunct in every WHERE, UPDATE/DELETE as `SELECT .. FOR UPDATE` then the write (the mandated MariaDB form, no
+RETURNING), insert duplicate = error 1062 → 409, upsert `ON DUPLICATE KEY UPDATE` (safe: (tenant, id) is the only
+unique key, which the reference's boot check also requires, with InnoDB and byte-equality collations).
+
+**Mutant (reference only, run when `my` is present).** `drop-tenant`: the tenant conjunct is dropped from every
+MariaDB statement. Caught by the `my.xt.*` checks (a foreign row is read, updated or deleted through its id).
+aegis-bin's `e2e-mutants` build does not carry it; `--self-test --subject` runs the six shared mutants only (and
+builds `native,e2e-mutants,adapter-mariadb` when `--engine mariadb` is given).
+
+Today (base 0e27b11) aegis-bin refuses every MariaDB backend at boot (`adapters.rs`: no F4 denylist family, no
+`allowlist.notes-mariadb.lock`), so the gate is red until P8-mariadb-001 and P8-bin-001 land. The recorded runs are in
+the P8-oracle-001 report.
+
+### CockroachDB engine of the reference (used by oracles/crdb-live)
+
+`ref_subject.py` also has an engine `crdb` (`CrdbPool`, `CrdbTx`) and three reference-only mutants
+(`crdb-40001-as-success`, `crdb-cancel-ignored`, `crdb-no-reset`). They are exercised by oracles/crdb-live, not here;
+see its README. `wire.PgConn` now keeps BackendKeyData and can send a CancelRequest (`cancel()`).

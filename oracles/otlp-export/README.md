@@ -8,7 +8,7 @@ lines on stdin, and POSTs OTLP/HTTP JSON to `/v1/metrics` and `/v1/logs`.
 ```
 oracles/otlp-export/run                                      # reference exporter (ref_exporter.py): PASS
 oracles/otlp-export/run --exporter target/release/aegis-otlp # the gate: the real binary
-oracles/otlp-export/run --self-test                          # reference PASS, 16 mutants + stub + absent FAIL
+oracles/otlp-export/run --self-test                          # reference PASS, 23 mutants + stub + absent FAIL
 ```
 `--subject` is accepted as an alias of `--exporter` (oracles/README.md contract). With no flag the oracle judges
 the reference, so the aggregate `oracles` gate (which runs every oracle without `needs`) stays green before
@@ -26,7 +26,8 @@ aegis-otlp --scrape <TARGET> --endpoint <URL> --service-name <S> [--interval-ms 
 |---|---|
 | `--scrape http://HOST:PORT/PATH` | GET this URL over HTTP/1.1 on loopback TCP (the oracle passes `http://127.0.0.1:P/metrics`). |
 | `--scrape unix:/ABS/PATH.sock` | GET `/metrics` over this unix stream socket (the admin listener's UDS form). |
-| `--endpoint URL` | OTLP/HTTP **base** URL. Strip trailing `/`, then append `/v1/metrics` and `/v1/logs`. A path prefix is kept, so `http://h:p/collector/` gives `/collector/v1/metrics`. The oracle uses `http://`. `https://` goes through the aegis-tls client profile and is not exercised here. |
+| `--endpoint URL` | OTLP/HTTP **base** URL. Strip trailing `/`, then append `/v1/metrics` and `/v1/logs`. A path prefix is kept, so `http://h:p/collector/` gives `/collector/v1/metrics`. `https://` goes through the aegis-tls client profile (P8: exercised, see "https, retry and drop-and-count"). |
+| `--ca-file PEM` | Required for `https://`: the only trust roots (no platform store). The oracle passes it. |
 | `--service-name S` | Required. Every Resource carries the attribute `service.name` = S (`stringValue`). |
 | `--interval-ms N` | Scrape and export period in interval mode. Default 10000. |
 | `--resource-attr k=v` | Optional extra string resource attributes, repeatable. The oracle does not use it. |
@@ -44,7 +45,25 @@ The exporter may split a signal across several requests, and may send requests w
 - body: one `ExportMetricsServiceRequest` / `ExportLogsServiceRequest` in OTLP JSON;
 - optionally `Content-Encoding: gzip`.
 
-The oracle's collector answers `200`, `Content-Type: application/json`, `{}`. Retry and backoff are not exercised.
+The oracle's collector answers `200`, `Content-Type: application/json`, `{}`, except in the failure cases below.
+
+### https, retry and drop-and-count (P8-oracle-001, PREFLIGHT R9; implementer P8-otlp-001)
+
+- **https.** `--endpoint https://127.0.0.1:P --ca-file ca.pem`: TLS 1.3 to a collector whose P-256 leaf
+  (SAN `IP:127.0.0.1`, `DNS:localhost`, EKU serverAuth, CA:FALSE) is signed by a throwaway CA in `ca.pem`. The
+  delivered requests must map exactly as over http. A chain that does not lead to `--ca-file` must get nothing
+  delivered and a nonzero `--once` exit.
+- **Retryable** (OTLP/HTTP specification, "Failures"): 429, 502, 503, 504 and transport failures. Each failed attempt
+  is retried with backoff: every retry at least **100 ms** after the previous attempt, each gap at least **0.8 ×** the
+  previous gap (it never shrinks beyond jitter), at least **2** and at most **8** attempts per request, all within
+  **30 s**. A retry resends the same payload; it never re-scrapes (`--once` still scrapes exactly once). Nothing is
+  sent for a request after one attempt was accepted.
+- **Not retryable:** any other 4xx (the oracle uses 400): exactly one attempt.
+- **Drop and count.** A request whose attempts are exhausted (or that got a non-retryable answer) is dropped; its log
+  records are added to `aegis_otlp_dropped_log_records` and its metric points to `aegis_otlp_dropped_metric_points`
+  (monotonic cumulative sums, exported as self-metrics). `--once` exits nonzero if anything was dropped.
+- **No stall.** In interval mode a failing signal never stops the other: with `/v1/logs` failing, metrics exports keep
+  being accepted at the interval. SIGTERM still exits 0 within 5 s (at most one more attempt per queued request).
 
 ## Mapping rules the oracle enforces
 
@@ -104,6 +123,12 @@ Records arrive in input order.
 | once-unix-synthetic | UDS, `fixtures/synthetic-metrics.txt` | 100 KiB line + one JSON line | histogram buckets/bounds/count/sum/`_created`/unit, label and HELP unescaping, 2⁵³+1 exact, float and negative gauges; oversize line bounded |
 | once-truncated | TCP, real fixture minus `# EOF` | one JSON line | nonzero exit, no points, logs still exported |
 | daemon | TCP, real fixture with a counter that moves per scrape | two lines written while running | ≥3 exports in ~5 s at 250 ms; exported values are scraped values, non-decreasing; `timeUnixNano` strictly increasing; `startTimeUnixNano` fixed; logs streamed ≤3 s; SIGTERM → exit 0 ≤5 s; endpoint prefix `/collector/` honoured |
+| https-once | TLS collector, `--ca-file` = its CA | real fixture + 2 lines | exit 0; delivered over TLS; wire+schema, all series, logs mapped |
+| https-untrusted | TLS collector, `--ca-file` = an unrelated CA | same | nonzero exit; nothing delivered |
+| retry-recover | 503, 503, then 200 on each path | same | exit 0; scraped once; statuses per path exactly 503, 503, 200; backoff; accepted payloads map exactly once |
+| retry-exhaust | 503 always | same | nonzero exit; 2..8 attempts per path; backoff; one payload per path |
+| no-retry-400 | 400 always | same | nonzero exit; exactly one attempt per path |
+| daemon-drop | `/v1/logs` 503 always, metrics 200, 250 ms interval | 3 JSON lines | keeps running; >= 3 metrics exports accepted in the 5 s after the lines; logs retried; an accepted export shows `aegis_otlp_dropped_log_records` >= 3 within 45 s; SIGTERM exit 0 <= 5 s |
 
 Each case also checks:
 - **wire+schema**: every request has the right path and Content-Type, and passes the JSON-mapping validator.
@@ -111,7 +136,7 @@ Each case also checks:
 
 ## Self-test (negative controls)
 
-The reference exporter must PASS all 53 checks. Then each mutant (env `AEGIS_OTLP_REF_MUTANT`, reference only) must
+The reference exporter must PASS all 95 checks (53 before P8). Then each mutant (env `AEGIS_OTLP_REF_MUTANT`, reference only) must
 FAIL. In the table, the first four are the unit's required mutants.
 
 | mutant | caught by |
@@ -132,6 +157,13 @@ FAIL. In the table, the first four are the unit's required mutants.
 | drop-attributes | metrics.all-series |
 | int-as-double | metrics.mapping (asInt) |
 | ignore-log-ts | logs.mapping (timeUnixNano) |
+| https-skipped (an https endpoint silently not posted, exit 0) | https-once.delivered-over-tls |
+| https-no-verify (`--ca-file` ignored, CERT_NONE) | https-untrusted.exit-nonzero / nothing-delivered |
+| no-retry | retry-recover.exit-0 |
+| retry-no-backoff | retry-recover.*.backoff |
+| retry-unbounded (20 attempts) | retry-exhaust.*.bounded |
+| retry-on-400 | no-retry-400.*.one-attempt |
+| drop-uncounted | daemon-drop.drop-counted |
 
 A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--exporter` path.
 
@@ -169,10 +201,12 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 
 ## Known limits
 
-- Only plain-HTTP collectors are tested. The `https://` endpoint via the aegis-tls client profile is not exercised
-  (no TLS collector in stdlib-only form without a cert setup; it can be added).
-- Retry/backoff on 429/503, bounded-queue drop-oldest under backpressure, and the drop counter's value are not
-  exercised. Self-metrics `aegis_otlp_*` are allowed but not checked.
+- P8: https, retry with backoff, the 400 no-retry rule, drop-and-count of log records and the no-stall rule are
+  exercised (above). Still not exercised: `Retry-After`, 429/502/504 individually (503 stands for the retryable set),
+  the bounded stdin queue's drop-oldest under a slow collector, and `aegis_otlp_dropped_metric_points`' value (it can
+  only be exported through the failing metrics path). Self-metrics are otherwise allowed but not checked.
+- The TLS collector is Python ssl (OpenSSL 3.x, TLS 1.3, P-256, X25519): it shows the exporter verifies the chain
+  against `--ca-file` and speaks TLS 1.3, not which groups the aegis-tls client profile offers (the tls gates do).
 - OpenMetrics features absent from aegis's renderer are not fed: per-sample timestamps, `info`/`stateset`/`summary`/
   `gaugehistogram`, exemplars, NaN/Inf values.
 - The JSON log input schema is defined here because aegis does not yet emit JSON logs. If aegis-bin adopts a
@@ -181,3 +215,10 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
   generous for loopback and are not performance claims.
 - Rung: R2 end-to-end against a mapping-checking collector (PLAN-7). The validator is a hand-written reading of the
   proto JSON mapping, not a generated protobuf parser.
+
+## Re-run in repo (2026-11-06, laptop, P8-oracle-001)
+
+- `run`: `OTLP-EXPORT: PASS (95 checks, subject reference ref_exporter.py)`, about 19 s.
+- `run --self-test`: `OTLP-EXPORT SELF-TEST: PASS (reference green; 23/23 mutants red; stub and absent binary red)`,
+  about 2.5 min (drop-uncounted waits the full 45 s for a count that never comes).
+- Against today's aegis-otlp (kamrui build at base 0e27b11): recorded in the P8-oracle-001 report.

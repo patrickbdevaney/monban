@@ -38,11 +38,16 @@ ports (bound to 0, then released) and a temp dir that is removed afterwards.
 | admin `/metrics`: `# TYPE` line for every golden family (`aegis_admission_rejects`, `aegis_budget_debits`, `aegis_crash_budget_trips`, `aegis_cert_seconds_to_expiry`, `aegis_fips_status`, `aegis_config_generation_hash`, `aegis_config_lkg_fallbacks`, `aegis_upgrade_forced_closes`), ends with `# EOF`; `aegis_budget_debits_total{scope="ip"}` and `aegis_proxy_authz_denied_total` move with traffic; serving cert gauge ≈ 30 d; `/healthz` 200 | ARCHITECTURE §3.10 metrics gate, CERT-1 |
 | bad reload (syntax error; and a schema-valid config the assembly refuses: a `static` route) + SIGHUP: `aegis_config_lkg_fallbacks_total` increments, the old config still forwards and still denies | CFG-3 |
 | two requests share one upstream connection (pool works); a changed config applied by SIGHUP → the next request uses a **new** upstream connection | CRS C3/C5 |
+| `r6.chunk.bad-size.*` (`zz` as chunk size), `r6.chunk.bare-lf.*` (`5\n` chunk line): exactly one HTTP/1.1 response, a 400, then the server closes within 5 s; the upstream never sees the request. `r6.chunk.valid.one-200`: a well-formed chunked POST gets exactly one 200 (P8-oracle-001, `oneresp.py`) | R6 (P7-oracle-uring-001 finding 2), RFC 9112 §7.1, RFC 9110 one final response per request |
 | no arguments → exit 78; config with an unknown field (listener on a known port) → exit 78 and nothing ever accepted a connection on that port; missing config file → exit 78 | INV-NONEMPTY (fail-closed boot), CFG-1 |
 
 **PASS** iff every check passes.
 
 ## Self-test (negative controls)
+
+First, without any binary, the R6 one-response judge (`oneresp.judge_selftest`) runs against a stdlib TLS reference
+server: answering one 400 and closing must pass; the mutants `two-responses` (the R6 behaviour), `no-response` and
+`keep-open` (one 400, no close) must each fail. Then:
 
 The subject is `target/e2e-mutants/release/aegis` (built through `ci/heavy.sh` with `--features e2e-mutants`
 into its own target dir if missing; the feature is off in every shipped build and adds env-var hooks only). The
@@ -73,3 +78,10 @@ aegis-transport's `e2e-raw-target` feature (enabled by aegis-bin's `e2e-mutants`
 - The fail-closed boot check observes the port for ~5 s of process life by connecting; a socket bound and closed
   within one probe interval would be missed (the process exits in milliseconds, before any bind, by construction).
 - The upgrade path (SIGUSR2) is not exercised here; `oracles/upgrade-harness` is the gate for UP-1..7.
+
+## P8-oracle-001 (2026-11-06): the one-response case (R6)
+
+`oneresp.py` is shared with oracles/bin-residuals. Against today's default binary the `r6.*.one-response` checks are
+red (two 400s, the first with `date`, the second without), as required until P8-transport-001; so is the
+self-test's unmutated baseline, which therefore stays red until then too (the judge's own negative controls above
+are green). Recorded runs: see the P8-oracle-001 report.
