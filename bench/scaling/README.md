@@ -94,6 +94,10 @@ time:
 1. Create a throwaway VM:
    `gcloud compute instances create aegis-scaling --zone us-central1-a --machine-type c2d-standard-64
    --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud`.
+   **Correction (2026-11-07):** `c2d-standard-64` does not exist (C2D comes in 2, 4, 8, 16, 32, 56 and 112 vCPUs), and
+   the `--gcp` preflight checks quota only, not that the type exists. The run below used `c2d-standard-56`, the largest
+   C2D that fits CPUS_ALL_REGIONS 80. An exact 64-vCPU point needs another family (for example n2-standard-64: N2
+   quota 200 in us-central1; n2d-standard-64 needs N2D_CPUS raised from 16).
 2. Pin its host key the way `ci/release/vm.sh` does, and add an ssh alias.
 3. Run `bench/scaling/provision-h2load --to <alias>`.
 4. Run `ci/remote.sh --host <alias> bench/scaling/run --cores 1,2,4,8,16,32,48,56 --record bench/scaling/out`.
@@ -120,3 +124,74 @@ The default build hard-codes a per-IP admission limit in `crates/aegis-bin/src/s
 and S3 anon are GCRA at 1000/s with a burst of 2000. h2load connects from the single source 127.0.0.1. Every
 saturating point is therefore refused at S1 (429), and the gate is red at every core count. See
 `INFEASIBLE_REPORT.md`.
+
+## Run record: 2026-11-07, GCP c2d-standard-56 (PLAN-7 D-P7.7 large-VM point; provisional)
+
+**Provisional:** one run of 10 s per point, on a cloud VM with possible noisy neighbours. Gate `scaling` is advisory,
+record_only, and its thresholds are unchanged.
+
+- **Machine:** throwaway VM `aegis-scaling`, `c2d-standard-56`, us-central1-a. AMD EPYC 7B13 (Milan), 1 socket,
+  28 cores x 2 SMT = 56 vCPUs, 1 NUMA node, 220 GiB. Image ubuntu-2404-lts-amd64, kernel `7.0.0-1017-gcp`,
+  glibc 2.39.
+- **Binaries:**
+  - `aegis` was built on kamrui (`ci/remote.sh --host kamrui`, `cargo build --release --locked -p aegis-bin`,
+    default features, tree f1a9ee9) and shipped to the VM, sha256 `68eddeb5...be68c06`. Its highest versioned
+    symbol is GLIBC_2.39, so it runs on ubuntu-2404 even though kamrui has glibc 2.42.
+  - The upstream was built on the VM by the harness, using rustc 1.99.1 (rustup, pinned channel) and Ubuntu gcc as
+    the linker.
+  - h2load was installed with `bench/scaling/provision-h2load --to aegis-scaling` and reports `nghttp2/1.69.0`.
+- **Host key:** pinned out of band from the VM's guest attributes (`hostkeys/`), with StrictHostKeyChecking=yes and
+  a private known_hosts. It was never trusted on first use.
+- **Server-side lifetime cap:** `--max-run-duration 7200s --instance-termination-action DELETE`.
+- **Deletion:** every attempt was deleted, and `gcloud compute instances list` showed no `aegis-scaling` afterwards.
+
+**Run A**, the gate shape: `--cores 1,2,4,8,16,28,32,48,50`, with the defaults (client 4, upstream 2, 32 conns,
+16 streams, 10 s, warm-up 0). 50 = 56 - 4 - 2. Verdict: `SCALING: PASS (9 points, 0 errors)`. Report:
+`out/aegis-scaling-2026-11-07.json`.
+
+| cores | worker_threads | usable_cpus | 2xx req/s | p50 ms | p99 ms | errors | admission rejects |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 1 | 26738 | 11.04 | 76.92 | 0 | 0 |
+| 2 | 2 | 2 | 48981 | 4.96 | 21.53 | 0 | 0 |
+| 4 | 4 | 4 | 68059 | 0.89 | 25.94 | 0 | 0 |
+| 8 | 8 | 8 | 123200 | 1.12 | 3.70 | 0 | 0 |
+| 16 | 16 | 16 | 120495 | 0.84 | 3.77 | 0 | 0 |
+| 28 | 28 | 28 | 118250 | 0.76 | 4.06 | 0 | 0 |
+| 32 | 32 | 32 | 68714 | 0.79 | 27.12 | 0 | 0 |
+| 48 | 48 | 48 | 70144 | 0.81 | 27.13 | 0 | 0 |
+| 50 | 50 | 50 | 69566 | 0.83 | 27.31 | 0 | 0 |
+
+What run A shows, as provisional observations rather than conclusions:
+
+- **Scaling up to 8 cores:** throughput scales from 1 to 8 cores (about 4.6x) with worker_threads = N. That is past
+  the pre-Phase-8 plateau of 2 workers.
+- **Plateau from 8 to 28 cores, at about 120k/s:** this is consistent with the load generator being the limit, not
+  aegis. h2load has 4 threads, and 32 connections cap the number of busy workers at 32.
+- **Drop at 32 cores and above, to about 69k/s with p99 around 27 ms:**
+  - CPUs 0-27 are distinct physical cores. CPUs 28-55 are their SMT siblings.
+  - From 32 cores up, some aegis workers share physical cores with other aegis workers.
+  - At every point, h2load (CPUs 52-55) and the upstream (CPUs 50-51) are SMT siblings of aegis CPUs 22-27. They are
+    disjoint as logical CPUs but not as physical cores.
+  - The cause of the drop is not isolated.
+
+**Run B**, supplementary, to take the client limit away: `--cores 8,16,28,38 --client-cpus 16 --conns 256`.
+Verdict: **FAIL**. Report: `out/client16-conns256/aegis-scaling-2026-11-07.json`.
+
+- At every point, about 535-549k of about 1.0-1.16M responses in 10 s were **5xx**. 2xx throughput was 39-62k/s, and
+  p50 was 31-39 ms.
+- aegis counted admission rejects at stage S5 at 16, 28 and 38 cores (2864, 1033 and 308). It counted none at 8.
+- Likely cause, not verified: the 2-CPU, thread-per-connection upstream, or an aegis upstream or S5 limit, is
+  saturated by 256 x 16 concurrent streams.
+- This is a finding for the integrator. It is not a harness or threshold change: at the gate's load shape (run A)
+  there are 0 errors.
+
+**Cost:** about 10 min of c2d-standard-56 time in total, across three short-lived VMs:
+
+- Attempt 1 (c2d-standard-64) was rejected at create time, so no VM existed.
+- Attempt 2 failed because the toolchain bootstrap did not install a default toolchain.
+- Attempt 3 failed because the VM had no `cc` linker for the upstream.
+- Attempt 4 is the run recorded above.
+
+At about $2.5/h on-demand, that is about $0.45, paid from the $300 credit. spend-guard reported net cost 0.0 before
+each create.
+
