@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# SOAK oracle entry point (unit P8-soak-001, PREFLIGHT D-P8.4; oracles/README.md contract). Last line:
+#   SOAK: PASS|FAIL (...)  /  SOAK SELF-TEST: PASS|FAIL (...)  /  SOAK: RECORD (...) for the record-only --hours > 2
+#   run [--hours 2] [--aegis BIN --otlp BIN] [--record FILE]   builds aegis (native,proxy-protocol,mtc) + aegis-otlp
+#                                                             into target/soak unless given; the gate runs on quiet
+#   run --self-test                                           fake subjects in scaled time (light, no build)
+# A measuring run is a long load test: it re-executes itself under ci/heavy.sh unless already inside it (ci/remote.sh
+# and heavy.sh set AEGIS_HEAVY_HELD=1). heavy.sh's 30 min timeout is raised to the run length plus 1 h here.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+case " $* " in
+  *" --self-test "*) exec python3 -I "$HERE/soak.py" "$@";;
+esac
+if [ "${AEGIS_HEAVY_HELD:-0}" != 1 ]; then
+  h=2; prev=""
+  for a in "$@"; do [ "$prev" = --hours ] && h=$a; prev=$a; done
+  t=$(python3 -I -c 'import sys; print(int(float(sys.argv[1]) * 3600 + 3600))' "$h" 2>/dev/null || echo 10800)
+  HEAVY_TIMEOUT=$t exec "$REPO/ci/heavy.sh" "$HERE/run" "$@"
+fi
+exec python3 -I "$HERE/soak.py" "$@"

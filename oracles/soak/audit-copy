@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# tlog-verify subject adapter for oracles/soak: `audit-copy <aegis log dir> --out DIR` copies the one tlog-tiles
+# directory aegis wrote (<audit-dir>/<unix-ms>-<pid>/, with its vkey) to DIR, so oracles/tlog-verify/run judges the
+# soak's own audit log. It never writes into the source directory.
+set -euo pipefail
+src=$1; shift
+[ "${1:-}" = --out ] && [ -n "${2:-}" ] || { echo "usage: audit-copy <log dir> --out DIR" >&2; exit 2; }
+[ -f "$src/checkpoint" ] || { echo "audit-copy: $src has no checkpoint" >&2; exit 1; }
+cp -r "$src" "$2"
