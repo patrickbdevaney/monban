@@ -79,12 +79,23 @@ mutant-specific substring. A missing binary must also be red. The mutants cover:
 - the uncertified module string `AWS-LC FIPS 4.2.0`;
 - a dropped answer line, reordered answers, a non-zero exit, the compiled-out floor build, and a replayed transcript.
 
-## In-repo runs
+## In-repo runs (2026-11-06, kamrui; the gate's placement is kamrui)
 
-Recorded in units/phase-8 (unit report) and the gate logs. The self-test passed on the laptop with
-`python3 -I` (21/21 red, model PASS). Before the subject mode existed, the oracle was red on the subject: the
-indicator mode was compiled out or absent (`compiled-out` case), and on kamrui the floor tls-subject answers
-`indicator ... compiled out` → FAIL.
+- **Self-test.** Laptop `python3 -I` and kamrui: `FIPS-INDICATOR SELF-TEST: PASS (model subject PASS; 21/21 mutants
+  red)`, on several seeds.
+- **Red before the subject mode.** The oracle was committed before the mode existed (ca47fc8). The floor tls-subject
+  has `indicator` compiled out, and it gives `FIPS-INDICATOR: FAIL (2 problem(s): 0 answer lines for 15 requests;
+  subject exit 1 (indicator is compiled out ...))`.
+- **Real cmvp subject.** `ci/remote.sh --host kamrui bash -c "profiles/cmvp/build.sh && oracles/fips-indicator/run
+  --subject 'target/cmvp/release/tls-subject indicator'"` gave PASS three times (seeds 3731443452, 2519840511,
+  3977316375). In every run:
+  - ecdh-p384, ML-KEM-1024 encap and decap, and HKDF (salt and info set) were Approved;
+  - X25519, the off-curve peer, HKDF with an empty salt or info, and `none` were NotApproved;
+  - the 0x11ED handshake gave group 0x11ed, TLS 1.3, suite 0x1302, indicator=approved (reported);
+  - the kx-0x11ed steps were all approved (reported);
+  - the module was AWS-LC FIPS 3.1.0.
+- **Clippy.** `-D warnings` is clean for tls-subject in the floor build and in the cmvp,indicator build (the AL2023
+  image).
 
 ## Known limits
 

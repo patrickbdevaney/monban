@@ -186,9 +186,12 @@ impl ResolvesServerCert for FirstSignable {
     }
 }
 
+/// A profile's certificate resolver and the DER of every certificate it can serve.
+type Served = (Arc<dyn ResolvesServerCert>, Vec<Vec<u8>>);
+
 /// Credentials for a profile, each with the rustls key/certificate consistency check (`CertifiedKey::from_der`),
 /// and their certificate DERs (the `indicator` handshake client pins them).
-fn resolver(profile: Profile) -> R<(Arc<dyn ResolvesServerCert>, Vec<Vec<u8>>)> {
+fn resolver(profile: Profile) -> R<Served> {
     let provider = rustls::crypto::aws_lc_rs::default_provider();
     let (mut keys, mut certs) = (Vec::new(), Vec::new());
     for c in creds(profile) {
