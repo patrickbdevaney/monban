@@ -36,7 +36,7 @@ AEGIS logic; they say nothing about these components.
 | 2026-01-01 | CISA bad practices: memory-safety roadmap or MSL (voluntary) | Rust; the roadmap row lists the C residue (AWS-LC, SQLite, kernel) | A |
 | 2026-06-22 | EO 14412: federal HVA/high-impact PQ key establishment by 2030-12-31, signatures by 2031-12-31; CBOM guidance in 270 days; FAR rule ~2026-12; NSS excluded | P-UNIVERSAL / P-PUBLIC-WEB; CBOM derivable from the lock and the release SBOM | A |
 | 2026-09-11 | CRA Art 14 manufacturer reporting via ENISA SRP: early warning 24 h, notification 72 h, final report 14 d after fix (vulnerabilities) / 1 month (incidents) | binding on a monetized distributor; drafts only today: `compliance/cra/PSIRT-runbook.md`, CSAF/VEX templates (D-P1: not published, no contact channel) | A (`v2.cra-monetization-trigger` B) |
-| 2026-09-21 | FIPS 140-2 certificates historical | only 140-3 modules; AWS-LC FIPS 3.1.0 is 140-3 (CMVP #5298/#5314) | B |
+| 2026-09-21 | FIPS 140-2 certificates historical | only 140-3 modules; AWS-LC FIPS 3.1.0 is 140-3 (CMVP #5314 static, cited by the cmvp build; #5298 dynamic) | B |
 | 2027-01-01 | CNSA 2.0: new NSS acquisitions CNSA-capable | P-CNSA opt-in, floor build only (D17) | C (NSA FAQ 403) |
 | **2027-12-11** | CRA full application; open-source steward reporting Art 24(3) | steward file set drafted in `compliance/cra/`; publication is an operator step (PREFLIGHT §P4 item 1, "not now" on 2026-11-04) and must happen by this date regardless | A |
 | 2030 | CNSA 2.0 software signing exclusive; ASD ISM: ECDH/ECDSA/RSA and ML-KEM-768/ML-DSA-65 not approved beyond 2030; NIST IR 8547 draft deprecates 112-bit | ML-DSA-87 release signature (test keys only today, D-P2); P-UNIVERSAL (0x11ED) | C / A (`r4e10.asd-ism-2026-09`) / B |
