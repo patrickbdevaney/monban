@@ -9,6 +9,8 @@
 //!   `evidence_must` as a whole line, end in `[exit 0]` (ci/run-gates.py's log trailer), and have been written in the
 //!   current gate run: its mtime must be at or after the mtime of `<evidence-dir>/.run-start`, which
 //!   ci/run-gates.py writes before its first step. No marker means no proof of freshness, so the check fails closed.
+//!   The file name may contain `{phase}`; it is replaced by the `phase=N` line of the marker (run-gates.py writes it),
+//!   so one ledger entry names the same gate's log in every phase's run. A `{phase}` with no phase in the marker fails.
 //!
 //! The ledger is parsed by a strict subset-of-TOML reader (xtask has no dependencies on purpose): comments, blank
 //! lines, `[[exception]]` headers and `key = "basic string"` pairs. Anything else is an error, so a malformed entry can
@@ -52,6 +54,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
 fn check(text: &str, evidence_dir: &Path, today: i64) -> (usize, Vec<String>) {
     let (entries, mut v) = parse(text);
     let marker = mtime(&evidence_dir.join(MARKER));
+    let phase = std::fs::read_to_string(evidence_dir.join(MARKER)).ok().and_then(|t| {
+        t.lines().find_map(|l| l.strip_prefix("phase=").map(str::trim).filter(|n| !n.is_empty()).map(String::from))
+    });
     for (line, e) in &entries {
         let id = format!(
             "entry at line {line} ({}@{})",
@@ -78,14 +83,21 @@ fn check(text: &str, evidence_dir: &Path, today: i64) -> (usize, Vec<String>) {
         match e.get("kind").map(String::as_str) {
             None => {}
             Some(k) if !KINDS.contains(&k) => v.push(format!("{id}: unknown kind `{k}` (known: {})", KINDS.join(", "))),
-            Some("advisory-accepted") => evidence(&id, e, evidence_dir, marker, &mut v),
+            Some("advisory-accepted") => evidence(&id, e, evidence_dir, marker, phase.as_deref(), &mut v),
             Some(_) => {}
         }
     }
     (entries.len(), v)
 }
 
-fn evidence(id: &str, e: &BTreeMap<String, String>, dir: &Path, marker: Option<SystemTime>, v: &mut Vec<String>) {
+fn evidence(
+    id: &str,
+    e: &BTreeMap<String, String>,
+    dir: &Path,
+    marker: Option<SystemTime>,
+    phase: Option<&str>,
+    v: &mut Vec<String>,
+) {
     for k in ["advisory", "evidence", "evidence_must"] {
         if e.get(k).is_none_or(|x| x.trim().is_empty()) {
             v.push(format!("{id}: advisory-accepted needs `{k}`"));
@@ -104,7 +116,24 @@ fn evidence(id: &str, e: &BTreeMap<String, String>, dir: &Path, marker: Option<S
         v.push(format!("{id}: evidence `{ev}` has no file name"));
         return;
     };
-    let path = dir.join(file);
+    let file = file.to_string_lossy();
+    let file = if file.contains("{phase}") {
+        let Some(n) = phase else {
+            v.push(if marker.is_none() {
+                format!(
+                    "{id}: no run marker {} (ci/run-gates.py writes it at run start), so evidence freshness is unproven",
+                    dir.join(MARKER).display()
+                )
+            } else {
+                format!("{id}: evidence `{ev}` names {{phase}} but the run marker has no `phase=N` line")
+            });
+            return;
+        };
+        file.replace("{phase}", n)
+    } else {
+        file.into_owned()
+    };
+    let path = dir.join(&file);
     let Ok(log) = std::fs::read_to_string(&path) else {
         v.push(format!("{id}: evidence log {} does not exist or is unreadable", path.display()));
         return;
@@ -228,6 +257,7 @@ fn civil(z: i64) -> String {
 
 const MUST: &str = "CLIENT-POLICY: PASS (compiled-out)";
 const LOG: &str = "phase6-cmvp-client-policy-cmd.log";
+const LOG_DECL: &str = "phase{phase}-cmvp-client-policy-cmd.log";
 
 fn clean_ledger(today: i64) -> String {
     let exp = civil(today + 30);
@@ -235,7 +265,7 @@ fn clean_ledger(today: i64) -> String {
         "# header comment\n\n[[exception]]\ncrate = \"a\"\nversion = \"1.0.0\"\nkind = \"cooldown-bypass\"\n\
          reason = \"r\"\napprover = \"spec-author\"\nexpires = \"{exp}\"\n\n[[exception]]\ncrate = \"aws-lc-rs\"\n\
          version = \"1.15.3\"\nkind = \"advisory-accepted\"\nadvisory = \"RUSTSEC-2026-0349\"\nreason = \"r\"\n\
-         approver = \"spec-author\"\nexpires = \"{exp}\"\nevidence = \"gates/out/logs/{LOG}\"\n\
+         approver = \"spec-author\"\nexpires = \"{exp}\"\nevidence = \"gates/out/logs/{LOG_DECL}\"\n\
          evidence_must = \"{MUST}\"\n"
     )
 }
@@ -251,10 +281,12 @@ struct Case {
     log: Option<String>,
     marker: bool,
     stale: bool,
+    /// The `phase=N` line written into the marker (None = marker without one).
+    phase: Option<&'static str>,
 }
 
 fn case(name: &'static str, ledger: String) -> Case {
-    Case { name, ledger, log: Some(good_log()), marker: true, stale: false }
+    Case { name, ledger, log: Some(good_log()), marker: true, stale: false, phase: Some("6") }
 }
 
 fn without(ledger: &str, key: &str, nth: usize) -> String {
@@ -309,6 +341,8 @@ fn self_test() -> Result<(), String> {
     mutants
         .push(Case { stale: true, ..case("evidence log sha from another run (predates run marker)", clean.clone()) });
     mutants.push(Case { marker: false, ..case("no run marker", clean.clone()) });
+    mutants.push(Case { phase: None, ..case("evidence names {phase}, marker has no phase", clean.clone()) });
+    mutants.push(Case { phase: Some("7"), ..case("{phase} resolves to another phase's log", clean.clone()) });
 
     let base = super::root().join(format!("target/xtask-ledger-selftest-{}", std::process::id()));
     let res = (|| {
@@ -355,7 +389,8 @@ fn run_case(base: &Path, c: &Case, today: i64) -> Result<(usize, Vec<String>), S
     };
     let marker_t = now.checked_sub(Duration::from_secs(100)).unwrap_or(now);
     if c.marker {
-        set(&dir.join(MARKER), "selftest\n", marker_t)?;
+        let body = c.phase.map_or_else(|| "selftest\n".to_string(), |n| format!("selftest\nphase={n}\n"));
+        set(&dir.join(MARKER), &body, marker_t)?;
     }
     if let Some(log) = &c.log {
         let t = if c.stale { now.checked_sub(Duration::from_secs(200)).unwrap_or(now) } else { now };
