@@ -8,9 +8,11 @@
 //!
 //! Limits (fail closed): iteration count in `[MIN_ITERATIONS, MAX_ITERATIONS]` (CPU bound against a hostile server),
 //! salt 1..=`MAX_SALT` bytes, server messages ≤ `MAX_SERVER_MESSAGE` bytes, server nonce printable and longer than
-//! ours, no mandatory extensions (`m=`). Passwords must be ASCII: for ASCII input SASLprep is the identity or the
-//! string is prohibited, and in both cases PostgreSQL hashes the raw bytes, so ASCII is the exact set this client can
-//! compute without a full SASLprep (NFKC) implementation. Non-ASCII passwords are refused rather than guessed.
+//! ours, no mandatory extensions (`m=`). The password goes through SASLprep (RFC 4013) exactly as PostgreSQL applies
+//! it ([`crate::saslprep`], PREFLIGHT R14): ASCII as is, otherwise mapped, NFKC-normalized and checked, with the raw
+//! bytes when SASLprep prohibits the string (libpq and the server both fall back to them). A password whose prepared
+//! form this client cannot determine exactly (a code point unassigned in its Unicode tables, or a verdict that
+//! depends on the check order) is refused ([`ScramError::SaslPrep`]) rather than guessed.
 
 use aws_lc_rs::{constant_time, digest, hmac, pbkdf2, rand};
 use std::fmt;
@@ -27,7 +29,8 @@ const NONCE_BYTES: usize = 18;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ScramError {
-    NonAsciiPassword,
+    /// SASLprep could not prepare the password exactly (see [`crate::saslprep::Prep::Ambiguous`]).
+    SaslPrep(&'static str),
     Rng,
     Malformed(&'static str),
     NonceMismatch,
@@ -40,7 +43,7 @@ pub enum ScramError {
 impl fmt::Display for ScramError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ScramError::NonAsciiPassword => write!(f, "SCRAM: non-ASCII password refused (SASLprep not implemented)"),
+            ScramError::SaslPrep(why) => write!(f, "SCRAM: password refused by SASLprep ({why})"),
             ScramError::Rng => write!(f, "SCRAM: CSPRNG failure"),
             ScramError::Malformed(w) => write!(f, "SCRAM: malformed server message ({w})"),
             ScramError::NonceMismatch => write!(f, "SCRAM: server nonce does not extend the client nonce"),
@@ -91,15 +94,10 @@ impl ScramClient {
 
     /// Deterministic constructor (tests / RFC vectors). `username` is the SCRAM `n=` value (empty for PostgreSQL).
     pub fn with_nonce(password: &str, username: &str, nonce: &str) -> Result<(ScramClient, String), ScramError> {
-        if !password.is_ascii() {
-            return Err(ScramError::NonAsciiPassword);
-        }
+        let password = crate::saslprep::scram_password(password).map_err(ScramError::SaslPrep)?;
         let client_first_bare = format!("n={username},r={nonce}");
         let first = format!("n,,{client_first_bare}");
-        Ok((
-            ScramClient { password: password.as_bytes().to_vec(), client_first_bare, client_nonce: nonce.to_owned() },
-            first,
-        ))
+        Ok((ScramClient { password, client_first_bare, client_nonce: nonce.to_owned() }, first))
     }
 
     /// Consume server-first, produce client-final (`c=biws,r=...,p=...`).
@@ -280,7 +278,25 @@ mod tests {
         }
         let (fin, _) = mk().server_first(b"r=abcd,s=QUJD,i=4096").unwrap_or_else(|e| unreachable!("{e}"));
         assert_eq!(fin.server_final(b"v=AAAA"), Err(ScramError::BadServerSignature));
-        assert!(ScramClient::with_nonce("pässword", "", "abc").is_err());
+    }
+
+    /// SASLprep (RFC 4013) on the SaltedPassword input: equivalent spellings give the same proof, a prohibited string
+    /// is hashed raw, an input the client cannot prepare exactly is refused.
+    #[test]
+    fn saslprep_applied_to_the_password() {
+        let proof = |pw: &str| -> Result<String, ScramError> {
+            let (c, _) = ScramClient::with_nonce(pw, "", "abc")?;
+            let (_, cf) = c.server_first(b"r=abcd,s=QUJD,i=4096")?;
+            Ok(cf)
+        };
+        let pre = proof("p\u{E4}ssword");
+        assert!(pre.is_ok(), "non-ASCII password accepted: {pre:?}");
+        assert_eq!(pre, proof("pa\u{308}ssword"), "NFKC: decomposed and precomposed spell one password");
+        assert_eq!(proof("I\u{AD}X"), proof("IX"), "soft hyphen mapped to nothing");
+        assert_eq!(proof("\u{2168}"), proof("IX"), "compatibility form normalized");
+        assert!(proof("\u{627}1").is_ok(), "a prohibited (bidi) string is hashed raw, not refused");
+        assert_eq!(crate::saslprep::scram_password("\u{627}1"), Ok("\u{627}1".as_bytes().to_vec()));
+        assert!(matches!(ScramClient::with_nonce("\u{378}x", "", "abc"), Err(ScramError::SaslPrep(_))));
     }
 
     #[test]

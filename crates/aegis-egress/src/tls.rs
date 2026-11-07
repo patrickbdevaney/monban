@@ -46,8 +46,26 @@ impl TlsClient {
             Host::V4(a) => ServerName::IpAddress(std::net::IpAddr::V4(*a).into()),
             Host::V6(a) => ServerName::IpAddress(std::net::IpAddr::V6(*a).into()),
         };
-        TlsConnector::from(self.cfg.clone()).connect(name, tcp).await.map_err(|e| EgressError::Tls(e.to_string()))
+        let s = TlsConnector::from(self.cfg.clone())
+            .connect(name, tcp)
+            .await
+            .map_err(|e| EgressError::Tls(e.to_string()))?;
+        check_session(s.get_ref().1)?;
+        Ok(s)
     }
+}
+
+/// Fail-closed backstop on the established session (P8-hardening-001, gate egress-tls-e2e): TLS 1.3 was negotiated
+/// and the server either selected no ALPN or `http/1.1` (rustls already refuses a protocol the client did not offer;
+/// this re-reads the outcome instead of trusting the configuration alone).
+pub fn check_session(c: &rustls::ClientConnection) -> Result<(), EgressError> {
+    if c.protocol_version() != Some(ProtocolVersion::TLSv1_3) {
+        return Err(EgressError::Tls(format!("negotiated {:?}, not TLS 1.3", c.protocol_version())));
+    }
+    if c.alpn_protocol().is_some_and(|p| p != b"http/1.1") {
+        return Err(EgressError::Tls("server selected an ALPN protocol other than http/1.1".to_string()));
+    }
+    Ok(())
 }
 
 /// The invariants egress depends on, re-read from the injected config: only TLS 1.3 suites, early data off,

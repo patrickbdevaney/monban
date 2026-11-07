@@ -21,6 +21,7 @@ pub mod checkin;
 pub mod crdb;
 pub mod lower;
 pub mod pool;
+pub mod saslprep;
 pub mod schema;
 pub mod version;
 pub mod wire;

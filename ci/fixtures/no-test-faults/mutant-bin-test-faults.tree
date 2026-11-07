@@ -1,0 +1,4 @@
+aegis-bin v0.0.0 (/repo/crates/aegis-bin) |default|
+aegis-config v0.0.0 (/repo/crates/aegis-config) |default|
+aegis-ops v0.0.0 (/repo/crates/aegis-ops) |acme,default,test-faults|
+rustls v0.23.46 |aws_lc_rs,std|

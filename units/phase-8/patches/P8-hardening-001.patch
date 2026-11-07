@@ -1,0 +1,211 @@
+P8-hardening-001 patch (outside the unit's write_scope; integrator applies). Rationale: the unit's gates need four
+changes it may not commit. (1) subjects/egress-subject/Cargo.toml + Cargo.lock: the egress-tls-e2e gate builds
+`-p egress-subject --features tls-client`, which needs a `tls-client` feature on the subject (aegis-egress/tls-client,
+optional aegis-tls with tls-client, optional rustls for the CA store); off by default so ssrf-corpus and workspace
+builds keep aegis-egress without the rustls client; the lock gains only the two edges egress-subject -> aegis-tls,
+rustls (no new crate). The subject source using it is committed on the branch (src/ is in scope). (2)
+subjects/state-subject/src/main.rs: the state-props retention case (IDEMP-R) needs `--idempotency-retention <s>`
+(State::set_retention), `CLOCK <unix_s>` (State::set_clock), `PURGE` (State::purge_expired), `features=retention` on
+READY and the advertised mutations retention-ignored / retention-early (aegis-state hidden StateMutations) and
+purge-noop. (3) gates/phase-8.toml egress-tls-e2e: `remote = "kamrui"` instead of the desktop: the upstream peer is
+OpenSSL >= 3.5 (ML-KEM TLS groups); kamrui has 3.5.3, the desktop has 3.3.1 with no ML-KEM groups (probed
+2026-11-06), so the gate cannot run there. No check is weakened by any hunk. Not included, for P8-bin-001 (single
+writer of aegis-bin): wherever aegis-bin opens aegis_state::State it must call
+`state.set_retention(cfg.state().idempotency_retention_s)` and run `State::purge_expired()` periodically; until then
+F8 state.idempotency_retention_s is parsed but not applied in the server (IDEMP-R holds trivially: never expire).
+(4) crates/aegis-config/tests/p8.rs (P8-spec-001): a blank doc line so clippy::doc_lazy_continuation (-D warnings) passes; workspace clippy with --all-targets fails on it at the branch base. Optional: fuzz/examples/seeds.rs has no pg_message seeds; the target's odd mode synthesizes framing, so it reaches
+every message grammar from an empty corpus.
+Verified on kamrui with this patch applied over the branch head (see the unit's final report).
+Apply: git apply units/phase-8/patches/P8-hardening-001.patch
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 6e1bfc0..899754b 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -995,6 +995,8 @@ name = "egress-subject"
+ version = "0.0.0"
+ dependencies = [
+  "aegis-egress",
++ "aegis-tls",
++ "rustls",
+  "tokio",
+ ]
+ 
+diff --git a/crates/aegis-config/tests/p8.rs b/crates/aegis-config/tests/p8.rs
+index bec8d78..34b2055 100644
+--- a/crates/aegis-config/tests/p8.rs
++++ b/crates/aegis-config/tests/p8.rs
+@@ -9,6 +9,7 @@
+ //!   `every_accepted_route_path_is_a_canon_fixed_point` go red;
+ //! * widen `Runtime::BOUNDS` to 0..=1025 and `StateBlock::RETENTION_BOUNDS` to 59.. -> `runtime_and_state_mirror_f8`,
+ //!   `runtime_zero`, `runtime_over` and `retention_under` go red.
++//!
+ //! Not run as a mutant: printing `runtime` when default or `state` when unset, which
+ //! `absent_blocks_keep_the_pre_phase8_hash` asserts against directly.
+ #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
+diff --git a/gates/phase-8.toml b/gates/phase-8.toml
+index ad1d627..f2f2f3e 100644
+--- a/gates/phase-8.toml
++++ b/gates/phase-8.toml
+@@ -754,7 +754,8 @@ name = "egress-tls-e2e"
+ cmd = "ci/heavy.sh cargo build --release --locked -q -p egress-subject --features tls-client && oracles/egress-tls/run --subject target/release/egress-subject"
+ selftest = "oracles/egress-tls/run --self-test"
+ heavy = true
+-remote = true
++# OpenSSL >= 3.5 (ML-KEM TLS groups) is the upstream peer: kamrui has 3.5.3, the desktop 3.3.1 has no ML-KEM groups.
++remote = "kamrui"
+ 
+ [[gate]]
+ name = "engine-pins-kamrui"
+diff --git a/subjects/egress-subject/Cargo.toml b/subjects/egress-subject/Cargo.toml
+index af2cbda..6f7ca4a 100644
+--- a/subjects/egress-subject/Cargo.toml
++++ b/subjects/egress-subject/Cargo.toml
+@@ -10,11 +10,19 @@ publish = false
+ [package.metadata.aegis]
+ layer = "tool"
+ 
+-# aegis-egress WITHOUT `tls-client`: the corpus judges vetting/redirect decisions and plain-HTTP positive controls;
+-# enabling the rustls client here would feature-unify it into workspace builds of aegis-egress.
++[features]
++default = []
++# P8-hardening-001 (PREFLIGHT R15, oracles/egress-tls): https egress through the product client profiles
++# (aegis_tls::client_config) injected into aegis-egress `tls-client`. Off by default: the ssrf-corpus build and
++# workspace builds keep aegis-egress WITHOUT the rustls client (enabling it unconditionally here would feature-unify
++# it into workspace builds of aegis-egress). Gate egress-tls-e2e builds `-p egress-subject --features tls-client`.
++tls-client = ["aegis-egress/tls-client", "dep:aegis-tls", "aegis-tls/tls-client", "dep:rustls"]
++
+ [dependencies]
+ aegis-egress = { workspace = true }
+ tokio = { workspace = true, features = ["rt", "net", "time", "io-util"] }
++aegis-tls = { workspace = true, optional = true }
++rustls = { workspace = true, optional = true }
+ 
+ [lints]
+ workspace = true
+diff --git a/subjects/state-subject/src/main.rs b/subjects/state-subject/src/main.rs
+index 345cd77..973d94f 100644
+--- a/subjects/state-subject/src/main.rs
++++ b/subjects/state-subject/src/main.rs
+@@ -1,7 +1,11 @@
+ //! state-subject: aegis-state idempotency, outbox and commit-point latch over the state-props line protocol
+ //! (`oracles/state-props/README.md`, "Subject protocol").
+ //!
+-//! Usage: `state-subject <dir> [--mutate <name>]...`
++//! Usage: `state-subject <dir> [--idempotency-retention <s>] [--mutate <name>]...`
++//!
++//! IDEMP-R (Phase 8, README "Retention"): `--idempotency-retention` is [`State::set_retention`]; `CLOCK <unix_s>`
++//! replaces the wall clock ([`State::set_clock`]); `PURGE` is [`State::purge_expired`] (`PURGED <n>`). The READY line
++//! advertises `features=retention`.
+ //!
+ //! The wrapper only parses lines: BEGIN is [`State::begin`], WRITE is [`Lease::write`], EFFECT is
+ //! [`State::effect`], COMMIT is [`State::commit`] (the commit point; 202 when the timer fired after CP), ABORT is
+@@ -21,13 +25,16 @@ use std::process::ExitCode;
+ 
+ use aegis_state::{Begin, DeliverError, IdemKey, Lease, Outcome, Reply, State, StateMutations};
+ 
+-const MUTATIONS: [&str; 6] = [
++const MUTATIONS: [&str; 9] = [
+     "idem-key-without-principal",
+     "replay-reexecutes",
+     "effect-before-commit",
+     "outbox-drop-on-restart",
+     "latch-returns-408",
+     "dedupe-unstable",
++    "retention-ignored",
++    "retention-early",
++    "purge-noop",
+ ];
+ 
+ fn reply(line: &str) -> Result<(), ()> {
+@@ -73,6 +80,8 @@ struct Args {
+     muts: StateMutations,
+     latch_408: bool,
+     dedupe_unstable: bool,
++    purge_noop: bool,
++    retention: Option<u64>,
+ }
+ 
+ fn parse_args() -> Result<Args, String> {
+@@ -88,8 +97,14 @@ fn parse_args() -> Result<Args, String> {
+                 Some("outbox-drop-on-restart") => a.muts.outbox_drop_on_restart = true,
+                 Some("latch-returns-408") => a.latch_408 = true,
+                 Some("dedupe-unstable") => a.dedupe_unstable = true,
++                Some("retention-ignored") => a.muts.retention_ignored = true,
++                Some("retention-early") => a.muts.retention_early = true,
++                Some("purge-noop") => a.purge_noop = true,
+                 other => return Err(format!("unknown mutation {other:?}")),
+             }
++        } else if x == "--idempotency-retention" {
++            let n = it.next().and_then(|v| v.parse::<u64>().ok()).ok_or("--idempotency-retention <seconds>")?;
++            a.retention = Some(n);
+         } else if x.starts_with("--") {
+             return Err(format!("unknown flag {x}"));
+         } else if dir.is_none() {
+@@ -119,8 +134,20 @@ fn main() -> ExitCode {
+             return ExitCode::from(3);
+         }
+     };
++    if let Err(e) = st.set_retention(args.retention) {
++        let _ = reply(&format!("ERR open {}", one_line(&e.to_string())));
++        return ExitCode::from(2);
++    }
++    // CLOCK sets this; until then the system clock (u64::MAX = unset).
++    let clock = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX));
++    let c = std::sync::Arc::clone(&clock);
++    let system = aegis_state::Clock::system();
++    st.set_clock(aegis_state::Clock::new(move || match c.load(std::sync::atomic::Ordering::SeqCst) {
++        u64::MAX => system.now(),
++        t => t,
++    }));
+     if reply(&format!(
+-        "READY aegis-state idem/outbox/latch sqlite={} mutations={}",
++        "READY aegis-state idem/outbox/latch sqlite={} features=retention mutations={}",
+         aegis_state::store::sqlite_version(),
+         MUTATIONS.join(",")
+     ))
+@@ -128,7 +155,7 @@ fn main() -> ExitCode {
+     {
+         return ExitCode::from(4);
+     }
+-    match serve(&mut st, &args) {
++    match serve(&mut st, &args, &clock) {
+         Ok(()) => ExitCode::SUCCESS,
+         Err(code) => ExitCode::from(code),
+     }
+@@ -147,7 +174,7 @@ fn unstable_suffix(n: &mut u64) -> [u8; 4] {
+     out
+ }
+ 
+-fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
++fn serve(st: &mut State, args: &Args, clock: &std::sync::atomic::AtomicU64) -> Result<(), u8> {
+     let mut open: HashMap<String, Lease> = HashMap::new();
+     let mut unstable_n = 0u64;
+     let stdin = std::io::stdin();
+@@ -274,6 +301,26 @@ fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
+                     return Err(4);
+                 }
+             },
++            ["CLOCK", t] => match t.parse::<u64>() {
++                Ok(t) if t != u64::MAX => {
++                    clock.store(t, std::sync::atomic::Ordering::SeqCst);
++                    reply("OK clock")
++                }
++                _ => reply("ERR - bad CLOCK"),
++            },
++            ["PURGE"] => {
++                if args.purge_noop {
++                    reply("PURGED 0") // MUTATION
++                } else {
++                    match st.purge_expired() {
++                        Ok(n) => reply(&format!("PURGED {n}")),
++                        Err(e) => {
++                            let _ = reply(&format!("ERR purge {}", one_line(&e.to_string())));
++                            return Err(4);
++                        }
++                    }
++                }
++            }
+             ["QUIT"] => break,
+             other => {
+                 let rid = other.get(1).copied().unwrap_or("-");
