@@ -1,0 +1,183 @@
+# AEGIS traceability map, C4 (P8-conformance-001; PREFLIGHT D-P8.5; ARCHITECTURE R-ASSURE-2 C4).
+#
+# Every F1 statement id in spec/STATEMENTS.sha256 (the frozen Lean declaration ledger) has exactly one row here,
+# naming >= 1 gate id of the current gates/phase-N.toml whose passing logs in a run are the evidence for it.
+# conformance/run --require C4 refuses (C4 red) when: a ledger id has no row; a row names an id not in the ledger;
+# a row is empty or names something that is not a gate (or an embedded member `gate[oracle]` the runner knows);
+# a named gate runs at or after the conformance gate (its log could never be from this run); `ledger_sha256` is not
+# the sha256 of spec/STATEMENTS.sha256 (a re-frozen ledger needs this map reviewed in the same change); or any
+# named gate lacks a fresh `[exit 0]` cmd log and selftest log from this run.
+#
+# Gate meaning: `proof` = ci/gate.sh (lake build, no sorry, axiom allowlist, lake check --paranoid with five
+# independent checkers, statement hashes unchanged): the statement holds of the Lean MODEL (rung R4 for theorems;
+# for def/structure/inductive rows it is the definition the theorems are about). A DRT gate = the Rust code was
+# differentially tested against that model (R2 correspondence). Neither makes the Rust code proven.
+# The prose invariants of spec/SPEC_INVARIANTS.md carry their own gate names and rungs; they are not traced here.
+
+v = 1
+ledger = "spec/STATEMENTS.sha256"
+ledger_sha256 = "3348552e67c54a86bb8da8c453e30b87dff9e9e3d356422a94411f64da34ff14"
+
+[trace]
+
+# --- AegisIR.Combine: INV-FAILCLOSED (F3). proof: the Lean statements (R4, model). oracles-remote[pdp-dst]: the Rust PDP host mapping
+# (timeout/crash/garbage -> Error -> combine -> Deny) against the same expectations, R2 on the Rust client path; it
+# does not execute the Lean model.
+"AegisIR.Combine:AegisIR.Combine.Decision" = ["proof", "oracles-remote[pdp-dst]"]
+"AegisIR.Combine:AegisIR.Combine.combine" = ["proof", "oracles-remote[pdp-dst]"]
+"AegisIR.Combine:AegisIR.Combine.combine_allow_iff" = ["proof", "oracles-remote[pdp-dst]"]
+"AegisIR.Combine:AegisIR.Combine.combine_empty" = ["proof", "oracles-remote[pdp-dst]"]
+"AegisIR.Combine:AegisIR.Combine.combine_failclosed" = ["proof", "oracles-remote[pdp-dst]"]
+"AegisIR.Combine:AegisIR.Combine.combine_ne_error" = ["proof", "oracles-remote[pdp-dst]"]
+
+# --- AegisIR.Lowering: Read lowering (SPEC_INVARIANTS E). proof: R4 model. lowering-read-*: lowerQ rendered by the Rust adapters vs the
+# Lean-faithful evaluator on 5 engines (leak/widen/miss = 0); lowering-write-*: the same lowerQ/sql3 as the write
+# effect model (W1..ACL = 0). R2 correspondence per engine pin.
+"AegisIR.Lowering:AegisIR.Backend" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Backend.Exact" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Backend.Refines" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Field" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Pred" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Pred.andN" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Pred.orN" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Pred.positive" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Row" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.SqlExpr" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.Value" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.andN_nil" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.anyEq" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.anyEq_exact" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.anyEq_sound" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.beq_exact" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.bpfx_exact" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.brange_exact" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.eval" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3and" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3and_some" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3and_true" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3not" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3or" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3or_some" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.k3or_true" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.keeps" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lower" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lowerQ" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lowerQ_sound" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lowerQ_sound_full" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lower_sound_full" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.lower_sound_pos" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.not_absent_permits" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.orN_nil" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.refLe" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.refPrefix" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.refQ" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.refRange" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.refines_necessary" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.Lowering:AegisIR.sql3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+
+# --- AegisIR.Select: Key-exchange group selection (F12). select-drt runs the compiled Lean AegisIR.Select.select against the Rust
+# selector on every F8 profile (0 divergence) and checks the Lean profile table == tls/verdicts.toml.
+"AegisIR.Select:AegisIR.Select.ClientHello" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.Group" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.Outcome" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.Profile" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.ProfileId" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.ProfileId.f12Row" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.ProfileId.name" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.ProfileId.profile" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.Selector" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.alert_code_40" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.alert_iff_empty_intersection" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.allProfiles" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.classical" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.hrr_only_if_no_share" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pick" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pick_mem" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pick_none" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pqRequiredProfiles" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pqRequired_hyp" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pqRequired_table" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.pq_required_no_classical" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.select" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.select_in_profile" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.select_pick" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.sh_only_if_share" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.universal_offer_11ED" = ["proof", "select-drt"]
+"AegisIR.Select:AegisIR.Select.universal_only_11ED" = ["proof", "select-drt"]
+
+# --- AegisIR.ThreeValued: Three-valued (SQL NULL) lowering. Same evidence as AegisIR.Lowering: the oracles' reference is sql3/eval3.
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3_isIn_nil" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3_pos_complete" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3_pos_iff" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3_sound" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.eval3_total" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.exact3_nonvacuous_null" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.exact3_nonvacuous_present" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.inList_nil_not_const_false" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.k3and_some_some" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.k3or_some_some" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.lowerQ_exact3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.lower_exact3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.lower_sound_pos3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.not_absent_gap" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.readsOf" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.refQ3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.refQ3_imp_refQ" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.refQ3_pos_eq" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.refines_insufficient_for_not3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.rows_exact3" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+"AegisIR.ThreeValued:AegisIR.ThreeValued.sql3_inList_nil" = ["proof", "lowering-read-sqlite", "lowering-read-pg", "lowering-read-redis", "lowering-read-mariadb", "lowering-read-crdb", "lowering-write-sqlite", "lowering-write-pg", "lowering-write-redis", "lowering-write-mariadb", "lowering-write-crdb"]
+
+# --- AegisIR.Token: Capability tokens (F5, INV-ATTEN). oracles-local[token-drt]: the Rust Tier-L verifier vs the Lean Token model
+# (TokenDrt.lean), 1e6 cases, 0 divergence.
+"AegisIR.Token:AegisIR.Token.ArgCon" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.ArgCon.sat" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.ArgVal" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.Bytes" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.Caveat" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.Codec" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.Req" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.Token" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.WellMinted" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.argsOk" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.attenuate" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.attenuate_mac" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.attenuate_narrows" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.attenuation_mono" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.attenuation_mono_append" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.aud_bound" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.denote" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.depthOk" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.depthOk_bound" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effDepth" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effDepth_append" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effDepth_append_le" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effExp" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effExp_append" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.effExp_append_exp" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.enc_injective" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.expiry_effective" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.expiry_minted" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.macChain" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.minOpt" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.parse_canonical" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.sat" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.verify" = ["proof", "oracles-local[token-drt]"]
+"AegisIR.Token:AegisIR.Token.verify_iff" = ["proof", "oracles-local[token-drt]"]
+
+# --- AegisIR.Vacuity: Non-vacuity witnesses for the other modules' theorems. Evidence is the proof gate only (no code counterpart).
+"AegisIR.Vacuity:AegisIR.Vacuity.cav1" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.combine_nonvacuous" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.depth_enforced" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.keeps_nonvacuous" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.neverEq" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.neverEq_refines" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.refBackend" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.refBackend_exact" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.refBackend_refines" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.refines_insufficient_for_not" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.req1" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.row1" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.segment_prefix_blocks_t10" = ["proof"]
+"AegisIR.Vacuity:AegisIR.Vacuity.token_nonvacuous" = ["proof"]
