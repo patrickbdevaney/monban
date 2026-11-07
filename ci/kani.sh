@@ -12,6 +12,14 @@
 # `-p C` is `--crate C`; `--mem M` sets the per-harness MemoryMax (as KANI_MEM); `--serial` is accepted for clarity
 # (harnesses always run one at a time). Without --neg the negative control is the crate's own: aegis-wire
 # negative_control_planted_oob, every other crate negative_control_unclamped_refill (the aegis-budget one, as before).
+# kani-kx-client (P8-kani-001) is `ci/kani.sh --serial --mem 6G -p aegis-tls --only client_` / `... --self-test
+# -p aegis-tls --only client_`: `--only P` selects the harnesses whose name starts with P. Without --neg, its negative
+# control is the one selected harness whose name contains "negative_control" (exactly one, else FAIL). An --only run
+# uses its own remote work dir (kani-<crate>-<P without trailing _>), so it never rsyncs over a concurrent
+# full-crate run.
+# Every selected harness whose name contains "negative_control" is a negative control, never a positive: --neg (or
+# the default) names the required one, and any other selected negative control runs too and must also FAIL on its own
+# "NEGATIVE CONTROL" assertion (so a full-crate run such as kani-kx also runs the client_ negative control red).
 #
 # The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/<dir> with a
 # generated minimal workspace manifest (<dir> = p2-kani for aegis-budget, kani-<crate> otherwise). Third-party
@@ -35,8 +43,9 @@ TMO=${KANI_TIMEOUT:-1800}
 PR4910_MERGE=16c774cf
 CRATE=aegis-budget
 NEG=
+ONLY=
 
-usage() { echo "usage: ci/kani.sh [--crate|-p CRATE] [--neg HARNESS] [--mem M] [--serial] [--expect-neg-only|--self-test]" >&2; exit 2; }
+usage() { echo "usage: ci/kani.sh [--crate|-p CRATE] [--neg HARNESS] [--only PREFIX] [--mem M] [--serial] [--expect-neg-only|--self-test]" >&2; exit 2; }
 MODE=all
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,11 +53,13 @@ while [ $# -gt 0 ]; do
     --crate|-p) [ $# -ge 2 ] || usage; CRATE=$2; shift 2 ;;
     --neg) [ $# -ge 2 ] || usage; NEG=$2; shift 2 ;;
     --mem) [ $# -ge 2 ] || usage; MEM=$2; shift 2 ;;
+    --only) [ $# -ge 2 ] || usage; ONLY=$2; shift 2 ;;
     --serial) shift ;;
     *) usage ;;
   esac
 done
-if [ -z "$NEG" ]; then
+[ -z "$ONLY" ] || [[ "$ONLY" =~ ^[a-z][a-z0-9_]*$ ]] || { echo "kani.sh: bad --only prefix $ONLY" >&2; exit 2; }
+if [ -z "$NEG" ] && [ -z "$ONLY" ]; then
   case "$CRATE" in
     aegis-wire) NEG=negative_control_planted_oob ;;
     *) NEG=negative_control_unclamped_refill ;;
@@ -56,8 +67,9 @@ if [ -z "$NEG" ]; then
 fi
 [[ "$MEM" =~ ^[0-9]+[KMG]$ ]] || { echo "kani.sh: bad --mem $MEM (e.g. 6G)" >&2; exit 2; }
 [[ "$CRATE" =~ ^aegis-[a-z0-9-]+$ ]] || { echo "kani.sh: bad crate name $CRATE" >&2; exit 2; }
-[[ "$NEG" =~ ^[a-z_0-9]+$ ]] || { echo "kani.sh: bad harness name $NEG" >&2; exit 2; }
+[ -z "$NEG" ] || [[ "$NEG" =~ ^[a-z_0-9]+$ ]] || { echo "kani.sh: bad harness name $NEG" >&2; exit 2; }
 if [ "$CRATE" = aegis-budget ]; then WDIR=p2-kani; else WDIR=kani-$CRATE; fi
+[ -z "$ONLY" ] || WDIR=kani-$CRATE-${ONLY%_}
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PROOFS=$ROOT/crates/$CRATE/src/kani_proofs.rs
@@ -66,9 +78,19 @@ fail_both() { echo "kani.sh: $*" >&2; [ "$MODE" = all ] && echo "KANI: FAIL"; ec
 
 # Harness list = every `#[kani::proof]` fn in the proofs file (the gate cannot silently skip one).
 mapfile -t ALL < <(awk '/#\[kani::proof\]/{p=1; next} p && /fn [a-z_0-9]+\(/{match($0, /fn [a-z_0-9]+/); print substr($0, RSTART+3, RLENGTH-3); p=0}' "$PROOFS")
-POS=()
-for h in "${ALL[@]}"; do [ "$h" = "$NEG" ] || POS+=("$h"); done
-printf '%s\n' "${ALL[@]}" | grep -qx "$NEG" || fail_both "negative control $NEG not found in $PROOFS"
+SEL=()
+for h in "${ALL[@]}"; do [ -z "$ONLY" ] || [[ "$h" == "$ONLY"* ]] && SEL+=("$h"); done
+[ "${#SEL[@]}" -gt 0 ] || fail_both "no harness in $PROOFS starts with $ONLY"
+if [ -z "$NEG" ]; then # --only without --neg: the one selected negative control
+  mapfile -t cand < <(printf '%s\n' "${SEL[@]}" | grep 'negative_control')
+  [ "${#cand[@]}" = 1 ] || fail_both "--only $ONLY selects ${#cand[@]} negative controls (need exactly 1, or pass --neg)"
+  NEG=${cand[0]}
+fi
+printf '%s\n' "${SEL[@]}" | grep -qx "$NEG" || fail_both "negative control $NEG not found in $PROOFS${ONLY:+ under --only $ONLY}"
+POS=() NEGS=("$NEG")
+for h in "${SEL[@]}"; do
+  if [[ "$h" == *negative_control* ]]; then [ "$h" = "$NEG" ] || NEGS+=("$h"); else POS+=("$h"); fi
+done
 [ "${#POS[@]}" -gt 0 ] || fail_both "no positive harnesses found"
 if [ -n "${KANI_HARNESSES:-}" ]; then read -r -a POS <<<"$KANI_HARNESSES"; fi
 [ "$MODE" = self ] && POS=()
@@ -120,9 +142,11 @@ fi
 
 # Remote runner: prints one "RESULT <name> <OK|FAIL> ..." line per harness plus a "COMMIT" line.
 # shellcheck disable=SC2087
-ssh -o BatchMode=yes "$HOST" bash -s -- "$MEM" "$TMO" "$PR4910_MERGE" "$CRATE" "$NEG" "$MODE" "$WDIR" "$KZ" "${POS[@]}" <<'REMOTE' | tee "$STAGE/out.txt"
+NEGLIST=$(IFS=,; echo "${NEGS[*]}")
+ssh -o BatchMode=yes "$HOST" bash -s -- "$MEM" "$TMO" "$PR4910_MERGE" "$CRATE" "$NEGLIST" "$MODE" "$WDIR" "$KZ" "${POS[@]}" <<'REMOTE' | tee "$STAGE/out.txt"
 set -uo pipefail
-MEM=$1 TMO=$2 MERGE=$3 CRATE=$4 NEG=$5 MODE=$6 WDIR=$7 KZ=$8; shift 8
+MEM=$1 TMO=$2 MERGE=$3 CRATE=$4 NEGLIST=$5 MODE=$6 WDIR=$7 KZ=$8; shift 8
+IFS=, read -r -a NEGS <<<"$NEGLIST"
 KARGS=""; [ "$KZ" = none ] || KARGS="-Z $KZ" # one ssh word on the wire, split here
 CI=$HOME/aegis-ci
 export RUSTUP_HOME=$CI/rustup CARGO_HOME=$CI/cargo PATH=$CI/src/kani/scripts:$CI/cargo/bin:$CI/cbmc/usr/bin:$PATH
@@ -136,8 +160,8 @@ else
   echo "COMMIT FAIL $commit is not a clean descendant of $MERGE (or the build is missing)"
 fi
 if systemd-run --user --scope -q true 2>/dev/null; then SCOPE=1; else SCOPE=0; fi
-run_one() { # name rustflags
-  local h=$1 rf=$2 log="$W/logs/$1.log"
+run_one() { # name rustflags is_negative(0|1)
+  local h=$1 rf=$2 isneg=$3 log="$W/logs/$1.log"
   if [ "$SCOPE" = 1 ]; then
     RUSTFLAGS="$rf" systemd-run --user --scope -q -p MemoryMax="$MEM" -p MemorySwapMax=0 nice -n 15 bash -c '
       cg=/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup); s=$(date +%s.%N)
@@ -158,7 +182,7 @@ run_one() { # name rustflags
   [ -n "$oom" ] && [ "$oom" != na ] && [ "$oom" != 0 ] && memflag=1
   local mb=na; [[ "$peak" =~ ^[0-9]+$ ]] && mb=$((peak / 1048576))MB
   local verdict=FAIL why=""
-  if [ "$h" = "$NEG" ]; then
+  if [ "$isneg" = 1 ]; then
     if [ "$rc" = 1 ] && [ "$rc_in" = 1 ] && [ "$memflag" = 0 ] && grep -q 'VERIFICATION:- FAILED' "$log" \
        && grep -A3 'Failed Checks:' "$log" | grep -q 'NEGATIVE CONTROL'; then verdict=FAIL_AS_EXPECTED
     else why="negative control did not fail on its own assertion"; verdict=NOT_RED; fi
@@ -178,13 +202,14 @@ run_one() { # name rustflags
   fi
   echo "RESULT $h $verdict rc=$rc_in wall=${wall:-na}s peak=$mb ${cov:-} ${why:+($why)}"
 }
-for h in "$@"; do run_one "$h" ""; done
-run_one "$NEG" "--cfg aegis_kani_negative"
+for h in "$@"; do run_one "$h" "" 0; done
+for n in "${NEGS[@]}"; do run_one "$n" "--cfg aegis_kani_negative" 1; done
 REMOTE
 
 OUT=$STAGE/out.txt
 grep -q '^COMMIT OK' "$OUT" && commit_ok=1 || commit_ok=0
-self=FAIL; grep -qE "^RESULT $NEG FAIL_AS_EXPECTED" "$OUT" && [ "$commit_ok" = 1 ] && self=PASS
+self=PASS; [ "$commit_ok" = 1 ] || self=FAIL
+for n in "${NEGS[@]}"; do grep -qE "^RESULT $n FAIL_AS_EXPECTED" "$OUT" || self=FAIL; done
 if [ "$MODE" = all ]; then
   pass=1
   [ "$commit_ok" = 1 ] || pass=0
