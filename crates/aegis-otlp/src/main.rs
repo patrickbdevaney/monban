@@ -11,6 +11,10 @@
 //! - Reads log lines on stdin (bounded lines, [`queue`]), maps them to OTLP log records ([`logs`]) and POSTs
 //!   `<endpoint>/v1/logs`. The queue is bounded and drops the oldest record when full; the drop count is exported
 //!   as the self-metric `aegis_otlp_dropped_log_records`.
+//! - Each POST is retried on 429/502/503/504 and transport failures with bounded exponential backoff ([`retry`]);
+//!   any other answer is final. A request given up is dropped and counted: its log records in
+//!   `aegis_otlp_dropped_log_records`, its metric points in `aegis_otlp_dropped_metric_points`.
+//! - Metrics and logs are exported by separate tasks, so a failing signal never stalls the other.
 //! - `--once`: read stdin to EOF, scrape exactly once, POST, exit 0 only if the scrape parsed and every POST got a
 //!   2xx. Otherwise: scrape every `--interval-ms` (default 10000), flush logs every min(interval, 1 s).
 //! - `https` endpoints use the aegis-tls client profile (`--tls-profile`, default `P-PUBLIC-WEB`) with the roots in
@@ -25,6 +29,7 @@ mod net;
 mod om;
 mod otlp;
 mod queue;
+mod retry;
 
 use std::io::Read as _;
 use std::process::ExitCode;
@@ -125,6 +130,10 @@ struct Exporter {
     start_ns: u64,
     shared: Arc<Shared>,
     failed_exports: AtomicU64,
+    /// Log records dropped after their request was given up (the queue's own drops are counted there).
+    dropped_logs: AtomicU64,
+    /// Metric points dropped after their request was given up.
+    dropped_points: AtomicU64,
 }
 
 impl Exporter {
@@ -133,8 +142,28 @@ impl Exporter {
         eprintln!("aegis-otlp: {what}");
     }
 
-    /// Scrape once and POST the metrics. `true` only if the scrape parsed and the POST got a 2xx.
-    async fn export_metrics(&self) -> bool {
+    /// POST with bounded retries; on a drop, add `items` to `counter`. `true` only if accepted.
+    async fn post(
+        &self,
+        url: &aegis_egress::Url,
+        body: &[u8],
+        items: u64,
+        counter: &AtomicU64,
+        stop: &AtomicBool,
+    ) -> bool {
+        match retry::post(&self.poster, url, body, stop).await {
+            retry::Outcome::Accepted => true,
+            retry::Outcome::Dropped(n, e) => {
+                counter.fetch_add(items, Ordering::Relaxed);
+                self.fail(&format!("{e}; dropped after {n} attempt(s)"));
+                false
+            }
+        }
+    }
+
+    /// Scrape once and POST the metrics (retried, never re-scraped). `true` only if the scrape parsed and the POST
+    /// got a 2xx.
+    async fn export_metrics(&self, stop: &AtomicBool) -> bool {
         let body = match net::scrape(&self.args.scrape).await {
             Ok(b) => b,
             Err(e) => {
@@ -144,17 +173,28 @@ impl Exporter {
         };
         let t = Times { now: now_ns(), start: self.start_ns };
         let mut ms = String::with_capacity(body.len().saturating_mul(2));
-        let _n = match om::parse(&body).and_then(|fams| otlp::metrics(&mut ms, &fams, t)) {
-            Ok(n) => n,
-            Err(e) => {
-                self.fail(&format!("scrape rejected: {e}"));
-                return false;
-            }
-        };
-        let dropped = self.shared.queue().dropped();
+        let points =
+            match om::parse(&body).and_then(|fams| otlp::metrics(&mut ms, &fams, t).map(|_| otlp::points(&fams))) {
+                Ok(n) => n,
+                Err(e) => {
+                    self.fail(&format!("scrape rejected: {e}"));
+                    return false;
+                }
+            };
+        let dropped_logs = self.shared.queue().dropped().saturating_add(self.dropped_logs.load(Ordering::Relaxed));
+        let dropped_points = self.dropped_points.load(Ordering::Relaxed);
         let failed = self.failed_exports.load(Ordering::Relaxed);
         for (name, desc, v) in [
-            ("aegis_otlp_dropped_log_records", "Log records dropped because the bounded queue was full.", dropped),
+            (
+                "aegis_otlp_dropped_log_records",
+                "Log records dropped: the bounded queue was full, or their request was given up after its retries.",
+                dropped_logs,
+            ),
+            (
+                "aegis_otlp_dropped_metric_points",
+                "Metric points dropped: their request was given up after its retries.",
+                dropped_points,
+            ),
             ("aegis_otlp_failed_exports", "Scrapes rejected or OTLP requests that did not get a 2xx.", failed),
         ] {
             if !ms.is_empty() {
@@ -163,17 +203,11 @@ impl Exporter {
             otlp::self_counter(&mut ms, name, desc, t, v);
         }
         let req = self.env.metrics_request(&ms);
-        match self.poster.post(&self.poster.metrics, req.as_bytes()).await {
-            Ok(()) => true,
-            Err(e) => {
-                self.fail(&e);
-                false
-            }
-        }
+        self.post(&self.poster.metrics, req.as_bytes(), points.saturating_add(3), &self.dropped_points, stop).await
     }
 
-    /// POST everything queued, in batches. `true` if every POST got a 2xx (or nothing was queued).
-    async fn flush_logs(&self) -> bool {
+    /// POST everything queued, in batches (each retried). `true` if every POST got a 2xx (or nothing was queued).
+    async fn flush_logs(&self, stop: &AtomicBool) -> bool {
         let recs = self.shared.queue().drain();
         let mut ok = true;
         let mut rest = recs.as_slice();
@@ -190,40 +224,49 @@ impl Exporter {
             let (batch, tail) = rest.split_at(n.min(rest.len()));
             rest = tail;
             let req = self.env.logs_request(batch.iter());
-            if let Err(e) = self.poster.post(&self.poster.logs, req.as_bytes()).await {
-                self.fail(&e);
-                ok = false;
-            }
+            let items = u64::try_from(batch.len()).unwrap_or(u64::MAX);
+            ok &= self.post(&self.poster.logs, req.as_bytes(), items, &self.dropped_logs, stop).await;
         }
         ok
     }
 
     async fn once(&self) -> bool {
-        let m = self.export_metrics().await;
-        let l = self.flush_logs().await;
+        let never = AtomicBool::new(false);
+        let m = self.export_metrics(&never).await;
+        let l = self.flush_logs(&never).await;
         m && l
     }
 
-    async fn run(&self, stop: &AtomicBool) {
+    /// Interval mode, metrics side: scrape and export every interval until `stop`.
+    async fn metrics_loop(self: Arc<Self>, stop: Arc<AtomicBool>) {
         let interval = Duration::from_millis(self.args.interval_ms);
-        let log_every = interval.min(Duration::from_secs(1));
-        let tick = Duration::from_millis(50).min(log_every);
-        let mut next_metrics = Instant::now();
-        let mut next_logs = Instant::now() + log_every;
+        let tick = Duration::from_millis(50);
+        let mut next = Instant::now();
         while !stop.load(Ordering::SeqCst) {
-            let now = Instant::now();
-            if now >= next_metrics {
-                self.export_metrics().await;
-                next_metrics = (next_metrics + interval).max(Instant::now());
+            if Instant::now() >= next {
+                self.export_metrics(&stop).await;
+                next = (next + interval).max(Instant::now());
             }
+            tokio::time::sleep(tick.min(next.saturating_duration_since(Instant::now())).max(Duration::from_millis(1)))
+                .await;
+        }
+    }
+
+    /// Interval mode, logs side: flush every min(interval, 1 s) (or when a batch is full) until `stop`, then flush
+    /// what is queued once more (one attempt per request: `stop` is set).
+    async fn logs_loop(self: Arc<Self>, stop: Arc<AtomicBool>) {
+        let log_every = Duration::from_millis(self.args.interval_ms).min(Duration::from_secs(1));
+        let tick = Duration::from_millis(50).min(log_every);
+        let mut next = Instant::now() + log_every;
+        while !stop.load(Ordering::SeqCst) {
             let full = self.shared.queue().len() >= LOG_BATCH;
-            if now >= next_logs || full {
-                self.flush_logs().await;
-                next_logs = Instant::now() + log_every;
+            if Instant::now() >= next || full {
+                self.flush_logs(&stop).await;
+                next = Instant::now() + log_every;
             }
             tokio::time::sleep(tick).await;
         }
-        self.flush_logs().await;
+        self.flush_logs(&stop).await;
     }
 }
 
@@ -250,6 +293,8 @@ fn setup() -> Result<Exporter, String> {
         start_ns: now_ns(),
         shared: Arc::new(Shared::default()),
         failed_exports: AtomicU64::new(0),
+        dropped_logs: AtomicU64::new(0),
+        dropped_points: AtomicU64::new(0),
     })
 }
 
@@ -301,6 +346,16 @@ fn main() -> ExitCode {
             }
         }
     }
-    rt.block_on(ex.run(&stop));
+    let ex = Arc::new(ex);
+    let m = rt.spawn(ex.clone().metrics_loop(stop.clone()));
+    let l = rt.spawn(ex.logs_loop(stop));
+    rt.block_on(async move {
+        let (m, l) = (m.await, l.await);
+        for (what, r) in [("metrics", m), ("logs", l)] {
+            if let Err(e) = r {
+                eprintln!("aegis-otlp: {what} task: {e}");
+            }
+        }
+    });
     ExitCode::SUCCESS
 }
