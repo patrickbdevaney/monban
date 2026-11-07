@@ -338,7 +338,8 @@ accept! {
     route_id_max_safe: route(r#"{"id":9007199254740991,"path":"/","to":{"static":"x"}}"#);
     route_id_float_integral: route(r#"{"id":3e0,"path":"/","to":{"static":"x"}}"#);
     route_path_root: route(r#"{"id":3,"path":"/","to":{"static":"x"}}"#);
-    route_path_full_charset: route(r#"{"id":3,"path":"/AZaz09._~!$&'()*+,;=:@/-","to":{"static":"x"}}"#);
+    // Every pattern character except ';', which CANON-2 forbids in a path (Phase 8, R13: refused as NotCanonical).
+    route_path_full_charset: route(r#"{"id":3,"path":"/AZaz09._~!$&'()*+,=:@/-","to":{"static":"x"}}"#);
     route_same_id_other_vhost: with(r#""vhosts":["#, r#""vhosts":[{"host":"other.com","routes":[{"id":1,"path":"/","to":{"static":"x"}}]},"#);
     to_upstream_no_framing: to(r#"{"upstream":"app"}"#);
     to_framing_uds: to(r#"{"upstream":"app","framing":"uds"}"#);
@@ -363,6 +364,8 @@ reject! {
     route_path_query: route(r#"{"id":3,"path":"/a?x","to":{"static":"x"}}"#) => Pattern @ "/vhosts/0/routes/0/path";
     route_path_percent: route(r#"{"id":3,"path":"/%41","to":{"static":"x"}}"#) => Pattern @ "/vhosts/0/routes/0/path";
     route_path_non_ascii: route(r#"{"id":3,"path":"/é","to":{"static":"x"}}"#) => Pattern @ "/vhosts/0/routes/0/path";
+    route_path_semicolon_not_canonical: route(r#"{"id":3,"path":"/a;b","to":{"static":"x"}}"#) => NotCanonical @ "/vhosts/0/routes/0/path";
+    route_path_dot_segment_not_canonical: route(r#"{"id":3,"path":"/a/../b","to":{"static":"x"}}"#) => NotCanonical @ "/vhosts/0/routes/0/path";
     route_path_trailing_newline: route(r#"{"id":3,"path":"/a\n","to":{"static":"x"}}"#) => Pattern @ "/vhosts/0/routes/0/path";
     route_authz_not_string: route(r#"{"id":3,"path":"/","to":{"static":"x"},"authz":true}"#) => Type @ "/vhosts/0/routes/0/authz";
     route_duplicate_id: route(r#"{"id":2,"path":"/","to":{"static":"x"}}"#) => DuplicateRouteId @ "/vhosts/0/routes/1/id";

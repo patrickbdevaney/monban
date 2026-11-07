@@ -8,7 +8,7 @@ use aegis_canon::canon_json;
 use crate::data::Decl;
 use crate::{
     Admission, Canon, Config, ConfigError, CrashBudget, DataBlock, DsnRef, ErrorKind, Front, Limits, Listener,
-    MAX_CONFIG_BYTES, P2Block, P2Limits, RouteData, RouteTarget, TlsBlock,
+    MAX_CONFIG_BYTES, P2Block, P2Limits, RouteData, RouteTarget, Runtime, TlsBlock,
 };
 
 fn string(s: &str, out: &mut String) {
@@ -440,6 +440,21 @@ fn text(c: &Config, resolved: Option<usize>) -> String {
         o.push(',');
         key("tls", &mut o);
         tls_block(t, &mut o);
+    }
+    // Phase 8: `runtime` is printed only when it differs from its defaults (pre-Phase-8 aegis-bin constant), so
+    // absent and explicit-default documents hash the same; the dump always shows it.
+    if resolved.is_some() || c.runtime != Runtime::default() {
+        o.push(',');
+        key("runtime", &mut o);
+        o.push('{');
+        bounded(Runtime::BOUNDS, c.runtime.values(), &mut o);
+        o.push('}');
+    }
+    // Phase 8: `state` has no defaults; printed only when a member is set (`{}` means the same as absent).
+    if let Some(r) = c.state.idempotency_retention_s {
+        o.push(',');
+        key("state", &mut o);
+        let _ = write!(o, "{{\"idempotency_retention_s\":{r}}}");
     }
     o.push('}');
     o

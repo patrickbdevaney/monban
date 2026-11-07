@@ -24,3 +24,6 @@ pred       = [0] / [1] / [2, uint, value] / [3, uint, [* value]] / [4, uint, val
 ;   its route was not granted. Emitting an F4 denylist item to the engine breaks the extension contract
 ;   (SPEC_INVARIANTS H); the host does not see an out-of-process module's engine traffic, so this is a contract
 ;   term, not a host check.
+; P8-spec-001 (normative note only, shapes unchanged): the F4 denylist a module must honour is per engine family and
+;   includes `mariadb` (SPEC_INVARIANTS F, Phase-8 addendum DENY-M: its keyword items and lexical forms, e.g. user
+;   variables, multi-statements, executable comments, unguarded ON DUPLICATE KEY UPDATE).
