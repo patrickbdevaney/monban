@@ -619,18 +619,25 @@ pub fn kv_plan(op: &Op, s: &Schema) -> Result<KvCommand, KvError> {
 
 // ---------------------------------------------------------------------------------------------- engines and pins
 
-/// Engine families with a golden adapter. Redis and Valkey share the RESP denylist but have separate version pins.
+/// Engine families with an adapter. Redis and Valkey share the RESP denylist but have separate version pins.
+/// `Mariadb` (Phase 8, SPEC_INVARIANTS §F DENY-M) is non-golden until `native-e2e-mariadb` passes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum EngineFamily {
     Sqlite,
     Postgres,
     Redis,
     Valkey,
+    Mariadb,
 }
 
 impl EngineFamily {
-    pub const ALL: [EngineFamily; 4] =
-        [EngineFamily::Sqlite, EngineFamily::Postgres, EngineFamily::Redis, EngineFamily::Valkey];
+    pub const ALL: [EngineFamily; 5] = [
+        EngineFamily::Sqlite,
+        EngineFamily::Postgres,
+        EngineFamily::Redis,
+        EngineFamily::Valkey,
+        EngineFamily::Mariadb,
+    ];
     /// Name used in F8 `backend.engine` and in the allowlist lock.
     pub const fn name(self) -> &'static str {
         match self {
@@ -638,6 +645,7 @@ impl EngineFamily {
             EngineFamily::Postgres => "postgres",
             EngineFamily::Redis => "redis",
             EngineFamily::Valkey => "valkey",
+            EngineFamily::Mariadb => "mariadb",
         }
     }
     pub fn from_name(s: &str) -> Option<EngineFamily> {
@@ -761,15 +769,63 @@ const PG_DENY: &[DenyEntry] = &[
     },
 ];
 
+const MY_W2: &str = "IGNORE variants downgrade errors to warnings and truncate (W2; q4-005 mandated forms)";
+const MY_FILE: &str = "reads or writes server-side files outside the op (external effect, NC6)";
+const MY_DYN: &str = "dynamic or stored SQL: statement text the denylist scan never sees";
+
+/// MariaDB form entry: `@` outside a literal or identifier (`@x :=`, `@@sql_mode`).
+pub const MARIADB_FORM_VARIABLE: DenyEntry =
+    DenyEntry { item: "@", trace: "user/system variables (@x :=, @@var) carry state across statements (C8)" };
+/// MariaDB form entry: `;` outside a literal, identifier or comment (multi-statements).
+pub const MARIADB_FORM_MULTI: DenyEntry =
+    DenyEntry { item: ";", trace: "multi-statement text: one op is one statement (q4-005)" };
+/// MariaDB form entry: an executable comment, `/*!` or `/*M!`.
+pub const MARIADB_FORM_EXEC_COMMENT: DenyEntry =
+    DenyEntry { item: "/*!", trace: "executable comment: MariaDB runs text a comment-skipping scanner would skip" };
+/// MariaDB form entry: `--` not followed by a space or control character (not a comment to MariaDB).
+pub const MARIADB_FORM_DASHDASH: DenyEntry =
+    DenyEntry { item: "--", trace: "'--' without a following space is not a MariaDB comment, so it cannot be skipped" };
+/// MariaDB form entry: `ON DUPLICATE KEY UPDATE` with an assignment that is not the mandated tenant guard
+/// `c = IF(CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY), VALUES(c), c)`.
+pub const MARIADB_FORM_ODKU: DenyEntry = DenyEntry {
+    item: "ON DUPLICATE KEY UPDATE",
+    trace: "ODKU arbitrates on any unique key: every assignment must carry the tenant guard (W3)",
+};
+
+/// MariaDB keyword items (whole unquoted word, ASCII case-insensitive), then the lexical *forms* that the MariaDB
+/// scanner of `denied_in_sql` reports (their items are not words, so no word token ever hits them). SPEC_INVARIANTS
+/// §F Phase-8 addendum DENY-M.
+const MARIADB_DENY: &[DenyEntry] = &[
+    DenyEntry { item: "REPLACE", trace: NO_REPLACE },
+    DenyEntry { item: "IGNORE", trace: MY_W2 },
+    DenyEntry { item: "LOAD", trace: MY_FILE },
+    DenyEntry { item: "OUTFILE", trace: MY_FILE },
+    DenyEntry { item: "DUMPFILE", trace: MY_FILE },
+    DenyEntry { item: "HANDLER", trace: "HANDLER reads rows by index, bypassing the lowered WHERE (tenant conjunct)" },
+    DenyEntry { item: "DO", trace: "DO evaluates expressions for side effects only (no Op shape)" },
+    DenyEntry { item: "CALL", trace: MY_DYN },
+    DenyEntry { item: "PREPARE", trace: MY_DYN },
+    DenyEntry { item: "EXECUTE", trace: MY_DYN },
+    DenyEntry { item: "TRIGGER", trace: W5 },
+    DenyEntry { item: "TEMPORARY", trace: CONN_STATE },
+    DenyEntry { item: "SESSION", trace: "session state (sql_mode) is pinned at connect; an op never changes it (C8)" },
+    MARIADB_FORM_VARIABLE,
+    MARIADB_FORM_MULTI,
+    MARIADB_FORM_EXEC_COMMENT,
+    MARIADB_FORM_DASHDASH,
+    MARIADB_FORM_ODKU,
+];
+
 /// Per-family denylist as data (R-DB-3/4). For RESP families an item is a command name; for SQL families it is a
 /// keyword matched against the unquoted keyword tokens of rendered statement text. Matching is ASCII
 /// case-insensitive. The allowlist-lock generator refuses any entry that renders a denylisted item, and adapters
-/// never emit one.
+/// never emit one. MariaDB also carries non-word form entries, reported by its dialect scanner (`denied_in_sql`).
 pub fn denylist(family: EngineFamily) -> &'static [DenyEntry] {
     match family {
         EngineFamily::Sqlite => SQLITE_DENY,
         EngineFamily::Postgres => PG_DENY,
         EngineFamily::Redis | EngineFamily::Valkey => RESP_DENY,
+        EngineFamily::Mariadb => MARIADB_DENY,
     }
 }
 
@@ -1200,6 +1256,24 @@ mod tests {
         }
         assert!(denied(EngineFamily::Sqlite, "attach").is_some() && denied(EngineFamily::Sqlite, "pragma").is_some());
         assert!(denied(EngineFamily::Postgres, "MERGE").is_some());
+        for w in ["REPLACE", "ignore", "Load", "OUTFILE", "DUMPFILE", "HANDLER", "do", "CALL", "PREPARE", "EXECUTE"] {
+            assert!(denied(EngineFamily::Mariadb, w).is_some(), "{w}");
+        }
+        for w in ["SELECT", "INSERT", "UPDATE", "DELETE", "ON", "DUPLICATE", "KEY", "VALUES", "IF", "CAST", "AS"] {
+            assert!(denied(EngineFamily::Mariadb, w).is_none(), "{w}");
+        }
+        for f in [
+            MARIADB_FORM_VARIABLE,
+            MARIADB_FORM_MULTI,
+            MARIADB_FORM_EXEC_COMMENT,
+            MARIADB_FORM_DASHDASH,
+            MARIADB_FORM_ODKU,
+        ] {
+            assert!(denylist(EngineFamily::Mariadb).contains(&f), "{f:?}");
+            assert!(
+                denied(EngineFamily::Mariadb, "ON").is_none() && f.item.bytes().any(|c| !c.is_ascii_alphanumeric())
+            );
+        }
         for w in ["SELECT", "INSERT", "UPDATE", "DELETE", "ON", "CONFLICT", "DO", "RETURNING", "LOCAL", "WHERE"] {
             assert!(denied(EngineFamily::Postgres, w).is_none(), "{w}");
             assert!(denied(EngineFamily::Sqlite, w).is_none(), "{w}");
