@@ -37,6 +37,15 @@ const MAX_FILE: u64 = 1 << 20;
 const BODY: u32 = 1 << 20;
 /// Upstream fetch deadline.
 const UPSTREAM_DEADLINE: Duration = Duration::from_secs(10);
+/// Async workers of the agent listener's runtime. Decision (P8-bin-002, R5): this stays the constant 2 and does not
+/// follow F8 `runtime.worker_threads`. `aegis agent` is configured by the aegis-agent `AgentConfig` file, not by an
+/// F8 document, so F8 `runtime` never reaches it, and giving the agent config a worker field is an interface change
+/// (spec author, not this unit). The listener is not CPU-bound on its async workers either: every call blocks on the
+/// PDP exchange under its deadline, on the blocking pool ([`AGENT_BLOCKING`]), and no scaling gate measures it.
+/// No timing default changes.
+const AGENT_WORKERS: usize = 2;
+/// Blocking-pool threads of the agent listener (the gate's PDP exchange runs there).
+const AGENT_BLOCKING: usize = 8;
 
 pub const USAGE: &str = "aegis agent --config <agent.json>";
 
@@ -265,8 +274,8 @@ pub fn run(args: &[OsString]) -> ExitCode {
         }
     };
     let rt = match tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(2)
-        .max_blocking_threads(8)
+        .worker_threads(AGENT_WORKERS)
+        .max_blocking_threads(AGENT_BLOCKING)
         .enable_all()
         .build()
     {

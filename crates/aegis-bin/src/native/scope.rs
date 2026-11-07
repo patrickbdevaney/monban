@@ -344,10 +344,33 @@ pub trait HostSql<R>: Executor<R, Rows = Rows> {
 impl HostSql<aegis_adapter_sqlite::Rendered> for SqliteExec {
     fn write_idem(&self, tx: &mut SqliteTx, _tenant: &str, idem: &Idem) -> Result<(), EngineError> {
         let status = idem.status.to_string();
+        if !self.stamped() {
+            return self
+                .raw(
+                    tx,
+                    "INSERT INTO aegis_idem (principal, k, status, body) VALUES (?1, ?2, ?3, ?4)",
+                    &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str()],
+                )
+                .map(|_| ());
+        }
+        // IDEMP-R (super::retention): the lookup forgot an expired row of this key, so the new outcome replaces it
+        // here, in the same transaction; a row inside the window is never deleted (the insert then conflicts).
+        let now = super::retention::now_s();
+        if let Some(cut) = self.retention().and_then(|r| super::retention::cutoff(now, r)) {
+            let cut = cut.to_string();
+            self.raw(
+                tx,
+                "DELETE FROM aegis_idem WHERE principal = ?1 AND k = ?2 AND committed_at IS NOT NULL \
+                 AND committed_at <= CAST(?3 AS INTEGER)",
+                &[idem.principal.as_str(), idem.key.as_str(), cut.as_str()],
+            )?;
+        }
+        let now = now.to_string();
         self.raw(
             tx,
-            "INSERT INTO aegis_idem (principal, k, status, body) VALUES (?1, ?2, ?3, ?4)",
-            &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str()],
+            "INSERT INTO aegis_idem (principal, k, status, body, committed_at) \
+             VALUES (?1, ?2, ?3, ?4, CAST(?5 AS INTEGER))",
+            &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str(), now.as_str()],
         )
         .map(|_| ())
     }

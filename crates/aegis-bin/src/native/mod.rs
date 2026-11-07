@@ -38,6 +38,9 @@ pub mod mariadb;
 #[cfg(feature = "p2")]
 pub mod p2data;
 pub mod pg;
+pub mod retention;
+#[cfg(test)]
+mod retention_boot_tests;
 pub mod scope;
 pub mod sqlite;
 #[cfg(test)]
@@ -152,6 +155,8 @@ pub struct DataPlane {
     pub dropping: AtomicBool,
     pub mutants: Mutants,
     data: Option<aegis_config::DataBlock>,
+    /// F8 `state.idempotency_retention_s` the data plane booted with (IDEMP-R, [`retention`]); `None`: never expire.
+    retention: Option<u64>,
 }
 
 impl std::fmt::Debug for DataPlane {
@@ -192,7 +197,30 @@ fn pool() -> Result<BlockingPool, String> {
     BlockingPool::new(POOL_THREADS).map_err(|e| e.to_string())
 }
 
-fn boot_sqlite(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Result<EngineHandle, String> {
+/// The SQLite `aegis_idem` shape as `pragma_table_info` (name, pk, notnull) reports it: the pre-Phase-8 four
+/// columns, optionally followed by the nullable IDEMP-R stamp ([`retention::STAMP_COLUMN`]).
+fn sqlite_idem_shape(db: &aegis_adapter_sqlite::SqliteDb) -> Result<Option<bool>, String> {
+    let shape =
+        sqlite::query(db, "SELECT name, pk, \"notnull\" FROM pragma_table_info('aegis_idem') ORDER BY cid", &[])
+            .map_err(|e| format!("aegis_idem: {e}"))?;
+    let want = [["principal", "1", "1"], ["k", "2", "1"], ["status", "0", "1"], ["body", "0", "1"]];
+    let stamp = [retention::STAMP_COLUMN, "0", "0"];
+    let row_is =
+        |r: &Vec<Option<String>>, w: &[&str; 3]| r.iter().map(|c| c.as_deref().unwrap_or("")).eq(w.iter().copied());
+    let base = shape.len() >= want.len() && shape.iter().zip(want.iter()).all(|(r, w)| row_is(r, w));
+    Ok(match (base, shape.len(), shape.get(want.len())) {
+        (true, 4, _) => Some(false),
+        (true, 5, Some(r)) if row_is(r, &stamp) => Some(true),
+        _ => None,
+    })
+}
+
+fn boot_sqlite(
+    b: &aegis_config::Backend,
+    reg: &Arc<Registry>,
+    idx: usize,
+    retention: Option<u64>,
+) -> Result<EngineHandle, String> {
     let DsnRef::Path(path) = &b.dsn_ref else { return Err("sqlite needs dsn_ref path:".into()) };
     let path = PathBuf::from(path);
     let db = sqlite::open(&path, b.op_budget_ms).map_err(|e| e.to_string())?;
@@ -204,25 +232,24 @@ fn boot_sqlite(b: &aegis_config::Backend, reg: &Arc<Registry>, idx: usize) -> Re
         &[],
     )
     .map_err(|e| format!("aegis_idem: {e}"))?;
-    // A pre-existing table must have exactly that shape (an existing different one is refused, never altered).
-    let shape =
-        sqlite::query(&db, "SELECT name, pk, \"notnull\" FROM pragma_table_info('aegis_idem') ORDER BY cid", &[])
+    // A pre-existing table must have exactly that shape, or that shape plus the IDEMP-R stamp column. Any other one
+    // is refused, never altered; the one alteration is the additive stamp column, made only when a retention is set
+    // (rows already there have no stamp and never expire, the aegis-state rule).
+    let bad = "aegis_idem exists with a different shape (expected principal, k, status, body[, committed_at]; \
+               PK (principal, k))";
+    let mut stamped = sqlite_idem_shape(&db)?.ok_or(bad)?;
+    if retention.is_some() && !stamped {
+        sqlite::query(&db, "ALTER TABLE aegis_idem ADD COLUMN committed_at INTEGER", &[])
             .map_err(|e| format!("aegis_idem: {e}"))?;
-    let want = [["principal", "1", "1"], ["k", "2", "1"], ["status", "0", "1"], ["body", "0", "1"]];
-    let ok = shape.len() == want.len()
-        && shape
-            .iter()
-            .zip(want.iter())
-            .all(|(r, w)| r.iter().map(|c| c.as_deref().unwrap_or("")).eq(w.iter().copied()));
-    if !ok {
-        return Err(
-            "aegis_idem exists with a different shape (expected principal, k, status, body; PK (principal, k))".into(),
-        );
+        stamped = sqlite_idem_shape(&db)?.ok_or(bad)?;
+        if !stamped {
+            return Err("aegis_idem: the IDEMP-R stamp column was not added".into());
+        }
     }
     let lock = engines::allowlist(notes::ALLOWLIST_SQLITE, EngineFamily::Sqlite)?;
     let engine = Arc::new(wrap(
         engines::SqliteRenderer::new(&b.id, vec![table], lock),
-        sqlite::SqliteExec::new(path, b.op_budget_ms),
+        sqlite::SqliteExec::new(path, b.op_budget_ms).with_retention(stamped, retention),
         reg,
         idx,
     ));
@@ -387,10 +414,12 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Op
     }
     let keyring = load_keyring(keyring.ok_or("app and data routes need --token-keyring (F5 Tier-L key ring)")?)?;
     let reg = Arc::new(Registry::default());
+    let retention = cfg.state().idempotency_retention_s;
     let mut engines = Vec::new();
     for (idx, b) in cfg.data().map(aegis_config::DataBlock::backends).unwrap_or(&[]).iter().enumerate() {
         let e = match b.engine {
-            CfgEngine::Sqlite => boot_sqlite(b, &reg, idx),
+            CfgEngine::Sqlite => boot_sqlite(b, &reg, idx, retention),
+            CfgEngine::Postgres if retention.is_some() => Err(retention::refuse_unstamped("postgres")),
             CfgEngine::Postgres => boot_pg(b, &reg, idx),
             CfgEngine::Redis | CfgEngine::Valkey => Err("Redis/Valkey data plane is not available in this build: the \
                  buffered commit needs MULTI/EXEC, which aegis-adapter-redis (GET/SET/DEL allowlist, per-tenant ACL) \
@@ -403,8 +432,12 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Op
     // Phase-7 adapter families (features `adapter-crdb`, `adapter-mariadb`; plan() refused any family not built).
     for a in cfg.data().map(aegis_config::DataBlock::adapters).unwrap_or(&[]) {
         let idx = engines.len();
-        let e = adapters::boot(a, &reg, idx)
-            .map_err(|e| format!("data backend {:?} ({}): {e}", a.id, a.family.as_str()))?;
+        let e = if retention.is_some() {
+            Err(retention::refuse_unstamped(a.family.as_str()))
+        } else {
+            adapters::boot(a, &reg, idx)
+        }
+        .map_err(|e| format!("data backend {:?} ({}): {e}", a.id, a.family.as_str()))?;
         engines.push(Backend { id: a.id.clone(), engine: e, budget_ms: a.op_budget_ms });
     }
     let dp = DataPlane {
@@ -415,9 +448,39 @@ pub fn boot(cfg: &Config, keyring: Option<&Path>, mutants: Mutants) -> Result<Op
         dropping: AtomicBool::new(false),
         mutants,
         data: cfg.data().cloned(),
+        retention,
     };
     dp.bind(cfg)?; // every route endowment must resolve at boot
+    // IDEMP-R: rows already expired are deleted before the first request (then by `spawn_purge`).
+    dp.purge_expired(retention::now_s()).map_err(|e| format!("aegis_idem retention purge: {e}"))?;
     Ok(Some(Arc::new(dp)))
+}
+
+/// IDEMP-R: start the purge thread, which deletes expired `aegis_idem` rows every [`retention::period`] until the
+/// data plane is dropped. `None` when no retention is set or no backend carries the stamp (nothing can expire).
+pub fn spawn_purge(dp: &Arc<DataPlane>, log: fn(&str)) -> Option<std::thread::JoinHandle<()>> {
+    let r = dp.retention()?;
+    if !dp
+        .engines
+        .iter()
+        .any(|b| matches!(&b.engine, EngineHandle::Sqlite { engine, .. } if engine.executor.inner.stamped()))
+    {
+        return None;
+    }
+    let weak = Arc::downgrade(dp);
+    let every = retention::period(r);
+    std::thread::Builder::new()
+        .name("aegis-idem-purge".into())
+        .spawn(move || {
+            loop {
+                std::thread::sleep(every);
+                let Some(dp) = weak.upgrade() else { return };
+                if let Err(e) = dp.purge_expired(retention::now_s()) {
+                    log(&format!("aegis_idem retention purge: {e} (retried next period)"));
+                }
+            }
+        })
+        .ok()
 }
 
 struct Provider<'a>(&'a DataPlane);
@@ -468,6 +531,9 @@ impl DataPlane {
     pub fn bind(&self, cfg: &Config) -> Result<Bindings, String> {
         if cfg.data() != self.data.as_ref() {
             return Err("the data block changed: backends are opened at boot (restart or upgrade to apply)".into());
+        }
+        if cfg.state().idempotency_retention_s != self.retention {
+            return Err("state.idempotency_retention_s changed: it is applied at boot (restart or upgrade)".into());
         }
         let resolved = cfg.resolve_data(&Provider(self)).map_err(|e| e.to_string())?;
         let mut out = Bindings::default();
@@ -560,12 +626,60 @@ impl DataPlane {
         self.dropping.load(Ordering::Acquire)
     }
 
+    /// The retention the data plane applies (F8 `state.idempotency_retention_s`; `None`: never expire).
+    pub fn retention(&self) -> Option<u64> {
+        self.retention
+    }
+
+    /// IDEMP-R: delete every `aegis_idem` row expired at `now` (stamped SQLite backends; nothing without a
+    /// retention). Returns the number of rows deleted. Blocking.
+    pub fn purge_expired(&self, now: u64) -> Result<usize, String> {
+        let Some(cut) = self.retention.and_then(|r| retention::cutoff(now, r)) else { return Ok(0) };
+        let cut = cut.to_string();
+        let mut n = 0usize;
+        for b in &self.engines {
+            let EngineHandle::Sqlite { engine, .. } = &b.engine else { continue };
+            let x = &engine.executor.inner;
+            if !x.stamped() {
+                continue;
+            }
+            let db = sqlite::open(x.path(), x.budget_ms()).map_err(|e| e.to_string())?;
+            sqlite::query(
+                &db,
+                "DELETE FROM aegis_idem WHERE committed_at IS NOT NULL AND committed_at <= CAST(?1 AS INTEGER)",
+                &[&cut],
+            )
+            .map_err(|e| format!("{}: {e}", b.id))?;
+            let c = sqlite::query(&db, "SELECT changes()", &[]).map_err(|e| format!("{}: {e}", b.id))?;
+            let c = c.first().and_then(|r| r.first()).and_then(|v| v.as_deref()).and_then(|v| v.parse::<usize>().ok());
+            n = n.saturating_add(c.unwrap_or(0));
+        }
+        Ok(n)
+    }
+
     /// The stored outcome of (principal, key) in backend `idx`'s `aegis_idem`, read in a tenant-bound transaction.
-    /// Blocking: call on the pool.
+    /// An outcome expired under the retention (IDEMP-R) is not returned. Blocking: call on the pool.
     pub fn lookup(&self, idx: usize, principal: &Principal, key: &str) -> Result<Option<(u16, String)>, String> {
         let b = self.engines.get(idx).ok_or("no such backend")?;
         let ph = hex(&principal_bytes(principal));
         let rows = match &b.engine {
+            EngineHandle::Sqlite { engine, .. } if engine.executor.inner.stamped() => {
+                let x = &engine.executor.inner;
+                let db = sqlite::open(x.path(), x.budget_ms()).map_err(|e| e.to_string())?;
+                let rows = sqlite::query(
+                    &db,
+                    "SELECT status, body, committed_at FROM aegis_idem WHERE principal = ?1 AND k = ?2",
+                    &[&ph, key],
+                )
+                .map_err(|e| e.to_string())?;
+                let now = retention::now_s();
+                rows.into_iter()
+                    .filter(|r| {
+                        let at = r.get(2).cloned().flatten().and_then(|t| t.parse::<u64>().ok());
+                        !retention::expired(at, now, x.retention())
+                    })
+                    .collect()
+            }
             EngineHandle::Sqlite { engine, .. } => {
                 let x = &engine.executor.inner;
                 let db = sqlite::open(x.path(), x.budget_ms()).map_err(|e| e.to_string())?;

@@ -51,11 +51,31 @@ fn cell(v: SqlValue) -> Option<String> {
 pub struct SqliteExec {
     path: PathBuf,
     budget_ms: u64,
+    /// The backend's `aegis_idem` has the IDEMP-R stamp column (`super::retention`).
+    stamped: bool,
+    /// F8 `state.idempotency_retention_s` (`None`: never expire).
+    retention: Option<u64>,
 }
 
 impl SqliteExec {
     pub fn new(path: PathBuf, budget_ms: u64) -> SqliteExec {
-        SqliteExec { path, budget_ms }
+        SqliteExec { path, budget_ms, stamped: false, retention: None }
+    }
+
+    /// IDEMP-R (P8-bin-002): the outcome row carries its commit second, and an expired row of the same key is
+    /// replaced in the scope's transaction.
+    pub fn with_retention(mut self, stamped: bool, retention: Option<u64>) -> SqliteExec {
+        self.stamped = stamped;
+        self.retention = retention;
+        self
+    }
+
+    pub fn stamped(&self) -> bool {
+        self.stamped
+    }
+
+    pub fn retention(&self) -> Option<u64> {
+        self.retention
     }
 
     /// A host-owned statement inside the open transaction (the D14 `aegis_idem` row).

@@ -534,6 +534,10 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         },
         None => Arc::default(),
     };
+    // IDEMP-R (F8 `state.idempotency_retention_s`, P8-bin-002): expired idempotency outcomes are purged every
+    // period while the data plane lives; absent = never expire (no thread).
+    #[cfg(feature = "native")]
+    let _purge = native.as_ref().and_then(|dp| crate::native::spawn_purge(dp, log));
     // P2 (feature `p2`): every module compiled by the sandboxed worker and the zygote set started, before any
     // socket. A worker that refuses (missing, digest mismatch, Landlock ABI < 4, D2) fails the boot.
     let p2 = match crate::p2::boot(&cfg, opts.token_keyring.as_deref(), opts.runtime_dir.as_deref()) {
