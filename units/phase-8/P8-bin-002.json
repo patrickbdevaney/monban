@@ -1,0 +1,36 @@
+{
+ "id": "P8-bin-002",
+ "role": "implementer",
+ "depends_on": [
+  "P8-bin-001",
+  "P8-compliance-001"
+ ],
+ "start_now": false,
+ "gates": [
+  "bin-residuals",
+  "scaling",
+  "tcb-lines"
+ ],
+ "spec_refs": [
+  "PREFLIGHT R5,R12",
+  "PREFLIGHT D-P8.3",
+  "PLAN-8 F8 state.idempotency_retention_s"
+ ],
+ "oracles": [
+  "aegis-bin retention test (red without the wiring)",
+  "bench/scaling --self-test incl. the gcp machine-type preflight mutant",
+  "tcb-lines --self-test"
+ ],
+ "acceptance": {
+  "cmd": "ci/remote.sh --host kamrui ci/heavy.sh cargo test -p aegis-bin && python3 -I bench/scaling/scaling.py --self-test && python3 -I ci/tcb-lines.py && python3 -I ci/tcb-lines.py --self-test",
+  "must": "F8 state.idempotency_retention_s applied in aegis-bin (absent = never expire) with a periodic purge and a test that goes red without the wiring; agent-listener worker_threads decision documented (timing defaults unchanged); the run-B 5xx/S5 cause found and fixed in the harness or written up with evidence; --gcp preflight refuses a nonexistent machine type (self-test mutant); README step 4 does not assume c2d-standard-64; R5/R12 rows updated in SECURITY_CLAIMS.md and compliance/COMPLIANCE_MAP.md; tcb-lines and its self-test pass"
+ },
+ "write_scope": [
+  "crates/aegis-bin/src/**",
+  "bench/scaling/**",
+  "units/phase-8/P8-bin-002.json",
+  "SECURITY_CLAIMS.md (R5/R12 residual rows and their evidence only)",
+  "compliance/COMPLIANCE_MAP.md (R5/R12 residual rows and their evidence only)"
+ ],
+ "notes": "Follows the P8-compliance-001 findings and the GCP scaling run B (bench/scaling/out/client16-conns256). No GCP use in this unit."
+}
