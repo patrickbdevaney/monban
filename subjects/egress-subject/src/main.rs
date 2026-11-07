@@ -10,6 +10,14 @@
 //!
 //! Verdict: `{"id", "decision": "connect", "addr", "status", "connects": [..], "queries": {host: n}}` or
 //! `{"id", "reject": code, "detail", "connects": [..], "queries": {..}}`.
+//!
+//! https (feature `tls-client`, oracles/egress-tls; PREFLIGHT R15): a live case may carry
+//! `"tls": {"profile": F12 name, "ca": PEM path, "client": id}`. The subject builds the product client config
+//! (`aegis_tls::client_config(profile, roots from ca)`), injects it with `TlsClient::from_config` and keeps one
+//! `NetConnector` per client id for the whole run, so a second fetch through the same client is where resumption
+//! or early data would show if the config allowed them. `"echo_body": true` adds `"body_hex"` to a connect verdict
+//! (bodies up to 64 KiB). Without the feature, or without `tls`, a live https case gets the plain connector and fails
+//! closed with `tls-unavailable`.
 #![forbid(unsafe_code)]
 
 mod json;
@@ -70,12 +78,12 @@ impl Connector for &Sim {
     }
 }
 
-struct Live {
-    net: NetConnector,
+struct Live<'n> {
+    net: &'n NetConnector,
     connects: Mutex<Vec<SocketAddr>>,
 }
 
-impl Connector for &Live {
+impl Connector for &Live<'_> {
     fn exchange<'a>(&'a self, hop: Hop<'a>) -> BoxFuture<'a, Result<Exchanged, EgressError>> {
         Box::pin(async move {
             // Report every address NetConnector may dial for this hop, before dialling (over-reports in the safe
@@ -186,14 +194,63 @@ fn push_list(out: &mut String, key: &str, items: &[SocketAddr]) {
     out.push(']');
 }
 
-fn handle(rt: &tokio::runtime::Runtime, line: &[u8]) -> String {
+/// Client connectors by case `tls.client` id, built once (feature `tls-client`).
+#[derive(Default)]
+struct Clients {
+    #[cfg(feature = "tls-client")]
+    by_id: BTreeMap<String, NetConnector>,
+}
+
+#[cfg(feature = "tls-client")]
+fn tls_connector(t: &Pj) -> Result<NetConnector, String> {
+    use rustls::pki_types::CertificateDer;
+    use rustls::pki_types::pem::PemObject;
+    let name = s(t.get("profile")).ok_or("tls.profile missing")?;
+    let profile = aegis_tls::Profile::from_name(&name).ok_or_else(|| format!("unknown profile {name}"))?;
+    let ca = s(t.get("ca")).ok_or("tls.ca missing")?;
+    let mut roots = rustls::RootCertStore::empty();
+    for cert in CertificateDer::pem_file_iter(&ca).map_err(|e| format!("ca {ca}: {e}"))? {
+        roots.add(cert.map_err(|e| format!("ca {ca}: {e}"))?).map_err(|e| format!("ca {ca}: {e}"))?;
+    }
+    let cfg = aegis_tls::client_config(profile, roots).map_err(|e| format!("client_config {name}: {e}"))?;
+    let tls = aegis_egress::TlsClient::from_config(std::sync::Arc::new(cfg)).map_err(|e| e.to_string())?;
+    Ok(NetConnector::with_tls(tls))
+}
+
+impl Clients {
+    /// The connector for a live case: the cached TLS client for `tls.client`, else the plain connector.
+    #[cfg(feature = "tls-client")]
+    fn get<'a>(&'a mut self, c: &Pj, plain: &'a NetConnector) -> Result<&'a NetConnector, String> {
+        let Some(t) = c.get("tls") else { return Ok(plain) };
+        let id = s(t.get("client")).ok_or("tls.client missing")?;
+        if !self.by_id.contains_key(&id) {
+            let n = tls_connector(t)?;
+            self.by_id.insert(id.clone(), n);
+        }
+        self.by_id.get(&id).ok_or_else(|| "client cache".to_string())
+    }
+
+    #[cfg(not(feature = "tls-client"))]
+    fn get<'a>(&'a mut self, _c: &Pj, plain: &'a NetConnector) -> Result<&'a NetConnector, String> {
+        Ok(plain)
+    }
+}
+
+/// Bodies echoed back with `echo_body` are capped at this many bytes.
+const MAX_ECHO: usize = 64 * 1024;
+
+fn handle(rt: &tokio::runtime::Runtime, clients: &mut Clients, line: &[u8]) -> String {
     let mut out = String::from("{\"id\":");
     let Some(c) = json::parse(line) else {
         return "{\"error\":\"bad json\"}".into();
     };
     json::write_str(&mut out, s(c.get("id")).unwrap_or_default().as_bytes());
-    let setup = (|| -> Result<_, String> { Ok((policy(&c)?, dns(&c)?, redirects(&c)?)) })();
-    let (pol, dns, redirects) = match setup {
+    let plain = NetConnector::plain();
+    let setup = match (|| -> Result<_, String> { Ok((policy(&c)?, dns(&c)?, redirects(&c)?)) })() {
+        Ok((p, d, r)) => clients.get(&c, &plain).map(|n| (p, d, r, n)),
+        Err(e) => Err(e),
+    };
+    let (pol, dns, redirects, connector) = match setup {
         Ok(x) => x,
         Err(e) => {
             out.push_str(",\"error\":");
@@ -205,7 +262,7 @@ fn handle(rt: &tokio::runtime::Runtime, line: &[u8]) -> String {
     let url = s(c.get("url")).unwrap_or_default();
     let live = c.get("live").is_some_and(Pj::truthy);
     let sim = Sim { redirects, connects: Mutex::new(Vec::new()) };
-    let net = Live { net: NetConnector::plain(), connects: Mutex::new(Vec::new()) };
+    let net = Live { net: connector, connects: Mutex::new(Vec::new()) };
     let result = rt.block_on(async {
         let req = Request::get(Url::parse(&url)?);
         if live {
@@ -221,6 +278,13 @@ fn handle(rt: &tokio::runtime::Runtime, line: &[u8]) -> String {
             out.push_str(",\"decision\":\"connect\",\"addr\":");
             json::write_str(&mut out, r.peers.last().map(|p| p.to_string()).unwrap_or_default().as_bytes());
             out.push_str(&format!(",\"status\":{},\"body_len\":{}", r.status, r.body.len()));
+            if c.get("echo_body").is_some_and(Pj::truthy) && r.body.len() <= MAX_ECHO {
+                out.push_str(",\"body_hex\":\"");
+                for b in &r.body {
+                    out.push_str(&format!("{b:02x}"));
+                }
+                out.push('"');
+            }
         }
         Err(e) => {
             out.push_str(",\"reject\":");
@@ -252,6 +316,7 @@ fn main() {
             std::process::exit(2);
         }
     };
+    let mut clients = Clients::default();
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout().lock();
     for line in stdin.lock().split(b'\n') {
@@ -259,7 +324,7 @@ fn main() {
         if line.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-        let reply = handle(&rt, &line);
+        let reply = handle(&rt, &mut clients, &line);
         if writeln!(stdout, "{reply}").and_then(|()| stdout.flush()).is_err() {
             break;
         }
