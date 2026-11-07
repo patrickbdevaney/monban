@@ -1,0 +1,552 @@
+P8-spec-001 patch (outside the unit's write_scope: crates/aegis-data-ir is P8-mariadb-001's, crates/aegis-bin is
+P8-bin-001's; F4 = crates/aegis-data-ir/src/ir.rs is frozen, so its MANIFEST line is re-frozen in this same patch).
+Rationale: SPEC_INVARIANTS §F Phase-8 addendum DENY-M (committed on p8/spec-001) specifies EngineFamily::Mariadb and
+its denylist; this is that F4 data change plus the minimum code that keeps the workspace green with it. ir.rs adds the
+variant (name "mariadb", ALL now 5), the MARIADB_DENY table (13 keyword items + 5 non-word form entries exported as
+MARIADB_FORM_*), and the denylist() arm. lock.rs routes denied_in_sql(Mariadb, ..) to a MariaDB dialect scanner
+(backslash/doubled-quote literals, backtick identifiers, '#' and '-- ' comments; refuses '@', ';', '/*!' and '/*M!',
+'--' without a following space, unguarded ON DUPLICATE KEY UPDATE, unterminated text) and gives Mariadb its own upsert
+skeleton (ODKU / INSERT..SELECT..FROM DUAL WHERE NOT EXISTS, never ON CONFLICT DO, since DO is denied). tests/lock.rs
+adds the two unit oracles (each keyword item refused in a fixture lock; each form refused in rendered SQL; the
+aegis-adapter-mysql mandated forms pass). aegis-bin plan.rs: its refusals test built "/a//b" and "/a/./b" configs
+through parse_config().unwrap(), which now panics because F8 refuses them at load (CFG-5); the case now asserts
+NotCanonical at load (the plan's own check is kept). Verified on kamrui with the patch applied over 227f953:
+cargo test -p aegis-data-ir --locked (all pass), cargo clippy -p aegis-data-ir --all-targets -D warnings (clean).
+Not included (integrator): xtask/src/allowlist.rs (the independent allowlist-lock generator) has FAMILIES without
+mariadb, so it refuses a mariadb decl (fail closed); P8-mariadb-001's allowlist.notes-mariadb.lock needs a mariadb
+table + skeleton there, and its Deny::hit `_ => resp` fallback should become an explicit arm when that lands.
+Apply: git apply units/phase-8/patches/P8-spec-001.patch && python3 -I ci/interfaces.py check
+
+diff --git a/crates/aegis-bin/src/plan.rs b/crates/aegis-bin/src/plan.rs
+index acb4c20..2680605 100644
+--- a/crates/aegis-bin/src/plan.rs
++++ b/crates/aegis-bin/src/plan.rs
+@@ -489,8 +489,16 @@ mod tests {
+         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"static":"/srv"}}]"#)).is_err());
+         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"nohost"}}]"#)).is_err());
+         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"h:1","framing":"uds"}}]"#)).is_err());
+-        assert!(plan(&cfg(r#"[{"id":1,"path":"/a//b","to":{"upstream":"h:1"}}]"#)).is_err());
+-        assert!(plan(&cfg(r#"[{"id":1,"path":"/a/./b","to":{"upstream":"h:1"}}]"#)).is_err());
++        // Non-canonical route paths are refused at load since Phase 8 (F8, SPEC_INVARIANTS CFG-5); the plan's own
++        // canonical-path check stays as a second line behind it.
++        for p in ["/a//b", "/a/./b"] {
++            let doc = format!(
++                r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}}],
++                   "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"{p}","to":{{"upstream":"h:1"}}}}]}}]}}"#
++            );
++            let e = aegis_config::parse_config(doc.as_bytes()).err().map(|e| e.kind());
++            assert_eq!(e, Some(aegis_config::ErrorKind::NotCanonical), "{p}");
++        }
+         // App routes: only linked apps (none in the core build, PLAN D17), no framing.
+         let notes = plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes"},"authz":"allow-all"}]"#));
+         if cfg!(feature = "native") {
+diff --git a/crates/aegis-data-ir/src/ir.rs b/crates/aegis-data-ir/src/ir.rs
+index d920b3e..75fc636 100644
+--- a/crates/aegis-data-ir/src/ir.rs
++++ b/crates/aegis-data-ir/src/ir.rs
+@@ -619,18 +619,25 @@ pub fn kv_plan(op: &Op, s: &Schema) -> Result<KvCommand, KvError> {
+ 
+ // ---------------------------------------------------------------------------------------------- engines and pins
+ 
+-/// Engine families with a golden adapter. Redis and Valkey share the RESP denylist but have separate version pins.
++/// Engine families with an adapter. Redis and Valkey share the RESP denylist but have separate version pins.
++/// `Mariadb` (Phase 8, SPEC_INVARIANTS §F DENY-M) is non-golden until `native-e2e-mariadb` passes.
+ #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+ pub enum EngineFamily {
+     Sqlite,
+     Postgres,
+     Redis,
+     Valkey,
++    Mariadb,
+ }
+ 
+ impl EngineFamily {
+-    pub const ALL: [EngineFamily; 4] =
+-        [EngineFamily::Sqlite, EngineFamily::Postgres, EngineFamily::Redis, EngineFamily::Valkey];
++    pub const ALL: [EngineFamily; 5] = [
++        EngineFamily::Sqlite,
++        EngineFamily::Postgres,
++        EngineFamily::Redis,
++        EngineFamily::Valkey,
++        EngineFamily::Mariadb,
++    ];
+     /// Name used in F8 `backend.engine` and in the allowlist lock.
+     pub const fn name(self) -> &'static str {
+         match self {
+@@ -638,6 +645,7 @@ impl EngineFamily {
+             EngineFamily::Postgres => "postgres",
+             EngineFamily::Redis => "redis",
+             EngineFamily::Valkey => "valkey",
++            EngineFamily::Mariadb => "mariadb",
+         }
+     }
+     pub fn from_name(s: &str) -> Option<EngineFamily> {
+@@ -761,15 +769,63 @@ const PG_DENY: &[DenyEntry] = &[
+     },
+ ];
+ 
++const MY_W2: &str = "IGNORE variants downgrade errors to warnings and truncate (W2; q4-005 mandated forms)";
++const MY_FILE: &str = "reads or writes server-side files outside the op (external effect, NC6)";
++const MY_DYN: &str = "dynamic or stored SQL: statement text the denylist scan never sees";
++
++/// MariaDB form entry: `@` outside a literal or identifier (`@x :=`, `@@sql_mode`).
++pub const MARIADB_FORM_VARIABLE: DenyEntry =
++    DenyEntry { item: "@", trace: "user/system variables (@x :=, @@var) carry state across statements (C8)" };
++/// MariaDB form entry: `;` outside a literal, identifier or comment (multi-statements).
++pub const MARIADB_FORM_MULTI: DenyEntry =
++    DenyEntry { item: ";", trace: "multi-statement text: one op is one statement (q4-005)" };
++/// MariaDB form entry: an executable comment, `/*!` or `/*M!`.
++pub const MARIADB_FORM_EXEC_COMMENT: DenyEntry =
++    DenyEntry { item: "/*!", trace: "executable comment: MariaDB runs text a comment-skipping scanner would skip" };
++/// MariaDB form entry: `--` not followed by a space or control character (not a comment to MariaDB).
++pub const MARIADB_FORM_DASHDASH: DenyEntry =
++    DenyEntry { item: "--", trace: "'--' without a following space is not a MariaDB comment, so it cannot be skipped" };
++/// MariaDB form entry: `ON DUPLICATE KEY UPDATE` with an assignment that is not the mandated tenant guard
++/// `c = IF(CAST(t AS BINARY) = CAST(VALUES(t) AS BINARY), VALUES(c), c)`.
++pub const MARIADB_FORM_ODKU: DenyEntry = DenyEntry {
++    item: "ON DUPLICATE KEY UPDATE",
++    trace: "ODKU arbitrates on any unique key: every assignment must carry the tenant guard (W3)",
++};
++
++/// MariaDB keyword items (whole unquoted word, ASCII case-insensitive), then the lexical *forms* that the MariaDB
++/// scanner of `denied_in_sql` reports (their items are not words, so no word token ever hits them). SPEC_INVARIANTS
++/// §F Phase-8 addendum DENY-M.
++const MARIADB_DENY: &[DenyEntry] = &[
++    DenyEntry { item: "REPLACE", trace: NO_REPLACE },
++    DenyEntry { item: "IGNORE", trace: MY_W2 },
++    DenyEntry { item: "LOAD", trace: MY_FILE },
++    DenyEntry { item: "OUTFILE", trace: MY_FILE },
++    DenyEntry { item: "DUMPFILE", trace: MY_FILE },
++    DenyEntry { item: "HANDLER", trace: "HANDLER reads rows by index, bypassing the lowered WHERE (tenant conjunct)" },
++    DenyEntry { item: "DO", trace: "DO evaluates expressions for side effects only (no Op shape)" },
++    DenyEntry { item: "CALL", trace: MY_DYN },
++    DenyEntry { item: "PREPARE", trace: MY_DYN },
++    DenyEntry { item: "EXECUTE", trace: MY_DYN },
++    DenyEntry { item: "TRIGGER", trace: W5 },
++    DenyEntry { item: "TEMPORARY", trace: CONN_STATE },
++    DenyEntry { item: "SESSION", trace: "session state (sql_mode) is pinned at connect; an op never changes it (C8)" },
++    MARIADB_FORM_VARIABLE,
++    MARIADB_FORM_MULTI,
++    MARIADB_FORM_EXEC_COMMENT,
++    MARIADB_FORM_DASHDASH,
++    MARIADB_FORM_ODKU,
++];
++
+ /// Per-family denylist as data (R-DB-3/4). For RESP families an item is a command name; for SQL families it is a
+ /// keyword matched against the unquoted keyword tokens of rendered statement text. Matching is ASCII
+ /// case-insensitive. The allowlist-lock generator refuses any entry that renders a denylisted item, and adapters
+-/// never emit one.
++/// never emit one. MariaDB also carries non-word form entries, reported by its dialect scanner (`denied_in_sql`).
+ pub fn denylist(family: EngineFamily) -> &'static [DenyEntry] {
+     match family {
+         EngineFamily::Sqlite => SQLITE_DENY,
+         EngineFamily::Postgres => PG_DENY,
+         EngineFamily::Redis | EngineFamily::Valkey => RESP_DENY,
++        EngineFamily::Mariadb => MARIADB_DENY,
+     }
+ }
+ 
+@@ -1200,6 +1256,24 @@ mod tests {
+         }
+         assert!(denied(EngineFamily::Sqlite, "attach").is_some() && denied(EngineFamily::Sqlite, "pragma").is_some());
+         assert!(denied(EngineFamily::Postgres, "MERGE").is_some());
++        for w in ["REPLACE", "ignore", "Load", "OUTFILE", "DUMPFILE", "HANDLER", "do", "CALL", "PREPARE", "EXECUTE"] {
++            assert!(denied(EngineFamily::Mariadb, w).is_some(), "{w}");
++        }
++        for w in ["SELECT", "INSERT", "UPDATE", "DELETE", "ON", "DUPLICATE", "KEY", "VALUES", "IF", "CAST", "AS"] {
++            assert!(denied(EngineFamily::Mariadb, w).is_none(), "{w}");
++        }
++        for f in [
++            MARIADB_FORM_VARIABLE,
++            MARIADB_FORM_MULTI,
++            MARIADB_FORM_EXEC_COMMENT,
++            MARIADB_FORM_DASHDASH,
++            MARIADB_FORM_ODKU,
++        ] {
++            assert!(denylist(EngineFamily::Mariadb).contains(&f), "{f:?}");
++            assert!(
++                denied(EngineFamily::Mariadb, "ON").is_none() && f.item.bytes().any(|c| !c.is_ascii_alphanumeric())
++            );
++        }
+         for w in ["SELECT", "INSERT", "UPDATE", "DELETE", "ON", "CONFLICT", "DO", "RETURNING", "LOCAL", "WHERE"] {
+             assert!(denied(EngineFamily::Postgres, w).is_none(), "{w}");
+             assert!(denied(EngineFamily::Sqlite, w).is_none(), "{w}");
+diff --git a/crates/aegis-data-ir/src/lock.rs b/crates/aegis-data-ir/src/lock.rs
+index 247b7ed..ebbff11 100644
+--- a/crates/aegis-data-ir/src/lock.rs
++++ b/crates/aegis-data-ir/src/lock.rs
+@@ -6,7 +6,7 @@
+ //! ```text
+ //! aegis-allowlist-decl v1
+ //! adapter <adapter>                     (backend-id grammar; equals the <adapter> in the file name)
+-//! family <sqlite|postgres|redis|valkey>
++//! family <sqlite|postgres|redis|valkey|mariadb>
+ //! schema <collection> tenant=<f> key=<fields> cols=<fields> permitted=<fields>
+ //! op <collection> <kind> <shape> w=<fields> r=<fields>
+ //! ```
+@@ -25,8 +25,10 @@
+ //! declaration bytes: no clock, path, locale, environment or hash-map order reaches the output.
+ 
+ use crate::ir::{
+-    Collation, Column, DenyEntry, EngineFamily, Fidelity, Field, KvCommand, KvError, LockEntry, LockError, Op, OpKind,
+-    Pred, Schema, SchemaError, UniqueIndex, Value, denied, kv_plan, lock_body, valid_backend_id, valid_collection,
++    Collation, Column, DenyEntry, EngineFamily, Fidelity, Field, KvCommand, KvError, LockEntry, LockError,
++    MARIADB_FORM_DASHDASH, MARIADB_FORM_EXEC_COMMENT, MARIADB_FORM_MULTI, MARIADB_FORM_ODKU, MARIADB_FORM_VARIABLE, Op,
++    OpKind, Pred, Schema, SchemaError, UniqueIndex, Value, denied, kv_plan, lock_body, valid_backend_id,
++    valid_collection,
+ };
+ use crate::lower::{LowerError, MAX_PRED_DEPTH, SqlExpr, Stmt, UpsertAction, lower_op};
+ use aegis_types::TenantId;
+@@ -82,8 +84,12 @@ pub struct Unterminated;
+ /// The first denylisted unquoted keyword token in rendered SQL text, if any (ASCII case-insensitive, whole word).
+ /// Skips `'...'` literals, `"..."` identifiers (with doubled-quote escapes), `--` line comments and `/* */`
+ /// comments; an unterminated literal, identifier or comment is [`Unterminated`], so the caller refuses the text
+-/// (fail closed). Renderers run every statement they emit through this.
++/// (fail closed). Renderers run every statement they emit through this. `Mariadb` uses its own dialect scanner
++/// ([`denied_in_mariadb`]).
+ pub fn denied_in_sql(family: EngineFamily, sql: &str) -> Result<Option<&'static DenyEntry>, Unterminated> {
++    if family == EngineFamily::Mariadb {
++        return denied_in_mariadb(sql);
++    }
+     let b = sql.as_bytes();
+     let mut i = 0usize;
+     let at = |k: usize| b.get(k).copied();
+@@ -141,6 +147,205 @@ pub fn denied_in_sql(family: EngineFamily, sql: &str) -> Result<Option<&'static
+     Ok(None)
+ }
+ 
++/// One MariaDB token: a bare word, a backtick identifier (contents, escapes undone), or one punctuation byte.
++/// Literals and comments are dropped.
++#[derive(Clone, Debug, PartialEq, Eq)]
++enum MyTok<'a> {
++    Word(&'a str),
++    Ident(String),
++    Punct(u8),
++}
++
++/// MariaDB dialect scanner (SPEC_INVARIANTS §F Phase-8 addendum DENY-M). Lexes like the server: `'..'` and `".."`
++/// literals with backslash and doubled-quote escapes, `` `..` `` identifiers with doubled-backtick escapes, `#` and
++/// `-- ` line comments, `/* */` block comments. Refused as forms: `@` (variables), `;` (multi-statements), `/*!` and
++/// `/*M!` (executable comments), `--` not followed by a space or control byte, and `ON DUPLICATE KEY UPDATE` whose
++/// assignments are not all the mandated tenant guard. Every bare word is checked against the MariaDB keyword items.
++/// Unterminated literal, identifier or comment: [`Unterminated`]. The guard check is on shape only (one guard
++/// column `t` for every assignment, never the assigned column); that `t` is the tenant column is the renderer's
++/// obligation (it renders from the schema).
++pub fn denied_in_mariadb(sql: &str) -> Result<Option<&'static DenyEntry>, Unterminated> {
++    let b = sql.as_bytes();
++    let at = |k: usize| b.get(k).copied();
++    let mut toks: Vec<MyTok<'_>> = Vec::new();
++    let mut i = 0usize;
++    while let Some(c) = at(i) {
++        match c {
++            b'\'' | b'"' => {
++                let q = c;
++                i += 1;
++                loop {
++                    match at(i) {
++                        None => return Err(Unterminated),
++                        Some(b'\\') => {
++                            if at(i + 1).is_none() {
++                                return Err(Unterminated);
++                            }
++                            i += 2;
++                        }
++                        Some(x) if x == q => {
++                            if at(i + 1) == Some(q) {
++                                i += 2;
++                            } else {
++                                i += 1;
++                                break;
++                            }
++                        }
++                        Some(_) => i += 1,
++                    }
++                }
++            }
++            b'`' => {
++                i += 1;
++                let mut id = Vec::new();
++                loop {
++                    match at(i) {
++                        None => return Err(Unterminated),
++                        Some(b'`') if at(i + 1) == Some(b'`') => {
++                            id.push(b'`');
++                            i += 2;
++                        }
++                        Some(b'`') => {
++                            i += 1;
++                            break;
++                        }
++                        Some(x) => {
++                            id.push(x);
++                            i += 1;
++                        }
++                    }
++                }
++                toks.push(MyTok::Ident(String::from_utf8(id).map_err(|_| Unterminated)?));
++            }
++            b'#' => {
++                while !matches!(at(i), None | Some(b'\n')) {
++                    i += 1;
++                }
++            }
++            b'-' if at(i + 1) == Some(b'-') => match at(i + 2) {
++                Some(x) if x <= b' ' || x == 0x7f => {
++                    while !matches!(at(i), None | Some(b'\n')) {
++                        i += 1;
++                    }
++                }
++                _ => return Ok(Some(&MARIADB_FORM_DASHDASH)),
++            },
++            b'/' if at(i + 1) == Some(b'*') => {
++                if at(i + 2) == Some(b'!') || (at(i + 2) == Some(b'M') && at(i + 3) == Some(b'!')) {
++                    return Ok(Some(&MARIADB_FORM_EXEC_COMMENT));
++                }
++                i += 2;
++                loop {
++                    match at(i) {
++                        None => return Err(Unterminated),
++                        Some(b'*') if at(i + 1) == Some(b'/') => {
++                            i += 2;
++                            break;
++                        }
++                        Some(_) => i += 1,
++                    }
++                }
++            }
++            b'@' => return Ok(Some(&MARIADB_FORM_VARIABLE)),
++            b';' => return Ok(Some(&MARIADB_FORM_MULTI)),
++            c if c.is_ascii_alphanumeric() || c == b'_' || c == b'$' || c >= 0x80 => {
++                let start = i;
++                while matches!(at(i), Some(x) if x.is_ascii_alphanumeric() || x == b'_' || x == b'$' || x >= 0x80) {
++                    i += 1;
++                }
++                let word = sql.get(start..i).ok_or(Unterminated)?;
++                if let Some(d) = denied(EngineFamily::Mariadb, word) {
++                    return Ok(Some(d));
++                }
++                toks.push(MyTok::Word(word));
++            }
++            c if c.is_ascii_whitespace() => i += 1,
++            c => {
++                toks.push(MyTok::Punct(c));
++                i += 1;
++            }
++        }
++    }
++    Ok(odku_unguarded(&toks).then_some(&MARIADB_FORM_ODKU))
++}
++
++fn kw(t: Option<&MyTok<'_>>, k: &str) -> bool {
++    matches!(t, Some(MyTok::Word(w)) if w.eq_ignore_ascii_case(k))
++}
++
++fn ident<'t>(t: Option<&'t MyTok<'_>>) -> Option<&'t str> {
++    match t {
++        Some(MyTok::Ident(s)) => Some(s.as_str()),
++        _ => None,
++    }
++}
++
++/// True when some `ON DUPLICATE KEY UPDATE` is followed by anything other than a non-empty, comma-separated list of
++/// guarded assignments `` `c` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`t`) AS BINARY), VALUES(`c`), `c`) `` (one `t`
++/// throughout, `t` != `c`), ending at the end of the text or at `RETURNING`.
++fn odku_unguarded(toks: &[MyTok<'_>]) -> bool {
++    let mut k = 0usize;
++    while k < toks.len() {
++        let at = |j: usize| toks.get(j);
++        if !(kw(at(k), "ON") && kw(at(k + 1), "DUPLICATE")) {
++            if kw(at(k), "DUPLICATE") {
++                return true; // DUPLICATE anywhere but in a complete `ON DUPLICATE KEY UPDATE`
++            }
++            k += 1;
++            continue;
++        }
++        if !(kw(at(k + 2), "KEY") && kw(at(k + 3), "UPDATE")) {
++            return true;
++        }
++        let mut j = k + 4;
++        let mut guard: Option<&str> = None;
++        loop {
++            let p = |n: usize, c: u8| matches!(at(j + n), Some(MyTok::Punct(x)) if *x == c);
++            let (Some(c), Some(t), Some(t2), Some(c2), Some(c3)) =
++                (ident(at(j)), ident(at(j + 6)), ident(at(j + 15)), ident(at(j + 23)), ident(at(j + 26)))
++            else {
++                return true;
++            };
++            let shape = p(1, b'=')
++                && kw(at(j + 2), "IF")
++                && p(3, b'(')
++                && kw(at(j + 4), "CAST")
++                && p(5, b'(')
++                && kw(at(j + 7), "AS")
++                && kw(at(j + 8), "BINARY")
++                && p(9, b')')
++                && p(10, b'=')
++                && kw(at(j + 11), "CAST")
++                && p(12, b'(')
++                && kw(at(j + 13), "VALUES")
++                && p(14, b'(')
++                && p(16, b')')
++                && kw(at(j + 17), "AS")
++                && kw(at(j + 18), "BINARY")
++                && p(19, b')')
++                && p(20, b',')
++                && kw(at(j + 21), "VALUES")
++                && p(22, b'(')
++                && p(24, b')')
++                && p(25, b',')
++                && p(27, b')');
++            if !shape || t != t2 || c != c2 || c != c3 || c == t || guard.is_some_and(|g| g != t) {
++                return true;
++            }
++            guard = Some(t);
++            j += 28;
++            match at(j) {
++                Some(MyTok::Punct(b',')) => j += 1,
++                None => return false,
++                Some(x) if kw(Some(x), "RETURNING") => break,
++                Some(_) => return true,
++            }
++        }
++        k = j;
++    }
++    false
++}
++
+ fn expr_words(e: &SqlExpr, out: &mut Vec<&'static str>) {
+     match e {
+         SqlExpr::And(a, b) | SqlExpr::Or(a, b) => {
+@@ -187,6 +392,11 @@ pub fn native_words(family: EngineFamily, op: &Op, schema: &Schema) -> Result<Ve
+             expr_words(filter, &mut w);
+         }
+         Stmt::Insert { .. } => w.extend(["INSERT", "INTO", "VALUES"]),
++        // MariaDB has no ON CONFLICT (and denies DO): its mandated upsert forms (q4-005, DENY-M).
++        Stmt::Upsert { action, .. } if family == EngineFamily::Mariadb => match action {
++            UpsertAction::Update { .. } => w.extend(["INSERT", "INTO", "VALUES", "ON", "DUPLICATE", "KEY", "UPDATE"]),
++            UpsertAction::Nothing => w.extend(["INSERT", "INTO", "SELECT", "FROM", "DUAL", "WHERE", "NOT", "EXISTS"]),
++        },
+         Stmt::Upsert { action, .. } => {
+             w.extend(["INSERT", "INTO", "VALUES", "ON", "CONFLICT", "DO"]);
+             match action {
+diff --git a/crates/aegis-data-ir/tests/lock.rs b/crates/aegis-data-ir/tests/lock.rs
+index cb3a660..9eec958 100644
+--- a/crates/aegis-data-ir/tests/lock.rs
++++ b/crates/aegis-data-ir/tests/lock.rs
+@@ -164,6 +164,103 @@ fn denylisted_entries_are_refused() {
+     assert_eq!(generate(&kv_decl("op kv eval tt w=- r=-\n")).map_err(|e| e.line), Err(6));
+ }
+ 
++/// Oracle (P8-spec-001, DENY-M): each MariaDB keyword denylist item, as the kind token of a fixture-lock entry, is
++/// refused as denied; the mandated op set (incl. both upsert forms) generates and verifies.
++#[test]
++fn mariadb_denylist_in_a_fixture_lock() {
++    let my = "aegis-allowlist-decl v1\nadapter notes-mariadb\nfamily mariadb\nschema notes tenant=0 key=1 cols=0,1,2,3 permitted=1,2,3\n\
++              op notes select eq(1) w=- r=1,2,3\nop notes insert tt w=1,2,3 r=1\nop notes update eq(1) w=2 r=-\n\
++              op notes delete eq(1) w=- r=-\nop notes upsert tt w=1,2,3 r=1\nop notes upsert tt w=1 r=-\n";
++    let lock = generate(my).unwrap_or_else(|e| unreachable!("{e:?}"));
++    assert!(lock.starts_with("aegis-allowlist-lock v1\nadapter notes-mariadb\nfamily mariadb\n"), "{lock}");
++    assert_eq!(verify(my, &lock), Ok(()));
++    let Ok(al) = Allowlist::parse(&lock) else { unreachable!() };
++    assert_eq!(al.family(), EngineFamily::Mariadb);
++    let words: Vec<&str> = denylist(EngineFamily::Mariadb)
++        .iter()
++        .map(|d| d.item)
++        .filter(|i| i.bytes().all(|c| c.is_ascii_alphabetic()))
++        .collect();
++    assert!(words.len() >= 10, "{words:?}");
++    for w in words {
++        let d = format!("{my}op notes {} tt w=1 r=-\n", w.to_ascii_lowercase());
++        assert_eq!(kind_of(&d), Err(DeclErrorKind::Denied(w)), "{w}");
++    }
++    // The PostgreSQL upsert skeleton (ON CONFLICT DO) is never the MariaDB one: DO is denied there.
++    assert!(denied(EngineFamily::Mariadb, "DO").is_some());
++}
++
++/// Oracle (P8-spec-001, DENY-M): every MariaDB denylist form in rendered statement text is refused.
++#[test]
++fn mariadb_rendered_sql_scanner() {
++    let m = EngineFamily::Mariadb;
++    let hit = |q: &str| denied_in_sql(m, q).map(|d| d.map(|e| e.item));
++    let guard = "INSERT INTO `t` (`tenant`, `id`, `x`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `x` = \
++                 IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`)";
++    // The aegis-adapter-mysql mandated forms pass.
++    for ok in [
++        guard.to_string(),
++        format!("{guard} RETURNING `id`, `x`"),
++        format!(
++            "{guard}, `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`"
++        ),
++        "INSERT INTO `t` (`tenant`, `id`) SELECT ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE \
++         CAST(`tenant` AS BINARY) = CAST(? AS BINARY)) RETURNING `id`"
++            .to_string(),
++        "SELECT `a`.`id` FROM `notes` AS `a` WHERE (`a`.`tenant` = ?) FOR UPDATE".to_string(),
++        "SELECT 'REPLACE; @x' FROM `do` WHERE x = 'it\\'s' -- CALL p\n".to_string(),
++        "SELECT \"@\" # LOAD DATA\n".to_string(),
++        "SELECT 1 /* HANDLER ; */".to_string(),
++        "SELECT `a``b` FROM t".to_string(),
++    ] {
++        assert_eq!(hit(&ok), Ok(None), "{ok}");
++    }
++    let cases: &[(&str, &str)] = &[
++        ("REPLACE INTO t VALUES (1)", "REPLACE"),
++        ("INSERT IGNORE INTO t VALUES (1)", "IGNORE"),
++        ("LOAD DATA INFILE '/etc/passwd' INTO TABLE t", "LOAD"),
++        ("SELECT * FROM t INTO OUTFILE '/tmp/x'", "OUTFILE"),
++        ("SELECT * FROM t INTO DUMPFILE '/tmp/x'", "DUMPFILE"),
++        ("HANDLER t OPEN", "HANDLER"),
++        ("DO SLEEP(1)", "DO"),
++        ("CALL p()", "CALL"),
++        ("PREPARE s FROM 'x'", "PREPARE"),
++        ("SET SESSION sql_mode = ''", "SESSION"),
++        ("SELECT @x := 1", "@"),
++        ("SELECT @@sql_mode", "@"),
++        ("SELECT 1; SELECT 2", ";"),
++        ("SELECT 1;", ";"),
++        ("SELECT 1 /*! UNION SELECT 2 */", "/*!"),
++        ("SELECT 1 /*M!100000 UNION SELECT 2 */", "/*!"),
++        ("SELECT 1 --1", "--"),
++        ("SELECT 1 --", "--"),
++        ("INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `a` = VALUES(`a`)", "ON DUPLICATE KEY UPDATE"),
++        ("INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE", "ON DUPLICATE KEY UPDATE"),
++        (
++            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `a` = IF(CAST(`a` AS BINARY) = CAST(VALUES(`a`) AS BINARY), VALUES(`a`), `a`)",
++            "ON DUPLICATE KEY UPDATE",
++        ),
++        (
++            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`u`) AS BINARY), VALUES(`x`), `x`)",
++            "ON DUPLICATE KEY UPDATE",
++        ),
++        (
++            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`t`) AS BINARY), VALUES(`x`), `y`)",
++            "ON DUPLICATE KEY UPDATE",
++        ),
++        (&*Box::leak(format!("{guard}, `y` = 1").into_boxed_str()), "ON DUPLICATE KEY UPDATE"),
++        (&*Box::leak(format!("{guard} WHERE 1").into_boxed_str()), "ON DUPLICATE KEY UPDATE"),
++        ("SELECT DUPLICATE FROM t", "ON DUPLICATE KEY UPDATE"),
++        ("SELECT 1 ON DUPLICATE x", "ON DUPLICATE KEY UPDATE"),
++    ];
++    for (q, item) in cases {
++        assert_eq!(hit(q), Ok(Some(*item)), "{q}");
++    }
++    for q in ["SELECT 'open", "SELECT 'esc\\'", "SELECT \"x", "SELECT `x", "SELECT 1 /* open", "SELECT 'a\\"] {
++        assert_eq!(hit(q), Err(Unterminated), "{q}");
++    }
++}
++
+ #[test]
+ fn shape_rules_are_enforced() {
+     assert_eq!(kind_of(&kv_decl("op kv delete tt w=- r=-\n")), Err(DeclErrorKind::Kv(KvError::UnsupportedFilter)));
+diff --git a/interfaces/MANIFEST.sha256 b/interfaces/MANIFEST.sha256
+index 18fe291..1ca29fd 100644
+--- a/interfaces/MANIFEST.sha256
++++ b/interfaces/MANIFEST.sha256
+@@ -2,7 +2,7 @@ c7398662f0e058482da11b0085895fd02dbb0dcec849b42ec4cbda940ca11b1d  F1   frozen
+ 3348552e67c54a86bb8da8c453e30b87dff9e9e3d356422a94411f64da34ff14  F1   frozen               spec/STATEMENTS.sha256
+ 41fd3610443380a00455b522fa5a11a5499244a05a4585c6dcd7d043ddcef729  F2   frozen               crates/aegis-types/src/lib.rs
+ 14e1351481b8653852a80bb703e2821bd438511ba029210922e956b149741e7c  F3   frozen               crates/aegis-transport/src/exchange.rs
+-79af59aa6990e85f78dcf62c27ff0fb479d684f38a867e9e19f9a88a494a4a90  F4   provisional:q4-004   crates/aegis-data-ir/src/ir.rs
++6815d7396cdf877e57c7d52e98bfd1f6ec26d6ce730f9d7290f1dd972f1c71e9  F4   provisional:q4-004   crates/aegis-data-ir/src/ir.rs
+ 3e1fdc9c8ea9cee438ffc0e048b55d9a120ac969d52b3215f428501d3781c542  F5   frozen               interfaces/F5-token.cddl
+ e354026e9f401bc6fc8ce5a97dc248a4960737e99eab6d5fdb7e1f24eeeb9e46  F6   frozen               crates/aegis-authz/src/combine.rs
+ 1ecd40d6890c0804834732e625500a9b6f80201df6b5ba1b88c81d41470a10cb  F7   frozen               sdk/aegis-sdk/src/surface.rs
