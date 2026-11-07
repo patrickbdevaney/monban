@@ -15,11 +15,14 @@ on stdin.
 import argparse
 import calendar
 import gzip
+import hashlib
 import json
 import math
 import os
 import re
+import shutil
 import socket
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -45,7 +48,18 @@ MUTANTS = [
     "delta-temporality", "cumulative-buckets", "enum-names", "snake-case-keys", "keep-total-suffix",
     "base64-trace-id", "start-time-moves", "accept-truncated", "logs-at-eof-only", "drop-attributes",
     "int-as-double", "ignore-log-ts",
+    # P8-oracle-001 (PREFLIGHT R9): https endpoint, bounded retry with backoff, drop-and-count
+    "https-skipped", "https-no-verify", "no-retry", "retry-no-backoff", "retry-unbounded", "retry-on-400",
+    "drop-uncounted",
 ]
+RETRYABLE = (429, 502, 503, 504)   # OTLP/HTTP specification "Failures": the retryable status codes
+RETRY_MIN_ATTEMPTS = 2             # an exhausted request was tried at least twice (one retry)
+RETRY_MAX_ATTEMPTS = 8             # ... and at most this often (bounded)
+RETRY_MIN_GAP_S = 0.1              # every retry waits at least this long after the previous attempt
+RETRY_GROWTH = 0.8                 # each gap >= 0.8 x the previous one (backoff never shrinks; 20 % jitter room)
+RETRY_BUDGET_S = 30.0              # all attempts of one request within this
+DROPPED_LOGS = "aegis_otlp_dropped_log_records"
+DROPPED_POINTS = "aegis_otlp_dropped_metric_points"
 
 # ---------------------------------------------------------------- opentelemetry-proto JSON schema (lowerCamelCase)
 # Types: string bool uint32 fixed32 enum int64 fixed64 double bytes trace16 span8 ANY, a message name, or [type].
@@ -330,8 +344,12 @@ def expected_logs(data):
 
 # ---------------------------------------------------------------- loopback collector
 class Collector:
-    def __init__(self, prefix=""):
+    """plan(path, n) -> HTTP status for the n-th (0-based) POST on that path (default: always 200). tls: an
+    ssl.SSLContext (server side) to serve https instead of http."""
+
+    def __init__(self, prefix="", tls=None, plan=None):
         self.reqs, self.lock, self.prefix = [], threading.Lock(), prefix.rstrip("/")
+        self.plan, self.per_path = plan, {}
         col = self
 
         class H(BaseHTTPRequestHandler):
@@ -375,7 +393,11 @@ class Collector:
                     self._done(400, "text/plain", b"bad body\n")
                     self.close_connection = True
                     return
-                col.add("POST", self.path, self.headers, body, None)
+                status = col.status_for(self.path)
+                col.add("POST", self.path, self.headers, body, None, status)
+                if status != 200:
+                    self._done(status, "application/json", b'{"code":14,"message":"oracle: failing on purpose"}')
+                    return
                 ct = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
                 self._done(200, "application/json" if ct == "application/json" else ct or "text/plain",
                            b"{}" if ct == "application/json" else b"")
@@ -388,13 +410,35 @@ class Collector:
 
         self.srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
         self.srv.daemon_threads = True
-        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
-        self.url = f"http://127.0.0.1:{self.srv.server_address[1]}{prefix}"
+        self.handshake_errors = 0
+        if tls is not None:
+            raw_get = self.srv.get_request
 
-    def add(self, method, path, headers, body, err):
+            def get_request():
+                c, a = raw_get()
+                c.settimeout(10)
+                try:
+                    return tls.wrap_socket(c, server_side=True), a
+                except (OSError, ssl.SSLError):
+                    with self.lock:
+                        self.handshake_errors += 1
+                    c.close()
+                    raise
+            self.srv.get_request = get_request
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        scheme = "https" if tls is not None else "http"
+        self.url = f"{scheme}://127.0.0.1:{self.srv.server_address[1]}{prefix}"
+
+    def status_for(self, path):
+        with self.lock:
+            n = self.per_path.get(path, 0)
+            self.per_path[path] = n + 1
+        return self.plan(path, n) if self.plan else 200
+
+    def add(self, method, path, headers, body, err, status=200):
         with self.lock:
             self.reqs.append({"method": method, "path": path, "ct": headers.get("Content-Type"), "body": body,
-                              "err": err, "t": time.time_ns()})
+                              "err": err, "t": time.time_ns(), "status": status})
 
     def snapshot(self):
         with self.lock:
@@ -823,6 +867,227 @@ def case_daemon(r, cmd, env, real_text):
     r.check(f"{name}.logs.mapping", got == exp_l, f"got {got!r:.300} expected {exp_l!r:.300}")
 
 
+# ---------------------------------------------------------------- P8-oracle-001: https, retry, drop-and-count (R9)
+def tls_material(d):
+    """A throwaway CA and a P-256 leaf for 127.0.0.1 (the aegis-tls P-PUBLIC-WEB client verifies
+    ecdsa_secp256r1_sha256 only, and webpki refuses a CA certificate used as the end entity), plus an unrelated CA.
+    Returns (server ssl.SSLContext, ca.pem, other-ca.pem)."""
+    if not shutil.which("openssl"):
+        raise RuntimeError("openssl CLI not found (needed for the https collector)")
+
+    def ossl(*a):
+        subprocess.run(["openssl", *a], check=True, capture_output=True, timeout=60)
+    ec = ["-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes"]
+    j = lambda n: os.path.join(d, n)  # noqa: E731
+    for ca in ("ca", "other-ca"):
+        ossl("req", "-x509", *ec, "-keyout", j(f"{ca}.key"), "-out", j(f"{ca}.pem"), "-days", "2",
+             "-subj", f"/CN=aegis oracle {ca}", "-addext", "basicConstraints=critical,CA:TRUE",
+             "-addext", "keyUsage=critical,keyCertSign")
+    ossl("req", "-new", *ec, "-keyout", j("leaf.key"), "-out", j("leaf.csr"), "-subj", "/CN=127.0.0.1")
+    with open(j("leaf.ext"), "w") as f:
+        f.write("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\n"
+                "extendedKeyUsage=serverAuth\nsubjectAltName=IP:127.0.0.1,DNS:localhost\n")
+    ossl("x509", "-req", "-in", j("leaf.csr"), "-CA", j("ca.pem"), "-CAkey", j("ca.key"), "-CAcreateserial",
+         "-out", j("leaf.pem"), "-days", "2", "-extfile", j("leaf.ext"))
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_3
+    ctx.load_cert_chain(j("leaf.pem"), j("leaf.key"))
+    return ctx, j("ca.pem"), j("other-ca.pem")
+
+
+def attempts_by_path(reqs):
+    out = {}
+    for q in reqs:
+        if q["method"] == "POST":
+            out.setdefault(q["path"], []).append(q)
+    return out
+
+
+def gap_errors(attempts):
+    """Backoff rule on one request's attempts (arrival times at the collector)."""
+    ts = [q["t"] / 1e9 for q in attempts]
+    gaps = [b - a for a, b in zip(ts, ts[1:])]
+    errs = []
+    for i, g in enumerate(gaps):
+        if g < RETRY_MIN_GAP_S:
+            errs.append(f"retry {i + 1} came {g * 1000:.0f} ms after the previous attempt (< {RETRY_MIN_GAP_S * 1000:.0f} ms)")
+        if i and g < RETRY_GROWTH * gaps[i - 1]:
+            errs.append(f"gap {i + 1} {g:.3f} s shrank below {RETRY_GROWTH} x gap {i} {gaps[i - 1]:.3f} s")
+    if ts and ts[-1] - ts[0] > RETRY_BUDGET_S:
+        errs.append(f"attempts span {ts[-1] - ts[0]:.1f} s > {RETRY_BUDGET_S} s")
+    return errs
+
+
+def accepted(reqs):
+    return [q for q in reqs if q.get("status", 200) == 200]
+
+
+def once_args(adm, col, extra=()):
+    return ["--scrape", adm.target, "--endpoint", col.url, "--service-name", SERVICE, "--interval-ms", "1000",
+            "--once", *extra]
+
+
+def case_https(r, cmd, env, real, logs, d):
+    """https endpoint through --ca-file: delivered and mapped; an untrusted chain gets nothing."""
+    ctx, ca, other = tls_material(d)
+    for name, cafile in (("https-once", ca), ("https-untrusted", other)):
+        col, adm = Collector(tls=ctx), Admin(lambda: real)
+        t0 = time.time_ns() - 2_000_000_000
+        try:
+            rc, tail = run_exporter(cmd, once_args(adm, col, ["--ca-file", cafile]), env, logs, timeout=60)
+            time.sleep(0.1)
+            window = (t0, time.time_ns() + 2_000_000_000)
+            reqs, hs_err = col.snapshot(), col.handshake_errors
+        finally:
+            col.close()
+            adm.close()
+        if name == "https-once":
+            r.check(f"{name}.exit-0", rc == 0, f"--once to an https collector exited {rc}; tail {tail[-300:]!r}")
+            r.check(f"{name}.delivered-over-tls", any(q["path"] == "/v1/metrics" for q in reqs),
+                    f"no POST /v1/metrics reached the TLS collector ({hs_err} failed handshakes)")
+            metrics, lg = decode_requests(r, name, reqs, "")
+            check_resources(r, name, metrics + lg)
+            check_metrics_once(r, name, flatten_points(metrics), real, window, spots_real()[:2])
+            check_logs(r, name, lg, logs, window)
+        else:
+            r.check(f"{name}.exit-nonzero", rc not in (0, "timeout") and not str(rc).startswith("spawn"),
+                    f"--once against a collector whose chain is not in --ca-file exited {rc}")
+            r.check(f"{name}.nothing-delivered", not reqs,
+                    f"{len(reqs)} requests reached a collector the exporter must not trust")
+
+
+def case_retry_recover(r, cmd, env, real, logs):
+    """503 twice per path, then 200: retried with backoff, delivered exactly once, exit 0."""
+    name = "retry-recover"
+    col = Collector(plan=lambda path, n: 503 if n < 2 else 200)
+    adm = Admin(lambda: real)
+    t0 = time.time_ns() - 2_000_000_000
+    try:
+        rc, tail = run_exporter(cmd, once_args(adm, col), env, logs, timeout=60)
+        time.sleep(0.1)
+        window = (t0, time.time_ns() + 2_000_000_000)
+        reqs, scrapes = col.snapshot(), adm.scrapes()
+    finally:
+        col.close()
+        adm.close()
+    r.check(f"{name}.exit-0", rc == 0, f"--once with a collector that recovers after two 503s exited {rc}; "
+            f"tail {tail[-300:]!r}")
+    r.check(f"{name}.scraped-once", scrapes == [("GET", "/metrics")], f"a retry must resend, not re-scrape: {scrapes}")
+    by = attempts_by_path(reqs)
+    for path in ("/v1/metrics", "/v1/logs"):
+        att = by.get(path, [])
+        r.check(f"{name}.{path[4:]}.retried-until-accepted", [q["status"] for q in att] == [503, 503, 200],
+                f"statuses seen on {path}: {[q['status'] for q in att]} (want 503, 503, 200: retried, then nothing "
+                f"after the accepted attempt)")
+        r.check(f"{name}.{path[4:]}.backoff", not gap_errors(att), "; ".join(gap_errors(att)[:3]))
+    metrics, lg = decode_requests(r, name, accepted(reqs), "")
+    check_metrics_once(r, name, flatten_points(metrics), real, window, spots_real()[:1])
+    check_logs(r, name, lg, logs, window)
+
+
+def case_retry_exhaust(r, cmd, env, real, logs):
+    """Always 503: bounded attempts with backoff, then give up (exit nonzero)."""
+    name = "retry-exhaust"
+    col, adm = Collector(plan=lambda path, n: 503), Admin(lambda: real)
+    t = time.monotonic()
+    try:
+        rc, tail = run_exporter(cmd, once_args(adm, col), env, logs, timeout=2 * RETRY_BUDGET_S + 10)
+        secs = time.monotonic() - t
+        reqs = col.snapshot()
+    finally:
+        col.close()
+        adm.close()
+    r.check(f"{name}.exit-nonzero", rc not in (0, "timeout") and not str(rc).startswith("spawn"),
+            f"--once whose every POST got 503 exited {rc} after {secs:.1f} s (must give up and exit nonzero)")
+    by = attempts_by_path(reqs)
+    for path in ("/v1/metrics", "/v1/logs"):
+        att = by.get(path, [])
+        r.check(f"{name}.{path[4:]}.bounded", RETRY_MIN_ATTEMPTS <= len(att) <= RETRY_MAX_ATTEMPTS,
+                f"{len(att)} attempts on {path} (want {RETRY_MIN_ATTEMPTS}..{RETRY_MAX_ATTEMPTS})")
+        r.check(f"{name}.{path[4:]}.backoff", not gap_errors(att), "; ".join(gap_errors(att)[:3]))
+        bodies = {hashlib.sha256(q["body"]).hexdigest() for q in att}
+        r.check(f"{name}.{path[4:]}.same-payload", len(bodies) <= 1, f"{len(bodies)} different bodies retried")
+
+
+def case_no_retry_400(r, cmd, env, real, logs):
+    """400 is not retryable: exactly one attempt per request."""
+    name = "no-retry-400"
+    col, adm = Collector(plan=lambda path, n: 400), Admin(lambda: real)
+    try:
+        rc, _ = run_exporter(cmd, once_args(adm, col), env, logs, timeout=60)
+        reqs = col.snapshot()
+    finally:
+        col.close()
+        adm.close()
+    r.check(f"{name}.exit-nonzero", rc not in (0, "timeout"), f"--once whose POSTs got 400 exited {rc}")
+    by = attempts_by_path(reqs)
+    for path in ("/v1/metrics", "/v1/logs"):
+        att = by.get(path, [])
+        r.check(f"{name}.{path[4:]}.one-attempt", len(att) == 1, f"{len(att)} attempts on {path} (400 is final)")
+
+
+def case_daemon_drop(r, cmd, env, real):
+    """Interval mode with /v1/logs always 503: metrics keep flowing, the log records are dropped after the retries
+    and counted in aegis_otlp_dropped_log_records, SIGTERM still exits 0 within 5 s."""
+    name = "daemon-drop"
+    col = Collector(plan=lambda path, n: 503 if path.endswith("/v1/logs") else 200)
+    adm = Admin(lambda: real)
+    lines = b"".join(b'{"level":"WARN","msg":"dropped while the collector fails %d"}\n' % i for i in range(3))
+    try:
+        p = subprocess.Popen(cmd + ["--scrape", adm.target, "--endpoint", col.url, "--service-name", SERVICE,
+                                    "--interval-ms", "250"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, env=env)
+    except OSError as e:
+        r.check(f"{name}.spawn", False, str(e))
+        col.close()
+        adm.close()
+        return
+    seen_drop, t_write = None, None
+    try:
+        time.sleep(0.5)
+        t_write = time.time_ns()
+        try:
+            p.stdin.write(lines)
+            p.stdin.flush()
+        except OSError:
+            pass
+        time.sleep(5.0)
+        early = [q for q in accepted(col.snapshot()) if q["path"].endswith("/v1/metrics") and q["t"] > t_write]
+        until = time.time() + RETRY_BUDGET_S + 15
+        while time.time() < until and p.poll() is None:
+            ms, _ = decode_requests(Run(False, quiet=True), name, accepted(col.snapshot()), "")
+            vals = [int(o["p"].get("asInt") or 0) for o in flatten_points(ms) if o["name"] == DROPPED_LOGS]
+            if vals and max(vals) >= 3:
+                seen_drop = max(vals)
+                break
+            time.sleep(0.25)
+        alive = p.poll() is None
+        p.send_signal(15)
+        try:
+            rc = p.wait(5)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.wait()
+            rc = "no exit within 5 s of SIGTERM"
+        reqs = col.snapshot()
+    finally:
+        if p.poll() is None:
+            p.kill()
+            p.wait()
+        col.close()
+        adm.close()
+    r.check(f"{name}.stays-running", alive, "the exporter exited while a collector path kept failing")
+    r.check(f"{name}.metrics-flow-during-log-outage", len(early) >= 3,
+            f"{len(early)} metrics exports accepted in the 5 s after the logs started failing (want >= 3: a failing "
+            f"signal must not stall the other)")
+    logs_att = attempts_by_path(reqs).get("/v1/logs", [])
+    r.check(f"{name}.logs-retried", len(logs_att) >= RETRY_MIN_ATTEMPTS, f"{len(logs_att)} attempts on /v1/logs")
+    r.check(f"{name}.drop-counted", seen_drop is not None,
+            f"no accepted metrics export showed {DROPPED_LOGS} >= 3 within {RETRY_BUDGET_S + 15:.0f} s "
+            f"(3 log records were dropped after their retries)")
+    r.check(f"{name}.sigterm-exit-0", rc == 0, f"exit {rc}")
+
+
 def spots_real():
     def asint(v):
         return lambda o: o["kind"] in ("sum", "gauge") and o["p"].get("asInt") is not None and int(o["p"]["asInt"]) == v
@@ -861,6 +1126,7 @@ def run_all(cmd, env, verbose, stop_early=False):
     logs_a = read_fixture("aegis-stderr.log", "rb") + read_fixture("json-logs.jsonl", "rb")
     logs_b = b"x" * (100 * 1024) + b"\n" + b'{"ts":"2026-11-06T12:00:09Z","level":"INFO","msg":"after an oversize line"}\n'
     trunc = real[: real.rindex("# EOF")]
+    logs_r9 = b'{"ts":"2026-11-06T12:00:00Z","level":"INFO","msg":"r9 line","n":1}\naegis: plain r9 line\n'
     with tempfile.TemporaryDirectory(prefix="otlp-oracle-") as d:
         steps = [
             lambda: case_once(r, "once-tcp-real", cmd, env, real, logs_a, None, spots_real()),
@@ -869,6 +1135,12 @@ def run_all(cmd, env, verbose, stop_early=False):
                               b'{"level":"INFO","msg":"logs still flow when the scrape is rejected"}\n', None, [],
                               expect_metrics=False),
             lambda: case_daemon(r, cmd, env, real),
+            # P8-oracle-001 (R9)
+            lambda: case_https(r, cmd, env, real, logs_r9, d),
+            lambda: case_retry_recover(r, cmd, env, real, logs_r9),
+            lambda: case_retry_exhaust(r, cmd, env, real, logs_r9),
+            lambda: case_no_retry_400(r, cmd, env, real, logs_r9),
+            lambda: case_daemon_drop(r, cmd, env, real),
         ]
         for s in steps:
             s()

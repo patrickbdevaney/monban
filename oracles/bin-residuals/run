@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# AEGIS oracle: aegis-bin Phase-7 residuals end to end (unit P8-oracle-001; PREFLIGHT R6, R7). Contract: oracles/README.md;
+# subject contract: oracles/bin-residuals/README.md. Last line: BIN-RESIDUALS: PASS|FAIL (...) / BIN-RESIDUALS SELF-TEST: ...
+#   ./run --binary target/release/aegis     aegis built with --features mtc,l4 (gate bin-residuals)
+#   ./run                                   the reference subject (ref_server.py)
+#   ./run --self-test                       reference PASS, every reference mutant FAIL
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/oracle.py" "$@"

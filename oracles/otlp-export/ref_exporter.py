@@ -3,8 +3,13 @@
 oracle can show it is satisfiable, and it carries the negative controls the self-test turns on through
 AEGIS_OTLP_REF_MUTANT (that variable is not part of the contract; the real exporter ignores it).
 
-  ref_exporter.py --scrape <http://host:port/path | unix:/path/to.sock> --endpoint <http://host:port[/prefix]>
-                  --service-name S [--interval-ms N] [--resource-attr k=v]... [--once]
+  ref_exporter.py --scrape <http://host:port/path | unix:/path/to.sock> --endpoint <http(s)://host:port[/prefix]>
+                  --service-name S [--interval-ms N] [--resource-attr k=v]... [--once] [--ca-file roots.pem]
+
+P8-oracle-001 (R9): https through --ca-file only; 429/502/503/504 and transport errors retried with exponential
+backoff (100, 200, 400, 800 ms: 5 attempts), then the request is dropped and its records counted in
+aegis_otlp_dropped_log_records / aegis_otlp_dropped_metric_points. Logs and metrics are posted from separate threads
+in interval mode, so a failing signal never stalls the other.
 """
 import argparse
 import base64
@@ -16,6 +21,7 @@ import os
 import re
 import signal
 import socket
+import ssl
 import sys
 import threading
 import time
@@ -343,29 +349,68 @@ def scrape(target):
     return body.decode("utf-8")
 
 
-class Poster:
-    def __init__(self, endpoint):
-        u = urllib.parse.urlsplit(endpoint)
-        if u.scheme != "http":
-            raise SystemExit("aegis-otlp(ref): only http endpoints in the reference")
-        self.host, self.port, self.prefix = u.hostname, u.port or 80, u.path.rstrip("/")
-        self.ok = True
+RETRYABLE = (429, 502, 503, 504)
+BACKOFF_S = (0.1, 0.2, 0.4, 0.8)   # waits before attempts 2..5
 
-    def post(self, signal_path, obj):
+
+class Poster:
+    def __init__(self, endpoint, ca_file=None):
+        u = urllib.parse.urlsplit(endpoint)
+        if u.scheme not in ("http", "https"):
+            raise SystemExit("aegis-otlp(ref): endpoint must be http:// or https://")
+        self.https = u.scheme == "https"
+        self.skip = self.https and MUTANT == "https-skipped"
+        self.ctx = None
+        if self.https and not self.skip:
+            if not ca_file:
+                raise SystemExit("aegis-otlp(ref): https --endpoint needs --ca-file")
+            self.ctx = ssl.create_default_context(cafile=ca_file)
+            self.ctx.minimum_version = ssl.TLSVersion.TLSv1_3
+            if MUTANT == "https-no-verify":
+                self.ctx.check_hostname = False
+                self.ctx.verify_mode = ssl.CERT_NONE
+        self.host, self.port = u.hostname, u.port or (443 if self.https else 80)
+        self.prefix = u.path.rstrip("/")
+        self.ok = True
+        self.lock = threading.Lock()
+        self.dropped = {"logs": 0, "metrics": 0}
+
+    def _attempt(self, path, body, ct):
+        try:
+            if self.https:
+                c = http.client.HTTPSConnection(self.host, self.port, timeout=10, context=self.ctx)
+            else:
+                c = http.client.HTTPConnection(self.host, self.port, timeout=10)
+            c.request("POST", self.prefix + path, body=body, headers={"Content-Type": ct})
+            r = c.getresponse()
+            r.read()
+            c.close()
+            return r.status
+        except (OSError, http.client.HTTPException):
+            return None   # transport failure (refused, reset, TLS): retryable
+
+    def post(self, signal_path, obj, records=0):
+        if self.skip:
+            return True   # mutant: an https endpoint silently skipped
         if MUTANT == "snake-case-keys":
             obj = snake(obj)
         body = json.dumps(obj, separators=(",", ":")).encode()
         ct = "application/x-protobuf" if MUTANT == "protobuf-content-type" else "application/json"
-        try:
-            c = http.client.HTTPConnection(self.host, self.port, timeout=10)
-            c.request("POST", self.prefix + signal_path, body=body, headers={"Content-Type": ct})
-            r = c.getresponse()
-            r.read()
-            c.close()
-            good = 200 <= r.status < 300
-        except OSError:
-            good = False
-        self.ok = self.ok and good
+        waits = (() if MUTANT == "no-retry" else (0.0,) * 4 if MUTANT == "retry-no-backoff"
+                 else (0.12,) * 19 if MUTANT == "retry-unbounded" else BACKOFF_S)
+        status = self._attempt(signal_path, body, ct)
+        for w in waits:
+            if status is not None and 200 <= status < 300:
+                break
+            if status is not None and status not in RETRYABLE and MUTANT != "retry-on-400":
+                break
+            time.sleep(w)
+            status = self._attempt(signal_path, body, ct)
+        good = status is not None and 200 <= status < 300
+        with self.lock:
+            self.ok = self.ok and good
+            if not good and MUTANT != "drop-uncounted":
+                self.dropped["logs" if signal_path == "/v1/logs" else "metrics"] += records
         return good
 
 
@@ -393,15 +438,23 @@ def main():
     ap.add_argument("--interval-ms", type=int, default=10000)
     ap.add_argument("--resource-attr", action="append", default=[])
     ap.add_argument("--once", action="store_true")
+    ap.add_argument("--ca-file")
+    ap.add_argument("--tls-profile", default="P-PUBLIC-WEB")
     args = ap.parse_args()
-    poster = Poster(args.endpoint)
+    poster = Poster(args.endpoint, args.ca_file)
     dropped = [0]
 
+    def counter(name, desc, v, now):
+        return {"name": name, "description": desc,
+                "sum": {"dataPoints": [{"startTimeUnixNano": str(START_NS), "timeUnixNano": str(now), "asInt": str(v)}],
+                        "aggregationTemporality": temporality(), "isMonotonic": True}}
+
     def self_metrics(now):
-        return [{"name": "aegis_otlp_dropped_log_records", "description": "Log lines dropped (queue full).",
-                 "sum": {"dataPoints": [{"startTimeUnixNano": str(START_NS), "timeUnixNano": str(now),
-                                         "asInt": str(dropped[0])}],
-                         "aggregationTemporality": temporality(), "isMonotonic": True}}]
+        with poster.lock:
+            dl, dm = poster.dropped["logs"], poster.dropped["metrics"]
+        return [counter("aegis_otlp_dropped_log_records", "Log records dropped (queue full or retries exhausted).",
+                        dropped[0] + dl, now),
+                counter("aegis_otlp_dropped_metric_points", "Metric points dropped (retries exhausted).", dm, now)]
 
     def export_metrics():
         now = time.time_ns()
@@ -411,13 +464,15 @@ def main():
             print(f"aegis-otlp(ref): scrape: {e}", file=sys.stderr)
             return False
         ms = build_metrics(fams, now, self_metrics(now))
+        npts = sum(len((m.get("sum") or m.get("gauge") or m.get("histogram") or {}).get("dataPoints", [])) for m in ms)
         return poster.post("/v1/metrics", {"resourceMetrics": [
-            {"resource": resource(args), "scopeMetrics": [{"scope": SCOPE, "metrics": ms}]}]})
+            {"resource": resource(args), "scopeMetrics": [{"scope": SCOPE, "metrics": ms}]}]}, npts)
 
     def export_logs(recs):
         for i in range(0, len(recs), 512):
             poster.post("/v1/logs", {"resourceLogs": [
-                {"resource": resource(args), "scopeLogs": [{"scope": SCOPE, "logRecords": recs[i:i + 512]}]}]})
+                {"resource": resource(args), "scopeLogs": [{"scope": SCOPE, "logRecords": recs[i:i + 512]}]}]},
+                len(recs[i:i + 512]))
 
     stdin = sys.stdin.buffer
     if args.once:
@@ -449,21 +504,31 @@ def main():
     signal.signal(signal.SIGINT, lambda *_: stop.set())
     interval = max(args.interval_ms, 50) / 1000.0
     log_every = min(interval, 1.0)
-    last_m = last_l = 0.0
+
+    def log_loop():
+        last_l = 0.0
+        while not stop.is_set():
+            t = time.monotonic()
+            hold = MUTANT == "logs-at-eof-only" and not eof.is_set()
+            if t - last_l >= log_every and not hold:
+                last_l = t
+                with lock:
+                    recs = list(queue)
+                    queue.clear()
+                if recs:
+                    export_logs(recs)
+            stop.wait(0.05)
+
+    lt = threading.Thread(target=log_loop, daemon=True)
+    lt.start()
+    last_m = 0.0
     while not stop.is_set():
         t = time.monotonic()
         if t - last_m >= interval:
             last_m = t
             export_metrics()
-        hold = MUTANT == "logs-at-eof-only" and not eof.is_set()
-        if t - last_l >= log_every and not hold:
-            last_l = t
-            with lock:
-                recs = list(queue)
-                queue.clear()
-            if recs:
-                export_logs(recs)
         stop.wait(0.05)
+    lt.join(2.0)
     with lock:
         recs = list(queue)
         queue.clear()

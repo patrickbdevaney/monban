@@ -1,0 +1,28 @@
+# P8-oracle-001 patch for gates/phase-8.toml (integrator-owned; outside this unit's write_scope oracles/{bin-residuals,crdb-live,native-e2e,otlp-export,proxy-e2e}/**)
+#
+# Rationale: the bin-residuals oracle mints an ML-DSA-44 credential (`openssl genpkey -algorithm ML-DSA-44`) because
+# aegis-bin refuses to boot a selector whose credential does not load, and its P-PQ-REQUIRED positive controls use
+# `openssl s_client -groups X25519MLKEM768 -sigalgs mldsa44`. Both need OpenSSL >= 3.5. kamrui's system openssl is
+# 3.5.3 (checked 2026-11-06); the desktop's version was not checked (the Phase-7 GO run holds it) and Ubuntu's stock
+# OpenSSL is 3.0, where the oracle fails `harness` with that reason rather than skipping. This patch moves the gate's
+# placement from the desktop (`remote = true`) to kamrui, where the unit's runs were recorded. Alternative if the
+# integrator keeps it on the desktop: pass `--openssl <path to a 3.5 openssl>` (or AEGIS_OPENSSL) in the gate cmd.
+# No check changes. Apply with: git apply units/phase-8/patches/P8-oracle-001.patch
+diff --git a/gates/phase-8.toml b/gates/phase-8.toml
+index ad1d627..dbe5fb1 100644
+--- a/gates/phase-8.toml
++++ b/gates/phase-8.toml
+@@ -725,10 +725,12 @@ remote = "kamrui"
+ 
+ [[gate]]
+ name = "bin-residuals"
++# OpenSSL >= 3.5 is needed for the ML-DSA-44 credential and the P-PQ-REQUIRED s_client controls (kamrui: 3.5.3, the
++# system openssl); the desktop's is not known to be >= 3.5 (P8-oracle-001 patch).
+ cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features mtc,l4 && oracles/bin-residuals/run --binary target/release/aegis"
+ selftest = "oracles/bin-residuals/run --self-test"
+ heavy = true
+-remote = true
++remote = "kamrui"
+ 
+ [[gate]]
+ name = "crdb-live"
