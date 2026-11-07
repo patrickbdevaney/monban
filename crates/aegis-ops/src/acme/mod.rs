@@ -20,6 +20,17 @@ pub mod json;
 pub mod jws;
 pub mod tls;
 
+// PREFLIGHT R11: `Faults` (oracle self-test fault injection) exists only with feature `test-faults`, which no release
+// graph enables (gate no-test-faults, ci/no-test-faults.py). Without it the fault predicates are constant `false`.
+#[cfg(feature = "test-faults")]
+mod faults;
+#[cfg(feature = "test-faults")]
+pub use self::faults::Faults;
+#[cfg(feature = "test-faults")]
+use self::faults::{csr_wrong_identifier, replay_nonce, wrong_jws_key};
+#[cfg(not(feature = "test-faults"))]
+use self::no_test_faults::{csr_wrong_identifier, replay_nonce, wrong_jws_key};
+
 use std::string::String;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -115,18 +126,6 @@ impl Default for PollBounds {
     }
 }
 
-/// Deliberate faults, used only by oracles/acme-pebble `--self-test` to show the CA and the client catch them.
-/// All off by default.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct Faults {
-    /// Sign every JWS with a key other than the one the header names.
-    pub wrong_jws_key: bool,
-    /// Reuse an already-consumed nonce once (expect `badNonce` and a successful retry).
-    pub replay_nonce: bool,
-    /// Finalize with a CSR for a different name than the order's identifiers (expect rejection).
-    pub csr_wrong_identifier: bool,
-}
-
 /// Client configuration.
 #[derive(Clone, Debug)]
 pub struct AcmeConfig {
@@ -140,7 +139,8 @@ pub struct AcmeConfig {
     pub poll: PollBounds,
     /// Response caps and socket timeouts.
     pub limits: Limits,
-    /// Fault injection (oracle self-test only).
+    /// Fault injection (oracle self-test only; feature `test-faults`, never in a release graph).
+    #[cfg(feature = "test-faults")]
     pub faults: Faults,
 }
 
@@ -153,6 +153,7 @@ impl AcmeConfig {
             contact: Vec::new(),
             poll: PollBounds::default(),
             limits: Limits::default(),
+            #[cfg(feature = "test-faults")]
             faults: Faults::default(),
         }
     }
@@ -309,7 +310,7 @@ impl AcmeClient {
     pub fn connect(cfg: AcmeConfig) -> Result<Self, AcmeError> {
         let tls = tls::client_config(&cfg.roots)?;
         let key = AccountKey::generate()?;
-        let wrong_key = if cfg.faults.wrong_jws_key { Some(AccountKey::generate()?) } else { None };
+        let wrong_key = if wrong_jws_key(&cfg) { Some(AccountKey::generate()?) } else { None };
         let mut c = Self {
             dir: Directory {
                 new_nonce: String::new(),
@@ -400,7 +401,7 @@ impl AcmeClient {
     fn post(&mut self, url: &str, payload: Option<&str>, accept: Option<&str>) -> Result<Response, AcmeError> {
         for _ in 0..MAX_NONCE_RETRIES {
             let mut nonce = self.fresh_nonce()?;
-            if self.cfg.faults.replay_nonce
+            if replay_nonce(&self.cfg)
                 && !self.replay_done
                 && self.kid.is_some()
                 && let Some(old) = self.last_nonce.clone()
@@ -509,7 +510,7 @@ impl AcmeClient {
         }
         res?;
 
-        let csr_names: Vec<String> = if self.cfg.faults.csr_wrong_identifier {
+        let csr_names: Vec<String> = if csr_wrong_identifier(&self.cfg) {
             domains.iter().map(|d| std::format!("tampered-{d}")).collect()
         } else {
             domains.to_vec()
@@ -621,3 +622,19 @@ impl AcmeClient {
 
 #[cfg(test)]
 mod tests;
+
+/// The release build: no fault exists, every predicate is `false` (feature `test-faults` off).
+#[cfg(not(feature = "test-faults"))]
+mod no_test_faults {
+    use super::AcmeConfig;
+
+    pub(super) const fn wrong_jws_key(_: &AcmeConfig) -> bool {
+        false
+    }
+    pub(super) const fn replay_nonce(_: &AcmeConfig) -> bool {
+        false
+    }
+    pub(super) const fn csr_wrong_identifier(_: &AcmeConfig) -> bool {
+        false
+    }
+}
