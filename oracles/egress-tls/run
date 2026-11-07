@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# AEGIS oracle: egress TLS end to end (P8-hardening-001; PREFLIGHT R15). Contract: oracles/README.md; details: README.md.
+#   ./run --subject PATH [--only REGEX]   egress-subject built with --features tls-client (the gate builds it first)
+#   ./run --self-test                     reference fake (openssl s_client) green, then 6 mutant fakes each red
+# Last line: EGRESS-TLS: PASS|FAIL (...) / EGRESS-TLS SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
+# Peer: OpenSSL >= 3.5 with the ML-KEM TLS groups (kamrui: /usr/bin/openssl 3.5.3; the desktop's 3.3.1 has none),
+# so the gate runs on kamrui (`needs` = kamrui). Override the binary with EGRESS_TLS_OPENSSL.
+set -u
+here="$(cd "$(dirname "$0")" && pwd)"
+repo="$(cd "$here/../.." && pwd)"
+self_test=0; subject=""; pass=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --self-test) self_test=1 ;;
+    --subject) subject="${2:-}"; shift ;;
+    *) pass+=("$1") ;;
+  esac
+  shift
+done
+NAME="EGRESS-TLS"; [ $self_test = 1 ] && NAME="EGRESS-TLS SELF-TEST"
+die() { echo "$NAME: FAIL ($1)"; exit 1; }
+OPENSSL="${EGRESS_TLS_OPENSSL:-/usr/bin/openssl}"
+"$OPENSSL" list -tls-groups -tls1_3 2>/dev/null | tr ':' '\n' | grep -qx SecP384r1MLKEM1024 \
+  || die "$OPENSSL has no ML-KEM TLS groups (need OpenSSL >= 3.5); run on kamrui"
+work="$(mktemp -d "${TMPDIR:-/tmp}/egress-tls.XXXXXX")"
+trap 'rm -rf "$work"' EXIT
+if [ $self_test = 1 ]; then
+  python3 -I "$here/oracle.py" --self-test --openssl "$OPENSSL" --work "$work/w" "${pass[@]}"
+  exit $?
+fi
+[ -n "$subject" ] || die "no --subject (build: cargo build --release --locked -p egress-subject --features tls-client)"
+case "$subject" in /*) ;; *) subject="$repo/$subject" ;; esac
+[ -x "$subject" ] || die "subject $subject not found"
+python3 -I "$here/oracle.py" --subject "$subject" --openssl "$OPENSSL" --work "$work/w" "${pass[@]}"
