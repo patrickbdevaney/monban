@@ -142,7 +142,7 @@ RES_GATES = {"R1": {"fips-boundary", "fips-indicator"}, "R2": {"kani-kx-client"}
 RES_NOT_CLOSED = {"R2": "0x11EB / 0x0202 client paths are not Kani-covered (P8-kani-001 INFEASIBLE_REPORT)",
                   "R3": "conformance-full is red until the cmvp config_sha256 pin exists",
                   "R5": "the 64-core run is separate and advisory", "R9": "drop-oldest under backpressure is not covered",
-                  "R12": "aegis-bin does not apply the F8 retention", "R17": "the 2 h soak on quiet has not run"}
+                  "R12": "aegis-bin does not apply the F8 retention on PG, CockroachDB or MariaDB backends (refused at boot)", "R17": "the 2 h soak on quiet has not run"}
 RES_REQ = {  # facts each residual row's evidence (or rung) must carry
     "R1": [("D-P8.1 component text", r"#5314-approved components"), ("combiner SP 800-227", r"SP 800-227 §4\.6\.2"),
            ("composite NOT CLAIMED", r"NOT CLAIMED"), ("#5298 dynamic not cited", r"#5298 is the dynamic module")],

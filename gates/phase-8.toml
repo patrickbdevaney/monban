@@ -19,7 +19,7 @@ remote = true
 
 [[gate]]
 name = "tests"
-cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q && ci/heavy.sh cargo test -p aegis-bin --features native --all-targets --locked -q"
 remote = true
 
 [[gate]]
