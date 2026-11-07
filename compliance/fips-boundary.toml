@@ -1,0 +1,194 @@
+# FIPS boundary record for the 0x11ED (SecP384r1MLKEM1024) key exchange on the cmvp build.
+# PREFLIGHT-8 D-P8.1, unit P8-fips-001. Checked by `python3 -I ci/fips-boundary.py` (gate `fips-boundary`).
+#
+# What this file establishes (rung R1, documentation): every primitive 0x11ED uses on the cmvp build is an approved
+# security function of CMVP #5314, by the cited table/row of its Security Policy, and the hybrid combiner is the
+# SP 800-227 §4.6.2 construction over the module's HKDF. What it does NOT establish: that 0x11ED as a whole is
+# FIPS-approved key establishment. The policy has no hybrid or combiner text, and the TLS 1.3 key schedule (TLS 1.3
+# KDF) has no CAVP row, so that is NOT CLAIMED. The runtime service-indicator run is P8-cmvp-002 (`fips-indicator`, R2).
+#
+# The policy PDF is not vendored. Its sha256 is pinned below; the checker fetches it (User-Agent aegis-ci) into
+# ~/.cache/aegis-ci/fips/ (outside the repo) or takes --policy FILE, re-hashes it, and requires every `excerpts`
+# string below to occur in its text (pdftotext -layout, whitespace collapsed) and every `policy.absent` term not to.
+
+schema = 1
+
+[certificate]
+number = 5314
+module = "AWS-LC 3 Cryptographic Module (static)"
+module_version = "AWS-LC FIPS 3.1.0"
+linkage = "static"
+standard = "FIPS 140-3"
+level = 1
+status = "active"
+validated = "2026-06-05"
+sunset = "2031-06-04"
+url = "https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314"
+# Why #5314 and not #5298: aws-lc-fips-sys =0.13.11 builds the module statically into the binary by default on
+# Linux, and the cmvp profile does not change that (profiles/cmvp). #5298 is the dynamic (shared-library) module.
+build = "profiles/cmvp: aws-lc-rs =1.15.3 + aws-lc-fips-sys =0.13.11 (static by default on Linux)"
+excerpts = [
+  "AWS-LC 3 Cryptographic Module (static)",
+  "is a cryptographic library consisting of the bcm.o file (version AWS-LC FIPS 3.1.0)",
+  "statically linked to the userspace application during the compilation process",
+]
+
+[[certificate.not_this_build]]
+number = 5298
+module = "AWS-LC 3 Cryptographic Module (dynamic)"
+linkage = "dynamic"
+applies = "only if the cmvp build is made dynamic; it is not cited for the static build"
+
+[policy]
+file = "140sp5314.pdf"
+url = "https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5314.pdf"
+title = "AWS-LC 3 Cryptographic Module (static) FIPS 140-3 Non-Proprietary Security Policy"
+version = "1.2"
+date = "2026-05-20"
+pages = 74
+bytes = 1052474
+sha256 = "9e0c9f57f5d319c0c86492e6196aa5625a1b97867843e0e0d9bb423937e6f34e"
+fetched = "2026-11-06"
+vendored = false
+excerpts = ["Document version: 1.2", "Last update: 2026-05-20"]
+# The policy says nothing about hybrids, combiners or this group. If a later policy version adds such text, the
+# hash pin goes red first; these absences keep the "composite not stated" finding honest against the pinned text.
+absent = ["combiner", "11ED", "SecP384r1", "MLKEM1024", "X25519MLKEM"]
+
+# One row per 0x11ED primitive. `table`/`row`/`page` cite the policy; `cavp` is the CAVP certificate set of the row.
+# state: "approved" (an approved security function of #5314, used as the policy requires) or "not-claimed".
+
+[[component]]
+id = "p384-keygen"
+role = "ephemeral P-384 key pair for the ECDHE half (both sides)"
+algorithm = "ECDSA KeyGen (FIPS 186-5), P-384"
+aegis_call = "aws_lc_rs::agreement::PrivateKey::generate(&ECDH_P384)"
+table = "Table 9: Security Function Implementations"
+row = "Key Generation with ECDSA (AsymKeyPair-CKG, FIPS186-5)"
+page = 14
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315"
+reference = "FIPS 186-5; SP 800-133r2 §4 (Table 6 vendor-affirmed CKG); §2.7 SP 800-56Ar3 assurances (first bullet)"
+state = "approved"
+excerpts = [
+  "ECDSA KeyGen A6288, A6289, A6291, A6295, Curve - P-224, P-256, P-384, P-521 FIPS 186-5",
+  "Key Generation with ECDSA AsymKeyPair- FIPS186-5. Key ECDSA KeyGen",
+  "must use the module's \"Key Pair Generation\" service for generating ECDH ephemeral keys",
+]
+
+[[component]]
+id = "p384-ecdh"
+role = "ECDHE shared secret S1 (x-coordinate, 48 bytes), first in the concatenation"
+algorithm = "KAS-ECC-SSC Sp800-56Ar3, P-384, ephemeralUnified, initiator and responder"
+aegis_call = "aws_lc_rs::agreement::agree(.., &ECDH_P384, ..)"
+table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
+row = "KAS-ECC-SSC Sp800-56Ar3 (Table 5); KAS-ECC-SSC (Shared Secret Computation with EC Diffie-Hellman), IG D.F scenario 2 path (1) (Table 9)"
+page = 10
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315"
+reference = "SP 800-56A Rev. 3; IG D.F; §2.7 'Compliance to SP 800-56ARev3 assurances' and 'KAS-SSC'"
+state = "approved"
+excerpts = [
+  "KAS-ECC-SSC A6288, A6289, A6291, A6295, Domain Parameter Generation SP 800-56A",
+  "Methods - P-224, P-256, P-384, P-521",
+  "ephemeralUnified - KAS Role - initiator, responder",
+  "KAS-ECC-SSC (Shared Secret KAS-SSC SP800-56Arev3. IG D.F:KAS-ECC- KAS-ECC-SSC",
+  "meeting IG D.F scenario 2 path (1)",
+  "internally performs the public key validation on the peer's public key",
+  "The module does not establish SSPs using an approved key agreement scheme (KAS).",
+]
+
+[[component]]
+id = "mlkem1024-keygen"
+role = "client ML-KEM-1024 decapsulation key"
+algorithm = "ML-KEM KeyGen (FIPS 203), ML-KEM-1024"
+aegis_call = "aws_lc_rs::kem::DecapsulationKey::generate(&ML_KEM_1024)"
+table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
+row = "ML-KEM KeyGen (Table 5); Key Generation with ML-KEM (AsymKeyPair-CKG) (Table 9, p. 14)"
+page = 10
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315"
+reference = "FIPS 203"
+state = "approved"
+excerpts = [
+  "ML-KEM A6288, A6289, A6291, A6295, Parameter Sets - ML-KEM-1024, ML- FIPS 203 KeyGen A6312, A6313, A6314, A6315 KEM-512, ML-KEM-768",
+  "Key Generation with ML-KEM AsymKeyPair- FIPS203, Section",
+]
+
+[[component]]
+id = "mlkem1024-encapdecap"
+role = "ML-KEM-1024 shared secret S2 (32 bytes), second in the concatenation"
+algorithm = "ML-KEM EncapDecap (FIPS 203), ML-KEM-1024, encapsulation (server) and decapsulation (client)"
+aegis_call = "aws_lc_rs::kem::EncapsulationKey::encapsulate / DecapsulationKey::decapsulate (ML_KEM_1024)"
+table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
+row = "ML-KEM EncapDecap (Table 5); Encapsulation/Decapsulation with ML-KEM, IG D.S scenario 1 (Table 9, p. 15)"
+page = 10
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315"
+reference = "FIPS 203 §7.2, §7.3; IG D.S; §2.7 'ML-KEM'"
+state = "approved"
+excerpts = [
+  "ML-KEM A6288, A6289, A6291, A6295, Parameter Sets - ML-KEM-1024, ML- FIPS 203 EncapDecap A6312, A6313, A6314, A6315 KEM-512, ML-KEM-768 Functions - Decapsulation, Encapsulation",
+  "Encapsulation/Decapsulation KEM-Decap FIPS203. FIPS 203:Section ML-KEM",
+  "The module does not establish SSPs using an approved key encapsulation mechanism (KEM).",
+]
+
+[[component]]
+id = "hkdf"
+role = "the combiner's KDM: HKDF-Extract over Z = S1 || S2, then HKDF-Expand (SHA2-384 for the P-UNIVERSAL suites)"
+algorithm = "KDA HKDF Sp800-56Cr1, HMAC SHA2-256/SHA2-384"
+aegis_call = "rustls TLS 1.3 key schedule through the cmvp aws-lc-rs provider's HKDF"
+table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
+row = "KDA HKDF Sp800-56Cr1 (Table 5); Key Derivation with KDA HKDF (KAS-56CKDF) (Table 9, p. 15)"
+page = 10
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315"
+reference = "SP 800-56C Rev. 2 (two-step KDM); RFC 5869"
+state = "approved"
+excerpts = [
+  "KDA HKDF A6288, A6289, A6291, A6295, Derived Key Length - 2048 SP 800-56C",
+  "Shared Secret Length - Shared Secret Rev. 2 Length: 224-2048 Increment 8 HMAC Algorithm - SHA-1, SHA2-224, SHA2-256, SHA2-384, SHA2-512",
+  "Key Derivation with KDA KAS-56CKDF SP800-56Crev1. KDA HKDF",
+]
+
+[[component]]
+id = "tls13-kdf"
+role = "the TLS 1.3 key schedule (RFC 8446 §7.1) as a named KDF"
+algorithm = "KDF TLS (CVL), SP 800-135 Rev. 1"
+aegis_call = "rustls TLS 1.3 key schedule"
+table = "Table 5: Approved Algorithms; §2.11 Industry Protocols"
+row = "KDF TLS (CVL): TLS Version - v1.0/1.1, v1.2 only; no v1.3 row"
+page = 10
+cavp = "A6288, A6289, A6291, A6295, A6312, A6313, A6314, A6315 (v1.0/1.1, v1.2 only)"
+reference = "SP 800-135 Rev. 1; §2.11 says the module implements the TLS 1.3 KDF, but no CAVP row covers it"
+state = "not-claimed"
+excerpts = [
+  "KDF TLS (CVL) A6288, A6289, A6291, A6295, TLS Version - v1.0/1.1, v1.2 SP 800-135",
+  "Additionally, the module implements the TLS 1.2 and TLS 1.3 key derivation functions for use in the TLS protocol.",
+  "No parts of the SSH, TLS, other than those mentioned above, have been tested by the CAVP and CMVP.",
+]
+
+[combiner]
+# The 0x11ED shared secret is Z = S1 || S2 (RFC 10024 §4.3: ECDHE first, then ML-KEM; 48 + 32 = 80 bytes), and TLS 1.3
+# applies HKDF-Extract to all of Z. SP 800-227 §4.6.2 approves KDM((S1, S2), OtherInput) when at least one Sj comes
+# from SP 800-56A/B or an approved KEM, with extraction over all shared secrets for a two-step KDM. Here S1 is
+# KAS-ECC-SSC (SP 800-56Ar3) and S2 is ML-KEM-1024 (approved KEM); RFC 10024 §5 places ECDHE first so the
+# SP 800-56C "first secret from an approved scheme" reading also holds. `kx-kat` and `kx-interop` pin the order
+# (the order-mutant goes red).
+reference = "SP 800-227 (final, 2025-09) §4.6.2, expression (14); SP 800-56C Rev. 2 two-step KDM"
+order = ["p384-ecdh", "mlkem1024-encapdecap"]
+kdm = "hkdf"
+ordering_reference = "RFC 10024 §4.3 (shared secret = ECDHE || ML-KEM), §5 (ECDHE first for SecP384r1MLKEM1024)"
+shared_secret_bytes = 80
+module_combiner = "none: the policy states no hybrid or combiner (§2.7: the module offers KAS/KEM functionality to be used by an external application); the combiner is assembled outside the module from module calls"
+argument = "each input secret and the KDM are #5314 approved security functions; the combination is the SP 800-227 §4.6.2 combiner (14) with S1 from SP 800-56Ar3 and S2 from an approved KEM; the TLS 1.3 key schedule that drives the KDM has no CAVP row and is NOT CLAIMED"
+evidence_refs = [
+  "NIST SP 800-227 https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-227.pdf (sha256 41e427a461c1ae0ceed2a68dc29507400983d1d495c35631306d0f4803ca4614 on 2026-11-06, recorded, not gated)",
+  "RFC 10024 https://www.rfc-editor.org/rfc/rfc10024.txt (sha256 5efcfacef53549ec4ff57450dfec28085b34cf3f34d829c541c0ddbe19230dfe on 2026-11-06, recorded, not gated)",
+]
+
+[claim]
+# The only 0x11ED FIPS sentence AEGIS documents may make (D-P8.1), and the forms they may not.
+permitted = "0x11ED built only from #5314-approved components (P-384 ECDH, ML-KEM-1024, HKDF); combiner per SP 800-227 §4.6.2 via the module's HKDF. 0x11ED as a whole is NOT CLAIMED as FIPS-approved key establishment, and the TLS 1.3 KDF is NOT CLAIMED (no CAVP row)."
+rung = "R1 documentation (this file and gate); R2 when fips-indicator (P8-cmvp-002) reports Approved for each component"
+refused = [
+  "0x11ED (or SecP384r1MLKEM1024) called FIPS-approved, FIPS validated, FIPS certified, FIPS compliant or FIPS-approvable without the component qualifier",
+  "0x11ED called approved key establishment, or inside the FIPS / module / cryptographic boundary, without the component qualifier",
+  "the TLS 1.3 KDF or TLS 1.3 key schedule called approved, validated, certified or CAVP-covered",
+  "CMVP #5298 cited without saying it is the dynamic module",
+]
