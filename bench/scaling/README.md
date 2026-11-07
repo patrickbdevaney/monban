@@ -115,7 +115,7 @@ Choosing `<type>` (quotas as read on 2026-11-07, us-central1; check again with `
 | type | vCPUs | fits today? |
 |---|---:|---|
 | `c2d-standard-56` | 56 | yes (CPUS_ALL_REGIONS 80); the 2026-11-07 run below |
-| `n2-standard-64` | 64 | yes: N2_CPUS 200, CPUS_ALL_REGIONS 80; the exact 64-vCPU point |
+| `n2-standard-64` | 64 | yes: N2_CPUS 200, CPUS_ALL_REGIONS 80; the exact 64-vCPU point; the 2026-11-07 n2 run below |
 | `n2d-standard-64` | 64 | no: N2D_CPUS 16 (operator raises it first) |
 | `c2d-standard-64` | - | does not exist; `--gcp` refuses it |
 
@@ -244,3 +244,90 @@ Verdict: **FAIL**. Report: `out/client16-conns256/aegis-scaling-2026-11-07.json`
 At about $2.5/h on-demand, that is about $0.45, paid from the $300 credit. spend-guard reported net cost 0.0 before
 each create.
 
+
+## Run record: 2026-11-07, GCP n2-standard-64 (PLAN-8 64-core point; provisional)
+
+**Provisional:** one run of 10 s per point, on a cloud VM with possible noisy neighbours. Gate `scaling` is advisory,
+record_only, and its thresholds are unchanged. (The planned `c2d-standard-64` does not exist; `n2-standard-64` is the
+exact 64-vCPU type that fits the quota.)
+
+- **Machine:** throwaway VM `aegis-scaling`, `n2-standard-64`, us-central1-a. Intel Xeon @ 2.80GHz (family 6,
+  model 85, stepping 7: Cascade Lake), 2 sockets x 16 cores x 2 SMT = 64 vCPUs, **2 NUMA nodes** (node0 CPUs 0-15
+  and 32-47, node1 CPUs 16-31 and 48-63; CPU k and k+32 are SMT siblings), 251 GiB. Image ubuntu-2404-lts-amd64,
+  kernel `7.0.0-1017-gcp`, glibc 2.39, hard RLIMIT_NOFILE 1048576.
+- **Binaries:**
+  - `aegis` was built on kamrui (`ci/remote.sh --host kamrui`, `cargo build --release --locked -p aegis-bin`,
+    default features, tree 86eec82 on `phase8`) and shipped to the VM, sha256
+    `00dddad761db81612f3a41693ef8ec119724ac7974c258718680e0513437f7ee`. Highest versioned symbol GLIBC_2.39.
+  - The upstream was built on the VM by the harness, with rustc 1.99.1 (rustup into `~/aegis-ci`, default toolchain
+    set at install) and Ubuntu gcc 13.3 as the linker (installed on the VM before the run).
+  - h2load was installed with `bench/scaling/provision-h2load --to aegis-scaling` and reports `nghttp2/1.69.0`.
+- **Host key:** pinned out of band from the VM's guest attributes (`hostkeys/`, `enable-guest-attributes=TRUE`),
+  with StrictHostKeyChecking=yes, HostKeyAlias and a private known_hosts. It was never trusted on first use. The
+  temporary ssh alias was removed after deletion.
+- **Server-side lifetime cap:** `--max-run-duration 7200s --instance-termination-action DELETE`.
+- **Deletion:** deleted with `gcloud compute instances delete` at 11:21Z; `gcloud compute instances list` showed no
+  `aegis-scaling` afterwards (only the stopped `aegis-quiet`), and no orphan disk.
+
+**Run A**, the gate shape: `--cores 1,2,4,8,16,32,48,58`, with the defaults (client 4, upstream 2, 32 conns,
+16 streams, 10 s, warm-up 0; fd soft limit 65536, S5 default 4096). 58 = 64 - 4 - 2. Verdict:
+`SCALING: PASS (8 points, 0 errors)`. Report: `out/n2-standard-64/aegis-scaling-2026-11-07.json`. Upstream on CPUs
+58-59, h2load on 60-63 at every point (both on node1, SMT siblings of 26-31).
+
+| cores | worker_threads | usable_cpus | 2xx req/s | p50 ms | p99 ms | errors | admission rejects |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 1 | 30992 | 9.09 | 73.01 | 0 | 0 |
+| 2 | 2 | 2 | 53261 | 8.11 | 18.47 | 0 | 0 |
+| 4 | 4 | 4 | 92071 | 1.09 | 16.22 | 0 | 0 |
+| 8 | 8 | 8 | 165635 | 0.71 | 3.30 | 0 | 0 |
+| 16 | 16 | 16 | 94752 | 1.01 | 16.16 | 0 | 0 |
+| 32 | 32 | 32 | 93858 | 1.09 | 16.51 | 0 | 0 |
+| 48 | 48 | 48 | 96249 | 0.92 | 16.72 | 0 | 0 |
+| 58 | 58 | 58 | 96436 | 1.04 | 16.22 | 0 | 0 |
+
+What run A shows, as provisional observations rather than conclusions:
+
+- **Scaling up to 8 cores:** 1 to 8 cores is about 5.3x (31k to 166k/s) with worker_threads = N, the peak of the
+  run. The same shape as c2d-standard-56 (peak at 8, about 123k/s there).
+- **Plateau from 16 to 58 cores, at about 94-96k/s with p99 about 16 ms:** flat within 3%, but about 42% below the
+  8-core peak. At 16 aegis is still on node0 physical cores only (0-15), so neither SMT sharing nor aegis spanning
+  sockets explains the step from 8 to 16. 32 connections x 16 streams from 4 h2load threads is a fixed offered load;
+  run B shows the client shape is part of the plateau (16 and 46 cores reach about 131k/s with 16 client CPUs), but
+  8 cores stays the best point in both shapes. The cause of the drop past 8 is not isolated.
+
+**Run B**, supplementary, to take the client limit away: `--cores 8,16,32,46 --client-cpus 16 --conns 256`
+(46 = 64 - 16 - 2; fd soft limit 65536, S5 sized to 20480). Upstream on CPUs 46-47, h2load on 48-63. Verdict:
+**FAIL**. Report: `out/n2-standard-64/client16-conns256/aegis-scaling-2026-11-07.json`.
+
+| cores | 2xx req/s | all responses/s | p50 ms | p99 ms | errors (all 5xx) | admission rejects | aegis upstream errors |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 8 | 160331 | 160972 | 1.03 | 18.93 | 0 | 0 | none |
+| 16 | 131001 | 131702 | 0.65 | 32.49 | 458 | 0 | 458 `connect: timeout` |
+| 32 | 27729 | 85131 | 25.32 | 102.68 | 572640 | 0 | 572419 `connect: Connection refused`, 2046 `Connection reset by peer`, 3 `upstream closed` |
+| 46 | 132518 | 133242 | 0.58 | 33.45 | 621 | 0 | 621 `connect: timeout` |
+
+The P8-bin-002 harness fixes held: no EMFILE and no S5 rejects at any point. Cause of the 5xx (diagnosed on the VM
+before deletion): **the bench upstream (`upstream.rs`), not aegis.** Every 5xx is a 502 for an upstream error that
+aegis logged per exchange; aegis kept serving throughout.
+
+- **32 cores: the bench upstream crashed.** The kernel log has
+  `scaling-upstrea[752698]: segfault at 76de89dee9c8 ... error 4 likely on CPU 46` (an upstream CPU) during that
+  point. The faulting code bytes match exactly one place in the VM's libc.so.6, `pthread_detach` + 0x20, reached from
+  the upstream's main (accept) thread (sp in the main stack): `std::thread::spawn`'s JoinHandle is dropped at once,
+  which detaches the just-spawned per-connection thread. The read faults on that thread's descriptor, in an unmapped
+  page. This is consistent with a detach racing the exit of a very short-lived thread whose stack was already
+  released (aegis keeps only 32 idle upstream connections per key, so 256 x 16 churns thousands of upstream
+  connections and threads per second). After the crash nothing listened, hence 572k `Connection refused` and the
+  resets on connections open at the time. A re-run of the 32-core point (same flags, core dumps on) did not crash:
+  131592 2xx/s with 398 `connect: timeout`, so the crash is intermittent. No core was captured.
+- **16, 46 (and the 32 re-run): listen-queue overflow at the upstream.** The kernel logged
+  `Possible SYN flooding on port 127.0.0.1:<port>. Sending cookies.` once per point. aegis's upstream connect
+  timeout is 5 s (`CONNECT_TIMEOUT`, crates/aegis-bin/src/upstream.rs), so a SYN dropped twice by a full accept queue
+  (one accepting thread on 2 CPUs shared with thousands of serving threads) times out: 458-621 of about 1.3M
+  exchanges (0.04%).
+- **Not changed here:** no threshold, judge, aegis or upstream change. A sturdier bench upstream (a bounded thread
+  pool or explicit detach handling, a larger backlog, more upstream CPUs) is a harness follow-up. As on c2d, run B is
+  not a measure of aegis; it does show aegis answering 502 per exchange and staying up when its upstream dies.
+
+**Cost:** one VM, created 11:09:59Z and deleted 11:21:05Z, about 11 min of n2-standard-64 time. At about $3.1/h
+on-demand that is about $0.58, paid from the $300 credit. spend-guard reported net cost 0.0 before the create.

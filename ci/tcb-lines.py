@@ -467,6 +467,30 @@ def set_cell(f, key, col, fn, kind="tcb"):
     return mut
 
 
+def edit_row(f, key, fn, kind):
+    """Edit several cells of one row at once: fn({col: cell}) -> {col: cell}."""
+    cols = COLS[kind]
+
+    def mut(r):
+        def one(m):
+            cells = fn(dict(zip(cols, split_row(m.group(0)))))
+            return "| " + " | ".join(cells[c] for c in cols) + " |\n"
+        _rw(f"{r}/{f}", lambda s: _row_re(key).sub(one, s, count=1))
+    return mut
+
+
+def scaling_mut(f, waiting, measured):
+    """A 64-core-row mutant for either state of the row: `waiting` (TO-FILL placeholder in the evidence; the fixture)
+    or `measured` (the filled row, once the run is recorded). Each must make the row red in its own state."""
+    return edit_row(f, "64-core scaling run", lambda c: (waiting if TOFILL in c["evidence"] else measured)(dict(c)),
+                    kind="deferred")
+
+
+def _cells(c, **kw):
+    c.update(kw)
+    return c
+
+
 def both(*muts):
     return lambda r: [m(r) for m in muts]
 
@@ -579,9 +603,18 @@ MUTANTS = [
     ("h3-no-date", {"deferred"}, set_cell(SC, "HTTP/3", "status", lambda c: "deferred", kind="deferred")),
     ("webtransport-row-missing", {"deferred"}, drop_row(SC, "WebTransport")),
     ("scaling-not-blocked", {"blocked"}, set_cell(CM, "64-core scaling run", "status", lambda c: "done (2026-11-06)", kind="deferred")),
-    ("scaling-placeholder-dropped", {"blocked"}, set_cell(SC, "64-core scaling run", "evidence", lambda c: c.replace(TOFILL, "result"), kind="deferred")),
-    ("scaling-measured-no-evidence", {"blocked"}, set_cell(CM, "64-core scaling run", "status", lambda c: "measured 2026-11-07", kind="deferred")),
-    ("scaling-old-quota", {"blocked"}, set_cell(SC, "64-core scaling run", "status", lambda c: c.replace("= 80", "= 12"), kind="deferred")),
+    # waiting state: placeholder dropped while still running; measured state: evidence no longer called provisional
+    ("scaling-placeholder-dropped", {"blocked"}, scaling_mut(SC,
+        lambda c: _cells(c, evidence=c["evidence"].replace(TOFILL, "result")),
+        lambda c: _cells(c, evidence=re.sub(r"\bprovisional\b", "final", c["evidence"])))),
+    # waiting: "measured" with the placeholder still in; measured: "measured" without the c2d-standard-64 evidence
+    ("scaling-measured-no-evidence", {"blocked"}, scaling_mut(CM,
+        lambda c: _cells(c, status="measured 2026-11-07"),
+        lambda c: _cells(c, status="measured 2026-11-07", evidence=c["evidence"].replace("c2d-standard-64", "a VM")))),
+    # waiting: the pre-approval quota; measured: "measured" with no date
+    ("scaling-old-quota", {"blocked"}, scaling_mut(SC,
+        lambda c: _cells(c, status=c["status"].replace("= 80", "= 12")),
+        lambda c: _cells(c, status=re.sub(r"\bmeasured\s+20\d\d-\d\d-\d\d\b", "measured", c["status"])))),
     ("to-fill-elsewhere", {"pending"}, set_cell(CM, "uring", "rung", lambda c: c + "; " + TOFILL)),
     ("scaling-row-missing", {"blocked"}, drop_row(SC, "64-core scaling run")),
     # unit oracle: a claim calling io-uring / hyper / AWS-LC 'proven'
