@@ -10,16 +10,30 @@ shared with the operator's other builds, and the run is niced under the ci lock.
 ```
 ci/remote.sh bench/scaling/run --cores 1,2,4,8,16,24 --record bench/scaling/out   # the gate command
 ci/remote.sh bench/scaling/run --self-test                                        # negative controls (light)
-bench/scaling/run --gcp c2d-standard-64 [--region us-central1]                     # quota preflight (laptop, gcloud)
+bench/scaling/run --gcp n2-standard-64 [--region us-central1] [--zone us-central1-a] # type + quota preflight (laptop, gcloud)
 ```
 
 Tuning flags: `--duration S` (default 10), `--warmup S` (default 0), `--client-cpus C` (4), `--upstream-cpus U` (2),
-`--conns K` (32), `--streams M` (16), `--aegis BIN` (skip the build), `--h2load BIN`.
+`--conns K` (32), `--streams M` (16), `--aegis BIN` (skip the build), `--h2load BIN`. On a host with docker but no
+installed h2load (kamrui), `--h2load bench/scaling/h2load-docker` runs the pinned `aegis-h2load:1.69.0` image with the
+caller's cpuset and host networking, and installs nothing.
 
 The last line is `SCALING: PASS|FAIL (...)`, `SCALING SELF-TEST: PASS|FAIL (...)` or `SCALING GCP: REFUSED (...)`.
 A measuring run re-executes itself under `ci/heavy.sh` unless it is already under it (ci/remote.sh sets
 `AEGIS_HEAVY_HELD=1`). `--record` is relative to the tree the run happens in. Under ci/remote.sh that is the
 desktop's copy (`~/aegis-ci/repo-<hash>/`), so copy the JSON back before the next remote.sh sync deletes it.
+
+## What one run sets up (P8-bin-002)
+
+- **File descriptors.** aegis's H1 upstream client holds one connection per in-flight stream (only 32 stay idle per
+  key), so aegis needs about K x M + K fds. The harness raises its soft RLIMIT_NOFILE to max(K x M + K + 1024, 65536),
+  capped at the hard limit, and the children inherit it. A hard limit below the need refuses the run. The report
+  records `load.nofile` (before, set, hard).
+- **S5.** The bench is one anonymous class, which may hold about 2/10 of `admission.concurrency` (aegis-admission
+  class reservations). When K x M x 5 exceeds the default 4096, the served config sets `admission.concurrency` to
+  K x M x 5 (`load.s5_concurrency`). The gate's 32 x 16 runs the unchanged default.
+- **Upstream errors.** Each point records `aegis_upstream_errors`, aegis's own `aegis: upstream ...` lines by class,
+  read before the temp dir is deleted. This is diagnostic only: the judge does not read it.
 
 ## What one point does
 
@@ -71,37 +85,53 @@ builds reports and judges them. The unmutated report must PASS. Each of these mu
 | `missing-point` | the 4-core point is absent |
 | `no-report` | the report file was never written |
 | `workers-fixed-2` | every point ran 2 tokio workers whatever N (the pre-Phase-8 plateau; `runtime.worker_threads` not applied) |
-| `gcp-quota-12` | `--gcp c2d-standard-64` against CPUS_ALL_REGIONS 12 must refuse |
+| `nofile-1024-at-256x16` | a soft fd limit of 1024 kept for 256 x 16 (run B: aegis answers 502 on EMFILE) |
+| `nofile-hard-too-low` | a hard fd limit of 2048 accepted for 256 x 16 instead of refusing the run |
+| `s5-share-below-offered` | S5 sized so that the anonymous class's 2/10 share is below the offered 256 x 16 streams |
+| `gcp-quota-12` | `--gcp c2d-standard-56` against CPUS_ALL_REGIONS 12 must refuse |
+| `gcp-no-such-type` | `--gcp c2d-standard-64` with ample quota must refuse: `machine-types describe` does not know it |
+| `gcp-describe-other-type` | a describe of another type (c2d-standard-56) is not evidence that c2d-standard-64 exists |
+| `gcp-guestcpus-from-describe` | the vCPU count is gcloud's `guestCpus`, not the number in the name |
 
 It also checks that cpuset allocation refuses 24 + client on 24 CPUs, and is disjoint at 16 of 24.
 
 ## `--gcp <machine-type>` (the 64-core point; operator quota step)
 
-`--gcp` is only a preflight. It reads `gcloud compute project-info describe` and
-`gcloud compute regions describe <region>`. It **refuses** (exit 3, `SCALING GCP: REFUSED (...)`) when either of
-these has fewer free vCPUs than the machine type needs:
+`--gcp` is only a preflight. It reads `gcloud compute project-info describe`,
+`gcloud compute regions describe <region>` and `gcloud compute machine-types describe <type> --zone <zone>` (zone
+default `<region>-a`). It **refuses** (exit 3, `SCALING GCP: REFUSED (...)`) when:
 
-- CPUS_ALL_REGIONS;
-- the family's regional quota, for example `C2D_CPUS`.
+- the machine type does not exist in that zone (P8-bin-002: `c2d-standard-64` passed the old quota-only check and
+  was then rejected at create time; C2D comes in 2, 4, 8, 16, 32, 56 and 112 vCPUs);
+- CPUS_ALL_REGIONS has fewer free vCPUs than the type's `guestCpus`;
+- the family's regional quota, for example `C2D_CPUS` or `N2_CPUS`, has fewer free vCPUs than that.
 
 It runs once and never retries: only the operator can raise a quota (Cloud console → IAM & Admin → Quotas;
-PREFLIGHT P4.1). On 2026-11-06 CPUS_ALL_REGIONS is 12, so `c2d-standard-64` is refused. When quota suffices, it
-prints `quota ok` and exits 4: this unit does not create VMs.
+PREFLIGHT P4.1). When the type exists and quota suffices, it prints `quota ok` and exits 4: this harness does not
+create VMs.
 
-The manual run once quota exists. These steps are not automated, and they cost about an hour of c2d-standard-64
+Choosing `<type>` (quotas as read on 2026-11-07, us-central1; check again with `--gcp`):
+
+| type | vCPUs | fits today? |
+|---|---:|---|
+| `c2d-standard-56` | 56 | yes (CPUS_ALL_REGIONS 80); the 2026-11-07 run below |
+| `n2-standard-64` | 64 | yes: N2_CPUS 200, CPUS_ALL_REGIONS 80; the exact 64-vCPU point |
+| `n2d-standard-64` | 64 | no: N2D_CPUS 16 (operator raises it first) |
+| `c2d-standard-64` | - | does not exist; `--gcp` refuses it |
+
+The manual run once the preflight says `quota ok`. These steps are not automated, and they cost about an hour of VM
 time:
 
 1. Create a throwaway VM:
-   `gcloud compute instances create aegis-scaling --zone us-central1-a --machine-type c2d-standard-64
-   --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud`.
-   **Correction (2026-11-07):** `c2d-standard-64` does not exist (C2D comes in 2, 4, 8, 16, 32, 56 and 112 vCPUs), and
-   the `--gcp` preflight checks quota only, not that the type exists. The run below used `c2d-standard-56`, the largest
-   C2D that fits CPUS_ALL_REGIONS 80. An exact 64-vCPU point needs another family (for example n2-standard-64: N2
-   quota 200 in us-central1; n2d-standard-64 needs N2D_CPUS raised from 16).
+   `gcloud compute instances create aegis-scaling --zone us-central1-a --machine-type <type>
+   --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud --max-run-duration 7200s
+   --instance-termination-action DELETE`.
 2. Pin its host key the way `ci/release/vm.sh` does, and add an ssh alias.
 3. Run `bench/scaling/provision-h2load --to <alias>`.
-4. Run `ci/remote.sh --host <alias> bench/scaling/run --cores 1,2,4,8,16,32,48,56 --record bench/scaling/out`.
-   That is 64 vCPUs minus the client and upstream CPUs.
+4. Run `ci/remote.sh --host <alias> bench/scaling/run --cores <list> --record bench/scaling/out`, where the largest
+   entry is the type's vCPUs minus `--client-cpus` and `--upstream-cpus` (defaults 4 and 2): for `n2-standard-64`
+   `1,2,4,8,16,32,48,58`, for `c2d-standard-56` `1,2,4,8,16,28,32,48,50`. A larger entry is refused as not
+   disjoint, never overlapped.
 5. Copy the JSON back, then delete the VM and check that it is gone.
 
 ## h2load provisioning
@@ -115,8 +145,8 @@ closure out of the image into `~/aegis-ci/tools/h2load-1.69.0` on the target. A 
 ## Small hosts
 
 kamrui (4 CPUs) fits only N + client + upstream <= 4 disjointly, so with `--client-cpus 1 --upstream-cpus 1` its
-largest point is 2: it can check the harness and the worker_threads read-back, not the curve past the old 2-worker
-plateau. The curve (1, 2, 4, 8, 16, 18) is the desktop run, and 64 cores is the `--gcp` step below.
+largest point is 2: it can check the harness, the worker_threads read-back and the run-B causes (above), not the
+curve past the old 2-worker plateau. It has no installed h2load: use `--h2load bench/scaling/h2load-docker`. The curve (1, 2, 4, 8, 16, 18) is the desktop run, and 64 cores is the `--gcp` step below.
 
 ## Known blocker (2026-11-06, resolved)
 
@@ -180,10 +210,29 @@ Verdict: **FAIL**. Report: `out/client16-conns256/aegis-scaling-2026-11-07.json`
 - At every point, about 535-549k of about 1.0-1.16M responses in 10 s were **5xx**. 2xx throughput was 39-62k/s, and
   p50 was 31-39 ms.
 - aegis counted admission rejects at stage S5 at 16, 28 and 38 cores (2864, 1033 and 308). It counted none at 8.
-- Likely cause, not verified: the 2-CPU, thread-per-connection upstream, or an aegis upstream or S5 limit, is
-  saturated by 256 x 16 concurrent streams.
-- This is a finding for the integrator. It is not a harness or threshold change: at the gate's load shape (run A)
-  there are 0 errors.
+- Cause (P8-bin-002, reproduced on kamrui, 2026-11-07): **the bench config, in two parts. Neither is the bench
+  upstream, and neither is an aegis defect.**
+  - **The 5xx were 502s from EMFILE in aegis.** aegis's H1 upstream client opens one upstream connection per
+    in-flight stream, keeping 32 idle per key. 256 x 16 = 4096 in-flight streams need about 4.4k fds. The harness
+    started aegis under the login soft limit RLIMIT_NOFILE = 1024, on the VM and on kamrui alike. On kamrui, at
+    2 aegis cores (client 1, upstream 1) with `--conns 256 --streams 16`, the point had 74502 5xx out of 156443.
+    aegis logged 75150 `connect: Too many open files (os error 24)` lines and no other upstream error. With the soft
+    limit raised to 65536 (hard 524288), the same point had 0 errors (78932 2xx). The production unit
+    (deploy/aegis-hardened.service) sets `LimitNOFILE=65536`.
+  - **The S5 rejects are admission by design.** The bench's requests are one anonymous class. S5 lets a class hold
+    its 2/10 reservation and borrow only what the other classes do not hold in reserve, so the class holds about
+    820 of the default 4096. Offered 4096 streams, the rejects at 16 cores and up are consistent with the faster
+    points crossing that share (503). At 8 cores, and on kamrui at 2, too few streams reached admission at once. On kamrui the
+    mechanism was shown at the same kind of ratio with `--conns 32 --streams 16` (512 offered). With
+    `admission.concurrency` 1024 (share about 205), the point had 19880 S5 rejects. With 2560 (5x offered) it had 0.
+  - **Fix (harness only; no threshold, judge or aegis change):** the harness raises the soft fd limit and sizes S5
+    (see "What one run sets up"). At the gate's 32 x 16 shape the served config is unchanged. Run B has not been
+    re-run on GCP (no GCP use in P8-bin-002). Its numbers above stay as recorded, and they are not a measure of
+    aegis.
+  - **aegis-side residual (not a bug fix here):** ARCHITECTURE UPS-1/UPS-4 (a per-upstream in-flight cap and an
+    RLIMIT_NOFILE start-up preflight) are not implemented in aegis-bin. Under fd exhaustion aegis fails closed with
+    502 per exchange and keeps serving. Refusing to start below a computed fd budget would refuse every oracle run
+    under the 1024 default, so that is a design item for the integrator, not part of this unit.
 
 **Cost:** about 10 min of c2d-standard-56 time in total, across three short-lived VMs:
 

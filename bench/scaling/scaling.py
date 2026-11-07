@@ -19,6 +19,7 @@ import datetime
 import json
 import os
 import re
+import resource
 import shutil
 import socket
 import subprocess
@@ -161,7 +162,40 @@ def metric_delta(m0, m1, family):
     return {k: int(v - a.get(k, 0)) for k, v in b.items() if v - a.get(k, 0)}
 
 
-def config_doc(port, aport, up_port, workers):
+# S5 (aegis-admission pipeline.rs `reservation`): one class may hold its own reservation and borrow only what the other
+# classes do not hold in reserve; the smallest reservation is 2/10 of the limit. A limit of at least this many times
+# the offered concurrency (conns x streams) never refuses the bench's single class for being over its share.
+S5_HEADROOM = 5
+S5_DEFAULT = 4096  # F8 admission.concurrency default
+
+
+def s5_limit(conns, streams):
+    """admission.concurrency for the offered load, or None to keep the F8 default (every load shape up to 819
+    concurrent streams, the gate's 32 x 16 included, runs the unchanged default config)."""
+    need = S5_HEADROOM * conns * streams
+    return need if need > S5_DEFAULT else None
+
+
+def nofile_plan(soft, hard, conns, streams):
+    """(soft limit to set, None) or (None, refusal). aegis's H1 upstream client holds one connection per in-flight
+    stream (crates/aegis-bin/src/upstream.rs; only 32 stay idle per key), so aegis needs about conns x streams
+    upstream fds plus the conns client fds. A soft RLIMIT_NOFILE of 1024 (the login default) is exceeded at
+    256 x 16 and every further upstream connect fails with EMFILE (502): run B on c2d-standard-56, reproduced on
+    kamrui (P8-bin-002). The children inherit the limit set here; a hard limit below the need refuses the run."""
+    need = conns * streams + conns + 1024
+    if hard != resource.RLIM_INFINITY and hard < need:
+        return None, (f"RLIMIT_NOFILE hard limit {hard} < {need} fds needed for {conns} conns x {streams} streams "
+                      f"(aegis would answer 502 on EMFILE); raise the hard limit or lower the load")
+    target = max(soft if soft != resource.RLIM_INFINITY else need, need, 65536)
+    if hard != resource.RLIM_INFINITY:
+        target = min(target, hard)
+    return target, None
+
+
+def config_doc(port, aport, up_port, workers, s5=None):
+    adm = {"per_ip": {"rate_per_s": 1000000, "burst": 10000000}}
+    if s5 is not None:
+        adm["concurrency"] = s5
     return {"v": 1,
             # F8 runtime.worker_threads (D-P8.3, R5): one tokio worker per aegis core, so the curve measures core
             # scaling, not the pre-Phase-8 fixed 2 workers (absent = 2 everywhere else).
@@ -171,7 +205,8 @@ def config_doc(port, aport, up_port, workers):
             "admin": {"bind": f"127.0.0.1:{aport}"},
             # One client IP (127.0.0.1) drives every point: lift the S1 per-IP GCRA (F8 admission, P7-spec-001) and the
             # per-connection stream cap (h2load does not reconnect after 32 conns x 10,000 streams; P7-bin-001).
-            "admission": {"per_ip": {"rate_per_s": 1000000, "burst": 10000000}},
+            # S5: see s5_limit (only above 819 offered streams; P8-bin-002, run B).
+            "admission": adm,
             "limits": {"max_streams_per_conn": 100000},
             "vhosts": [{"host": "localhost", "routes": [
                 {"id": 1, "path": "/", "to": {"upstream": f"127.0.0.1:{up_port}"}, "authz": "allow-all"}]}]}
@@ -231,7 +266,7 @@ def run_point(n, sets, args, aegis, upstream_bin, h2load, work):
     port, aport, up_port = free_port(), free_port(), free_port()
     cfg = os.path.join(d, "aegis.json")
     with open(cfg, "w") as f:
-        json.dump(config_doc(port, aport, up_port, n), f)
+        json.dump(config_doc(port, aport, up_port, n, s5_limit(args.conns, args.streams)), f)
     point = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "disjoint": True}
     point["usable_cpus"], point["worker_threads"] = aegis_usable_cpus(aegis, sets["aegis"], cfg)
     procs = []
@@ -265,8 +300,30 @@ def run_point(n, sets, args, aegis, upstream_bin, h2load, work):
     finally:
         for p in reversed(procs):
             p.stop()
+        # Why aegis answered 5xx (P8-bin-002): its own per-exchange upstream error lines, by class, before the temp
+        # dir (and the log) is deleted. Diagnostic only; the judge does not read it.
+        point["aegis_upstream_errors"] = upstream_error_classes(os.path.join(d, "aegis.log"))
         shutil.rmtree(d, ignore_errors=True)
     return point
+
+
+UPSTREAM_ERR_RE = re.compile(r"^aegis: upstream \S+: (.*)$")
+
+
+def upstream_error_classes(path):
+    """{class: count} of aegis's `aegis: upstream <target>: <error>` lines (proxy.rs); the class is the error text
+    with digits folded, so `connect: Cannot assign requested address (os error 99)` stays one class."""
+    out = {}
+    try:
+        with open(path, "rb") as f:
+            for raw in f:
+                m = UPSTREAM_ERR_RE.match(raw.decode(errors="replace").rstrip("\n"))
+                if m:
+                    k = re.sub(r"\d+", "N", m.group(1))[:120]
+                    out[k] = out.get(k, 0) + 1
+    except OSError:
+        pass
+    return out
 
 
 def tail(path):
@@ -362,6 +419,12 @@ def cmd_run(args):
     if not h2load:
         print(f"{TAG}: FAIL (h2load not found: not on PATH; install it with bench/scaling/provision-h2load)")
         return 1
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    nofile, why = nofile_plan(soft, hard, args.conns, args.streams)
+    if why:
+        print(f"{TAG}: FAIL ({why})")
+        return 1
+    resource.setrlimit(resource.RLIMIT_NOFILE, (nofile, hard))
     up = build(args)
     order = cpu_order()
     host = socket.gethostname().split(".")[0]
@@ -373,7 +436,9 @@ def cmd_run(args):
            "aegis": {"binary": args.aegis, "build": "default features, --release --locked"},
            "load": {"duration_s": args.duration, "warmup_s": args.warmup, "conns": args.conns,
                     "streams": args.streams, "client_cpus": args.client_cpus, "upstream_cpus": args.upstream_cpus,
-                    "url": "https://localhost:<port>/ (TLS 1.3, h2, P-PUBLIC-WEB)", "upstream": "bench/scaling/upstream.rs"},
+                    "url": "https://localhost:<port>/ (TLS 1.3, h2, P-PUBLIC-WEB)", "upstream": "bench/scaling/upstream.rs",
+                    "nofile": {"soft_before": soft, "soft": nofile, "hard": hard},
+                    "s5_concurrency": s5_limit(args.conns, args.streams) or S5_DEFAULT},
            "points": []}
     work = tempfile.mkdtemp(prefix="aegis-scaling-")
     try:
@@ -399,9 +464,16 @@ def cmd_run(args):
     print(table(rep))
     bad = judge(path, cores)
     if bad:
-        if any(p.get("aegis_admission_rejects") for p in rep["points"]):
-            bad.append("aegis admission refused load (hard-coded S1 per-IP GCRA 1000/s burst 2000, "
-                       "crates/aegis-bin/src/shared.rs; see bench/scaling/INFEASIBLE_REPORT.md)")
+        stages = {k for p in rep["points"] for k in (p.get("aegis_admission_rejects_by_stage") or {})}
+        if any("S1" in k for k in stages):
+            bad.append("aegis admission refused load at S1 (per-IP GCRA; the bench lifts it through F8 admission.per_ip, "
+                       "see bench/scaling/INFEASIBLE_REPORT.md)")
+        if any("S5" in k for k in stages):
+            bad.append("aegis admission refused load at S5 (the single anonymous class holds about 2/10 of "
+                       "admission.concurrency; see s5_limit and README run B)")
+        if any(p.get("aegis_upstream_errors") for p in rep["points"]):
+            bad.append("aegis upstream errors by class: " + "; ".join(
+                f"{p['cores']} cores {p['aegis_upstream_errors']}" for p in rep["points"] if p.get("aegis_upstream_errors")))
         print(f"{TAG}: FAIL ({'; '.join(bad)}; report {path})")
         return 1
     print(f"{TAG}: PASS ({len(cores)} points, 0 errors, report {path}; advisory, provisional numbers)")
@@ -422,12 +494,23 @@ def quota_free(doc, metric):
     return None, None
 
 
-def gcp_preflight(mt, project_doc, region_doc, region):
-    """(ok, message). Refuses when CPUS_ALL_REGIONS (or the family's regional quota) has fewer free vCPUs than the
-    machine type needs. No retry: a quota is raised by the operator, not by waiting."""
+def gcp_preflight(mt, project_doc, region_doc, region, type_doc, zone):
+    """(ok, message). Refuses when the machine type does not exist in the zone (`type_doc` is None: `gcloud compute
+    machine-types describe` failed; P8-bin-002, after c2d-standard-64 was accepted here and then rejected at create
+    time), or when CPUS_ALL_REGIONS (or the family's regional quota) has fewer free vCPUs than the machine type needs.
+    The vCPU count is the one gcloud describes, not the one the name suggests. No retry: a quota is raised by the
+    operator, not by waiting."""
     n = machine_cores(mt)
     if n is None:
         return False, f"unknown machine type shape {mt!r} (expected <family>-standard|highcpu|highmem-<vcpus>)"
+    if not isinstance(type_doc, dict) or type_doc.get("name") != mt:
+        return False, (f"machine type {mt} does not exist in zone {zone} (gcloud compute machine-types describe "
+                       f"refused it; C2D sizes are 2/4/8/16/32/56/112 vCPUs, a 64-vCPU point is n2-standard-64 or "
+                       f"n2d-standard-64)")
+    try:
+        n = int(type_doc.get("guestCpus"))
+    except (TypeError, ValueError):
+        return False, f"machine type {mt}: gcloud reported no guestCpus"
     free, limit = quota_free(project_doc, "CPUS_ALL_REGIONS")
     if free is None:
         return False, "CPUS_ALL_REGIONS quota not reported by gcloud"
@@ -449,13 +532,18 @@ def gcloud_json(argv):
 
 
 def cmd_gcp(args):
+    zone = args.zone or f"{args.region}-a"
     try:
         proj = gcloud_json(["compute", "project-info", "describe"])
         reg = gcloud_json(["compute", "regions", "describe", args.region])
     except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as e:
         print(f"{TAG} GCP: REFUSED (cannot read quotas: {e})")
         return 3
-    ok, msg = gcp_preflight(args.gcp, proj, reg, args.region)
+    try:
+        mtd = gcloud_json(["compute", "machine-types", "describe", args.gcp, "--zone", zone])
+    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError):
+        mtd = None  # does not exist in that zone (or cannot be read): refused below, never assumed
+    ok, msg = gcp_preflight(args.gcp, proj, reg, args.region, mtd, zone)
     if not ok:
         print(f"{TAG} GCP: REFUSED ({msg})")
         return 3
@@ -531,15 +619,50 @@ def cmd_self_test(_args):
         s = allocate(list(range(24)), 16, 4, 2)
         if not s or set(s["aegis"]) & (set(s["h2load"]) | set(s["upstream"])) or set(s["h2load"]) & set(s["upstream"]):
             problems.append("allocation not disjoint at 16 of 24")
+        # Run B (P8-bin-002): the harness must lift a 1024 soft fd limit for 256 x 16, refuse a hard limit that
+        # cannot fit, and size S5 above the single class's share; the gate's 32 x 16 keeps the default config.
+        nf, _ = nofile_plan(1024, 524288, 256, 16)
+        if not nf or nf < 256 * 16 + 256:
+            problems.append(f"nofile: soft 1024 kept for 256 x 16 (got {nf}): aegis would 502 on EMFILE")
+        else:
+            caught.append("nofile-1024-at-256x16")
+        if nofile_plan(1024, 2048, 256, 16)[0] is not None:
+            problems.append("nofile: a hard limit of 2048 was accepted for 256 x 16")
+        else:
+            caught.append("nofile-hard-too-low")
+        if s5_limit(256, 16) is None or s5_limit(256, 16) * 2 // 10 < 256 * 16:
+            problems.append("s5: the bench's class share is below the offered 256 x 16 streams")
+        else:
+            caught.append("s5-share-below-offered")
+        if s5_limit(32, 16) is not None or "concurrency" in config_doc(1, 2, 3, 4, s5_limit(32, 16))["admission"]:
+            problems.append("s5: the gate's 32 x 16 shape no longer runs the default admission config")
         # --gcp preflight: refuse below quota (today's 12), pass at 100; no retry path exists.
         proj = lambda lim: {"quotas": [{"metric": "CPUS_ALL_REGIONS", "limit": float(lim), "usage": 0.0}]}
         reg = {"quotas": [{"metric": "C2D_CPUS", "limit": 100.0, "usage": 0.0}]}
-        if gcp_preflight("c2d-standard-64", proj(12), reg, "us-central1")[0]:
-            problems.append("--gcp accepted CPUS_ALL_REGIONS 12 < 64")
+        c56 = {"name": "c2d-standard-56", "guestCpus": 56}
+        z = "us-central1-a"
+        if gcp_preflight("c2d-standard-56", proj(12), reg, "us-central1", c56, z)[0]:
+            problems.append("--gcp accepted CPUS_ALL_REGIONS 12 < 56")
         else:
             caught.append("gcp-quota-12")
-        if not gcp_preflight("c2d-standard-64", proj(100), reg, "us-central1")[0]:
-            problems.append("--gcp refused with sufficient quota")
+        if not gcp_preflight("c2d-standard-56", proj(100), reg, "us-central1", c56, z)[0]:
+            problems.append("--gcp refused an existing type with sufficient quota")
+        # The type must exist (gcloud compute machine-types describe): c2d-standard-64 does not, whatever the quota.
+        if gcp_preflight("c2d-standard-64", proj(100), reg, "us-central1", None, z)[0]:
+            problems.append("--gcp accepted c2d-standard-64, which machine-types describe does not know")
+        else:
+            caught.append("gcp-no-such-type")
+        # A describe of another type (or one without guestCpus) is not evidence for this one.
+        if gcp_preflight("c2d-standard-64", proj(100), reg, "us-central1", c56, z)[0]:
+            problems.append("--gcp accepted c2d-standard-64 on c2d-standard-56's describe")
+        else:
+            caught.append("gcp-describe-other-type")
+        # The vCPU count is gcloud's: a type whose describe says more vCPUs than the quota leaves is refused.
+        big = {"name": "c2d-standard-56", "guestCpus": 112}
+        if gcp_preflight("c2d-standard-56", proj(80), reg, "us-central1", big, z)[0]:
+            problems.append("--gcp used the name's vCPU count, not gcloud's guestCpus")
+        else:
+            caught.append("gcp-guestcpus-from-describe")
     finally:
         shutil.rmtree(work, ignore_errors=True)
     if problems:
@@ -565,6 +688,7 @@ def main():
     ap.add_argument("--h2load")
     ap.add_argument("--gcp", metavar="MACHINE_TYPE")
     ap.add_argument("--region", default="us-central1")
+    ap.add_argument("--zone", help="zone for the machine-type check (default <region>-a)")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
