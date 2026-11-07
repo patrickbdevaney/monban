@@ -233,6 +233,8 @@ struct Ctl {
     descs: Vec<ListenerDesc>,
     offers: Vec<StdTcpListener>,
     ring: StekRing,
+    /// F8 `runtime.worker_threads` the runtime was built with (a reload cannot resize it).
+    workers: u64,
 }
 
 impl Ctl {
@@ -290,6 +292,11 @@ impl Ctl {
                     }
                     if !p.same_admission(&cur.plan) {
                         return Err("admission change: the limiter is built at start (restart or upgrade)".into());
+                    }
+                    if cfg.runtime().worker_threads != self.workers {
+                        return Err(
+                            "runtime.worker_threads change: the runtime is built at start (restart or upgrade)".into(),
+                        );
                     }
                     // App routes are re-resolved against the schemas introspected at boot; a data plane that was
                     // not booted cannot serve them (restart or upgrade).
@@ -590,7 +597,12 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         log(&format!("{e}; refusing to serve (admin audit fails closed)"));
         return ExitCode::from(EX_IOERR);
     }
-    let rt = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
+    // F8 `runtime.worker_threads` (D-P8.3, R5): absent = 2, the constant this builder had before Phase 8, so every
+    // timing gate runs unchanged; 1..=1024 is enforced by aegis-config. Read at boot only: a reload (SIGHUP) cannot
+    // resize the runtime, and an upgrade (new process) applies a new value.
+    let workers = cfg.runtime().worker_threads;
+    let threads = usize::try_from(workers).unwrap_or(2).max(1);
+    let rt = match tokio::runtime::Builder::new_multi_thread().worker_threads(threads).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
             log(&format!("runtime: {e}"));
@@ -765,7 +777,7 @@ pub fn run(opts: ServeOpts) -> ExitCode {
         auditor.dir.display()
     ));
     drop(snap);
-    let mut ctl = Ctl { opts, exe, store, shared, srv, auditor, tls, certs, notifier, descs, offers, ring };
+    let mut ctl = Ctl { opts, exe, store, shared, srv, auditor, tls, certs, notifier, descs, offers, ring, workers };
     loop {
         match signals.wait() {
             Ok(Sig::Hup) => ctl.reload(),

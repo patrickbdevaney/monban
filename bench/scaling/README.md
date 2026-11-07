@@ -43,6 +43,10 @@ desktop's copy (`~/aegis-ci/repo-<hash>/`), so copy the JSON back before the nex
    - `errors` = max(failed + errored + timeout, non-2xx). h2load already counts a non-2xx stream as failed.
    - the delta of aegis's `aegis_admission_rejects_total` per stage, scraped from `/metrics`.
    - the cpusets and `usable_cpus`.
+   - `worker_threads`: the effective F8 `runtime.worker_threads` read back from the same `--print-effective` dump
+     (printed only when it is not the default 2). The served config sets it to N (Phase 8, D-P8.3, R5), so the
+     curve measures core scaling; before Phase 8 aegis-bin hard-coded 2 tokio workers and req/s plateaued at about
+     31-42k from 2 cores up.
 6. Stops the children by their own PIDs, then deletes the temp dir.
 
 The report is `<record>/<host>-<YYYY-MM-DD>.json`. The verdict is computed from that file alone. **PASS** needs all
@@ -52,7 +56,7 @@ of the following:
 - every requested core count has a point;
 - every point has 0 errors and 0 admission rejects;
 - every point has at least one 2xx and req/s > 0;
-- every point has `usable_cpus == N` and disjoint cpusets.
+- every point has `usable_cpus == N`, `worker_threads == N` and disjoint cpusets.
 
 ## Self-test (negative controls)
 
@@ -66,6 +70,7 @@ builds reports and judges them. The unmutated report must PASS. Each of these mu
 | `admission-rejects-unseen-by-h2load` | aegis counted admission rejects that h2load did not see (for example, during a warm-up) |
 | `missing-point` | the 4-core point is absent |
 | `no-report` | the report file was never written |
+| `workers-fixed-2` | every point ran 2 tokio workers whatever N (the pre-Phase-8 plateau; `runtime.worker_threads` not applied) |
 | `gcp-quota-12` | `--gcp c2d-standard-64` against CPUS_ALL_REGIONS 12 must refuse |
 
 It also checks that cpuset allocation refuses 24 + client on 24 CPUs, and is disjoint at 16 of 24.
@@ -103,7 +108,13 @@ closure out of the image into `~/aegis-ci/tools/h2load-1.69.0` on the target. A 
 `~/aegis-ci/tools/bin/h2load` runs it through the image's own musl loader. No apt, no sudo, and nothing outside
 `~/aegis-ci`. It was installed on the desktop this way on 2026-11-06.
 
-## Known blocker (2026-11-06)
+## Small hosts
+
+kamrui (4 CPUs) fits only N + client + upstream <= 4 disjointly, so with `--client-cpus 1 --upstream-cpus 1` its
+largest point is 2: it can check the harness and the worker_threads read-back, not the curve past the old 2-worker
+plateau. The curve (1, 2, 4, 8, 16, 18) is the desktop run, and 64 cores is the `--gcp` step below.
+
+## Known blocker (2026-11-06, resolved)
 
 The default build hard-codes a per-IP admission limit in `crates/aegis-bin/src/shared.rs` (`admission_config`): S1
 and S3 anon are GCRA at 1000/s with a burst of 2000. h2load connects from the single source 127.0.0.1. Every

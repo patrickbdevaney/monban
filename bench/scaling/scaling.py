@@ -161,8 +161,11 @@ def metric_delta(m0, m1, family):
     return {k: int(v - a.get(k, 0)) for k, v in b.items() if v - a.get(k, 0)}
 
 
-def config_doc(port, aport, up_port):
+def config_doc(port, aport, up_port, workers):
     return {"v": 1,
+            # F8 runtime.worker_threads (D-P8.3, R5): one tokio worker per aegis core, so the curve measures core
+            # scaling, not the pre-Phase-8 fixed 2 workers (absent = 2 everywhere else).
+            "runtime": {"worker_threads": workers},
             "listeners": [{"name": "pub", "bind": f"127.0.0.1:{port}", "profile": "P-PUBLIC-WEB",
                            "alpn": ["h2", "http/1.1"]}],
             "admin": {"bind": f"127.0.0.1:{aport}"},
@@ -175,7 +178,8 @@ def config_doc(port, aport, up_port):
 
 
 def aegis_usable_cpus(aegis, cpus, cfg):
-    """The CPU count aegis's own cpus.rs computes under this affinity (p2.usable_cpus of the effective dump).
+    """(usable_cpus, worker_threads): the CPU count aegis's own cpus.rs computes under this affinity (p2.usable_cpus
+    of the effective dump), and the effective F8 runtime.worker_threads (printed only when not the default 2).
 
     The dump prints `usable_cpus` only inside a `p2` block, so the probe checks a copy of the served config with a
     placeholder p2 block added (check-config validates config only; it never opens the module or starts a worker).
@@ -194,7 +198,8 @@ def aegis_usable_cpus(aegis, cpus, cfg):
     m = re.search(r'"usable_cpus":(\d+)', p.stdout)
     if not m:
         raise RuntimeError("check-config --print-effective has no p2.usable_cpus")
-    return int(m.group(1))
+    w = re.search(r'"worker_threads":(\d+)', p.stdout)
+    return int(m.group(1)), int(w.group(1)) if w else 2
 
 
 class Proc:
@@ -226,9 +231,9 @@ def run_point(n, sets, args, aegis, upstream_bin, h2load, work):
     port, aport, up_port = free_port(), free_port(), free_port()
     cfg = os.path.join(d, "aegis.json")
     with open(cfg, "w") as f:
-        json.dump(config_doc(port, aport, up_port), f)
+        json.dump(config_doc(port, aport, up_port, n), f)
     point = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "disjoint": True}
-    point["usable_cpus"] = aegis_usable_cpus(aegis, sets["aegis"], cfg)
+    point["usable_cpus"], point["worker_threads"] = aegis_usable_cpus(aegis, sets["aegis"], cfg)
     procs = []
     try:
         procs.append(Proc(["taskset", "-c", cpu_list(sets["upstream"]), upstream_bin, str(up_port)],
@@ -298,6 +303,8 @@ def judge(report_path, cores):
             bad.append(f"{n} cores: no successful requests")
         elif p.get("usable_cpus") != n:
             bad.append(f"{n} cores: aegis cpus.rs counted {p.get('usable_cpus')}")
+        elif p.get("worker_threads") != n:
+            bad.append(f"{n} cores: aegis ran {p.get('worker_threads')} tokio workers (runtime.worker_threads)")
         elif not p.get("disjoint"):
             bad.append(f"{n} cores: cpusets not disjoint")
     return bad
@@ -500,7 +507,8 @@ def cmd_self_test(_args):
                     env["FAKE_H2LOAD_429"] = "1"
                 sets = allocate(order, n, 4, 2)
                 p = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "disjoint": True,
-                     "usable_cpus": n, "aegis_admission_rejects": 0}
+                     "usable_cpus": n, "aegis_admission_rejects": 0,
+                     "worker_threads": 2 if variant == "workers-fixed-2" else n}
                 p.update(run_h2load(fake, [0], "https://localhost:1/", la, work, env=env))
                 if variant == "admission-rejects-unseen-by-h2load" and n == 2:
                     p["aegis_admission_rejects"] = 5
@@ -514,7 +522,7 @@ def cmd_self_test(_args):
         if base:
             problems.append(f"unmutated run judged red: {base}")
         for variant in ("error-at-8", "429-not-in-failed", "admission-rejects-unseen-by-h2load", "missing-point",
-                        "no-report"):
+                        "no-report", "workers-fixed-2"):
             r = judge(report(variant), cores)
             (caught if r else problems).append(variant if r else f"mutant {variant} judged PASS")
         # Disjointness: a point that does not fit is refused, never overlapped.

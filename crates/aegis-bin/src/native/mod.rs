@@ -5,7 +5,8 @@
 //! * the Tier-L key ring (`--token-keyring`, mode 0600) is required as soon as one app route exists;
 //! * every F8 backend is opened and its schema introspected: SQLite `SqliteDb::check_schema` (R-DB-7, D7), PG
 //!   `connect_admitted` (version gate, R-DB-1/R-DB-8) then `check_live_schema` (FORCE RLS, collations, triggers,
-//!   FKs: D8/D9/D10). An app's declared collection that the engine does not have, or has in a refused shape, fails
+//!   FKs: D8/D9/D10); the Phase-7 adapter families (CockroachDB, MariaDB; features `adapter-crdb`,
+//!   `adapter-mariadb`) in [`adapters`]. An app's declared collection that the engine does not have, or has in a refused shape, fails
 //!   the boot. Redis/Valkey backends are refused (PLAN D18, deferred: the KV commit needs MULTI/EXEC);
 //! * the backend's `aegis_idem` table (PLAN D14) is created if missing (PG: under FORCE RLS for the RLS role);
 //! * every route's `data` block is resolved against the introspected schemas (aegis-config `resolve_data`; an
@@ -32,6 +33,8 @@ mod adapters {
 }
 pub mod engines;
 pub mod http;
+#[cfg(feature = "adapter-mariadb")]
+pub mod mariadb;
 #[cfg(feature = "p2")]
 pub mod p2data;
 pub mod pg;
@@ -427,6 +430,8 @@ impl SchemaProvider for Provider<'_> {
             EngineHandle::Pg { engine, .. } => engine.renderer.schema(collection),
             #[cfg(feature = "adapter-crdb")]
             EngineHandle::Crdb { .. } => return Err(Unresolved::Unavailable), // never a golden backend id
+            #[cfg(feature = "adapter-mariadb")]
+            EngineHandle::Mariadb { .. } => return Err(Unresolved::Unavailable), // never a golden backend id
         }
         .ok_or(Unresolved::NoCollection)?;
         s.columns.iter().find(|c| c.name == column).map(|c| c.field).ok_or(Unresolved::NoColumn)
@@ -434,7 +439,7 @@ impl SchemaProvider for Provider<'_> {
 
     /// The Phase-7 adapter families this build serves (P7-spec-001: the default refuses every family). Only a
     /// backend booted as that family resolves (a crdb id never resolves against a golden engine, and vice versa).
-    #[cfg(feature = "adapter-crdb")]
+    #[cfg(any(feature = "adapter-crdb", feature = "adapter-mariadb"))]
     fn adapter_field(
         &self,
         backend: &aegis_config::AdapterBackend,
@@ -443,7 +448,12 @@ impl SchemaProvider for Provider<'_> {
     ) -> Result<FieldId, Unresolved> {
         let b = self.0.engines.iter().find(|e| e.id == backend.id).ok_or(Unresolved::Unavailable)?;
         let s = match (&b.engine, backend.family) {
+            #[cfg(feature = "adapter-crdb")]
             (EngineHandle::Crdb { engine, .. }, aegis_config::AdapterFamily::Crdb) => {
+                engine.renderer.schema(collection)
+            }
+            #[cfg(feature = "adapter-mariadb")]
+            (EngineHandle::Mariadb { engine, .. }, aegis_config::AdapterFamily::Mariadb) => {
                 engine.renderer.schema(collection)
             }
             _ => return Err(Unresolved::Unavailable),
@@ -529,6 +539,9 @@ impl DataPlane {
                 EngineHandle::Pg { engine, .. } => engine.executor.inner.bump_epoch(epoch),
                 #[cfg(feature = "adapter-crdb")]
                 EngineHandle::Crdb { engine, .. } => engine.executor.inner.bump_epoch(epoch),
+                // MariaDB: no session binding to retire (no RLS role, no tenant GUC; the pool keys on nothing).
+                #[cfg(feature = "adapter-mariadb")]
+                EngineHandle::Mariadb { .. } => {}
                 EngineHandle::Sqlite { .. } => {}
             }
         }
@@ -589,6 +602,23 @@ impl DataPlane {
                 );
                 x.rollback(tx);
                 r.map_err(|e| e.to_string())?.rows
+            }
+            #[cfg(feature = "adapter-mariadb")]
+            EngineHandle::Mariadb { engine, .. } => {
+                // No RLS on MariaDB: the tenant predicate is the guard (the table's rows carry the tenant).
+                use aegis_adapter_mysql::Param;
+                let x = &engine.executor.inner;
+                let cancel = CancelToken::new();
+                let info = ScopeInfo { principal, tenant: principal.tenant(), cancel: &cancel };
+                let tenant = aegis_data_ir::tenant_text(principal.tenant());
+                let mut tx = x.begin(&info).map_err(|e| e.to_string())?;
+                let r = x.raw(
+                    &mut tx,
+                    "SELECT CAST(status AS CHAR), body FROM aegis_idem WHERE tenant = ? AND principal = ? AND k = ?",
+                    &[Param::Text(tenant), Param::Text(ph.clone()), Param::Text(key.into())],
+                );
+                x.rollback(tx);
+                r.map_err(|e| e.to_string())?
             }
         };
         let Some(row) = rows.into_iter().next() else { return Ok(None) };
