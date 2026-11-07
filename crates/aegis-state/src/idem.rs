@@ -17,6 +17,14 @@
 //!
 //! Every [`Lease`] must end in exactly one of [`State::commit`] or [`State::abort`]; a lease that is dropped keeps
 //! its key held (fail-closed: `InFlight`) until the process restarts.
+//!
+//! Retention (F8 `state.idempotency_retention_s`, SPEC_INVARIANTS §F IDEMP-R; PREFLIGHT R12): each outcome record
+//! carries the wall-clock second of its commit point ([`Record::committed_at`], written in the same transaction).
+//! With a retention `R` set ([`State::set_retention`]), a record whose `now - committed_at >= R` is forgotten: the
+//! key answers as if it had never completed (`New`, never `Replay` or `Conflict`), and [`State::purge_expired`]
+//! deletes such records. Within the window (`now - committed_at < R`) INV-IDEMP holds unchanged. A record from the
+//! future (the clock went back) is kept. Records written before Phase 8 have no timestamp and never expire, and with
+//! no retention set (the default, F8 absent) nothing ever expires: the pre-Phase-8 meaning.
 use crate::StateError;
 use crate::latch::State;
 use crate::outbox::{self, Dedupe};
@@ -89,12 +97,24 @@ pub struct Record {
     pub digest: Vec<u8>,
     /// Its outcome.
     pub outcome: Outcome,
+    /// Wall-clock second (Unix time) of the commit point; `None` for a record written before Phase 8 (never
+    /// expires).
+    pub committed_at: Option<u64>,
 }
 
+/// Leading word of a timestamped (Phase 8) record. A pre-Phase-8 record starts with its digest length, which is at
+/// most [`MAX_DIGEST_LEN`], so the two encodings cannot be confused.
+const TIMESTAMPED: u32 = 0xFFFF_FFFE;
+
 impl Record {
-    /// `u32be(len(digest)) || digest || u16be(status) || body`.
+    /// Phase 8 form `u32be(0xFFFFFFFE) || u64be(committed_at) || v1`, else (no timestamp) the pre-Phase-8 form
+    /// v1 = `u32be(len(digest)) || digest || u16be(status) || body`.
     pub fn encode(&self) -> Vec<u8> {
-        let mut b = Vec::with_capacity(6 + self.digest.len() + self.outcome.body.len());
+        let mut b = Vec::with_capacity(18 + self.digest.len() + self.outcome.body.len());
+        if let Some(t) = self.committed_at {
+            b.extend_from_slice(&TIMESTAMPED.to_be_bytes());
+            b.extend_from_slice(&t.to_be_bytes());
+        }
         b.extend_from_slice(&len_u32(self.digest.len()).to_be_bytes());
         b.extend_from_slice(&self.digest);
         b.extend_from_slice(&self.outcome.status.to_be_bytes());
@@ -105,13 +125,24 @@ impl Record {
     /// Inverse of [`Record::encode`]; any malformed record is [`StateError::Corrupt`].
     pub fn decode(b: &[u8]) -> Result<Record, StateError> {
         let bad = || StateError::Corrupt("idempotency record".to_string());
+        let (committed_at, b) = match b.split_first_chunk::<4>() {
+            Some((w, rest)) if u32::from_be_bytes(*w) == TIMESTAMPED => {
+                let (t, rest) = rest.split_first_chunk::<8>().ok_or_else(bad)?;
+                (Some(u64::from_be_bytes(*t)), rest)
+            }
+            _ => (None, b),
+        };
         let (n, rest) = b.split_first_chunk::<4>().ok_or_else(bad)?;
         let n = usize::try_from(u32::from_be_bytes(*n)).map_err(|_| bad())?;
         let (digest, rest) = rest.split_at_checked(n).ok_or_else(bad)?;
         let (st, body) = rest.split_first_chunk::<2>().ok_or_else(bad)?;
+        if digest.len() > MAX_DIGEST_LEN {
+            return Err(bad());
+        }
         Ok(Record {
             digest: digest.to_vec(),
             outcome: Outcome { status: u16::from_be_bytes(*st), body: body.to_vec() },
+            committed_at,
         })
     }
 }
@@ -182,8 +213,12 @@ impl State {
             key.clone()
         };
         let enc = ik.encode();
-        if let Some(raw) = self.store.get(IDEM_SPACE, &enc)? {
-            let rec = Record::decode(&raw)?;
+        let now = self.now();
+        let live = match self.store.get(IDEM_SPACE, &enc)? {
+            Some(raw) => Some(Record::decode(&raw)?).filter(|rec| !self.expired(rec, now)),
+            None => None,
+        };
+        if let Some(rec) = live {
             if rec.digest != digest {
                 return Ok(Begin::Conflict);
             }
@@ -222,12 +257,53 @@ impl State {
         self.held.remove(&lease.ik.encode());
     }
 
-    /// The durable outcome record of a key, if it completed (retrieval after a 202, NC2).
+    /// The durable outcome record of a key, if it completed and is not expired (retrieval after a 202, NC2).
     pub fn outcome(&mut self, key: &IdemKey) -> Result<Option<Record>, StateError> {
+        let now = self.now();
         match self.store.get(IDEM_SPACE, &key.encode())? {
-            Some(raw) => Ok(Some(Record::decode(&raw)?)),
+            Some(raw) => {
+                let rec = Record::decode(&raw)?;
+                Ok(if self.expired(&rec, now) { None } else { Some(rec) })
+            }
             None => Ok(None),
         }
+    }
+
+    /// IDEMP-R: whether `rec` is past the retention window at `now` (never without a retention or a timestamp,
+    /// never for a record from the future).
+    pub(crate) fn expired(&self, rec: &Record, now: u64) -> bool {
+        if self.muts.retention_ignored {
+            return false; // MUTATION (self-test only): keys never expire
+        }
+        let (Some(r), Some(t)) = (self.retention, rec.committed_at) else { return false };
+        let age = now.saturating_sub(t);
+        if self.muts.retention_early {
+            return now >= t && age.saturating_add(1) >= r; // MUTATION (self-test only): one second early
+        }
+        now >= t && age >= r
+    }
+
+    /// Delete every outcome record past the retention window (IDEMP-R), in one durable transaction. Keys held by an
+    /// open lease are left alone (their commit overwrites the record). Returns the number deleted; 0 without a
+    /// retention. Bounded by the size of the idempotency space (one scan).
+    pub fn purge_expired(&mut self) -> Result<usize, StateError> {
+        if self.retention.is_none() {
+            return Ok(0);
+        }
+        let now = self.now();
+        let mut ops = Vec::new();
+        for (k, v) in self.store.scan(IDEM_SPACE)? {
+            if self.held.contains_key(&k) {
+                continue;
+            }
+            if self.expired(&Record::decode(&v)?, now) {
+                ops.push(Op::Delete { space: IDEM_SPACE, key: k });
+            }
+        }
+        if !ops.is_empty() {
+            self.store.commit(&ops)?;
+        }
+        Ok(ops.len())
     }
 }
 

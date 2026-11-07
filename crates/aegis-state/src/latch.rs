@@ -40,6 +40,33 @@ impl Reply {
     }
 }
 
+/// Wall-clock seconds (Unix time) for the IDEMP-R timestamps. The default reads the system clock; a host or a
+/// test subject may inject its own ([`State::set_clock`]).
+pub struct Clock(Box<dyn Fn() -> u64 + Send + Sync>);
+
+impl Clock {
+    /// A clock from a function returning Unix seconds.
+    pub fn new(f: impl Fn() -> u64 + Send + Sync + 'static) -> Clock {
+        Clock(Box::new(f))
+    }
+
+    /// The system clock (0 if it reads before 1970, so such a host never expires a key).
+    pub fn system() -> Clock {
+        Clock::new(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()))
+    }
+
+    /// Read the clock.
+    pub fn now(&self) -> u64 {
+        (self.0)()
+    }
+}
+
+impl core::fmt::Debug for Clock {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("Clock")
+    }
+}
+
 /// Idempotency + outbox + latch on top of the durable store. Single writer (`&mut self`).
 #[derive(Debug)]
 pub struct State {
@@ -48,6 +75,9 @@ pub struct State {
     pub(crate) held: HashMap<Vec<u8>, Vec<u8>>,
     pub(crate) next_seq: u64,
     pub(crate) muts: StateMutations,
+    /// IDEMP-R retention in seconds; `None` = never expire (F8 `state.idempotency_retention_s` absent).
+    pub(crate) retention: Option<u64>,
+    pub(crate) clock: Clock,
 }
 
 impl State {
@@ -62,7 +92,32 @@ impl State {
     pub fn open_with(root: &Path, muts: StateMutations) -> Result<State, StateError> {
         let mut store = Store::open(root)?;
         let next_seq = outbox::recover(&mut store, muts.outbox_drop_on_restart)?;
-        Ok(State { store, held: HashMap::new(), next_seq, muts })
+        Ok(State { store, held: HashMap::new(), next_seq, muts, retention: None, clock: Clock::system() })
+    }
+
+    /// IDEMP-R: forget completed keys `secs` seconds after their commit point (F8
+    /// `state.idempotency_retention_s`, validated there to 60..=2,592,000). `None` (the default) = never expire.
+    /// Refuses 0 (a window that admits no replay at all).
+    pub fn set_retention(&mut self, secs: Option<u64>) -> Result<(), StateError> {
+        if secs == Some(0) {
+            return Err(StateError::Invalid("idempotency retention of 0 s"));
+        }
+        self.retention = secs;
+        Ok(())
+    }
+
+    /// The retention in force.
+    pub fn retention(&self) -> Option<u64> {
+        self.retention
+    }
+
+    /// Replace the wall clock used for commit timestamps and expiry.
+    pub fn set_clock(&mut self, clock: Clock) {
+        self.clock = clock;
+    }
+
+    pub(crate) fn now(&self) -> u64 {
+        self.clock.now()
     }
 
     /// The commit point of `lease`'s request: user rows, outcome record and outbox rows, atomically and durably,
@@ -75,7 +130,7 @@ impl State {
         if !(100..=599).contains(&outcome.status) {
             return Err(StateError::Invalid("status outside 100..=599"));
         }
-        let rec = Record { digest: lease.digest, outcome };
+        let rec = Record { digest: lease.digest, outcome, committed_at: Some(self.now()) };
         let mut ops: Vec<Op> = lease.writes;
         ops.push(Op::Put { space: IDEM_SPACE, key: enc, value: rec.encode() });
         let mut seq = self.next_seq;
