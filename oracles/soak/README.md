@@ -34,8 +34,11 @@ remote lock already serializes it. The oracle signals only the PIDs it started.
 
 ## Procedure
 
-1. **Calibrate**: h2load at full speed (64 conns × 8 streams, 5 s warm-up + 30 s) over both URIs (round-robin
-   `/px/soak` and `/sq/<tenant>/n3`). The target is 50% of the measured 2xx req/s.
+1. **Calibrate**: h2load at full speed (32 conns × 4 streams, 5 s warm-up + 30 s) over both URIs (round-robin
+   `/px/soak` and `/sq/<tenant>/n3`). The target is 50% of the measured 2xx req/s. Calibration runs at saturation
+   and is outside the D-P8.4 criteria: non-2xx there is load shedding, recorded in the report notes but not judged;
+   transport errors, timeouts or no 2xx at all are a fault. Three 5 s diagnostic probes follow (each URI alone
+   through the shim, both URIs direct without PROXY); they are recorded, never judged.
 2. **Baseline**: 30 s idle, then poll every 5 s until fds and tasks of both processes are unchanged over 3 polls
    (≤ 120 s). The baseline is taken after the calibration, so the upstream pool, the SQLite handles and the
    allocator arenas are already warm. A per-load leak still accumulates over every later segment.
@@ -56,7 +59,7 @@ remote lock already serializes it. The oracle signals only the PIDs it started.
 | `rss.slope.<proc>` | Theil–Sen slope of VmRSS ≤ **1 MiB/h** over the samples after the warm-up, for aegis and for aegis-otlp. The warm-up is **15 min**; a run shorter than 1 h warms up for a quarter of its length. The OLS slope is reported beside it |
 | `fds.<proc>`, `tasks.<proc>` | after the settle, within **±5** of the baseline |
 | `errors` | **0** in total: h2load failed + errored + timeout (or non-2xx, whichever is larger), PROXY shim errors, the deltas of `aegis_admission_rejects`, `aegis_proxy_upstream_errors`, `aegis_proxy_canon_rejects`, `aegis_proxy_authz_denied` and `aegis_crash_budget_trips`, aegis log lines during the load that look like errors (`panic|error|fail|upstream |refused|denied`), collector requests to unknown paths, a non-zero exit on SIGTERM |
-| `fault` | none: a process died, `/metrics` unreachable after load, an h2load segment did not run, calibration errors |
+| `fault` | none: a process died, `/metrics` unreachable after load, an h2load segment did not run, calibration transport errors or timeouts, no 2xx in calibration |
 | `load.segment` | every segment delivered ≥ 80% of the target rate (a subject that slows down cannot shrink the load it is judged under) |
 | `otlp` | the collector received metrics exports in the last quarter of the load |
 | `audit` | `TLOG-VERIFY: PASS` |

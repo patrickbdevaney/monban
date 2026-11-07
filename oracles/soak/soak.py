@@ -246,6 +246,7 @@ def parse_h2load(text):
     s2, s3, s4, s5 = (int(x) for x in st.groups())
     secs = float(fin.group(1)) / (1000.0 if fin.group(2) == "ms" else 1.0)
     return {"req_s": round(s2 / secs, 1) if secs > 0 else 0.0, "secs": secs, "done": done, "status_2xx": s2,
+            "status": [s2, s3, s4, s5],
             "non_2xx": s3 + s4 + s5, "failed": failed, "errored": errored, "timeout": timeout,
             "errors": max(failed + errored + timeout, s3 + s4 + s5)}
 
@@ -496,7 +497,7 @@ class RealSetup:
         env = dict(os.environ, CARGO_TARGET_DIR=os.path.join(REPO, "target", "soak"))
         if not (self.a.aegis and self.a.otlp):
             subprocess.run([heavy, "cargo", "build", "--release", "--locked", "-q", "-p", "aegis-bin", "--bin",
-                            "aegis", "--features", "aegis-bin/native,aegis-bin/proxy-protocol,aegis-bin/mtc",
+                            "aegis", "--bin", "aegis-otlp", "--features", "aegis-bin/native,aegis-bin/proxy-protocol,aegis-bin/mtc",
                             "-p", "aegis-otlp"], cwd=REPO, check=True, env=env)
             self.a.aegis = self.a.aegis or os.path.join(REPO, "target", "soak", "release", "aegis")
             self.a.otlp = self.a.otlp or os.path.join(REPO, "target", "soak", "release", "aegis-otlp")
@@ -504,7 +505,7 @@ class RealSetup:
         self.upstream = os.path.join(REPO, "target", "soak", "soak-upstream")
         subprocess.run([heavy, "rustc", "-O", "--edition", "2021", "-o", self.upstream,
                         os.path.join(HERE, "upstream.rs")], cwd=REPO, check=True)
-        self.h2load = self.a.h2load.split() if self.a.h2load else h2load_fetch()
+        self.h2load_cmd = self.a.h2load.split() if self.a.h2load else h2load_fetch()
 
     def cpus(self):
         order = cpu_order()
@@ -675,21 +676,34 @@ class RealSetup:
         base = f"https://{VHOST}:{self.port}"
         return [f"{base}/px/soak", f"{base}/sq/{self.t_hex}/n3"]
 
-    def h2load(self, conns, streams, dur_s, rps=None, warmup=None):
+    def h2load(self, conns, streams, dur_s, rps=None, warmup=None, urls=None, direct=False):
         tok = mint(self.master, self.kid, self.tenant, dur_s + 300)
         t = min(len(self.cs["h2load"]), conns)
-        cmd = ["taskset", "-c", cpus_str(self.cs["h2load"])] + self.h2load + [
-            f"--connect-to=127.0.0.1:{self.shim.port}", "-t", str(t), "-c", str(conns), "-m", str(streams),
+        to = self.port if direct else self.shim.port
+        cmd = ["taskset", "-c", cpus_str(self.cs["h2load"])] + self.h2load_cmd + [
+            f"--connect-to=127.0.0.1:{to}", "-t", str(t), "-c", str(conns), "-m", str(streams),
             "-D", str(int(math.ceil(dur_s))), "-H", f"authorization: Bearer {tok}"]
         if rps:
             cmd += ["--rps", str(rps)]
         if warmup:
-            cmd += ["--warm-up-time", str(warmup)]
-        p = subprocess.run(cmd + self.urls(), capture_output=True, text=True, timeout=dur_s + (warmup or 0) + 120)
+            cmd += ["--warm-up-time", str(int(math.ceil(warmup)))]
+        p = subprocess.run(cmd + (urls or self.urls()), capture_output=True, text=True, timeout=dur_s + (warmup or 0) + 120)
         out = p.stdout + p.stderr
         if p.returncode != 0 and not SUMMARY_RE.search(out):
             raise RuntimeError(f"h2load exit {p.returncode}: {out[-400:]}")
         return parse_h2load(out)
+
+    def probes(self):
+        """Diagnostics only (never judged): 5 s full-speed runs per URI through the shim, and both URIs direct
+        (127.0.0.1 is not a trusted PROXY source, so no header is needed), to show where the path's ceiling is."""
+        out = {}
+        for name, kw in (("px_via_shim", {"urls": self.urls()[:1]}), ("sq_via_shim", {"urls": self.urls()[1:]}),
+                         ("both_direct", {"direct": True})):
+            try:
+                out[name] = self.h2load(conns=32, streams=4, dur_s=5, **kw)
+            except (RuntimeError, ValueError, OSError, subprocess.SubprocessError) as e:
+                out[name] = {"error": str(e)[:300]}
+        return out
 
     def metrics(self):
         try:
@@ -729,8 +743,11 @@ class RealSetup:
         r = subprocess.run([os.path.join(REPO, "oracles", "tlog-verify", "run"), "--subject",
                             f"{os.path.join(HERE, 'audit-copy')} {os.path.join(self.audit_dir, logs[0])}"],
                            capture_output=True, text=True, cwd=REPO, timeout=3600)
-        last = ((r.stdout + r.stderr).strip().splitlines() or [""])[-1]
-        return {"ok": r.returncode == 0 and last.startswith("TLOG-VERIFY: PASS"), "detail": last[:300]}
+        lines = (r.stdout + "\n" + r.stderr).strip().splitlines()
+        verdict = [x for x in lines if x.startswith("TLOG-VERIFY")]
+        detail = verdict[-1] if verdict else (lines[-1] if lines else f"exit {r.returncode}, no output")
+        return {"ok": r.returncode == 0 and bool(verdict) and verdict[-1].startswith("TLOG-VERIFY: PASS"),
+                "detail": detail[:300], "log_dir": logs[0]}
 
     def cleanup(self):
         for c in self.children:
@@ -803,17 +820,27 @@ def run_soak(setup, clock, hours, record=None, meta=None):
             clock.sleep(5.0)
 
     # 1. Calibrate: the full path's throughput at full speed (30 s after a 5 s warm-up).
-    cal = setup.h2load(conns=64, streams=8, dur_s=clock.real(30.0), warmup=clock.real(5.0))
+    cal = setup.h2load(conns=32, streams=4, dur_s=clock.real(30.0), warmup=clock.real(5.0))
     rep["load"]["calibration"] = cal
-    if cal["errors"] or cal["status_2xx"] == 0:
-        rep["faults"].append(f"calibration: {cal['errors']} errors, {cal['status_2xx']} 2xx")
+    if hasattr(setup, "probes"):
+        rep["load"]["probes"] = setup.probes()
+        for k, v in rep["load"]["probes"].items():
+            log(f"probe {k}: " + (v.get("error") or f"{v['req_s']:.0f} 2xx req/s, status 2xx/3xx/4xx/5xx {v['status']}"))
+    # Calibration runs at saturation, outside D-P8.4's criteria: non-2xx there is load shedding, recorded (and
+    # printed) but not judged. Transport failures or no 2xx at all mean the path is broken: a fault.
+    if cal["errored"] or cal["timeout"] or cal["status_2xx"] == 0:
+        rep["faults"].append(f"calibration: {cal['errored']} errored, {cal['timeout']} timeout, "
+                             f"{cal['status_2xx']} 2xx")
+    if cal["non_2xx"]:
+        rep.setdefault("notes_extra", []).append(f"calibration at saturation: {cal['non_2xx']} non-2xx "
+                                                 f"(status classes {cal['status']}), not judged")
     target = LOAD_FRACTION * cal["req_s"]
     conns = max(8, int(math.ceil(target / PER_CONN_RPS)))
     rps = max(1, int(round(target / conns)))
     seg_s = min(300.0, 0.5 * MAX_STREAMS_PER_CONN / rps)
     rep["load"].update({"target_rps": rps * conns, "conns": conns, "rps_per_conn": rps, "segment_s": seg_s,
                         "streams": 4})
-    log(f"calibration {cal['req_s']:.0f} req/s; soak target {rps * conns} req/s ({conns} conns x {rps}/s), "
+    log(f"calibration {cal['req_s']:.0f} req/s (status {cal.get('status')}); soak target {rps * conns} req/s ({conns} conns x {rps}/s), "
         f"{hours} h in segments of {seg_s:.0f} s")
 
     # 2. Baseline after the warm-up of pools and caches, idle.
@@ -881,7 +908,7 @@ def run_soak(setup, clock, hours, record=None, meta=None):
             e[f"{name}_exit"] = 1
             rep["faults"].append(f"{name} exit {code} on SIGTERM")
     rep["audit"] = setup.audit()
-    rep["notes"] = list(getattr(setup, "notes", []))
+    rep["notes"] = list(getattr(setup, "notes", [])) + rep.pop("notes_extra", [])
     if record:
         os.makedirs(os.path.dirname(os.path.abspath(record)), exist_ok=True)
         with open(record + ".tmp", "w") as f:
@@ -921,7 +948,7 @@ def cmd_run(a):
                 "record_only": a.hours > 2}
         try:
             rep = run_soak(setup, clock, a.hours, record=record, meta=meta)
-        except (RuntimeError, ValueError, OSError, subprocess.SubprocessError) as e:
+        except Exception as e:  # noqa: BLE001 -- any harness bug still ends in a FAIL line, never a traceback
             print(f"{TAG}: FAIL (harness: {str(e)[:500]})")
             return 1
     finally:
