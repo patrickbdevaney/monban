@@ -15,9 +15,10 @@ property for the code it reaches. The obligations below are listed as not checke
 - Minimal reason: the encoding sits inline in a constructor whose arguments are opaque C handles.
 - Resolution (in scope for the integrator): `units/phase-8/patches/P8-kani-001.patch`. It moves the encoding and
   the point check into the pure functions `kx::encode_client_share` and `kx::is_uncompressed_p384`. Behaviour and
-  error order are unchanged. It also adds the harnesses `client_share_encoding_0x11ed` and `client_point_check_0x11ed`,
-  which `--only client_` picks up. The patched tree was run through `ci/kani.sh --only client_` on kamrui (the result
-  is in the unit's final report).
+  error order are unchanged. It also adds the harnesses `client_share_encoding_0x11ed` (layout),
+  `client_share_encoding_lengths_0x11ed` and `client_point_check_0x11ed`, which `--only client_` picks up. On the
+  patched tree on kamrui (2026-11-06), all five client_ harnesses gave the expected results: the layout harness
+  passed in 129 s with a 1.3 GB peak, and the negative control failed as it should.
 
 ## 2. 0x11EB and 0x0202 client `complete`: rustls code that is not reachable
 
@@ -45,7 +46,9 @@ property for the code it reaches. The obligations below are listed as not checke
 ## Rungs
 
 - `client_server_share_split_0x11ed` (and the patched
-  `client_share_encoding_0x11ed`, `client_point_check_0x11ed`): R2. These are bounded Kani proofs on the Rust
-  functions named above, over every length up to one byte past the exact share, and every byte value.
+  `client_share_encoding_0x11ed`, `client_share_encoding_lengths_0x11ed`, `client_point_check_0x11ed`): R2.
+  These are bounded Kani proofs on the Rust functions named above. They cover every length up to one byte past
+  the exact share, and every byte value. One exception: the lengths harness fixes the ek bytes, because the
+  encoder reads only the ek's length.
 - The call composition inside `Active::complete` / `Active::new`, all of rustls' 0x11EB share handling, and the
   0x0202 client bound: argued from the code, or trusted (rustls, AWS-LC C). They are not checked by Kani.
