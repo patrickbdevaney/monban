@@ -19,7 +19,7 @@ them; `ci/interfaces.py check` fails on any change. A change goes through a spec
 | F10 | `interfaces/F10-module-wire.cddl` | frozen | out-of-process module wire; host decoders in the verified TCB; P4-spec-001 adds normative comments only (kind↔OpMask bit, D4 tenant encoding); P8-spec-001 adds a normative comment only (the F4 denylist includes family `mariadb`) |
 | F11 | `interfaces/F11-upgrade-handover.cddl` | frozen | UP-1..7 handover messages |
 | F12 | `tls/verdicts.toml` | provisional: q4-026 | PUB-T1..T6, FIPS-F1..F6; 0x11ED from our own KxGroup (Phase 6) |
-| F13 | `interfaces/F13-conformance-report.schema.json` | frozen | C0–C4 report |
+| F13 | `interfaces/F13-conformance-report.schema.json` | frozen; additive members `gated` and `config_sha256` P8-conformance-001 (2026-11-06, v stays 1, absent = pre-Phase-8 meaning) | C0–C4 report |
 | F14 | `interfaces/F14-p2-guest-abi.cddl` | frozen (new, P5-spec-001) | P2 core-module guest ABI: closed import allowlist in module `aegis` (req_head, req_body_read, resp_head, resp_write, log, data_run, result_read, handle_drop), export `handle() -> u32` (0 Allow, 1 Deny, else Error ⇒ Deny); per-request generation-tagged handles (forged/foreign/stale trap); `env.host_fault` only in `test-hooks` builds; worker↔supervisor SOCK_SEQPACKET frames in the F10 encoding, capped by F8 `p2.frame_max_bytes`; `data_run` carries the F10 `op` rule by name (F10 unchanged); decode failure kills the worker and charges the principal's crash budget, never the supervisor; supervisor re-serializes all module output (I5), authorizes + audits every data_run before effect (I1, I6-host), module failure ⇒ Deny (I7) |
 
 "Provisional" means frozen now, with a named Phase-1 spike that may force one re-freeze before Phase 2.
