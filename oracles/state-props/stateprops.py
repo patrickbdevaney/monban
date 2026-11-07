@@ -19,6 +19,15 @@ MUTATIONS = {
     'latch-returns-408':          'NC2',
     'dedupe-unstable':            'NC6',   # extra: not in the unit's list
 }
+# IDEMP-R (Phase 8, P8-hardening-001): mutations judged by the retention scenario (RetentionRun).
+RETENTION_MUTATIONS = {
+    'retention-ignored':        'IDEMP-R',
+    'retention-early':          'IDEMP-R',
+    'retention-in-memory':      'IDEMP-R',
+    'purge-noop':               'IDEMP-R',
+    'retention-absent-expires': 'IDEMP-R',
+}
+T0 = 1_800_000_000
 REQUIRED_SUBJECT_MUTATIONS = ('idem-key-without-principal', 'replay-reexecutes')   # P4-state-002 acceptance
 TIMEOUT = 20.0
 
@@ -323,18 +332,143 @@ class Run:
         return s.V
 
 
+class RetentionRun(Run):
+    """IDEMP-R (SPEC_INVARIANTS §F, F8 state.idempotency_retention_s; PREFLIGHT R12). The subject runs with
+    `--idempotency-retention R` and an oracle-driven clock (`CLOCK <unix_s>`, re-sent after every restart). Model: a
+    completed key replays (or conflicts) while 0 <= now - committed_at < R, and is forgotten (NEW, for any digest)
+    once now - committed_at >= R; a record from the future (clock set back) is kept; PURGE deletes exactly the
+    expired records not held by an open request and answers their number; without the flag nothing ever expires.
+    Every violation in this scenario is clause IDEMP-R."""
+    def __init__(s, cmd, d, seed, extra=(), tail=40):
+        super().__init__(cmd, d, seed, extra, tail)
+        s.R = s.rng.choice([60, 61, 3600, 86400, 2_592_000, s.rng.randint(60, 2_592_000)])
+        s.base_extra = list(extra)
+        s.extra = s.base_extra + ['--idempotency-retention', str(s.R)]
+        s.clock = T0 + seed * 1000
+        s.at = {}            # (p, k) -> committed_at (model)
+    def v(s, clause, msg):
+        s.V.append(('IDEMP-R' if clause != 'PROTO' else clause, f'seed={s.seed} R={s.R}: {msg}'))
+    def start(s):
+        try:
+            super().start()
+        except ProtoError as e:
+            s.V.append(('IDEMP-R', f'seed={s.seed}: subject did not start with --idempotency-retention {s.R}: {e}'))
+            raise
+        if not re.search(r'features=\S*\bretention\b', s.proc.ready):
+            s.V.append(('IDEMP-R', f'seed={s.seed}: subject does not advertise features=retention (READY line {s.proc.ready[:80]!r})'))
+            raise ProtoError('no retention support (--idempotency-retention, CLOCK, PURGE)')
+        s.set_clock(s.clock)
+    def set_clock(s, t):
+        s.clock = t
+        got = s.proc.ask(f'CLOCK {t}')
+        if got != 'OK clock': s.v('PROTO', f'CLOCK {t}: {got[:80]}')
+    def expired(s, key):
+        t = s.at.get(key)
+        return s.R is not None and t is not None and s.clock >= t and s.clock - t >= s.R
+    def expect_begin(s, p, k, dg):
+        if (p, k) in s.completed and s.expired((p, k)):
+            if (p, k) in s.held:
+                r = s.inflight[s.held[(p, k)]]
+                return ('INFLIGHT', None) if r['digest'] == dg else ('INFLIGHT|CONFLICT', None)
+            return ('NEW', None)
+        return super().expect_begin(p, k, dg)
+    def _committed(s, rid, r, status, body):
+        super()._committed(rid, r, status, body)
+        s.at[(r['p'], r['k'])] = s.clock
+    def window(s, key):
+        t = s.at.get(key)
+        return f'committed_at={t} now={s.clock} age={s.clock - t if t is not None else "-"}'
+    def probe(s, p, k, dg=None, why=''):
+        n0 = len(s.V)
+        rid = s.begin(p, k, dg)
+        if len(s.V) > n0:
+            s.V[-1] = (s.V[-1][0], s.V[-1][1] + f' [{why}; {s.window((p, k))}]')
+        if rid: s.abort(rid)
+    def purge(s):
+        want = [key for key in s.completed if s.expired(key) and key not in s.held]
+        got = s.proc.ask('PURGE').split()
+        if got[:1] != ['PURGED'] or len(got) != 2 or not got[1].isdigit():
+            s.v('PROTO', f'PURGE: {" ".join(got)[:80]}'); return
+        if int(got[1]) != len(want):
+            s.v('IDEMP-R', f'PURGE deleted {got[1]} records, the model has {len(want)} expired and not held ({want[:3]})')
+        for key in want:
+            s.completed.pop(key, None); s.at.pop(key, None)
+        s.stats['purged'] += len(want)
+    def put(s, p, k, dg=None):
+        rid = s.begin(p, k, dg)
+        if rid: s.write(rid); s.commit(rid, timer=False)
+    def prelude(s):
+        A, B, R, T = 'alice', 'bob', s.R, s.clock
+        s.put(A, 'k1')                                            # committed_at = T
+        s.set_clock(T + R - 1)
+        s.probe(A, 'k1', why='last second inside the window: replay')
+        s.probe(A, 'k1', 'ffff' + s.hexval(4), why='inside the window, other digest: conflict')
+        s.put(B, 'k2')                                            # committed_at = T + R - 1
+        s.kill()                                                  # timestamps must be durable
+        s.probe(A, 'k1', why='after restart, inside the window: replay')
+        s.set_clock(T + R)
+        s.probe(A, 'k1', why='window over: forgotten (NEW)')
+        s.probe(A, 'k1', 'ffff' + s.hexval(4), why='expired record must not conflict')
+        s.probe(B, 'k2', why='younger key still inside its window')
+        s.purge(); s.purge()
+        s.put(A, 'k1')                                            # fresh outcome, fresh window
+        s.probe(A, 'k1', why='re-used key replays its new outcome')
+        s.set_clock(T)                                            # clock set back: nothing from the future expires
+        s.probe(A, 'k1', why='record from the future is kept'); s.probe(B, 'k2', why='clock set back')
+        s.purge()
+    def random_tail(s):
+        P = ['alice', 'bob', 'carol']; keys = [f'k{i}' for i in range(1, 4)]
+        for _ in range(s.tail):
+            x = s.rng.random()
+            if x < .25:
+                step = s.rng.choice([0, 1, s.R - 1, s.R, s.R + 1, s.rng.randint(0, 2 * s.R)])
+                s.set_clock(s.clock + step)
+            elif x < .55:
+                if s.rng.random() < .3: keys.append(f'k{len(keys) + 1}')
+                s.put(s.rng.choice(P), s.rng.choice(keys))
+            elif x < .80:
+                p, k = s.rng.choice(P), s.rng.choice(keys)
+                dg = None if s.rng.random() < .8 else 'ffff' + s.hexval(4)
+                s.probe(p, k, dg, why='random probe')
+            elif x < .90:
+                s.purge()
+            else:
+                s.kill()
+    def finish(s):
+        s.kill()
+        for (p, k) in sorted(s.completed):
+            s.probe(p, k, why='final restart')
+        s.purge()
+        # Absent retention: the same store without the flag never expires anything (pre-Phase-8 meaning).
+        s.R = None; s.extra = list(s.base_extra); s.kill()
+        s.set_clock(s.clock + 10 ** 8)
+        for (p, k) in sorted(s.completed):
+            s.probe(p, k, why='no --idempotency-retention: never expires')
+        got = s.proc.ask('PURGE').split()
+        if got != ['PURGED', '0']:
+            s.v('IDEMP-R', f'PURGE without a retention deleted records: {" ".join(got)[:40]}')
+    def go(s):
+        try:
+            s.start(); s.prelude(); s.random_tail(); s.finish()
+        except ProtoError as e:
+            s.v('PROTO', str(e))
+        finally:
+            if s.proc: s.proc.quit()
+        return s.V
+
+
 def hashlib_hex(t):
     import hashlib
     return hashlib.sha256(t.encode()).hexdigest()[:16]
 
 
-def sweep(cmd, seeds, extra=(), stop_on=None, tail=40):
+def sweep(cmd, seeds, extra=(), stop_on=None, tail=40, kind=Run):
     stats = collections.Counter(); first = {}; examples = {}; viol = collections.Counter()
     root = tempfile.mkdtemp(prefix='state-props-')
     try:
         for seed in seeds:
             d = os.path.join(root, f's{seed}'); os.makedirs(d)
-            run = Run(cmd, d, seed, extra, tail)
+            run = kind(cmd, d, seed, extra, tail)
             V = run.go(); stats.update(run.stats); stats['seeds'] += 1
             for c, m in V:
                 viol[c] += 1
@@ -373,11 +507,18 @@ def main():
           f"INFLIGHT={stats['begin:INFLIGHT'] + stats['begin:INFLIGHT|CONFLICT']}; committed={stats['committed']} "
           f"aborted={stats['aborted']} timer-after-CP={stats['timer_after_cp']}; deliveries={stats['deliveries']} "
           f"(redeliveries {stats['redeliveries']})")
+    rstats, rviol, rfirst, rex = sweep(cmd, range(1, a.seeds + 1), tail=a.tail, kind=RetentionRun)
+    print(f"  retention (IDEMP-R): seeds={rstats['seeds']} lives={rstats['lives']} kills={rstats['kills']} "
+          f"BEGIN expected NEW={rstats['begin:NEW']} REPLAY={rstats['begin:REPLAY']} CONFLICT={rstats['begin:CONFLICT']}; "
+          f"committed={rstats['committed']} purged={rstats['purged']}")
     for c in sorted(first): print(f"  {c}: {viol[c]} violations; first {ex[c][:220]}")
+    for c in sorted(rfirst): print(f"  retention {c}: {rviol[c]} violations; first {rex[c][:260]}")
+    viol = viol + rviol
     if viol:
         print('STATE-PROPS: FAIL (' + ', '.join(f'{c}={viol[c]}' for c in sorted(viol)) + ')'); return 1
     print(f"STATE-PROPS: PASS (INV-IDEMP NC1 NC2 NC6 over {stats['seeds']} seeds, {stats['lives']} store lives, "
-          f"{stats['kills']} SIGKILLs, {stats['deliveries']} deliveries)")
+          f"{stats['kills']} SIGKILLs, {stats['deliveries']} deliveries; IDEMP-R over {rstats['seeds']} seeds, "
+          f"{rstats['purged']} purged)")
     return 0
 
 
@@ -385,26 +526,32 @@ def self_test(a):
     # dedupe-unstable shows only on a redelivery, which needs a SIGKILL to land between an EFF line and the subject's
     # delivered mark: timing-dependent, so under machine load 10 seeds can pass with no redelivery at all. It gets the
     # full PR seed budget (60); the others are caught deterministically by the scripted prelude.
-    plan = [(m, c, 60 if m == 'dedupe-unstable' else 10) for m, c in MUTATIONS.items()]
+    plan = [(m, c, 60 if m == 'dedupe-unstable' else 10, Run) for m, c in MUTATIONS.items()]
+    plan += [(m, c, 10, RetentionRun) for m, c in RETENTION_MUTATIONS.items()]
     cmds = [('reference', REF)] + ([('subject', a.subject)] if a.subject else [])
     print('state-props self-test (reference subject' + (', and --subject' if a.subject else '') + ')')
     missed, n = [], 0
     # the unmutated reference must pass first (a mutant caught by a broken oracle proves nothing)
     _, viol, first, ex = sweep(REF, range(1, 4), tail=a.tail)
+    _, rviol, rfirst, rex = sweep(REF, range(1, 4), tail=a.tail, kind=RetentionRun)
+    if rviol:
+        print(f"  [BROKEN] unmutated reference fails the retention scenario: {rex[min(rfirst, key=rfirst.get)][:200]}")
+        print('STATE-PROPS SELF-TEST: FAIL (unmutated reference subject is red)'); return 1
     if viol:
         print(f"  [BROKEN] unmutated reference fails: {ex[min(first, key=first.get)][:200]}")
         print('STATE-PROPS SELF-TEST: FAIL (unmutated reference subject is red)'); return 1
     for label, cmd in cmds:
-        adv = MUTATIONS if label == 'reference' else probe_mutations(cmd)
+        adv = {**MUTATIONS, **RETENTION_MUTATIONS} if label == 'reference' else probe_mutations(cmd)
         if label == 'subject':
             lacking = [m for m in REQUIRED_SUBJECT_MUTATIONS if m not in adv]
             if lacking:
                 print(f"  [MISSED] subject does not advertise required mutations {lacking} (READY ... mutations=...; got {adv})")
                 missed += [f'subject:{m}' for m in lacking]
-        for mut, clause, budget in plan:
+        for mut, clause, budget, kind in plan:
             if mut not in adv: continue
             n += 1
-            stats, viol, first, ex = sweep(cmd, range(1, budget + 1), extra=['--mutate', mut], stop_on=(clause,), tail=a.tail)
+            stats, viol, first, ex = sweep(cmd, range(1, budget + 1), extra=['--mutate', mut], stop_on=(clause,),
+                                           tail=a.tail, kind=kind)
             if clause in first:
                 print(f"  [caught] {label}:{mut}: {clause} red at seed {first[clause]} (<= {budget}); {ex[clause][:170]}")
             else:
@@ -413,7 +560,7 @@ def self_test(a):
     if missed:
         print(f"STATE-PROPS SELF-TEST: FAIL (missed: {', '.join(missed)})"); return 1
     print(f"STATE-PROPS SELF-TEST: PASS ({n}/{n} mutations caught within their seed budgets (10; dedupe-unstable 60): "
-          f"{', '.join(MUTATIONS)}{'; subject-advertised ones too' if a.subject else ''})")
+          f"{', '.join(list(MUTATIONS) + list(RETENTION_MUTATIONS))}{'; subject-advertised ones too' if a.subject else ''})")
     return 0
 
 

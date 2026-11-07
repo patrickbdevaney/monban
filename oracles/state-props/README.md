@@ -9,6 +9,8 @@ Gates `spec/SPEC_INVARIANTS.md` §B:
   delivered effect, and its key is free again.
 - **INV-DURABLE** across SIGKILL: an answered COMMIT survives a kill of the process (page cache intact; the
   power-loss/EIO cases are crash-harness's job).
+- **IDEMP-R** (§F Phase-8 addendum, F8 `state.idempotency_retention_s`; PREFLIGHT R12, case added by
+  P8-hardening-001): see "Retention" below.
 
 Gate `state-props` in `gates/phase-4.toml`, implemented by P4-state-002 (aegis-state idem/outbox/latch). Written in
 P4-oracle-state-001. The semantics follow ARCHITECTURE §3.7 R-STATE-2/3 (draft-ietf-httpapi-idempotency-key-header-08
@@ -88,11 +90,45 @@ implement the other four (and `dedupe-unstable`); P4-state-002 only requires the
 Extra negative control (2026-10-30, not part of `--self-test`): a wrapper that deletes the store on every start goes
 red on INV-IDEMP, NC1/DURABLE and NC6 at seed 1.
 
+## Retention (IDEMP-R, Phase 8)
+
+Every seed also runs a retention scenario (`RetentionRun`) on a fresh store. The subject is started with
+`--idempotency-retention R` (R per seed from {60, 61, 3600, 86400, 2592000, random in 60..=2592000}), and the clock is
+the oracle's: `CLOCK <unix_s>` before anything else in every store life (re-sent after each SIGKILL restart). The
+model, and the subject contract it checks:
+
+- a completed key replays (same digest) or conflicts (other digest) while `0 <= now - committed_at < R`, where
+  `committed_at` is the clock at its COMMIT, durable across SIGKILL;
+- once `now - committed_at >= R` the key is forgotten: BEGIN answers NEW for any digest (IDEMP-R says "may be
+  forgotten"; aegis-state's contract is exact to the second, and this case holds it to that);
+- a record from the future (the clock was set back below `committed_at`) is kept;
+- `PURGE` deletes exactly the expired records not held by an open request and answers `PURGED <n>`;
+- restarted without `--idempotency-retention` (F8 absent), the same store never expires anything, even 10^8 s later,
+  and `PURGE` answers `PURGED 0`.
+
+Script: commit at T; at T+R-1 replay, conflict, a second key; SIGKILL; replay again; at T+R forgotten (NEW, also with
+another digest), the second key still replays; PURGE twice (1, then 0); re-use the key; clock back to T (both kept);
+then a seeded tail of clock steps (0, 1, R-1, R, R+1, random up to 2R), commits, probes, PURGEs and SIGKILLs; a final
+restart probe of every key; then the no-retention restart. Every violation here is clause `IDEMP-R`.
+
+Self-test mutations (reference subject; the aegis subject advertises the first two and `purge-noop`):
+
+| mutation | breaks | first red (2026-11-06) |
+|---|---|---|
+| `retention-ignored` | keys never expire | seed 1 (NEW expected at T+R, got REPLAY) |
+| `retention-early` | expires one second early | seed 1 (REPLAY expected at T+R-1, got NEW) |
+| `retention-in-memory` | commit time not durable (counts from the restart) | seed 1 (REPLAY at T+R after the restart) |
+| `purge-noop` | PURGE deletes nothing | seed 1 (PURGED 0, model 1) |
+| `retention-absent-expires` | expiry without the flag (60 s) | seed 1 (no-retention restart got NEW) |
+
+Red before code (2026-11-06, kamrui): the pre-Phase-8 state-subject refuses the flag (`ERR open unknown flag
+--idempotency-retention`), so every retention seed is red.
+
 ## Subject protocol
 
 The subject is one executable. `{dir}` in `--subject` is replaced by the store directory (appended if absent), and
 self-test mutations are appended as `--mutate <name>`. On start it opens or creates the store in `{dir}`, runs
-recovery, and prints one line: `READY <free text> [mutations=a,b,...]`, or `ERR open <msg>` and exits non-zero. It then
+recovery, and prints one line: `READY <free text> [features=retention] [mutations=a,b,...]`, or `ERR open <msg>` and exits non-zero. It then
 reads newline-terminated commands on stdin. Each command gets exactly one reply line, except DELIVER and DUMP, which
 reply with several lines ending in `END`.
 
@@ -115,6 +151,8 @@ DELIVER                                  -> EFF <dedupe> <payloadhex> ... END
         is not delivered (it may sit unread in the pipe when the oracle SIGKILLs mid-pass). <dedupe> is stable
         across redeliveries.
 DUMP                                     -> ROW <row> <valhex> ... END   (committed user rows)
+CLOCK <unix_s>                           -> OK clock   IDEMP-R: the wall clock from now on (until the process ends)
+PURGE                                    -> PURGED <n> IDEMP-R: delete the expired outcome records not held, count
 QUIT / EOF                               -> exit 0
 ```
 
