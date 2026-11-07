@@ -81,7 +81,17 @@ PASS; then each mutant (env `AEGIS_E2E_MUTANT`, reference only) must FAIL:
 - `run --dsn @crdb` (reference): PASS, 30 checks (first run red on `produced-40001`, which then required one abort
   per round; CockroachDB files some aborts under other `txn.restarts.*` reasons, so the counter is now an "at all"
   check and per-round evidence is `forced-abort`).
-- Self-test and the run against today's binary: see units/phase-8 report of P8-oracle-001.
+- `run --self-test --dsn @crdb`: `CRDB-LIVE SELF-TEST: PASS (reference green; 3/3 mutants caught: crdb-40001-as-success,
+  crdb-cancel-ignored, crdb-no-reset)`. Caught by: 40001-as-success 5 checks (every never-wrong but delete), cancel-ignored
+  4 (statement-stopped, connection-reset-or-retired, both rounds), no-reset 4 (connection-reset-or-retired,
+  pool-serves-after, both rounds).
+- **Today's binary** (`--features adapter-crdb` at base 0e27b11): `CRDB-LIVE: FAIL (4 failed:
+  cancel.update.statement-stopped, cancel.update.connection-reset-or-retired, cancel.select.statement-stopped,
+  cancel.select.connection-reset-or-retired)`. 26 of 30 pass: the 40001 rounds are answered with a clean failure and
+  no effect (no retry, but never wrong), and the 504 comes on time. The residual is real: 1 s after the 504 the
+  blocked UPDATE / SELECT is still running on the server and the session still holds an open transaction (its last
+  statement the transaction-local `set_config('statement_timeout', ...)`), i.e. no CancelRequest and no reset at the
+  deadline.
 
 ## Known limits
 

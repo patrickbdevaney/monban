@@ -221,4 +221,6 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 - `run`: `OTLP-EXPORT: PASS (95 checks, subject reference ref_exporter.py)`, about 19 s.
 - `run --self-test`: `OTLP-EXPORT SELF-TEST: PASS (reference green; 23/23 mutants red; stub and absent binary red)`,
   about 2.5 min (drop-uncounted waits the full 45 s for a count that never comes).
-- Against today's aegis-otlp (kamrui build at base 0e27b11): recorded in the P8-oracle-001 report.
+- Against today's aegis-otlp (kamrui build at base 0e27b11): `OTLP-EXPORT: FAIL (10 failed, 85 passed)`. https-once
+  and https-untrusted pass (https through `--ca-file` already works); every retry check is red (one attempt per
+  request, no retry), and so is `daemon-drop.drop-counted`. no-retry-400 passes.

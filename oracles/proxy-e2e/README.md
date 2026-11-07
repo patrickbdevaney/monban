@@ -84,4 +84,6 @@ aegis-transport's `e2e-raw-target` feature (enabled by aegis-bin's `e2e-mutants`
 `oneresp.py` is shared with oracles/bin-residuals. Against today's default binary the `r6.*.one-response` checks are
 red (two 400s, the first with `date`, the second without), as required until P8-transport-001; so is the
 self-test's unmutated baseline, which therefore stays red until then too (the judge's own negative controls above
-are green). Recorded runs: see the P8-oracle-001 report.
+are green). Recorded on kamrui (base 0e27b11): `run --subject target/release/aegis` → `PROXY-E2E: FAIL (2 failed:
+r6.chunk.bad-size.one-response, r6.chunk.bare-lf.one-response)`, every other check green; `--self-test` → judge 3/3
+mutants caught, then `FAIL (the unmutated e2e-mutants build must pass first: [r6.*.one-response])`.

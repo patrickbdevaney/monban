@@ -249,8 +249,12 @@ aegis-bin's `e2e-mutants` build does not carry it; `--self-test --subject` runs 
 builds `native,e2e-mutants,adapter-mariadb` when `--engine mariadb` is given).
 
 Today (base 0e27b11) aegis-bin refuses every MariaDB backend at boot (`adapters.rs`: no F4 denylist family, no
-`allowlist.notes-mariadb.lock`), so the gate is red until P8-mariadb-001 and P8-bin-001 land. The recorded runs are in
-the P8-oracle-001 report.
+`allowlist.notes-mariadb.lock`), so the gate is red until P8-mariadb-001 and P8-bin-001 land. Recorded on kamrui (MariaDB 11.8.9 from ci/engines.sh):
+- `--self-test --engine mariadb --dsn @mariadb` → `NATIVE-E2E SELF-TEST: PASS (7/7 mutants caught: ..., drop-tenant;
+  backends sqlite+mariadb)`, baseline 160 checks; drop-tenant caught by 8 `my.xt.*` checks.
+- `--engine mariadb --dsn @mariadb --binary target/release/aegis` (`--features adapter-mariadb`, base 0e27b11) →
+  `NATIVE-E2E: FAIL (1 failed: harness)`: exit 78 at start, "MariaDB is not servable by this build". The two
+  schema-refusal boots pass vacuously today (every MariaDB boot is refused); they bite once the backend is servable.
 
 ### CockroachDB engine of the reference (used by oracles/crdb-live)
 
