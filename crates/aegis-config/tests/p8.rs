@@ -9,6 +9,7 @@
 //!   `every_accepted_route_path_is_a_canon_fixed_point` go red;
 //! * widen `Runtime::BOUNDS` to 0..=1025 and `StateBlock::RETENTION_BOUNDS` to 59.. -> `runtime_and_state_mirror_f8`,
 //!   `runtime_zero`, `runtime_over` and `retention_under` go red.
+//!
 //! Not run as a mutant: printing `runtime` when default or `state` when unset, which
 //! `absent_blocks_keep_the_pre_phase8_hash` asserts against directly.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
