@@ -36,6 +36,10 @@ default = []
 # In-house RFC 8555 / RFC 9773 client. This is the only code in aegis-ops that builds a rustls ClientConfig; with the
 # feature off no rustls client code is linked (spikes/cmvp-client-policy, compiled-out mode).
 acme = ["dep:aegis-canon"]
+# PREFLIGHT R11 (P8-spec-002 pre-wiring; P8-hardening-001 moves the code): `acme::Faults` (fault injection for the
+# acme-pebble oracle) exists only with this feature. Off by default and never enabled by a release graph (default,
+# native, any shipped profile, cmvp): gate no-test-faults (ci/no-test-faults.py). Only subjects/acme-subject enables it.
+test-faults = ["acme"]
 
 [lints]
 workspace = true

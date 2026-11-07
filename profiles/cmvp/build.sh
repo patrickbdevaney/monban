@@ -4,7 +4,8 @@
 # profiles/cmvp/Cargo.lock as its lock. Nothing outside target/ is written (except --lock, which rewrites
 # profiles/cmvp/Cargo.lock).
 #
-#   profiles/cmvp/build.sh [--check]   build aegis-bin (feature cmvp) and tls-subject (feature cmvp) with --locked
+#   profiles/cmvp/build.sh [--check]   build aegis-bin (feature cmvp) and tls-subject (cmvp,indicator), one cargo
+#                                      invocation each (no feature unification across them), with --locked
 #                                      --release inside the AL2023 image (deploy/build/al2023.Containerfile, < 500 MB
 #                                      asserted); output in target/cmvp/release/. Needs docker, Go 1.27.3
 #                                      ($AEGIS_GO, default ~/aegis-ci/go1.27.3) and the pinned rustup toolchain, all
@@ -81,17 +82,21 @@ case "$MODE" in
     OUT="$(realpath "$ROOT/target")/cmvp"
     mkdir -p "$OUT/home"
     prof="${CMVP_CARGO_PROFILE:-release}"
-    pkgs=(); feats=()
-    for p in ${CMVP_PACKAGES:-aegis-bin tls-subject}; do pkgs+=(-p "$p"); feats+=("$p/cmvp"); done
-    flags=(--locked --keep-going --no-default-features "${pkgs[@]}" --features "$(IFS=,; echo "${feats[*]}")")
-    [ "$prof" = release ] && flags+=(--release)
-    echo "cmvp: cargo build ${flags[*]} (AL2023, Go $("$GO/bin/go" version | cut -d' ' -f3))"
-    docker run --rm --user "$(id -u):$(id -g)" \
-      -v "$(realpath "$SRC"):/src:ro" -v "$OUT:/out" -v "$TC:/opt/rust:ro" -v "$GO:/opt/go:ro" \
-      -e HOME=/out/home -e CARGO_HOME=/out/cargo-home -e CARGO_TARGET_DIR=/out -e GOCACHE=/out/gocache \
-      -e GOPATH=/out/gopath -e GOTOOLCHAIN=local -e GOFLAGS=-mod=mod -e CARGO_INCREMENTAL=0 \
-      -e CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}" -e PATH=/opt/rust/bin:/opt/go/bin:/usr/bin:/bin \
-      -w /src "$IMG" cargo build "${flags[@]}"
+    # One cargo invocation per package (P8-spec-002, PREFLIGHT D-P8.2): cargo unifies features across the packages
+    # of one invocation, so building tls-subject (cmvp + indicator) together with aegis-bin would switch aegis-iso's
+    # `indicator` on inside aegis-bin too. Built alone, aegis-bin's graph is exactly its own `cmvp` closure.
+    for p in ${CMVP_PACKAGES:-aegis-bin tls-subject}; do
+      feats="$p/cmvp"; [ "$p" = tls-subject ] && feats="$feats,$p/indicator"
+      flags=(--locked --keep-going --no-default-features -p "$p" --features "$feats")
+      [ "$prof" = release ] && flags+=(--release)
+      echo "cmvp: cargo build ${flags[*]} (AL2023, Go $("$GO/bin/go" version | cut -d' ' -f3))"
+      docker run --rm --user "$(id -u):$(id -g)" \
+        -v "$(realpath "$SRC"):/src:ro" -v "$OUT:/out" -v "$TC:/opt/rust:ro" -v "$GO:/opt/go:ro" \
+        -e HOME=/out/home -e CARGO_HOME=/out/cargo-home -e CARGO_TARGET_DIR=/out -e GOCACHE=/out/gocache \
+        -e GOPATH=/out/gopath -e GOTOOLCHAIN=local -e GOFLAGS=-mod=mod -e CARGO_INCREMENTAL=0 \
+        -e CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}" -e PATH=/opt/rust/bin:/opt/go/bin:/usr/bin:/bin \
+        -w /src "$IMG" cargo build "${flags[@]}"
+    done
     echo "cmvp: BUILD PASS ($prof; outputs in target/cmvp/$prof/)"
     ;;
   *) echo "usage: profiles/cmvp/build.sh [--check|--lock|--metadata|--vet]" >&2; exit 2 ;;

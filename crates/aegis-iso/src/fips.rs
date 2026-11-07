@@ -14,6 +14,10 @@
 //! symbol undefined and the binary fails to link (fail closed, never a wrong string). The dependency on aws-lc-rs
 //! (feature `cmvp` only, no new crate: it is already in both locks) orders that library after this crate in the
 //! link. The string is reported as read; whether it is the certified identity is decided by aegis-tls (P-PQ5).
+//!
+//! Feature `indicator` (PREFLIGHT D-P8.2, P8-spec-002) adds [`with_indicator`]: AWS-LC's FIPS 140-3 service indicator
+//! read around one call, for the cmvp tls-subject `indicator` mode only (never aegis-bin). It takes one more site,
+//! the `extern` block declaring `FIPS_service_indicator_before_call` / `_after_call` (3 sites in this module).
 
 use core::ffi::{CStr, c_char};
 
@@ -41,4 +45,42 @@ pub fn awslc_version_string() -> Option<&'static str> {
     #[allow(unsafe_code)]
     let c: &'static CStr = unsafe { CStr::from_ptr(p) };
     c.to_str().ok()
+}
+
+/// What AWS-LC's FIPS 140-3 service indicator reported for one call (PREFLIGHT D-P8.2; feature `indicator`).
+#[cfg(feature = "indicator")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Indicator {
+    /// The module's per-thread approved-service counter moved during the call: an approved service ran.
+    Approved,
+    /// The counter did not move: no approved service ran in approved mode.
+    NotApproved,
+}
+
+// SAFETY: both declarations match the C prototypes in aws-lc-fips-sys 0.13.11's `openssl/service_indicator.h`
+// (`uint64_t FIPS_service_indicator_before_call(void)` / `..._after_call(void)`): no arguments, a `uint64_t` return
+// (`u64`). Under AWSLC_FIPS each returns the calling thread's approved-service counter (`service_indicator.c`
+// `service_indicator_get_counter`): it reads only module-owned thread-local state, takes no caller memory and has
+// no preconditions, so declaring them `safe` is sound. The 0.13.11 `link_name` prefix makes any other module (and
+// the non-FIPS aws-lc-sys, whose stubs return 0 / 1 and would report every call Approved) a link error, as for
+// `awslc_version_string` above.
+#[cfg(feature = "indicator")]
+#[allow(unsafe_code)]
+unsafe extern "C" {
+    #[link_name = "aws_lc_fips_0_13_11_FIPS_service_indicator_before_call"]
+    safe fn fips_service_indicator_before_call() -> u64;
+    #[link_name = "aws_lc_fips_0_13_11_FIPS_service_indicator_after_call"]
+    safe fn fips_service_indicator_after_call() -> u64;
+}
+
+/// Runs `f` on this thread between AWS-LC's `FIPS_service_indicator_before_call` and `..._after_call` and returns
+/// its result with the indicator verdict (`after != before`: Approved), as AWS-LC documents the pair. The counter is
+/// per thread, so `f` must do its crypto on the calling thread (no spawned task). A verdict says that some approved
+/// service ran inside `f`, not that every service did: callers wrap one primitive per call.
+#[cfg(feature = "indicator")]
+pub fn with_indicator<T>(f: impl FnOnce() -> T) -> (T, Indicator) {
+    let before = fips_service_indicator_before_call();
+    let out = f();
+    let after = fips_service_indicator_after_call();
+    (out, if after != before { Indicator::Approved } else { Indicator::NotApproved })
 }

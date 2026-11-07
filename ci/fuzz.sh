@@ -18,7 +18,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress mcp_gate proxy_v2 client_hello_peek"
+TARGETS_ALL="h1_head token canon_json combiner config audit pdp_wire egress mcp_gate proxy_v2 client_hello_peek pg_message"
 # Listed in the unit but not fuzzable yet (documented in fuzz/Cargo.toml).
 SKIPPED="none"
 # Targets slower than ~10k exec/s on the desktop are split over W processes sharing one corpus (sum of execs >= N).
