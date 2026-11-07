@@ -29,6 +29,10 @@ aws-lc-rs = { workspace = true, optional = true }
 # PLAN-6 D16: `fips::awslc_version_string` (2 audited unsafe sites). Only with the cmvp overlay lock
 # (profiles/cmvp/build.sh); on the floor lock the 0.13.11 symbol does not exist and a binary would not link.
 cmvp = ["dep:aws-lc-rs"]
+# PREFLIGHT D-P8.2 (P8-spec-002): `fips::with_indicator`, AWS-LC's FIPS 140-3 service indicator around one call
+# (1 audited unsafe site: the extern block). Test subjects only (tls-subject `indicator`); never in aegis-bin:
+# profiles/cmvp/build.sh builds aegis-bin in its own cargo invocation so feature unification cannot switch it on there.
+indicator = ["cmvp"]
 # Test-only code (syscall probe, layout report; PLAN-5 D15), enabled through aegis-p2 `test-hooks`. Never shipped.
 test-hooks = []
 # Oracle negative controls only (aegis-p2 `mutants`, aegis-bin `p2-mutants`, PLAN-5 D15). Never shipped.
