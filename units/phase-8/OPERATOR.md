@@ -3,13 +3,15 @@
 The agent did every operator step it can do. What's left needs a human, a legal choice, or hardware. Each item
 says exactly what to do.
 
-## 1. GCP CPU quota for the 64-core run: SUBMITTED by the agent
+## 1. GCP CPU quota for the 64-core run: SUBMITTED, AUTO-DENIED (needs the account owner)
 
 - **Request:** quota preference `aegis-cpus-80` (CPUS_ALL_REGIONS 12 → 80), filed 2026-11-06. 80 covers a
   c2d-standard-64 plus the 8-vCPU aegis-quiet VM. C2D in us-central1 already allows 100.
 - **Check:** `gcloud alpha quotas preferences describe aegis-cpus-80 --project=project-333565b3-9b4b-4ae4-b75`.
   The request is granted when `grantedValue` reads 80.
-- **If denied:** Google refuses increases on free-trial billing accounts. The fix is console → Billing →
+- **Outcome:** denied automatically 2 s after filing (`stateDetail: Quota request denied`), the usual result for a
+  free-trial billing account.
+- **Fix:** Google refuses increases on free-trial billing accounts. The fix is console → Billing →
   "Activate full account". Remaining credit is kept, and it's a step only the account owner can take. Then
   re-file with the same command, or tell the agent to.
 - **Cost once granted:** c2d-standard-64 at about $2.9/h on demand. One run (bench/scaling/README.md
