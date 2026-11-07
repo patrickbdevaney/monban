@@ -12,5 +12,5 @@ e354026e9f401bc6fc8ce5a97dc248a4960737e99eab6d5fdb7e1f24eeeb9e46  F6   frozen   
 a8a0be6d45513b6d3b09b507b13a6186890833c97167fc3357b4b0d0912dc648  F10  frozen               interfaces/F10-module-wire.cddl
 3f7376c7d893cf851de0d78ad97b480a90da144ccbcf424d446da64a37589f39  F11  frozen               interfaces/F11-upgrade-handover.cddl
 8d79d6d8ee4a29b00f1e7e4aadd567eafd984230098df2a1406d9060b34c1b25  F12  provisional:q4-026   tls/verdicts.toml
-e18fba79f70af7e9c3372b99cea54fb011c9738c1684d0b51f4916c5327fa44f  F13  frozen               interfaces/F13-conformance-report.schema.json
+87d087ac3c66d71e9ffddd0faa30a080ec446c11f6d2a03fd4fdc3f715fbed52  F13  frozen               interfaces/F13-conformance-report.schema.json
 0dd774cbedc09d207f1294b2844efc9706b18c3562744a4425e2176ec2515fef  F14  frozen               interfaces/F14-p2-guest-abi.cddl
