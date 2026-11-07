@@ -45,6 +45,8 @@ cur_ip() { [ -s "$STATE/ip" ] || die "VM address unknown: run ci/release/vm.sh s
 
 case "${1:-}" in
   start)
+    # Real-money tripwire (operator 2026-11-06): no VM start once spend net of the credit is above zero.
+    python3 -I "$ROOT/ci/release/spend-guard.py" check || die "spend guard tripped or unreadable; not starting $VM"
     pin_hostkey
     s=$(status)
     if [ "$s" != RUNNING ]; then
