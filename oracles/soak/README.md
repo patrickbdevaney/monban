@@ -98,6 +98,16 @@ See the unit's final report and the commit log for the run lines. The rung of ea
 - `run --self-test` (laptop, 2026-11-06): `SOAK SELF-TEST: PASS (8/8 subject mutants caught ...; 2 clean controls
   pass; 5 judge controls; scale x360)`. Clean controls: aegis-fake RSS slope about +0.1 MiB/h, fds and tasks equal
   to the baseline. Caught: rss-leak at +1.93..1.99 MiB/h, fd-leak at +130..140 fds, task-leak at +78..84 tasks.
+- `ci/remote.sh --host kamrui oracles/soak/run --hours 0.25 --aegis-cpus 2 --client-cpus 1` (2026-11-07 01:23Z,
+  **not the gate host**: kamrui has 4 CPUs and a Kani/CBMC job ran beside it, so this is a substitute for the
+  acceptance's `--host quiet` run, which was not run here) → `SOAK: PASS (0.25 h, 3 segments, 640768 requests at
+  target 712 req/s (calibrated 1431); 0 errors; ...)`. aegis RSS Theil–Sen +0.22 MiB/h (OLS +0.72) over 68
+  samples after a 225 s warm-up; fds 49 → 49, tasks 35 → 35; aegis-otlp +0.00 MiB/h, fds 9 → 9, tasks 2 → 2;
+  audit log TLOG-VERIFY PASS; `runtime.worker_threads` not yet in F8 (binary default 2 workers).
+  Probes: `/px/` alone through the shim 8145 req/s, `/sq/` alone through the shim 998 req/s, both URIs direct
+  1798 req/s. **The SQLite notes read route is the path's ceiling (about 1k req/s on 2 kamrui CPUs)**, not the
+  shim; the soak load is therefore light for the proxy route. An earlier run at 64 × 8 calibration concurrency saw
+  72 5xx out of 39,163 at saturation (load shedding, cause not investigated here).
 
 ## Known limits
 
