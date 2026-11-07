@@ -39,7 +39,7 @@ def main():
     # Run-start marker: gates that consume another gate's log from this run (exception-ledger, conformance) reject
     # any log older than it (PLAN-6 D10).
     with open(os.path.join(outdir, "logs", ".run-start"), "w") as f:
-        f.write(head + "\n")
+        f.write(head + "\n" + f"phase={a.phase}\n")  # xtask ledger-check resolves {phase} in evidence names
     only =set(filter(None, a.only.split(",")))
     vm = os.path.join(ROOT, "ci", "release", "vm.sh")
     quiet_used = False
