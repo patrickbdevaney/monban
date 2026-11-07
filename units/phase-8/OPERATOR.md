@@ -3,19 +3,23 @@
 The agent did every operator step it can do. What's left needs a human, a legal choice, or hardware. Each item
 says exactly what to do.
 
-## 1. GCP CPU quota for the 64-core run: SUBMITTED, AUTO-DENIED (needs the account owner)
+## 1. GCP CPU quota for the 64-core run: DONE
 
-- **Request:** quota preference `aegis-cpus-80` (CPUS_ALL_REGIONS 12 → 80), filed 2026-11-06. 80 covers a
-  c2d-standard-64 plus the 8-vCPU aegis-quiet VM. C2D in us-central1 already allows 100.
-- **Check:** `gcloud alpha quotas preferences describe aegis-cpus-80 --project=project-333565b3-9b4b-4ae4-b75`.
-  The request is granted when `grantedValue` reads 80.
-- **Outcome:** denied automatically 2 s after filing (`stateDetail: Quota request denied`), the usual result for a
-  free-trial billing account.
-- **Fix:** Google refuses increases on free-trial billing accounts. The fix is console → Billing →
-  "Activate full account". Remaining credit is kept, and it's a step only the account owner can take. Then
-  re-file with the same command, or tell the agent to.
-- **Cost once granted:** c2d-standard-64 at about $2.9/h on demand. One run (bench/scaling/README.md
-  "`--gcp`") takes about 1 h.
+- 2026-11-06: the request was auto-denied on the free trial. The operator activated the full account, and the
+  re-filed preference `aegis-cpus-80` was approved: CPUS_ALL_REGIONS is now 80. C2D in us-central1 allows 100.
+- **Queued:** the c2d-standard-64 run (about 1 h, about $2.9/h, paid from the credit) runs after P8-bin-001 wires
+  `runtime.worker_threads`. Until then aegis-bin is capped at 2 tokio workers, and a 64-core curve would only
+  measure that cap.
+- **Real-money tripwire** (operator request):
+  - Budget "aegis tripwire: any real-money spend": USD 1, with credits netted out (INCLUDE_ALL_CREDITS). It
+    emails the billing admins at 1% and 100%, and publishes to Pub/Sub `aegis-budget`.
+  - `ci/release/spend-guard.py` refuses every `vm.sh start` once net spend is above 0. A laptop cron runs it every
+    30 min (`~/.cache/aegis-tools/bin/aegis-spend-guard.py enforce`) and also stops any RUNNING instance.
+  - A second budget, "aegis gross spend vs 300 credit", emails at 25/50/80/95% of $300 gross.
+  - **Limits:** GCP evaluates budgets hours behind actual usage, so a trip can follow cents to a few dollars of real
+    spend. A stopped VM's disk is still billed, at cents per day. The credit's expiry date is shown only in the
+    console (Billing → Credits). An expired credit shows up as net spend, so it trips the same way.
+  - **Remove:** delete the cron line and the two budgets.
 
 ## 2. io-uring 0.7.15 audit countersign: PACKET READY, needs a human
 
