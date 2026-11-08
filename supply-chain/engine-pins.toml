@@ -210,6 +210,8 @@ version = "25.4.19"
 policy = "allow"
 floor = "25.4.18"
 port = 26257
+# 2g = 640 MiB mem store + 64 MiB cache + 768 MiB SQL budget (ci/engines.sh). With a 256 MiB SQL budget, phase-7
+# run 3 hit "ERROR 53200: root: memory budget exceeded" on 4 of 300526 lowering-read cases (engine error).
 memory = "2g"
 advisory = "S-26102609 (fixed v25.4.18)"
 sources = [
