@@ -428,7 +428,7 @@ class Run:
         if e["kind"] == "crdb":
             # in-memory store (>= 640 MiB is CockroachDB's minimum), admin UI on the container's own loopback only
             args += ["start-single-node", "--insecure", "--store=type=mem,size=640MiB", "--cache=64MiB",
-                     "--max-sql-memory=256MiB", "--http-addr=127.0.0.1:8080"]
+                     "--max-sql-memory=768MiB", "--http-addr=127.0.0.1:8080"]
         if e["kind"] in ("valkey", "redis"):
             # explicit server flags: no persistence (throwaway), protected-mode off only because publish is loopback
             exe = "valkey-server" if e["kind"] == "valkey" else "redis-server"
