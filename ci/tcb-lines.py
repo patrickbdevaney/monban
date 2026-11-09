@@ -1,73 +1,161 @@
 #!/usr/bin/env python3
-"""TCB-line gate (IMPLEMENTATION_PLAN §3 Phase 7 "each off by default, own TCB line"; PLAN-7; unit P7-compliance-001).
+"""TCB-line gate (IMPLEMENTATION_PLAN §3 Phase 7 "each off by default, own TCB line"; PLAN-7; unit P7-compliance-001;
+Phase 8 tables and residual R1-R17 table: PLAN-8 W3, unit P8-compliance-001).
 
 Usage: python3 -I ci/tcb-lines.py [--root DIR]
        python3 -I ci/tcb-lines.py --self-test
 
-Stdlib only. Reads SECURITY_CLAIMS.md, compliance/COMPLIANCE_MAP.md and gates/phase-7.toml under the root.
+Stdlib only. Reads SECURITY_CLAIMS.md, compliance/COMPLIANCE_MAP.md and gates/phase-8.toml (which carries every
+Phase-7 gate) under the root.
 
-Each of the two files carries the same two tables:
+Each of the two files carries the same four tables:
   TCB table       SECURITY_CLAIMS "## Phase 7: one TCB line per feature" / COMPLIANCE_MAP "### 4.2 Phase-7 TCB lines";
                   columns feature | new surface | gate_id | rung | residuals, one row per Phase-7 feature
   deferred table  SECURITY_CLAIMS "### Phase 7: deferred and blocked" / COMPLIANCE_MAP "### 4.3 Phase-7 deferred ...";
                   columns item | status | evidence | gate_id | re-check
+  Phase-8 TCB     SECURITY_CLAIMS "## Phase 8: TCB changes" / COMPLIANCE_MAP "### 4.4 Phase-8 TCB changes"; same columns
+                  as the TCB table, one row per Phase-8 change that adds or moves trusted surface (CHANGES)
+  residual table  SECURITY_CLAIMS "## Phase 8: residuals R1-R17" / COMPLIANCE_MAP "### 4.5 Phase-8 residuals R1-R17";
+                  columns # | residual | status | rung | gate_id | evidence, one row per PREFLIGHT-8 §P2 residual
 
 check fails (last line `TCB-LINES: FAIL (<n> violation(s): <tags>)`, exit 1) on:
   structure        a table missing, a header without the required columns, or a row whose cell count differs
-  feature-missing  a Phase-7 feature (FEATURES) without a row in a file's TCB table
+  feature-missing  a Phase-7 feature (FEATURES) or a Phase-8 change (CHANGES) without a row in a file's table
   feature-dup      a feature (or a deferred item) with more than one row, or a row for an unknown feature
   surface          a surface cell that does not name all three of `crates:`, `C:` and `kernel:` (value may be none)
-  gate-id          a gate_id cell that is empty, not only backticked names, or names a gate not in gates/phase-7.toml
+  gate-id          a gate_id cell that is empty, not only backticked names, or names a gate not in gates/phase-8.toml
+  gate-required    a row that does not name the gate whose run closed (or judges) it (GATE_REQUIRED, RES_GATES)
+  stale            a Phase-7 residual cell that still states a residual Phase 8 closed (STALE)
   rung             a rung cell without an R0..R4 rung
   residual         an empty residual cell, or one that drops a residual this feature must carry (REQUIRED)
-  mismatch         the two files disagree on a feature's gate ids or rungs
+  mismatch         the two files disagree on a feature's / change's gate ids or rungs, or on a residual's status,
+                   gate ids or rungs
   deferred         HTTP/3 / WebTransport row missing, not "deferred" with the 2026-11-06 evidence date and the
                    2027-03-30 re-check, or either file calling HTTP/3 / WebTransport "unsupported by design"
-  blocked          the 64-core row missing, or not "blocked" on GCP quota with CPUS_ALL_REGIONS = 12
+  blocked          the 64-core row missing, or neither (a) "running"/"queued" on the approved quota
+                   (CPUS_ALL_REGIONS = 80) with the TO-FILL(64-core) placeholder in its evidence, nor (b) "measured
+                   <date>" with c2d-standard-64 evidence called provisional and no placeholder
+  residual-table   R1..R17 not each present once, a status not closed/partial/carried, no rung, a short evidence
+                   cell, or a row that drops a fact it must carry (RES_REQ: D-P8.1 text for R1, the uncovered 0x11EB/
+                   0x0202 client paths for R2, the cmvp config_sha256 pin for R3, the unrun 2 h quiet soak for R17,
+                   ...) or claims "closed" where the evidence stops (RES_NOT_CLOSED)
+  pqc4             no sentence in a file records rustls PR #3376 as closed unmerged under R-PQC-4
   trusted-list     SECURITY_CLAIMS "Not proven" table lacks a row for one of hyper, h2, tokio, rustls, AWS-LC C,
                    rustc, io_uring, libcrux; or the COMPLIANCE_MAP **Trusted, not verified** paragraph lacks io_uring
                    or libcrux
   proven           a table cell or sentence in either file that calls hyper, h2, tokio, rustls, AWS-LC, rustc/LLVM,
                    io_uring/io-uring, libcrux or the kernel proven/proved/verified without a negation
-  pending          a `PENDING(` marker left in either file (P7-bin-001 has landed; its residuals must be filled in)
+  pending          a `PENDING(` marker left in either file (P7-bin-001 has landed; its residuals must be filled in),
+                   or a `TO-FILL(` marker anywhere but the evidence cell of the 64-core row
 
 --self-test requires the real files and the fixture tree ci/fixtures/tcb-lines/good/ to PASS, then applies every
 mutant to a copy of each and requires exactly the expected tag set. Last line `TCB-LINES SELF-TEST: PASS|FAIL (...)`.
 """
 import os, re, shutil, sys, tempfile, tomllib
 
-SC, CM, GATES = "SECURITY_CLAIMS.md", "compliance/COMPLIANCE_MAP.md", "gates/phase-7.toml"
+SC, CM, GATES = "SECURITY_CLAIMS.md", "compliance/COMPLIANCE_MAP.md", "gates/phase-8.toml"
 FEATURES = ["proxy-protocol", "l4", "uring", "mtc", "adapter-mariadb", "adapter-crdb", "aegis-otlp", "libcrux-spike"]
+# Phase-8 changes that add or move trusted surface (PLAN-8 Units; PREFLIGHT-8 §P2). MariaDB serving, crdb cancel,
+# SEL-3 and OTLP retry change Phase-7 features and are judged on those rows (GATE_REQUIRED, STALE).
+CHANGES = ["test-faults", "indicator", "runtime.worker_threads", "idempotency-retention", "route-path-refusal",
+           "pg-adapter-hardening", "egress-tls-client", "chunked-one-response", "mldsa-cosigner"]
 TABLES = {  # (file, kind) -> heading regex
     (SC, "tcb"): r"^## Phase 7: one TCB line per feature",
     (SC, "deferred"): r"^### Phase 7: deferred and blocked",
+    (SC, "tcb8"): r"^## Phase 8: TCB changes",
+    (SC, "res8"): r"^## Phase 8: residuals R1",
     (CM, "tcb"): r"^### 4\.2 Phase-7 TCB lines",
     (CM, "deferred"): r"^### 4\.3 Phase-7 deferred and blocked",
+    (CM, "tcb8"): r"^### 4\.4 Phase-8 TCB changes",
+    (CM, "res8"): r"^### 4\.5 Phase-8 residuals R1",
 }
 COLS = {"tcb": ("feature", "new surface", "gate_id", "rung", "residuals"),
-        "deferred": ("item", "status", "evidence", "gate_id", "re-check")}
+        "tcb8": ("feature", "new surface", "gate_id", "rung", "residuals"),
+        "deferred": ("item", "status", "evidence", "gate_id", "re-check"),
+        "res8": ("#", "residual", "status", "rung", "gate_id", "evidence")}
 # residuals each feature must carry (P7 reports; PLAN-7 "Residual claims to keep honest"). (label, regex)
 REQUIRED = {
     "proxy-protocol": [("UNIX family not Kani-covered", r"UNIX"), ("TLV > 10 bytes bound", r"TLV[^|]*\b10 bytes"),
                        ("8 KiB bitmap", r"8 KiB"), ("bitmap only by exhaustive unit test", r"exhaustive unit test"),
                        ("trusted CIDR only", r"trusted CIDR")],
     "l4": [("ext > 12 bytes bound", r"ext[^|]*\b12 bytes"), ("8 KiB bitmap", r"8 KiB"),
-           ("bitmap only by exhaustive unit test", r"exhaustive unit test"), ("idle timeout has no oracle", r"idle timeout[^|]*no oracle")],
+           ("bitmap only by exhaustive unit test", r"exhaustive unit test"),
+           ("idle timeout judged on one host only", r"idle timeout[^|]*bin-residuals[^|]*one host")],
     "uring": [("io_uring kernel surface", r"kernel attack surface[^|]*io_uring"), ("agent vet audit", r"agent review"),
               ("operator countersign", r"countersign"), ("X-19 unsafe", r"X-19")],
     "mtc": [("selection only", r"selection only"), ("codepoint 0xCA34", r"0xCA34"), ("experimental codepoint", r"experimental"),
-            ("no MTC validity claim", r"no MTC validity"), ("not driven through aegis-bin", r"no gate drives")],
-    "adapter-mariadb": [("not servable / boots fail closed", r"not servable"), ("no pool", r"no pool"),
+            ("no MTC validity claim", r"no MTC validity"),
+            ("bin-residuals probe limits", r"does not finish the handshake")],
+    "adapter-mariadb": [("pool only via is_reusable", r"is_reusable"), ("kamrui only so far", r"kamrui only"),
                         ("no cancel", r"no cancel"), ("write forms not live-tested", r"not live-tested"),
                         ("loopback only", r"loopback only"), ("no TLS", r"no TLS"), ("no RLS", r"no RLS")],
-    "adapter-crdb": [("40001 retry only unit-tested", r"40001[^|]*only unit-tested"), ("no RLS", r"no RLS"),
-                     ("40001 surfaces as conflict", r"surfaces as a conflict"), ("CancelRequest untested", r"CancelRequest[^|]*untested")],
-    "aegis-otlp": [("https not oracle-covered", r"https"), ("retry", r"retry"), ("backpressure", r"backpressure"),
-                   ("not oracle-covered", r"not oracle-covered")],
+    "adapter-crdb": [("no whole-transaction retry", r"no whole-transaction retry"), ("no RLS", r"no RLS"),
+                     ("40001 surfaces as conflict", r"surfaces as a conflict"),
+                     ("CancelRequest not told from close", r"cannot tell a CancelRequest from closing")],
+    "aegis-otlp": [("Retry-After not covered", r"Retry-After"), ("drop-oldest not covered", r"drop-oldest"),
+                   ("backpressure", r"backpressure"), ("not oracle-covered", r"not oracle-covered")],
     "libcrux-spike": [("2.5-3x slower", r"2\.5-3\s*[×x]"), ("not side-channel verified", r"not verified side-channel"),
                       ("cfg(hax) advisory", r"cfg\(hax\)"), ("accepted until 2027-02-06", r"until 2027-02-06"),
                       ("spike, not shipped", r"not a shipped")],
 }
+REQUIRED8 = {
+    "test-faults": [("enabled only by acme-subject", r"acme-subject"), ("compile-time only", r"compile-time")],
+    "indicator": [("never in aegis-bin", r"never in aegis-bin"), ("not a CMVP validation", r"not a CMVP validation"),
+                  ("TLS 1.3 KDF no CAVP row", r"TLS 1\.3 KDF has no CAVP row"), ("one host", r"one host")],
+    "runtime.worker_threads": [("absent = 2", r"absent = 2"), ("advisory", r"advisory"), ("provisional", r"provisional"),
+                               ("agent runtime still 2", r"agent[^|]*2 workers")],
+    "idempotency-retention": [("absent = never expire", r"absent = never expire"),
+                              ("not applied by aegis-bin", r"not applied by aegis-bin")],
+    "route-path-refusal": [("fails closed at load", r"fails closed at load")],
+    "pg-adapter-hardening": [("no live non-ASCII PG test", r"no live PG[^|]*non-ASCII")],
+    "egress-tls-client": [("one peer stack", r"one peer stack"), ("revocation not probed", r"revocation")],
+    "chunked-one-response": [("h1 only", r"h1 over TLS only"), ("hyper trusted", r"hyper is trusted")],
+    "mldsa-cosigner": [("floor build only", r"floor build only"), ("not interoperable", r"not interoperable"),
+                       ("external witness", r"external witness")],
+}
+# gates a row must name: the gate whose run closed a Phase-7 residual, or the gate that judges a Phase-8 change
+GATE_REQUIRED = {
+    "l4": {"bin-residuals"}, "mtc": {"bin-residuals"}, "adapter-mariadb": {"native-e2e-mariadb", "allowlist-lock"},
+    "adapter-crdb": {"crdb-live"}, "aegis-otlp": {"otlp-export"},
+    "test-faults": {"no-test-faults"}, "indicator": {"fips-indicator", "fips-boundary", "unsafe-sites"},
+    "runtime.worker_threads": {"scaling", "config-totality"}, "idempotency-retention": {"state-props"},
+    "route-path-refusal": {"config-totality"}, "pg-adapter-hardening": {"fuzz"}, "egress-tls-client": {"egress-tls-e2e"},
+    "chunked-one-response": {"bin-residuals"}, "mldsa-cosigner": {"tlog-mldsa-openssl"},
+}
+# Phase-7 residual wording that Phase 8 made false (a stale residual is a wrong claim, in either direction)
+STALE = {
+    "l4": [r"idle timeout[^|]*no oracle"],
+    "mtc": [r"no gate drives"],
+    "uring": [r"not fixed"],
+    "adapter-mariadb": [r"not servable", r"no pool\b"],
+    "adapter-crdb": [r"CancelRequest[^|]*untested", r"no live contention test", r"40001 retry is only unit-tested"],
+    "aegis-otlp": [r"https endpoint[^|]*not oracle-covered", r"there is no retry"],
+}
+RESIDUALS = [f"R{i}" for i in range(1, 18)]
+RES_STATUS = re.compile(r"^(closed|partial|carried)\b")
+RES_GATES = {"R1": {"fips-boundary", "fips-indicator"}, "R2": {"kani-kx-client"}, "R3": {"conformance-full"},
+             "R4": {"native-e2e-mariadb"}, "R5": {"scaling"}, "R6": {"bin-residuals"}, "R7": {"bin-residuals"},
+             "R8": {"crdb-live"}, "R9": {"otlp-export"}, "R10": {"tlog-mldsa-openssl"}, "R11": {"no-test-faults"},
+             "R12": {"state-props"}, "R13": {"config-totality"}, "R14": {"fuzz"}, "R15": {"egress-tls-e2e"},
+             "R16": {"engine-pins-kamrui"}, "R17": {"soak"}}
+# residuals whose evidence stops short of the PLAN-8 claim: never "closed" until the named evidence exists
+RES_NOT_CLOSED = {"R2": "0x11EB / 0x0202 client paths are not Kani-covered (P8-kani-001 INFEASIBLE_REPORT)",
+                  "R3": "conformance-full is red until the cmvp config_sha256 pin exists",
+                  "R5": "the 64-core run is separate and advisory", "R9": "drop-oldest under backpressure is not covered",
+                  "R12": "aegis-bin does not apply the F8 retention on PG, CockroachDB or MariaDB backends (refused at boot)", "R17": "the 2 h soak on quiet has not run"}
+RES_REQ = {  # facts each residual row's evidence (or rung) must carry
+    "R1": [("D-P8.1 component text", r"#5314-approved components"), ("combiner SP 800-227", r"SP 800-227 §4\.6\.2"),
+           ("composite NOT CLAIMED", r"NOT CLAIMED"), ("#5298 dynamic not cited", r"#5298 is the dynamic module")],
+    "R2": [("0x11EB not covered", r"0x11EB"), ("0x0202 only in AWS-LC C", r"0x0202[^|]*AWS-LC C"),
+           ("INFEASIBLE report", r"INFEASIBLE_REPORT")],
+    "R3": [("cmvp config_sha256 pin", r"config_sha256"), ("from the first release-rebuild", r"release-rebuild")],
+    "R4": [("unit runs kamrui only", r"kamrui only")],
+    "R5": [("64-core row", r"64-core scaling run"), ("provisional", r"provisional")],
+    "R12": [("not applied by aegis-bin", r"aegis-bin does not apply")],
+    "R17": [("2 h", r"\b2 h\b"), ("aegis-quiet", r"quiet"), ("not yet run", r"not\s+(?:yet\s+)?(?:been\s+)?run"),
+            ("15-min substitute", r"0\.25 h|15-min"), ("no soak claim", r"no soak claim")],
+}
+TOFILL = "TO-FILL(64-core)"
 RUNG = re.compile(r"\bR[0-4]\b")
 TRUSTED_SC = [("hyper", r"\bhyper\b"), ("h2", r"\bh2\b"), ("tokio", r"\btokio\b"), ("rustls", r"\brustls\b"),
               ("AWS-LC C", r"AWS-LC C"), ("rustc", r"\brustc\b"), ("io_uring", r"io_uring"), ("libcrux", r"\blibcrux\b")]
@@ -172,42 +260,93 @@ def check(root):
                 E("gate-id", f"{f}:{ln}: {what}: gate {g!r} is not a gate in {GATES}")
         return set(ids)
 
-    # TCB tables
+    # TCB tables (Phase 7 features, Phase 8 changes)
     seen = {}
-    for f in (SC, CM):
-        t = parsed.get((f, "tcb"))
-        if t is None:
-            continue
-        for key in t:
-            if key not in FEATURES:
-                E("feature-dup", f"{f}:{t[key][0]}: row for unknown feature {key!r} (known: {', '.join(FEATURES)})")
-        for feat in FEATURES:
-            if feat not in t:
-                E("feature-missing", f"{f}: no TCB line for Phase-7 feature {feat!r}")
+    for kind, names, required, what in (("tcb", FEATURES, REQUIRED, "Phase-7 feature"),
+                                        ("tcb8", CHANGES, REQUIRED8, "Phase-8 change")):
+        for f in (SC, CM):
+            t = parsed.get((f, kind))
+            if t is None:
                 continue
-            ln, r = t[feat]
-            for lab in ("crates:", "C:", "kernel:"):
-                if not re.search(r"(^|[\s;(])" + re.escape(lab), r["new surface"]):
-                    E("surface", f"{f}:{ln}: {feat}: surface does not name {lab!r} (write 'none' if nothing new)")
-            gids = gate_cell(f, ln, feat, r["gate_id"])
-            rungs = set(RUNG.findall(r["rung"]))
-            if not rungs:
-                E("rung", f"{f}:{ln}: {feat}: rung cell names no rung R0..R4: {r['rung'][:60]!r}")
-            res = r["residuals"]
-            if not res or res in ("—", "-", "none"):
-                E("residual", f"{f}:{ln}: {feat}: empty residuals")
-            else:
-                for lab, rx in REQUIRED.get(feat, []):
-                    if not re.search(rx, res, re.I):
-                        E("residual", f"{f}:{ln}: {feat}: residuals drop '{lab}'")
-            seen.setdefault(feat, {})[f] = (gids, rungs)
-    for feat, by in seen.items():
+            for key in t:
+                if key not in names:
+                    E("feature-dup", f"{f}:{t[key][0]}: row for unknown {what} {key!r} (known: {', '.join(names)})")
+            for feat in names:
+                if feat not in t:
+                    E("feature-missing", f"{f}: no TCB line for {what} {feat!r}")
+                    continue
+                ln, r = t[feat]
+                for lab in ("crates:", "C:", "kernel:"):
+                    if not re.search(r"(^|[\s;(])" + re.escape(lab), r["new surface"]):
+                        E("surface", f"{f}:{ln}: {feat}: surface does not name {lab!r} (write 'none' if nothing new)")
+                gids = gate_cell(f, ln, feat, r["gate_id"])
+                for g in sorted(GATE_REQUIRED.get(feat, set()) - gids):
+                    E("gate-required", f"{f}:{ln}: {feat}: gate_id does not name `{g}`, the gate that judges this row")
+                rungs = set(RUNG.findall(r["rung"]))
+                if not rungs:
+                    E("rung", f"{f}:{ln}: {feat}: rung cell names no rung R0..R4: {r['rung'][:60]!r}")
+                res = r["residuals"]
+                if not res or res in ("—", "-", "none"):
+                    E("residual", f"{f}:{ln}: {feat}: empty residuals")
+                else:
+                    for lab, rx in required.get(feat, []):
+                        if not re.search(rx, res, re.I):
+                            E("residual", f"{f}:{ln}: {feat}: residuals drop '{lab}'")
+                for rx in STALE.get(feat, []):
+                    m = re.search(rx, res + " | " + r["rung"], re.I)
+                    if m:
+                        E("stale", f"{f}:{ln}: {feat}: still states a residual Phase 8 closed: {m.group(0)!r}")
+                seen.setdefault((kind, feat), {})[f] = (gids, rungs)
+    for (kind, feat), by in seen.items():
         if len(by) == 2:
             (g1, r1), (g2, r2) = by[SC], by[CM]
             if g1 != g2:
                 E("mismatch", f"{feat}: gate ids differ: {SC} {sorted(g1)} vs {CM} {sorted(g2)}")
             if r1 and r2 and r1 != r2:
                 E("mismatch", f"{feat}: rungs differ: {SC} {sorted(r1)} vs {CM} {sorted(r2)}")
+
+    # Phase-8 residual table R1..R17
+    rseen = {}
+    for f in (SC, CM):
+        t = parsed.get((f, "res8"))
+        if t is None:
+            continue
+        for key in t:
+            if key not in RESIDUALS:
+                E("residual-table", f"{f}:{t[key][0]}: row {key!r} is not a PREFLIGHT-8 residual R1..R17")
+        for rid in RESIDUALS:
+            if rid not in t:
+                E("residual-table", f"{f}: no row for residual {rid}")
+                continue
+            ln, r = t[rid]
+            m = RES_STATUS.match(r["status"])
+            if not m:
+                E("residual-table", f"{f}:{ln}: {rid}: status must start with closed, partial or carried: {r['status'][:40]!r}")
+            status = m.group(1) if m else None
+            if status == "closed" and rid in RES_NOT_CLOSED:
+                E("residual-table", f"{f}:{ln}: {rid}: 'closed' overclaims: {RES_NOT_CLOSED[rid]}")
+            gids = gate_cell(f, ln, rid, r["gate_id"])
+            for g in sorted(RES_GATES.get(rid, set()) - gids):
+                E("gate-required", f"{f}:{ln}: {rid}: gate_id does not name `{g}`, the evidence gate")
+            rungs = set(RUNG.findall(r["rung"]))
+            if not rungs:
+                E("residual-table", f"{f}:{ln}: {rid}: rung cell names no rung R0..R4: {r['rung'][:60]!r}")
+            if len(r["evidence"]) < 40:
+                E("residual-table", f"{f}:{ln}: {rid}: evidence cell is empty or too short")
+            body = r["rung"] + " | " + r["evidence"]
+            for lab, rx in RES_REQ.get(rid, []):
+                if not re.search(rx, body):
+                    E("residual-table", f"{f}:{ln}: {rid}: drops '{lab}'")
+            rseen.setdefault(rid, {})[f] = (status, gids, rungs)
+    for rid, by in rseen.items():
+        if len(by) == 2 and by[SC] != by[CM]:
+            E("mismatch", f"{rid}: status/gates/rungs differ: {SC} {by[SC][0]} {sorted(by[SC][1])} {sorted(by[SC][2])} "
+                          f"vs {CM} {by[CM][0]} {sorted(by[CM][1])} {sorted(by[CM][2])}")
+
+    # rustls #3376 under R-PQC-4 (PREFLIGHT-8 P1)
+    for f in (SC, CM):
+        if not any("#3376" in u and re.search(r"closed unmerged", u) and "R-PQC-4" in u for u in units(texts[f])):
+            E("pqc4", f"{f}: no sentence records rustls PR #3376 as closed unmerged under R-PQC-4")
 
     # deferred / blocked tables
     for f in (SC, CM):
@@ -233,15 +372,23 @@ def check(root):
             E("blocked", f"{f}: no row for the 64-core scaling run")
         else:
             ln, r = t["64-core scaling run"]
-            if not (re.search(r"\bblocked\b", r["status"], re.I) and re.search(r"quota", r["status"], re.I)
-                    and re.search(r"CPUS_ALL_REGIONS\s*=\s*12\b", r["status"])):
-                E("blocked", f"{f}:{ln}: 64-core status must be 'blocked on GCP quota (CPUS_ALL_REGIONS = 12 ...)'")
+            st, ev = r["status"], r["evidence"]
+            waiting = (re.search(r"\b(running|queued)\b", st, re.I) and re.search(r"CPUS_ALL_REGIONS\s*=\s*80\b", st)
+                       and TOFILL in ev)
+            measured = (re.search(r"\bmeasured\s+20\d\d-\d\d-\d\d\b", st) and "c2d-standard-64" in ev
+                        and re.search(r"\bprovisional\b", ev) and TOFILL not in ev)
+            if not (waiting or measured):
+                E("blocked", f"{f}:{ln}: 64-core row must be 'running'/'queued' on CPUS_ALL_REGIONS = 80 with the {TOFILL} "
+                             f"placeholder, or 'measured <date>' with c2d-standard-64 evidence called provisional")
     for f in (SC, CM):
         for n, ln in enumerate(texts[f].splitlines(), 1):
             if BY_DESIGN.search(ln):
                 E("deferred", f"{f}:{n}: {BY_DESIGN.search(ln).group(0)!r}: HTTP/3/WebTransport are deferred, not by design")
             if "PENDING(" in ln:
                 E("pending", f"{f}:{n}: unfilled PENDING marker")
+            if "TO-FILL(" in ln and not (ln.startswith("| 64-core scaling run |") and ln.count("TO-FILL(") == 1
+                                         and len(split_row(ln)) > 2 and TOFILL in split_row(ln)[2]):
+                E("pending", f"{f}:{n}: TO-FILL marker outside the 64-core row's evidence cell")
 
     # trusted lists
     lines = texts[SC].splitlines()
@@ -276,9 +423,11 @@ def run_check(root):
     if errs:
         print(f"TCB-LINES: FAIL ({len(errs)} violation(s): {', '.join(sorted({t for t, _ in errs}))})")
         return 1
-    print(f"TCB-LINES: PASS ({len(FEATURES)} Phase-7 features x 2 files ({SC}, {CM}), each naming crates/C/kernel "
-          f"surface, rung and residuals; {st['gids']} gate ids, all in {GATES}; HTTP/3 + WebTransport deferred "
-          f"(2026-11-06, re-check 2027-03-30); 64-core run blocked on quota; no trusted component called proven)")
+    print(f"TCB-LINES: PASS ({len(FEATURES)} Phase-7 features + {len(CHANGES)} Phase-8 changes x 2 files ({SC}, {CM}), "
+          f"each naming crates/C/kernel surface, rung, residuals and its judging gate; residuals R1-R17 each closed/"
+          f"partial/carried with rung and evidence gate; {st['gids']} gate ids, all in {GATES}; HTTP/3 + WebTransport "
+          f"deferred (2026-11-06, re-check 2027-03-30); 64-core row tracked; rustls #3376 recorded; no trusted "
+          f"component called proven)")
     return 0
 
 
@@ -316,6 +465,30 @@ def set_cell(f, key, col, fn, kind="tcb"):
             return _row_re(key).sub(one, s, count=1)
         _rw(f"{r}/{f}", edit)
     return mut
+
+
+def edit_row(f, key, fn, kind):
+    """Edit several cells of one row at once: fn({col: cell}) -> {col: cell}."""
+    cols = COLS[kind]
+
+    def mut(r):
+        def one(m):
+            cells = fn(dict(zip(cols, split_row(m.group(0)))))
+            return "| " + " | ".join(cells[c] for c in cols) + " |\n"
+        _rw(f"{r}/{f}", lambda s: _row_re(key).sub(one, s, count=1))
+    return mut
+
+
+def scaling_mut(f, waiting, measured):
+    """A 64-core-row mutant for either state of the row: `waiting` (TO-FILL placeholder in the evidence; the fixture)
+    or `measured` (the filled row, once the run is recorded). Each must make the row red in its own state."""
+    return edit_row(f, "64-core scaling run", lambda c: (waiting if TOFILL in c["evidence"] else measured)(dict(c)),
+                    kind="deferred")
+
+
+def _cells(c, **kw):
+    c.update(kw)
+    return c
 
 
 def both(*muts):
@@ -358,8 +531,8 @@ MUTANTS = [
     # brief: a TCB line citing a gate id that doesn't exist
     ("gate-id-unknown", {"gate-id"}, both(*(set_cell(f, "mtc", "gate_id", lambda c: c.replace("`cred-select`", "`cred-select-x`")) for f in (SC, CM)))),
     ("gate-removed-from-toml", {"gate-id"}, drop_gate("kani-wire")),
-    ("gate-id-unquoted", {"gate-id"}, both(*(set_cell(f, "aegis-otlp", "gate_id", lambda c: c.replace("`otlp-export`", "otlp-export")) for f in (SC, CM)))),
-    ("gate-id-empty", {"gate-id", "mismatch"}, set_cell(CM, "l4", "gate_id", lambda c: "—")),
+    ("gate-id-unquoted", {"gate-id", "gate-required"}, both(*(set_cell(f, "aegis-otlp", "gate_id", lambda c: c.replace("`otlp-export`", "otlp-export")) for f in (SC, CM)))),
+    ("gate-id-empty", {"gate-id", "mismatch", "gate-required"}, set_cell(CM, "l4", "gate_id", lambda c: "—")),
     ("gate-id-mismatch", {"mismatch"}, set_cell(SC, "uring", "gate_id", lambda c: c + ", `tests`")),
     # surface naming
     ("uring-no-kernel", {"surface"}, set_cell(SC, "uring", "new surface", lambda c: c.replace("kernel:", "linux"))),
@@ -376,9 +549,50 @@ MUTANTS = [
     ("mtc-no-codepoint", {"residual"}, set_cell(CM, "mtc", "residuals", lambda c: c.replace("0xCA34", "the codepoint"))),
     ("mariadb-tls", {"residual"}, set_cell(SC, "adapter-mariadb", "residuals", lambda c: c.replace("loopback only and no TLS", "TLS"))),
     ("mariadb-no-rls-dropped", {"residual"}, set_cell(SC, "adapter-mariadb", "residuals", lambda c: c.replace("no RLS", "RLS"))),
-    ("mariadb-servable", {"residual"}, set_cell(CM, "adapter-mariadb", "residuals", lambda c: c.replace("not servable", "servable"))),
-    ("crdb-40001-live", {"residual"}, set_cell(SC, "adapter-crdb", "residuals", lambda c: c.replace("only unit-tested", "live-tested"))),
+    ("mariadb-no-reusable", {"residual"}, set_cell(CM, "adapter-mariadb", "residuals", lambda c: c.replace("is_reusable", "a check"))),
+    ("crdb-40001-retried", {"residual"}, set_cell(SC, "adapter-crdb", "residuals", lambda c: c.replace("no whole-transaction retry", "a whole-transaction retry"))),
     ("otlp-no-backpressure", {"residual"}, set_cell(SC, "aegis-otlp", "residuals", lambda c: c.replace("backpressure", "load"))),
+    ("otlp-retry-after-dropped", {"residual"}, set_cell(CM, "aegis-otlp", "residuals", lambda c: c.replace("`Retry-After`, ", ""))),
+    # Phase 8: Phase-7 rows must name the gate that closed their residual, and must not keep the closed wording
+    ("mariadb-no-e2e-gate", {"gate-required"}, both(*(set_cell(f, "adapter-mariadb", "gate_id", lambda c: c.replace(", `native-e2e-mariadb`", "")) for f in (SC, CM)))),
+    ("crdb-no-live-gate", {"gate-required"}, both(*(set_cell(f, "adapter-crdb", "gate_id", lambda c: c.replace(", `crdb-live`", "")) for f in (SC, CM)))),
+    ("mtc-no-bin-gate", {"gate-required"}, both(*(set_cell(f, "mtc", "gate_id", lambda c: c.replace(", `bin-residuals`", "")) for f in (SC, CM)))),
+    ("stale-mariadb-not-servable", {"stale"}, set_cell(SC, "adapter-mariadb", "residuals", lambda c: c + "; not servable")),
+    ("stale-crdb-cancel", {"stale"}, set_cell(CM, "adapter-crdb", "residuals", lambda c: c + "; the CancelRequest (discard) path is untested")),
+    ("stale-l4-idle", {"stale"}, set_cell(SC, "l4", "residuals", lambda c: c + "; the idle timeout after routing has no oracle")),
+    ("stale-uring-400", {"stale"}, set_cell(CM, "uring", "residuals", lambda c: c + "; the double 400 is not fixed")),
+    ("stale-mtc-bin", {"stale"}, set_cell(SC, "mtc", "residuals", lambda c: c + "; no gate drives `trust_anchors` through aegis-bin")),
+    ("l4-idle-one-host-dropped", {"residual"}, set_cell(SC, "l4", "residuals", lambda c: c.replace("one host", "every host"))),
+    # Phase-8 TCB changes
+    ("p8-indicator-line-missing", {"feature-missing"}, drop_row(CM, "indicator")),
+    ("p8-unknown-change", {"feature-dup", "feature-missing"}, set_cell(SC, "mldsa-cosigner", "feature", lambda c: "`mldsa-witness`")),
+    ("p8-indicator-no-gate", {"gate-required"}, both(*(set_cell(f, "indicator", "gate_id", lambda c: c.replace("`fips-indicator`, ", "")) for f in (SC, CM)))),
+    ("p8-indicator-in-bin", {"residual"}, set_cell(SC, "indicator", "residuals", lambda c: c.replace("never in aegis-bin", "also in aegis-bin"))),
+    ("p8-indicator-cmvp-validation", {"residual"}, set_cell(CM, "indicator", "residuals", lambda c: c.replace("not a CMVP validation", "a CMVP validation"))),
+    ("p8-retention-applied", {"residual"}, set_cell(SC, "idempotency-retention", "residuals", lambda c: c.replace("not applied by aegis-bin", "applied"))),
+    ("p8-workers-agent-dropped", {"residual"}, set_cell(CM, "runtime.worker_threads", "residuals", lambda c: re.sub(r";[^;]*agent[^;]*$", "", c))),
+    ("p8-cosigner-cmvp", {"residual"}, set_cell(SC, "mldsa-cosigner", "residuals", lambda c: c.replace("floor build only", "every build"))),
+    ("p8-change-no-kernel", {"surface"}, set_cell(SC, "egress-tls-client", "new surface", lambda c: c.replace("kernel:", "os"))),
+    ("p8-change-rung-mismatch", {"mismatch"}, set_cell(CM, "egress-tls-client", "rung", lambda c: c.replace("R2", "R3", 1))),
+    # Phase-8 residual table R1..R17
+    ("res-r17-missing", {"residual-table"}, drop_row(SC, "R17")),
+    ("res-r4-dup", {"feature-dup"}, dup_row(CM, "R4")),
+    ("res-soak-closed", {"residual-table"}, both(*(set_cell(f, "R17", "status", lambda c: "closed", kind="res8") for f in (SC, CM)))),
+    ("res-soak-2h-claimed-run", {"residual-table"}, set_cell(SC, "R17", "evidence", lambda c: re.sub(r"has not been run yet|not yet run", "PASSED", c), kind="res8")),
+    ("res-kani-closed", {"residual-table"}, both(*(set_cell(f, "R2", "status", lambda c: "closed", kind="res8") for f in (SC, CM)))),
+    ("res-kani-no-0x11eb", {"residual-table"}, set_cell(CM, "R2", "evidence", lambda c: c.replace("0x11EB", "the other hybrid"), kind="res8")),
+    ("res-conformance-closed", {"residual-table"}, both(*(set_cell(f, "R3", "status", lambda c: "closed", kind="res8") for f in (SC, CM)))),
+    ("res-conformance-no-pin", {"residual-table"}, set_cell(SC, "R3", "evidence", lambda c: c.replace("config_sha256", "hash"), kind="res8")),
+    ("res-r1-no-combiner", {"residual-table"}, set_cell(SC, "R1", "evidence", lambda c: c.replace("SP 800-227 §4.6.2", "a combiner"), kind="res8")),
+    ("res-r1-no-5314-text", {"residual-table"}, set_cell(CM, "R1", "evidence", lambda c: c.replace("#5314-approved components", "approved parts"), kind="res8")),
+    ("res-retention-closed", {"residual-table"}, both(*(set_cell(f, "R12", "status", lambda c: "closed", kind="res8") for f in (SC, CM)))),
+    ("res-bad-status", {"residual-table", "mismatch"}, set_cell(SC, "R10", "status", lambda c: "done", kind="res8")),
+    ("res-status-mismatch", {"mismatch"}, set_cell(SC, "R13", "status", lambda c: "carried", kind="res8")),
+    ("res-no-rung", {"residual-table", "mismatch"}, set_cell(CM, "R15", "rung", lambda c: "end to end", kind="res8")),
+    ("res-gate-unknown", {"gate-id", "gate-required"}, both(*(set_cell(f, "R8", "gate_id", lambda c: c.replace("`crdb-live`", "`crdb-livex`"), kind="res8") for f in (SC, CM)))),
+    ("res-gate-dropped", {"gate-required"}, both(*(set_cell(f, "R4", "gate_id", lambda c: c.replace("`native-e2e-mariadb`, ", ""), kind="res8") for f in (SC, CM)))),
+    ("res-unknown-row", {"residual-table"}, set_cell(SC, "R16", "#", lambda c: "R18", kind="res8")),
+    ("pqc4-dropped", {"pqc4"}, lambda r: [_rw(f"{r}/{f}", lambda s: s.replace("closed unmerged", "still open")) for f in (SC, CM)]),
     ("libcrux-side-channel", {"residual"}, set_cell(SC, "libcrux-spike", "residuals", lambda c: c.replace("not verified side-channel", "side-channel"))),
     ("libcrux-no-expiry", {"residual"}, set_cell(CM, "libcrux-spike", "residuals", lambda c: c.replace("until 2027-02-06", "indefinitely"))),
     ("libcrux-no-cost", {"residual"}, set_cell(SC, "libcrux-spike", "residuals", lambda c: c.replace("2.5-3×", "similar to"))),
@@ -389,6 +603,19 @@ MUTANTS = [
     ("h3-no-date", {"deferred"}, set_cell(SC, "HTTP/3", "status", lambda c: "deferred", kind="deferred")),
     ("webtransport-row-missing", {"deferred"}, drop_row(SC, "WebTransport")),
     ("scaling-not-blocked", {"blocked"}, set_cell(CM, "64-core scaling run", "status", lambda c: "done (2026-11-06)", kind="deferred")),
+    # waiting state: placeholder dropped while still running; measured state: evidence no longer called provisional
+    ("scaling-placeholder-dropped", {"blocked"}, scaling_mut(SC,
+        lambda c: _cells(c, evidence=c["evidence"].replace(TOFILL, "result")),
+        lambda c: _cells(c, evidence=re.sub(r"\bprovisional\b", "final", c["evidence"])))),
+    # waiting: "measured" with the placeholder still in; measured: "measured" without the c2d-standard-64 evidence
+    ("scaling-measured-no-evidence", {"blocked"}, scaling_mut(CM,
+        lambda c: _cells(c, status="measured 2026-11-07"),
+        lambda c: _cells(c, status="measured 2026-11-07", evidence=c["evidence"].replace("c2d-standard-64", "a VM")))),
+    # waiting: the pre-approval quota; measured: "measured" with no date
+    ("scaling-old-quota", {"blocked"}, scaling_mut(SC,
+        lambda c: _cells(c, status=c["status"].replace("= 80", "= 12")),
+        lambda c: _cells(c, status=re.sub(r"\bmeasured\s+20\d\d-\d\d-\d\d\b", "measured", c["status"])))),
+    ("to-fill-elsewhere", {"pending"}, set_cell(CM, "uring", "rung", lambda c: c + "; " + TOFILL)),
     ("scaling-row-missing", {"blocked"}, drop_row(SC, "64-core scaling run")),
     # unit oracle: a claim calling io-uring / hyper / AWS-LC 'proven'
     ("hyper-proven", {"proven"}, append(SC, "\nhyper is proven correct for HTTP/1.1 framing.\n")),

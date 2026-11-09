@@ -20,6 +20,9 @@
 //!    both ended, the idle deadline (`limits.idle_timeout_ms`, no byte either way) or the drain.
 //! 3. **MTC selector** (feature `mtc`, listener with `tls.credentials` candidates): the first record is read, the
 //!    selector's per-connection `ServerConfig` is built from exactly those bytes and rustls is fed the same bytes.
+//!    When the selector picks nothing for a hello that passed F12 admission steps 1-2 (TLS 1.3 offered, sigalgs meet
+//!    the profile), the connection gets a plaintext fatal handshake_failure (40) from here and is closed (F1 SEL-3;
+//!    rustls itself would answer 49). Hellos that fail steps 1-2 still go to rustls (70 / 49, tls/verdicts.toml).
 //!
 //! Deadline: the PROXY header and the ClientHello record must both have arrived within `limits.stall_timeout_ms`
 //! counted from accept (not per read), so a dribbling client is closed too.
@@ -35,7 +38,7 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use aegis_transport::TlsAcceptor;
-#[cfg(feature = "l4")]
+#[cfg(any(feature = "l4", all(feature = "mtc", not(feature = "cmvp"))))]
 use tokio::io::AsyncWriteExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::time::Instant;
@@ -265,10 +268,43 @@ pub async fn serve<IO>(
         if !read_hello(&mut io, &mut buf, start, deadline).await {
             return;
         }
-        acc = TlsAcceptor::from(sel.config_for(buf.get(start..).unwrap_or(&[])));
+        let raw = buf.get(start..).unwrap_or(&[]);
+        if sel3_refuses(sel, raw) {
+            // SEL-3: nothing among this listener's credentials matches -> handshake_failure (40), sent here because
+            // rustls answers an unresolved certificate with access_denied (49).
+            let _ = tokio::time::timeout_at(deadline, io.write_all(&ALERT_HANDSHAKE_FAILURE)).await;
+            let _ = tokio::time::timeout_at(deadline, io.shutdown()).await;
+            return;
+        }
+        acc = TlsAcceptor::from(sel.config_for(raw));
     }
     let rest = buf.get(start..).map(<[u8]>::to_vec).unwrap_or_default();
     srv.serve_tls_from(Prefixed::new(rest, io), acc, Some(peer)).await;
+}
+
+/// A plaintext fatal `handshake_failure` alert record (RFC 8446 section 6: level 2, description 40), legacy record
+/// version 0x0303 as rustls writes its own pre-ServerHello alerts.
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+const ALERT_HANDSHAKE_FAILURE: [u8; 7] = [0x15, 0x03, 0x03, 0x00, 0x02, 0x02, 40];
+
+/// SEL-3 on the peeked ClientHello `raw`: `true` iff the selector picks no credential **and** the hello passes the
+/// F12 admission steps that come before selection (tls/verdicts.toml "Admission order"): it offers TLS 1.3
+/// (step 1, else rustls answers protocol_version 70) and its signature_algorithms meet the profile's F12 list
+/// (step 2, else rustls answers access_denied 49). Only then is the refusal a selection miss, which F1 SEL-3 answers
+/// with handshake_failure (40).
+#[cfg(all(feature = "mtc", not(feature = "cmvp")))]
+fn sel3_refuses(sel: &aegis_tls::CredentialSelector, raw: &[u8]) -> bool {
+    let Ok(peek) = aegis_wire::tls_peek::client_hello(raw) else { return false };
+    let offers_13 = peek.version_list().any(|v| v == 0x0304);
+    let profile: Vec<u16> = sel.profile().sigalgs().iter().map(|s| u16::from(*s)).collect();
+    let offered: Vec<u16> = peek.sigalg_list().collect();
+    selection_miss(sel.select_peek(&peek).is_some(), offers_13, &offered, &profile)
+}
+
+/// The decision of [`sel3_refuses`] over its inputs (pure, unit-tested).
+#[cfg(any(test, all(feature = "mtc", not(feature = "cmvp"))))]
+fn selection_miss(selected: bool, offers_13: bool, offered: &[u16], profile: &[u16]) -> bool {
+    !selected && offers_13 && offered.iter().any(|s| profile.contains(s))
 }
 
 /// L4-1/L4-2: peek, route by SNI, audit, forward, splice.
@@ -385,6 +421,22 @@ mod tests {
     fn peers_are_written_as_sent() {
         assert_eq!(ip_text("::ffff:198.51.100.77".parse().unwrap()), "::ffff:198.51.100.77");
         assert_eq!(ip_text("::1".parse().unwrap()), "::1");
+    }
+
+    /// SEL-3 vs the admission steps before selection: only a selection miss on an admitted hello is answered 40.
+    #[test]
+    fn selection_miss_is_handshake_failure_only_after_admission() {
+        let profile = [0x0403u16];
+        // pub2: nothing matches, the client offers an in-profile scheme and TLS 1.3 -> 40 (SEL-3).
+        assert!(selection_miss(false, true, &[0x0904, 0x0403], &profile));
+        assert!(selection_miss(false, true, &[0x0403], &profile));
+        // A credential was selected: rustls proceeds.
+        assert!(!selection_miss(true, true, &[0x0403], &profile));
+        // Step 2: sigalgs disjoint from the profile (ML-DSA only on P-PUBLIC-WEB) -> rustls' 49.
+        assert!(!selection_miss(false, true, &[0x0904, 0x0905, 0x0906], &profile));
+        assert!(!selection_miss(false, true, &[], &profile));
+        // Step 1: no TLS 1.3 -> rustls' 70.
+        assert!(!selection_miss(false, false, &[0x0403], &profile));
     }
 
     #[test]

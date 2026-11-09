@@ -206,6 +206,10 @@ pub struct H1Validator {
     prev: u8,
     /// Chunk-extension and trailer bytes of the current message (bounded by `max_field_bytes`).
     aux: u64,
+    /// The reject hit a message whose (valid) head was already forwarded, i.e. inside its body.
+    dead_in_body: bool,
+    /// Request heads forwarded so far (each one is a request the downstream parser must answer).
+    heads: u64,
 }
 
 fn hex(b: u8) -> Option<u64> {
@@ -219,7 +223,7 @@ fn hex(b: u8) -> Option<u64> {
 
 impl H1Validator {
     pub fn new(lim: HeadLimits) -> Self {
-        Self { lim, st: St::Head, head: Vec::new(), prev: 0, aux: 0 }
+        Self { lim, st: St::Head, head: Vec::new(), prev: 0, aux: 0, dead_in_body: false, heads: 0 }
     }
 
     /// A head is partially buffered (TBI-8: the head deadline runs).
@@ -244,7 +248,21 @@ impl H1Validator {
         }
     }
 
+    /// `true` when the stream was rejected inside a message body: that message's head was forwarded, so the
+    /// downstream parser has a request to answer (R6: it answers, with the reject status, and the caller must not
+    /// add a second response). `false` for a head-level reject (nothing of the bad message was forwarded) and
+    /// while the stream is alive.
+    pub fn rejected_in_body(&self) -> bool {
+        self.rejected().is_some() && self.dead_in_body
+    }
+
+    /// Number of request heads forwarded so far.
+    pub fn heads_forwarded(&self) -> u64 {
+        self.heads
+    }
+
     fn die(&mut self, r: H1Reject) -> Result<(), H1Reject> {
+        self.dead_in_body = matches!(self.st, St::Fixed(_) | St::Chunked(_));
         self.st = St::Dead(r);
         self.head = Vec::new();
         Err(r)
@@ -357,6 +375,7 @@ impl H1Validator {
                         match validate_head(&self.head, &self.lim) {
                             Ok(f) => {
                                 out.extend_from_slice(&self.head);
+                                self.heads = self.heads.saturating_add(1);
                                 self.head.clear();
                                 self.prev = 0;
                                 self.aux = 0;
@@ -526,6 +545,51 @@ mod tests {
         assert_eq!(rejects(big.as_bytes()), 431);
         let huge = format!("GET / HTTP/1.1\r\nHost: a\r\nX: {}", "v".repeat(30_000));
         assert_eq!(run(huge.as_bytes()).1.err().map(|e| e.status), Some(431));
+    }
+
+    /// R6: a body-level reject is flagged as such (the head went downstream), a head-level one is not, also when
+    /// the bad head follows a complete pipelined message in the same read.
+    #[test]
+    fn reject_in_body_vs_head() {
+        let body: &[&[u8]] = &[
+            b"POST / HTTP/1.1\r\nHost: a\r\nTransfer-Encoding: chunked\r\n\r\nzz\r\nhello\r\n0\r\n\r\n",
+            b"POST / HTTP/1.1\r\nHost: a\r\nTransfer-Encoding: chunked\r\n\r\n5\nhello\r\n0\r\n\r\n",
+            b"POST / HTTP/1.1\r\nHost: a\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabcX",
+        ];
+        for input in body {
+            for split in [false, true] {
+                let mut v = H1Validator::new(LIM);
+                let mut out = Vec::new();
+                let r = if split {
+                    input.iter().try_for_each(|b| v.feed(std::slice::from_ref(b), &mut out))
+                } else {
+                    v.feed(input, &mut out)
+                };
+                assert_eq!(r.err().map(|e| e.status), Some(400), "{:?}", String::from_utf8_lossy(input));
+                assert!(v.rejected_in_body(), "{:?}", String::from_utf8_lossy(input));
+                assert!(out.starts_with(b"POST / HTTP/1.1\r\n"), "the valid head went downstream");
+            }
+        }
+        let head: &[&[u8]] = &[
+            b"GET / HTTP/1.1\nHost: a\r\n\r\n",
+            b"POST / HTTP/1.1\r\nHost: a\r\nContent-Length: 2\r\n\r\nhiGET / HTTP/1.1\nHost: a\r\n\r\n",
+            b"POST / HTTP/1.1\r\nHost: a\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\nGET / HTTP/1.1\nHost: a\r\n\r\n",
+        ];
+        for input in head {
+            let mut v = H1Validator::new(LIM);
+            let mut out = Vec::new();
+            assert!(v.feed(input, &mut out).is_err());
+            assert!(!v.rejected_in_body(), "{:?}", String::from_utf8_lossy(input));
+        }
+        let v = H1Validator::new(LIM);
+        assert!(!v.rejected_in_body());
+        let mut v = H1Validator::new(LIM);
+        let mut out = Vec::new();
+        assert!(v.feed(head[1], &mut out).is_err());
+        assert_eq!(v.heads_forwarded(), 1, "the pipelined CL message was forwarded, the bad head was not");
+        let mut v = H1Validator::new(LIM);
+        assert!(v.feed(body[0], &mut out).is_err());
+        assert_eq!(v.heads_forwarded(), 1);
     }
 
     #[test]

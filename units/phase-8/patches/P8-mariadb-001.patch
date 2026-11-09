@@ -1,0 +1,215 @@
+P8-mariadb-001 patch (outside write scope: xtask/). Rationale: the allowlist-lock gate's independent generator
+(xtask/src/allowlist.rs) knew only sqlite/postgres/redis/valkey and its Deny::hit sent every unknown family to the
+RESP table, so apps/notes/allowlist.notes-mariadb.lock (committed by this unit) fails `--check` with "bad family
+line". This patch adds `mariadb` to FAMILIES, reads the MARIADB_DENY table from crates/aegis-data-ir/src/ir.rs
+(fail closed if missing), gives Deny::hit explicit arms (redis|valkey -> RESP, mariadb -> MARIADB; any other family
+denies every word instead of silently using RESP), and mirrors lock.rs native_words for the MariaDB upsert skeleton
+(ODKU, or INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS when nothing is set; never ON CONFLICT DO, since DO is
+denied on MariaDB). No existing check is weakened: every prior mutant and control is unchanged. New self-test
+mutants (all caught on kamrui): deny-mariadb-{replace,handler,ignore,call}, mariadb-skeleton-checked (a denylist
+source that also denies DUPLICATE refuses the fixture upsert), mariadb-decl-as-postgres, denylist-mariadb-table-missing,
+deny-unknown-family-fails-closed; positive controls gain FIX_MY and the HANDLER/DO denylist probes.
+Verified on kamrui with the patch applied to a copy of p8/mariadb-001: `cargo xtask allowlist-lock --check` ->
+ALLOWLIST-LOCK: PASS (6 locks, 38 entries ...); `--self-test` -> PASS (40/40 mutants caught ...); `--emit
+apps/notes/allowlist.notes-mariadb.decl` byte-identical to the committed lock; `cargo test -p xtask allowlist` 2 passed.
+Apply with: git apply units/phase-8/patches/P8-mariadb-001.patch
+
+diff --git a/xtask/src/allowlist.rs b/xtask/src/allowlist.rs
+--- a/xtask/src/allowlist.rs
++++ b/xtask/src/allowlist.rs
+@@ -5,10 +5,13 @@
+ //! xtask has no dependencies on purpose (see its Cargo.toml), so it cannot link `aegis_data_ir`. This file is
+ //! therefore an independent second implementation of the F4 lock format and the lock.rs declaration rules, with its
+ //! own FIPS 180-4 SHA-256. The denylist is not copied: it is read from the F4 source (`DenyEntry { item: ".." }` in
+-//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` tables of crates/aegis-data-ir/src/ir.rs), and a missing or empty
+-//! table fails the gate. The production generator is `aegis_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI:
+-//! `datair-subject lock <decl>`); crates/aegis-data-ir/tests/lock.rs regenerates every committed lock with it, so
+-//! both implementations must agree byte for byte on every lock in the repository.
++//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` / `MARIADB_DENY` tables of crates/aegis-data-ir/src/ir.rs), and a
++//! missing or empty table fails the gate. MariaDB's non-word form entries (`@`, `;`, `/*!`, `--`, ODKU without the
++//! tenant guard) are named constants outside the inline items: they constrain rendered SQL text (the adapter's
++//! `denied_in_sql` scan), never a word of the lock skeleton, exactly as in lock.rs. The production generator is
++//! `aegis_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI: `datair-subject lock <decl>`);
++//! crates/aegis-data-ir/tests/lock.rs regenerates every committed lock with it, so both implementations must agree
++//! byte for byte on every lock in the repository.
+ //!
+ //! `--check` (default): find every declaration/lock pair (orphans fail; zero pairs fail), regenerate each lock
+ //! in-process and in two child processes that differ in LC_ALL/LANG, TZ, working directory, HOME and
+@@ -16,7 +19,8 @@
+ //! three to equal the committed bytes.
+ //! `--self-test`: the positive controls must pass, and every mutant must be caught: a mutated declaration, mutated
+ //! locks (byte flip, recomputed hash over a mutated body, reordered lines, CRLF, extra newline), denylisted entries
+-//! (Redis EVAL/FLUSHALL, SQLite REPLACE), an orphan lock, a broken denylist source and wrong SHA-256 vectors.
++//! (Redis EVAL/FLUSHALL, SQLite REPLACE, MariaDB REPLACE/HANDLER/IGNORE), the MariaDB upsert skeleton (no ON
++//! CONFLICT DO: DO is denied there), an orphan lock, a broken denylist source and wrong SHA-256 vectors.
+ 
+ use std::collections::BTreeMap;
+ use std::io::Write;
+@@ -28,7 +32,7 @@
+ const LOCK_MAX_LINE: usize = 4096;
+ const MAX_PRED_DEPTH: usize = 64;
+ const KINDS: [&str; 5] = ["select", "insert", "update", "delete", "upsert"];
+-const FAMILIES: [&str; 4] = ["sqlite", "postgres", "redis", "valkey"];
++const FAMILIES: [&str; 5] = ["sqlite", "postgres", "redis", "valkey", "mariadb"];
+ 
+ // ------------------------------------------------------------------------------------------------- SHA-256
+ 
+@@ -113,6 +117,7 @@
+     sqlite: Vec<String>,
+     postgres: Vec<String>,
+     resp: Vec<String>,
++    mariadb: Vec<String>,
+ }
+ 
+ impl Deny {
+@@ -131,7 +136,12 @@
+             }
+             Ok(items)
+         };
+-        Ok(Deny { sqlite: table("SQLITE_DENY")?, postgres: table("PG_DENY")?, resp: table("RESP_DENY")? })
++        Ok(Deny {
++            sqlite: table("SQLITE_DENY")?,
++            postgres: table("PG_DENY")?,
++            resp: table("RESP_DENY")?,
++            mariadb: table("MARIADB_DENY")?,
++        })
+     }
+     fn load(root: &Path) -> Result<Deny, String> {
+         let p = root.join("crates/aegis-data-ir/src/ir.rs");
+@@ -141,7 +151,10 @@
+         let list = match family {
+             "sqlite" => &self.sqlite,
+             "postgres" => &self.postgres,
+-            _ => &self.resp,
++            "redis" | "valkey" => &self.resp,
++            "mariadb" => &self.mariadb,
++            // A family without a denylist table denies every word (fail closed).
++            _ => return Some(format!("<{family}: no denylist family>")),
+         };
+         list.iter().find(|d| d.eq_ignore_ascii_case(word)).cloned()
+     }
+@@ -457,14 +470,22 @@
+                 if let Some(k) = s.keys.iter().find(|k| !op.writes.contains(k)) {
+                     return Err(e(n, &format!("insert/upsert lacks key column {k}")));
+                 }
+-                w.extend(["INSERT", "INTO", "VALUES"]);
+-                if op.kind == "upsert" {
+-                    w.extend(["ON", "CONFLICT", "DO"]);
+-                    if op.writes.iter().all(|f| s.keys.contains(f)) {
+-                        w.push("NOTHING");
+-                    } else {
+-                        w.extend(["UPDATE", "SET", "WHERE"]);
++                let nothing = op.writes.iter().all(|f| s.keys.contains(f));
++                match (op.kind, family) {
++                    // MariaDB has no ON CONFLICT and denies DO: its mandated upsert forms (q4-005, DENY-M).
++                    ("upsert", "mariadb") if nothing => {
++                        w.extend(["INSERT", "INTO", "SELECT", "FROM", "DUAL", "WHERE", "NOT", "EXISTS"])
+                     }
++                    ("upsert", "mariadb") => w.extend(["INSERT", "INTO", "VALUES", "ON", "DUPLICATE", "KEY", "UPDATE"]),
++                    ("upsert", _) => {
++                        w.extend(["INSERT", "INTO", "VALUES", "ON", "CONFLICT", "DO"]);
++                        if nothing {
++                            w.push("NOTHING");
++                        } else {
++                            w.extend(["UPDATE", "SET", "WHERE"]);
++                        }
++                    }
++                    _ => w.extend(["INSERT", "INTO", "VALUES"]),
+                 }
+             }
+         }
+@@ -735,6 +756,10 @@
+                        schema notes tenant=0 key=1 cols=0,1,2 permitted=1,2\n\
+                        op notes select and(eq(1),not(in(2))) w=- r=2,1\nop notes upsert tt w=1,2 r=1\n\
+                        op notes update eq(1) w=2 r=-\n";
++const FIX_MY: &str = "aegis-allowlist-decl v1\nadapter st-my\nfamily mariadb\n\
++                      schema notes tenant=0 key=1 cols=0,1,2 permitted=1,2\n\
++                      op notes select eq(1) w=- r=1,2\nop notes upsert tt w=1,2 r=-\nop notes upsert tt w=1 r=-\n\
++                      op notes update eq(1) w=2 r=1\nop notes delete eq(1) w=- r=1\n";
+ 
+ fn mutate_lock_body(lock: &str, f: impl Fn(&str) -> String) -> String {
+     let cut = lock.rfind("sha256 ").unwrap_or(lock.len());
+@@ -760,10 +785,12 @@
+         if deny.hit("redis", "eval").is_none()
+             || deny.hit("sqlite", "Attach").is_none()
+             || deny.hit("postgres", "MERGE").is_none()
++            || deny.hit("mariadb", "handler").is_none()
++            || deny.hit("mariadb", "DO").is_none()
+         {
+-            return Err("denylist source lacks EVAL/ATTACH/MERGE".into());
++            return Err("denylist source lacks EVAL/ATTACH/MERGE/HANDLER/DO".into());
+         }
+-        for fx in [FIX_KV, FIX_SQL] {
++        for fx in [FIX_KV, FIX_SQL, FIX_MY] {
+             let (_, lock) = generate(fx, &deny)?;
+             check_pair(fx, &lock, None, &deny)?;
+         }
+@@ -782,6 +809,7 @@
+ 
+     let (_, kv_lock) = generate(FIX_KV, &deny)?;
+     let (_, sql_lock) = generate(FIX_SQL, &deny)?;
++    let (_, my_lock) = generate(FIX_MY, &deny)?;
+     let stale = "not byte-identical";
+ 
+     // Mutated declarations against the committed lock.
+@@ -877,6 +905,35 @@
+         check_pair(&format!("{FIX_SQL}op notes replace tt w=1,2 r=-\n"), &sql_lock, None, &deny),
+         "denylisted REPLACE",
+     );
++    for (kind, must) in [
++        ("replace", "denylisted REPLACE"),
++        ("handler", "denylisted HANDLER"),
++        ("Ignore", "denylisted IGNORE"),
++        ("call", "denylisted CALL"),
++    ] {
++        expect_red(
++            &format!("deny-mariadb-{}", kind.to_ascii_lowercase()),
++            check_pair(&format!("{FIX_MY}op notes {kind} tt w=1,2 r=-\n"), &my_lock, None, &deny),
++            must,
++        );
++    }
++    // The MariaDB skeleton words are checked against the MariaDB table: a denylist source that also denies
++    // DUPLICATE (an ODKU skeleton word) refuses the fixture's upsert, and a MariaDB lock is not a PostgreSQL one.
++    let src_dup = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?.replacen(
++        "const MARIADB_DENY: &[DenyEntry] = &[",
++        "const MARIADB_DENY: &[DenyEntry] = &[\n    DenyEntry { item: \"DUPLICATE\", trace: \"self-test\" },",
++        1,
++    );
++    expect_red(
++        "mariadb-skeleton-checked",
++        Deny::parse(&src_dup).and_then(|d| check_pair(FIX_MY, &my_lock, None, &d)),
++        "denylisted DUPLICATE",
++    );
++    expect_red(
++        "mariadb-decl-as-postgres",
++        check_pair(&FIX_MY.replace("family mariadb", "family postgres"), &my_lock, None, &deny),
++        stale,
++    );
+     // Shape rules (kv_plan / lower_op) refuse entries no adapter can render safely.
+     expect_red(
+         "kv-delete-all",
+@@ -942,6 +999,13 @@
+     let src = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?;
+     let no_resp = src.replace("const RESP_DENY", "const RESP_DENY_GONE");
+     expect_red("denylist-table-missing", Deny::parse(&no_resp).map(|_| 0), "not found");
++    let no_my = src.replace("const MARIADB_DENY", "const MARIADB_DENY_GONE");
++    expect_red("denylist-mariadb-table-missing", Deny::parse(&no_my).map(|_| 0), "MARIADB_DENY not found");
++    expect_red(
++        "deny-unknown-family-fails-closed",
++        deny.hit("mysql", "SELECT").map_or(Ok(0), Err),
++        "no denylist family",
++    );
+     let flipped = sha256_hex(b"abd");
+     expect_red(
+         "sha256-sensitivity",
+@@ -1008,6 +1072,10 @@
+         assert!(lock.starts_with("aegis-allowlist-lock v1\nadapter st-kv\nfamily redis\nop kv delete eq(1) w=- r=-\n"));
+         assert!(check_pair(FIX_KV, &lock, Some("st-kv"), &deny).is_ok());
+         assert!(check_pair(&format!("{FIX_KV}op kv eval tt w=- r=-\n"), &lock, None, &deny).is_err());
++        let (_, my) = generate(FIX_MY, &deny).unwrap_or_else(|e| unreachable!("{e}"));
++        assert!(my.contains("\nfamily mariadb\nop notes delete eq(1) w=- r=1\n"), "{my}");
++        assert!(deny.hit("mariadb", "do").is_some() && deny.hit("postgres", "DO").is_none());
++        assert!(deny.hit("mysql", "SELECT").is_some());
+         assert_eq!(
+             parse_shape("and(eq(1),not(in(20)))").map(|s| {
+                 let mut o = String::new();

@@ -1,0 +1,9 @@
+aegis-allowlist-lock v1
+adapter notes-mariadb
+family mariadb
+op notes delete eq(1) w=- r=1
+op notes insert tt w=1,2 r=-
+op notes select eq(1) w=- r=1,2
+op notes update eq(1) w=2 r=1
+op notes upsert tt w=1,2 r=-
+sha256 15d616749a30ecba31800383c9c73c98bd6ca6357b0d6100b5f1d8fa353be082

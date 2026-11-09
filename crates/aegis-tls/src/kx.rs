@@ -90,13 +90,33 @@ fn ecdh_p384_into(private: &agreement::PrivateKey, peer_point: &[u8], out: &mut 
     })
 }
 
+/// A P-384 point in the TLS 1.3 form: exactly 97 bytes, uncompressed (RFC 9846 4.3.8.2). Pure (Kani: P8-kani-001).
+fn is_uncompressed_p384(point: &[u8]) -> bool {
+    point.len() == P384_SHARE_LEN && point.first() == Some(&UNCOMPRESSED)
+}
+
 fn p384_public(private: &agreement::PrivateKey) -> Result<Vec<u8>, Error> {
     let public = private.compute_public_key().map_err(|_| internal("p384: public key"))?;
     let bytes = public.as_ref();
-    if bytes.len() != P384_SHARE_LEN || bytes.first() != Some(&UNCOMPRESSED) {
+    if !is_uncompressed_p384(bytes) {
         return Err(internal("p384: public key not uncompressed"));
     }
     Ok(bytes.to_vec())
+}
+
+/// RFC 10024 4.1 client share: P-384 point (97) || ML-KEM-1024 encapsulation key (1568) = 1665 bytes. Pure, so
+/// Kani checks it (P8-kani-001); `Active::new` builds the share only through it.
+fn encode_client_share(ecdh_point: &[u8], ek: &[u8]) -> Result<Vec<u8>, Error> {
+    if !is_uncompressed_p384(ecdh_point) {
+        return Err(internal("p384: public key not uncompressed"));
+    }
+    if ek.len() != MLKEM1024_EK_LEN {
+        return Err(internal("mlkem1024: encapsulation key length"));
+    }
+    let mut pub_key = Vec::with_capacity(CLIENT_SHARE_LEN);
+    pub_key.extend_from_slice(ecdh_point);
+    pub_key.extend_from_slice(ek);
+    Ok(pub_key)
 }
 
 /// RFC 10024 4.3: ECDHE secret first, then the ML-KEM secret, assembled in one buffer that becomes the
@@ -209,12 +229,7 @@ impl core::fmt::Debug for Active {
 impl Active {
     fn new(ecdh: agreement::PrivateKey, dk: kem::DecapsulationKey<kem::AlgorithmId>, ek: &[u8]) -> Result<Self, Error> {
         let ecdh_point = p384_public(&ecdh)?;
-        if ek.len() != MLKEM1024_EK_LEN {
-            return Err(internal("mlkem1024: encapsulation key length"));
-        }
-        let mut pub_key = Vec::with_capacity(CLIENT_SHARE_LEN);
-        pub_key.extend_from_slice(&ecdh_point);
-        pub_key.extend_from_slice(ek);
+        let pub_key = encode_client_share(&ecdh_point, ek)?;
         Ok(Self { ecdh, dk, ecdh_point, pub_key })
     }
 
@@ -247,7 +262,7 @@ impl ActiveKeyExchange for Active {
     }
 
     fn complete_hybrid_component(self: Box<Self>, peer_point: &[u8]) -> Result<SharedSecret, Error> {
-        if peer_point.len() != P384_SHARE_LEN || peer_point.first() != Some(&UNCOMPRESSED) {
+        if !is_uncompressed_p384(peer_point) {
             return Err(INVALID_KEY_SHARE);
         }
         let mut z = Vec::with_capacity(P384_SECRET_LEN);

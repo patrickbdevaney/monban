@@ -15,6 +15,9 @@ layer = "tool"
 # Exclusive with `interop`: profiles/cmvp/build.sh builds tls-subject with --no-default-features.
 # aegis-iso/cmvp: the linked module's version string for `describe` (PLAN-6 D16).
 cmvp = ["aegis-tls/cmvp", "dep:aegis-iso", "aegis-iso/cmvp"]
+# PREFLIGHT D-P8.2 (P8-spec-002 pre-wiring; mode body by P8-cmvp-002): `tls-subject indicator` reads AWS-LC's FIPS
+# service indicator around ECDH P-384, ML-KEM-1024 encap/decap, HKDF and one 0x11ED handshake. cmvp only.
+indicator = ["cmvp", "aegis-iso/indicator"]
 # P7-mtc-001: CredentialSelector (PLAN-7 D-P7.4); never in the cmvp build.
 mtc = ["aegis-tls/mtc"]
 # oracles/kx-interop `interop-client`: the product client builder `aegis_tls::client_config`. On in the floor build,

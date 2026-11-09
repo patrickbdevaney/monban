@@ -22,6 +22,9 @@ import tempfile
 import threading
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I does not add the script dir
+import oneresp  # noqa: E402  (R6 one-response case, shared with oracles/bin-residuals)
+
 NAME = "PROXY-E2E"
 GOLDEN = [
     "aegis_admission_rejects",
@@ -538,6 +541,10 @@ class Run:
         self.check("reload.new-route", st == 200 and self.up.last()["target"] == b"/new/route", f"status {st}")
         self.check("pool.not-reused-across-epoch", cc != cb, f"conn {cb} reused after config change")
 
+        # --- R6 (P8-oracle-001): one malformed chunked request gets exactly one 400, then a close; never forwarded
+        oneresp.run_cases(self.check, P, "aegis.test", self.crt, f"aegis.test:{P}", "/api/chunk",
+                          upstream_count=self.up.count, prefix="r6.")
+
     def boot_checks(self):
         # --- fail-closed boot: no config / invalid config => exit 78, nothing bound
         port = free_port()
@@ -639,6 +646,17 @@ def main():
         print(f"{NAME}: FAIL ({len(r.failures)} failed: {', '.join(r.failures[:8])}{note})")
         return 1
 
+    # The R6 one-response judge first (pure Python): a one-400 reference passes, two 400s / none / no close fail.
+    jr = Run(None)
+    try:
+        crt, key = jr.cert()
+        jok, jsum = oneresp.judge_selftest(crt, key, "aegis.test")
+    finally:
+        shutil.rmtree(jr.dir, ignore_errors=True)
+    if not jok:
+        print(f"{NAME} SELF-TEST: FAIL ({jsum})")
+        return 1
+    print(f"  {jsum}")
     subj = a.mutant_subject or os.path.join(repo, "target", "e2e-mutants", "release", "aegis")
     if not os.access(subj, os.X_OK):
         subj = build_mutant_subject(repo)
@@ -659,7 +677,7 @@ def main():
             return 1
         print(f"  mutant {m}: caught by {', '.join(r.failures[:6])}")
         caught.append(m)
-    print(f"{NAME} SELF-TEST: PASS ({len(caught)}/{len(MUTANTS)} mutants caught: {', '.join(caught)})")
+    print(f"{NAME} SELF-TEST: PASS ({len(caught)}/{len(MUTANTS)} mutants caught: {', '.join(caught)}; {jsum})")
     return 0
 
 

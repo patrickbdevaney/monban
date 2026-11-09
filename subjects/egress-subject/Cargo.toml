@@ -10,11 +10,19 @@ publish = false
 [package.metadata.aegis]
 layer = "tool"
 
-# aegis-egress WITHOUT `tls-client`: the corpus judges vetting/redirect decisions and plain-HTTP positive controls;
-# enabling the rustls client here would feature-unify it into workspace builds of aegis-egress.
+[features]
+default = []
+# P8-hardening-001 (PREFLIGHT R15, oracles/egress-tls): https egress through the product client profiles
+# (aegis_tls::client_config) injected into aegis-egress `tls-client`. Off by default: the ssrf-corpus build and
+# workspace builds keep aegis-egress WITHOUT the rustls client (enabling it unconditionally here would feature-unify
+# it into workspace builds of aegis-egress). Gate egress-tls-e2e builds `-p egress-subject --features tls-client`.
+tls-client = ["aegis-egress/tls-client", "dep:aegis-tls", "aegis-tls/tls-client", "dep:rustls"]
+
 [dependencies]
 aegis-egress = { workspace = true }
 tokio = { workspace = true, features = ["rt", "net", "time", "io-util"] }
+aegis-tls = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
 
 [lints]
 workspace = true

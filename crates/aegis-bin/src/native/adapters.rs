@@ -1,6 +1,6 @@
 //! Phase-7 adapter families on the native data plane (D-P7.8; features `adapter-crdb`, `adapter-mariadb`). Both are
-//! non-golden until the integrator records their gates (P7-adapter-*-001), and both boot fail closed (exit 78 before
-//! any listener exists).
+//! non-golden until the integrator records their gates (crdb-live, native-e2e-mariadb), and every boot check fails
+//! closed (exit 78 before any listener exists).
 //!
 //! **CockroachDB** (`adapter-crdb`) rides the PG wire, pool and executor ([`super::pg::PgExecutor`] with `crdb`):
 //! * boot: `aegis_adapter_pg::crdb::connect_admitted` (the crdb version gate: `SELECT version()` against the crdb
@@ -13,15 +13,28 @@
 //!   predicate itself;
 //! * the C8/NC3 reset statements the pool sends on recycle and recovery (ROLLBACK, Close, DISCARD ALL) and
 //!   CancelRequest are exercised against a live CockroachDB by the `crdb_live` test below;
+//! * at the request deadline (or client gone) before the commit point the running statement is stopped with a
+//!   CancelRequest (the session's BackendKeyData; `PgTx::interrupt`, armed by scope.rs `Gate`), and the checkout is
+//!   released `Cancelled`: recovered (ROLLBACK, Close, DISCARD ALL) or discarded, never pooled with an open
+//!   transaction (R8, gate crdb-live);
 //! * 40001 (serialization failure) surfaces as `EngineError::Conflict`: the scope's transaction is driven step by step
 //!   by the SDK host, and a whole-transaction retry (`crdb::run_serializable`) would have to re-run the app handler,
 //!   which this seam cannot do. `run_serializable` is used for the host-owned boot statements instead.
 //!
-//! **MariaDB** (`adapter-mariadb`): the backend is connected (loopback, mysql_native_password, version gate before
-//! any credential), its session pinned and the app's collection put through `check_live_schema`, and then the boot
-//! is refused: serving needs an F4 denylist family and an app allowlist lock for MariaDB (aegis-data-ir has no
-//! `EngineFamily` for it and apps/notes ships no `allowlist.notes-mariadb.lock`), and a request may not run without
-//! both. See units/phase-7/reports/P7-bin-001.md.
+//! **MariaDB** (`adapter-mariadb`; PREFLIGHT R4, gate native-e2e-mariadb, contract oracles/native-e2e/README.md
+//! "MariaDB backend"):
+//! * boot: the backend is connected (loopback, mysql_native_password, the version gate of engine-pins.toml before
+//!   any credential), its session pinned (strict `sql_mode`, utf8mb4), the app's collection put through
+//!   `aegis_adapter_mysql::check_live_schema` (InnoDB, byte-equality NO PAD collations, `(tenant, id)` the only
+//!   unique key, no trigger), and the operator-provisioned `aegis_idem` through [`ensure_mariadb_idem`]; the app's
+//!   allowlist lock is `notes::ALLOWLIST_MARIADB` (family `mariadb`);
+//! * renderer: [`super::engines::MariadbRenderer`] (`aegis_adapter_mysql::render_op` + the F4 MariaDB denylist scan,
+//!   DENY-M);
+//! * executor: [`super::mariadb::MariadbExec`]: `START TRANSACTION` .. `COMMIT` per scope on a connection the scope
+//!   holds exclusively; pooled again only if `is_reusable()`; a cancelled or deadline-hit scope never returns its
+//!   connection;
+//! * idempotency in band (PLAN D14): the outcome row is inserted into `aegis_idem` inside the scope's transaction,
+//!   and every lookup carries the tenant predicate (no RLS on MariaDB).
 
 use std::sync::Arc;
 #[cfg(feature = "adapter-crdb")]
@@ -39,10 +52,7 @@ pub fn boot(a: &AdapterBackend, reg: &Arc<Registry>, idx: usize) -> Result<Engin
         #[cfg(feature = "adapter-crdb")]
         AdapterFamily::Crdb => boot_crdb(a, reg, idx),
         #[cfg(feature = "adapter-mariadb")]
-        AdapterFamily::Mariadb => {
-            let _ = (reg, idx);
-            boot_mariadb(a)
-        }
+        AdapterFamily::Mariadb => boot_mariadb(a, reg, idx),
         #[allow(unreachable_patterns)]
         other => {
             let _ = (reg, idx);
@@ -179,14 +189,96 @@ fn boot_crdb(a: &AdapterBackend, reg: &Arc<Registry>, idx: usize) -> Result<Engi
     Ok(EngineHandle::Crdb { engine, host })
 }
 
-/// MariaDB: everything the adapter can check at boot, then a refusal (module docs).
+/// The provisioning DDL `aegis_idem` must match on MariaDB (PLAN D14; oracles/native-e2e `my_provision`). The login
+/// user needs SELECT and INSERT on it and never DDL.
 #[cfg(feature = "adapter-mariadb")]
-fn boot_mariadb(a: &AdapterBackend) -> Result<EngineHandle, String> {
+pub const MARIADB_IDEM_DDL: &str = "CREATE TABLE aegis_idem (tenant VARCHAR(16) CHARACTER SET utf8mb4 COLLATE \
+     utf8mb4_nopad_bin NOT NULL, principal VARCHAR(255) .. NOT NULL, k VARCHAR(64) .. NOT NULL, status INT NOT NULL, \
+     body MEDIUMTEXT .. NOT NULL, PRIMARY KEY (principal, k)) ENGINE=InnoDB";
+
+/// PLAN D14 on MariaDB: the operator-provisioned `aegis_idem` (in the DSN's database) is accepted only in the shape
+/// of [`MARIADB_IDEM_DDL`]: those columns in that order, NOT NULL, strings in a byte-equality NO PAD collation (F4
+/// `Collation::Binary` by `my_collation`), `(principal, k)` its only unique index (the primary key), InnoDB, no
+/// trigger. Missing or different: refused, never created or altered.
+#[cfg(feature = "adapter-mariadb")]
+fn ensure_mariadb_idem(c: &mut aegis_adapter_mysql::Connection, db: &str) -> Result<(), String> {
+    use aegis_adapter_mysql::Param;
+    let refuse = |why: &str| Err(format!("aegis_idem {why} (provision it as: {MARIADB_IDEM_DDL})"));
+    let deadline = std::time::Instant::now() + super::BOOT_TIMEOUT;
+    let mut q = |sql: &str| -> Result<Vec<Vec<String>>, String> {
+        let r = c
+            .execute_until(sql, &[Param::Text(db.into()), Param::Text("aegis_idem".into())], deadline)
+            .map_err(|e| e.to_string())?;
+        Ok(r.rows
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|cell| match cell {
+                        aegis_adapter_mysql::Cell::Int(i) => i.to_string(),
+                        aegis_adapter_mysql::Cell::UInt(u) => u.to_string(),
+                        other => other.as_str().unwrap_or_default().to_string(),
+                    })
+                    .collect()
+            })
+            .collect())
+    };
+    let t = q("SELECT TABLE_TYPE, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?")?;
+    match t.as_slice() {
+        [] => return refuse("does not exist"),
+        [r] if r.first().map(String::as_str) == Some("BASE TABLE")
+            && r.get(1).is_some_and(|e| e.eq_ignore_ascii_case("InnoDB")) => {}
+        _ => return refuse("is not an InnoDB base table"),
+    }
+    let cols = q("SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COALESCE(COLLATION_NAME, ''), IS_GENERATED \
+         FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION")?;
+    let want: [(&str, &[&str]); 5] = [
+        ("tenant", &["varchar", "char"]),
+        ("principal", &["varchar"]),
+        ("k", &["varchar"]),
+        ("status", &["int", "bigint"]),
+        ("body", &["text", "mediumtext", "longtext"]),
+    ];
+    let cols_ok = cols.len() == want.len()
+        && cols.iter().zip(want.iter()).all(|(got, (n, types))| {
+            let ty = got.get(1).map(|t| t.to_ascii_lowercase()).unwrap_or_default();
+            let coll = got.get(3).map(String::as_str).filter(|s| !s.is_empty());
+            let string = ty != "int" && ty != "bigint";
+            got.first().map(String::as_str) == Some(*n)
+                && types.contains(&ty.as_str())
+                && got.get(2).map(String::as_str) == Some("NO")
+                && got.get(4).map(String::as_str) == Some("NEVER")
+                && (!string || aegis_adapter_mysql::schema::my_collation(&ty, coll) == aegis_data_ir::Collation::Binary)
+        });
+    if !cols_ok {
+        return refuse("does not have the expected columns (NOT NULL, byte-equality NO PAD collations)");
+    }
+    let uniq = q("SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ',') FROM \
+         information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND NON_UNIQUE = 0 \
+         GROUP BY INDEX_NAME")?;
+    if uniq != [vec!["PRIMARY".to_string(), "principal,k".to_string()]] {
+        return refuse("must have (principal, k) as its only unique index (the primary key)");
+    }
+    let trig = q("SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE EVENT_OBJECT_SCHEMA = ? AND \
+         EVENT_OBJECT_TABLE = ?")?;
+    if trig != [vec!["0".to_string()]] {
+        return refuse("has a trigger");
+    }
+    Ok(())
+}
+
+/// MariaDB: connect, version gate, live schema gate, `aegis_idem` shape, lock; then the engine (module docs).
+#[cfg(feature = "adapter-mariadb")]
+fn boot_mariadb(a: &AdapterBackend, reg: &Arc<Registry>, idx: usize) -> Result<EngineHandle, String> {
+    use aegis_adapter_host::dispatch::EngineBackends;
+    use aegis_adapter_host::host::Host;
+    use aegis_adapter_host::host::budget::Remaining;
+    use aegis_data_ir::EngineFamily;
     let dsn = match &a.dsn_ref {
         aegis_config::DsnRef::Env(_) | aegis_config::DsnRef::Cred(_) => super::dsn(&a.dsn_ref)?,
         aegis_config::DsnRef::Path(_) => return Err("a network engine needs env: or cred:".into()),
     };
-    let cc = aegis_adapter_mysql::ConnectConfig::from_dsn(&dsn).map_err(|e| format!("dsn: {e}"))?;
+    let mut cc = aegis_adapter_mysql::ConnectConfig::from_dsn(&dsn).map_err(|e| format!("dsn: {e}"))?;
+    cc.connect_timeout = cc.connect_timeout.min(std::time::Duration::from_millis(a.op_budget_ms.max(1000)));
     let db = cc.database.clone();
     if db.is_empty() {
         return Err("the DSN names no database (the collection's namespace)".into());
@@ -195,11 +287,17 @@ fn boot_mariadb(a: &AdapterBackend) -> Result<EngineHandle, String> {
     let deadline = std::time::Instant::now() + super::BOOT_TIMEOUT;
     let live = aegis_adapter_mysql::check_live_schema(&mut conn, &db, &super::notes_schema(), deadline)
         .map_err(|e| format!("schema gate: {e}"));
+    let idem = live.as_ref().map_err(String::clone).and_then(|_| ensure_mariadb_idem(&mut conn, &db));
     conn.terminate(std::time::Duration::from_millis(200));
-    live?;
-    Err("MariaDB is not servable by this build: the F4 denylist has no MariaDB family and the linked app has no \
-         MariaDB allowlist lock, and no op may run without both (fail closed; P7-bin-001 report)"
-        .into())
+    let live = live?;
+    idem?;
+    let lock = super::engines::allowlist(notes::ALLOWLIST_MARIADB, EngineFamily::Mariadb)?;
+    let max_open = usize::try_from(a.max_conns).unwrap_or(16).max(1);
+    let exec = super::mariadb::MariadbExec::new(cc, max_open, a.op_budget_ms);
+    let renderer = super::engines::MariadbRenderer::new(&a.id, vec![live], lock);
+    let engine = Arc::new(super::scope::wrap(renderer, exec, reg, idx));
+    let host = Host::new(super::pool()?, EngineBackends::new(Arc::clone(&engine), Remaining::DEFAULT));
+    Ok(EngineHandle::Mariadb { engine, host })
 }
 
 #[cfg(all(test, feature = "adapter-crdb"))]

@@ -1,0 +1,4 @@
+{"v": 1,
+ "listeners": [{"name": "pub", "bind": "127.0.0.1:47843", "profile": "P-PUBLIC-WEB", "alpn": ["h2", "http/1.1"]}],
+ "admin": {"bind": "127.0.0.1:47844"},
+ "vhosts": [{"host": "aegis.test", "routes": [{"id": 1, "path": "/", "to": {"upstream": "127.0.0.1:9"}}]}]}

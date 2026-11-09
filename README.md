@@ -126,7 +126,8 @@ elliptic-curve arithmetic) are formally verified by their upstream maintainers; 
 The plan to reduce this trusted base is in [`SECURITY_BY_DESIGN.md`](SECURITY_BY_DESIGN.md) §5.
 
 **FIPS 140-3.** AEGIS is not a validated cryptographic module and makes no FIPS validation claim. A planned build
-profile is designed to use the AWS-LC FIPS 140-3 validated module (CMVP certificates #5298 and #5314) on its
+profile is designed to use the AWS-LC FIPS 140-3 validated module (CMVP certificate #5314, the static
+module; #5298 is the dynamic module and applies only to a dynamic build) on its
 validated operating environments; that profile has not yet been built or tested.
 
 **Not claimed:** microarchitectural (side-channel) isolation; the correctness of third-party extensions, adapters or

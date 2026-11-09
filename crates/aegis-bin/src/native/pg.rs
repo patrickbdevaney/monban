@@ -16,6 +16,10 @@
 //! * Every checkout ends in exactly one `pool.release`: `PgTx` releases it as `Cancelled` on drop if neither commit
 //!   nor rollback did. `Nc3Observer::charge` (quarantine time, discards) is debited to the releasing principal
 //!   through the host's `ChargeSink` (NC4).
+//! * At the request deadline (or client gone) before the commit point, [`PgTx::interrupt`] sends a CancelRequest
+//!   with the session's BackendKeyData (armed per scope by scope.rs `Gate`), so a blocked statement stops on the
+//!   server; the scope then rolls back and the checkout is released `Cancelled` (ROLLBACK, Close, DISCARD ALL, or
+//!   discard): reset or retired, never pooled with an open transaction (R8, crdb-live).
 //! * [`PgExecutor::bump_epoch`] retires older-epoch connections (`pool.retire_before`, CRS C5); the assembly calls it
 //!   on every auth/config epoch bump.
 
@@ -43,9 +47,14 @@ pub trait PgSql: PgSession + Send + 'static {
         deadline: Instant,
         lim: ResultLimits,
     ) -> Result<QueryResult, wire::Error>;
+    /// The session's BackendKeyData, for a CancelRequest from another thread.
+    fn cancel_key(&self) -> Option<wire::CancelKey>;
 }
 
 impl PgSql for PgConn {
+    fn cancel_key(&self) -> Option<wire::CancelKey> {
+        self.connection_ref().cancel_key().cloned()
+    }
     fn query(
         &mut self,
         sql: &str,
@@ -176,7 +185,20 @@ impl<C: PgSql> PgTx<C> {
     fn check_cancel(&self, site: &str) -> Result<(), EngineError> {
         if self.cancel.is_cancelled() { Err(EngineError::Unavailable(format!("cancelled at {site}"))) } else { Ok(()) }
     }
+
+    /// A CancelRequest for this checkout's backend, to run on another thread while a statement blocks (R8: the
+    /// request deadline stops the statement on the server). The checkout is released only after the interrupt was
+    /// disarmed and joined (scope.rs `Gate::disarm`), so the request never reaches a backend another scope holds.
+    pub fn interrupt(&self) -> Option<Box<dyn FnOnce() + Send>> {
+        let key = self.co.as_ref()?.peek().cancel_key()?;
+        Some(Box::new(move || {
+            let _ = wire::send_cancel(&key, CANCEL_TIMEOUT);
+        }))
+    }
 }
+
+/// Bound on one CancelRequest (connect + write).
+const CANCEL_TIMEOUT: Duration = Duration::from_millis(500);
 
 impl<C: PgSql> Drop for PgTx<C> {
     fn drop(&mut self) {
@@ -400,6 +422,9 @@ mod tests {
                 l.push(if ps.is_empty() { sql.to_string() } else { format!("{sql} {ps:?}") });
             }
             Ok(QueryResult::default())
+        }
+        fn cancel_key(&self) -> Option<wire::CancelKey> {
+            None
         }
     }
 

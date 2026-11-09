@@ -6,7 +6,7 @@
 //! ```text
 //! aegis-allowlist-decl v1
 //! adapter <adapter>                     (backend-id grammar; equals the <adapter> in the file name)
-//! family <sqlite|postgres|redis|valkey>
+//! family <sqlite|postgres|redis|valkey|mariadb>
 //! schema <collection> tenant=<f> key=<fields> cols=<fields> permitted=<fields>
 //! op <collection> <kind> <shape> w=<fields> r=<fields>
 //! ```
@@ -25,8 +25,10 @@
 //! declaration bytes: no clock, path, locale, environment or hash-map order reaches the output.
 
 use crate::ir::{
-    Collation, Column, DenyEntry, EngineFamily, Fidelity, Field, KvCommand, KvError, LockEntry, LockError, Op, OpKind,
-    Pred, Schema, SchemaError, UniqueIndex, Value, denied, kv_plan, lock_body, valid_backend_id, valid_collection,
+    Collation, Column, DenyEntry, EngineFamily, Fidelity, Field, KvCommand, KvError, LockEntry, LockError,
+    MARIADB_FORM_DASHDASH, MARIADB_FORM_EXEC_COMMENT, MARIADB_FORM_MULTI, MARIADB_FORM_ODKU, MARIADB_FORM_VARIABLE, Op,
+    OpKind, Pred, Schema, SchemaError, UniqueIndex, Value, denied, kv_plan, lock_body, valid_backend_id,
+    valid_collection,
 };
 use crate::lower::{LowerError, MAX_PRED_DEPTH, SqlExpr, Stmt, UpsertAction, lower_op};
 use aegis_types::TenantId;
@@ -82,8 +84,12 @@ pub struct Unterminated;
 /// The first denylisted unquoted keyword token in rendered SQL text, if any (ASCII case-insensitive, whole word).
 /// Skips `'...'` literals, `"..."` identifiers (with doubled-quote escapes), `--` line comments and `/* */`
 /// comments; an unterminated literal, identifier or comment is [`Unterminated`], so the caller refuses the text
-/// (fail closed). Renderers run every statement they emit through this.
+/// (fail closed). Renderers run every statement they emit through this. `Mariadb` uses its own dialect scanner
+/// ([`denied_in_mariadb`]).
 pub fn denied_in_sql(family: EngineFamily, sql: &str) -> Result<Option<&'static DenyEntry>, Unterminated> {
+    if family == EngineFamily::Mariadb {
+        return denied_in_mariadb(sql);
+    }
     let b = sql.as_bytes();
     let mut i = 0usize;
     let at = |k: usize| b.get(k).copied();
@@ -141,6 +147,205 @@ pub fn denied_in_sql(family: EngineFamily, sql: &str) -> Result<Option<&'static 
     Ok(None)
 }
 
+/// One MariaDB token: a bare word, a backtick identifier (contents, escapes undone), or one punctuation byte.
+/// Literals and comments are dropped.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum MyTok<'a> {
+    Word(&'a str),
+    Ident(String),
+    Punct(u8),
+}
+
+/// MariaDB dialect scanner (SPEC_INVARIANTS §F Phase-8 addendum DENY-M). Lexes like the server: `'..'` and `".."`
+/// literals with backslash and doubled-quote escapes, `` `..` `` identifiers with doubled-backtick escapes, `#` and
+/// `-- ` line comments, `/* */` block comments. Refused as forms: `@` (variables), `;` (multi-statements), `/*!` and
+/// `/*M!` (executable comments), `--` not followed by a space or control byte, and `ON DUPLICATE KEY UPDATE` whose
+/// assignments are not all the mandated tenant guard. Every bare word is checked against the MariaDB keyword items.
+/// Unterminated literal, identifier or comment: [`Unterminated`]. The guard check is on shape only (one guard
+/// column `t` for every assignment, never the assigned column); that `t` is the tenant column is the renderer's
+/// obligation (it renders from the schema).
+pub fn denied_in_mariadb(sql: &str) -> Result<Option<&'static DenyEntry>, Unterminated> {
+    let b = sql.as_bytes();
+    let at = |k: usize| b.get(k).copied();
+    let mut toks: Vec<MyTok<'_>> = Vec::new();
+    let mut i = 0usize;
+    while let Some(c) = at(i) {
+        match c {
+            b'\'' | b'"' => {
+                let q = c;
+                i += 1;
+                loop {
+                    match at(i) {
+                        None => return Err(Unterminated),
+                        Some(b'\\') => {
+                            if at(i + 1).is_none() {
+                                return Err(Unterminated);
+                            }
+                            i += 2;
+                        }
+                        Some(x) if x == q => {
+                            if at(i + 1) == Some(q) {
+                                i += 2;
+                            } else {
+                                i += 1;
+                                break;
+                            }
+                        }
+                        Some(_) => i += 1,
+                    }
+                }
+            }
+            b'`' => {
+                i += 1;
+                let mut id = Vec::new();
+                loop {
+                    match at(i) {
+                        None => return Err(Unterminated),
+                        Some(b'`') if at(i + 1) == Some(b'`') => {
+                            id.push(b'`');
+                            i += 2;
+                        }
+                        Some(b'`') => {
+                            i += 1;
+                            break;
+                        }
+                        Some(x) => {
+                            id.push(x);
+                            i += 1;
+                        }
+                    }
+                }
+                toks.push(MyTok::Ident(String::from_utf8(id).map_err(|_| Unterminated)?));
+            }
+            b'#' => {
+                while !matches!(at(i), None | Some(b'\n')) {
+                    i += 1;
+                }
+            }
+            b'-' if at(i + 1) == Some(b'-') => match at(i + 2) {
+                Some(x) if x <= b' ' || x == 0x7f => {
+                    while !matches!(at(i), None | Some(b'\n')) {
+                        i += 1;
+                    }
+                }
+                _ => return Ok(Some(&MARIADB_FORM_DASHDASH)),
+            },
+            b'/' if at(i + 1) == Some(b'*') => {
+                if at(i + 2) == Some(b'!') || (at(i + 2) == Some(b'M') && at(i + 3) == Some(b'!')) {
+                    return Ok(Some(&MARIADB_FORM_EXEC_COMMENT));
+                }
+                i += 2;
+                loop {
+                    match at(i) {
+                        None => return Err(Unterminated),
+                        Some(b'*') if at(i + 1) == Some(b'/') => {
+                            i += 2;
+                            break;
+                        }
+                        Some(_) => i += 1,
+                    }
+                }
+            }
+            b'@' => return Ok(Some(&MARIADB_FORM_VARIABLE)),
+            b';' => return Ok(Some(&MARIADB_FORM_MULTI)),
+            c if c.is_ascii_alphanumeric() || c == b'_' || c == b'$' || c >= 0x80 => {
+                let start = i;
+                while matches!(at(i), Some(x) if x.is_ascii_alphanumeric() || x == b'_' || x == b'$' || x >= 0x80) {
+                    i += 1;
+                }
+                let word = sql.get(start..i).ok_or(Unterminated)?;
+                if let Some(d) = denied(EngineFamily::Mariadb, word) {
+                    return Ok(Some(d));
+                }
+                toks.push(MyTok::Word(word));
+            }
+            c if c.is_ascii_whitespace() => i += 1,
+            c => {
+                toks.push(MyTok::Punct(c));
+                i += 1;
+            }
+        }
+    }
+    Ok(odku_unguarded(&toks).then_some(&MARIADB_FORM_ODKU))
+}
+
+fn kw(t: Option<&MyTok<'_>>, k: &str) -> bool {
+    matches!(t, Some(MyTok::Word(w)) if w.eq_ignore_ascii_case(k))
+}
+
+fn ident<'t>(t: Option<&'t MyTok<'_>>) -> Option<&'t str> {
+    match t {
+        Some(MyTok::Ident(s)) => Some(s.as_str()),
+        _ => None,
+    }
+}
+
+/// True when some `ON DUPLICATE KEY UPDATE` is followed by anything other than a non-empty, comma-separated list of
+/// guarded assignments `` `c` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`t`) AS BINARY), VALUES(`c`), `c`) `` (one `t`
+/// throughout, `t` != `c`), ending at the end of the text or at `RETURNING`.
+fn odku_unguarded(toks: &[MyTok<'_>]) -> bool {
+    let mut k = 0usize;
+    while k < toks.len() {
+        let at = |j: usize| toks.get(j);
+        if !(kw(at(k), "ON") && kw(at(k + 1), "DUPLICATE")) {
+            if kw(at(k), "DUPLICATE") {
+                return true; // DUPLICATE anywhere but in a complete `ON DUPLICATE KEY UPDATE`
+            }
+            k += 1;
+            continue;
+        }
+        if !(kw(at(k + 2), "KEY") && kw(at(k + 3), "UPDATE")) {
+            return true;
+        }
+        let mut j = k + 4;
+        let mut guard: Option<&str> = None;
+        loop {
+            let p = |n: usize, c: u8| matches!(at(j + n), Some(MyTok::Punct(x)) if *x == c);
+            let (Some(c), Some(t), Some(t2), Some(c2), Some(c3)) =
+                (ident(at(j)), ident(at(j + 6)), ident(at(j + 15)), ident(at(j + 23)), ident(at(j + 26)))
+            else {
+                return true;
+            };
+            let shape = p(1, b'=')
+                && kw(at(j + 2), "IF")
+                && p(3, b'(')
+                && kw(at(j + 4), "CAST")
+                && p(5, b'(')
+                && kw(at(j + 7), "AS")
+                && kw(at(j + 8), "BINARY")
+                && p(9, b')')
+                && p(10, b'=')
+                && kw(at(j + 11), "CAST")
+                && p(12, b'(')
+                && kw(at(j + 13), "VALUES")
+                && p(14, b'(')
+                && p(16, b')')
+                && kw(at(j + 17), "AS")
+                && kw(at(j + 18), "BINARY")
+                && p(19, b')')
+                && p(20, b',')
+                && kw(at(j + 21), "VALUES")
+                && p(22, b'(')
+                && p(24, b')')
+                && p(25, b',')
+                && p(27, b')');
+            if !shape || t != t2 || c != c2 || c != c3 || c == t || guard.is_some_and(|g| g != t) {
+                return true;
+            }
+            guard = Some(t);
+            j += 28;
+            match at(j) {
+                Some(MyTok::Punct(b',')) => j += 1,
+                None => return false,
+                Some(x) if kw(Some(x), "RETURNING") => break,
+                Some(_) => return true,
+            }
+        }
+        k = j;
+    }
+    false
+}
+
 fn expr_words(e: &SqlExpr, out: &mut Vec<&'static str>) {
     match e {
         SqlExpr::And(a, b) | SqlExpr::Or(a, b) => {
@@ -187,6 +392,11 @@ pub fn native_words(family: EngineFamily, op: &Op, schema: &Schema) -> Result<Ve
             expr_words(filter, &mut w);
         }
         Stmt::Insert { .. } => w.extend(["INSERT", "INTO", "VALUES"]),
+        // MariaDB has no ON CONFLICT (and denies DO): its mandated upsert forms (q4-005, DENY-M).
+        Stmt::Upsert { action, .. } if family == EngineFamily::Mariadb => match action {
+            UpsertAction::Update { .. } => w.extend(["INSERT", "INTO", "VALUES", "ON", "DUPLICATE", "KEY", "UPDATE"]),
+            UpsertAction::Nothing => w.extend(["INSERT", "INTO", "SELECT", "FROM", "DUAL", "WHERE", "NOT", "EXISTS"]),
+        },
         Stmt::Upsert { action, .. } => {
             w.extend(["INSERT", "INTO", "VALUES", "ON", "CONFLICT", "DO"]);
             match action {

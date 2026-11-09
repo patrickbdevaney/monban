@@ -14,11 +14,21 @@ Mutations (self-test; each must turn a clause red):
   outbox-drop-on-restart      on open, undelivered outbox rows are dropped
   latch-returns-408           a timer after the commit point answers 408 instead of 202
   dedupe-unstable             (extra) a fresh dedupe key on every delivery, so a redelivery carries a new one
+  retention-ignored           IDEMP-R: --idempotency-retention is ignored (keys never expire)
+  retention-early             IDEMP-R: a key expires one second before its window ends
+  retention-in-memory         IDEMP-R: the commit time is not stored; after a restart a record counts from the restart
+  purge-noop                  IDEMP-R: PURGE deletes nothing and answers PURGED 0
+  retention-absent-expires    IDEMP-R: without --idempotency-retention keys still expire (after 60 s)
+
+IDEMP-R (Phase 8, README "Retention"): `--idempotency-retention R` forgets a completed key once now - committed_at >= R
+(a record from the future is kept); `CLOCK <unix_s>` sets the clock (default: the system clock); `PURGE` deletes the
+expired records. Without the flag nothing expires.
 """
-import hashlib, os, sqlite3, sys
+import hashlib, os, sqlite3, sys, time
 
 MUTATIONS = ('idem-key-without-principal', 'replay-reexecutes', 'effect-before-commit', 'outbox-drop-on-restart',
-             'latch-returns-408', 'dedupe-unstable')
+             'latch-returns-408', 'dedupe-unstable', 'retention-ignored', 'retention-early', 'retention-in-memory',
+             'purge-noop', 'retention-absent-expires')
 
 
 def out(line):
@@ -28,11 +38,13 @@ def out(line):
 def main(argv):
     if len(argv) < 2:
         out('ERR open usage: ref_subject.py <dir> [--mutate <name>]...'); return 2
-    d = argv[1]; mut = set()
+    d = argv[1]; mut = set(); retention = None
     i = 2
     while i < len(argv):
         if argv[i] == '--mutate' and i + 1 < len(argv) and argv[i + 1] in MUTATIONS:
             mut.add(argv[i + 1]); i += 2
+        elif argv[i] == '--idempotency-retention' and i + 1 < len(argv) and argv[i + 1].isdigit() and int(argv[i + 1]) > 0:
+            retention = int(argv[i + 1]); i += 2
         else:
             out(f'ERR open bad argument {argv[i]!r}'); return 2
     try:
@@ -42,7 +54,7 @@ def main(argv):
         db.execute('PRAGMA synchronous=FULL')
         db.executescript(
             'CREATE TABLE IF NOT EXISTS idem(principal TEXT NOT NULL, key TEXT NOT NULL, digest TEXT NOT NULL,'
-            ' status INTEGER NOT NULL, body TEXT NOT NULL, PRIMARY KEY(principal, key));'
+            ' status INTEGER NOT NULL, body TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY(principal, key));'
             'CREATE TABLE IF NOT EXISTS rows(k TEXT PRIMARY KEY, v TEXT NOT NULL);'
             'CREATE TABLE IF NOT EXISTS outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT, dedupe TEXT NOT NULL UNIQUE,'
             ' payload TEXT NOT NULL, delivered INTEGER NOT NULL DEFAULT 0);')
@@ -52,7 +64,22 @@ def main(argv):
             db.execute('DELETE FROM outbox WHERE delivered = 0')       # MUTATION
     except sqlite3.Error as e:
         out(f'ERR open {e}'); return 3
-    out('READY state-props reference subject (sqlite3 WAL FULL) mutations=' + ','.join(MUTATIONS))
+    if 'retention-ignored' in mut: retention = None                         # MUTATION
+    if 'retention-absent-expires' in mut and retention is None: retention = 60  # MUTATION
+    clock = [None]
+    started = int(time.time())
+
+    def now():
+        return clock[0] if clock[0] is not None else int(time.time())
+
+    def expired(t):
+        if retention is None: return False
+        if 'retention-in-memory' in mut and t < started_clock[0]: t = started_clock[0]   # MUTATION: commit time lost
+        if now() < t: return False
+        return now() - t + (1 if 'retention-early' in mut else 0) >= retention          # MUTATION: one second early
+    started_clock = [started]
+
+    out('READY state-props reference subject (sqlite3 WAL FULL) features=retention mutations=' + ','.join(MUTATIONS))
     inflight = {}      # rid -> {'ik', 'digest', 'writes', 'effects'}
     held = {}          # ik -> rid
     for line in sys.stdin:
@@ -63,7 +90,8 @@ def main(argv):
             rid, p, k, dg = a[1:]
             ik = ('*' if 'idem-key-without-principal' in mut else p, k)          # MUTATION: principal dropped
             if rid in inflight: out(f'ERR {rid} duplicate rid'); continue
-            row = db.execute('SELECT digest, status, body FROM idem WHERE principal=? AND key=?', ik).fetchone()
+            row = db.execute('SELECT digest, status, body, t FROM idem WHERE principal=? AND key=?', ik).fetchone()
+            if row and expired(row[3]): row = None                                # IDEMP-R: forgotten
             if row and row[0] != dg: out(f'CONFLICT {rid}'); continue
             if row and 'replay-reexecutes' not in mut: out(f'REPLAY {rid} {row[1]} {row[2]}'); continue
             if ik in held: out(f'INFLIGHT {rid}'); continue
@@ -86,8 +114,8 @@ def main(argv):
                 db.execute('BEGIN IMMEDIATE')
                 for k, v in r['writes']:
                     db.execute('INSERT OR REPLACE INTO rows(k, v) VALUES(?, ?)', (k, v))
-                db.execute('INSERT OR REPLACE INTO idem(principal, key, digest, status, body) VALUES(?, ?, ?, ?, ?)',
-                           (*r['ik'], r['digest'], status, body))
+                db.execute('INSERT OR REPLACE INTO idem(principal, key, digest, status, body, t) VALUES(?, ?, ?, ?, ?, ?)',
+                           (*r['ik'], r['digest'], status, body, now()))
                 for dd, pl in r['effects']:
                     db.execute('INSERT OR IGNORE INTO outbox(dedupe, payload) VALUES(?, ?)', (dd, pl))
                 db.execute('COMMIT')
@@ -111,6 +139,16 @@ def main(argv):
             for k, v in db.execute('SELECT k, v FROM rows ORDER BY k').fetchall():
                 out(f'ROW {k} {v}')
             out('END')
+        elif cmd == 'CLOCK' and len(a) == 2 and a[1].isdigit():
+            if clock[0] is None: started_clock[0] = int(a[1])                     # the restart instant, on this clock
+            clock[0] = int(a[1]); out('OK clock')
+        elif cmd == 'PURGE' and len(a) == 1:
+            n = 0
+            if retention is not None and 'purge-noop' not in mut:
+                for p_, k_, t_ in db.execute('SELECT principal, key, t FROM idem').fetchall():
+                    if (p_, k_) not in held and expired(t_):
+                        db.execute('DELETE FROM idem WHERE principal=? AND key=?', (p_, k_)); n += 1
+            out(f'PURGED {n}')
         elif cmd == 'QUIT':
             break
         else:

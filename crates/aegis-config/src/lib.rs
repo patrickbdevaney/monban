@@ -35,6 +35,11 @@
 //!   numbers formerly hard-coded in aegis-bin; defaults = those constants, not hashed when equal to them). See the
 //!   `p7` module docs.
 //!
+//! * Phase 8 (P8-spec-001, PLAN-8 Interfaces; all optional, absent = the pre-Phase-8 meaning, effective form and
+//!   hash): the root [`Runtime`] block (`worker_threads`, default 2, not hashed when default), the root
+//!   [`StateBlock`] (`idempotency_retention_s`, no default: absent = never expire), and the load-time refusal of a
+//!   route `path` that `canon_path` does not leave unchanged ([`ErrorKind::NotCanonical`]). See the `p8` module docs.
+//!
 //! INV-NONEMPTY: a route without an `authz` policy (or with an empty policy name) is denied
 //! ([`Route::authz_requirement`]); every limit has a schema maximum and a default, so no effective limit is
 //! unbounded.
@@ -44,6 +49,7 @@ mod data;
 mod emit;
 mod p2;
 mod p7;
+mod p8;
 mod parse;
 mod sha256;
 mod store;
@@ -63,6 +69,7 @@ pub use p7::{
     Admission, Cidr, Credential, CredentialKind, Front, L4Route, MAX_CREDENTIALS, MAX_L4_ROUTES, MAX_TAI_COMPONENTS,
     MAX_TRUSTED, ProxyProtocol, RateLimit, SecretRef, TlsBlock, TrustAnchorId,
 };
+pub use p8::{Runtime, StateBlock};
 pub use sha256::{hex, sha256};
 pub use store::{ConfigStore, Generation, Health, Phase, RolloutPolicy, StageError};
 
@@ -158,6 +165,10 @@ pub enum ErrorKind {
     CredentialScope,
     /// Cross-field: `admission.per_ip.burst` is below `rate_per_s` (less than one second of the rate).
     BurstBelowRate,
+    /// A route `path` that matches the F8 pattern but is not a fixed point of `aegis_canon::canon_path` (a dot
+    /// segment, an empty segment, a literal `;`, or over-long): it could never match a request, so it is refused at load (Phase 8,
+    /// R13).
+    NotCanonical,
 }
 
 /// A rejected config: kind, JSON pointer to the offending value (`""` is the document root) and a static detail.
@@ -213,6 +224,10 @@ pub struct Config {
     tls: Option<TlsBlock>,
     /// F8 `admission` (Phase 7) with defaults applied; the pre-Phase-7 constants when absent.
     admission: Admission,
+    /// F8 `runtime` (Phase 8) with defaults applied; [`Runtime::default`] when absent.
+    runtime: Runtime,
+    /// F8 `state` (Phase 8); [`StateBlock::default`] (every member absent) when absent.
+    state: StateBlock,
     canonical: Box<[u8]>,
     hash: [u8; 32],
 }
@@ -240,6 +255,14 @@ impl Config {
     /// F8 `admission` (Phase 7) with defaults applied: [`Admission::default`] (the pre-Phase-7 constants) when absent.
     pub fn admission(&self) -> &Admission {
         &self.admission
+    }
+    /// F8 `runtime` (Phase 8, D-P8.3) with defaults applied: `worker_threads` 2 when absent.
+    pub fn runtime(&self) -> &Runtime {
+        &self.runtime
+    }
+    /// F8 `state` (Phase 8, R12): `idempotency_retention_s` is `None` (never expire) when absent.
+    pub fn state(&self) -> &StateBlock {
+        &self.state
     }
     /// Canonical JSON (aegis-canon serializer) of the effective config, defaults applied.
     pub fn effective_json(&self) -> &[u8] {

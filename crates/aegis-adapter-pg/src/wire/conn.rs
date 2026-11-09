@@ -206,10 +206,35 @@ fn open(cfg: &ConnectConfig, deadline: Instant) -> Result<Stream, Error> {
             }
             Err(Error::Connect(last))
         }
-        Endpoint::Unix { path } => {
-            UnixStream::connect(path).map(Stream::Unix).map_err(|e| Error::Connect(format!("{}: {e}", path.display())))
+        Endpoint::Unix { path } => connect_unix(path, deadline).map(Stream::Unix),
+    }
+}
+
+/// Unix-socket connect bounded by `deadline` (PREFLIGHT R14). `UnixStream::connect` has no timeout, and on Linux an
+/// AF_UNIX stream connect blocks while the listener's backlog is full (a stalled or overloaded server). The kernel
+/// bounds that wait by the socket's send timeout (`unix_stream_connect` sleeps `sock_sndtimeo`, then `EAGAIN`), so
+/// the socket is created with `SO_SNDTIMEO` = the time left, connected, and the timeout cleared again (later writes
+/// set their own). A full backlog past the deadline is [`Error::Timeout`]; `EINTR` retries within the deadline.
+fn connect_unix(path: &std::path::Path, deadline: Instant) -> Result<UnixStream, Error> {
+    use rustix::net::sockopt::{Timeout, set_socket_timeout};
+    use rustix::net::{AddressFamily, SocketAddrUnix, SocketFlags, SocketType};
+    let ctx = |e: rustix::io::Errno| Error::Connect(format!("{}: {e}", path.display()));
+    let addr = SocketAddrUnix::new(path).map_err(ctx)?;
+    let fd =
+        rustix::net::socket_with(AddressFamily::UNIX, SocketType::STREAM, SocketFlags::CLOEXEC, None).map_err(ctx)?;
+    loop {
+        set_socket_timeout(&fd, Timeout::Send, Some(remaining(deadline)?)).map_err(ctx)?;
+        match rustix::net::connect(&fd, &addr) {
+            Ok(()) => break,
+            Err(rustix::io::Errno::INTR) => continue,
+            Err(e) if e == rustix::io::Errno::AGAIN || e == rustix::io::Errno::WOULDBLOCK => {
+                return Err(if Instant::now() >= deadline { Error::Timeout } else { ctx(e) });
+            }
+            Err(e) => return Err(ctx(e)),
         }
     }
+    set_socket_timeout(&fd, Timeout::Send, None).map_err(ctx)?;
+    Ok(UnixStream::from(fd))
 }
 
 /// Send a CancelRequest for `key` on a fresh connection (NC3 discard path only: never for a connection that will be
@@ -688,5 +713,63 @@ impl Pipeline {
     }
     pub fn is_empty(&self) -> bool {
         self.buf.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod unix_connect_tests {
+    use super::*;
+    use rustix::net::{AddressFamily, SocketAddrUnix, SocketFlags, SocketType};
+
+    /// A listener with backlog 0 that never accepts: the first connect fills the queue, later ones would block in
+    /// the kernel forever without a bound.
+    #[test]
+    fn unix_connect_to_a_full_backlog_times_out() -> Result<(), String> {
+        let dir = std::env::temp_dir().join(format!("aegis-pg-uds-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let path = dir.join(".s.PGSQL.5432");
+        let l = rustix::net::socket_with(AddressFamily::UNIX, SocketType::STREAM, SocketFlags::CLOEXEC, None)
+            .map_err(|e| e.to_string())?;
+        rustix::net::bind(&l, &SocketAddrUnix::new(&path).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+        rustix::net::listen(&l, 0).map_err(|e| e.to_string())?;
+        // Fill the queue with non-blocking connects until the kernel says it is full.
+        let mut fill = Vec::new();
+        for _ in 0..64 {
+            let c = rustix::net::socket_with(
+                AddressFamily::UNIX,
+                SocketType::STREAM,
+                SocketFlags::CLOEXEC | SocketFlags::NONBLOCK,
+                None,
+            )
+            .map_err(|e| e.to_string())?;
+            match rustix::net::connect(&c, &SocketAddrUnix::new(&path).map_err(|e| e.to_string())?) {
+                Ok(()) => fill.push(c),
+                Err(_) => break,
+            }
+        }
+        let t0 = Instant::now();
+        let r = connect_unix(&path, t0 + Duration::from_millis(300));
+        let took = t0.elapsed();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(matches!(r, Err(Error::Timeout)), "full backlog must time out, got {:?}", r.map(|_| ()));
+        assert!(took >= Duration::from_millis(250) && took < Duration::from_secs(5), "bounded wait, took {took:?}");
+        // A live listener still connects.
+        let ok_dir = std::env::temp_dir().join(format!("aegis-pg-uds-ok-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&ok_dir);
+        std::fs::create_dir_all(&ok_dir).map_err(|e| e.to_string())?;
+        let ok_path = ok_dir.join("s");
+        let _lis = std::os::unix::net::UnixListener::bind(&ok_path).map_err(|e| e.to_string())?;
+        let s = connect_unix(&ok_path, Instant::now() + Duration::from_secs(2));
+        let _ = std::fs::remove_dir_all(&ok_dir);
+        assert!(s.is_ok(), "connect to a listening socket: {:?}", s.map(|_| ()));
+        // Missing socket: an immediate connect error, not a timeout.
+        let missing = connect_unix(
+            std::path::Path::new("/nonexistent/aegis/.s.PGSQL.1"),
+            Instant::now() + Duration::from_secs(2),
+        );
+        assert!(matches!(missing, Err(Error::Connect(_))));
+        drop(fill);
+        Ok(())
     }
 }

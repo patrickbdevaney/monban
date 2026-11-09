@@ -16,6 +16,7 @@ use crate::p7::{
     self, Admission, Cidr, Credential, CredentialKind, Front, L4Route, ProxyProtocol, RateLimit, SecretRef, TlsBlock,
     TrustAnchorId,
 };
+use crate::p8::{Runtime, StateBlock};
 use crate::{
     Admin, Alpn, Canon, Config, ConfigError, Framing, Limits, Listener, MAX_CONFIG_BYTES, MAX_ROUTE_ID, Profile,
     QueryMode, Route, RouteTarget, Vhost, emit, sha256,
@@ -211,6 +212,11 @@ pub(crate) fn is_route_path(s: &str) -> bool {
     }
 }
 
+/// A route path that `aegis_canon::canon_path` accepts and returns byte-for-byte unchanged (Phase 8, R13).
+pub(crate) fn is_canonical_route_path(s: &str) -> bool {
+    matches!(aegis_canon::canon_path(s.as_bytes()), Ok(c) if c.as_bytes() == s.as_bytes())
+}
+
 // ------------------------------------------------------------------------------------------------ schema
 
 fn root(v: &JsonValue, pins: &Pins) -> R<Config> {
@@ -218,7 +224,7 @@ fn root(v: &JsonValue, pins: &Pins) -> R<Config> {
     fields(
         m,
         "",
-        &["v", "listeners", "vhosts", "admin", "limits", "canon", "data", "p2", "tls", "admission"],
+        &["v", "listeners", "vhosts", "admin", "limits", "canon", "data", "p2", "tls", "admission", "runtime", "state"],
         &["v", "listeners", "vhosts"],
     )?;
 
@@ -320,6 +326,16 @@ fn root(v: &JsonValue, pins: &Pins) -> R<Config> {
         None => Admission::default(),
     };
 
+    let runtime = match get(m, "runtime") {
+        Some(rv) => runtime_block(rv, "/runtime")?,
+        None => Runtime::default(),
+    };
+
+    let state = match get(m, "state") {
+        Some(sv) => state_block(sv, "/state")?,
+        None => StateBlock::default(),
+    };
+
     let mut cfg = Config {
         listeners,
         vhosts,
@@ -330,6 +346,8 @@ fn root(v: &JsonValue, pins: &Pins) -> R<Config> {
         p2,
         tls,
         admission,
+        runtime,
+        state,
         canonical: Box::default(),
         hash: [0; 32],
     };
@@ -490,6 +508,30 @@ fn admission_block(v: &JsonValue, p: &str) -> R<Admission> {
         }
     }
     Ok(a)
+}
+
+fn runtime_block(v: &JsonValue, p: &str) -> R<Runtime> {
+    let m = object(v, p)?;
+    let names: Vec<&str> = Runtime::BOUNDS.iter().map(|(n, ..)| *n).collect();
+    fields(m, p, &names, &[])?;
+    let mut r = Runtime::default();
+    for (name, min, max, _) in Runtime::BOUNDS {
+        if let Some(x) = get(m, name) {
+            r.set(name, integer(x, &child(p, name), *min, *max)?);
+        }
+    }
+    Ok(r)
+}
+
+fn state_block(v: &JsonValue, p: &str) -> R<StateBlock> {
+    let m = object(v, p)?;
+    fields(m, p, StateBlock::MEMBERS, &[])?;
+    let mut s = StateBlock::default();
+    if let Some(x) = get(m, "idempotency_retention_s") {
+        let (lo, hi) = StateBlock::RETENTION_BOUNDS;
+        s.idempotency_retention_s = Some(integer(x, &child(p, "idempotency_retention_s"), lo, hi)?);
+    }
+    Ok(s)
 }
 
 fn secret_ref(v: &JsonValue, p: &str) -> R<SecretRef> {
@@ -667,6 +709,15 @@ fn route(v: &JsonValue, p: &str) -> R<Route> {
         let s = string(x, &pp)?;
         if !is_route_path(s) {
             return Err(ConfigError::new(E::Pattern, pp, "route path must match ^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*$"));
+        }
+        // R13 (Phase 8): routing compares canonical request paths, so a path canon_path changes (dot or empty
+        // segment) or rejects (over-long) is a route no request can reach. Refuse it here instead of loading it dead.
+        if !is_canonical_route_path(s) {
+            return Err(ConfigError::new(
+                E::NotCanonical,
+                pp,
+                "route path must be canonical (aegis_canon::canon_path leaves it unchanged)",
+            ));
         }
         path = s.to_owned();
     }

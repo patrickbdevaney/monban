@@ -34,10 +34,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import wire  # noqa: E402
+import mywire  # noqa: E402
 
 NAME = "NATIVE-E2E"
 MUTANTS = ["tenant-from-path", "commit-despite-cancel", "body-before-cp", "empty-caps-means-all", "no-drain",
            "ack-then-drop"]
+# Reference-only negative controls, run only when their backend is present (aegis-bin's e2e-mutants feature does not
+# implement them; the binary self-test runs MUTANTS only). P8-oracle-001: native-e2e-mariadb.
+REF_MUTANTS = {"my": ["drop-tenant"]}
 VHOST = "aegis.test"
 HOLD = 1.2        # s: hold_ms the app sleeps inside the open transaction (before CP) or after CP
 CUT = 0.35        # s: when the client cancels after sending the request
@@ -166,6 +170,45 @@ def pg_role_dsn(dsn, user, password):
     return urllib.parse.urlunsplit((u.scheme, netloc, u.path, u.query, u.fragment))
 
 
+# MariaDB provisioning (P8-oracle-001, gate native-e2e-mariadb). The table must pass
+# aegis_adapter_mysql::check_live_schema (oracles/schema-gate MariaDB golden shape): InnoDB, tenant and id VARCHAR
+# utf8mb4_nopad_bin (byte equality, no PAD SPACE, W3 amendment), (tenant, id) the primary key and the only unique
+# index, no trigger, no FK. MariaDB has no row-level security: tenant isolation is the rendered tenant conjunct only,
+# so the login user is a plain user with DML on these two tables and nothing else (no DDL, no FILE, no other table).
+MY_USER = "aegis_app"
+MY_COLL = "CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin"
+
+
+def my_notes_ddl(variant=None):
+    tcoll = "CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci" if variant == "tenant-ci" else MY_COLL
+    engine = "MyISAM" if variant == "myisam" else "InnoDB"
+    return (f"CREATE TABLE notes (tenant VARCHAR(16) {tcoll} NOT NULL, id VARCHAR(64) {MY_COLL} NOT NULL, "
+            f"body TEXT {MY_COLL} NOT NULL, PRIMARY KEY (tenant, id)) ENGINE={engine}")
+
+
+def my_teardown():
+    return ["DROP TABLE IF EXISTS notes, aegis_idem", f"DROP USER IF EXISTS '{MY_USER}'@'%'"]
+
+
+def my_provision(password, variant=None):
+    assert all(c in "0123456789abcdef" for c in password)
+    return my_teardown() + [
+        my_notes_ddl(variant),
+        # aegis-bin's in-band idempotency table (PLAN D14), provisioned here so the login user never needs DDL. A
+        # subject that keeps idempotency elsewhere ignores it.
+        f"CREATE TABLE aegis_idem (tenant VARCHAR(16) {MY_COLL} NOT NULL, principal VARCHAR(255) {MY_COLL} NOT NULL, "
+        f"k VARCHAR(64) {MY_COLL} NOT NULL, status INT NOT NULL, body MEDIUMTEXT {MY_COLL} NOT NULL, "
+        f"PRIMARY KEY (principal, k)) ENGINE=InnoDB",
+        f"CREATE USER '{MY_USER}'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('{password}')",
+        f"GRANT SELECT, INSERT, UPDATE, DELETE ON notes TO '{MY_USER}'@'%'",
+        f"GRANT SELECT, INSERT ON aegis_idem TO '{MY_USER}'@'%'",
+    ]
+
+
+def my_user_dsn(dsn, user, password):
+    return pg_role_dsn(dsn, user, password)
+
+
 class Store:
     """Direct view of one backend's durable rows (never through the subject)."""
 
@@ -177,8 +220,30 @@ class Store:
             # RLS). The subject gets `app_dsn`, which logs in as the RLS role with a fresh per-run password.
             self.app_pw = secrets.token_hex(16)
             self.app_dsn = pg_role_dsn(target, PG_ROLE, self.app_pw)
+        elif engine == "mariadb":
+            # `target` is the engines.sh root DSN (provisioning, the oracle's reads); the subject logs in as MY_USER.
+            self.app_pw = secrets.token_hex(16)
+            self.app_dsn = my_user_dsn(target, MY_USER, self.app_pw)
 
-    def setup(self):
+    def my(self, stmts, variant=None):
+        c = mywire.My(self.target)
+        try:
+            for q in stmts:
+                c.simple(q)
+        finally:
+            c.close()
+
+    def setup(self, variant=None):
+        if self.engine == "mariadb":
+            self.my(my_provision(self.app_pw, variant))
+            c = mywire.My(self.target)
+            try:
+                _, r = c.query("SELECT Super_priv, File_priv, Create_priv FROM mysql.user WHERE User = ?", (MY_USER,))
+            finally:
+                c.close()
+            if [tuple(x) for x in r] != [("N", "N", "N")]:
+                raise mywire.MyError(0, "", f"user {MY_USER} provisioned wrongly: {r!r}")
+            return
         if self.engine == "sqlite":
             c = sqlite3.connect(self.target, isolation_level=None)
             c.execute("PRAGMA journal_mode=WAL")
@@ -202,6 +267,13 @@ class Store:
 
     def get(self, t, i):
         th = f"{t:016x}"
+        if self.engine == "mariadb":
+            c = mywire.My(self.target)
+            try:
+                _, r = c.query("SELECT body FROM notes WHERE tenant = ? AND id = ?", (th, i))
+            finally:
+                c.close()
+            return r[0][0] if r else None
         if self.engine == "sqlite":
             c = sqlite3.connect(self.target, timeout=10)
             try:
@@ -229,6 +301,8 @@ class Store:
                 for q in pg_teardown():
                     c.query(q)
                 c.close()
+            elif self.engine == "mariadb":
+                self.my(my_teardown())
             elif self.engine in ("valkey", "redis"):
                 c = wire.KvConn(self.target)
                 for t in tenants:
@@ -236,7 +310,7 @@ class Store:
                     if keys:
                         c.cmd("DEL", *keys)
                 c.close()
-        except (OSError, wire.DbError):
+        except (OSError, wire.DbError, mywire.MyError):
             pass
 
 
@@ -433,7 +507,7 @@ def hp_lit(k, v):
 
 
 class Run:
-    def __init__(self, cmd, pg=None, kv=None, env_extra=None, verbose=False):
+    def __init__(self, cmd, pg=None, kv=None, env_extra=None, verbose=False, my=None):
         self.cmd = cmd
         self.env_extra = env_extra or {}
         self.verbose = verbose
@@ -462,6 +536,11 @@ class Run:
             self.backends.append({"id": "kv", "engine": eng, "dsn_ref": "env:AEGIS_E2E_KV_URL", "pin": eng,
                                   "op_budget_ms": OP_BUDGET_MS})
             self.env["AEGIS_E2E_KV_URL"] = kv
+        if my:
+            self.stores["my"] = Store("my", "mariadb", my)
+            self.backends.append({"id": "my", "engine": "mariadb", "dsn_ref": "env:AEGIS_E2E_MARIADB_DSN",
+                                  "pin": "mariadb", "op_budget_ms": OP_BUDGET_MS})
+            self.env["AEGIS_E2E_MARIADB_DSN"] = self.stores["my"].app_dsn  # the DML-only user, never root
 
     # ---------------------------------------------------------------- bookkeeping
     def check(self, name, ok, detail=""):
@@ -649,6 +728,15 @@ class Run:
 
         self.boot_refused("empty-data-list", empty_caps)
         self.boot_refused("undeclared-backend", undeclared)
+        if "my" in self.stores:
+            # schema refusal (live schema gate, R-DB-7): the binary must refuse to serve a MariaDB collection whose
+            # tenant column compares case-insensitively, or whose engine ignores transactions; then the good schema
+            # is restored before the real boot
+            st = self.stores["my"]
+            for variant in ("tenant-ci", "myisam"):
+                st.setup(variant)
+                self.boot_refused(f"mariadb-schema-{variant}", None)
+            st.setup()
 
     # ---------------------------------------------------------------- per-backend suite
     def backend_suite(self, bid):
@@ -945,13 +1033,13 @@ def subject_cmd(s):
     return parts
 
 
-def build_mutant_subject():
+def build_mutant_subject(features="native,e2e-mutants"):
     target = os.path.join(REPO, "target", "native-mutants")   # D17: the data plane is feature `native`
     binp = os.path.join(target, "release", "aegis")
     env = dict(os.environ, CARGO_TARGET_DIR=target)
     print(f"building the negative-control subject ({binp}) through ci/heavy.sh ...", flush=True)
     p = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q", "-p",
-                        "aegis-bin", "--features", "native,e2e-mutants"], cwd=REPO, env=env)
+                        "aegis-bin", "--features", features], cwd=REPO, env=env)
     return binp if p.returncode == 0 and os.access(binp, os.X_OK) else None
 
 
@@ -962,20 +1050,32 @@ def summary(r):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", default=None, help="subject command (default: the reference ref_subject.py)")
+    ap.add_argument("--subject", "--binary", dest="subject", default=None,
+                    help="subject command (default: the reference ref_subject.py)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--mutant-subject", default=None, help="e2e-mutants build for --self-test --subject")
     ap.add_argument("--pg", default=os.environ.get("AEGIS_E2E_PG"), help="postgres DSN (e.g. @pg17 via engines.sh)")
     ap.add_argument("--kv", default=os.environ.get("AEGIS_E2E_KV"), help="valkey/redis URL")
+    ap.add_argument("--engine", action="append", default=[], choices=["mariadb"],
+                    help="extra adapter-family backend (P8: mariadb), paired in order with --dsn")
+    ap.add_argument("--dsn", action="append", default=[], help="DSN for the matching --engine (e.g. @mariadb)")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
     ref = os.path.join(HERE, "ref_subject.py")
+    if len(a.engine) != len(a.dsn):
+        print(f"{NAME}: FAIL (--engine and --dsn must pair up: {a.engine} / {a.dsn})")
+        return 1
+    extra = dict(zip(a.engine, a.dsn))
+    my = extra.get("mariadb")
+    if my is not None and not my.startswith(("mysql://", "mariadb://")):
+        print(f"{NAME}: FAIL (--dsn for mariadb must be mysql://...; got {my[:12]}...)")
+        return 1
 
     if not a.self_test:
         cmd = subject_cmd(a.subject or ref)
         if not a.subject:
             print("subject: reference (ref_subject.py)")
-        r = Run(cmd, a.pg, a.kv, verbose=a.verbose)
+        r = Run(cmd, a.pg, a.kv, verbose=a.verbose, my=my)
         ok = r.run()
         if ok:
             print(f"{NAME}: PASS ({summary(r)})")
@@ -986,7 +1086,7 @@ def main():
     if a.subject:
         subj = a.mutant_subject or os.path.join(REPO, "target", "native-mutants", "release", "aegis")
         if not os.access(subj, os.X_OK):
-            subj = build_mutant_subject()
+            subj = build_mutant_subject("native,e2e-mutants" + (",adapter-mariadb" if my else ""))
             if not subj:
                 print(f"{NAME} SELF-TEST: FAIL (could not build the e2e-mutants subject)")
                 return 1
@@ -994,20 +1094,25 @@ def main():
     else:
         subj, cmd = "reference ref_subject.py", subject_cmd(ref)
     print(f"self-test subject: {subj}", flush=True)
-    r = Run(cmd, a.pg, a.kv, verbose=a.verbose)
+    r = Run(cmd, a.pg, a.kv, verbose=a.verbose, my=my)
     if not r.run():
         print(f"{NAME} SELF-TEST: FAIL (the unmutated subject must pass first: {r.failures[:6]})")
         return 1
     print(f"  baseline (no mutant): PASS ({summary(r)})", flush=True)
     caught = []
-    for m in MUTANTS:
-        r = Run(cmd, a.pg, a.kv, env_extra={"AEGIS_E2E_MUTANT": m})
+    mutants = list(MUTANTS)
+    if not a.subject:
+        for bid, ms in REF_MUTANTS.items():
+            if bid in r.stores:
+                mutants += ms
+    for m in mutants:
+        r = Run(cmd, a.pg, a.kv, env_extra={"AEGIS_E2E_MUTANT": m}, my=my)
         if r.run():
             print(f"{NAME} SELF-TEST: FAIL (mutant {m} was not caught)")
             return 1
         print(f"  mutant {m}: caught by {len(r.failures)} checks, e.g. {', '.join(r.failures[:5])}", flush=True)
         caught.append(m)
-    print(f"{NAME} SELF-TEST: PASS ({len(caught)}/{len(MUTANTS)} mutants caught: {', '.join(caught)}; "
+    print(f"{NAME} SELF-TEST: PASS ({len(caught)}/{len(mutants)} mutants caught: {', '.join(caught)}; "
           f"backends {'+'.join(s.engine for s in r.stores.values())})")
     return 0
 

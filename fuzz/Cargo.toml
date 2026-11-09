@@ -4,6 +4,8 @@
 #
 # Targets exercise public APIs only. Skipped: none (all 9 unit targets; mcp_gate since aegis-agent landed in P3-agent-001).
 # Phase 7 (P7-spec-002): proxy_v2 and client_hello_peek over aegis-wire, registered as stubs; P7-wire-001 fills them.
+# Phase 8 (P8-spec-002): pg_message over aegis-adapter-pg's backend codec, registered as a stub; P8-hardening-001
+# fills it. aegis-adapter-pg brings aws-lc-rs (already here via aegis-token) and rustix: both root-lock versions.
 [package]
 name = "aegis-fuzz"
 version = "0.0.0"
@@ -31,6 +33,7 @@ aegis-audit = { path = "../crates/aegis-audit" }
 aegis-egress = { path = "../crates/aegis-egress" }
 aegis-agent = { path = "../crates/aegis-agent" }
 aegis-wire = { path = "../crates/aegis-wire" }
+aegis-adapter-pg = { path = "../crates/aegis-adapter-pg" }
 tokio = { version = "1.53.3", default-features = false, features = ["io-util"] }
 
 [lints.rust]
@@ -115,6 +118,13 @@ bench = false
 [[bin]]
 name = "client_hello_peek"
 path = "fuzz_targets/client_hello_peek.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pg_message"
+path = "fuzz_targets/pg_message.rs"
 test = false
 doc = false
 bench = false

@@ -1,7 +1,11 @@
 //! state-subject: aegis-state idempotency, outbox and commit-point latch over the state-props line protocol
 //! (`oracles/state-props/README.md`, "Subject protocol").
 //!
-//! Usage: `state-subject <dir> [--mutate <name>]...`
+//! Usage: `state-subject <dir> [--idempotency-retention <s>] [--mutate <name>]...`
+//!
+//! IDEMP-R (Phase 8, README "Retention"): `--idempotency-retention` is [`State::set_retention`]; `CLOCK <unix_s>`
+//! replaces the wall clock ([`State::set_clock`]); `PURGE` is [`State::purge_expired`] (`PURGED <n>`). The READY line
+//! advertises `features=retention`.
 //!
 //! The wrapper only parses lines: BEGIN is [`State::begin`], WRITE is [`Lease::write`], EFFECT is
 //! [`State::effect`], COMMIT is [`State::commit`] (the commit point; 202 when the timer fired after CP), ABORT is
@@ -21,13 +25,16 @@ use std::process::ExitCode;
 
 use aegis_state::{Begin, DeliverError, IdemKey, Lease, Outcome, Reply, State, StateMutations};
 
-const MUTATIONS: [&str; 6] = [
+const MUTATIONS: [&str; 9] = [
     "idem-key-without-principal",
     "replay-reexecutes",
     "effect-before-commit",
     "outbox-drop-on-restart",
     "latch-returns-408",
     "dedupe-unstable",
+    "retention-ignored",
+    "retention-early",
+    "purge-noop",
 ];
 
 fn reply(line: &str) -> Result<(), ()> {
@@ -73,6 +80,8 @@ struct Args {
     muts: StateMutations,
     latch_408: bool,
     dedupe_unstable: bool,
+    purge_noop: bool,
+    retention: Option<u64>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -88,8 +97,14 @@ fn parse_args() -> Result<Args, String> {
                 Some("outbox-drop-on-restart") => a.muts.outbox_drop_on_restart = true,
                 Some("latch-returns-408") => a.latch_408 = true,
                 Some("dedupe-unstable") => a.dedupe_unstable = true,
+                Some("retention-ignored") => a.muts.retention_ignored = true,
+                Some("retention-early") => a.muts.retention_early = true,
+                Some("purge-noop") => a.purge_noop = true,
                 other => return Err(format!("unknown mutation {other:?}")),
             }
+        } else if x == "--idempotency-retention" {
+            let n = it.next().and_then(|v| v.parse::<u64>().ok()).ok_or("--idempotency-retention <seconds>")?;
+            a.retention = Some(n);
         } else if x.starts_with("--") {
             return Err(format!("unknown flag {x}"));
         } else if dir.is_none() {
@@ -119,8 +134,20 @@ fn main() -> ExitCode {
             return ExitCode::from(3);
         }
     };
+    if let Err(e) = st.set_retention(args.retention) {
+        let _ = reply(&format!("ERR open {}", one_line(&e.to_string())));
+        return ExitCode::from(2);
+    }
+    // CLOCK sets this; until then the system clock (u64::MAX = unset).
+    let clock = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX));
+    let c = std::sync::Arc::clone(&clock);
+    let system = aegis_state::Clock::system();
+    st.set_clock(aegis_state::Clock::new(move || match c.load(std::sync::atomic::Ordering::SeqCst) {
+        u64::MAX => system.now(),
+        t => t,
+    }));
     if reply(&format!(
-        "READY aegis-state idem/outbox/latch sqlite={} mutations={}",
+        "READY aegis-state idem/outbox/latch sqlite={} features=retention mutations={}",
         aegis_state::store::sqlite_version(),
         MUTATIONS.join(",")
     ))
@@ -128,7 +155,7 @@ fn main() -> ExitCode {
     {
         return ExitCode::from(4);
     }
-    match serve(&mut st, &args) {
+    match serve(&mut st, &args, &clock) {
         Ok(()) => ExitCode::SUCCESS,
         Err(code) => ExitCode::from(code),
     }
@@ -147,7 +174,7 @@ fn unstable_suffix(n: &mut u64) -> [u8; 4] {
     out
 }
 
-fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
+fn serve(st: &mut State, args: &Args, clock: &std::sync::atomic::AtomicU64) -> Result<(), u8> {
     let mut open: HashMap<String, Lease> = HashMap::new();
     let mut unstable_n = 0u64;
     let stdin = std::io::stdin();
@@ -274,6 +301,26 @@ fn serve(st: &mut State, args: &Args) -> Result<(), u8> {
                     return Err(4);
                 }
             },
+            ["CLOCK", t] => match t.parse::<u64>() {
+                Ok(t) if t != u64::MAX => {
+                    clock.store(t, std::sync::atomic::Ordering::SeqCst);
+                    reply("OK clock")
+                }
+                _ => reply("ERR - bad CLOCK"),
+            },
+            ["PURGE"] => {
+                if args.purge_noop {
+                    reply("PURGED 0") // MUTATION
+                } else {
+                    match st.purge_expired() {
+                        Ok(n) => reply(&format!("PURGED {n}")),
+                        Err(e) => {
+                            let _ = reply(&format!("ERR purge {}", one_line(&e.to_string())));
+                            return Err(4);
+                        }
+                    }
+                }
+            }
             ["QUIT"] => break,
             other => {
                 let rid = other.get(1).copied().unwrap_or("-");

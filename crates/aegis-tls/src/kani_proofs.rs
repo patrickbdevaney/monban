@@ -32,10 +32,35 @@
 //! deliberately broken copy that indexes and slices instead of checking the length. It must FAIL. Kani reports
 //! the out-of-bounds slice for short shares and the "NEGATIVE CONTROL" assertion for an over-long share that the
 //! copy accepts. That shows the harness can go red on both obligations.
+//!
+//! # Client side (unit P8-kani-001, gate kani-kx-client: `ci/kani.sh -p aegis-tls --only client_`)
+//!
+//! The `client_*` harnesses cover what a client does with a received ServerHello share, on the real Rust code:
+//! - `client_server_share_split_0x11ed`: `kx::split_share(share, MLKEM1024_CT_LEN)`, the first statement of
+//!   `Active::complete`, on every server share of length 0..=1666 and every byte value. No panic; Ok exactly for a
+//!   1665-byte share with an uncompressed point; then the point is the 97-byte prefix and the decapsulation input
+//!   (the `kem::Ciphertext` that `complete` hands to `decapsulate`) is exactly the 1568-byte rest.
+//! - `client_negative_control_planted_oob`: the client split property over `planted_oob_client_split`, a copy with
+//!   a planted out-of-bounds slice and no length check. It must FAIL (the OOB, and the "NEGATIVE CONTROL" assertion
+//!   for an over-long share it accepts).
+//!
+//! Not checked by Kani here (rung: argued from the code, or trusted), see units/phase-8/patches/P8-kani-001.*:
+//! - The 0x11ED client share encoding (`Active::new`, 97 + 1568 = 1665 bytes) and the call composition inside
+//!   `Active::complete`. Every `Active` holds aws-lc key handles, which no Rust code can build (the crate forbids
+//!   `unsafe`, so a stub cannot write C out-parameters). The patch moves the encoding and the point check into pure
+//!   functions and adds their harnesses.
+//! - 0x11EB (rustls `Hybrid`, SecP256r1MLKEM768): a harness through `Hybrid::start_and_complete` was tried. It
+//!   would run rustls' `Layout::split` with the aws-lc keygen stubbed. It was oom-killed at the gate's 6G limit
+//!   twice, the second time with `unwind(4)` and fixed bytes. CBMC expands rustls' `dyn ActiveKeyExchange` calls
+//!   to every impl, and `ActiveHybrid` recurses through `dyn`. So 0x11EB is not covered.
+//! - 0x11EB client `complete` with the server length (1088) and 0x0202 (MLKEM1024) client `complete`: rustls'
+//!   `ActiveHybrid` / `mlkem::Active` are only built by aws-lc keygen. rustls' 0x0202 client hands the server share
+//!   to `DecapsulationKey::decapsulate` without a Rust-side length check (aws-lc-rs 1.18.2 has none either), so the
+//!   ciphertext length bound for 0x0202 is enforced only in AWS-LC C (trusted, not verified).
 
 mod harnesses {
     use aws_lc_rs::error::KeyRejected;
-    use aws_lc_rs::kem::{Algorithm, AlgorithmIdentifier, EncapsulationKey};
+    use aws_lc_rs::kem::{Algorithm, AlgorithmIdentifier, Ciphertext, EncapsulationKey};
     use rustls::crypto::{CompletedKeyExchange, SupportedKxGroup};
     use rustls::{Error, PeerMisbehaved};
 
@@ -166,5 +191,154 @@ mod harnesses {
         let r = indexing_split(share, pq_len);
         let _ = check_split!(share, pq_len, &r, "NEGATIVE CONTROL: indexing copy broke the split_share contract");
         core::mem::forget(r); // see split_share_any_input
+    }
+
+    // ---- client side (P8-kani-001) ----
+
+    /// Placeholder with the signature of `kx::split_share`; the client harnesses stub it with the real fn.
+    fn client_split_real(_share: &[u8], _pq_len: usize) -> Result<(&[u8], &[u8]), Error> {
+        Err(Error::General(String::new()))
+    }
+
+    /// The client's parse of a server share, `split(share) = r`, as `Active::complete` uses it: the property of
+    /// `check_split!` for `pq_len = MLKEM1024_CT_LEN`, plus: the half handed to `decapsulate` (as a
+    /// `kem::Ciphertext`) is exactly the ML-KEM-1024 ciphertext length.
+    macro_rules! check_client_split {
+        ($share:expr, $r:expr, $tag:literal) => {{
+            let (share, r): (&[u8], &Result<(&[u8], &[u8]), Error>) = ($share, $r);
+            let ok = check_split!(share, MLKEM1024_CT_LEN, r, $tag);
+            if let Ok((_, ct)) = r {
+                let ct: Ciphertext<'_> = (*ct).into();
+                assert!(ct.as_ref().len() == MLKEM1024_CT_LEN, concat!($tag, ": decapsulation input is 1568 bytes"));
+                assert!(share.len() == SERVER_SHARE_LEN, concat!($tag, ": only a 1665-byte server share parses"));
+            }
+            ok
+        }};
+    }
+
+    /// 0x11ED client: `kx::split_share(share, MLKEM1024_CT_LEN)` (the parse step of `Active::complete`) on every
+    /// server share of length 0..=1666 and every byte value.
+    #[kani::proof]
+    #[kani::stub(client_split_real, crate::kx::split_share)]
+    fn client_server_share_split_0x11ed() {
+        let buf: [u8; MAX] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= MAX);
+        let Some(share) = buf.get(..len) else { return };
+        let r = client_split_real(share, MLKEM1024_CT_LEN);
+        let ok = check_client_split!(share, &r, "0x11ED client split");
+        kani::cover!(ok, "a 1665-byte server share parses (the stub to kx::split_share took effect)");
+        kani::cover!(!ok && len == SERVER_SHARE_LEN, "exact length, bad prefix");
+        kani::cover!(!ok && len == SERVER_SHARE_LEN - 1, "one byte short");
+        kani::cover!(!ok && len == MAX, "one byte too long");
+        core::mem::forget(r); // see split_share_any_input
+    }
+
+    /// Deliberately broken copy of the client's server-share parse: a planted out-of-bounds slice, no length check.
+    #[allow(clippy::indexing_slicing)]
+    fn planted_oob_client_split(share: &[u8]) -> Result<(&[u8], &[u8]), Error> {
+        if share.first() != Some(&UNCOMPRESSED) {
+            return Err(Error::PeerMisbehaved(PeerMisbehaved::InvalidKeyShare));
+        }
+        Ok((&share[..P384_SHARE_LEN], &share[P384_SHARE_LEN..SERVER_SHARE_LEN]))
+    }
+
+    /// Negative control for the client harnesses: `client_server_share_split_0x11ed`'s property over
+    /// `planted_oob_client_split`. It must FAIL: out-of-bounds below 1665 bytes, and a 1666-byte share is accepted.
+    #[kani::proof]
+    fn client_negative_control_planted_oob() {
+        let buf: [u8; MAX] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= MAX);
+        let Some(share) = buf.get(..len) else { return };
+        let r = planted_oob_client_split(share);
+        let _ = check_client_split!(share, &r, "NEGATIVE CONTROL: planted-OOB copy broke the client split contract");
+        core::mem::forget(r); // see split_share_any_input
+    }
+
+    // ---- client share encoding (P8-kani-001 patch: kx::encode_client_share / kx::is_uncompressed_p384) ----
+
+    const MAX_POINT: usize = P384_SHARE_LEN + 1;
+    const MAX_EK: usize = MLKEM1024_EK_LEN + 1;
+
+    /// Placeholders with the signatures of `kx::encode_client_share` / `kx::is_uncompressed_p384`; stubbed with them.
+    fn encode_client_share_real(_point: &[u8], _ek: &[u8]) -> Result<Vec<u8>, Error> {
+        Err(Error::General(String::new()))
+    }
+    fn is_uncompressed_p384_real(_point: &[u8]) -> bool {
+        false
+    }
+
+    /// 0x11ED client share encoding (`Active::new`), layout: a 97-byte point and a 1568-byte encapsulation key with
+    /// every byte value. Ok exactly when the point is uncompressed; then the share is 1665 bytes, the point first
+    /// and the key after it, byte for byte (RFC 10024 4.1). The lengths are fixed here so the slice compares have
+    /// concrete bounds. `client_share_encoding_lengths_0x11ed` covers every other length.
+    #[kani::proof]
+    #[kani::stub(encode_client_share_real, crate::kx::encode_client_share)]
+    fn client_share_encoding_0x11ed() {
+        let point: [u8; P384_SHARE_LEN] = kani::any();
+        let ek: [u8; MLKEM1024_EK_LEN] = kani::any();
+        let r = encode_client_share_real(&point, &ek);
+        match &r {
+            Ok(share) => {
+                assert!(point.first() == Some(&UNCOMPRESSED), "0x11ED client share: Ok only for an uncompressed point");
+                assert!(share.len() == CLIENT_SHARE_LEN, "0x11ED client share is 1665 bytes");
+                // Fixed-size array compares: a slice compare against the Vec has a length CBMC does not fold, and
+                // its memcmp unrolls without end.
+                let head = share.get(..P384_SHARE_LEN).and_then(|h| <&[u8; P384_SHARE_LEN]>::try_from(h).ok());
+                let tail = share.get(P384_SHARE_LEN..).and_then(|t| <&[u8; MLKEM1024_EK_LEN]>::try_from(t).ok());
+                assert!(head == Some(&point), "0x11ED client share: the point comes first");
+                assert!(tail == Some(&ek), "0x11ED client share: the ek follows the point");
+            }
+            Err(_) => assert!(point.first() != Some(&UNCOMPRESSED), "0x11ED client share: well-formed input rejected"),
+        }
+        kani::cover!(r.is_ok(), "a well-formed pair encodes (the stub to kx::encode_client_share took effect)");
+        kani::cover!(r.is_err(), "bad prefix");
+        core::mem::forget(r); // see split_share_any_input
+    }
+
+    /// 0x11ED client share encoding, lengths: every point of length 0..=98 (every byte value) and every
+    /// encapsulation key of length 0..=1569. No panic. Ok exactly for a 97-byte uncompressed point and a 1568-byte
+    /// key, and then the share is 1665 bytes. The key bytes are fixed, because `encode_client_share` reads only
+    /// the key's length before it copies the key. The layout is checked in `client_share_encoding_0x11ed`.
+    #[kani::proof]
+    #[kani::stub(encode_client_share_real, crate::kx::encode_client_share)]
+    fn client_share_encoding_lengths_0x11ed() {
+        let pbuf: [u8; MAX_POINT] = kani::any();
+        let plen: usize = kani::any();
+        kani::assume(plen <= MAX_POINT);
+        let ebuf = [0u8; MAX_EK];
+        let elen: usize = kani::any();
+        kani::assume(elen <= MAX_EK);
+        let (Some(point), Some(ek)) = (pbuf.get(..plen), ebuf.get(..elen)) else { return };
+        let r = encode_client_share_real(point, ek);
+        let well_formed = plen == P384_SHARE_LEN && point.first() == Some(&UNCOMPRESSED) && elen == MLKEM1024_EK_LEN;
+        match &r {
+            Ok(share) => {
+                assert!(well_formed, "0x11ED client share: Ok only for a 97-byte uncompressed point and 1568-byte ek");
+                assert!(share.len() == CLIENT_SHARE_LEN, "0x11ED client share is 1665 bytes");
+            }
+            Err(_) => assert!(!well_formed, "0x11ED client share: a well-formed pair is not rejected"),
+        }
+        kani::cover!(r.is_ok(), "a well-formed pair encodes");
+        kani::cover!(r.is_err() && plen == P384_SHARE_LEN && elen == MLKEM1024_EK_LEN, "exact lengths, bad prefix");
+        kani::cover!(r.is_err() && plen == P384_SHARE_LEN - 1, "point one byte short");
+        kani::cover!(r.is_err() && elen == MAX_EK, "ek one byte too long");
+        core::mem::forget(r); // see split_share_any_input
+    }
+
+    /// The point check `Active::complete_hybrid_component` and `p384_public` use: true exactly for 97 bytes starting
+    /// 0x04, on every input of length 0..=98.
+    #[kani::proof]
+    #[kani::stub(is_uncompressed_p384_real, crate::kx::is_uncompressed_p384)]
+    fn client_point_check_0x11ed() {
+        let buf: [u8; MAX_POINT] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= MAX_POINT);
+        let Some(point) = buf.get(..len) else { return };
+        let ok = is_uncompressed_p384_real(point);
+        assert!(ok == (len == P384_SHARE_LEN && point.first() == Some(&UNCOMPRESSED)), "P-384 point check");
+        kani::cover!(ok, "accepts (the stub to kx::is_uncompressed_p384 took effect)");
+        kani::cover!(!ok && len == P384_SHARE_LEN, "exact length, bad prefix");
     }
 }

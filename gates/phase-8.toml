@@ -19,7 +19,7 @@ remote = true
 
 [[gate]]
 name = "tests"
-cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q && ci/heavy.sh cargo test -p aegis-bin --features native --all-targets --locked -q"
 remote = true
 
 [[gate]]
@@ -558,14 +558,14 @@ heavy = true
 
 [[gate]]
 name = "release-verify"
-cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out"
+cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out && python3 -I conformance/boot-pin --subject aegis-bin-floor --binary target/release-out/artifacts/aegis-floor"
 selftest = "ci/release/verify.py --self-test"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "release-rebuild"
-cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp"
+cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && python3 -I conformance/boot-pin --subject aegis-bin-cmvp --binary target/release-rebuild/cmvp/A/aegis-cmvp"
 selftest = "ci/release/rebuild.sh --self-test"
 heavy = true
 
@@ -725,10 +725,12 @@ remote = "kamrui"
 
 [[gate]]
 name = "bin-residuals"
+# OpenSSL >= 3.5 is needed for the ML-DSA-44 credential and the P-PQ-REQUIRED s_client controls (kamrui: 3.5.3, the
+# system openssl); the desktop's is not known to be >= 3.5 (P8-oracle-001 patch).
 cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features mtc,l4 && oracles/bin-residuals/run --binary target/release/aegis"
 selftest = "oracles/bin-residuals/run --self-test"
 heavy = true
-remote = true
+remote = "kamrui"
 
 [[gate]]
 name = "crdb-live"
@@ -754,7 +756,8 @@ name = "egress-tls-e2e"
 cmd = "ci/heavy.sh cargo build --release --locked -q -p egress-subject --features tls-client && oracles/egress-tls/run --subject target/release/egress-subject"
 selftest = "oracles/egress-tls/run --self-test"
 heavy = true
-remote = true
+# OpenSSL >= 3.5 (ML-KEM TLS groups) is the upstream peer: kamrui has 3.5.3, the desktop 3.3.1 has no ML-KEM groups.
+remote = "kamrui"
 
 [[gate]]
 name = "engine-pins-kamrui"

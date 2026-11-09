@@ -1,0 +1,4 @@
+own-gate
+# Own phase gate (gates/phase-8.toml soak, remote = "quiet"): a 2 h load test on an aegis built with
+# --features native,proxy-protocol,mtc (built by run into target/soak). ci/oracles.sh skips own-gate oracles in every
+# aggregate.
