@@ -5,6 +5,16 @@
 //! framing and never sends chunked upstream). It is the "static upstream" of the scaling harness, not a load client.
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::os::fd::AsRawFd;
+
+// std's TcpListener listens with a fixed small backlog; under a burst of new aegis upstream connections at high core
+// counts the accept queue overflowed, SYNs were dropped and aegis reported `connect: timeout` (Phase 8 run 1, 16 cores,
+// 40 of 1.1M requests). Linux lets listen() be called again on a listening socket to raise the backlog (the kernel caps
+// it at net.core.somaxconn). libc is already linked by std; no dependency is added.
+extern "C" {
+    fn listen(fd: i32, backlog: i32) -> i32;
+}
+const BACKLOG: i32 = 4096;
 
 const RESP: &[u8] = b"HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\ncontent-length: 12\r\n\r\nscaling-ok\r\n";
 
@@ -59,8 +69,16 @@ fn main() {
             std::process::exit(1);
         }
     };
+    // SAFETY: listen(2) on the fd this TcpListener owns and keeps open; it only changes the accept-queue length.
+    if unsafe { listen(l.as_raw_fd(), BACKLOG) } != 0 {
+        eprintln!("scaling-upstream: listen backlog {BACKLOG}: {}", std::io::Error::last_os_error());
+        std::process::exit(1);
+    }
     println!("listening {}", l.local_addr().map(|a| a.port()).unwrap_or(0));
     for s in l.incoming().flatten() {
-        std::thread::spawn(move || serve(s));
+        // A failed thread spawn (resource limits) drops this one connection instead of aborting the upstream.
+        if let Err(e) = std::thread::Builder::new().stack_size(256 << 10).spawn(move || serve(s)) {
+            eprintln!("scaling-upstream: spawn: {e}");
+        }
     }
 }
