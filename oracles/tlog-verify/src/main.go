@@ -322,6 +322,21 @@ func selfTest(subject, work string) error {
 		return fmt.Errorf("control: x/mod rebuild rejected: %v", err)
 	}
 	fmt.Println("control: x/mod tlog rebuild of the same entries reproduces the aegis root and passes")
+	// Control 3: aegis-bin's layout, both keys in one file (Ed25519 line, then ML-DSA-87 line), passes and is cosigned.
+	kb := [2][]byte{}
+	for i := range keys {
+		if kb[i], err = os.ReadFile(keys[i]); err != nil {
+			return err
+		}
+	}
+	combined := filepath.Join(work, "trusted.vkey.combined")
+	if err := os.WriteFile(combined, append(append([]byte(nil), kb[0]...), kb[1]...), 0o644); err != nil {
+		return err
+	}
+	if r, err := verifyDir(base, []string{combined}); err != nil || !r.cosigned {
+		return fmt.Errorf("control: combined vkey file (aegis-bin layout) rejected or not cosigned: %v", err)
+	}
+	fmt.Println("control: combined vkey file (aegis-bin layout) passes with the ML-DSA-87 cosignature checked")
 
 	rebuilt := func(edit func([][]byte) [][]byte) func(string, []string) ([]string, error) {
 		return func(dir string, _ []string) ([]string, error) {
@@ -425,6 +440,25 @@ func selfTest(subject, work string) error {
 			}
 			return k, dropLine(filepath.Join(d, "checkpoint"), ls[1])
 		}},
+		{"combined-vkey-bad-line", []string{"keys"}, func(d string, k []string) ([]string, error) {
+			p := filepath.Join(d, "..", "bad-combined.vkey")
+			return []string{p}, os.WriteFile(p, append(append([]byte(nil), kb[0]...), []byte("aegis.audit+00000000+AAAA\n")...), 0o644)
+		}},
+		{"combined-vkey-no-mldsa", []string{"cosignature"}, func(d string, k []string) ([]string, error) {
+			// a combined file whose second line is a valid but foreign ML-DSA-87 key: the log's cosignature is not
+			// by that key, so the checkpoint lacks a matching cosignature line
+			mat, err := base64.StdEncoding.DecodeString(strings.SplitN(strings.TrimSpace(string(kb[1])), "+", 3)[2])
+			if err != nil {
+				return nil, err
+			}
+			mat[len(mat)-1] ^= 0x01
+			h := sha256.New()
+			h.Write([]byte(stOrigin + "\n"))
+			h.Write(mat)
+			line := fmt.Sprintf("%s+%08x+%s\n", stOrigin, binary.BigEndian.Uint32(h.Sum(nil)[:4]), base64.StdEncoding.EncodeToString(mat))
+			p := filepath.Join(d, "..", "foreign-combined.vkey")
+			return []string{p}, os.WriteFile(p, append(append([]byte(nil), kb[0]...), []byte(line)...), 0o644)
+		}},
 		{"untrusted-key", []string{"signature"}, func(d string, k []string) ([]string, error) {
 			_, vk, err := note.GenerateKey(rand.Reader, stOrigin)
 			if err != nil {
@@ -494,7 +528,7 @@ func selfTest(subject, work string) error {
 		caught++
 		os.RemoveAll(d)
 	}
-	fmt.Printf("TLOG-VERIFY SELF-TEST: PASS (%d/%d mutations caught for the intended reason; 2 controls pass)\n", caught, len(muts))
+	fmt.Printf("TLOG-VERIFY SELF-TEST: PASS (%d/%d mutations caught for the intended reason; 3 controls pass)\n", caught, len(muts))
 	return nil
 }
 

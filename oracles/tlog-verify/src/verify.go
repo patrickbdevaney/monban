@@ -77,33 +77,51 @@ func loadTrust(files []string) (*trust, error) {
 		if err != nil {
 			return nil, fail("keys", "%v", err)
 		}
-		vk := strings.TrimSpace(string(b))
-		if v, err := note.NewVerifier(vk); err == nil {
-			t.ed = append(t.ed, v)
-			t.name = v.Name()
-			continue
+		// A key file holds one vkey per line: audit-subject writes `vkey` and `vkey.mldsa87` separately, aegis-bin
+		// writes both into `vkey` (Ed25519 first). Every non-empty line must be a valid key; one bad line fails all.
+		lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
+		if len(lines) == 1 && strings.TrimSpace(lines[0]) == "" {
+			return nil, fail("keys", "empty vkey file %s", f)
 		}
-		parts := strings.SplitN(vk, "+", 3)
-		if len(parts) != 3 {
-			return nil, fail("keys", "bad vkey in %s", f)
+		for ln, vk := range lines {
+			if vk == "" || strings.TrimSpace(vk) != vk {
+				return nil, fail("keys", "%s line %d: empty or padded vkey line", f, ln+1)
+			}
+			if err := t.add(vk); err != nil {
+				return nil, fail("keys", "%s line %d: %v", f, ln+1, err)
+			}
 		}
-		material, err := base64.StdEncoding.Strict().DecodeString(parts[2])
-		if err != nil || !bytes.HasPrefix(material, mldsaSigType) || len(material) != len(mldsaSigType)+mldsaPKLen {
-			return nil, fail("keys", "unsupported vkey in %s", f)
-		}
-		h := sha256.New()
-		h.Write([]byte(parts[0] + "\n"))
-		h.Write(material)
-		id := binary.BigEndian.Uint32(h.Sum(nil)[:4])
-		if fmt.Sprintf("%08x", id) != parts[1] {
-			return nil, fail("keys", "ML-DSA-87 vkey key ID mismatch in %s", f)
-		}
-		t.pq = append(t.pq, pqKey{parts[0], id})
 	}
 	if len(t.ed) == 0 {
 		return nil, fail("keys", "no Ed25519 log key")
 	}
 	return t, nil
+}
+
+// add parses one vkey line: an x/mod Ed25519 verifier key, or aegis' ML-DSA-87 cosigner key.
+func (t *trust) add(vk string) error {
+	if v, err := note.NewVerifier(vk); err == nil {
+		t.ed = append(t.ed, v)
+		t.name = v.Name()
+		return nil
+	}
+	parts := strings.SplitN(vk, "+", 3)
+	if len(parts) != 3 {
+		return fmt.Errorf("bad vkey")
+	}
+	material, err := base64.StdEncoding.Strict().DecodeString(parts[2])
+	if err != nil || !bytes.HasPrefix(material, mldsaSigType) || len(material) != len(mldsaSigType)+mldsaPKLen {
+		return fmt.Errorf("unsupported vkey")
+	}
+	h := sha256.New()
+	h.Write([]byte(parts[0] + "\n"))
+	h.Write(material)
+	id := binary.BigEndian.Uint32(h.Sum(nil)[:4])
+	if fmt.Sprintf("%08x", id) != parts[1] {
+		return fmt.Errorf("ML-DSA-87 vkey key ID mismatch")
+	}
+	t.pq = append(t.pq, pqKey{parts[0], id})
+	return nil
 }
 
 // ---- checkpoints (c2sp.org/tlog-checkpoint@v1.1.0) ----
