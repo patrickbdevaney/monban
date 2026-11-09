@@ -1,13 +1,17 @@
 # Live database engine pins (ENGINE_PIN) for Phase 4. Owner: P4-engines-001. Consumers: ci/engines.sh (starts and
 # version-checks the containers), oracles/* --engine-pin (put the version in the PASS line), aegis-adapter-pg build.rs
 # (compiles the PG floors; no hand-copied constant), oracles/pg-version-gate (refusal matrix).
-# Resolved 2026-10-30 by reading the advisories cited per entry. A bump is a spec-change PR: new digest + image_id +
+# Resolved 2026-10-30 by reading the advisories cited per entry. A bump is a spec-change PR: new digest + config_digest + image_id +
 # bytes + version, re-run `ci/engines.sh self-test && ci/engines.sh with <all> -- ci/engines.sh versions`, and re-run every
 # ">= 100k cases per ENGINE_PIN" oracle (SPEC §E).
 #
 # Semantics (enforced by ci/engines.sh, which must stay in sync with this comment):
 #   image@digest      the only reference ever run; tags are informational. A missing/short/non-sha256 digest is refused.
-#   image_id          local config digest; the inspected image must have exactly this Id and list image@digest.
+#   config_digest     sha256 of the linux/amd64 image config blob: the same on every host (R16, P8-spec-002). A classic
+#                     store must report it as the image Id; a containerd store must report Id = digest (the index) and
+#                     its `docker save --platform linux/amd64` config must hash to it (ci/engines.sh docs). Required.
+#   image_id          the Id the pinning host's store reported (classic: = config_digest; containerd: = digest);
+#                     informational, but it must equal one of the two. The image must also list image@digest.
 #   bytes             recorded `docker image inspect .Size`; any image whose live size > max_image_bytes is refused.
 #   version           exact server-reported version (PG: server_version leading token; Valkey: valkey_version;
 #                     Redis: redis_version). The running engine must report exactly this, else teardown + refuse.
@@ -43,6 +47,7 @@ image = "postgres"
 tag = "17-alpine"
 digest = "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b"
 image_id = "sha256:ab20e934b27ba3ff927c1b4c9ff8cf6c32f315f743efe68dd3441182a87fb085"
+config_digest = "sha256:ab20e934b27ba3ff927c1b4c9ff8cf6c32f315f743efe68dd3441182a87fb085"
 bytes = 297_186_005
 version = "17.11"
 policy = "allow"
@@ -61,6 +66,7 @@ image = "postgres"
 tag = "18-alpine"
 digest = "sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5"
 image_id = "sha256:57b23a0326ee442e83b3d3fa027c5a148be0a392d7c91d1ca4e1e70131ee859a"
+config_digest = "sha256:57b23a0326ee442e83b3d3fa027c5a148be0a392d7c91d1ca4e1e70131ee859a"
 bytes = 303_736_028
 version = "18.6"
 policy = "allow"
@@ -83,6 +89,7 @@ image = "postgres"
 tag = "19rc1"
 digest = "sha256:de2cbeff2b8177e65bd64d077b46c90a1898aa8aea974a9e35a8cf60b5e90581"
 image_id = "sha256:70a5d673564d822eef31ca15298d7a5a697aa3316d27c339c59bbc8199e00c42"
+config_digest = "sha256:70a5d673564d822eef31ca15298d7a5a697aa3316d27c339c59bbc8199e00c42"
 bytes = 461_286_432
 version = "19rc1"
 policy = "blocked"
@@ -105,6 +112,7 @@ image = "valkey/valkey"
 tag = "alpine"
 digest = "sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11"
 image_id = "sha256:40ab224f823ae96d9d05adfbb31d7068cbf96708be5d8b2691621b703a02de3d"
+config_digest = "sha256:40ab224f823ae96d9d05adfbb31d7068cbf96708be5d8b2691621b703a02de3d"
 bytes = 45_158_671
 version = "9.1.2"   # 9.1.3 (2026-10-26) exists; inside the 7-day cooldown on 2026-10-30, bump after 2026-11-02
 policy = "allow"
@@ -135,6 +143,7 @@ image = "redis"
 tag = "alpine"
 digest = "sha256:0bf6577d7774e592b29d093e3ac9390eb91e13d72c21e506afce736de5e0eeb0"
 image_id = "sha256:6cfed4c686145bcd5807ef3ac1d2bf3384503cb3da30b0d308b4f25eb50dc373"
+config_digest = "sha256:6cfed4c686145bcd5807ef3ac1d2bf3384503cb3da30b0d308b4f25eb50dc373"
 bytes = 118_845_025
 version = "8.10.2"  # 8.10.3 (2026-10-26, cluster-bus PUBLISH >4GB fix; we run standalone) bump after cooldown
 policy = "allow"

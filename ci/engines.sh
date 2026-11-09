@@ -13,7 +13,11 @@
 #                   in-memory store: loopback-only throwaway, never a deployment shape; P7)
 #   ci/engines.sh versions      (inside `with`) probe each running engine from the host over its URL, compare with
 #                               the pins; prints one line per engine; non-zero on any mismatch.
-#   ci/engines.sh check         validate the pins file and the local images (digest, Id, size) without starting.
+#   ci/engines.sh check         validate the pins file and the local images (digest, config digest, size) without
+#                               starting anything; every pinned image must be present (ENGINES_PULL is ignored).
+#   ci/engines.sh pull [<name>[,<name>...]]
+#                               stage pinned images on this host (default: all): pull image@digest, then the same
+#                               size/digest/config-digest checks as `check`; an oversize image is removed again.
 #   ci/engines.sh self-test     fake-docker + fake-server fixtures: oversize image, unpinned tag, digest/Id mismatch,
 #                               version below floor or not matching pin are refused; mutants of this script go red.
 #   ci/engines.sh reap          remove leftover containers labelled aegis.engines=1 (crashed runs only; it never
@@ -21,6 +25,12 @@
 # Image size: max(docker inspect .Size, sum of `docker history` layer sizes). On a containerd-snapshotter store
 # (kamrui, docker 29) .Size is the compressed content size and Id is the index digest; the history sum is the unpacked
 # size there, and equals .Size on the classic store.
+# Image identity (P8-spec-002, PREFLIGHT R16): every pin carries `config_digest`, the sha256 of the linux/amd64 image
+# config blob, which is the same on every host. A classic store reports it as the image Id, so Id must equal it. A
+# containerd store (Descriptor.digest == Id) reports the index digest as Id, so Id must equal the pinned `digest`, and
+# the config is read from `docker save --platform linux/amd64` (streamed, nothing stored): its single image's config
+# blob must hash to its name, equal `config_digest`, and list the inspected image's RootFS layers. `image_id` is the Id
+# the pinning host saw (informational; it must be the pin's digest or config_digest).
 # Env: ENGINES_PINS (pins file), ENGINES_DOCKER (docker binary), ENGINES_TIMEOUT (readiness seconds, default 90),
 #      ENGINES_PULL=0 to refuse pulling a missing image (default: pull by digest, then size-check, remove if oversize).
 # Refusals happen before any container starts: every requested image is validated first.
@@ -29,7 +39,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export ENGINES_SELF="$ROOT/ci/engines.sh"
 export ENGINES_PINS="${ENGINES_PINS:-$ROOT/supply-chain/engine-pins.toml}"
 PY=$(cat <<'PYEOF'
-import json, os, re, secrets, signal, socket, struct, subprocess, sys, tempfile, time, base64, hashlib, hmac, threading
+import io, json, os, re, secrets, signal, socket, struct, subprocess, sys, tarfile, tempfile, time, base64, hashlib, hmac, threading
 import tomllib
 
 MUTANT = os.environ.get("AEGIS_ENGINES_MUTANT", "")  # self-test only: proves each check is load-bearing
@@ -131,6 +141,11 @@ def validate_pin(name, e, limit):
             raise Refuse(f"{where}: image_id missing or not sha256")
         if ":" in e["image"].split("/")[-1] or "@" in e["image"]:
             raise Refuse(f"{where}: image must be a bare repository (tag/digest go in tag/digest)")
+    if MUTANT != "no-config-digest-check":
+        if not DIGEST_RE.match(e.get("config_digest", "") or ""):
+            raise Refuse(f"{where}: config_digest missing or not sha256 (every pin needs its host-independent config digest)")
+        if e.get("image_id") not in (e.get("digest"), e["config_digest"]):
+            raise Refuse(f"{where}: image_id {e.get('image_id')} is neither the pinned digest nor config_digest")
     if e["kind"] not in KINDS:
         raise Refuse(f"{where}: unknown kind {e['kind']}")
     if "memory" in e and not re.match(r"^[1-4]g$", str(e["memory"])):
@@ -197,11 +212,76 @@ def check_image(name, e, limit, allow_pull):
         if not any(x.endswith("@" + e["digest"]) and x.split("@")[0].split("/")[-1] == e["image"].split("/")[-1]
                    for x in rd):
             raise Refuse(f"{name}: local image does not carry pinned digest {e['digest']} (RepoDigests={rd})")
-        # image_id is what the pinning host's store reports as Id (containerd store: the index digest); config_digest
-        # (optional) is the Id a classic store reports for the same image
-        if img.get("Id") not in {e["image_id"], e.get("config_digest") or e["image_id"]}:
-            raise Refuse(f"{name}: image Id {img.get('Id')} != pinned image_id {e['image_id']}")
-    return size
+    store = check_config_digest(name, e, img)
+    return size, store
+
+def store_of(img):
+    """'containerd' when inspect's Id is the image's own index/manifest descriptor digest, else 'classic'."""
+    d = img.get("Descriptor") or {}
+    return "containerd" if d.get("digest") and d.get("digest") == img.get("Id") else "classic"
+
+SMALL_BLOB = 4 << 20
+
+def saved_config(e):
+    """Stream `docker save --platform linux/amd64 image@digest` (nothing written to disk) and return
+    (config digest, config json) of its single image, from the docker-compatible manifest.json. Every small blob read
+    must hash to its own name."""
+    p = subprocess.Popen([DOCKER, "save", "--platform", "linux/amd64", ref(e)], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    blobs, manifest, done = {}, None, False
+    try:
+        with tarfile.open(fileobj=p.stdout, mode="r|") as t:
+            for m in t:
+                if not m.isfile() or m.size > SMALL_BLOB:
+                    continue  # stream mode skips the member's bytes on the next iteration
+                if m.name == "manifest.json":
+                    manifest = t.extractfile(m).read()
+                elif m.name.startswith("blobs/sha256/"):
+                    data = t.extractfile(m).read()
+                    hx = m.name.rsplit("/", 1)[-1]
+                    if hashlib.sha256(data).hexdigest() != hx:
+                        raise Refuse(f"saved blob {m.name} does not hash to its name (corrupt store)")
+                    blobs[hx] = data
+        done = True
+    except tarfile.TarError as x:
+        raise Refuse(f"docker save {ref(e)}: unreadable stream ({x})")
+    finally:
+        if not done:
+            p.kill()  # our own child only; never leave a writer blocked on a full pipe
+        err = p.stderr.read().decode(errors="replace") if p.stderr else ""
+        rc = p.wait(timeout=600)
+    if rc != 0:
+        raise Refuse(f"docker save {ref(e)} failed: {err.strip()[:300]}")
+    if manifest is None:
+        raise Refuse(f"docker save {ref(e)}: no manifest.json")
+    entries = json.loads(manifest)
+    if not isinstance(entries, list) or len(entries) != 1:
+        raise Refuse(f"docker save {ref(e)}: expected exactly one linux/amd64 image, got {len(entries) if isinstance(entries, list) else '?'}")
+    cpath = str(entries[0].get("Config", ""))
+    hx = cpath.rsplit("/", 1)[-1]
+    if not cpath.startswith("blobs/sha256/") or hx not in blobs:
+        raise Refuse(f"docker save {ref(e)}: config blob {cpath!r} missing from the stream")
+    return "sha256:" + hx, json.loads(blobs[hx])
+
+def check_config_digest(name, e, img):
+    """The host-independent identity check (module docs). Returns the store kind."""
+    store = store_of(img)
+    if MUTANT == "no-config-digest-check":
+        return store
+    want = e["config_digest"]
+    if store == "classic":
+        if img.get("Id") != want:
+            raise Refuse(f"{name}: classic store image Id {img.get('Id')} != pinned config_digest {want}")
+        return store
+    if img.get("Id") != e["digest"]:
+        raise Refuse(f"{name}: containerd store image Id {img.get('Id')} is not the pinned index digest {e['digest']}")
+    got, cfg = saved_config(e)
+    if got != want:
+        raise Refuse(f"{name}: linux/amd64 config digest {got} != pinned config_digest {want}")
+    diff_ids = ((cfg.get("rootfs") or {}).get("diff_ids")) or []
+    if diff_ids != ((img.get("RootFS") or {}).get("Layers") or []):
+        raise Refuse(f"{name}: saved config {got} does not describe the inspected image's RootFS layers")
+    return store
 
 # ------------------------------------------------------------------ probes (host side, stdlib only) -----------------
 def _recv_exact(s, n):
@@ -497,8 +577,8 @@ def cmd_with(argv):
             raise Refuse(f"unknown engine {n!r} (pinned: {', '.join(sorted(engines))})")
     allow_pull = os.environ.get("ENGINES_PULL", "1") != "0"
     for n in names:  # validate every image before starting anything
-        size = check_image(n, engines[n], limit, allow_pull)
-        log(f"{n}: {ref(engines[n])} {size} bytes <= {limit}")
+        size, store = check_image(n, engines[n], limit, allow_pull)
+        log(f"{n}: {ref(engines[n])} {size} bytes <= {limit}, config {engines[n]['config_digest'][:19]} ({store} store)")
     run = Run()
 
     def on_signal(signum, frame):
@@ -575,9 +655,23 @@ def cmd_check(argv):
     pins = load_pins()
     limit = pins["max_image_bytes"]
     for n, e in pins["engines"].items():
-        size = check_image(n, e, limit, allow_pull=False)
-        print(f"{n:8} {ref(e)} {size} bytes, version {e['version']} ({e['policy']})")
+        size, store = check_image(n, e, limit, allow_pull=False)
+        print(f"{n:8} {ref(e)} {size} bytes, config {e['config_digest']} ({store} store), version {e['version']} ({e['policy']})")
     print("ENGINES CHECK: PASS")
+    return 0
+
+def cmd_pull(argv):
+    pins = load_pins()
+    limit = pins["max_image_bytes"]
+    engines = pins["engines"]
+    names = [n for n in (argv[0].split(",") if argv else engines) if n]
+    for n in names:
+        if n not in engines:
+            raise Refuse(f"unknown engine {n!r} (pinned: {', '.join(sorted(engines))})")
+    for n in names:
+        size, store = check_image(n, engines[n], limit, allow_pull=True)
+        print(f"{n:8} {ref(engines[n])} {size} bytes, config {engines[n]['config_digest']} ({store} store)")
+    print(f"ENGINES PULL: PASS ({len(names)} image(s) staged)")
     return 0
 
 def cmd_reap(argv):
@@ -606,6 +700,12 @@ if a[0] == "history":
         sys.stderr.write("No such image\n"); sys.exit(1)
     for n in img.get("_layers", [img["Size"]]): print(n)
     sys.exit(0)
+if a[0] == "save":
+    blob = cfg.get("saves", {}).get(a[-1])
+    if blob is None:
+        sys.stderr.write("No such image\n"); sys.exit(1)
+    import base64
+    sys.stdout.buffer.write(base64.b64decode(blob)); sys.exit(0)
 if a[0] == "pull":
     sys.stderr.write("pull disabled in fixture\n"); sys.exit(1)
 if a[0] == "run":
@@ -713,7 +813,7 @@ ID1 = "sha256:" + "c" * 64
 
 def base_pin(kind="postgres", version="17.11", **kw):
     e = {"kind": kind, "image": "postgres" if kind == "postgres" else kind, "tag": "t", "digest": D1,
-         "image_id": ID1, "bytes": 1000, "version": version, "policy": "allow",
+         "image_id": ID1, "config_digest": ID1, "bytes": 1000, "version": version, "policy": "allow",
          "port": {"postgres": 5432, "mariadb": 3306, "crdb": 26257}.get(kind, 6379)}
     if kind == "postgres":
         e["floor"] = "17.11"
@@ -733,6 +833,35 @@ def base_image(e, size=1000, digests=None, image_id=ID1, layers=None):
         img["_layers"] = layers
     return img
 
+DIFF_IDS = ["sha256:" + "1" * 64, "sha256:" + "2" * 64]
+CFG_BYTES = json.dumps({"architecture": "amd64", "os": "linux", "rootfs": {"type": "layers", "diff_ids": DIFF_IDS}},
+                       separators=(",", ":")).encode()
+CFG_DIGEST = "sha256:" + hashlib.sha256(CFG_BYTES).hexdigest()
+
+def save_tar(cfg_bytes=CFG_BYTES, name_hex=None, entries=1, with_manifest=True):
+    """A `docker save --platform linux/amd64` OCI-layout stream: the config blob, a 5 MB layer the reader must skip,
+    and the docker-compatible manifest.json (last, as docker writes it)."""
+    hx = name_hex or hashlib.sha256(cfg_bytes).hexdigest()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as t:
+        def add(name, data):
+            ti = tarfile.TarInfo(name); ti.size = len(data); t.addfile(ti, io.BytesIO(data))
+        add("blobs/sha256/" + hx, cfg_bytes)
+        big = b"\0" * (5 << 20)
+        add("blobs/sha256/" + hashlib.sha256(big).hexdigest(), big)
+        add("oci-layout", b'{"imageLayoutVersion":"1.0.0"}')
+        if with_manifest:
+            m = [{"Config": "blobs/sha256/" + hx, "RepoTags": None, "Layers": []}] * entries
+            add("manifest.json", json.dumps(m).encode())
+    return base64.b64encode(buf.getvalue()).decode()
+
+def containerd_image(e, index=D1, layers=DIFF_IDS):
+    """inspect output of a containerd-snapshotter store: Id = Descriptor.digest = the index digest."""
+    img = base_image(e, image_id=index)
+    img["Descriptor"] = {"mediaType": "application/vnd.oci.image.index.v1+json", "digest": index, "size": 1234}
+    img["RootFS"] = {"Type": "layers", "Layers": list(layers)}
+    return img
+
 def run_case(tmp, case):
     """Returns (rc, stderr+stdout, docker call log)."""
     e = case["pin"]
@@ -740,6 +869,7 @@ def run_case(tmp, case):
     pins = fixture_pins(tmp, {name: e})
     srv = FakeServer(e["kind"], case.get("serves", e["version"]), case.get("valkey_compat", True))
     cfg = {"images": {f"{e['image']}@{e['digest']}": case.get("image", base_image(e))},
+           "saves": {f"{e['image']}@{e['digest']}": case["save"]} if "save" in case else {},
            "ports": {name: srv.port}, "bind": case.get("bind", "127.0.0.1")}
     if case.get("no_image"):
         cfg["images"] = {}
@@ -768,6 +898,7 @@ def cases():
     rd = base_pin("redis", "8.10.2")
     my = base_pin("mariadb", "11.8.9")
     cr = base_pin("crdb", "25.4.19")
+    pgc = base_pin(digest=D1, image_id=D1, config_digest=CFG_DIGEST)  # one pin, valid on both stores
     def refused(substr, started=False):
         def chk(rc, out, calls):
             if rc == 0:
@@ -810,8 +941,27 @@ def cases():
         ("tag-as-digest refused", dict(pin=base_pin(digest="17-alpine")), refused("not pinned by digest")),
         ("local image lacks pinned digest refused",
          dict(pin=pg, image=base_image(pg, digests=[f"postgres@{D2}"])), refused("does not carry pinned digest")),
-        ("image Id differs from pin refused",
-         dict(pin=pg, image=base_image(pg, image_id="sha256:" + "d" * 64)), refused("image_id")),
+        ("classic store: image Id differs from the pinned config_digest refused",
+         dict(pin=pg, image=base_image(pg, image_id="sha256:" + "d" * 64)), refused("!= pinned config_digest")),
+        ("pin without config_digest refused", dict(pin=base_pin(config_digest="")), refused("config_digest missing")),
+        ("pin image_id that is neither digest nor config_digest refused",
+         dict(pin=base_pin(image_id="sha256:" + "e" * 64)), refused("neither the pinned digest")),
+        ("positive control: the same pin on a containerd store (Id = index digest, config via docker save)",
+         dict(pin=pgc, image=containerd_image(pgc), save=save_tar()), accepted()),
+        ("positive control: that pin on a classic store (Id = config digest)",
+         dict(pin=pgc, image=base_image(pgc, image_id=CFG_DIGEST)), accepted()),
+        ("containerd store: saved linux/amd64 config != pinned config_digest refused",
+         dict(pin=base_pin(digest=D1, image_id=D1, config_digest="sha256:" + "f" * 64), image=containerd_image(pgc),
+              save=save_tar()), refused("!= pinned config_digest")),
+        ("containerd store: Id is an index digest other than the pin's refused",
+         dict(pin=pgc, image=containerd_image(pgc, index=D2), save=save_tar()), refused("not the pinned index digest")),
+        ("containerd store: config blob does not hash to its name refused",
+         dict(pin=pgc, image=containerd_image(pgc), save=save_tar(name_hex="0" * 64)),
+         refused("does not hash to its name")),
+        ("containerd store: config's rootfs is not the inspected image's layers refused",
+         dict(pin=pgc, image=containerd_image(pgc, layers=DIFF_IDS[:1]), save=save_tar()), refused("RootFS")),
+        ("containerd store: save stream with two images refused",
+         dict(pin=pgc, image=containerd_image(pgc), save=save_tar(entries=2)), refused("exactly one")),
         ("server below floor: pin 17.11, server reports 17.10 -> teardown + refuse",
          dict(pin=pg, serves="17.10"), refused("pin says", started=True)),
         ("pin below floor: '17.9' vs floor '17.11' (numeric, not string) refused",
@@ -862,6 +1012,8 @@ def selftest_suite(tmp, verbose):
             print(f"  {'ok  ' if not why else 'FAIL'} {label}" + (f" -- {why}" if why else ""))
     return fails
 
+MUTANTS = ("no-size-check", "no-digest-check", "no-config-digest-check", "string-version-compare", "no-floor")
+
 def cmd_selftest(argv):
     global MUTANT
     with tempfile.TemporaryDirectory(prefix="engines-selftest-") as tmp:
@@ -876,7 +1028,7 @@ def cmd_selftest(argv):
             return 1
         # Mutants of this script must turn the suite red (each check is load-bearing).
         red = []
-        for m in ("no-size-check", "no-digest-check", "string-version-compare", "no-floor"):
+        for m in MUTANTS:
             os.environ["AEGIS_ENGINES_MUTANT"] = m
             MUTANT = m
             mf = selftest_suite(tmp, verbose=False)
@@ -888,8 +1040,8 @@ def cmd_selftest(argv):
         if red:
             print(f"ENGINES SELF-TEST: FAIL (mutants survived: {', '.join(red)})")
             return 1
-    print("ENGINES SELF-TEST: PASS (oversize image, unpinned tag, digest/Id mismatch, below-floor and pin-mismatch "
-          "versions refused; 4/4 mutants red)")
+    print("ENGINES SELF-TEST: PASS (oversize image, unpinned tag, digest/config-digest mismatch on classic and "
+          f"containerd stores, below-floor and pin-mismatch versions refused; {len(MUTANTS)}/{len(MUTANTS)} mutants red)")
     return 0
 
 def main():
@@ -899,7 +1051,7 @@ def main():
         return 2
     sub, rest = a[0], a[1:]
     fn = {"with": cmd_with, "versions": cmd_versions, "check": cmd_check, "self-test": cmd_selftest,
-          "reap": cmd_reap}.get(sub)
+          "reap": cmd_reap, "pull": cmd_pull}.get(sub)
     if fn is None:
         log(f"unknown subcommand {sub!r}")
         return 2

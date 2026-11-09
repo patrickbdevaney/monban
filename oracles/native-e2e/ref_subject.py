@@ -31,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import wire  # noqa: E402
+import mywire  # noqa: E402
 
 MUTANT = os.environ.get("AEGIS_E2E_MUTANT", "")
 EX_CONFIG = 78
@@ -97,7 +98,7 @@ def load_config(path):
     backends = {}
     for b in (cfg.get("data") or {}).get("backends", []):
         bid, eng, dsn, pin = b.get("id"), b.get("engine"), b.get("dsn_ref", ""), b.get("pin")
-        if bid in backends or eng not in ("sqlite", "postgres", "redis", "valkey"):
+        if bid in backends or eng not in ("sqlite", "postgres", "redis", "valkey", "mariadb", "crdb"):
             raise ConfigError(f"backend {bid}")
         fam = pin_family(pins, pin)
         if fam != eng:
@@ -441,11 +442,205 @@ class KvTx:
         self.c.close()
 
 
+CURRENT = threading.local()   # the Exchange whose worker thread is running (crdb cancel watch)
+
+
+class CrdbPool:
+    """CockroachDB (P8-oracle-001, oracle crdb-live): a small LIFO pool, so the connection a cancelled request used is
+    the next one handed out. Negative controls: `crdb-40001-as-success` (a 40001 at COMMIT answered as the success
+    the handler computed), `crdb-cancel-ignored` (no CancelRequest when the request is cancelled or its deadline
+    passes: the statement keeps running), `crdb-no-reset` (a connection whose transaction failed goes back to the
+    pool without ROLLBACK)."""
+
+    MAX_IDLE = 4
+
+    def __init__(self, b):
+        self.dsn, self.idle, self.lock = b["target"], [], threading.Lock()
+
+    def get(self):
+        with self.lock:
+            if self.idle:
+                return self.idle.pop()
+        return wire.PgConn(self.dsn)
+
+    def put(self, c):
+        with self.lock:
+            if len(self.idle) < self.MAX_IDLE:
+                self.idle.append(c)
+                return
+        c.close()
+
+    def tx(self, write):
+        return CrdbTx(self, getattr(CURRENT, "ex", None))
+
+    def check_schema(self):
+        c = wire.PgConn(self.dsn)
+        try:
+            cols = {r[0] for r in c.query("SELECT column_name FROM information_schema.columns WHERE "
+                                          "table_schema = 'public' AND table_name = 'notes'")}
+            idem = c.query("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND "
+                           "table_name = 'aegis_idem'")
+        finally:
+            c.close()
+        if not {"tenant", "id", "body"} <= cols or idem != [["1"]]:
+            raise ConfigError("crdb backend: public.notes(tenant,id,body) and public.aegis_idem must exist")
+
+
+class CrdbTx:
+    """No RLS on CockroachDB: the tenant conjunct is the isolation. SERIALIZABLE; a 40001 is retried by the caller
+    (execute) as a whole transaction; a cancelled request's running statement is cancelled with CancelRequest, and
+    the connection is reset (ROLLBACK) before it goes back to the pool, or retired if that fails."""
+
+    def __init__(self, pool, ex):
+        self.pool, self.ex = pool, ex
+        self.c = pool.get()
+        try:
+            self.c.query("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        except (wire.DbError, OSError):
+            self._release(reset=False, retire=True)
+            raise
+
+    def q(self, sql):
+        stop = threading.Event()
+        ex = self.ex
+
+        def watch():
+            while not stop.is_set():
+                if ex is not None and ex.cancel_ev.wait(0.02):
+                    if MUTANT != "crdb-cancel-ignored" and not stop.is_set():
+                        self.c.cancel()
+                    return
+                if ex is None:
+                    return
+        threading.Thread(target=watch, daemon=True).start()
+        try:
+            return self.c.query(sql)
+        finally:
+            stop.set()
+
+    def select(self, t, i):
+        q = wire.pg_quote
+        r = self.q(f"SELECT body FROM public.notes WHERE tenant = {q(t)} AND id = {q(i)}")
+        return r[0][0] if r else None
+
+    def insert(self, t, i, b):
+        q = wire.pg_quote
+        return bool(self.q(f"INSERT INTO public.notes (tenant, id, body) VALUES ({q(t)}, {q(i)}, {q(b)}) "
+                           "ON CONFLICT (tenant, id) DO NOTHING RETURNING id"))
+
+    def update(self, t, i, b):
+        q = wire.pg_quote
+        return bool(self.q(f"UPDATE public.notes SET body = {q(b)} WHERE tenant = {q(t)} AND id = {q(i)} RETURNING id"))
+
+    def delete(self, t, i):
+        q = wire.pg_quote
+        return bool(self.q(f"DELETE FROM public.notes WHERE tenant = {q(t)} AND id = {q(i)} RETURNING id"))
+
+    def upsert(self, t, i, b):
+        q = wire.pg_quote
+        self.q(f"INSERT INTO public.notes (tenant, id, body) VALUES ({q(t)}, {q(i)}, {q(b)}) "
+               "ON CONFLICT (tenant, id) DO UPDATE SET body = excluded.body")
+        return True
+
+    def _release(self, reset, retire=False):
+        c, self.c = self.c, None
+        if c is None:
+            return
+        if retire:
+            c.close()
+            return
+        if reset and MUTANT != "crdb-no-reset":
+            try:
+                c.query("ROLLBACK")
+            except (wire.DbError, OSError):
+                c.close()
+                return
+        self.pool.put(c)
+
+    def commit(self):
+        try:
+            self.c.query("COMMIT")
+        except wire.DbError as e:
+            if MUTANT == "crdb-40001-as-success" and e.args[1:2] == ("40001",):
+                self._release(reset=True)
+                return   # mutant: the failed commit is treated as committed
+            self._release(reset=True)
+            raise
+        except OSError:
+            self._release(reset=False, retire=True)
+            raise
+        self._release(reset=False)
+
+    def rollback(self):
+        self._release(reset=True)
+
+
+class MyTx:
+    """MariaDB (P8-oracle-001): no RLS, so the tenant conjunct in every statement is the isolation. Mutant
+    `drop-tenant` drops that conjunct (the oracle line "native-e2e mariadb: drop-tenant reference -> red")."""
+
+    def __init__(self, url, write):
+        self.c = mywire.My(url)
+        self.c.simple("START TRANSACTION")
+        self.drop = MUTANT == "drop-tenant"
+
+    def _where(self, t, i):
+        return ("id = ?", (i,)) if self.drop else ("tenant = ? AND id = ?", (t, i))
+
+    def select(self, t, i, lock=False):
+        w, p = self._where(t, i)
+        _, rows = self.c.query(f"SELECT body FROM notes WHERE {w}" + (" FOR UPDATE" if lock else ""), p)
+        return rows[0][0] if rows else None
+
+    def insert(self, t, i, b):
+        try:
+            self.c.query("INSERT INTO notes (tenant, id, body) VALUES (?, ?, ?)", (t, i, b))
+            return True
+        except mywire.MyError as e:
+            if e.code == 1062:
+                return False
+            raise
+
+    def update(self, t, i, b):
+        if self.select(t, i, lock=True) is None:
+            return False
+        w, p = self._where(t, i)
+        self.c.query(f"UPDATE notes SET body = ? WHERE {w}", (b, *p))
+        return True
+
+    def delete(self, t, i):
+        if self.select(t, i, lock=True) is None:
+            return False
+        w, p = self._where(t, i)
+        self.c.query(f"DELETE FROM notes WHERE {w}", p)
+        return True
+
+    def upsert(self, t, i, b):
+        self.c.query("INSERT INTO notes (tenant, id, body) VALUES (?, ?, ?) "
+                     "ON DUPLICATE KEY UPDATE body = VALUES(body)", (t, i, b))
+        return True
+
+    def commit(self):
+        self.c.simple("COMMIT")
+        self.c.close()
+
+    def rollback(self):
+        try:
+            self.c.simple("ROLLBACK")
+        except (mywire.MyError, OSError):
+            pass
+        self.c.close()
+
+
 def open_tx(b, write):
     if b["engine"] == "sqlite":
         return SqliteTx(b["target"], write)
     if b["engine"] == "postgres":
         return PgTx(b["target"], write)
+    if b["engine"] == "mariadb":
+        return MyTx(b["target"], write)
+    if b["engine"] == "crdb":
+        return b["pool"].tx(write)
     return KvTx(b["target"], write)
 
 
@@ -469,6 +664,34 @@ def check_backend(b):
             raise ConfigError(f"backend {b['id']}: notes(tenant,id,body) missing")
         if rls != [["t", "t"]]:
             raise ConfigError(f"backend {b['id']}: schema gate: RlsNotForced")
+    elif b["engine"] == "mariadb":
+        # the live schema gate's MariaDB rules that this oracle exercises (aegis_adapter_mysql::check_live_schema):
+        # InnoDB, tenant/id byte-compared (VARBINARY or *_nopad_bin), (tenant, id) the only unique key
+        c = mywire.My(b["target"])
+        try:
+            _, eng = c.query("SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() "
+                             "AND TABLE_NAME = 'notes'")
+            _, cols = c.query("SELECT COLUMN_NAME, COALESCE(COLLATION_NAME, ''), DATA_TYPE FROM "
+                              "information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notes'")
+            _, keys = c.query("SELECT INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM "
+                              "information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notes' "
+                              "AND NON_UNIQUE = 0 GROUP BY INDEX_NAME")
+        finally:
+            c.close()
+        cmap = {r[0]: (r[1], r[2]) for r in cols}
+        if not {"tenant", "id", "body"} <= set(cmap):
+            raise ConfigError(f"backend {b['id']}: notes(tenant,id,body) missing")
+        if [r[0] for r in eng] != ["InnoDB"]:
+            raise ConfigError(f"backend {b['id']}: schema gate: NonTransactionalEngine")
+        for col in ("tenant", "id"):
+            coll, typ = cmap[col]
+            if not (typ == "varbinary" or coll.endswith("_nopad_bin")):
+                raise ConfigError(f"backend {b['id']}: schema gate: {col} collation {coll} is not byte equality")
+        if [tuple(k) for k in keys] != [("PRIMARY", "tenant,id")]:
+            raise ConfigError(f"backend {b['id']}: schema gate: (tenant, id) must be the only unique key")
+    elif b["engine"] == "crdb":
+        b["pool"] = CrdbPool(b)
+        b["pool"].check_schema()
     else:
         c = wire.KvConn(b["target"])
         c.cmd("PING")
@@ -715,6 +938,20 @@ class Server:
                 self.idem.release(principal, key)
 
     def execute(self, ex, backend, op, t, nid, body, holds, principal, key):
+        """CockroachDB: a 40001 (serialization failure, here an abort by a higher-priority writer) is retried as a
+        whole transaction, handler included, while the request is live; never answered as a success."""
+        CURRENT.ex = ex
+        attempt = 0
+        while True:
+            try:
+                return self.execute_once(ex, backend, op, t, nid, body, holds, principal, key)
+            except wire.DbError as e:
+                attempt += 1
+                if backend["engine"] != "crdb" or e.args[1:2] != ("40001",) or attempt > 3 or ex.cancel_ev.is_set():
+                    raise
+                log(f"crdb 40001, retrying the transaction (attempt {attempt + 1})")
+
+    def execute_once(self, ex, backend, op, t, nid, body, holds, principal, key):
         tx = open_tx(backend, op != "select")
         try:
             if op == "select":

@@ -1,0 +1,26 @@
+# Effective-config pins for the golden subjects (P8-conformance-001; PREFLIGHT D-P8.5 config-pin).
+#
+# config_sha256 is aegis-config's config_hash (SHA-256 of the canonical effective F8 JSON) of `config`. With
+# --config-pin, conformance/run writes a subject's report only if every `CONFORMANCE-BOOT: <subject> artifact A
+# config H` line in this run's passing gate logs has H == config_sha256 and A == the report's artifact_sha256, and at
+# least one such line exists. The lines come from conformance/boot-pin, which boots the judged artifact with
+# `config` and requires check-config, the boot log line and /healthz to agree.
+#
+# Re-pinning (a golden config change, or an F8 change that moves the hashed form) is a reviewed edit of this file:
+# run conformance/boot-pin on the artifact and copy the hash. An empty config_sha256 means "not pinned yet" and the
+# subject's report is refused.
+
+v = 1
+
+[subject.aegis-bin-floor]
+config = "conformance/golden/floor.f8.json"
+# 2026-11-06, kamrui: aegis-bin (floor features, debug build of phase8 0e27b11 + this unit) check-config, boot line
+# and /healthz all reported this hash (conformance/boot-pin PASS).
+config_sha256 = "cb74156562f76322618201709b74b6742feb1ff9b33b741f3d23a98ef5328df5"
+
+[subject.aegis-bin-cmvp]
+config = "conformance/golden/cmvp.f8.json"
+# NOT PINNED: a FIPS-CMVP listener loads only in the cmvp build (the floor check-config refuses it), and no cmvp
+# build was made for this unit. Integrator: profiles/cmvp/build.sh, then
+# conformance/boot-pin --subject aegis-bin-cmvp --binary <cmvp aegis> and copy its config hash here.
+config_sha256 = ""

@@ -489,8 +489,16 @@ mod tests {
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"static":"/srv"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"nohost"}}]"#)).is_err());
         assert!(plan(&cfg(r#"[{"id":1,"path":"/a","to":{"upstream":"h:1","framing":"uds"}}]"#)).is_err());
-        assert!(plan(&cfg(r#"[{"id":1,"path":"/a//b","to":{"upstream":"h:1"}}]"#)).is_err());
-        assert!(plan(&cfg(r#"[{"id":1,"path":"/a/./b","to":{"upstream":"h:1"}}]"#)).is_err());
+        // Non-canonical route paths are refused at load since Phase 8 (F8, SPEC_INVARIANTS CFG-5); the plan's own
+        // canonical-path check stays as a second line behind it.
+        for p in ["/a//b", "/a/./b"] {
+            let doc = format!(
+                r#"{{"v":1,"listeners":[{{"name":"pub","bind":"127.0.0.1:8443","profile":"P-PUBLIC-WEB"}}],
+                   "vhosts":[{{"host":"aegis.test","routes":[{{"id":1,"path":"{p}","to":{{"upstream":"h:1"}}}}]}}]}}"#
+            );
+            let e = aegis_config::parse_config(doc.as_bytes()).err().map(|e| e.kind());
+            assert_eq!(e, Some(aegis_config::ErrorKind::NotCanonical), "{p}");
+        }
         // App routes: only linked apps (none in the core build, PLAN D17), no framing.
         let notes = plan(&cfg(r#"[{"id":1,"path":"/n/","to":{"upstream":"app:notes"},"authz":"allow-all"}]"#));
         if cfg!(feature = "native") {

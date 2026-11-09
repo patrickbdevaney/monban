@@ -49,6 +49,15 @@ const F: &str = r#"{"v":1,"listeners":[{"name":"f","bind":"b","profile":"P-PUBLI
   "tls":{"credentials":[{"id":"x","kind":"x509","chain":"cred:x.crt","key":"cred:x.key"},
     {"id":"m","kind":"mtc","trust_anchor_id":"32473.1","chain":"path:/etc/m.bin","key":"cred:m.key","listeners":["f"]},
     {"id":"q","kind":"mldsa","chain":"cred:q.crt","key":"cred:q.key","listeners":["h"]}]}}"#;
+/// F8 Phase-8 members (P8-spec-001): `runtime`, `state`, and route paths one mutation away from a dot or empty
+/// segment (R13), so the generator reaches the canonical-path refusal and both new blocks on both sides.
+const G: &str = r#"{"v":1,"listeners":[{"name":"g","bind":"b","profile":"P-PUBLIC-WEB"}],
+  "vhosts":[{"host":"g","routes":[{"id":1,"path":"/a.b/c./x","to":{"upstream":"u"},"authz":"g"},
+    {"id":2,"path":"/p/.q/","to":{"upstream":"u"}},{"id":3,"path":"/","to":{"static":"x"}},
+    {"id":4,"path":"/aa.bb/cc./..dd/ee../.ff/gg","to":{"upstream":"u"}},
+    {"id":5,"path":"/hh/ii.jj/.kk./ll/mm..nn/oo/","to":{"upstream":"u"}},
+    {"id":6,"path":"/pp=qq/rr:ss/tt@uu/vv.ww/x.y.z/","to":{"upstream":"u"}}]}],
+  "runtime":{"worker_threads":16},"state":{"idempotency_retention_s":86400}}"#;
 
 fn hash(s: &ConfigStore) -> Option<[u8; 32]> {
     s.config_hash()
@@ -265,6 +274,13 @@ const TOKENS: &[&[u8]] = &[
     b"\"mariadb\"",
     b"\"burst\":1,",
     b"\"rate_per_s\":1000001,",
+    // F8 Phase-8 members and non-canonical path pieces (R13).
+    b"/../",
+    b"/./",
+    b"//",
+    b";",
+    b"\"worker_threads\":0,",
+    b"\"idempotency_retention_s\":59,",
 ];
 
 fn mutate(rng: &mut Rng, seed: &[u8]) -> Vec<u8> {
@@ -323,7 +339,8 @@ fn totality_random_mutation() {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(if cfg!(debug_assertions) { 20_000 } else { 1_000_000 });
-    let seeds: [&[u8]; 6] = [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes(), E.as_bytes(), F.as_bytes()];
+    let seeds: [&[u8]; 7] =
+        [A.as_bytes(), B.as_bytes(), C.as_bytes(), D.as_bytes(), E.as_bytes(), F.as_bytes(), G.as_bytes()];
     for seed in seeds {
         parse_config(seed).unwrap();
     }
@@ -333,9 +350,10 @@ fn totality_random_mutation() {
     let (mut oks, mut errs) = (0u64, 0u64);
     let (mut p2_oks, mut p2_errs) = (0u64, 0u64);
     let (mut p7_oks, mut p7_errs) = (0u64, 0u64);
+    let (mut p8_oks, mut p8_errs, mut p8_canon) = (0u64, 0u64, 0u64);
     let mut kinds = std::collections::HashSet::new();
     for i in 0..iters {
-        let input = mutate(&mut rng, seeds[(i % 6) as usize]);
+        let input = mutate(&mut rng, seeds[(i % 7) as usize]);
         let before = (s.config_hash(), s.generation());
         match s.apply(&input) {
             Ok(g) => {
@@ -350,8 +368,12 @@ fn totality_random_mutation() {
                 if c.tls().is_some() || c.listeners().iter().any(|l| l.is_l4() || l.proxy_protocol.is_some()) {
                     p7_oks += 1;
                 }
+                if c.runtime() != &aegis_config::Runtime::default() || c.state().idempotency_retention_s.is_some() {
+                    p8_oks += 1;
+                }
                 p2_invariants(c);
                 p7_invariants(c);
+                p8_invariants(c);
             }
             Err(e) => {
                 errs += 1;
@@ -369,6 +391,12 @@ fn totality_random_mutation() {
                 {
                     p7_errs += 1;
                 }
+                if ptr.starts_with("/runtime") || ptr.starts_with("/state") {
+                    p8_errs += 1;
+                }
+                if e.kind() == ErrorKind::NotCanonical {
+                    p8_canon += 1;
+                }
                 assert_eq!((s.config_hash(), s.generation()), before, "Err changed the served config");
                 assert!(e.pointer().is_empty() || e.pointer().starts_with('/'));
             }
@@ -385,8 +413,9 @@ fn totality_random_mutation() {
         }
     }
     println!(
-        "totality: {iters} inputs, {oks} accepted ({p2_oks} with p2, {p7_oks} with phase-7 members), {errs} rejected \
-         ({p2_errs} in p2, {p7_errs} in phase-7 members), kinds {kinds:?}"
+        "totality: {iters} inputs, {oks} accepted ({p2_oks} with p2, {p7_oks} with phase-7 members, {p8_oks} with \
+         phase-8 blocks), {errs} rejected ({p2_errs} in p2, {p7_errs} in phase-7 members, {p8_errs} in phase-8 blocks, \
+         {p8_canon} non-canonical paths), kinds {kinds:?}"
     );
     assert_eq!(oks + errs, iters);
     // The corpus must reach the schema layer, not only the JSON parser.
@@ -396,11 +425,28 @@ fn totality_random_mutation() {
     assert!(p2_oks > 0 && p2_errs > 0, "p2 block not exercised: {p2_oks} accepted, {p2_errs} rejected");
     // ... and the Phase-7 members on both sides.
     assert!(p7_oks > 0 && p7_errs > 0, "phase-7 members not exercised: {p7_oks} accepted, {p7_errs} rejected");
+    // ... and the Phase-8 blocks and the canonical route-path refusal (R13).
+    assert!(p8_oks > 0 && p8_errs > 0, "phase-8 blocks not exercised: {p8_oks} accepted, {p8_errs} rejected");
+    assert!(p8_canon > 0, "no mutation reached the canonical route-path refusal");
 }
 
 /// What every accepted config guarantees about the Phase-7 members: an L4 listener carries no alpn and unique SNIs,
 /// PROXY trust is non-empty and never /0, mtc credentials (and only they) carry a trust anchor, and no mldsa
 /// credential is a candidate on a P-PUBLIC-WEB listener.
+/// Every accepted config: route paths are canonical (R13), `runtime` and `state` within their F8 bounds.
+fn p8_invariants(c: &Config) {
+    for h in c.vhosts() {
+        for r in &h.routes {
+            let canon = aegis_canon::canon_path(r.path.as_bytes());
+            assert!(matches!(&canon, Ok(k) if k.as_bytes() == r.path.as_bytes()), "non-canonical path {:?}", r.path);
+        }
+    }
+    assert!((1..=1024).contains(&c.runtime().worker_threads));
+    if let Some(r) = c.state().idempotency_retention_s {
+        assert!((60..=2_592_000).contains(&r));
+    }
+}
+
 fn p7_invariants(c: &Config) {
     let a = c.admission();
     assert!(a.per_ip.rate_per_s >= 1 && a.per_ip.burst >= a.per_ip.rate_per_s && a.per_ip.burst <= 10_000_000);

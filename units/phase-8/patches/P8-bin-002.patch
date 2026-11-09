@@ -1,0 +1,37 @@
+# P8-bin-002 patch for gates/phase-8.toml and ci/tcb-lines.py (integrator / P8-compliance-001 files; outside this unit's write_scope)
+#
+# Rationale: P8-bin-002 applies F8 state.idempotency_retention_s in aegis-bin (SQLite in-band aegis_idem; PG, crdb
+# and MariaDB refuse a set retention at boot). Its four cases live in crates/aegis-bin/src/native/retention_boot_tests.rs
+# behind feature `native`, and so do the existing native/mariadb/pg unit tests. Gate `tests` runs
+# `cargo test --workspace`, which builds aegis-bin with default features only (no workspace member enables `native`),
+# so none of these cases run at GO. Hunk 1 adds `cargo test -p aegis-bin --features native` to gate `tests` (it passed
+# on kamrui on 2026-11-07, see the unit report; the mutant with the wiring removed was red on 3 of the 4 cases).
+# Hunk 2 only rewords ci/tcb-lines.py's RES_NOT_CLOSED reason for R12 to the narrowed residual (aegis-bin now applies
+# the retention on SQLite); the check itself is unchanged and the current rows pass with or without it.
+# Apply with: git apply units/phase-8/patches/P8-bin-002.patch
+diff --git a/ci/tcb-lines.py b/ci/tcb-lines.py
+index 3f72e4f..aba294f 100755
+--- a/ci/tcb-lines.py
++++ b/ci/tcb-lines.py
+@@ -142,7 +142,7 @@ RES_GATES = {"R1": {"fips-boundary", "fips-indicator"}, "R2": {"kani-kx-client"}
+ RES_NOT_CLOSED = {"R2": "0x11EB / 0x0202 client paths are not Kani-covered (P8-kani-001 INFEASIBLE_REPORT)",
+                   "R3": "conformance-full is red until the cmvp config_sha256 pin exists",
+                   "R5": "the 64-core run is separate and advisory", "R9": "drop-oldest under backpressure is not covered",
+-                  "R12": "aegis-bin does not apply the F8 retention", "R17": "the 2 h soak on quiet has not run"}
++                  "R12": "aegis-bin does not apply the F8 retention on PG, CockroachDB or MariaDB backends (refused at boot)", "R17": "the 2 h soak on quiet has not run"}
+ RES_REQ = {  # facts each residual row's evidence (or rung) must carry
+     "R1": [("D-P8.1 component text", r"#5314-approved components"), ("combiner SP 800-227", r"SP 800-227 §4\.6\.2"),
+            ("composite NOT CLAIMED", r"NOT CLAIMED"), ("#5298 dynamic not cited", r"#5298 is the dynamic module")],
+diff --git a/gates/phase-8.toml b/gates/phase-8.toml
+index 5c4f6fc..f7c2d80 100644
+--- a/gates/phase-8.toml
++++ b/gates/phase-8.toml
+@@ -19,7 +19,7 @@ remote = true
+ 
+ [[gate]]
+ name = "tests"
+-cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q"
++cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q && ci/heavy.sh cargo test -p aegis-bin --features native --all-targets --locked -q"
+ remote = true
+ 
+ [[gate]]

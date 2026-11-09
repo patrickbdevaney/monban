@@ -15,7 +15,7 @@ use std::sync::Mutex;
 
 use aegis_audit::{
     Action, Actor, AuditEvent, AuditSink, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass, FailurePolicy,
-    FipsStatus, Log, LogConfig, Outcome, SinkError, TilePath, Untrusted,
+    FipsStatus, Log, LogConfig, MLDSA87_COSIGN, MlDsa87NoteSigner, NoteSigner, Outcome, SinkError, TilePath, Untrusted,
 };
 
 #[derive(Debug)]
@@ -124,7 +124,13 @@ impl Auditor {
             require_cosigner: false,
             policy: FailurePolicy::default(),
         };
-        let log = Log::new(cfg, Box::new(signer), Vec::new(), sink).map_err(|e| format!("audit log: {e:?}"))?;
+        // ML-DSA-87 checkpoint cosigner (ARCHITECTURE §3.10), fresh per process like the log key; its vkey goes to
+        // `vkey` after the Ed25519 one. Absent on the cmvp build (PLAN-6 D15: ML-DSA-87 is compiled out there).
+        let mut cosigners: Vec<Box<dyn NoteSigner>> = Vec::new();
+        if MLDSA87_COSIGN {
+            cosigners.push(Box::new(MlDsa87NoteSigner::generate(name).map_err(|e| format!("audit cosign key: {e}"))?));
+        }
+        let log = Log::new(cfg, Box::new(signer), cosigners, sink).map_err(|e| format!("audit log: {e:?}"))?;
         let vkeys = log.vkeys().join("\n");
         fs::write(dir.join("vkey"), format!("{vkeys}\n")).map_err(|e| format!("audit vkey: {e}"))?;
         let fips = if fips_in.cmvp_claim {

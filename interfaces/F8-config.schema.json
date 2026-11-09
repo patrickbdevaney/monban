@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aegis:interfaces:F8:config:1",
   "title": "AEGIS configuration (frozen interface F8)",
-  "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 per-clause reject/308/accept decided by spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3). Phase 7 (P7-spec-001, PLAN-7 Interfaces) adds, all optional and off when absent: listeners[].proxy_protocol, listeners[].l4, listeners[].front, the root `tls` block, the root `admission` block and the backend engine families mariadb and crdb. A document without them means exactly what it meant before Phase 7, and its effective form and config_hash are unchanged.",
+  "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 per-clause reject/308/accept decided by spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3). Phase 7 (P7-spec-001, PLAN-7 Interfaces) adds, all optional and off when absent: listeners[].proxy_protocol, listeners[].l4, listeners[].front, the root `tls` block, the root `admission` block and the backend engine families mariadb and crdb. A document without them means exactly what it meant before Phase 7, and its effective form and config_hash are unchanged. Phase 8 (P8-spec-001, PLAN-8 Interfaces) adds, additively: the root `runtime` block (worker_threads, default 2 = the former constant; not hashed when default) and the root `state` block (idempotency_retention_s, no default: absent = never expire), and refuses at load a route path that is not canonical (a route that could never match). A document without the new blocks and with canonical route paths means exactly what it meant before Phase 8, with the same effective form and config_hash.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -90,6 +90,12 @@
     },
     "admission": {
       "$ref": "#/$defs/admission"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
+    },
+    "state": {
+      "$ref": "#/$defs/state"
     }
   },
   "$defs": {
@@ -368,6 +374,31 @@
         }
       }
     },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Phase 8 (P8-spec-001, D-P8.3, R5): serving-runtime sizing that was a constant in the assembly. worker_threads is the tokio multi-thread worker count; its default is the pre-Phase-8 aegis-bin constant 2, so an absent block is today's behaviour, and a block equal to the defaults is not printed in the hashed effective form (it hashes like an absent one). No timing or ordering invariant depends on the value.",
+      "properties": {
+        "worker_threads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024,
+          "default": 2
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Phase 8 (P8-spec-001, R12): durable-state retention. idempotency_retention_s is how long an idempotency key (INV-IDEMP) is kept after its first use: a replay within the window returns the stored outcome; after it the key may be forgotten and the request is treated as new. It has NO default: absent means never expire (the pre-Phase-8 meaning), so no stored key changes meaning on upgrade; an empty block means the same as an absent one and hashes like it.",
+      "properties": {
+        "idempotency_retention_s": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 2592000
+        }
+      }
+    },
     "vhost": {
       "type": "object",
       "additionalProperties": false,
@@ -406,7 +437,8 @@
         },
         "path": {
           "type": "string",
-          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*$"
+          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*$",
+          "description": "Exact canonical route path. Besides the pattern, the value must be a fixed point of CANON-2 (aegis_canon::canon_path returns it unchanged): no dot segment, no empty segment, no character CANON-2 forbids in a path (';', which the pattern admits), not over the path length cap. Phase 8 (R13) makes this a load-time refusal (error NotCanonical at this member); before Phase 8 such a route loaded but could never match a request, because routing compares canonical paths, so the refusal changes no served behaviour."
         },
         "to": {
           "oneOf": [

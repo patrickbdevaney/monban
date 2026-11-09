@@ -11,7 +11,8 @@ publish = false
 layer = "tool"
 
 [dependencies]
-aegis-ops = { workspace = true, features = ["acme"] }
+# `test-faults` (PREFLIGHT R11): this oracle subject drives `acme::Faults`; the only crate that enables it.
+aegis-ops = { workspace = true, features = ["acme", "test-faults"] }
 aegis-tls = { workspace = true }
 rustls = { workspace = true }
 aws-lc-rs = { workspace = true }

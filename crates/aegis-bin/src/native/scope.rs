@@ -53,10 +53,36 @@ pub enum Phase {
     Failed,
 }
 
+/// Interrupts the statement a scope is running on its engine (PG/crdb: a CancelRequest with the session's
+/// BackendKeyData over a separate connection). Blocking; run off the async workers.
+pub type Interrupt = Box<dyn FnOnce() + Send>;
+
+/// The armed interrupt of the scope's open transaction, and the interrupt in flight.
+#[derive(Default)]
+struct Interrupts {
+    armed: Option<Interrupt>,
+    sending: Option<std::thread::JoinHandle<()>>,
+}
+
+impl std::fmt::Debug for Interrupts {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Interrupts")
+            .field("armed", &self.armed.is_some())
+            .field("sending", &self.sending.is_some())
+            .finish()
+    }
+}
+
 /// The commit point / cancellation latch of one request (NC1/NC2).
+///
+/// A cancel that wins also fires the scope's armed [`Interrupt`] (R8: at the request deadline the running statement
+/// is stopped on the server, not left to run to its statement_timeout). The interrupt is disarmed, and an interrupt
+/// in flight is joined, before the scope's connection is released ([`Gate::disarm`]), so a CancelRequest never
+/// reaches a backend after its connection went back to the pool.
 #[derive(Debug)]
 pub struct Gate {
     phase: Mutex<Phase>,
+    interrupts: Mutex<Interrupts>,
     /// The executor's cancellation token: set only by this gate, so a cancel that lost the race to the commit point
     /// never interrupts COMMIT.
     exec: CancelToken,
@@ -66,7 +92,12 @@ pub struct Gate {
 
 impl Gate {
     pub fn new(ignore_cancel: bool) -> Gate {
-        Gate { phase: Mutex::new(Phase::Open), exec: CancelToken::new(), ignore_cancel }
+        Gate {
+            phase: Mutex::new(Phase::Open),
+            interrupts: Mutex::new(Interrupts::default()),
+            exec: CancelToken::new(),
+            ignore_cancel,
+        }
     }
 
     pub fn phase(&self) -> Phase {
@@ -79,8 +110,33 @@ impl Gate {
         if *p == Phase::Open && !self.ignore_cancel {
             *p = Phase::Cancelled;
             self.exec.cancel();
+            let mut i = lock(&self.interrupts);
+            if let Some(f) = i.armed.take() {
+                i.sending = std::thread::Builder::new().name("aegis-db-cancel".into()).spawn(f).ok();
+            }
         }
         *p
+    }
+
+    /// Arm `f` for the scope's open transaction (replacing an earlier one). Not armed once the gate left `Open`
+    /// (the executor's next cancellation point refuses anyway).
+    pub fn arm(&self, f: Interrupt) {
+        let p = lock(&self.phase);
+        if *p == Phase::Open {
+            lock(&self.interrupts).armed = Some(f);
+        }
+    }
+
+    /// Drop the armed interrupt and wait for one in flight. Called before the scope's connection is released.
+    pub fn disarm(&self) {
+        let sending = {
+            let mut i = lock(&self.interrupts);
+            i.armed = None;
+            i.sending.take()
+        };
+        if let Some(h) = sending {
+            let _ = h.join();
+        }
     }
 
     /// The commit point. `false`: cancelled first.
@@ -278,15 +334,43 @@ impl<R: Renderer> Renderer for CtxRenderer<R> {
 /// Host-owned statements an engine runs inside a scope's transaction.
 pub trait HostSql<R>: Executor<R, Rows = Rows> {
     fn write_idem(&self, tx: &mut Self::Tx, tenant: &str, idem: &Idem) -> Result<(), EngineError>;
+    /// How to interrupt the statement `tx` is running from another thread (`None`: the engine has no such path;
+    /// a cancel then takes effect at the next cancellation point).
+    fn interrupt(&self, _tx: &Self::Tx) -> Option<Interrupt> {
+        None
+    }
 }
 
 impl HostSql<aegis_adapter_sqlite::Rendered> for SqliteExec {
     fn write_idem(&self, tx: &mut SqliteTx, _tenant: &str, idem: &Idem) -> Result<(), EngineError> {
         let status = idem.status.to_string();
+        if !self.stamped() {
+            return self
+                .raw(
+                    tx,
+                    "INSERT INTO aegis_idem (principal, k, status, body) VALUES (?1, ?2, ?3, ?4)",
+                    &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str()],
+                )
+                .map(|_| ());
+        }
+        // IDEMP-R (super::retention): the lookup forgot an expired row of this key, so the new outcome replaces it
+        // here, in the same transaction; a row inside the window is never deleted (the insert then conflicts).
+        let now = super::retention::now_s();
+        if let Some(cut) = self.retention().and_then(|r| super::retention::cutoff(now, r)) {
+            let cut = cut.to_string();
+            self.raw(
+                tx,
+                "DELETE FROM aegis_idem WHERE principal = ?1 AND k = ?2 AND committed_at IS NOT NULL \
+                 AND committed_at <= CAST(?3 AS INTEGER)",
+                &[idem.principal.as_str(), idem.key.as_str(), cut.as_str()],
+            )?;
+        }
+        let now = now.to_string();
         self.raw(
             tx,
-            "INSERT INTO aegis_idem (principal, k, status, body) VALUES (?1, ?2, ?3, ?4)",
-            &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str()],
+            "INSERT INTO aegis_idem (principal, k, status, body, committed_at) \
+             VALUES (?1, ?2, ?3, ?4, CAST(?5 AS INTEGER))",
+            &[idem.principal.as_str(), idem.key.as_str(), status.as_str(), idem.body.as_str(), now.as_str()],
         )
         .map(|_| ())
     }
@@ -309,12 +393,28 @@ impl HostSql<aegis_adapter_pg::Rendered> for PgExecutor<PgConn> {
         )
         .map(|_| ())
     }
+
+    /// PG/crdb CancelRequest with the session's BackendKeyData (R8).
+    fn interrupt(&self, tx: &PgTx<PgConn>) -> Option<Interrupt> {
+        tx.interrupt()
+    }
 }
 
-/// One scope's transaction with its request context.
+/// One scope's transaction with its request context. Field order matters: `_disarm` drops (joins any interrupt in
+/// flight) before `inner` releases the connection.
 pub struct CtxTx<T> {
+    _disarm: Disarm,
     inner: T,
     ctx: Arc<ReqCtx>,
+}
+
+/// Disarms the request's gate on drop (a scope that ends without commit or rollback reaching the executor).
+pub struct Disarm(Arc<ReqCtx>);
+
+impl Drop for Disarm {
+    fn drop(&mut self) {
+        self.0.gate.disarm();
+    }
 }
 
 /// The engine's executor behind the request's commit gate.
@@ -339,7 +439,11 @@ impl<R: Send + 'static, E: HostSql<R>> Executor<R> for CtxExec<E> {
             return Err(EngineError::Unavailable("cancelled before begin".into()));
         }
         let info = ScopeInfo { principal: scope.principal, tenant: ctx.data_tenant, cancel: &ctx.gate.exec };
-        Ok(CtxTx { inner: self.inner.begin(&info)?, ctx })
+        let inner = self.inner.begin(&info)?;
+        if let Some(f) = self.inner.interrupt(&inner) {
+            ctx.gate.arm(f);
+        }
+        Ok(CtxTx { _disarm: Disarm(Arc::clone(&ctx)), inner, ctx })
     }
 
     fn execute(&self, tx: &mut Self::Tx, r: R, l: OpLimits) -> Result<(Rows, Usage), EngineError> {
@@ -359,9 +463,11 @@ impl<R: Send + 'static, E: HostSql<R>> Executor<R> for CtxExec<E> {
     fn commit(&self, mut tx: Self::Tx) -> Result<(), EngineError> {
         let ctx = Arc::clone(&tx.ctx);
         if !ctx.gate.enter_commit() {
+            ctx.gate.disarm();
             self.inner.rollback(tx.inner);
             return Err(EngineError::Unavailable("cancelled before the commit point".into()));
         }
+        ctx.gate.disarm(); // past the commit point: no cancel fires any more
         if let Some(idem) = &ctx.idem
             && let Err(e) = self.inner.write_idem(&mut tx.inner, &tenant_text(ctx.data_tenant), idem)
         {
@@ -376,6 +482,7 @@ impl<R: Send + 'static, E: HostSql<R>> Executor<R> for CtxExec<E> {
     }
 
     fn rollback(&self, tx: Self::Tx) {
+        tx.ctx.gate.disarm();
         self.inner.rollback(tx.inner);
     }
 }
@@ -391,6 +498,14 @@ pub type CrdbEngine =
     aegis_adapter_host::dispatch::Engine<CtxRenderer<super::engines::CrdbRenderer>, CtxExec<PgExecutor<PgConn>>>;
 #[cfg(feature = "adapter-crdb")]
 pub type CrdbHost = Host<EngineBackends<CtxRenderer<super::engines::CrdbRenderer>, CtxExec<PgExecutor<PgConn>>>>;
+#[cfg(feature = "adapter-mariadb")]
+pub type MariadbEngine = aegis_adapter_host::dispatch::Engine<
+    CtxRenderer<super::engines::MariadbRenderer>,
+    CtxExec<super::mariadb::MariadbExec>,
+>;
+#[cfg(feature = "adapter-mariadb")]
+pub type MariadbHost =
+    Host<EngineBackends<CtxRenderer<super::engines::MariadbRenderer>, CtxExec<super::mariadb::MariadbExec>>>;
 
 /// One configured backend's engine and its SDK host (one blocking pool per backend).
 pub enum EngineHandle {
@@ -408,6 +523,12 @@ pub enum EngineHandle {
         engine: Arc<CrdbEngine>,
         host: CrdbHost,
     },
+    /// MariaDB (feature `adapter-mariadb`): the MySQL wire, one connection per scope, no RLS.
+    #[cfg(feature = "adapter-mariadb")]
+    Mariadb {
+        engine: Arc<MariadbEngine>,
+        host: MariadbHost,
+    },
 }
 
 impl std::fmt::Debug for EngineHandle {
@@ -417,6 +538,8 @@ impl std::fmt::Debug for EngineHandle {
             EngineHandle::Pg { .. } => f.write_str("Pg"),
             #[cfg(feature = "adapter-crdb")]
             EngineHandle::Crdb { .. } => f.write_str("Crdb"),
+            #[cfg(feature = "adapter-mariadb")]
+            EngineHandle::Mariadb { .. } => f.write_str("Mariadb"),
         }
     }
 }
@@ -436,6 +559,8 @@ impl EngineHandle {
             EngineHandle::Pg { host, .. } => host.call(app, session),
             #[cfg(feature = "adapter-crdb")]
             EngineHandle::Crdb { host, .. } => host.call(app, session),
+            #[cfg(feature = "adapter-mariadb")]
+            EngineHandle::Mariadb { host, .. } => host.call(app, session),
         }
     }
 
@@ -445,6 +570,8 @@ impl EngineHandle {
             EngineHandle::Pg { host, .. } => host.pool(),
             #[cfg(feature = "adapter-crdb")]
             EngineHandle::Crdb { host, .. } => host.pool(),
+            #[cfg(feature = "adapter-mariadb")]
+            EngineHandle::Mariadb { host, .. } => host.pool(),
         }
     }
 }

@@ -9,6 +9,7 @@
 //! - [`latch`]: NC2, [`State::commit`] is the commit point (rows + outcome record + outbox rows in one durable
 //!   transaction, then the reply; 202 when the timer fired after CP, outcome retrievable).
 //! - [`outbox`]: NC6, effects only through the outbox; at-least-once relay with a stable dedupe key.
+//! - IDEMP-R (Phase 8, R12): [`State::set_retention`] forgets completed keys after the F8 window; absent = never.
 //!
 //! Spec: `spec/SPEC_INVARIANTS.md`.
 #![forbid(unsafe_code)]
@@ -18,11 +19,14 @@ pub mod latch;
 pub mod outbox;
 pub mod store;
 
+#[cfg(test)]
+mod retention_tests;
+
 use std::fmt;
 use std::path::Path;
 
 pub use idem::{Begin, IdemKey, Lease, Outcome, Record};
-pub use latch::{ACCEPTED_STATUS, Reply, State};
+pub use latch::{ACCEPTED_STATUS, Clock, Reply, State};
 pub use outbox::{Dedupe, DeliverError, Effect};
 pub use store::{Dump, Op, Rows, Space, Store, StoreError};
 
@@ -68,6 +72,10 @@ pub struct StateMutations {
     pub effect_before_commit: bool,
     /// Undelivered outbox rows are dropped on open.
     pub outbox_drop_on_restart: bool,
+    /// IDEMP-R: the retention window is ignored (keys never expire).
+    pub retention_ignored: bool,
+    /// IDEMP-R: keys expire one second before the window ends.
+    pub retention_early: bool,
 }
 
 impl StateMutations {
@@ -77,6 +85,8 @@ impl StateMutations {
         replay_reexecutes: false,
         effect_before_commit: false,
         outbox_drop_on_restart: false,
+        retention_ignored: false,
+        retention_early: false,
     };
 }
 

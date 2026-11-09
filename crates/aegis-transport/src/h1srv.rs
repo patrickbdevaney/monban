@@ -39,6 +39,12 @@ struct H1State {
     /// Handlers running (watchdog suspended while > 0).
     handling: AtomicU64,
     reject: Mutex<Option<H1Reject>>,
+    /// The reject hit a message body: hyper already has that request's head and answers it (R6).
+    reject_in_body: AtomicBool,
+    /// Request heads the filter forwarded to hyper.
+    heads: AtomicU64,
+    /// Responses the service handed to hyper (one per dispatched request).
+    answered: AtomicU64,
 }
 
 impl H1State {
@@ -85,7 +91,9 @@ impl<IO: AsyncRead + AsyncWrite + Unpin> GuardIo<IO> {
             Some(v) => {
                 if let Err(r) = v.feed(got, &mut self.out) {
                     *self.st.reject.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(r);
+                    self.st.reject_in_body.store(v.rejected_in_body(), Ordering::Relaxed);
                 }
+                self.st.heads.store(v.heads_forwarded(), Ordering::Relaxed);
                 self.st.head_partial.store(v.head_partial(), Ordering::Relaxed);
                 self.st.mid_message.store(v.mid_message(), Ordering::Relaxed);
             }
@@ -278,6 +286,7 @@ impl Body for OutBody {
 
 fn out<A: App>(sh: &Shared<A>, reply: Reply, head_req: bool, close: bool, stall: Duration) -> http::Response<OutBody> {
     counters::bump(&sh.srv.counters.responses);
+    counters::bump(&sh.st.answered);
     let (mut parts, ()) = response_head(&reply, head_req).into_parts();
     if close || sh.srv.is_draining() {
         parts.headers.insert(http::header::CONNECTION, http::HeaderValue::from_static("close"));
@@ -351,7 +360,12 @@ async fn handle<A: App>(sh: Arc<Shared<A>>, req: http::Request<Incoming>) -> htt
             counters::bump(&srv.counters.streams_stall_reaped);
             return out(&sh, Reply::status(408), head_req, true, stall);
         }
-        Err(BodyErr::Other) => return out(&sh, Reply::status(400), head_req, true, stall),
+        // R6: a strict-filter reject inside this body ended the stream hyper reads; this is the one response to the
+        // request, with the reject's status, and `serve` adds none.
+        Err(BodyErr::Other) => {
+            let status = sh.st.reject().map_or(400, |r| r.status);
+            return out(&sh, Reply::status(status), head_req, true, stall);
+        }
     };
     let reply = {
         let _h = Handling::new(&sh);
@@ -504,19 +518,157 @@ where
         if rej.status == 431 {
             counters::bump(&srv.counters.field_block_rejects);
         }
-        let msg = format!(
-            "HTTP/1.1 {} {}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n",
-            rej.status,
-            reason_phrase(rej.status)
-        );
+        // R6 (RFC 9110: one final response per request). The client sent `heads` requests hyper saw, plus the
+        // rejected one when the reject hit its head. A reject inside a body belongs to a request hyper dispatched
+        // and (normally) answered with `connection: close`; the filter answers only a request nobody answered.
+        let sent =
+            st.heads.load(Ordering::Relaxed).saturating_add(u64::from(!st.reject_in_body.load(Ordering::Relaxed)));
+        let msg = (st.answered.load(Ordering::Relaxed) < sent).then(|| {
+            format!(
+                "HTTP/1.1 {} {}\r\nconnection: close\r\ncontent-length: 0\r\n\r\n",
+                rej.status,
+                reason_phrase(rej.status)
+            )
+        });
         let H1Guard(guard) = conn.into_parts().io;
         drop(shared_io);
         let Ok(gio) = Arc::try_unwrap(guard) else { return };
         let mut io = gio.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner).io.io;
         let _ = timeout(srv.stall(), async {
-            io.write_all(msg.as_bytes()).await?;
+            if let Some(m) = &msg {
+                io.write_all(m.as_bytes()).await?;
+            }
             io.shutdown().await
         })
         .await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! R6 (P7-oracle-uring-001 finding 2): one malformed chunked request gets exactly one response, then a close.
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
+    use std::sync::atomic::AtomicUsize;
+
+    use aegis_canon::Canon;
+    use aegis_canon::kind::{Authority, RoutePath};
+    use aegis_types::RouteId;
+    use tokio::io::{AsyncReadExt, DuplexStream};
+
+    use super::*;
+    use crate::exchange::{ExchangeBudget, FrontEnd, Head, HeadVerdict, MessageVerdict, Method, Mode};
+    use crate::{ReplyBody, VhostTable};
+
+    /// Counts handler calls: a rejected body must never reach the handler.
+    #[derive(Default)]
+    struct T {
+        handled: AtomicUsize,
+    }
+
+    const BUDGET: ExchangeBudget = ExchangeBudget {
+        max_message_bytes: 65_536,
+        max_frame_bytes: 16_384,
+        max_messages: 1,
+        max_total_bytes: 65_536,
+        stall_ms: 120_000,
+    };
+
+    impl FrontEnd for T {
+        fn on_head(&self, _h: &Head<'_>) -> HeadVerdict {
+            HeadVerdict::Accept(Mode::Unary, BUDGET)
+        }
+        fn on_message(&self, _h: &Head<'_>, _m: &[u8]) -> MessageVerdict {
+            MessageVerdict::Continue
+        }
+    }
+
+    impl App for T {
+        fn route(&self, _a: &Canon<Authority>, _p: &Canon<RoutePath>, _m: Method) -> Option<RouteId> {
+            RouteId::new(1).ok()
+        }
+        fn respond(&self, _h: &Head<'_>, _m: &[u8]) -> Reply {
+            self.handled.fetch_add(1, Ordering::SeqCst);
+            Reply::new(200, "text/plain", ReplyBody::Static(b"ok"))
+        }
+    }
+
+    fn server() -> Arc<Server<T>> {
+        let mut l = WrapperLimits::GOLDEN;
+        l.set_f8("stall_timeout_ms", 300).unwrap();
+        l.set_f8("idle_timeout_ms", 1000).unwrap();
+        let mut v = VhostTable::new();
+        v.add(b"aegis.test", &[]);
+        Server::new(T::default(), v, l).unwrap()
+    }
+
+    /// Sends `parts` (with a short pause between them, so each is a separate read), keeps the write side open
+    /// (the server must close on its own), and returns everything received until the server closes (5 s cap).
+    async fn exchange(srv: &Arc<Server<T>>, parts: &[&[u8]]) -> (String, bool) {
+        let (mut io, server_io): (DuplexStream, DuplexStream) = tokio::io::duplex(1 << 20);
+        let h = tokio::spawn(srv.clone().serve_plain(server_io));
+        for (i, p) in parts.iter().enumerate() {
+            if i > 0 {
+                sleep(Duration::from_millis(30)).await;
+            }
+            io.write_all(p).await.unwrap();
+        }
+        let mut out = Vec::new();
+        let closed = timeout(Duration::from_secs(5), io.read_to_end(&mut out)).await.is_ok();
+        let _ = timeout(Duration::from_secs(5), h).await;
+        (String::from_utf8_lossy(&out).into_owned(), closed)
+    }
+
+    fn statuses(resp: &str) -> Vec<&str> {
+        resp.match_indices("HTTP/1.1 ").map(|(i, _)| resp.get(i + 9..i + 12).unwrap_or("")).collect()
+    }
+
+    const HEAD: &[u8] = b"POST /x HTTP/1.1\r\nHost: aegis.test\r\nTransfer-Encoding: chunked\r\n\r\n";
+
+    #[test]
+    fn r6_one_response_per_malformed_chunked_request() {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        rt.block_on(async {
+            let srv = server();
+            let ext = format!("1;{}\r\nz\r\n0\r\n\r\n", "e".repeat(20_000));
+            let cases: Vec<(&str, Vec<Vec<u8>>, &str)> = vec![
+                ("bad-size", vec![[HEAD, b"zz\r\nhello\r\n0\r\n\r\n"].concat()], "400"),
+                ("bare-lf", vec![[HEAD, b"5\nhello\r\n0\r\n\r\n"].concat()], "400"),
+                ("bad-size split", vec![HEAD.to_vec(), b"zz\r\nhello\r\n0\r\n\r\n".to_vec()], "400"),
+                ("bare-lf split", vec![HEAD.to_vec(), b"5\nhello\r\n0\r\n\r\n".to_vec()], "400"),
+                ("data not CRLF", vec![[HEAD, b"3\r\nabcX0\r\n\r\n"].concat()], "400"),
+                ("ext over TBI-1", vec![[HEAD, ext.as_bytes()].concat()], "431"),
+            ];
+            for (name, parts, want) in &cases {
+                let parts: Vec<&[u8]> = parts.iter().map(Vec::as_slice).collect();
+                let (resp, closed) = exchange(&srv, &parts).await;
+                assert_eq!(statuses(&resp), vec![*want], "{name}: exactly one response: {resp:?}");
+                assert!(closed, "{name}: the server closes after the reject: {resp:?}");
+            }
+            assert_eq!(srv.app.handled.load(Ordering::SeqCst), 0, "a rejected body never reaches the handler");
+            let rejects = srv.counters().snapshot().into_iter().find(|(k, _)| *k == "h1_rejects").map(|(_, v)| v);
+            assert_eq!(rejects, Some(u64::try_from(cases.len()).unwrap()), "each reject counted once");
+
+            // Head-level reject: nothing reached hyper, so the filter answers (once).
+            let (resp, closed) = exchange(&srv, &[b"GET / HTTP/1.1\nHost: aegis.test\r\n\r\n"]).await;
+            assert_eq!(statuses(&resp), vec!["400"], "{resp:?}");
+            assert!(closed);
+            // Pipelined: a valid request then a bad head is two requests, two responses (200, then the filter's 400).
+            let two: &[u8] = b"GET / HTTP/1.1\r\nHost: aegis.test\r\n\r\nGET / HTTP/1.1\nHost: aegis.test\r\n\r\n";
+            let (resp, closed) = exchange(&srv, &[two]).await;
+            assert_eq!(statuses(&resp), vec!["200", "400"], "{resp:?}");
+            assert!(closed);
+            // A valid request then a bad chunk line in the next request's body: 200, then one 400.
+            let (resp, closed) =
+                exchange(&srv, &[&[b"GET / HTTP/1.1\r\nHost: aegis.test\r\n\r\n", HEAD, b"zz\r\n"].concat()]).await;
+            assert_eq!(statuses(&resp), vec!["200", "400"], "{resp:?}");
+            assert!(closed);
+            // Positive control: a well-formed chunked POST is answered once with 200.
+            let (resp, _) = exchange(
+                &srv,
+                &[b"POST /x HTTP/1.1\r\nHost: aegis.test\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n5\r\nhello\r\n0\r\n\r\n"],
+            )
+            .await;
+            assert_eq!(statuses(&resp), vec!["200"], "{resp:?}");
+        });
     }
 }

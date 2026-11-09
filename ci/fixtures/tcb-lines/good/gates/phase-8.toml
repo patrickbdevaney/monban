@@ -1,5 +1,33 @@
 # tcb-lines self-test fixture: only the gates the fixture's TCB lines cite (names only; never run).
-phase = 7
+phase = 8
+
+[[gate]]
+name = "acme-cert"
+cmd = "true"
+
+[[gate]]
+name = "allowlist-lock"
+cmd = "true"
+
+[[gate]]
+name = "audit-tlog"
+cmd = "true"
+
+[[gate]]
+name = "bin-residuals"
+cmd = "true"
+
+[[gate]]
+name = "config-totality"
+cmd = "true"
+
+[[gate]]
+name = "conformance-full"
+cmd = "true"
+
+[[gate]]
+name = "crdb-live"
+cmd = "true"
 
 [[gate]]
 name = "cred-select"
@@ -10,11 +38,31 @@ name = "default-graph"
 cmd = "true"
 
 [[gate]]
+name = "egress-tls-e2e"
+cmd = "true"
+
+[[gate]]
+name = "engine-pins-kamrui"
+cmd = "true"
+
+[[gate]]
+name = "fips-boundary"
+cmd = "true"
+
+[[gate]]
+name = "fips-indicator"
+cmd = "true"
+
+[[gate]]
 name = "front-equiv"
 cmd = "true"
 
 [[gate]]
 name = "fuzz"
+cmd = "true"
+
+[[gate]]
+name = "kani-kx-client"
 cmd = "true"
 
 [[gate]]
@@ -34,6 +82,10 @@ name = "lowering-read-mariadb"
 cmd = "true"
 
 [[gate]]
+name = "lowering-read-pg"
+cmd = "true"
+
+[[gate]]
 name = "lowering-write-crdb"
 cmd = "true"
 
@@ -42,11 +94,19 @@ name = "lowering-write-mariadb"
 cmd = "true"
 
 [[gate]]
+name = "native-e2e-mariadb"
+cmd = "true"
+
+[[gate]]
 name = "no-otel-in-bin"
 cmd = "true"
 
 [[gate]]
 name = "no-quic"
+cmd = "true"
+
+[[gate]]
+name = "no-test-faults"
 cmd = "true"
 
 [[gate]]
@@ -62,6 +122,14 @@ name = "proxy-l4"
 cmd = "true"
 
 [[gate]]
+name = "reverse-proxy-e2e"
+cmd = "true"
+
+[[gate]]
+name = "scaling"
+cmd = "true"
+
+[[gate]]
 name = "schema-gate-crdb"
 cmd = "true"
 
@@ -70,11 +138,27 @@ name = "schema-gate-mariadb"
 cmd = "true"
 
 [[gate]]
+name = "soak"
+cmd = "true"
+
+[[gate]]
+name = "state-props"
+cmd = "true"
+
+[[gate]]
 name = "systemd-hardening"
 cmd = "true"
 
 [[gate]]
+name = "tlog-mldsa-openssl"
+cmd = "true"
+
+[[gate]]
 name = "tls-verdicts"
+cmd = "true"
+
+[[gate]]
+name = "transport-limits"
 cmd = "true"
 
 [[gate]]
@@ -84,11 +168,6 @@ cmd = "true"
 [[gate]]
 name = "vet"
 cmd = "true"
-
-[[gate]]
-name = "scaling"
-cmd = "true"
-
 [[gate]]
 name = "tests"
 cmd = "true"

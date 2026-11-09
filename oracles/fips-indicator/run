@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# AEGIS oracle: fips-indicator (unit P8-cmvp-002, PREFLIGHT D-P8.2, F1 FIPS-B1). Contract: oracles/README.md.
+# Last line: FIPS-INDICATOR: PASS|FAIL (...)  /  FIPS-INDICATOR SELF-TEST: PASS|FAIL (...).
+#   ./run --subject 'target/cmvp/release/tls-subject indicator' [--seed N]   drive the cmvp subject's indicator mode
+#   ./run --self-test        the model subject must PASS; every mutant subject (fake_subject.py) must be red
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+cd "$REPO" || exit 1
+exec python3 -I "$HERE/oracle.py" "$@"

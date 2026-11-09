@@ -1,0 +1,3 @@
+own-gate
+# Own phase gate (gates/phase-8.toml bin-residuals, remote = true): it judges an aegis built with --features mtc,l4,
+# which no aggregate builds, and needs openssl >= 3.5 for the ML-DSA-44 credential. ci/oracles.sh skips own-gate oracles.

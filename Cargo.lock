@@ -995,6 +995,8 @@ name = "egress-subject"
 version = "0.0.0"
 dependencies = [
  "aegis-egress",
+ "aegis-tls",
+ "rustls",
  "tokio",
 ]
 

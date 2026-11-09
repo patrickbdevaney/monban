@@ -1,0 +1,47 @@
+P8-fips-001 patch (outside its write_scope): README.md, SECURITY_CLAIMS.md, compliance/COMPLIANCE_MAP.md.
+
+Rationale: PREFLIGHT-8 D-P8.1 and the `fips-boundary` oracle "cert #5298 cited for the static build -> red" make
+`python3 -I ci/fips-boundary.py` fail on three existing lines that cite "#5298/#5314" (or "#5298 and #5314") for
+the cmvp build. aws-lc-fips-sys =0.13.11 builds AWS-LC FIPS 3.1.0 statically by default on Linux, so the cmvp build
+is the static module, CMVP #5314 (policy 140sp5314.pdf v1.2, sha256 pinned in compliance/fips-boundary.toml);
+#5298 is the dynamic module and applies only to a dynamic build. This patch rewrites only those three citations so
+each names #5314 for the static build and says #5298 is dynamic; it makes no other claim change and adds no 0x11ED
+claim text (that is P8-compliance-001's D-P8.1 wording). SECURITY_CLAIMS.md and compliance/** are in
+P8-compliance-001's write_scope; README.md is in no Phase-8 unit's scope, so the integrator applies it. With the patch
+applied, fips-boundary, tcb-lines and compliance check were run on a scratch copy (see the unit's final report).
+Apply with: git apply units/phase-8/patches/P8-fips-001.patch
+
+--- a/README.md
++++ b/README.md
+@@ -126,7 +126,8 @@
+ The plan to reduce this trusted base is in [`SECURITY_BY_DESIGN.md`](SECURITY_BY_DESIGN.md) §5.
+ 
+ **FIPS 140-3.** AEGIS is not a validated cryptographic module and makes no FIPS validation claim. A planned build
+-profile is designed to use the AWS-LC FIPS 140-3 validated module (CMVP certificates #5298 and #5314) on its
++profile is designed to use the AWS-LC FIPS 140-3 validated module (CMVP certificate #5314, the static
++module; #5298 is the dynamic module and applies only to a dynamic build) on its
+ validated operating environments; that profile has not yet been built or tested.
+ 
+ **Not claimed:** microarchitectural (side-channel) isolation; the correctness of third-party extensions, adapters or
+--- a/SECURITY_CLAIMS.md
++++ b/SECURITY_CLAIMS.md
+@@ -16,7 +16,7 @@
+ | **hyper** (HTTP/1.1) | HTTP framing and server machinery | strict pre-filter in aegis-transport (CL+TE, duplicate CL, TE, bare CR/LF, obs-fold rejected before hyper sees the request); wrapper budgets; upstream framing regenerated from canonical values | that hyper's parser is free of bugs |
+ | **h2** (HTTP/2) | HTTP/2 framing, HPACK, flow control | AEGIS wrapper: per-connection send ledger, stream/handler caps, RST budget, stall and idle deadlines (TBI-1..9); h2spec 145/146; two known RFC deviations documented in `crates/aegis-transport/INFEASIBLE_REPORT.md` | that h2's state machine or HPACK decoder is correct |
+ | **tokio** (+ mio, socket2) | async runtime, I/O reactor | pinned, cooldown, advisories; `panic = "abort"` | runtime correctness or absence of scheduling bugs |
+-| **AWS-LC C code** (via aws-lc-rs / aws-lc-sys) | all cryptography: TLS key exchange incl. ML-KEM, signatures incl. ML-DSA, hashing | FIPS 140-3 validated module only in the cmvp profile (CMVP #5298/#5314, AL2023); KATs for our 0x11ED hybrid group; interop with OpenSSL and Go | that the C implementation is memory-safe or side-channel free outside its certification scope. Upstream (not by us): the ML-KEM and ML-DSA assembly (mlkem-native/mldsa-native) and the P-256/P-384/X25519/Ed25519 arithmetic (s2n-bignum) are machine-proved by AWS down to assembly, and narrow SHA-2/HMAC/AES-GCM paths with SAW; ECDSA/ECDH protocol logic, HKDF and the TLS code are not |
++| **AWS-LC C code** (via aws-lc-rs / aws-lc-sys) | all cryptography: TLS key exchange incl. ML-KEM, signatures incl. ML-DSA, hashing | FIPS 140-3 validated module only in the cmvp profile (CMVP #5314, the static module; #5298 is the dynamic module and is not cited; AL2023); KATs for our 0x11ED hybrid group; interop with OpenSSL and Go | that the C implementation is memory-safe or side-channel free outside its certification scope. Upstream (not by us): the ML-KEM and ML-DSA assembly (mlkem-native/mldsa-native) and the P-256/P-384/X25519/Ed25519 arithmetic (s2n-bignum) are machine-proved by AWS down to assembly, and narrow SHA-2/HMAC/AES-GCM paths with SAW; ECDSA/ECDH protocol logic, HKDF and the TLS code are not |
+ | **SQLite C code** (bundled via rusqlite / libsqlite3-sys, SQLite 3.53.2) | embedded engine for aegis-state (idempotency, outbox, latch) and the SQLite adapter | version floor ≥3.51.3, pinned and cooldown-checked; WAL FULL with startup mode recheck; crash harness incl. double fault and fsync EIO; schema gate (no ATTACH/temp objects, PRAGMAs fixed at open, text tenant column); lowering oracles at the bundled version; vet exemption in the frozen baseline (DEVIATIONS X-10) | that the C implementation is memory-safe, or correct beyond what those oracles exercise |
+ | **rustls** (+ webpki, pki-types) | TLS 1.3 protocol | profile-exact configs, 12 frozen TLS verdicts, security floors | protocol-implementation correctness beyond those tests |
+ | **The Rust compiler (rustc / LLVM)** and std | turning verified-intent source into machine code | pinned toolchain 1.99.1, reproducible double build (byte-identical binaries) | that the compiler is correct or free of miscompilation; there is no verified Rust compiler (Ferrocene is qualified, not proved). Planned cross-check: diverse double compilation via mrustc |
+--- a/compliance/COMPLIANCE_MAP.md
++++ b/compliance/COMPLIANCE_MAP.md
+@@ -36,7 +36,7 @@
+ | 2026-01-01 | CISA bad practices: memory-safety roadmap or MSL (voluntary) | Rust; the roadmap row lists the C residue (AWS-LC, SQLite, kernel) | A |
+ | 2026-06-22 | EO 14412: federal HVA/high-impact PQ key establishment by 2030-12-31, signatures by 2031-12-31; CBOM guidance in 270 days; FAR rule ~2026-12; NSS excluded | P-UNIVERSAL / P-PUBLIC-WEB; CBOM derivable from the lock and the release SBOM | A |
+ | 2026-09-11 | CRA Art 14 manufacturer reporting via ENISA SRP: early warning 24 h, notification 72 h, final report 14 d after fix (vulnerabilities) / 1 month (incidents) | binding on a monetized distributor; drafts only today: `compliance/cra/PSIRT-runbook.md`, CSAF/VEX templates (D-P1: not published, no contact channel) | A (`v2.cra-monetization-trigger` B) |
+-| 2026-09-21 | FIPS 140-2 certificates historical | only 140-3 modules; AWS-LC FIPS 3.1.0 is 140-3 (CMVP #5298/#5314) | B |
++| 2026-09-21 | FIPS 140-2 certificates historical | only 140-3 modules; AWS-LC FIPS 3.1.0 is 140-3 (CMVP #5314 static, cited by the cmvp build; #5298 dynamic) | B |
+ | 2027-01-01 | CNSA 2.0: new NSS acquisitions CNSA-capable | P-CNSA opt-in, floor build only (D17) | C (NSA FAQ 403) |
+ | **2027-12-11** | CRA full application; open-source steward reporting Art 24(3) | steward file set drafted in `compliance/cra/`; publication is an operator step (PREFLIGHT §P4 item 1, "not now" on 2026-11-04) and must happen by this date regardless | A |
+ | 2030 | CNSA 2.0 software signing exclusive; ASD ISM: ECDH/ECDSA/RSA and ML-KEM-768/ML-DSA-65 not approved beyond 2030; NIST IR 8547 draft deprecates 112-bit | ML-DSA-87 release signature (test keys only today, D-P2); P-UNIVERSAL (0x11ED) | C / A (`r4e10.asd-ism-2026-09`) / B |

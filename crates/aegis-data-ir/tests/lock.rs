@@ -164,6 +164,103 @@ fn denylisted_entries_are_refused() {
     assert_eq!(generate(&kv_decl("op kv eval tt w=- r=-\n")).map_err(|e| e.line), Err(6));
 }
 
+/// Oracle (P8-spec-001, DENY-M): each MariaDB keyword denylist item, as the kind token of a fixture-lock entry, is
+/// refused as denied; the mandated op set (incl. both upsert forms) generates and verifies.
+#[test]
+fn mariadb_denylist_in_a_fixture_lock() {
+    let my = "aegis-allowlist-decl v1\nadapter notes-mariadb\nfamily mariadb\nschema notes tenant=0 key=1 cols=0,1,2,3 permitted=1,2,3\n\
+              op notes select eq(1) w=- r=1,2,3\nop notes insert tt w=1,2,3 r=1\nop notes update eq(1) w=2 r=-\n\
+              op notes delete eq(1) w=- r=-\nop notes upsert tt w=1,2,3 r=1\nop notes upsert tt w=1 r=-\n";
+    let lock = generate(my).unwrap_or_else(|e| unreachable!("{e:?}"));
+    assert!(lock.starts_with("aegis-allowlist-lock v1\nadapter notes-mariadb\nfamily mariadb\n"), "{lock}");
+    assert_eq!(verify(my, &lock), Ok(()));
+    let Ok(al) = Allowlist::parse(&lock) else { unreachable!() };
+    assert_eq!(al.family(), EngineFamily::Mariadb);
+    let words: Vec<&str> = denylist(EngineFamily::Mariadb)
+        .iter()
+        .map(|d| d.item)
+        .filter(|i| i.bytes().all(|c| c.is_ascii_alphabetic()))
+        .collect();
+    assert!(words.len() >= 10, "{words:?}");
+    for w in words {
+        let d = format!("{my}op notes {} tt w=1 r=-\n", w.to_ascii_lowercase());
+        assert_eq!(kind_of(&d), Err(DeclErrorKind::Denied(w)), "{w}");
+    }
+    // The PostgreSQL upsert skeleton (ON CONFLICT DO) is never the MariaDB one: DO is denied there.
+    assert!(denied(EngineFamily::Mariadb, "DO").is_some());
+}
+
+/// Oracle (P8-spec-001, DENY-M): every MariaDB denylist form in rendered statement text is refused.
+#[test]
+fn mariadb_rendered_sql_scanner() {
+    let m = EngineFamily::Mariadb;
+    let hit = |q: &str| denied_in_sql(m, q).map(|d| d.map(|e| e.item));
+    let guard = "INSERT INTO `t` (`tenant`, `id`, `x`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `x` = \
+                 IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`x`), `x`)";
+    // The aegis-adapter-mysql mandated forms pass.
+    for ok in [
+        guard.to_string(),
+        format!("{guard} RETURNING `id`, `x`"),
+        format!(
+            "{guard}, `y` = IF(CAST(`tenant` AS BINARY) = CAST(VALUES(`tenant`) AS BINARY), VALUES(`y`), `y`) RETURNING `id`"
+        ),
+        "INSERT INTO `t` (`tenant`, `id`) SELECT ?, ? FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `t` WHERE \
+         CAST(`tenant` AS BINARY) = CAST(? AS BINARY)) RETURNING `id`"
+            .to_string(),
+        "SELECT `a`.`id` FROM `notes` AS `a` WHERE (`a`.`tenant` = ?) FOR UPDATE".to_string(),
+        "SELECT 'REPLACE; @x' FROM `do` WHERE x = 'it\\'s' -- CALL p\n".to_string(),
+        "SELECT \"@\" # LOAD DATA\n".to_string(),
+        "SELECT 1 /* HANDLER ; */".to_string(),
+        "SELECT `a``b` FROM t".to_string(),
+    ] {
+        assert_eq!(hit(&ok), Ok(None), "{ok}");
+    }
+    let cases: &[(&str, &str)] = &[
+        ("REPLACE INTO t VALUES (1)", "REPLACE"),
+        ("INSERT IGNORE INTO t VALUES (1)", "IGNORE"),
+        ("LOAD DATA INFILE '/etc/passwd' INTO TABLE t", "LOAD"),
+        ("SELECT * FROM t INTO OUTFILE '/tmp/x'", "OUTFILE"),
+        ("SELECT * FROM t INTO DUMPFILE '/tmp/x'", "DUMPFILE"),
+        ("HANDLER t OPEN", "HANDLER"),
+        ("DO SLEEP(1)", "DO"),
+        ("CALL p()", "CALL"),
+        ("PREPARE s FROM 'x'", "PREPARE"),
+        ("SET SESSION sql_mode = ''", "SESSION"),
+        ("SELECT @x := 1", "@"),
+        ("SELECT @@sql_mode", "@"),
+        ("SELECT 1; SELECT 2", ";"),
+        ("SELECT 1;", ";"),
+        ("SELECT 1 /*! UNION SELECT 2 */", "/*!"),
+        ("SELECT 1 /*M!100000 UNION SELECT 2 */", "/*!"),
+        ("SELECT 1 --1", "--"),
+        ("SELECT 1 --", "--"),
+        ("INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `a` = VALUES(`a`)", "ON DUPLICATE KEY UPDATE"),
+        ("INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE", "ON DUPLICATE KEY UPDATE"),
+        (
+            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `a` = IF(CAST(`a` AS BINARY) = CAST(VALUES(`a`) AS BINARY), VALUES(`a`), `a`)",
+            "ON DUPLICATE KEY UPDATE",
+        ),
+        (
+            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`u`) AS BINARY), VALUES(`x`), `x`)",
+            "ON DUPLICATE KEY UPDATE",
+        ),
+        (
+            "INSERT INTO t (a) VALUES (?) ON DUPLICATE KEY UPDATE `x` = IF(CAST(`t` AS BINARY) = CAST(VALUES(`t`) AS BINARY), VALUES(`x`), `y`)",
+            "ON DUPLICATE KEY UPDATE",
+        ),
+        (&*Box::leak(format!("{guard}, `y` = 1").into_boxed_str()), "ON DUPLICATE KEY UPDATE"),
+        (&*Box::leak(format!("{guard} WHERE 1").into_boxed_str()), "ON DUPLICATE KEY UPDATE"),
+        ("SELECT DUPLICATE FROM t", "ON DUPLICATE KEY UPDATE"),
+        ("SELECT 1 ON DUPLICATE x", "ON DUPLICATE KEY UPDATE"),
+    ];
+    for (q, item) in cases {
+        assert_eq!(hit(q), Ok(Some(*item)), "{q}");
+    }
+    for q in ["SELECT 'open", "SELECT 'esc\\'", "SELECT \"x", "SELECT `x", "SELECT 1 /* open", "SELECT 'a\\"] {
+        assert_eq!(hit(q), Err(Unterminated), "{q}");
+    }
+}
+
 #[test]
 fn shape_rules_are_enforced() {
     assert_eq!(kind_of(&kv_decl("op kv delete tt w=- r=-\n")), Err(DeclErrorKind::Kv(KvError::UnsupportedFilter)));

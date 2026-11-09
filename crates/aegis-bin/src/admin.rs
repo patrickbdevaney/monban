@@ -60,8 +60,9 @@ pub fn metrics_text(shared: &Shared) -> Result<String, String> {
 }
 
 /// `/healthz`. `fips.module` is the linked FIPS module's own version string (PLAN-6 D2; `null` on the floor build);
-/// `fips.cosign` is the audit checkpoint cosignature algorithm, `"none"` here: this binary's audit log configures no
-/// cosigner, and on the cmvp build ML-DSA-87 is compiled out (`fips.cosign_mldsa87 = "compiled-out"`, PLAN-6 D15).
+/// `fips.cosign` is the audit checkpoint cosignature algorithm: `"mldsa87"` on the floor build (every checkpoint carries
+/// an ML-DSA-87 cosignature), `"none"` on the cmvp build, where ML-DSA-87 is compiled out
+/// (`fips.cosign_mldsa87 = "compiled-out"`, PLAN-6 D15).
 fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
     let snap = shared.snapshot();
     // The module string comes from the C library; emit it only if it is plain printable ASCII without JSON
@@ -72,7 +73,7 @@ fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
         Some(_) => "\"unreadable\"".to_string(),
     };
     format!(
-        "{{\"status\":\"{}\",\"generation\":{},\"config_hash\":\"{}\",\"fips\":{{\"config_fips\":{},\"module_fips_mode\":{},\"module\":{},\"cmvp_claim\":{},\"cosign\":\"none\",\"cosign_mldsa87\":\"{}\"}}}}\n",
+        "{{\"status\":\"{}\",\"generation\":{},\"config_hash\":\"{}\",\"fips\":{{\"config_fips\":{},\"module_fips_mode\":{},\"module\":{},\"cmvp_claim\":{},\"cosign\":\"{}\",\"cosign_mldsa87\":\"{}\"}}}}\n",
         if shared.is_draining() { "draining" } else { "ok" },
         snap.generation,
         aegis_config::hex(&snap.hash),
@@ -80,6 +81,7 @@ fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
         fips.module_fips_mode,
         module,
         fips.cmvp_claim,
+        if aegis_audit::MLDSA87_COSIGN { "mldsa87" } else { "none" },
         if aegis_audit::MLDSA87_COSIGN { "available" } else { "compiled-out" },
     )
 }
