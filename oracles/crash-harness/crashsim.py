@@ -46,13 +46,16 @@ def ops(i):
     return [(0, b'ctr', i.to_bytes(8, 'big')), (0, b'a%03d' % (i % 50), val(i)), (0, b'g%08d' % i, val(i)),
             (1, b'ctr', i.to_bytes(8, 'big')), (1, b'b%03d' % (i % 50), val(i + 1000))]
 class Expected:
-    def __init__(s): s.states = [{}]
+    # The verify pool calls get() from several threads; unlocked, two threads could both append state i and shift
+    # every later index by one, so a correct image was compared with the wrong expected state (Phase 8, p8-sqlite).
+    def __init__(s): s.states = [{}]; s.lock = threading.Lock()
     def get(s, c):
-        while len(s.states) <= c:
-            i = len(s.states); d = dict(s.states[-1])
-            for t, k, v in ops(i): d[(t, k.hex())] = v.hex()
-            s.states.append(d)
-        return s.states[c]
+        with s.lock:
+            while len(s.states) <= c:
+                i = len(s.states); d = dict(s.states[-1])
+                for t, k, v in ops(i): d[(t, k.hex())] = v.hex()
+                s.states.append(d)
+            return s.states[c]
 EXP = Expected()
 
 # ------------------------------------------------------------------ subjects
