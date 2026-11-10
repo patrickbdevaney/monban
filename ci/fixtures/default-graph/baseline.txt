@@ -3,6 +3,9 @@
 # at e06550e (Phase 6 GO + ledger housekeeping), deduplicated, path suffixes dropped: one "name version" per line.
 # Gate default-graph (ci/default-graph.py) requires the default aegis-bin graph to equal this set exactly. Changing
 # this file is a spec change to the §6 budget build, never a way to make the gate pass.
+# Spec change 2026-11-09 (RUSTSEC-2026-0459 / CVE-2026-119375): rusqlite 0.40.2 -> 0.41.1 and libsqlite3-sys
+# 0.38.2 -> 0.39.1 (bundled SQLite 3.53.2 -> 3.54.1); re-versioned in place, no package added or removed. The
+# fixture trees here carry the same two re-versioned lines.
 aegis-adapter-host 0.0.0
 aegis-admission 0.0.0
 aegis-agent 0.0.0
@@ -52,14 +55,14 @@ indexmap 2.14.2
 itoa 1.0.18
 jobserver 0.1.35
 libc 0.2.191
-libsqlite3-sys 0.38.2
+libsqlite3-sys 0.39.1
 linux-raw-sys 0.12.1
 mio 1.2.4
 once_cell 1.21.4
 pin-project-lite 0.2.17
 pkg-config 0.3.34
 r-efi 6.0.0
-rusqlite 0.40.2
+rusqlite 0.41.1
 rustix 1.1.5
 rustls 0.23.46
 rustls-pki-types 1.15.1

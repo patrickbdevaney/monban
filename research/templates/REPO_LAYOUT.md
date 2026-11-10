@@ -120,4 +120,4 @@ A crate depends only on lower layers. Negative control: a PR adding `aegis-trans
 
 ## 6. Binary budget gates (R-PERF-1 [B]; floors from a hello-world build)
 
-Stripped ≤6.0 MB default (≤9 MB everything except in-process JIT) · ≤60 crates default · non-crypto unsafe ≤5,000 lines · idle RSS ≤8 MB · 1k idle TLS ≤25 MB · hybrid handshake ≤1.3× X25519 CPU. Every feature PR commits a size/crate/unsafe delta; `cargo hack --each-feature`; a features-off build contains none of the feature's crates (`cargo metadata`).
+Stripped ≤6.0 MB default (≤9 MB everything except in-process JIT) · ≤60 crates default · non-crypto unsafe ≤5,100 lines (5,000 until 2026-11-10; raised by operator decision for the RUSTSEC-2026-0459 rusqlite 0.41.1 bump, DEVIATIONS X-10) · idle RSS ≤8 MB · 1k idle TLS ≤25 MB · hybrid handshake ≤1.3× X25519 CPU. Every feature PR commits a size/crate/unsafe delta; `cargo hack --each-feature`; a features-off build contains none of the feature's crates (`cargo metadata`).

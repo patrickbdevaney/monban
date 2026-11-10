@@ -13,7 +13,7 @@ layer = 4
 [dependencies]
 aegis-types = { workspace = true }
 aegis-data-ir = { workspace = true }
-# Pre-wired by P4-spec-002: bundled SQLite 3.53.2 (trusted, not verified C; DEVIATIONS X-10).
+# Pre-wired by P4-spec-002: bundled SQLite 3.54.1 (trusted, not verified C; DEVIATIONS X-10).
 rusqlite = { workspace = true }
 
 [lints]

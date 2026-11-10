@@ -1,4 +1,4 @@
-//! sqlite-exec: executes SQL for the AEGIS lowering oracles at the adapter's SQLite pin (bundled 3.53.2) instead of
+//! sqlite-exec: executes SQL for the AEGIS lowering oracles at the adapter's SQLite pin (bundled 3.54.1) instead of
 //! Python's stdlib sqlite3. It never renders anything: the oracle sends the subject's SQL and parameters verbatim.
 //!
 //! Line protocol (stdin -> stdout, one request and one reply per line, byte strings hex-encoded):
@@ -65,7 +65,7 @@ fn cell(v: ValueRef<'_>) -> String {
 
 fn exec(conn: &Connection, sql: &str, params: Vec<Value>) -> Result<String, String> {
     let mut stmt = conn.prepare_cached(sql).map_err(|e| e.to_string())?;
-    let names: Vec<String> = stmt.column_names().iter().map(|n| hex(n.as_bytes())).collect();
+    let names: Vec<String> = stmt.column_names().map(|n| hex(n.as_bytes())).collect();
     let ncols = names.len();
     let mut cells: Vec<String> = Vec::new();
     let mut nrows = 0usize;

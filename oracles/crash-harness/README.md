@@ -138,9 +138,10 @@ pub trait CrashSubject {
 ## Pins and build
 
 `rust/` is its own workspace with its own `Cargo.lock`, excluded from the main workspace by `exclude = ["oracles"]`.
-- `rusqlite =0.40.2` (bundled `libsqlite3-sys 0.38.2` = **SQLite 3.53.2**; the golden floor is ≥3.51.3, and refstore
-  refuses to start below it). rusqlite 0.41.0 was published 2026-10-24, under 7 days before this port, so the previous
-  release is pinned.
+- `rusqlite =0.41.1` (bundled `libsqlite3-sys 0.39.1` = **SQLite 3.54.1**; the golden floor is ≥3.54.0, and refstore
+  refuses to start below it). Bumped from 0.40.2 / 0.38.2 / SQLite 3.53.2 (the 2026-10-25 port, when rusqlite 0.41.0
+  was under 7 days old) for RUSTSEC-2026-0459 / CVE-2026-119375 (SQLite < 3.54.0 returns uninitialized page-cache
+  memory when a db and a -wal of differing page size are opened together); the floor rose from 3.51.3 to 3.54.0.
 - `redb =4.4.0` (2026-10-13), `libc =0.2.191` (2026-10-16), `cc =1.8.0` (build-only).
 - Lock-age audit on 2026-10-25: three transitive crates were under 7 days old and were moved to their previous
   releases (`cc` 1.10.0 → 1.8.0, because 1.9.0 is also 6 days old; `find-msvc-tools` 0.1.15 → 0.1.14; `smallvec`

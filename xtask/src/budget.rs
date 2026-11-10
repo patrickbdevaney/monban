@@ -6,7 +6,7 @@
 //! |---|---|---|
 //! | stripped size | ≤ 6.0 MB (6,000,000 bytes, decimal) | `target/release/aegis`; stripped by the release profile, confirmed by the absence of a `.symtab` ELF section |
 //! | shipped crates | ≤ 60 third-party | `cargo tree -e normal,no-proc-macro --no-dedupe`, deduped by name+version (the resolved build graph, as in spikes/otlp-footprint; `cargo metadata` over-counts never-built crates such as ring). Workspace crates are reported but not counted against the limit (the floor came from a hello-world build that counted dependencies) |
-//! | non-crypto unsafe | ≤ 5,000 lines | lines with the word `unsafe` outside comments and string/char literals in `src/**/*.rs` of each shipped third-party crate in the cargo registry; aws-lc-*, rustls*, ring are counted separately as crypto |
+//! | non-crypto unsafe | ≤ 5,100 lines | lines with the word `unsafe` outside comments and string/char literals in `src/**/*.rs` of each shipped third-party crate in the cargo registry; aws-lc-*, rustls*, ring are counted separately as crypto |
 //! | idle RSS | ≤ 8 MB (8,000,000 bytes) | VmRSS of a started `aegis` after 1 s; `n/a` while the binary exits at boot (fail-closed), not judged |
 //! | 1k idle TLS | ≤ 25 MB | `n/a` until a listener exists, not judged |
 //!
@@ -108,8 +108,10 @@ pub const MAX_CRATES: usize = 60;
 pub const MAX_P2_STRIPPED_BYTES: u64 = 11_000_000;
 pub const MAX_P2_CRATES: usize = 64;
 pub const MAX_P2_NONCRYPTO_UNSAFE: u64 = 6_500;
-/// Non-crypto `unsafe` line limit over shipped third-party sources.
-pub const MAX_NONCRYPTO_UNSAFE: u64 = 5_000;
+/// Non-crypto `unsafe` line limit over shipped third-party sources. 5,000 until 2026-11-10; raised to 5,100 by operator
+/// decision for the RUSTSEC-2026-0459 fix (rusqlite 0.40.2 -> 0.41.1 adds 110 lines, no new crate; no patched version
+/// fits under 5,000; measured 5,058; DEVIATIONS X-10).
+pub const MAX_NONCRYPTO_UNSAFE: u64 = 5_100;
 /// Idle RSS limit (bytes, decimal MB).
 pub const MAX_IDLE_RSS_BYTES: u64 = 8_000_000;
 /// RSS limit with 1k idle TLS connections (bytes, decimal MB).
@@ -759,7 +761,10 @@ fn self_test_run() -> Result<(), String> {
             "61 crates",
             Measured { third_party: (0..61).map(|i| (format!("c{i}"), "1.0.0".into())).collect(), ..base.clone() },
         ),
-        ("5,001 non-crypto unsafe lines", Measured { unsafe_noncrypto: 5_001, ..base.clone() }),
+        (
+            "ceiling + 1 non-crypto unsafe lines",
+            Measured { unsafe_noncrypto: MAX_NONCRYPTO_UNSAFE + 1, ..base.clone() },
+        ),
         ("idle RSS 8.1 MB", Measured { idle_rss: Runtime::Bytes(8_100_000), ..base.clone() }),
         ("1k TLS RSS 25.1 MB", Measured { tls1k_rss: Runtime::Bytes(25_100_000), ..base.clone() }),
         ("unstripped binary", Measured { stripped: Some(false), ..base.clone() }),

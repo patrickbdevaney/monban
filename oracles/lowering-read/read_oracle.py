@@ -927,7 +927,7 @@ EXT_ENGINES = ("mariadb", "crdb")
 
 def pin_selftest():
     """--engine-pin logic: a matching allow pin passes; a version mismatch, an unknown version and a blocked pin fail."""
-    pins = {"sqlite": {"version": "3.53.2"}, "engines": {
+    pins = {"sqlite": {"version": "3.54.1"}, "engines": {
         "pg17": {"kind": "postgres", "version": "17.11", "policy": "allow"},
         "pg19rc1": {"kind": "postgres", "version": "19rc1", "policy": "blocked", "blocked_reason": "R-DB-8"},
         "valkey": {"kind": "valkey", "version": "9.1.2", "policy": "allow"},
@@ -935,8 +935,8 @@ def pin_selftest():
         "crdb": {"kind": "crdb", "version": "25.4.19", "policy": "allow"}}}
     env = {"AEGIS_ENGINE_PG17": "postgresql://x@127.0.0.1:1/postgres"}
     checks = [
-        (L.pin_check(pins, "sqlite", "3.53.2")[0], True),
-        (L.pin_check(pins, "sqlite", sqlite3.sqlite_version)[0], sqlite3.sqlite_version == "3.53.2"),
+        (L.pin_check(pins, "sqlite", "3.54.1")[0], True),
+        (L.pin_check(pins, "sqlite", sqlite3.sqlite_version)[0], sqlite3.sqlite_version == "3.54.1"),
         (L.pin_check(pins, "postgres", "17.11", "postgresql://x@127.0.0.1:1/postgres", env)[0], True),
         (L.pin_check(pins, "postgres", "17.10", "postgresql://x@127.0.0.1:1/postgres", env)[0], False),
         (L.pin_check(pins, "postgres", "18.6", "postgresql://other", env)[0], False),

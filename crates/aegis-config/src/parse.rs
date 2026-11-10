@@ -1287,7 +1287,7 @@ mod tests {
 
     const PINS: &str = r#"
 [sqlite]
-version = "3.53.2"
+version = "3.54.1"
 [engines.pg18]
 kind = "postgres"
 policy = "allow"

@@ -56,9 +56,10 @@ sd-notify = { version = "0.5.0", default-features = false }
 cedar-policy = { version = "4.14.0", default-features = false }   # aegis-pdp only (X-8: out of process); 4.14 is the GHSA-m84h floor
 rustix = { version = "1.1.5", default-features = false, features = ["std", "net"] }   # safe SCM_RIGHTS (OwnedFd) for F11
 # Embedded SQL store and SQLite adapter (aegis-state, aegis-adapter-sqlite). Bundled C SQLite: lock target
-# libsqlite3-sys 0.38.2 = SQLite 3.53.2 (golden floor >= 3.51.3; crash-harness pin). Trusted, not verified C (D3).
+# libsqlite3-sys 0.39.1 = SQLite 3.54.1 (golden floor >= 3.54.0, RUSTSEC-2026-0459; crash-harness pin).
+# Trusted, not verified C (D3).
 # No default features: no hashlink statement cache (3 fewer crates); prepare per statement.
-rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
 # P2 isolation (PLAN-5 D3/D11, DEVIATIONS X-13): wasmtime links ONLY into the aegis-p2 worker binary (through
 # aegis-wasm), never into aegis-bin (gate no-wasmtime-in-bin). Exactly these five features (R-ISO-2; PLAN-5 D11 as
 # amended: memory-protection-keys is required for the MPK density option and implies call-hook): no

@@ -9,6 +9,6 @@ name = "sqlite-exec"
 path = "src/main.rs"
 
 [dependencies]
-# The adapter pin (supply-chain/engine-pins.toml [sqlite] version = "3.53.2"): rusqlite =0.40.2 bundled ->
-# libsqlite3-sys 0.38.2 -> SQLite 3.53.2, the same pin as oracles/crash-harness/rust/refstore and the adapter.
-rusqlite = { version = "=0.40.2", features = ["bundled"] }
+# The adapter pin (supply-chain/engine-pins.toml [sqlite] version = "3.54.1"): rusqlite =0.41.1 bundled ->
+# libsqlite3-sys 0.39.1 -> SQLite 3.54.1, the same pin as oracles/crash-harness/rust/refstore and the adapter.
+rusqlite = { version = "=0.41.1", features = ["bundled"] }
