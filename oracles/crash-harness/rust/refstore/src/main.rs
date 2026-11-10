@@ -29,8 +29,8 @@ mod sqlite_s {
     pub struct S(Connection);
     pub fn open(dir: &Path, cfg: &str, recheck: bool) -> Result<S, String> {
         let v = rusqlite::version_number();
-        if v < 3_051_003 {
-            return Err(format!("SQLite {} below golden floor 3.51.3", rusqlite::version()));
+        if v < 3_054_000 {
+            return Err(format!("SQLite {} below golden floor 3.54.0", rusqlite::version()));
         }
         let (jm, sy) = match cfg {
             "wal-full" => ("WAL", "FULL"),

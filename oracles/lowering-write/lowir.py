@@ -869,7 +869,7 @@ class ExecConn:
         except Exception: pass
 
 class SqliteExec:
-    """Runs SQL at the adapter's SQLite pin through rust/sqlite-exec (rusqlite =0.40.2 bundled -> SQLite 3.53.2)."""
+    """Runs SQL at the adapter's SQLite pin through rust/sqlite-exec (rusqlite =0.41.1 bundled -> SQLite 3.54.1)."""
     def __init__(self, binary):
         self.binary = binary
         self.p = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
@@ -898,7 +898,7 @@ def build_sqlite_exec(here, log=print):
     cleanup = lambda: shutil.rmtree(tgt, ignore_errors=True)
     cmd = [os.path.join(root, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q",
            "--manifest-path", os.path.join(here, "rust", "Cargo.toml"), "--target-dir", tgt]
-    log(f"  building sqlite-exec helper (rusqlite =0.40.2 bundled) into {os.path.relpath(tgt, root)}")
+    log(f"  building sqlite-exec helper (rusqlite =0.41.1 bundled) into {os.path.relpath(tgt, root)}")
     r = subprocess.run(cmd, stdout=sys.stderr)
     if r.returncode != 0:
         cleanup()

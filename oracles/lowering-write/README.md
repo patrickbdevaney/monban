@@ -13,7 +13,7 @@ expressions" plus "MERGE and data-modifying CTE refused" (unit P4-oracle-lowerin
 oracles/lowering-write/run                         # default gate: SQLite (stdlib) + offline Redis model, ~12 s
 oracles/lowering-write/run --self-test             # mutants must be caught, ~25 s
 oracles/lowering-write/run --self-test --subject "<cmd>"   # + <cmd> must PASS, "<cmd> --mutant drop-tenant" must go red
-oracles/lowering-write/run --n 300 --engine-pin    # SQLite at the adapter pin 3.53.2 (rust/sqlite-exec)
+oracles/lowering-write/run --n 300 --engine-pin    # SQLite at the adapter pin 3.54.1 (rust/sqlite-exec)
 oracles/lowering-write/run --subject "<cmd>"       # plug in the Rust renderer (protocol below)
 ci/engines.sh with pg17,pg18,valkey,redis -- oracles/lowering-write/run --n 300 --skip-sqlite --engine-pin \
     --engine pg --dsn @pg17 --engine pg --dsn @pg18 --engine redis --url @valkey --engine redis --url @redis

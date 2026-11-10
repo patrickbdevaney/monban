@@ -52,7 +52,7 @@ indexmap v2.14.2 |default,std|
 itoa v1.0.18 ||
 jobserver v0.1.35 ||
 libc v0.2.191 |default,std|
-libsqlite3-sys v0.38.2 |bundled,bundled_bindings,cc,default,min_sqlite_version_3_34_1,pkg-config,vcpkg|
+libsqlite3-sys v0.39.1 |bundled,bundled_bindings,cc,default,min_sqlite_version_3_45_3,pkg-config,vcpkg|
 linux-raw-sys v0.12.1 |auxvec,elf,errno,general,if_ether,ioctl,net,netlink,no_std,prctl,xdp|
 mio v1.2.4 |net,os-ext,os-poll|
 notes v0.0.0 ||
@@ -60,7 +60,7 @@ once_cell v1.21.4 |alloc,default,race,std|
 pin-project-lite v0.2.17 ||
 pkg-config v0.3.34 ||
 r-efi v6.0.0 ||
-rusqlite v0.40.2 |bundled,modern_sqlite|
+rusqlite v0.41.1 |bundled,modern_sqlite|
 rustix v1.1.5 |alloc,event,fs,net,process,std,time|
 rustls v0.23.46 |aws-lc-rs,aws_lc_rs,prefer-post-quantum,std|
 rustls-pki-types v1.15.1 |alloc,default,std|

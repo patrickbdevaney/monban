@@ -74,7 +74,7 @@ fn op(tenant: TenantId, kind: OpKind, filter: Pred, writes: Vec<(Field, Value)>,
 fn open_asserts_floor_and_fixes_configuration() -> R {
     let v = linked_version().ok_or("version")?;
     assert!(v >= SQLITE_FLOOR, "{v:?}");
-    assert_eq!((v.major, v.minor, v.patch), (3, 53, 2), "adapter pin is SQLite 3.53.2 (rusqlite =0.40.2 bundled)");
+    assert_eq!((v.major, v.minor, v.patch), (3, 54, 1), "adapter pin is SQLite 3.54.1 (rusqlite 0.41.1 bundled)");
     let tmp = TmpDb::new("open", GOLDEN)?;
     let db = SqliteDb::open(&tmp.0, OpenMode::ReadWrite).map_err(e)?;
     let c = db.connection();

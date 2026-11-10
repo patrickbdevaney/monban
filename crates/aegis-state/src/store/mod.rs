@@ -1,4 +1,4 @@
-//! Durable store (INV-DURABLE): bundled SQLite 3.53.2, WAL, `synchronous=FULL`, one writer connection.
+//! Durable store (INV-DURABLE): bundled SQLite 3.54.1, WAL, `synchronous=FULL`, one writer connection.
 //!
 //! Spike q2-007 keep-decision, with its mandatory start-up assertions:
 //! 1. `journal_mode` and `synchronous` are re-read **after the first write** of every open and the store refuses to
@@ -6,7 +6,8 @@
 //!    conversion silently falls back to the rollback journal while `PRAGMA journal_mode=WAL` already answered `wal`
 //!    (found by the crash-harness EIO stage). Every open performs a write (the `opens` counter in `meta`), so the
 //!    re-read always follows a real write.
-//! 2. The SQLite library is at or above the golden floor 3.51.3.
+//! 2. The SQLite library is at or above the golden floor 3.54.0 (3.51.3: WAL-reset corruption; 3.54.0:
+//!    CVE-2026-119375 / RUSTSEC-2026-0459, uninitialized page-cache memory from a db/-wal pair of differing page size).
 //! 3. Bootstrap fsyncs every store file, then the store directory, then its parent, before [`Store::open`] returns
 //!    (the caller serves only after that). Creation is retryable: the database is built first, then the
 //!    [`MARKER_FILE`] is published by temp file + fsync + rename, and only the bootstrap directory fsync makes that
@@ -30,7 +31,7 @@ use rusqlite::config::DbConfig;
 use rusqlite::{Connection, OpenFlags, TransactionBehavior, params};
 
 /// Golden floor for the bundled SQLite (crash-harness pin and q2-007).
-pub const SQLITE_FLOOR: i32 = 3_051_003;
+pub const SQLITE_FLOOR: i32 = 3_054_000;
 /// Store sub-directory under the configured root.
 pub const STATE_DIR: &str = "state";
 /// Database file name inside [`STATE_DIR`].
@@ -108,7 +109,7 @@ pub enum StoreError {
 impl fmt::Display for StoreError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StoreError::SqliteBelowFloor(v) => write!(f, "SQLite {v} below golden floor 3.51.3"),
+            StoreError::SqliteBelowFloor(v) => write!(f, "SQLite {v} below golden floor 3.54.0"),
             StoreError::ModeNotInEffect(m) => write!(f, "mode not in effect: {m}"),
             StoreError::Schema(m) => write!(f, "schema: {m}"),
             StoreError::Io(m) => write!(f, "io: {m}"),

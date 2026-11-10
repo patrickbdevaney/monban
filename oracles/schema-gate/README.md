@@ -239,7 +239,7 @@ unique index and the prefix flag is masked by the only-unique-index check). The 
 * D7 coverage is limited to what a schema can show: application-defined collations and virtual-table modules
   (per-connection registration). ATTACH/DETACH, temp objects and per-request PRAGMAs are runtime connection
   behaviour (the F4 `denylist(Sqlite)` and crs-data), and this gate cannot observe them.
-* The SQLite DDL is created with Python's SQLite 3.45.3. The subject reads the file at its own pin (3.53.2), and the
+* The SQLite DDL is created with Python's SQLite 3.45.3. The subject reads the file at its own pin (3.54.1), and the
   file format is compatible. The reference reads the effective column collation from `EXPLAIN` (P4 of the Eq
   opcode). A Rust subject may use `sqlite3_table_column_metadata`.
 * PG unique-index opclasses (for example `text_pattern_ops`) and SQLite/PG CHECK constraints are not judged.

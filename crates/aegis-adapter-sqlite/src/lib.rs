@@ -14,7 +14,7 @@
 //!   `INSERT .. VALUES`, `INSERT .. ON CONFLICT (<sole (tenant,key) index>) DO UPDATE SET c = excluded.c WHERE
 //!   "<t>"."<tenant>" = excluded."<tenant>" COLLATE BINARY` or `DO NOTHING`. Never the REPLACE family, never
 //!   `INSERT OR ..`, never a CTE. Each rendered text is re-scanned against `denylist(EngineFamily::Sqlite)`.
-//! * [`SqliteDb::open`] asserts the linked SQLite is at or above the floor (3.51.3; the pin is 3.53.2 bundled) and
+//! * [`SqliteDb::open`] asserts the linked SQLite is at or above the floor (3.54.0; the pin is 3.54.1 bundled) and
 //!   that the database encoding is UTF-8 (byte order of BINARY = code-point order only in UTF-8), and fixes the
 //!   connection configuration once: foreign keys on, triggers and views off, defensive mode, untrusted schema,
 //!   no double-quoted string literals (a misspelt `"column"` is an error, never the string `'column'`), ATTACH
@@ -36,15 +36,16 @@ use aegis_data_ir::{EngineFamily, EnginePin, EngineVersion};
 /// Engine pin name (supply-chain/engine-pins.toml `[sqlite]`).
 pub const ENGINE_PIN: &str = "sqlite";
 
-/// Lowest SQLite accepted at open: WAL-reset corruption fixed in 3.51.3 (engine-pins.toml advisory).
-pub const SQLITE_FLOOR: EngineVersion = EngineVersion { major: 3, minor: 51, patch: 3 };
+/// Lowest SQLite accepted at open (engine-pins.toml advisory): WAL-reset corruption fixed in 3.51.3; uninitialized
+/// page-cache memory from a db/-wal pair of differing page size fixed in 3.54.0 (CVE-2026-119375, RUSTSEC-2026-0459).
+pub const SQLITE_FLOOR: EngineVersion = EngineVersion { major: 3, minor: 54, patch: 0 };
 
 /// The version gate applied by [`SqliteDb::open`]: major 3 with floor [`SQLITE_FLOOR`]; any other major is refused.
 pub fn engine_pin() -> EnginePin {
     EnginePin { family: EngineFamily::Sqlite, floors: vec![SQLITE_FLOOR], blocked_majors: Vec::new() }
 }
 
-/// Version of the linked SQLite library (`sqlite3_libversion_number`, e.g. 3053002 = 3.53.2).
+/// Version of the linked SQLite library (`sqlite3_libversion_number`, e.g. 3054001 = 3.54.1).
 pub fn linked_version() -> Option<EngineVersion> {
     let n = u32::try_from(rusqlite::version_number()).ok()?;
     Some(EngineVersion { major: n / 1_000_000, minor: (n / 1000) % 1000, patch: n % 1000 })

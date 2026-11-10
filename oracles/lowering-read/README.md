@@ -14,7 +14,7 @@ IMPLEMENTATION_PLAN §2 row "read lowering oracle".
 oracles/lowering-read/run                                  # default gate: SQLite (Python stdlib 3.45.3) + offline Redis model, ~17 s
 oracles/lowering-read/run --self-test                      # mutants must be caught, ~9 s
 oracles/lowering-read/run --self-test --subject "<cmd>"    # + <cmd> must PASS and "<cmd> --mutant drop-tenant" must go red
-ci/heavy.sh oracles/lowering-read/run --big --engine-pin   # 100k unique cases at SQLite 3.53.2 (sqlite-exec helper)
+ci/heavy.sh oracles/lowering-read/run --big --engine-pin   # 100k unique cases at SQLite 3.54.1 (sqlite-exec helper)
 oracles/lowering-read/run --subject "<cmd>"                # plug in the Rust renderer (protocol below)
 ci/engines.sh with pg17,pg18,valkey,redis -- oracles/lowering-read/run --big --skip-sqlite --engine-pin \
     --engine pg --dsn @pg17 --engine pg --dsn @pg18 --engine redis --url @valkey --engine redis --url @redis
@@ -28,7 +28,7 @@ reads `supply-chain/engine-pins.toml`, identifies each engine started by `ci/eng
 `AEGIS_ENGINE_<NAME>` URL (else any pin of that kind and exact version), requires the exact pinned version with policy
 `allow` (a blocked pin such as pg19rc1, an unknown version or a mismatch FAILs) and prints the versions in the PASS
 line. `--sqlite-exec` (implied by `--engine-pin` when SQLite runs) executes all SQLite SQL through `rust/sqlite-exec`
-(own workspace + Cargo.lock; rusqlite =0.40.2 bundled = SQLite 3.53.2, the adapter pin; it only executes, never
+(own workspace + Cargo.lock; rusqlite =0.41.1 bundled = SQLite 3.54.1, the adapter pin; it only executes, never
 renders), built via `ci/heavy.sh` into a per-run `rust/target-*` that is deleted at exit (~25 s build). `--big` =
 25,000 cases per seed for SQLite, PG and Redis (>=100k per engine with the 4 default seeds).
 `--json FILE` writes the full report. `--seeds`, `--cases-per-seed`, `--rows`, `--selfjoin`, `--pg-cases`,
@@ -324,7 +324,7 @@ reference postgres / sqlite renderer and stay in the SQLite list. `--engine-pin`
 ## Known limits / pending
 
 * The default run (and every self-test) executes SQLite with Python's stdlib 3.45.3; only `--engine-pin` /
-  `--sqlite-exec` runs use the adapter pin 3.53.2. PG 19rc1 is not run here (blocked pin; `--engine-pin` FAILs on it).
+  `--sqlite-exec` runs use the adapter pin 3.54.1. PG 19rc1 is not run here (blocked pin; `--engine-pin` FAILs on it).
   The Redis read side covers the key namespace only (no value filters exist in the IR for Redis).
 * The sqlite-exec helper is trusted to forward SQL and values faithfully (it binds and reads via rusqlite; values are
   hex-encoded on the pipe). It is checked only indirectly: the reference passes and drop-tenant goes red through it.
