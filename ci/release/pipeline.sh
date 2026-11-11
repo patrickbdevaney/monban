@@ -3,15 +3,25 @@
 # with the ci/remote.sh environment (gate release-verify, remote = "kamrui"):
 #
 #   ci/release/pipeline.sh --profile floor|cmvp --out DIR
+#   ci/release/pipeline.sh --profile floor|cmvp --out DIR --keys KEYDIR [--pubdir DIR] [--passphrase-fd N]
 #
 # Writes DIR in the release layout contract v1 (docstring of ci/release/verify.py), checked afterwards by
-#   ci/release/verify.py --allow-test-keys DIR
+#   ci/release/verify.py --allow-test-keys DIR                              (default: per-run test keys)
+#   ci/release/verify.py --trusted-root release-keys/1.root.json DIR        (production, --keys)
+#
+# Production mode (--keys, ci/release/keys/README.md): KEYDIR is the `online/` dir written by
+# ci/release/keys/ceremony.sh (7 passphrase-encrypted keys, outside the repo); --pubdir defaults to release-keys/ in
+# this tree (the committed public keys and root chain). The passphrase is asked on the terminal (or read as one line
+# from fd N) before the build starts, checked against every key, and kept only in a 0600 file on tmpfs that is shredded
+# on exit. Each keyed job decrypts only its own keys into its own tmpfs key dir and shreds them; no TEST_KEYS file, no
+# test_keys marker. Without --keys the pipeline is the test-key flow below, unchanged.
 #
 # Stage 0 (this script): export the source of HEAD with `git archive` (SOURCE_DATE_EPOCH = the commit time). A tree
 #   without git metadata (an rsynced worktree) needs AEGIS_RELEASE_COMMIT=<40 hex> and AEGIS_RELEASE_EPOCH=<unix time>
 #   and is copied as is (source kind "tree"). cmvp applies profiles/cmvp/overlay.toml and profiles/cmvp/Cargo.lock
 #   (PLAN-6 D1). `cargo fetch --locked` fills the registry (the only networked step besides a first image build), and
 #   deploy/build/image.sh builds or reuses the pinned AL2023 image (< 500 MB asserted).
+# Jobs 3-5 and the leak check run in ci/release/sign-release.sh (the keyed half; same jobs, same isolation).
 # Five jobs, each its own process started with `env -i`, its own scratch dir and, for the keyed jobs, its own key dir
 # on tmpfs (/dev/shm); keys are fresh per run (D-P2) and shredded by the job, and this script refuses to finish while
 # a key dir is not empty:
@@ -28,14 +38,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 J="$ROOT/ci/release/jobs"
 fail() { echo "RELEASE-PIPELINE: FAIL ($*)"; exit 1; }
-PROFILE= OUT=
+PROFILE= OUT= KEYS= PUBDIR= PASSFD=
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) PROFILE="${2:-}"; shift 2 ;;
     --out) OUT="${2:-}"; shift 2 ;;
-    *) echo "usage: ci/release/pipeline.sh --profile floor|cmvp --out DIR" >&2; exit 2 ;;
+    --keys) KEYS="${2:-}"; shift 2 ;;
+    --pubdir) PUBDIR="${2:-}"; shift 2 ;;
+    --passphrase-fd) PASSFD="${2:-}"; shift 2 ;;
+    *) echo "usage: ci/release/pipeline.sh --profile floor|cmvp --out DIR [--keys DIR [--pubdir DIR] [--passphrase-fd N]]" >&2; exit 2 ;;
   esac
 done
+[ -n "$KEYS" ] || [ -z "$PUBDIR$PASSFD" ] || { echo "pipeline.sh: --pubdir / --passphrase-fd need --keys" >&2; exit 2; }
 case "$PROFILE" in floor | cmvp) ;; *) echo "usage: ci/release/pipeline.sh --profile floor|cmvp --out DIR" >&2; exit 2 ;; esac
 [ -n "$OUT" ] || { echo "usage: ci/release/pipeline.sh --profile floor|cmvp --out DIR" >&2; exit 2; }
 case "$OUT" in /*) ;; *) OUT="$PWD/$OUT" ;; esac
@@ -67,20 +81,28 @@ tool_ok cargo-auditable && tool_ok cargo-cyclonedx || fail "cargo-auditable / ca
 mkdir -p "$ROOT/target"
 WORK="$(mktemp -d "$(realpath "$ROOT/target")/release-work.XXXXXX")"
 KEYROOT=/dev/shm; [ -d /dev/shm ] && [ -w /dev/shm ] || KEYROOT="$WORK"
-KEYDIRS=()
-newkeydir() {  # own key dir per keyed job, mode 0700, on tmpfs
-  local d; d="$(mktemp -d "$KEYROOT/aegis-release-keys.$1.XXXXXX")"; chmod 700 "$d"; KEYDIRS+=("$d"); KD="$d"
-}
+PASSDIR=
+# shellcheck source=ci/release/keys/lib.sh
+. "$ROOT/ci/release/keys/lib.sh"
 cleanup() {
-  local d
-  for d in "${KEYDIRS[@]}"; do
-    [ -d "$d" ] || continue
-    find "$d" -type f -exec shred -u -z {} + 2> /dev/null || true
-    rm -rf "$d"
-  done
+  keylib_shred_dir "$PASSDIR"
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+SIGNPROD=()
+if [ -n "$KEYS" ]; then  # production keys: ask and check the passphrase now, not after a long build
+  PUBDIR="${PUBDIR:-$ROOT/release-keys}"
+  [ -d "$KEYS" ] || fail "--keys $KEYS is not a directory"
+  [ -d "$PUBDIR" ] || fail "no committed public keys at $PUBDIR (run ci/release/keys/ceremony.sh new first)"
+  python3 -I "$ROOT/ci/release/keys/keycheck.py" online "$KEYS" > /dev/null || fail "keycheck online $KEYS refused"
+  PASSDIR="$(keylib_tmpfs release-pass)" || fail "no tmpfs for the passphrase"
+  keylib_read_pass "$PASSDIR/pass" "release key passphrase (online keys)" "$PASSFD" 0 1 || fail "no passphrase"
+  for k in "$KEYS"/*.key.enc.pem; do
+    keylib_pass_ok "$k" "$PASSDIR/pass" || fail "the passphrase does not open $(basename "$k")"
+  done
+  SIGNPROD=(--keys "$KEYS" --pubdir "$PUBDIR" --passfile "$PASSDIR/pass")
+  echo "pipeline: production keys from $KEYS (public keys and root chain: $PUBDIR); passphrase checked"
+fi
 JOBENV=(env -i PATH=/usr/bin:/bin LC_ALL=C TZ=UTC AEGIS_OPENSSL="$OPENSSL" CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}")
 job() {  # $1 = job name, rest = command; its own process with an empty environment and its own HOME/scratch
   local name="$1"; shift
@@ -141,25 +163,11 @@ ART_SHA=$(sha256sum "$R/$ART" | cut -d' ' -f1)
 [ "$ART_SHA" = "$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$B/build-info.json")" ] \
   || fail "artifact digest differs from the build record"
 
-newkeydir attest
-job attest python3 -I "$J/attest.py" --subject "$ART=$ART_SHA" --sbom "$R/sbom.cdx.json" \
-  --build-info "$B/build-info.json" --source "$SRCJSON" --keydir "$KD" --out "$A"
-cp -r "$A/provenance.intoto.json" "$A/attest" "$R/"
-
-newkeydir sign
-job sign "$J/sign.sh" --sums "$R/SHA256SUMS" --keydir "$KD" --out "$G"
-cp -r "$G/sigs" "$R/"
-printf 'test_keys: true\n' > "$R/TEST_KEYS"
-
-newkeydir tuf
-job tuf "$PY_TUF" -I "$J/tuf.py" --release "$R" --keydir "$KD"
+AEGIS_OPENSSL="$OPENSSL" AEGIS_PY_TUF_PYTHON="$PY_TUF" "$ROOT/ci/release/sign-release.sh" --stage "$R" \
+  --artifact "$ART" --build-info "$B/build-info.json" --source "$SRCJSON" --work "$WORK" "${SIGNPROD[@]}" \
+  | sed '/^SIGN-RELEASE: PASS/d' || fail "keyed jobs failed (sign-release.sh)"
 
 # ------------------------------------------------------------------ checks and hand-over
-for d in "${KEYDIRS[@]}"; do
-  [ -z "$(ls -A "$d")" ] || fail "key dir $d not empty after its job"
-  rmdir "$d"
-done
-python3 -I "$J/leakcheck.py" "$R" || fail "private key material in the release (D-P2)"
 leftover=$(find "$KEYROOT" -maxdepth 1 -name 'aegis-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null | head -1)
 [ -z "$leftover" ] || echo "pipeline: note: stale key dir from an earlier run: $leftover (shredding)"
 for d in $(find "$KEYROOT" -maxdepth 1 -name 'aegis-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null); do
@@ -168,4 +176,9 @@ done
 mkdir -p "$(dirname "$OUT")"
 mv "$R" "$OUT"
 n=$(find "$OUT" -type f | wc -l)
-echo "RELEASE-PIPELINE: PASS ($PROFILE, $ART sha256 $ART_SHA, $n files, commit $COMMIT, 3 key dirs (12 keys) destroyed)"
+if [ -n "$KEYS" ]; then
+  echo "RELEASE-PIPELINE: PASS ($PROFILE, $ART sha256 $ART_SHA, $n files, commit $COMMIT, production keys;" \
+    "verify with ci/release/verify.py --trusted-root $PUBDIR/1.root.json $OUT)"
+else
+  echo "RELEASE-PIPELINE: PASS ($PROFILE, $ART sha256 $ART_SHA, $n files, commit $COMMIT, 3 key dirs (12 keys) destroyed)"
+fi
