@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build (once) the image aegis-bssl:<commit12> holding BoringSSL's `bssl` tool at the commit pinned in bssl/LOCK.
+# Build (once) the image monban-bssl:<commit12> holding BoringSSL's `bssl` tool at the commit pinned in bssl/LOCK.
 #   bssl/build.sh <workdir>     prints the image tag on the last line; exit 0 on success
 # Steps: verify the commit is >= 7 days old; download the source tarball (User-Agent aegis-ci) and check its sha256;
 # build `bssl` in a throwaway AL2023 container (dnf cmake + gcc-c++; no Go, no perl: BoringSSL ships gen/); build the
@@ -9,7 +9,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 work="${1:?usage: build.sh <workdir>}"
 get() { sed -n "s/^$1=//p" "$here/LOCK"; }
 commit=$(get commit); date=$(get commit_date); url=$(get url); sum=$(get sha256); base=$(get base)
-tag="aegis-bssl:${commit:0:12}"
+tag="monban-bssl:${commit:0:12}"
 age=$(( ( $(date +%s) - $(date -d "$date" +%s) ) / 86400 ))
 [ "$age" -ge 7 ] || { echo "bssl: pinned commit $commit is $age days old (< 7)" >&2; exit 1; }
 if docker image inspect "$tag" >/dev/null 2>&1; then echo "$tag"; exit 0; fi

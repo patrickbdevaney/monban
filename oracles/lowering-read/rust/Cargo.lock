@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "aegis-lowering-sqlite-exec"
+name = "monban-lowering-sqlite-exec"
 version = "0.1.0"
 dependencies = [
  "rusqlite",

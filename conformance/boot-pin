@@ -1,8 +1,8 @@
 #!/usr/bin/env -S python3 -I
-"""AEGIS conformance boot record (P8-conformance-001; PREFLIGHT D-P8.5 config-pin).
+"""Monban conformance boot record (P8-conformance-001; PREFLIGHT D-P8.5 config-pin).
 
 Usage:
-  conformance/boot-pin --subject <name> --binary <aegis> [--config <f8.json>] [--timeout S]
+  conformance/boot-pin --subject <name> --binary <monban> [--config <f8.json>] [--timeout S]
   conformance/boot-pin --self-test
 
 It boots the judged artifact once with the subject's golden F8 config and prints one evidence line that
@@ -10,11 +10,11 @@ conformance/run --config-pin reads from this run's gate logs:
 
   CONFORMANCE-BOOT: <subject> artifact <sha256 of the binary> config <effective-config hash> (...)
 
-The effective-config hash is aegis-config's config_hash (SHA-256 of the canonical effective F8 JSON; defaults are
+The effective-config hash is monban-config's config_hash (SHA-256 of the canonical effective F8 JSON; defaults are
 not part of the hashed form). The line is printed only when three sources agree; any disagreement, a boot failure or
 a timeout exits 1 with BOOT-PIN: FAIL:
-  1. `<aegis> check-config <cfg>` exits 0 and its stderr has exactly one `OK (config hash H)`;
-  2. the booted process logs `aegis[<pid>]: serving ... config H (generation N)` with <pid> the process we started;
+  1. `<monban> check-config <cfg>` exits 0 and its stderr has exactly one `OK (config hash H)`;
+  2. the booted process logs `monban[<pid>]: serving ... config H (generation N)` with <pid> the process we started;
   3. its admin `/healthz` reports exactly one `"config_hash":"H"`.
 (`--print-effective` is not used as a source: it dumps the config with defaults filled in, which is not the hashed
 form.)
@@ -24,8 +24,8 @@ The TLS key and certificate are a throwaway ECDSA P-256 pair minted with openssl
 are command-line options, not part of the config, so they do not change H. Only the process this script started is
 signalled (SIGTERM, then SIGKILL after 10 s).
 
---self-test runs the same code against a stand-in subject (conformance/testdata/fake-aegis, a stdlib-Python
-imitation of the aegis CLI contract above) and requires: the honest stand-in yields the line; a stand-in whose
+--self-test runs the same code against a stand-in subject (conformance/testdata/fake-monban, a stdlib-Python
+imitation of the monban CLI contract above) and requires: the honest stand-in yields the line; a stand-in whose
 /healthz hash, boot-line hash, boot-line pid, check-config hash, check-config line count or exit status disagrees each
 yields BOOT-PIN: FAIL and no CONFORMANCE-BOOT line.
 """
@@ -47,7 +47,7 @@ import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PINS = os.path.join(ROOT, "conformance", "config-pin.toml")
-FAKE = os.path.join(ROOT, "conformance", "testdata", "fake-aegis")
+FAKE = os.path.join(ROOT, "conformance", "testdata", "fake-monban")
 HEX64 = r"[0-9a-f]{64}"
 OPENSSL = shutil.which("openssl") or "/usr/bin/openssl"
 
@@ -94,8 +94,8 @@ def healthz(port, timeout=2):
 def mint(d):
     key, crt = os.path.join(d, "key.pem"), os.path.join(d, "cert.pem")
     p = subprocess.run([OPENSSL, "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
-                        "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=aegis.test",
-                        "-addext", "subjectAltName=DNS:aegis.test"], capture_output=True, text=True, timeout=60)
+                        "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=monban.test",
+                        "-addext", "subjectAltName=DNS:monban.test"], capture_output=True, text=True, timeout=60)
     if p.returncode != 0:
         raise Fail(f"openssl could not mint the throwaway certificate: {p.stderr.strip()[-200:]}")
     return crt, key
@@ -113,7 +113,7 @@ def check_config(binary, cfg):
 
 
 def boot(binary, cfg, port, timeout):
-    d = tempfile.mkdtemp(prefix="aegis-boot-pin-")
+    d = tempfile.mkdtemp(prefix="monban-boot-pin-")
     proc = None
     try:
         crt, key = mint(d)
@@ -131,7 +131,7 @@ def boot(binary, cfg, port, timeout):
                     out.append(raw.decode("utf-8", "replace").rstrip("\n"))
         t = threading.Thread(target=pump, daemon=True)
         t.start()
-        pat = re.compile(rf"^aegis\[(\d+)\]: serving .*, config ({HEX64}) \(generation (\d+)\)")
+        pat = re.compile(rf"^monban\[(\d+)\]: serving .*, config ({HEX64}) \(generation (\d+)\)")
         line_hash, hz_hash, until = None, None, time.time() + timeout
         while time.time() < until and (line_hash is None or hz_hash is None):
             if proc.poll() is not None:
@@ -211,7 +211,7 @@ def self_test():
     if not os.access(FAKE, os.X_OK):
         print(f"BOOT-PIN SELF-TEST: FAIL ({FAKE} missing or not executable)")
         return 1
-    d = tempfile.mkdtemp(prefix="aegis-boot-pin-st-")
+    d = tempfile.mkdtemp(prefix="monban-boot-pin-st-")
     bad = []
     try:
         cfg = os.path.join(d, "golden.f8.json")
@@ -224,10 +224,10 @@ def self_test():
         with open(cfg, "w") as f:
             json.dump({"v": 1, "listeners": [{"name": "pub", "bind": "127.0.0.1:1", "profile": "P-PUBLIC-WEB"}],
                        "admin": {"bind": f"127.0.0.1:{port}"},
-                       "vhosts": [{"host": "aegis.test", "routes": [{"id": 1, "path": "/", "to": {"upstream": "x"}}]}]},
+                       "vhosts": [{"host": "monban.test", "routes": [{"id": 1, "path": "/", "to": {"upstream": "x"}}]}]},
                       f)
         for mut in [None] + MUTANTS:
-            wrapper = os.path.join(d, f"aegis-{mut or 'honest'}")
+            wrapper = os.path.join(d, f"monban-{mut or 'honest'}")
             with open(wrapper, "w") as f:
                 f.write(f"#!/bin/sh\nAEGIS_FAKE_MUTANT={mut or ''} exec {sys.executable} -I {FAKE} \"$@\"\n")
             os.chmod(wrapper, 0o755)

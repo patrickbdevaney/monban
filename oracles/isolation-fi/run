@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: isolation-fi (Phase-5 P2 isolation fault gates). Contract: oracles/README.md.
+# Monban oracle: isolation-fi (Phase-5 P2 isolation fault gates). Contract: oracles/README.md.
 # Last line: ISOLATION-FI: PASS|FAIL (...)  /  ISOLATION-FI SELF-TEST: PASS|FAIL (...)
 #   ./run                          reduced run: both reference P2 paths (fresh-Wasm cordon, fork+Wasm), 7 fault
 #                                  classes at 1%, n=3000 per cell (< 10 min incl. build)

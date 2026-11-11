@@ -1,0 +1,24 @@
+[package]
+name = "monban-token"
+description = "Capability tokens: Tier 0 table, Tier L HMAC chain (det-CBOR), Tier X COSE ML-DSA-65 verify. INV-ATTEN."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 2
+
+[dependencies]
+monban-types = { workspace = true, features = ["authn-path"] }
+# HMAC-SHA256, HKDF-SHA256, SHA-256, ML-DSA-65 verify, DRBG, constant-time compare. CBOR is in-crate (src/cbor.rs).
+aws-lc-rs = { workspace = true }
+
+[features]
+# PLAN-6 D1/D15: the cmvp build (aws-lc-rs =1.15.3 [fips] compiles ML-DSA out): Tier-X (ML-DSA-65) verification denies, fail closed.
+# Selects code only; the versions come from the profiles/cmvp overlay lock.
+cmvp = []
+
+[lints]
+workspace = true

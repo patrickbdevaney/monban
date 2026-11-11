@@ -1,4 +1,4 @@
-# Own workspace (excluded from the main AEGIS workspace via its `exclude = ["oracles", ...]`).
+# Own workspace (excluded from the main Monban workspace via its `exclude = ["oracles", ...]`).
 # Built ONLY through ../run, which runs under ci/heavy.sh.
 [workspace]
 resolver = "3"

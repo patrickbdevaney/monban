@@ -1,0 +1,23 @@
+[package]
+name = "monban-agent"
+description = "Agent-protocol listener gate (MCP both eras), sealed requestState, projection IR."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 3
+
+[dependencies]
+monban-types = { workspace = true }
+monban-canon = { workspace = true }
+monban-authz = { workspace = true }
+monban-token = { workspace = true }
+# Root pin, already in Cargo.lock and already linked into monban-bin (monban-token, monban-audit, rustls): HMAC-SHA256
+# verify (constant time) for the bearer-JWT profile and the CSPRNG for session ids. No new crate in the shipped graph.
+aws-lc-rs = { workspace = true }
+
+[lints]
+workspace = true

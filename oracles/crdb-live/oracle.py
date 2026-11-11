@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""crdb-live: aegis-bin with adapter-crdb against a live CockroachDB (unit P8-oracle-001; PREFLIGHT R8). Stdlib only;
+"""crdb-live: monban-bin with adapter-crdb against a live CockroachDB (unit P8-oracle-001; PREFLIGHT R8). Stdlib only;
 run as `python3 -I oracle.py`. Contract and check list: README.md.
 
 The subject serves apps/notes on one CockroachDB backend. The oracle:
@@ -7,7 +7,7 @@ The subject serves apps/notes on one CockroachDB backend. The oracle:
   transaction (the notes `hold_ms` field), the oracle commits a conflicting write at PRIORITY HIGH, which aborts the
   subject's transaction (ABORT_REASON_ABORT_SPAN at COMMIT, SQLSTATE 40001), and then judges that the subject never
   answered wrong: a 2xx means the durable row is what the subject answered; anything else means no effect;
-- blocks one of the subject's statements on a lock the oracle holds, with a short `aegis-deadline-ms`, and judges
+- blocks one of the subject's statements on a lock the oracle holds, with a short `monban-deadline-ms`, and judges
   that the answer comes within the deadline, that the statement stops running on the server (CancelRequest, or the
   connection closed), that the pooled connection is reset (no open transaction) or retired, and that the pool still
   serves correct answers afterwards.
@@ -40,19 +40,19 @@ import wire  # noqa: E402
 NAME = "CRDB-LIVE"
 MUTANTS = ["crdb-40001-as-success", "crdb-cancel-ignored", "crdb-no-reset"]
 VHOST = ne.VHOST
-APP_USER = "aegis_app"
+APP_USER = "monban_app"
 HOLD_MS = 1200          # the subject holds its write this long inside the open transaction
 PUSH_AT = 0.35          # s after the request: the oracle's conflicting PRIORITY HIGH write
 PUSH_FAST = 0.8         # s: the conflicting write must commit faster than this (it aborted the subject, not waited)
-DEADLINE_MS = 800       # aegis-deadline-ms on the request whose statement blocks
+DEADLINE_MS = 800       # monban-deadline-ms on the request whose statement blocks
 DEADLINE_SLACK = 0.7    # s: the answer may come this much after the deadline
 SETTLE = 1.0            # s after the answer: the statement must have stopped, the connection reset or retired
 LOCK_HOLD = 4.0         # s: how long the oracle holds the lock the subject's statement waits on
 OP_BUDGET_MS = 5000
 NOTES_DDL = ("CREATE TABLE public.notes (tenant STRING NOT NULL, id STRING NOT NULL, body STRING NOT NULL, "
              "PRIMARY KEY (tenant, id))")
-# aegis-bin CRDB_IDEM_DDL (crates/aegis-bin/src/native/adapters.rs): accepted only in exactly this shape
-IDEM_DDL = ("CREATE TABLE public.aegis_idem (tenant STRING NOT NULL, principal STRING NOT NULL, "
+# monban-bin CRDB_IDEM_DDL (crates/monban-bin/src/native/adapters.rs): accepted only in exactly this shape
+IDEM_DDL = ("CREATE TABLE public.monban_idem (tenant STRING NOT NULL, principal STRING NOT NULL, "
             "k STRING NOT NULL, status INT8 NOT NULL, body STRING NOT NULL, PRIMARY KEY (principal, k))")
 q = wire.pg_quote
 
@@ -81,14 +81,14 @@ class Db:
             c.close()
 
     def provision(self):
-        self.run("DROP TABLE IF EXISTS public.notes", "DROP TABLE IF EXISTS public.aegis_idem",
+        self.run("DROP TABLE IF EXISTS public.notes", "DROP TABLE IF EXISTS public.monban_idem",
                  f"DROP USER IF EXISTS {APP_USER}", NOTES_DDL, IDEM_DDL, f"CREATE USER {APP_USER}",
                  f"GRANT SELECT, INSERT, UPDATE, DELETE ON public.notes TO {APP_USER}",
-                 f"GRANT SELECT, INSERT ON public.aegis_idem TO {APP_USER}")
+                 f"GRANT SELECT, INSERT ON public.monban_idem TO {APP_USER}")
 
     def teardown(self):
         try:
-            self.run("DROP TABLE IF EXISTS public.notes", "DROP TABLE IF EXISTS public.aegis_idem",
+            self.run("DROP TABLE IF EXISTS public.notes", "DROP TABLE IF EXISTS public.monban_idem",
                      f"DROP USER IF EXISTS {APP_USER}")
         except (OSError, wire.DbError):
             pass
@@ -118,7 +118,7 @@ class Db:
 class Run:
     def __init__(self, cmd, dsn, env_extra=None, verbose=False):
         self.cmd, self.db, self.env_extra, self.verbose = cmd, Db(dsn), env_extra or {}, verbose
-        self.dir = tempfile.mkdtemp(prefix="aegis-crdb-live-")
+        self.dir = tempfile.mkdtemp(prefix="monban-crdb-live-")
         self.failures, self.passed, self.notes = [], 0, []
         self.proc = None
         rnd = secrets.SystemRandom()
@@ -161,7 +161,7 @@ class Run:
         with open(kr, "w") as f:
             json.dump({"keys": [{"kid": self.kid.hex(), "key": self.master.hex()}]}, f)
         os.chmod(kr, 0o600)
-        cfg = os.path.join(self.dir, "aegis.json")
+        cfg = os.path.join(self.dir, "monban.json")
         with open(cfg, "w") as f:
             json.dump(self.config(), f)
         env = dict(os.environ)
@@ -412,7 +412,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", required=True, help="CockroachDB root DSN (inside ci/engines.sh with crdb: @crdb)")
     ap.add_argument("--binary", "--subject", dest="binary", default=None,
-                    help="aegis built with --features adapter-crdb (default: the reference, native-e2e/ref_subject.py)")
+                    help="monban built with --features adapter-crdb (default: the reference, native-e2e/ref_subject.py)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()

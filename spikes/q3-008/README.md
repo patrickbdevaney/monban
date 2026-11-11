@@ -21,7 +21,7 @@ the fallback. A CancelRequest-based reuse was measured to cancel the *next* requ
   `trust` (role trustu) or `scram-sha-256` (role postgres). The container was removed after each run.
 - Pinning: client `taskset -c <core>`, server `docker --cpuset-cpus`. **split** = server on its own core (the rate is
   then bounded by the PG core). **shared** = the server is moved onto the client's core (`docker update`) = a 1-vCPU box
-  running both AEGIS and PG. Laptop: client on core 8, server on core 10 (P-cores, other HT siblings unused by the
+  running both Monban and PG. Laptop: client on core 8, server on core 10 (P-cores, other HT siblings unused by the
   bench). kamrui: client on core 2, server on core 3.
 - CPU accounting: client = getrusage(RUSAGE_SELF). Server = the container cgroup's `cpu.stat usage_usec`, which counts
   postmaster, backend fork/init/exit, cancel-request children and orphan backends.
@@ -87,12 +87,12 @@ i9 P-core, ≈7.0–10 ms on the N95**. The PG17 CancelRequest is handled in its
 discard-nocancel) ≈ 1.0–1.2 ms (i9) and ≈ 4.4–5.7 ms (N95). SCRAM adds ≈0.9–1.5 ms of **client** CPU (PBKDF2 4096
 iterations, pure-Rust `postgres-protocol`) and little server CPU. TLS 1.3 (P-256, ECDSA) adds ≈0.4–2 ms client and
 ≈0.2–3 ms server CPU per handshake.
-Even with PG on another host, the AEGIS-side cost alone of discard with SCRAM/TLS on an N95 core is 5.6–7.4 ms ⇒
+Even with PG on another host, the Monban-side cost alone of discard with SCRAM/TLS on an N95 core is 5.6–7.4 ms ⇒
 **≈135–180 cancels/s per core, below 200**.
 
 ## Verdict against the flip rule
 - `<200 cancels/s` fires: every 1-core (shared) configuration on both machines (laptop 115–266, N95 30–53).
-  It also fires on the N95 when PG has its own core (48–79, PG-bound), and for the AEGIS-side CPU alone with
+  It also fires on the N95 when PG has its own core (48–79, PG-bound), and for the Monban-side CPU alone with
   SCRAM/TLS on the N95.
 - `>20 ms p50` fires on the N95 shared core (21.7 / 25.5 / 37.7 ms) and on the contended N95 split TLS rerun (21.9 ms).
   It does not fire on the laptop (3.5–14 ms).

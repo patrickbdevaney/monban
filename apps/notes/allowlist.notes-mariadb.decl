@@ -5,7 +5,7 @@ family mariadb
 # Regenerate the lock with: cargo xtask allowlist-lock --emit apps/notes/allowlist.notes-mariadb.decl
 # The upsert lowers to the mandated ODKU form (INSERT .. ON DUPLICATE KEY UPDATE with the tenant guard, DENY-M);
 # An update with RETURNING reads its post-image with SELECT .. FOR UPDATE first (MariaDB has no UPDATE .. RETURNING);
-# that emulation is the adapter's (aegis-adapter-mysql lower.rs), not a lock shape.
+# that emulation is the adapter's (monban-adapter-mysql lower.rs), not a lock shape.
 schema notes tenant=0 key=1 cols=0,1,2 permitted=1,2
 
 op notes select eq(1) w=- r=1,2

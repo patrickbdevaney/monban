@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# front-equiv self-test subject: the reference `--front` implementation (front_ref.py) around $FRONT_REF_AEGIS.
-exec python3 -I "$(dirname "$0")/front_ref.py" "$@"

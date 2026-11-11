@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # oracles/sdk-trybuild/run [--self-test] [--bless]
-# Gate sdk-trybuild (P4-oracle-trybuild-001). Builds the real sdk/aegis-sdk (main workspace, --locked), runs
-# `cargo test --doc -p aegis-sdk`, compiles the corpus with the pinned rustc + clippy-driver, runs the host-loop
+# Gate sdk-trybuild (P4-oracle-trybuild-001). Builds the real sdk/monban-sdk (main workspace, --locked), runs
+# `cargo test --doc -p monban-sdk`, compiles the corpus with the pinned rustc + clippy-driver, runs the host-loop
 # harness, and compares with expected.txt (frozen) and snapshots.txt. Run under ci/heavy.sh or ci/remote.sh.
 # Last line: SDK-TRYBUILD: PASS|FAIL (...) or SDK-TRYBUILD SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
 # target/ is deleted afterwards unless KEEP_TARGET=1.

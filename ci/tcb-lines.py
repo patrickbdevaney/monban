@@ -55,7 +55,7 @@ mutant to a copy of each and requires exactly the expected tag set. Last line `T
 import os, re, shutil, sys, tempfile, tomllib
 
 SC, CM, GATES = "SECURITY_CLAIMS.md", "compliance/COMPLIANCE_MAP.md", "gates/phase-8.toml"
-FEATURES = ["proxy-protocol", "l4", "uring", "mtc", "adapter-mariadb", "adapter-crdb", "aegis-otlp", "libcrux-spike"]
+FEATURES = ["proxy-protocol", "l4", "uring", "mtc", "adapter-mariadb", "adapter-crdb", "monban-otlp", "libcrux-spike"]
 # Phase-8 changes that add or move trusted surface (PLAN-8 Units; PREFLIGHT-8 §P2). MariaDB serving, crdb cancel,
 # SEL-3 and OTLP retry change Phase-7 features and are judged on those rows (GATE_REQUIRED, STALE).
 CHANGES = ["test-faults", "indicator", "runtime.worker_threads", "idempotency-retention", "route-path-refusal",
@@ -93,7 +93,7 @@ REQUIRED = {
     "adapter-crdb": [("no whole-transaction retry", r"no whole-transaction retry"), ("no RLS", r"no RLS"),
                      ("40001 surfaces as conflict", r"surfaces as a conflict"),
                      ("CancelRequest not told from close", r"cannot tell a CancelRequest from closing")],
-    "aegis-otlp": [("Retry-After not covered", r"Retry-After"), ("drop-oldest not covered", r"drop-oldest"),
+    "monban-otlp": [("Retry-After not covered", r"Retry-After"), ("drop-oldest not covered", r"drop-oldest"),
                    ("backpressure", r"backpressure"), ("not oracle-covered", r"not oracle-covered")],
     "libcrux-spike": [("2.5-3x slower", r"2\.5-3\s*[×x]"), ("not side-channel verified", r"not verified side-channel"),
                       ("cfg(hax) advisory", r"cfg\(hax\)"), ("accepted until 2027-02-06", r"until 2027-02-06"),
@@ -101,12 +101,12 @@ REQUIRED = {
 }
 REQUIRED8 = {
     "test-faults": [("enabled only by acme-subject", r"acme-subject"), ("compile-time only", r"compile-time")],
-    "indicator": [("never in aegis-bin", r"never in aegis-bin"), ("not a CMVP validation", r"not a CMVP validation"),
+    "indicator": [("never in monban-bin", r"never in monban-bin"), ("not a CMVP validation", r"not a CMVP validation"),
                   ("TLS 1.3 KDF no CAVP row", r"TLS 1\.3 KDF has no CAVP row"), ("one host", r"one host")],
     "runtime.worker_threads": [("absent = 2", r"absent = 2"), ("advisory", r"advisory"), ("provisional", r"provisional"),
                                ("agent runtime still 2", r"agent[^|]*2 workers")],
     "idempotency-retention": [("absent = never expire", r"absent = never expire"),
-                              ("not applied by aegis-bin", r"not applied by aegis-bin")],
+                              ("not applied by monban-bin", r"not applied by monban-bin")],
     "route-path-refusal": [("fails closed at load", r"fails closed at load")],
     "pg-adapter-hardening": [("no live non-ASCII PG test", r"no live PG[^|]*non-ASCII")],
     "egress-tls-client": [("one peer stack", r"one peer stack"), ("revocation not probed", r"revocation")],
@@ -117,7 +117,7 @@ REQUIRED8 = {
 # gates a row must name: the gate whose run closed a Phase-7 residual, or the gate that judges a Phase-8 change
 GATE_REQUIRED = {
     "l4": {"bin-residuals"}, "mtc": {"bin-residuals"}, "adapter-mariadb": {"native-e2e-mariadb", "allowlist-lock"},
-    "adapter-crdb": {"crdb-live"}, "aegis-otlp": {"otlp-export"},
+    "adapter-crdb": {"crdb-live"}, "monban-otlp": {"otlp-export"},
     "test-faults": {"no-test-faults"}, "indicator": {"fips-indicator", "fips-boundary", "unsafe-sites"},
     "runtime.worker_threads": {"scaling", "config-totality"}, "idempotency-retention": {"state-props"},
     "route-path-refusal": {"config-totality"}, "pg-adapter-hardening": {"fuzz"}, "egress-tls-client": {"egress-tls-e2e"},
@@ -130,7 +130,7 @@ STALE = {
     "uring": [r"not fixed"],
     "adapter-mariadb": [r"not servable", r"no pool\b"],
     "adapter-crdb": [r"CancelRequest[^|]*untested", r"no live contention test", r"40001 retry is only unit-tested"],
-    "aegis-otlp": [r"https endpoint[^|]*not oracle-covered", r"there is no retry"],
+    "monban-otlp": [r"https endpoint[^|]*not oracle-covered", r"there is no retry"],
 }
 RESIDUALS = [f"R{i}" for i in range(1, 18)]
 RES_STATUS = re.compile(r"^(closed|partial|carried)\b")
@@ -143,7 +143,7 @@ RES_GATES = {"R1": {"fips-boundary", "fips-indicator"}, "R2": {"kani-kx-client"}
 RES_NOT_CLOSED = {"R2": "0x11EB / 0x0202 client paths are not Kani-covered (P8-kani-001 INFEASIBLE_REPORT)",
                   "R3": "conformance-full is red until the cmvp config_sha256 pin exists",
                   "R5": "the 64-core run is separate and advisory", "R9": "drop-oldest under backpressure is not covered",
-                  "R12": "aegis-bin does not apply the F8 retention on PG, CockroachDB or MariaDB backends (refused at boot)", "R17": "the 2 h soak on quiet has not run"}
+                  "R12": "monban-bin does not apply the F8 retention on PG, CockroachDB or MariaDB backends (refused at boot)", "R17": "the 2 h soak on quiet has not run"}
 RES_REQ = {  # facts each residual row's evidence (or rung) must carry
     "R1": [("D-P8.1 component text", r"#5314-approved components"), ("combiner SP 800-227", r"SP 800-227 §4\.6\.2"),
            ("composite NOT CLAIMED", r"NOT CLAIMED"), ("#5298 dynamic not cited", r"#5298 is the dynamic module")],
@@ -152,7 +152,7 @@ RES_REQ = {  # facts each residual row's evidence (or rung) must carry
     "R3": [("cmvp config_sha256 pin", r"config_sha256"), ("from the first release-rebuild", r"release-rebuild")],
     "R4": [("unit runs kamrui only", r"kamrui only")],
     "R5": [("64-core row", r"64-core scaling run"), ("provisional", r"provisional")],
-    "R12": [("not applied by aegis-bin", r"aegis-bin does not apply")],
+    "R12": [("not applied by monban-bin", r"monban-bin does not apply")],
     "R17": [("2 h", r"\b2 h\b"), ("aegis-quiet", r"quiet"), ("not yet run", r"not\s+(?:yet\s+)?(?:been\s+)?run"),
             ("15-min substitute", r"0\.25 h|15-min"), ("no soak claim", r"no soak claim")],
 }
@@ -533,7 +533,7 @@ MUTANTS = [
     # brief: a TCB line citing a gate id that doesn't exist
     ("gate-id-unknown", {"gate-id"}, both(*(set_cell(f, "mtc", "gate_id", lambda c: c.replace("`cred-select`", "`cred-select-x`")) for f in (SC, CM)))),
     ("gate-removed-from-toml", {"gate-id"}, drop_gate("kani-wire")),
-    ("gate-id-unquoted", {"gate-id", "gate-required"}, both(*(set_cell(f, "aegis-otlp", "gate_id", lambda c: c.replace("`otlp-export`", "otlp-export")) for f in (SC, CM)))),
+    ("gate-id-unquoted", {"gate-id", "gate-required"}, both(*(set_cell(f, "monban-otlp", "gate_id", lambda c: c.replace("`otlp-export`", "otlp-export")) for f in (SC, CM)))),
     ("gate-id-empty", {"gate-id", "mismatch", "gate-required"}, set_cell(CM, "l4", "gate_id", lambda c: "—")),
     ("gate-id-mismatch", {"mismatch"}, set_cell(SC, "uring", "gate_id", lambda c: c + ", `tests`")),
     # surface naming
@@ -553,8 +553,8 @@ MUTANTS = [
     ("mariadb-no-rls-dropped", {"residual"}, set_cell(SC, "adapter-mariadb", "residuals", lambda c: c.replace("no RLS", "RLS"))),
     ("mariadb-no-reusable", {"residual"}, set_cell(CM, "adapter-mariadb", "residuals", lambda c: c.replace("is_reusable", "a check"))),
     ("crdb-40001-retried", {"residual"}, set_cell(SC, "adapter-crdb", "residuals", lambda c: c.replace("no whole-transaction retry", "a whole-transaction retry"))),
-    ("otlp-no-backpressure", {"residual"}, set_cell(SC, "aegis-otlp", "residuals", lambda c: c.replace("backpressure", "load"))),
-    ("otlp-retry-after-dropped", {"residual"}, set_cell(CM, "aegis-otlp", "residuals", lambda c: c.replace("`Retry-After`, ", ""))),
+    ("otlp-no-backpressure", {"residual"}, set_cell(SC, "monban-otlp", "residuals", lambda c: c.replace("backpressure", "load"))),
+    ("otlp-retry-after-dropped", {"residual"}, set_cell(CM, "monban-otlp", "residuals", lambda c: c.replace("`Retry-After`, ", ""))),
     # Phase 8: Phase-7 rows must name the gate that closed their residual, and must not keep the closed wording
     ("mariadb-no-e2e-gate", {"gate-required"}, both(*(set_cell(f, "adapter-mariadb", "gate_id", lambda c: c.replace(", `native-e2e-mariadb`", "")) for f in (SC, CM)))),
     ("crdb-no-live-gate", {"gate-required"}, both(*(set_cell(f, "adapter-crdb", "gate_id", lambda c: c.replace(", `crdb-live`", "")) for f in (SC, CM)))),
@@ -563,15 +563,15 @@ MUTANTS = [
     ("stale-crdb-cancel", {"stale"}, set_cell(CM, "adapter-crdb", "residuals", lambda c: c + "; the CancelRequest (discard) path is untested")),
     ("stale-l4-idle", {"stale"}, set_cell(SC, "l4", "residuals", lambda c: c + "; the idle timeout after routing has no oracle")),
     ("stale-uring-400", {"stale"}, set_cell(CM, "uring", "residuals", lambda c: c + "; the double 400 is not fixed")),
-    ("stale-mtc-bin", {"stale"}, set_cell(SC, "mtc", "residuals", lambda c: c + "; no gate drives `trust_anchors` through aegis-bin")),
+    ("stale-mtc-bin", {"stale"}, set_cell(SC, "mtc", "residuals", lambda c: c + "; no gate drives `trust_anchors` through monban-bin")),
     ("l4-idle-one-host-dropped", {"residual"}, set_cell(SC, "l4", "residuals", lambda c: c.replace("one host", "every host"))),
     # Phase-8 TCB changes
     ("p8-indicator-line-missing", {"feature-missing"}, drop_row(CM, "indicator")),
     ("p8-unknown-change", {"feature-dup", "feature-missing"}, set_cell(SC, "mldsa-cosigner", "feature", lambda c: "`mldsa-witness`")),
     ("p8-indicator-no-gate", {"gate-required"}, both(*(set_cell(f, "indicator", "gate_id", lambda c: c.replace("`fips-indicator`, ", "")) for f in (SC, CM)))),
-    ("p8-indicator-in-bin", {"residual"}, set_cell(SC, "indicator", "residuals", lambda c: c.replace("never in aegis-bin", "also in aegis-bin"))),
+    ("p8-indicator-in-bin", {"residual"}, set_cell(SC, "indicator", "residuals", lambda c: c.replace("never in monban-bin", "also in monban-bin"))),
     ("p8-indicator-cmvp-validation", {"residual"}, set_cell(CM, "indicator", "residuals", lambda c: c.replace("not a CMVP validation", "a CMVP validation"))),
-    ("p8-retention-applied", {"residual"}, set_cell(SC, "idempotency-retention", "residuals", lambda c: c.replace("not applied by aegis-bin", "applied"))),
+    ("p8-retention-applied", {"residual"}, set_cell(SC, "idempotency-retention", "residuals", lambda c: c.replace("not applied by monban-bin", "applied"))),
     ("p8-workers-agent-dropped", {"residual"}, set_cell(CM, "runtime.worker_threads", "residuals", lambda c: re.sub(r";[^;]*agent[^;]*$", "", c))),
     ("p8-cosigner-cmvp", {"residual"}, set_cell(SC, "mldsa-cosigner", "residuals", lambda c: c.replace("floor build only", "every build"))),
     ("p8-change-no-kernel", {"surface"}, set_cell(SC, "egress-tls-client", "new surface", lambda c: c.replace("kernel:", "os"))),

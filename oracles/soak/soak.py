@@ -1,23 +1,23 @@
-"""AEGIS soak oracle (unit P8-soak-001, PREFLIGHT D-P8.4, F1 SOAK-1; gate `soak`). stdlib only; run through ./run.
+"""Monban soak oracle (unit P8-soak-001, PREFLIGHT D-P8.4, F1 SOAK-1; gate `soak`). stdlib only; run through ./run.
 
-Boots aegis (features native, proxy-protocol, mtc) with a config that turns on a PROXY v2 listener, the MTC
+Boots monban (features native, proxy-protocol, mtc) with a config that turns on a PROXY v2 listener, the MTC
 CredentialSelector (tls.credentials: one mtc + one x509 credential), a reverse-proxy route and a SQLite native route
-(apps/notes; no crdb, no external engine), plus the aegis-otlp sidecar exporting to an in-process collector. It
+(apps/notes; no crdb, no external engine), plus the monban-otlp sidecar exporting to an in-process collector. It
 measures the full path's throughput, then holds h2load at 50% of it for --hours, sampling RSS, open fds and tasks
-(threads) of aegis and aegis-otlp from /proc every 10 s and the admin /metrics every 60 s. It passes when:
+(threads) of monban and monban-otlp from /proc every 10 s and the admin /metrics every 60 s. It passes when:
 
   rss.slope      Theil-Sen RSS slope <= 1 MiB/h per process, over the samples after the warm-up (15 min; a run
                  shorter than 1 h warms up for a quarter of its length);
   fds/tasks      open fds and tasks of each process are back to the post-warm-up baseline +-5 within 180 s after
                  load stops;
-  errors         0: h2load failed/errored/timeout/non-2xx, PROXY shim errors, aegis admission rejects, proxy upstream
-                 errors, canon rejects and authz denials (metrics deltas), aegis error log lines, a non-zero exit on
-                 SIGTERM (aegis or aegis-otlp), a dead process;
+  errors         0: h2load failed/errored/timeout/non-2xx, PROXY shim errors, monban admission rejects, proxy upstream
+                 errors, canon rejects and authz denials (metrics deltas), monban error log lines, a non-zero exit on
+                 SIGTERM (monban or monban-otlp), a dead process;
   load           every h2load segment delivered >= 80% of the target rate;
   otlp           the collector received metrics exports in the last quarter of the load;
-  audit          the aegis audit log verifies (oracles/tlog-verify, the independent Go verifier).
+  audit          the monban audit log verifies (oracles/tlog-verify, the independent Go verifier).
 
-    run [--hours H] [--record FILE] [--aegis BIN --otlp BIN] [--aegis-cpus N] [--client-cpus N]
+    run [--hours H] [--record FILE] [--monban BIN --otlp BIN] [--monban-cpus N] [--client-cpus N]
     run --hours 24                 record-only variant: last line SOAK: RECORD (...), exit 0 once the report is written
     run --self-test                negative controls on fake subjects in scaled time (no build, light)
 """
@@ -48,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 TAG = "SOAK"
 MIB = 1 << 20
-VHOST = "aegis.test"
+VHOST = "monban.test"
 
 # D-P8.4 thresholds (never moved by the runner or the duration).
 RSS_SLOPE_MIB_H = 1.0
@@ -61,8 +61,8 @@ LOAD_FLOOR = 0.80
 LOAD_FRACTION = 0.50
 MAX_STREAMS_PER_CONN = 100_000       # F8 limits.max_streams_per_conn maximum
 PER_CONN_RPS = 200                   # soak connections are sized so one segment stays far below that cap
-ERROR_COUNTERS = ("aegis_admission_rejects", "aegis_proxy_upstream_errors", "aegis_proxy_canon_rejects",
-                  "aegis_proxy_authz_denied", "aegis_crash_budget_trips")
+ERROR_COUNTERS = ("monban_admission_rejects", "monban_proxy_upstream_errors", "monban_proxy_canon_rejects",
+                  "monban_proxy_authz_denied", "monban_crash_budget_trips")
 ERROR_LOG = re.compile(r"panic|error|fail|upstream |refused|denied", re.I)
 
 
@@ -185,7 +185,7 @@ def judge(rep):
     if t0 is None or t1 is None or t1 <= t0:
         return ["harness: the load phase did not run"], notes
     w = warmup_for(t1 - t0)
-    for name in ("aegis", "otlp"):
+    for name in ("monban", "otlp"):
         s = (rep.get("samples") or {}).get(name) or []
         pts = [(t, rss / MIB) for t, rss, _, _ in s if t0 + w <= t <= t1]
         if len(pts) < 10:
@@ -374,7 +374,7 @@ class Collector:
 
 
 class ProxyShim:
-    """h2load -> shim -> aegis. Each accepted connection is re-originated from 127.0.0.2 (a trusted PROXY source)
+    """h2load -> shim -> monban. Each accepted connection is re-originated from 127.0.0.2 (a trusted PROXY source)
     and starts with a PROXY v2 PROXY/TCP4 header naming the client's address; then bytes are copied both ways."""
 
     SIG = b"\r\n\r\n\x00\r\nQUIT\n"
@@ -481,7 +481,7 @@ def mint(master, kid, tenant, exp_delta, ops=31, aud=VHOST):
 # ------------------------------------------------------------------------------------------------ the real setup
 
 class RealSetup:
-    """aegis + aegis-otlp + upstream + PROXY shim on this host."""
+    """monban + monban-otlp + upstream + PROXY shim on this host."""
 
     def __init__(self, args, clock, work):
         self.a, self.clock, self.d = args, clock, work
@@ -495,12 +495,12 @@ class RealSetup:
     def build(self):
         heavy = os.path.join(REPO, "ci", "heavy.sh")
         env = dict(os.environ, CARGO_TARGET_DIR=os.path.join(REPO, "target", "soak"))
-        if not (self.a.aegis and self.a.otlp):
-            subprocess.run([heavy, "cargo", "build", "--release", "--locked", "-q", "-p", "aegis-bin", "--bin",
-                            "aegis", "--bin", "aegis-otlp", "--features", "aegis-bin/native,aegis-bin/proxy-protocol,aegis-bin/mtc",
-                            "-p", "aegis-otlp"], cwd=REPO, check=True, env=env)
-            self.a.aegis = self.a.aegis or os.path.join(REPO, "target", "soak", "release", "aegis")
-            self.a.otlp = self.a.otlp or os.path.join(REPO, "target", "soak", "release", "aegis-otlp")
+        if not (self.a.monban and self.a.otlp):
+            subprocess.run([heavy, "cargo", "build", "--release", "--locked", "-q", "-p", "monban-bin", "--bin",
+                            "monban", "--bin", "monban-otlp", "--features", "monban-bin/native,monban-bin/proxy-protocol,monban-bin/mtc",
+                            "-p", "monban-otlp"], cwd=REPO, check=True, env=env)
+            self.a.monban = self.a.monban or os.path.join(REPO, "target", "soak", "release", "monban")
+            self.a.otlp = self.a.otlp or os.path.join(REPO, "target", "soak", "release", "monban-otlp")
         os.makedirs(os.path.join(REPO, "target", "soak"), exist_ok=True)
         self.upstream = os.path.join(REPO, "target", "soak", "soak-upstream")
         subprocess.run([heavy, "rustc", "-O", "--edition", "2021", "-o", self.upstream,
@@ -509,13 +509,13 @@ class RealSetup:
 
     def cpus(self):
         order = cpu_order()
-        need = self.a.aegis_cpus + self.a.client_cpus + 1
+        need = self.a.monban_cpus + self.a.client_cpus + 1
         if need > len(order):
-            raise RuntimeError(f"{self.a.aegis_cpus} aegis + {self.a.client_cpus} h2load + 1 aux CPUs > "
-                               f"{len(order)} CPUs (pass --aegis-cpus/--client-cpus for a smaller host)")
-        self.cs = {"aegis": order[:self.a.aegis_cpus],
+            raise RuntimeError(f"{self.a.monban_cpus} monban + {self.a.client_cpus} h2load + 1 aux CPUs > "
+                               f"{len(order)} CPUs (pass --monban-cpus/--client-cpus for a smaller host)")
+        self.cs = {"monban": order[:self.a.monban_cpus],
                    "h2load": order[len(order) - self.a.client_cpus:],
-                   "aux": order[self.a.aegis_cpus:len(order) - self.a.client_cpus]}
+                   "aux": order[self.a.monban_cpus:len(order) - self.a.client_cpus]}
         return {k: cpus_str(v) for k, v in self.cs.items()}
 
     # -- config
@@ -527,7 +527,7 @@ class RealSetup:
             subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256",
                             "-nodes", "-keyout", key, "-out", crt, "-days", "30", "-subj", f"/CN={cn}",
                             "-addext", f"subjectAltName=DNS:{cn}"], check=True, capture_output=True, timeout=60)
-        # The mtc credential is an opaque operator blob (D-P7.4): aegis neither parses nor verifies it.
+        # The mtc credential is an opaque operator blob (D-P7.4): monban neither parses nor verifies it.
         with open(os.path.join(d, "mtc.chain"), "wb") as f:
             f.write(b"\x00\x01opaque-mtc-for-soak" + secrets.token_bytes(64))
         self.kid, self.master = secrets.token_bytes(8), secrets.token_bytes(32)
@@ -575,7 +575,7 @@ class RealSetup:
         p = os.path.join(self.d, "probe.json")
         with open(p, "w") as f:
             json.dump(doc, f)
-        r = subprocess.run([self.a.aegis, "check-config", p], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([self.a.monban, "check-config", p], capture_output=True, text=True, timeout=60)
         return r.returncode == 0, (r.stdout + r.stderr).strip()[-400:]
 
     # -- start
@@ -585,16 +585,16 @@ class RealSetup:
         doc = self.config()
         ok, msg = self.check_config(doc)
         if not ok:
-            raise RuntimeError(f"aegis check-config refused the soak config: {msg}")
-        # F8 runtime.worker_threads (D-P8.3) where the binary has it: aegis then uses every CPU it is pinned to.
-        wt = self.config(worker_threads=len(self.cs["aegis"]))
+            raise RuntimeError(f"monban check-config refused the soak config: {msg}")
+        # F8 runtime.worker_threads (D-P8.3) where the binary has it: monban then uses every CPU it is pinned to.
+        wt = self.config(worker_threads=len(self.cs["monban"]))
         ok, _ = self.check_config(wt)
         if ok:
             doc = wt
-            self.notes.append(f"runtime.worker_threads={len(self.cs['aegis'])}")
+            self.notes.append(f"runtime.worker_threads={len(self.cs['monban'])}")
         else:
             self.notes.append("runtime.worker_threads not in this F8 (binary default)")
-        self.cfg = os.path.join(self.d, "aegis.json")
+        self.cfg = os.path.join(self.d, "monban.json")
         with open(self.cfg, "w") as f:
             json.dump(doc, f)
         aux = cpus_str(self.cs["aux"])
@@ -602,38 +602,38 @@ class RealSetup:
                                    os.path.join(self.d, "upstream.log")))
         self.audit_dir = os.path.join(self.d, "audit")
         os.makedirs(os.path.join(self.d, "run"), exist_ok=True)
-        self.aegis = Child(["taskset", "-c", cpus_str(self.cs["aegis"]), self.a.aegis, "--config", self.cfg,
+        self.monban = Child(["taskset", "-c", cpus_str(self.cs["monban"]), self.a.monban, "--config", self.cfg,
                             "--cert", self.crt, "--key", self.key, "--audit-dir", self.audit_dir,
                             "--runtime-dir", os.path.join(self.d, "run"), "--token-keyring", self.keyring],
-                           os.path.join(self.d, "aegis.log"), stdout=subprocess.PIPE)
-        self.children.append(self.aegis)
+                           os.path.join(self.d, "monban.log"), stdout=subprocess.PIPE)
+        self.children.append(self.monban)
         self.collector = Collector(self.clock)
         self.otlp = Child(["taskset", "-c", aux, self.a.otlp, "--scrape", f"http://127.0.0.1:{self.aport}/metrics",
-                           "--endpoint", f"http://127.0.0.1:{self.collector.port}/", "--service-name", "aegis-soak",
+                           "--endpoint", f"http://127.0.0.1:{self.collector.port}/", "--service-name", "monban-soak",
                            "--interval-ms", "5000"], os.path.join(self.d, "otlp.log"), stdin=subprocess.PIPE)
         self.children.append(self.otlp)
         threading.Thread(target=self._pump, daemon=True).start()
         until = time.time() + 30
         while True:
-            if not self.aegis.alive():
-                raise RuntimeError(f"aegis exited {self.aegis.p.returncode} at start: {self.tail('aegis.log')}")
+            if not self.monban.alive():
+                raise RuntimeError(f"monban exited {self.monban.p.returncode} at start: {self.tail('monban.log')}")
             try:
                 if http_get(self.aport, "/healthz")[0] == 200:
                     break
             except OSError:
                 pass
             if time.time() > until:
-                raise RuntimeError("aegis not healthy within 30 s")
+                raise RuntimeError("monban not healthy within 30 s")
             time.sleep(0.2)
         self.shim = ProxyShim(self.port)
         self.prefill()
 
     def _pump(self):
-        """aegis stdout+stderr -> its log file and aegis-otlp stdin; error-looking lines are counted."""
-        out, sink = self.aegis.p.stdout, self.otlp.p.stdin
+        """monban stdout+stderr -> its log file and monban-otlp stdin; error-looking lines are counted."""
+        out, sink = self.monban.p.stdout, self.otlp.p.stdin
         for line in iter(out.readline, b""):
-            self.aegis.logf.write(line)
-            self.aegis.logf.flush()
+            self.monban.logf.write(line)
+            self.monban.logf.flush()
             self.log_lines += 1
             if self.counting and ERROR_LOG.search(line.decode(errors="replace")):
                 self.err_lines.append(line.decode(errors="replace").strip()[:300])
@@ -713,7 +713,7 @@ class RealSetup:
             return None
 
     def pids(self):
-        return {"aegis": self.aegis.pid, "otlp": self.otlp.pid}
+        return {"monban": self.monban.pid, "otlp": self.otlp.pid}
 
     def shim_errors(self):
         return self.shim.errors
@@ -727,8 +727,8 @@ class RealSetup:
 
     # -- stop + audit
     def stop(self):
-        rc = {"aegis": self.aegis.term(15.0)}
-        time.sleep(2.0)   # let the pump hand the last lines to aegis-otlp before it is stopped
+        rc = {"monban": self.monban.term(15.0)}
+        time.sleep(2.0)   # let the pump hand the last lines to monban-otlp before it is stopped
         rc["otlp"] = self.otlp.term(10.0)
         for c in self.children:
             c.term(5.0)
@@ -763,7 +763,7 @@ def run_soak(setup, clock, hours, record=None, meta=None):
            "thresholds": {"rss_slope_mib_h": RSS_SLOPE_MIB_H, "baseline_tol": BASELINE_TOL,
                           "warmup_s": warmup_for(load_s), "settle_s": SETTLE_S, "load_floor": LOAD_FLOOR,
                           "load_fraction": LOAD_FRACTION},
-           "samples": {"aegis": [], "otlp": []}, "metrics": [], "phases": {}, "errors": {}, "faults": [],
+           "samples": {"monban": [], "otlp": []}, "metrics": [], "phases": {}, "errors": {}, "faults": [],
            "load": {"segments": []}}
     rep.update(meta or {})
     pids = setup.pids()
@@ -891,7 +891,7 @@ def run_soak(setup, clock, hours, record=None, meta=None):
         e[k] = int(m1.get(k, 0) - m0.get(k, 0)) if m1 else 0
     if not m1:
         rep["faults"].append("admin /metrics unreachable after the load")
-    e["aegis_error_log_lines"] = len(setup.err_lines)
+    e["monban_error_log_lines"] = len(setup.err_lines)
     rep["error_log_sample"] = setup.err_lines[:20]
     col = setup.collector
     t0, t1 = rep["phases"]["load_start"], rep["phases"]["load_end"]
@@ -927,7 +927,7 @@ def summary(rep):
 
 def cmd_run(a):
     host = socket.gethostname().split(".")[0]
-    work = tempfile.mkdtemp(prefix="aegis-soak-")
+    work = tempfile.mkdtemp(prefix="monban-soak-")
     clock = Clock(1.0)
     setup = RealSetup(a, clock, work)
     record = a.record or os.path.join(REPO, "target", "soak", "out",
@@ -942,9 +942,9 @@ def cmd_run(a):
             return 1
         meta = {"host": host, "kernel": os.uname().release, "cpus": cpus, "host_cpus": len(cpu_order()),
                 "date": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-                "aegis": {"binary": a.aegis, "features": "native,proxy-protocol,mtc"}, "otlp": None,
+                "monban": {"binary": a.monban, "features": "native,proxy-protocol,mtc"}, "otlp": None,
                 "config": "PROXY v2 listener (trusted 127.0.0.2/32, via shim), tls.credentials mtc+x509 "
-                          "(selector), /px/ reverse proxy, /sq/ apps/notes on SQLite, aegis-otlp sidecar",
+                          "(selector), /px/ reverse proxy, /sq/ apps/notes on SQLite, monban-otlp sidecar",
                 "record_only": a.hours > 2}
         try:
             rep = run_soak(setup, clock, a.hours, record=record, meta=meta)
@@ -1015,13 +1015,13 @@ class FakeSetup:
             return None
 
     def pids(self):
-        return {"aegis": self.subject.pid, "otlp": self.otlp.pid}
+        return {"monban": self.subject.pid, "otlp": self.otlp.pid}
 
     def shim_errors(self):
         return 0
 
     def stop(self):
-        rc = {"aegis": self.subject.term(10.0), "otlp": self.otlp.term(10.0)}
+        rc = {"monban": self.subject.term(10.0), "otlp": self.otlp.term(10.0)}
         self.collector.close()
         return rc
 
@@ -1037,9 +1037,9 @@ class FakeSetup:
 
 # mutant -> the criterion prefix that must be among the failures
 MUTANTS = {
-    "rss-leak": "rss.slope.aegis",       # 2 MiB per (virtual) hour of load, touched pages
-    "fd-leak": "fds.aegis",              # 10 fds per load segment never closed
-    "task-leak": "tasks.aegis",          # 6 threads per load segment never joined
+    "rss-leak": "rss.slope.monban",       # 2 MiB per (virtual) hour of load, touched pages
+    "fd-leak": "fds.monban",              # 10 fds per load segment never closed
+    "task-leak": "tasks.monban",          # 6 threads per load segment never joined
     "one-error": "errors",               # one failed request in the last segment
     "audit-bad": "audit",                # the audit log does not verify
     "otlp-dead": "otlp",                 # the sidecar never exports
@@ -1053,7 +1053,7 @@ def self_test(a):
     results, bad = {}, []
     cases = ["clean"] + list(MUTANTS) + ["clean"]
     for i, m in enumerate(cases):
-        work = tempfile.mkdtemp(prefix=f"aegis-soak-st-{m}-")
+        work = tempfile.mkdtemp(prefix=f"monban-soak-st-{m}-")
         clock = Clock(scale)
         setup = None
         try:
@@ -1104,9 +1104,9 @@ def judge_controls():
             if step_in_warmup and t < t0 + 600:
                 rss -= 30 * MIB
             s.append([t, rss, 100, 10])
-        return {"phases": {"load_start": t0, "load_end": t1}, "samples": {"aegis": s, "otlp": s},
-                "baseline": {"aegis": {"fds": 100, "tasks": 10}, "otlp": {"fds": 100, "tasks": 10}},
-                "after": {"aegis": {"fds": fds_after, "tasks": 10}, "otlp": {"fds": 100, "tasks": 10}},
+        return {"phases": {"load_start": t0, "load_end": t1}, "samples": {"monban": s, "otlp": s},
+                "baseline": {"monban": {"fds": 100, "tasks": 10}, "otlp": {"fds": 100, "tasks": 10}},
+                "after": {"monban": {"fds": fds_after, "tasks": 10}, "otlp": {"fds": 100, "tasks": 10}},
                 "errors": {"h2load": 0}, "load": {"target_rps": 100, "segments": [{"req_s": 100}]},
                 "otlp": {"metrics_last_quarter": 3}, "audit": {"ok": True}}
     wrong = []
@@ -1129,16 +1129,16 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--scale", type=float, default=360.0, help="self-test time scale (virtual s per real s)")
     ap.add_argument("--record", help="report JSON path (default target/soak/out/soak-<host>-<utc>.json)")
-    ap.add_argument("--aegis", help="prebuilt aegis (features native,proxy-protocol,mtc)")
-    ap.add_argument("--otlp", help="prebuilt aegis-otlp")
-    ap.add_argument("--subject", help="alias of --aegis (oracles/README.md contract)")
+    ap.add_argument("--monban", help="prebuilt monban (features native,proxy-protocol,mtc)")
+    ap.add_argument("--otlp", help="prebuilt monban-otlp")
+    ap.add_argument("--subject", help="alias of --monban (oracles/README.md contract)")
     ap.add_argument("--h2load", help="h2load command (default: the pinned nghttp2 1.69.0 from h2load.lock)")
-    ap.add_argument("--aegis-cpus", type=int, default=4)
+    ap.add_argument("--monban-cpus", type=int, default=4)
     ap.add_argument("--client-cpus", type=int, default=2)
     ap.add_argument("--keep", action="store_true", help="keep the work directory")
     a = ap.parse_args()
-    if a.subject and not a.aegis:
-        a.aegis = a.subject
+    if a.subject and not a.monban:
+        a.monban = a.subject
     if a.self_test:
         return self_test(a)
     if not (0 < a.hours <= 48):

@@ -142,14 +142,14 @@ forwards `//` paths instead of answering 308 (lenient), and one that answers `//
 
   New kinds: `query`, `ctype`, `origin`, `headers`, `request` (research had no reference function for these).
 - **G3 "34 dated instances"**: the ledger node names 47 items in 11 classes. The 34-id list could not be reconstructed, so every named item got a row. Ledger inputs are **reconstructed from one-line mechanism descriptions, not the original PoCs**.
-- **G2 "every Rust parser in the lock"** is not done here. The research ran 12 Rust crates via its `diffh` harness. This oracle differentials the subject (the future `aegis-canon` through a protocol adapter) against the reference; there is no multi-crate Rust harness yet. The main `Cargo.lock` currently has 25 packages and none of them is an identity parser.
+- **G2 "every Rust parser in the lock"** is not done here. The research ran 12 Rust crates via its `diffh` harness. This oracle differentials the subject (the future `monban-canon` through a protocol adapter) against the reference; there is no multi-crate Rust harness yet. The main `Cargo.lock` currently has 25 packages and none of them is an identity parser.
 
 ## Known limits
 
 - The reference is spec-by-code and was reviewed by one porter. It is not mechanized (CANON rung stays R2 executed). A wrong rule in it propagates into the golden; G3 and the research pin are the independent checks.
 - G1 samples a grammar of known operators. New Unicode or spec changes can escape it.
 - IPv6 literals are rejected (not served). `query_typed` has no route-declared list parameters (F8 exempts declared list parameters from the duplicate-name rule; the oracle has no way to declare them yet). `headers` treats every field not in a small list allowlist as a singleton, which may false-reject real traffic (q4-008 did not measure headers).
-- Opaque `%80–%FF` path octets are only checked for strict UTF-8 and NFC, as F8 specifies. So zero-width (`%E2%80%8B`), bidi overrides (`%E2%80%AE`), BOM (`%EF%BB%BF`), noncharacters (`%EF%BF%BF`) and NFKC-foldable forms (fullwidth letters) are accepted. Routing matches the octets byte-exactly, so none of them aliases an ASCII route inside AEGIS; they matter only behind an upstream that decodes and folds paths (CANON-8, not checked).
+- Opaque `%80–%FF` path octets are only checked for strict UTF-8 and NFC, as F8 specifies. So zero-width (`%E2%80%8B`), bidi overrides (`%E2%80%AE`), BOM (`%EF%BB%BF`), noncharacters (`%EF%BF%BF`) and NFKC-foldable forms (fullwidth letters) are accepted. Routing matches the octets byte-exactly, so none of them aliases an ASCII route inside Monban; they matter only behind an upstream that decodes and folds paths (CANON-8, not checked).
 - CANON-8 (per-upstream folding profile) is not checked. `/ADMIN` and `/admin.` stay canonical.
 - G4 inspects the whole lockfile, not the ingress crate subgraph.
 

@@ -17,11 +17,11 @@
   "proxy-e2e one-response mutant"
  ],
  "acceptance": {
-  "cmd": "ci/remote.sh bash -c 'cargo test -p aegis-transport --locked' && ci/remote.sh oracles/proxy-e2e/run",
+  "cmd": "ci/remote.sh bash -c 'cargo test -p monban-transport --locked' && ci/remote.sh oracles/proxy-e2e/run",
   "must": "one 400 per malformed chunked request (strict filter and hyper never both answer); every carried transport gate green"
  },
  "write_scope": [
-  "crates/aegis-transport/src/**"
+  "crates/monban-transport/src/**"
  ],
  "notes": ""
 }

@@ -2,8 +2,8 @@
  "id": "P5-iso-003",
  "role": "implementer",
  "crates": [
-  "aegis-iso (cordon per principal, crash budget)",
-  "aegis-p2 (cordon main)",
+  "monban-iso (cordon per principal, crash budget)",
+  "monban-p2 (cordon main)",
   "subjects/p2-subject (cordon serve)"
  ],
  "depends_on": [
@@ -22,21 +22,21 @@
   "oracles/isolation-fi --path cordon (default and --mpk) and --self-test --mutant-subject"
  ],
  "acceptance": {
-  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' && oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe' && ci/remote.sh ci/heavy.sh cargo test --locked -q -p aegis-iso",
-  "must": "PASS on the laptop in gate timing mode on the 6 guest classes (hostabort/hostpoison reported, not gated, as per-principal cordon damage) with and without MPK; oom recovery p99 <= 5 ms; mutants shared-store, recycle50, no-deadline, epoch-only-4 red; aegis-iso unit tests: cordon registry refuses a second principal on a cordon; crash budget 3/60 s -> 429 for 600 s per principal, independent across principals, healthy failures not counted"
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-p2 && CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p p2-subject --features p2-subject/mutants && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/isolation-fi/run --trials 3 --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' && oracles/isolation-fi/run --self-test --path cordon --subject 'target/p2/release/p2-subject serve cordon --threads 64 {guest} {data}' --mutant-subject 'target/p2-mutants/release/p2-subject serve cordon --threads 64 {guest} {data}' && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2-test/release/monban-p2 probe' && ci/remote.sh ci/heavy.sh cargo test --locked -q -p monban-iso",
+  "must": "PASS on the laptop in gate timing mode on the 6 guest classes (hostabort/hostpoison reported, not gated, as per-principal cordon damage) with and without MPK; oom recovery p99 <= 5 ms; mutants shared-store, recycle50, no-deadline, epoch-only-4 red; monban-iso unit tests: cordon registry refuses a second principal on a cordon; crash budget 3/60 s -> 429 for 600 s per principal, independent across principals, healthy failures not counted"
  },
  "write_scope": [
-  "crates/aegis-iso/src/cordon/**",
-  "crates/aegis-iso/src/crash_budget/**",
-  "crates/aegis-iso/src/lib.rs",
-  "crates/aegis-iso/tests/cordon*.rs",
-  "crates/aegis-p2/src/main.rs",
-  "crates/aegis-p2/src/cordon.rs",
+  "crates/monban-iso/src/cordon/**",
+  "crates/monban-iso/src/crash_budget/**",
+  "crates/monban-iso/src/lib.rs",
+  "crates/monban-iso/tests/cordon*.rs",
+  "crates/monban-p2/src/main.rs",
+  "crates/monban-p2/src/cordon.rs",
   "subjects/p2-subject/**"
  ],
- "notes": "Idle cordons are reaped (bounded count, F8); respawn by execve only. The crash budget is pure logic in aegis-iso (no clock reads inside: the caller passes CLOCK_MONOTONIC instants) so it is unit-testable.",
+ "notes": "Idle cordons are reaped (bounded count, F8); respawn by execve only. The crash budget is pure logic in monban-iso (no clock reads inside: the caller passes CLOCK_MONOTONIC instants) so it is unit-testable.",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "passed (integrator W3, 2026-10-31, PLAN D21): blocked only on scope. Integrator merged P5-iso-003 (61d2798) with P5-wasm-002 (3b55750), applied the supplied pkey_mprotect allowlist patch (aegis-iso filter.rs, nr 329; pkey_alloc still denied after install) and the MPK stripe retry (engine::is_pool_full/pool_retry_limit, store::Worker::handle, fi::FiWorker::instance test-hooks only per D20; the same retry added to abi::Session for F14 requests), and switched aegis-p2 cordon.rs to serve through aegis_wasm::abi::F14Worker/Session with the shared abi::frame codec (private codec removed; no pipelining per connection, documented). Acceptance-cmd defect fixed: the combined '-p p2-subject -p aegis-p2' build violates D18, now split. Laptop 6.17.0-14, Landlock ABI 7, gate timing mode, no retries: p2-fault-cordon cmd isolation-fi --trials 3 --path cordon PASS, 0 healthy failures/0 wrong on panic, abort, segv, loop, oom, poison; recovery p99 max 1830 us (oom), loop x0.67 [load 13.9 -> 17.3]; hostabort 3.55 failures/fault and hostpoison 99.6 wrong/fault reported, not gated; --mpk PASS, 0/0 on the 6 classes, recovery p99 max 1316 us (oom), loop x0.69 [16.3 -> 10.5]; selftest PASS: reference 7/7, real subject 4/4 (shared-store G2 951 wrong; recycle50 G2 331 wrong; no-deadline G4 x0.048; epoch-only-4 G4 x0.208) [10.0 -> 6.7]; syscall-negative p2-subject probe PASS 77 cells, aegis-p2 probe (test-hooks, target/p2-test) PASS 77 cells, --self-test 7/7 [15.1-15.8]; ci/remote.sh cargo test -p aegis-iso 31/31 (desktop, load 1.3). The isolation-fi oracle was run through a short symlink of the worktree: its socket dir lives under oracles/isolation-fi/.work and the worktree path exceeds SUN_LEN (environment, not a code issue)."
+ "status": "passed (integrator W3, 2026-10-31, PLAN D21): blocked only on scope. Integrator merged P5-iso-003 (61d2798) with P5-wasm-002 (3b55750), applied the supplied pkey_mprotect allowlist patch (monban-iso filter.rs, nr 329; pkey_alloc still denied after install) and the MPK stripe retry (engine::is_pool_full/pool_retry_limit, store::Worker::handle, fi::FiWorker::instance test-hooks only per D20; the same retry added to abi::Session for F14 requests), and switched monban-p2 cordon.rs to serve through monban_wasm::abi::F14Worker/Session with the shared abi::frame codec (private codec removed; no pipelining per connection, documented). Acceptance-cmd defect fixed: the combined '-p p2-subject -p monban-p2' build violates D18, now split. Laptop 6.17.0-14, Landlock ABI 7, gate timing mode, no retries: p2-fault-cordon cmd isolation-fi --trials 3 --path cordon PASS, 0 healthy failures/0 wrong on panic, abort, segv, loop, oom, poison; recovery p99 max 1830 us (oom), loop x0.67 [load 13.9 -> 17.3]; hostabort 3.55 failures/fault and hostpoison 99.6 wrong/fault reported, not gated; --mpk PASS, 0/0 on the 6 classes, recovery p99 max 1316 us (oom), loop x0.69 [16.3 -> 10.5]; selftest PASS: reference 7/7, real subject 4/4 (shared-store G2 951 wrong; recycle50 G2 331 wrong; no-deadline G4 x0.048; epoch-only-4 G4 x0.208) [10.0 -> 6.7]; syscall-negative p2-subject probe PASS 77 cells, monban-p2 probe (test-hooks, target/p2-test) PASS 77 cells, --self-test 7/7 [15.1-15.8]; ci/remote.sh cargo test -p monban-iso 31/31 (desktop, load 1.3). The isolation-fi oracle was run through a short symlink of the worktree: its socket dir lives under oracles/isolation-fi/.work and the worktree path exceeds SUN_LEN (environment, not a code issue)."
 }

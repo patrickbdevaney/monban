@@ -112,7 +112,7 @@ def universe():
 
 def exposure(text):
     with tempfile.TemporaryDirectory(prefix="front-equiv-unit-") as d:
-        p = os.path.join(d, "aegis.service")
+        p = os.path.join(d, "monban.service")
         with open(p, "w") as f:
             f.write(text)
         out = subprocess.run(["systemd-analyze", "security", "--offline=yes", p], capture_output=True, text=True,

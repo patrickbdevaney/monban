@@ -1,9 +1,9 @@
 # sdk-host: F7b streaming host obligations (gate `sdk-host`)
 
-Gate `sdk-host` in `gates/phase-4.toml`, implemented by P4-host-001 (aegis-adapter-host + `subjects/host-subject`).
+Gate `sdk-host` in `gates/phase-4.toml`, implemented by P4-host-001 (monban-adapter-host + `subjects/host-subject`).
 Written in P4-oracle-host-001 (spec author). Source of the obligations: spikes/APPLIED.md q4-001 ("host obligations
-to be checked by an adapter-host oracle"), the module docs of `sdk/aegis-sdk/src/streaming.rs` (F7b) and
-`sdk/aegis-sdk/src/host.rs` (decision D2(b)), and DEVIATIONS X-11 (decision D6).
+to be checked by an adapter-host oracle"), the module docs of `sdk/monban-sdk/src/streaming.rs` (F7b) and
+`sdk/monban-sdk/src/host.rs` (decision D2(b)), and DEVIATIONS X-11 (decision D6).
 
 Under D2(b) the SDK owns minting: every `drive` / `open_body` / `open_sse` / `open_ws` / `step` / `on_ws_message` /
 `run_job` call checks `Session::live()`, mints one fresh `Ctx` and db view, rolls back a transaction left open, and
@@ -67,7 +67,7 @@ steps are all non-zero.
 ## Subject protocol (normative; what host-subject must implement)
 
 Invocation: `<cmd>` (the gate uses `target/release/host-subject sdk-host`); for mutants the oracle appends
-`--mutate <name>`. The subject is the host: real aegis-adapter-host code driving the real `aegis_sdk::host` functions,
+`--mutate <name>`. The subject is the host: real monban-adapter-host code driving the real `monban_sdk::host` functions,
 with a scripted test application, an instrumented `Backend` and the host's own `Session`. Nothing in the
 host's obligations may be simulated in the subject's glue.
 
@@ -182,7 +182,7 @@ drop-jobs 10; job-revocation 15; revoked-stream 16; mint-once 22).
   22/22 caught.
 
 Provenance: no research artifact is ported. The obligations are the frozen F7b/host.rs doc text and APPLIED q4-001;
-the reference subject (`ref_subject.py`) ports `sdk/aegis-sdk/src/host.rs` (scope, `HostDb`, `run_job`) line for
+the reference subject (`ref_subject.py`) ports `sdk/monban-sdk/src/host.rs` (scope, `HostDb`, `run_job`) line for
 line and adds a host layer. The oracle's model (`interp` and the op handlers in `sdk_host.py`) is a separate
 restatement that does not import the reference.
 
@@ -200,4 +200,4 @@ restatement that does not import the reference.
 - **Tenant binding** of `Op::tenant` is also enforced by the SDK; TENANT here only checks that the host builds the
   `Principal` and `Backend` from the right session.
 - The subject's glue (app interpreter, instrumented backend) is trusted to report faithfully. The gate's value
-  depends on host-subject driving the real aegis-adapter-host host loop, not a re-implementation.
+  depends on host-subject driving the real monban-adapter-host host loop, not a re-implementation.

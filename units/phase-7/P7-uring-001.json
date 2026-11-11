@@ -17,11 +17,11 @@
   "front-equiv self-test"
  ],
  "acceptance": {
-  "cmd": "ci/remote.sh cargo test -p aegis-uring --locked && ci/remote.sh oracles/front-equiv/run --binary-from-build",
-  "must": "PASS; aegis-uring (L4): accept + recv/send on io-uring 0.7.15 with bounded submission queue, exposed as tokio AsyncRead/AsyncWrite streams the existing server consumes unchanged; unsafe confined to aegis-uring, <= 6 sites, each #[allow(unsafe_code)] + // SAFETY: with the buffer-lifetime argument (DEVIATIONS X-19; cargo xtask unsafe-sites PASS); falls back closed: --front uring on a kernel with io_uring disabled refuses to start (exit != 0, clear message), never silently uses epoll"
+  "cmd": "ci/remote.sh cargo test -p monban-uring --locked && ci/remote.sh oracles/front-equiv/run --binary-from-build",
+  "must": "PASS; monban-uring (L4): accept + recv/send on io-uring 0.7.15 with bounded submission queue, exposed as tokio AsyncRead/AsyncWrite streams the existing server consumes unchanged; unsafe confined to monban-uring, <= 6 sites, each #[allow(unsafe_code)] + // SAFETY: with the buffer-lifetime argument (DEVIATIONS X-19; cargo xtask unsafe-sites PASS); falls back closed: --front uring on a kernel with io_uring disabled refuses to start (exit != 0, clear message), never silently uses epoll"
  },
  "write_scope": [
-  "crates/aegis-uring/src/**"
+  "crates/monban-uring/src/**"
  ],
- "notes": "Integrator decision 2026-11-06: io-uring 0.7.15 submission is unsafe fn, so aegis-uring has unsafe_code = deny (not forbid) and a cap of 6 sites (DEVIATIONS X-19). Keep sites minimal: one ring setup, one generic push with owned buffers kept until completion."
+ "notes": "Integrator decision 2026-11-06: io-uring 0.7.15 submission is unsafe fn, so monban-uring has unsafe_code = deny (not forbid) and a cap of 6 sites (DEVIATIONS X-19). Keep sites minimal: one ring setup, one generic push with owned buffers kept until completion."
 }

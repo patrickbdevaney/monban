@@ -1,0 +1,36 @@
+[package]
+name = "monban-p2"
+description = "P2 worker binary: exec-spawned zygote (fork+Wasm), per-principal cordon, sandboxed module compile. The only binary that links wasmtime."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# Layer 5 (assembly), like monban-bin and monban-pdp: a separate binary with its own budget ceilings (PLAN-5 D3,
+# DEVIATIONS X-13). monban-bin never depends on it; the supervisor exec-spawns it.
+[package.metadata.monban]
+layer = 5
+
+[[bin]]
+name = "monban-p2"
+path = "src/main.rs"
+
+[dependencies]
+monban-iso = { workspace = true }
+monban-types = { workspace = true }
+monban-wasm = { workspace = true }
+# No direct third-party dependency: wasmtime arrives only through monban-wasm. The .cwasm digest is computed and
+# held by the supervisor and checked in monban-wasm before the single unsafe deserialize (PLAN-5 D4).
+
+[features]
+# Golden builds enable neither feature (PLAN-5 D15; asserted by P5-bin-001). Test and mutant builds use their own
+# target dirs (target/p2-test, target/p2-mutants), so target/p2 always holds the shipped configuration.
+default = []
+# F14 `env.host_fault`, the `probe` subcommand (syscall negative tests) and the load-base layout report (D8).
+test-hooks = ["monban-wasm/test-hooks", "monban-iso/test-hooks"]
+# Oracle negative controls selected at run time by AEGIS_P2_MUTANT. Never part of a shipped build.
+mutants = ["monban-wasm/mutants", "monban-iso/mutants"]
+
+[lints]
+workspace = true

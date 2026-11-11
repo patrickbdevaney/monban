@@ -1,8 +1,8 @@
-"""Manual smoke test of `aegis-p2 cordon` over F14 frames (not a gate; P5-iso-003 development aid).
+"""Manual smoke test of `monban-p2 cordon` over F14 frames (not a gate; P5-iso-003 development aid).
 
-usage: python3 -I subjects/p2-subject/tools/cordon_smoke.py <path to aegis-p2>
+usage: python3 -I subjects/p2-subject/tools/cordon_smoke.py <path to monban-p2>
 
-Compiles two hand-assembled import-free modules with `aegis-p2 compile` (one returns 0, one loops), starts a cordon
+Compiles two hand-assembled import-free modules with `monban-p2 compile` (one returns 0, one loops), starts a cordon
 on a SOCK_SEQPACKET listener at fd 3, and on two connections checks the ready frame's digest and prints the resp-end
 of three sequential requests per connection (fuel and wall-bound traps for the loop module).
 """

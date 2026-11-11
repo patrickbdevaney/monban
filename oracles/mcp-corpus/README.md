@@ -42,7 +42,7 @@ A per-era baseline (legitimate tools/call → 200, reaches the handler) must pas
 | item | value |
 |---|---|
 | eras | 2025-11-25 (initialize, sessions bound to principal and route) and 2026-07-28 (stateless; `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name` and `_meta` protocolVersion must agree) |
-| auth | Bearer JWT HS256, test secret `aegis-oracle-test-secret-NOT-FOR-PRODUCTION`, `iss=https://issuer.oracle.test`, `aud` = the full route URL (RFC 8707) |
+| auth | Bearer JWT HS256, test secret `monban-oracle-test-secret-NOT-FOR-PRODUCTION`, `iss=https://issuer.oracle.test`, `aud` = the full route URL (RFC 8707) |
 | Host allowlist | `127.0.0.1:PORT`, `localhost:PORT` |
 | Origin allowlist | `http://127.0.0.1:PORT`, `http://localhost:PORT` |
 | upstream | the oracle's mock: tool `echo(x)`; `/redir` answers 307 to a second origin; `/a` and `/b` for multiplexing |
@@ -60,15 +60,15 @@ A per-era baseline (legitimate tools/call → 200, reaches the handler) must pas
 - Every target must be loopback; anything else is refused.
 - The last line is `MCP-CORPUS: PASS|FAIL (...)` and the exit code is 0 only on PASS.
 
-## Subject wiring: the AEGIS agent listener (P3-agent-001)
+## Subject wiring: the Monban agent listener (P3-agent-001)
 
-The shipped binary serves this profile with `aegis agent --config <agent.json>` (crates/aegis-agent, wired in
-crates/aegis-bin/src/agent.rs). `crates/aegis-agent/subject/mcp-gate.sh run` does the whole wiring: it starts
-`aegis-pdp serve` (Cedar, out of process; policy `crates/aegis-agent/subject/mcp.cedar`) on a SOCK_SEQPACKET socket,
+The shipped binary serves this profile with `monban agent --config <agent.json>` (crates/monban-agent, wired in
+crates/monban-bin/src/agent.rs). `crates/monban-agent/subject/mcp-gate.sh run` does the whole wiring: it starts
+`monban-pdp serve` (Cedar, out of process; policy `crates/monban-agent/subject/mcp.cedar`) on a SOCK_SEQPACKET socket,
 writes an agent config with routes `/mcp`, `/mcp2`, `/mcp-redir`, `/mcp-multi` pointing at the mock upstream port,
-starts `target/release/aegis agent`, and runs this oracle with `--subject`, `--subject-url2`, `--subject-redir-url`,
+starts `target/release/monban agent`, and runs this oracle with `--subject`, `--subject-url2`, `--subject-redir-url`,
 `--subject-multi-url` and `--subject-pid`. `mcp-gate.sh self-test` swaps in a deny-all Cedar policy and requires the
-run to fail on the baselines. Build first: `cargo build --release --locked -p aegis-bin -p aegis-pdp`.
+run to fail on the baselines. Build first: `cargo build --release --locked -p monban-bin -p monban-pdp`.
 
 ## Pass criterion
 
@@ -142,5 +142,5 @@ run to fail on the baselines. Build first: `cargo build --release --locked -p ae
 
 - **`host-allowlist-required;h2-authority` is not executed.** It needs an h2c client. Pending: a Rust probe under this dir via `ci/heavy.sh`, or a hand-rolled HPACK client.
 - **`session-table-bound` and `cache-bound` are crude.** They use RSS growth (< 15 MB, the research threshold), only with `--subject-pid`. They do not run in the in-process self-test, but they were exercised out-of-process with N=3000. 25 of 3000 flood requests got client-side connection errors under 50-way concurrency; that does not affect the verdict.
-- **The toy gateway exists only to show the oracle is satisfiable and red-able.** It is not AEGIS and not evidence about any product.
+- **The toy gateway exists only to show the oracle is satisfiable and red-able.** It is not Monban and not evidence about any product.
 - The official MCP conformance suite is not used: research `l4.conformance-suite-gap-origin-only` shows it is not evidence.

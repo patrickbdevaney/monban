@@ -1,5 +1,5 @@
 /-
-AEGIS Tier-L capability token (macaroon-style HMAC chain over deterministic CBOR caveats).
+Monban Tier-L capability token (macaroon-style HMAC chain over deterministic CBOR caveats).
 Transcribed by r4 E01 (2026-10-25) from r3 node r3e05.l5-token-wire-format-lean (statements T1-T6).
 Core Lean 4 only. HMAC is a PARAMETER `H` (not an `axiom`, not `opaque`): every theorem is universally quantified
 over the MAC function, so no axiom enters the TCB; EUF-CMA of HMAC-SHA256 is an explicit, unproven assumption that

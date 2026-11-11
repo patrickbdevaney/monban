@@ -1,12 +1,12 @@
 {
  "id": "P3-token-001",
  "crates": [
-  "aegis-token"
+  "monban-token"
  ],
  "spec_refs": [
   "F5 interfaces/F5-token.cddl",
   "spec/AegisIR/Token.lean (T1\u2013T5)",
-  "F2 authn_path::mint (only aegis-token)",
+  "F2 authn_path::mint (only monban-token)",
   "ARCHITECTURE \u00a73.5 token tiers"
  ],
  "oracles": [
@@ -19,7 +19,7 @@
   "must": "0 divergence; self-test mutants (leaf-only verify, plain-prefix resources, missing-arg allow, depth unchecked) caught"
  },
  "write_scope": [
-  "crates/aegis-token/**",
+  "crates/monban-token/**",
   "subjects/token-subject/**",
   "oracles/token-drt/**"
  ],

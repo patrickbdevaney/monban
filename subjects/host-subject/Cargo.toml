@@ -1,29 +1,29 @@
 [package]
 name = "host-subject"
-description = "Oracle subject: aegis-adapter-host (SDK host on the blocking pool, golden dispatch) over the sdk-host and nonempty-props JSON-lines protocols. Never linked into aegis."
+description = "Oracle subject: monban-adapter-host (SDK host on the blocking pool, golden dispatch) over the sdk-host and nonempty-props JSON-lines protocols. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # No third-party dependencies: JSON via the strict parser in src/json.rs. Principals are minted through the real
-# aegis-token Tier-0 path (aegis-types `authn-path` stays owned by aegis-token). The adapters supply the render
-# step of the golden dispatch; aegis-config is used by the endowment-conversion test.
+# monban-token Tier-0 path (monban-types `authn-path` stays owned by monban-token). The adapters supply the render
+# step of the golden dispatch; monban-config is used by the endowment-conversion test.
 [dependencies]
-aegis-adapter-host = { workspace = true }
-aegis-adapter-pg = { workspace = true }
-aegis-adapter-redis = { workspace = true }
-aegis-adapter-sqlite = { workspace = true }
-aegis-config = { workspace = true }
-aegis-data-ir = { workspace = true }
-aegis-sdk = { workspace = true }
-aegis-state = { workspace = true }
-aegis-token = { workspace = true }
-aegis-types = { workspace = true }
+monban-adapter-host = { workspace = true }
+monban-adapter-pg = { workspace = true }
+monban-adapter-redis = { workspace = true }
+monban-adapter-sqlite = { workspace = true }
+monban-config = { workspace = true }
+monban-data-ir = { workspace = true }
+monban-sdk = { workspace = true }
+monban-state = { workspace = true }
+monban-token = { workspace = true }
+monban-types = { workspace = true }
 
 [lints]
 workspace = true

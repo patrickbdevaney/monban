@@ -17,7 +17,7 @@ Do not include personal data of third parties.
 
 ## What to expect
 
-AEGIS is maintained by one person, so these are targets, not guarantees:
+Monban is maintained by one person, so these are targets, not guarantees:
 
 | step | target |
 |---|---|
@@ -34,18 +34,18 @@ vulnerability is being exploited, we may publish sooner, after telling you.
 
 In scope:
 
-- `aegis-bin` (floor and cmvp builds) and its released artifacts;
+- `monban-bin` (floor and cmvp builds) and its released artifacts;
 - any claim in [SECURITY_CLAIMS.md](SECURITY_CLAIMS.md) "What is claimed", at the rung that claim states. A
   counterexample to a model theorem, a checker disagreement, or a bypass of a fail-closed path is in scope;
 - the release pipeline: signatures, TUF metadata, provenance and SBOM.
 
 Out of scope, or to be reported upstream:
 
-- components AEGIS trusts but does not verify (listed in SECURITY_CLAIMS.md): hyper, h2, tokio, rustls, the AWS-LC
+- components Monban trusts but does not verify (listed in SECURITY_CLAIMS.md): hyper, h2, tokio, rustls, the AWS-LC
   C code, the Rust compiler, SQLite, the kernel and libc. Report those to their projects; we will track the advisory
-  and say whether AEGIS builds are affected;
+  and say whether Monban builds are affected;
 - third-party adapters, modules and handlers, and forked or modified binaries;
-- volumetric denial of service. AEGIS does rate limiting and resource budgeting; it is not a network filter.
+- volumetric denial of service. Monban does rate limiting and resource budgeting; it is not a network filter.
 
 ## Supported versions
 

@@ -1,15 +1,15 @@
-//! Mirror of frozen F7 (`sdk/aegis-sdk/src/surface.rs`, request-scoped subset). Same type names, same field
+//! Mirror of frozen F7 (`sdk/monban-sdk/src/surface.rs`, request-scoped subset). Same type names, same field
 //! shapes and the same variance (`PhantomData<&'r ()>` = covariant in `'r`, no `Clone`, no public constructor).
 //! Deviations needed so a mock host can mint and run things are marked MIRROR-DEVIATION.
 
 use core::marker::PhantomData;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
-/// MIRROR-DEVIATION: stands in for `aegis_types::RouteId`.
+/// MIRROR-DEVIATION: stands in for `monban_types::RouteId`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RouteId(pub u32);
 
-/// MIRROR-DEVIATION: stands in for `aegis_types::Principal` (private fields, no public constructor).
+/// MIRROR-DEVIATION: stands in for `monban_types::Principal` (private fields, no public constructor).
 #[derive(Debug, PartialEq, Eq)]
 pub struct Principal {
     user: u64,
@@ -136,7 +136,7 @@ pub enum SdkError {
     Unavailable,
 }
 
-/// MIRROR-DEVIATION: stands in for `aegis_data_ir::{Op, OpKind}`.
+/// MIRROR-DEVIATION: stands in for `monban_data_ir::{Op, OpKind}`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpKind {
     Select,

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# AEGIS oracle: hostile-modules (Phase-5 gates p2-hostile-worker, p2-hostile-host; unit P5-oracle-hostile-001).
+# Monban oracle: hostile-modules (Phase-5 gates p2-hostile-worker, p2-hostile-host; unit P5-oracle-hostile-001).
 # Contract: oracles/README.md; subject contracts, cases and expected outcomes: oracles/hostile-modules/README.md.
 # Last line: HOSTILE-MODULES: PASS|FAIL (...)  /  HOSTILE-MODULES SELF-TEST: PASS|FAIL (...)
 #   ./run                                   both levels against the reference (hostref worker + ref_host.py)
 #   ./run --self-test                       both levels: reference green, every reference mutant red
-#   ./run --level worker --subject <aegis-p2>
-#   ./run --self-test --level worker --subject <aegis-p2> --mutant-subject <aegis-p2 mutants build>
-#   ./run --level host --subject <aegis> --worker <aegis-p2>
-#   ./run --self-test --level host --subject <aegis> --worker <aegis-p2> --mutant-subject <aegis p2-mutants>
-#         --mutant-worker <aegis-p2 mutants>
+#   ./run --level worker --subject <monban-p2>
+#   ./run --self-test --level worker --subject <monban-p2> --mutant-subject <monban-p2 mutants build>
+#   ./run --level host --subject <monban> --worker <monban-p2>
+#   ./run --self-test --level host --subject <monban> --worker <monban-p2> --mutant-subject <monban p2-mutants>
+#         --mutant-worker <monban-p2 mutants>
 #   --only id,id (debugging; never PASS)  -v (list every passing cell)  --keep-build (keep rust/target)
 # The reference worker is built under ci/heavy.sh into rust/target and deleted at exit (laptop disk rule).
 set -u

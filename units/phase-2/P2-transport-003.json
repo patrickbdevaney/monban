@@ -1,8 +1,8 @@
 {
  "id": "P2-transport-003",
  "crates": [
-  "aegis-transport",
-  "aegis-bin"
+  "monban-transport",
+  "monban-bin"
  ],
  "spec_refs": [
   "F3 (FrontEnd hooks frozen; App/Server API is not frozen)",
@@ -10,17 +10,17 @@
   "CANON-4"
  ],
  "acceptance": {
-  "cmd": "oracles/proxy-e2e/run --subject target/release/aegis && oracles/proxy-e2e/run --self-test && oracles/h2-conformance/run --subject target/release/transport-subject",
-  "must": "aegis-bin serves through aegis_transport::Server (its own h1in/h2in drivers deleted); all PASS"
+  "cmd": "oracles/proxy-e2e/run --subject target/release/monban && oracles/proxy-e2e/run --self-test && oracles/h2-conformance/run --subject target/release/transport-subject",
+  "must": "monban-bin serves through monban_transport::Server (its own h1in/h2in drivers deleted); all PASS"
  },
  "write_scope": [
-  "crates/aegis-transport/**",
-  "crates/aegis-bin/**",
+  "crates/monban-transport/**",
+  "crates/monban-bin/**",
   "subjects/transport-subject/**",
   "oracles/proxy-e2e/**"
  ],
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: async App API (Request with Canon query/headers, admission hooks, 504 deadline, drain, reload); aegis-bin serves via Server (own drivers deleted); proxy-e2e 48 + 3/3; h2-conformance 145/146 on transport-subject; aegis itself not h2spec-testable (TLS 1.3 only, no cleartext)"
+ "status": "pass: async App API (Request with Canon query/headers, admission hooks, 504 deadline, drain, reload); monban-bin serves via Server (own drivers deleted); proxy-e2e 48 + 3/3; h2-conformance 145/146 on transport-subject; monban itself not h2spec-testable (TLS 1.3 only, no cleartext)"
 }

@@ -62,7 +62,7 @@ agent never generates or holds a production key. The gates prove the pipeline lo
 | Lean for the group-selection model | laptop `~/.elan/toolchains` | leanprover/lean4 v4.35.0, the version `ci/gate.sh` pins | The model is a new module under `spec/AegisIR/`, checked by the existing proof gate (paranoid checkers, no Mathlib). No new toolchain is needed. |
 | Kani for share parsing | kamrui (ci/kani.sh) | already in use since Phase 3 | No change. |
 | second runner for the independent rebuild | GitHub: `gh api …/actions/permissions` | Actions is **disabled** and the repo is **private**. GitHub artifact attestations need a public repo or Enterprise Cloud. | See D-P5. |
-| laptop disk | `df -h /` | 17 GB free; the floor is 10 GB | Unchanged. Clear AEGIS's own target dirs before full runs. |
+| laptop disk | `df -h /` | 17 GB free; the floor is 10 GB | Unchanged. Clear Monban's own target dirs before full runs. |
 
 ## P3. Decisions
 

@@ -1,4 +1,4 @@
-// L5 artifact (AEGIS round 3, explorer 03): PQ key-agreement downgrade acceptance test for the
+// L5 artifact (Monban round 3, explorer 03): PQ key-agreement downgrade acceptance test for the
 // golden TLS listener. Drop into `crates/<tls>/tests/pq_hrr.rs`. Executed against
 // rustls =0.23.46 + aws-lc-rs =1.18.2 on 2026-10-25 (6/6 probes as expected; see run1.txt).
 //

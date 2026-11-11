@@ -1,4 +1,4 @@
-//! F2/F3: strict HTTP/1.1 request framing (aegis-transport `h1::H1Validator`, `h1::validate_head`, `FieldBlock`).
+//! F2/F3: strict HTTP/1.1 request framing (monban-transport `h1::H1Validator`, `h1::validate_head`, `FieldBlock`).
 //!
 //! Input: byte 0 picks the limits, byte 1 the chunking seed; the rest is the connection byte stream.
 //! Properties:
@@ -10,9 +10,9 @@
 //! - `validate_head` on any forwarded-and-complete head prefix is consistent with the validator (accepts it).
 #![no_main]
 
-use aegis_fuzz::selftest;
-use aegis_transport::h1::{H1Reject, H1Validator, HeadLimits, validate_head};
-use aegis_transport::{FieldBlock, cookie_crumbs};
+use monban_fuzz::selftest;
+use monban_transport::h1::{H1Reject, H1Validator, HeadLimits, validate_head};
+use monban_transport::{FieldBlock, cookie_crumbs};
 use libfuzzer_sys::fuzz_target;
 
 const LIMITS: [HeadLimits; 3] = [

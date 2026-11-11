@@ -166,8 +166,8 @@ fn opt_str(v: &Value, k: &str, ctx: &str) -> R<Option<String>> {
 fn load(path: &str) -> R<Spec> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let doc = toml::parse(&src)?;
-    if doc.get("schema").and_then(Value::str) != Some("aegis.tls.verdicts/1") {
-        return Err("schema != aegis.tls.verdicts/1".into());
+    if doc.get("schema").and_then(Value::str) != Some("monban.tls.verdicts/1") {
+        return Err("schema != monban.tls.verdicts/1".into());
     }
     let cmap = |k: &str| -> R<BTreeMap<String, u16>> {
         let t = doc.get("codepoints").and_then(|c| c.get(k)).and_then(Value::table).ok_or(format!("codepoints.{k} missing"))?;
@@ -538,7 +538,7 @@ struct Cred(Arc<CertifiedKey>);
 
 fn cred(alg: &'static rcgen::SignatureAlgorithm) -> R<Cred> {
     let kp = rcgen::KeyPair::generate_for(alg).map_err(|e| format!("rcgen keygen: {e}"))?;
-    let params = rcgen::CertificateParams::new(vec!["aegis.test".to_string()]).map_err(|e| e.to_string())?;
+    let params = rcgen::CertificateParams::new(vec!["monban.test".to_string()]).map_err(|e| e.to_string())?;
     let cert = params.self_signed(&kp).map_err(|e| format!("rcgen self_signed: {e}"))?;
     let ck = CertifiedKey::from_der(
         vec![CertificateDer::from(cert.der().to_vec())],
@@ -580,7 +580,7 @@ struct Plan<'a> {
 }
 
 /// The reference profile builder: ARCHITECTURE.md 3.2 lists written in code, independently of the verdict file,
-/// so the static profile check is a real comparison. Replaced by the aegis-tls builder via --subject.
+/// so the static profile check is a real comparison. Replaced by the monban-tls builder via --subject.
 #[derive(Clone)]
 struct Reference {
     m: Mutation,

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """tlog-verify --openssl-mldsa (unit P8-audit-001, gate tlog-mldsa-openssl, residual R10).
 
-Independent cryptographic check of the aegis audit checkpoint cosignature: the signed-note body and the ML-DSA-87
-cosignature are pulled out of a checkpoint written by aegis-bin, and OpenSSL 3.5.3 verifies them with
+Independent cryptographic check of the monban audit checkpoint cosignature: the signed-note body and the ML-DSA-87
+cosignature are pulled out of a checkpoint written by monban-bin, and OpenSSL 3.5.3 verifies them with
 `pkeyutl -verify -rawin` (pure ML-DSA-87, FIPS 204 Algorithm 3: empty context string, message-encoding 1, no
-prehash) against the ML-DSA-87 public key aegis-bin published in its `vkey` file. The Ed25519 log signature is
-verified by OpenSSL the same way. No aegis code and no aws-lc code is on the verify path.
+prehash) against the ML-DSA-87 public key monban-bin published in its `vkey` file. The Ed25519 log signature is
+verified by OpenSSL the same way. No monban code and no aws-lc code is on the verify path.
 
     openssl_mldsa.py verify   --openssl O --vkey F --checkpoint C [--checkpoint C ...]
-    openssl_mldsa.py binary   --openssl O --binary B --work D      boot aegis-bin, collect checkpoints, verify
+    openssl_mldsa.py binary   --openssl O --binary B --work D      boot monban-bin, collect checkpoints, verify
     openssl_mldsa.py selftest --openssl O --binary B --work D      controls + mutants (each must fail for its reason)
 
 Last line: TLOG-MLDSA-OPENSSL: PASS|FAIL (...) or TLOG-MLDSA-OPENSSL SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.
@@ -186,7 +186,7 @@ def check_openssl(openssl):
     return v.strip()
 
 
-# ---------------------------------------------------------------------------------------------- aegis-bin driver
+# ---------------------------------------------------------------------------------------------- monban-bin driver
 
 
 def free_port():
@@ -208,15 +208,15 @@ def healthz(port):
 
 
 def run_binary(binary, openssl, work):
-    """Boot aegis-bin, apply one config change (SIGHUP), stop it (SIGTERM). Returns (vkey text, [checkpoint bytes])
+    """Boot monban-bin, apply one config change (SIGHUP), stop it (SIGTERM). Returns (vkey text, [checkpoint bytes])
     with every distinct checkpoint observed after boot, after the reload and after exit."""
     d = tempfile.mkdtemp(prefix="bin-", dir=work)
     key, crt = os.path.join(d, "key.pem"), os.path.join(d, "cert.pem")
     subprocess.run([openssl, "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
-                    "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=aegis.test",
-                    "-addext", "subjectAltName=DNS:aegis.test"], check=True, capture_output=True, timeout=30)
+                    "-keyout", key, "-out", crt, "-days", "2", "-subj", "/CN=monban.test",
+                    "-addext", "subjectAltName=DNS:monban.test"], check=True, capture_output=True, timeout=30)
     port, aport, up = free_port(), free_port(), free_port()
-    cfgp = os.path.join(d, "aegis.json")
+    cfgp = os.path.join(d, "monban.json")
 
     def cfg(n):
         routes = [{"id": i, "path": f"/r{i}/", "to": {"upstream": f"127.0.0.1:{up}"}, "authz": "allow-all"}
@@ -226,18 +226,18 @@ def run_binary(binary, openssl, work):
                        "listeners": [{"name": "pub", "bind": f"127.0.0.1:{port}", "profile": "P-PUBLIC-WEB",
                                       "alpn": ["h2", "http/1.1"]}],
                        "admin": {"bind": f"127.0.0.1:{aport}"},
-                       "vhosts": [{"host": "aegis.test", "routes": routes}]}, f)
+                       "vhosts": [{"host": "monban.test", "routes": routes}]}, f)
 
     cfg(1)
     audit = os.path.join(d, "audit")
     env = {k: v for k, v in os.environ.items() if k not in ("NOTIFY_SOCKET", "AEGIS_UPGRADE_DIR", "LISTEN_FDS")}
-    logf = open(os.path.join(d, "aegis.log"), "wb")
+    logf = open(os.path.join(d, "monban.log"), "wb")
     proc = subprocess.Popen([binary, "--config", cfgp, "--cert", crt, "--key", key, "--audit-dir", audit],
                             stdout=logf, stderr=subprocess.STDOUT, env=env)
     seen = []
 
     def tail():
-        with open(os.path.join(d, "aegis.log"), "rb") as f:
+        with open(os.path.join(d, "monban.log"), "rb") as f:
             return f.read()[-1500:].decode(errors="replace")
 
     def logdir():
@@ -256,7 +256,7 @@ def run_binary(binary, openssl, work):
         until = time.time() + 30
         while time.time() < until:
             if proc.poll() is not None:
-                raise Fail("subject", f"aegis-bin exited {proc.returncode}: {tail()}")
+                raise Fail("subject", f"monban-bin exited {proc.returncode}: {tail()}")
             try:
                 st, body = healthz(aport)
                 if st == 200 and (gen is None or json.loads(body).get("generation", 0) >= gen):
@@ -264,7 +264,7 @@ def run_binary(binary, openssl, work):
             except (OSError, ValueError):
                 pass
             time.sleep(0.1)
-        raise Fail("subject", f"aegis-bin not healthy within 30 s: {tail()}")
+        raise Fail("subject", f"monban-bin not healthy within 30 s: {tail()}")
 
     try:
         h = wait_health()
@@ -277,7 +277,7 @@ def run_binary(binary, openssl, work):
         try:
             proc.wait(timeout=30)
         except subprocess.TimeoutExpired:
-            raise Fail("subject", "aegis-bin did not exit within 30 s of SIGTERM")
+            raise Fail("subject", "monban-bin did not exit within 30 s of SIGTERM")
         snap()
         with open(os.path.join(logdir(), "vkey")) as f:
             vk = f.read()
@@ -328,8 +328,8 @@ def note(text, lines):
 
 
 def reference(openssl, work, mopts=()):
-    """A checkpoint in aegis-bin's format, signed by OpenSSL-generated keys: (vkey text, note, ml-dsa key file)."""
-    name = "aegis.audit"
+    """A checkpoint in monban-bin's format, signed by OpenSSL-generated keys: (vkey text, note, ml-dsa key file)."""
+    name = "monban.audit"
     ekp, epk = ref_key(openssl, work, "ED25519", "ed")
     mkp, mpk = ref_key(openssl, work, "ML-DSA-87", "ml")
     text = f"{name}\n7\n{base64.b64encode(hashlib.sha256(b'ref').digest()).decode()}\n".encode()
@@ -463,45 +463,45 @@ def main(argv):
                 text = verify_checkpoint(openssl, work, keys, c)
                 sizes.append(int(text.split(b"\n")[1]))
                 log(f"  ok   checkpoint size {sizes[-1]}: ML-DSA-87 cosignature and Ed25519 signature verified")
-            print(f"{NAME}: PASS ({len(cps)} aegis-bin checkpoints (sizes {','.join(map(str, sizes))}): ML-DSA-87 "
+            print(f"{NAME}: PASS ({len(cps)} monban-bin checkpoints (sizes {','.join(map(str, sizes))}): ML-DSA-87 "
                   f"cosignature and Ed25519 log signature verified by {ver} pkeyutl -verify -rawin against the "
                   f"published vkeys)")
             return 0
         if mode == "selftest":
             fails, n = [], 0
-            # control 1: an OpenSSL-signed reference note in aegis-bin's encoding verifies
+            # control 1: an OpenSSL-signed reference note in monban-bin's encoding verifies
             rvk, rnote, rmpk = reference(openssl, work)
             n += 1
             if not expect(openssl, work, "control: OpenSSL-signed reference note", rvk, rnote, "pass", log):
                 fails.append("reference-control")
             # parameter-set mutants on the reference: a non-empty context string is a different signature input
             # (FIPS 204 M' = 0 || |ctx| || ctx || M), so verify with the empty context must refuse it.
-            cvk, cnote, _ = reference(openssl, work, mopts=("context-string:aegis",))
+            cvk, cnote, _ = reference(openssl, work, mopts=("context-string:monban",))
             n += 1
-            if not expect(openssl, work, "reference signed with context-string 'aegis'", cvk, cnote, "mldsa-verify",
+            if not expect(openssl, work, "reference signed with context-string 'monban'", cvk, cnote, "mldsa-verify",
                           log):
                 fails.append("context-string")
             for label, vk, data, want in mutants(rvk, rnote, reference(openssl, work)[2]):
                 n += 1
                 if not expect(openssl, work, f"reference/{label}", vk, data, want, log):
                     fails.append(f"reference/{label}")
-            # control 2 + mutants on a real aegis-bin log
+            # control 2 + mutants on a real monban-bin log
             bvk, cps = run_binary(args["--binary"], openssl, work)
             head = cps[-1]
             n += 1
-            if not expect(openssl, work, "control: aegis-bin head checkpoint", bvk, head, "pass", log):
-                fails.append("aegis-bin-control")
+            if not expect(openssl, work, "control: monban-bin head checkpoint", bvk, head, "pass", log):
+                fails.append("monban-bin-control")
             else:
                 for label, vk, data, want in mutants(bvk, head, rmpk):
                     n += 1
-                    if not expect(openssl, work, f"aegis-bin/{label}", vk, data, want, log):
-                        fails.append(f"aegis-bin/{label}")
+                    if not expect(openssl, work, f"monban-bin/{label}", vk, data, want, log):
+                        fails.append(f"monban-bin/{label}")
             if fails:
                 print(f"{title}: FAIL ({len(fails)}/{n} cases wrong: {', '.join(fails)})")
                 return 1
             print(f"{title}: PASS (2 controls verify; {n - 2}/{n - 2} mutants refused for their intended reason, "
                   f"incl. flipped cosignature byte and wrong public key, on an OpenSSL-signed reference and on an "
-                  f"aegis-bin log; {ver})")
+                  f"monban-bin log; {ver})")
             return 0
         print(f"usage: {sys.argv[0]} verify|binary|selftest ...", file=sys.stderr)
         return 2

@@ -20,7 +20,7 @@ units/phase-8/patches/P8-hardening-001.patch). `EGRESS_TLS_OPENSSL` overrides th
 
 Spec: PREFLIGHT R15, PLAN-8 gate row "egress-tls-e2e: an egress-subject with `tls-client` does a real TLS 1.3
 handshake to a local upstream for each client profile (PQ-first). It refuses resumption and early data, and refuses a
-wrong-name or untrusted upstream." Client profile lists: F12 (`aegis_tls::client_config`, P-PQ2, P-PQ6;
+wrong-name or untrusted upstream." Client profile lists: F12 (`monban_tls::client_config`, P-PQ2, P-PQ6;
 RUSTSEC-2026-0349 for resumption and early data off).
 
 Per client profile (P-PUBLIC-WEB, PQ-REQUIRED, P-UNIVERSAL, P-BSI-ALT, P-CNSA, FIPS-PQ-REQUIRED) the oracle starts
@@ -72,8 +72,8 @@ The unit's oracle line "subject accepting an untrusted upstream -> red" is `acce
 ## Subject contract (egress-subject `--features tls-client`)
 
 ssrf-corpus JSON-lines (subjects/egress-subject/src/main.rs) plus, on a live case: `"tls": {"profile", "ca",
-"client"}` (profile by F12 name; the subject builds `aegis_tls::client_config(profile, roots from ca)` and injects it
-with `aegis_egress::TlsClient::from_config`; one `NetConnector::with_tls` per client id for the whole run) and
+"client"}` (profile by F12 name; the subject builds `monban_tls::client_config(profile, roots from ca)` and injects it
+with `monban_egress::TlsClient::from_config`; one `NetConnector::with_tls` per client id for the whole run) and
 `"echo_body": true` (adds `"body_hex"`).
 
 ## Re-run in repo
@@ -94,7 +94,7 @@ self-contained). Nothing from `research/state/raw/` was used.
 
 - One peer stack (OpenSSL). kx-interop covers Go and BoringSSL against the server side; the egress client is judged
   against OpenSSL only.
-- Certificates are ECDSA P-384 only. The CertificateVerify algorithm set the client accepts is aegis-tls's (the default
+- Certificates are ECDSA P-384 only. The CertificateVerify algorithm set the client accepts is monban-tls's (the default
   provider's verification algorithms); an ML-DSA leaf is not tried.
 - HRR in the client direction is not exercised: each upstream supports the profile's first group, so a correct client
   never sees an HRR (E3 requires none).

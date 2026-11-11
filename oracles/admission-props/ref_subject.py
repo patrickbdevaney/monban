@@ -11,7 +11,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-_sp = importlib.util.spec_from_file_location("aegis_admission_ref", os.path.join(HERE, "admission_ref.py"))
+_sp = importlib.util.spec_from_file_location("monban_admission_ref", os.path.join(HERE, "admission_ref.py"))
 R = importlib.util.module_from_spec(_sp)
 _sp.loader.exec_module(R)
 

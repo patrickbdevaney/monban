@@ -2,13 +2,13 @@
 
 Gate `front-equiv` (gates/phase-7.toml, desktop, `remote = true`). Clauses: F1 **FRONT-1** ("responses and rejects
 are a function of the request bytes, never of the front"), PREFLIGHT **D-P7.3** (opt-in front, fails closed, not in
-the hardened unit without a drop-in). Implementer: P7-uring-001 (crates/aegis-uring), wired by P7-bin-001.
+the hardened unit without a drop-in). Implementer: P7-uring-001 (crates/monban-uring), wired by P7-bin-001.
 
 ```
-oracles/front-equiv/run --binary target/release/aegis     # gate: aegis-bin built with --features uring
+oracles/front-equiv/run --binary target/release/monban     # gate: monban-bin built with --features uring
 oracles/front-equiv/run --binary-from-build               # builds that into target/front-equiv via ci/heavy.sh first
 oracles/front-equiv/run --self-test                        # reference front must PASS, every mutant must FAIL
-                       [--unit deploy/aegis-hardened.service] [--dropin deploy/uring.conf] [-v]
+                       [--unit deploy/monban-hardened.service] [--dropin deploy/uring.conf] [-v]
 ```
 
 Run it on the desktop: `ci/remote.sh oracles/front-equiv/run ...` (needs kernel.io_uring_disabled=0, which the run
@@ -20,13 +20,13 @@ a FAIL, never a skip.
 
 ## The interface the implementer must provide (exact)
 
-The serve command line stays `aegis --config <path> [--cert] [--key] [--audit-dir] ...` (there is no `serve`
+The serve command line stays `monban --config <path> [--cert] [--key] [--audit-dir] ...` (there is no `serve`
 subcommand) and gains:
 
 | input | meaning | required behaviour |
 |---|---|---|
 | `--front epoll` | every HTTP listener uses today's tokio/epoll accept + I/O | identical to no flag |
-| `--front uring` | every HTTP listener's accept and connection I/O go through io_uring (crates/aegis-uring) | see below |
+| `--front uring` | every HTTP listener's accept and connection I/O go through io_uring (crates/monban-uring) | see below |
 | `--front <anything else>` | usage error | exit **64** (EX_USAGE) before anything is bound |
 | F8 `listeners[].front = "epoll" \| "uring"` | per-listener selection (P7-spec-001 F8 `listener.front`) | absent = epoll |
 | F8 `front` with any other value | config error | exit **78** before anything is bound (CFG-1) |
@@ -98,7 +98,7 @@ nothing bound in either case.
 **[fallback]** Fails closed, as in item 3 above (noring_exec.py installs the filter and then exec()s the subject, so
 the pid is unchanged).
 
-**[unit]** The checks run on `deploy/aegis-hardened.service` alone and with `deploy/uring.conf` (unitcheck.py):
+**[unit]** The checks run on `deploy/monban-hardened.service` alone and with `deploy/uring.conf` (unitcheck.py):
 
 | check | pass |
 |---|---|
@@ -112,12 +112,12 @@ the pid is unchanged).
 
 ## Self-test (negative controls)
 
-The subject is `aegis-front-ref` → `front_ref.py`. It implements the interface above around today's default aegis
-(`target/release/aegis`, built through ci/heavy.sh if missing):
+The subject is `monban-front-ref` → `front_ref.py`. It implements the interface above around today's default monban
+(`target/release/monban`, built through ci/heavy.sh if missing):
 
-- With `--front epoll` it exec()s aegis.
+- With `--front epoll` it exec()s monban.
 - With `--front uring` it probes io_uring_setup (and refuses if that fails), owns a real ring (one IORING_OP_NOP per
-  accepted connection), terminates TLS itself with blocking sockets + poll(2), and relays plaintext to an aegis child.
+  accepted connection), terminates TLS itself with blocking sockets + poll(2), and relays plaintext to an monban child.
 
 The unit fixture is the real hardened unit plus the deny line it needs (`unitcheck.fixture_good`). The baseline must
 PASS. Then every mutant must FAIL:
@@ -141,25 +141,25 @@ Measured by `ci/remote.sh oracles/front-equiv/run --self-test` on 2026-11-06. Th
 
 ## Red before P7-uring-001 (2026-11-06)
 
-`run --binary target/release/aegis` (the default build at 00ca246): `FRONT-EQUIV: FAIL`.
+`run --binary target/release/monban` (the default build at 00ca246): `FRONT-EQUIV: FAIL`.
 
 - `--front` is an unknown argument (exit 64), and `listeners[].front` is an unknown F8 field (exit 78).
 - The hardened unit admits io_uring today: `SystemCallFilter=@system-service` includes `@aio`, which contains
   io_uring_setup, _enter and _register, and the `~` line does not remove them. The runtime probe confirms
   io_uring_setup succeeds under the unit's filter.
-- That needs `SystemCallFilter=~io_uring_setup io_uring_enter io_uring_register` in deploy/aegis-hardened.service.
+- That needs `SystemCallFilter=~io_uring_setup io_uring_enter io_uring_register` in deploy/monban-hardened.service.
   That file is outside this unit's write scope, and no Phase-7 unit owns it. It is an integrator edit, and the gate
   stays red until it lands.
 
-## Observed epoll behaviour worth knowing (aegis at 00ca246)
+## Observed epoll behaviour worth knowing (monban at 00ca246)
 
 - A bad chunk-size line or a bare LF in a chunk line gets **two** `400` responses on one connection: first one with
   a `date` field, then one without, then the connection closes. The second response comes from the strict
   framing filter's reject after hyper's own 400. It is deterministic: 45 of 45 tries across one-write, split and
   reference-front deliveries. The oracle compares it as-is, so a uring front must reproduce it byte for byte. It
-  is also a strict-H1 wart worth fixing in aegis-transport (one request, one response). That fix is outside every
+  is also a strict-H1 wart worth fixing in monban-transport (one request, one response). That fix is outside every
   Phase-7 unit's scope.
-- Admission (per-IP GCRA 1000/s, burst 2000, crates/aegis-bin/src/shared.rs) returns 4xx under the transport-limits
+- Admission (per-IP GCRA 1000/s, burst 2000, crates/monban-bin/src/shared.rs) returns 4xx under the transport-limits
   style 3000-request runs. The load phases are therefore sized ≤ 1200 requests, with a 2.5 s refill pause before
   each, so that no reject depends on timing.
 

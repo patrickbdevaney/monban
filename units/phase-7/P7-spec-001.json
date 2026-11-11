@@ -12,13 +12,13 @@
   "PREFLIGHT D-P7.1, D-P7.6"
  ],
  "oracles": [
-  "no-quic self-test: fixture lock with quinn-proto 0.11.19 -> red; fixture tree with h3 under aegis-bin --all-features -> red",
+  "no-quic self-test: fixture lock with quinn-proto 0.11.19 -> red; fixture tree with h3 under monban-bin --all-features -> red",
   "h3-precondition --offline-selftest: recorded fixture with all PRs merged+released and last HIGH > 6 months -> MET; current fixture -> NOT MET; a fixture HIGH at day 179 -> NOT MET",
   "no-otel self-test: fixture tree with prost -> red"
  ],
  "acceptance": {
   "cmd": "python3 -I ci/no-quic.py && python3 -I ci/no-quic.py --self-test && python3 -I ci/no-quic.py --self-test-otel && python3 -I ci/h3-precondition.py --offline-selftest && python3 -I ci/interfaces.py check && python3 -I ci/statements.py check spec",
-  "must": "PASS; F8 additive fields (proxy_protocol, l4, front, tls.credentials, adapter families mariadb/crdb) with absent = today's behaviour; F1 addendum PROXY-1..3, L4-1..2, SEL-1..3, FRONT-1; both re-frozen in the same commit; aegis-config parses the new F8 fields (config-totality still PASS)"
+  "must": "PASS; F8 additive fields (proxy_protocol, l4, front, tls.credentials, adapter families mariadb/crdb) with absent = today's behaviour; F1 addendum PROXY-1..3, L4-1..2, SEL-1..3, FRONT-1; both re-frozen in the same commit; monban-config parses the new F8 fields (config-totality still PASS)"
  },
  "write_scope": [
   "spec/**",
@@ -27,8 +27,8 @@
   "ci/h3-precondition.py",
   "ci/fixtures/no-quic/**",
   "ci/fixtures/h3-precondition/**",
-  "crates/aegis-config/**",
-  "crates/aegis-types/**"
+  "crates/monban-config/**",
+  "crates/monban-types/**"
  ],
  "notes": "h3-precondition.py live mode: GitHub REST (pulls/366,377,378 state + merged_at; latest h3 release date on crates.io) and OSV querybatch for quinn, quinn-proto, quinn-udp; User-Agent aegis-ci; never a gate (network). Offline mode runs only on ci/fixtures/h3-precondition/*.json, including the 2026-11-06 snapshot from PREFLIGHT P1."
 }

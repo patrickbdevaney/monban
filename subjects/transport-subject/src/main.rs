@@ -1,16 +1,16 @@
-//! transport-subject: aegis-transport behind an aegis-tls PublicWeb listener, for oracles/transport-stall and h2spec.
+//! transport-subject: monban-transport behind an monban-tls PublicWeb listener, for oracles/transport-stall and h2spec.
 //!
 //!   transport-subject [subject] [--port N] [--plain] [--no-wrapper] [--body-mib N] [--stat-ms N]
 //!
 //! Prints `PID <pid>` and `READY <port> <tls|plain> wrapper=<on|off>` on stdout, then a `STAT <t_ms> k=v ...` line
 //! of the transport counters on stderr every `--stat-ms` (default 500). Routes (any vhost below):
-//! `/` 200 `aegis ok\n` (at least 5 bytes, so h2spec 6.9.2/2 runs instead of skipping); `/big` 200 with
+//! `/` 200 `monban ok\n` (at least 5 bytes, so h2spec 6.9.2/2 runs instead of skipping); `/big` 200 with
 //! `--body-mib` MiB (default 64) generated chunk by chunk; `/echo` 200 with the request body length.
-//! Vhosts: `aegis.test`, `localhost`, `127.0.0.1`, each also with `:<port>`.
+//! Vhosts: `monban.test`, `localhost`, `127.0.0.1`, each also with `:<port>`.
 //!
-//! Limits are `aegis_config::Limits::default()` (F8 golden) mapped by name onto `WrapperLimits`.
-//! `--no-wrapper` is the oracle negative control (feature `negative-control`): the AEGIS wrapper layer is off.
-//! The certificate is a self-signed ECDSA-P256 credential generated at start-up (SAN aegis.test, localhost).
+//! Limits are `monban_config::Limits::default()` (F8 golden) mapped by name onto `WrapperLimits`.
+//! `--no-wrapper` is the oracle negative control (feature `negative-control`): the Monban wrapper layer is off.
+//! The certificate is a self-signed ECDSA-P256 credential generated at start-up (SAN monban.test, localhost).
 #![forbid(unsafe_code)]
 
 use std::io::Write;
@@ -18,15 +18,15 @@ use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use aegis_canon::Canon;
-use aegis_canon::kind::{Authority, RoutePath};
-use aegis_tls::{Profile, server_config};
-use aegis_transport::exchange::{ExchangeBudget, FrontEnd, Head, HeadVerdict, MessageVerdict, Method, Mode};
-use aegis_transport::{App, Reply, ReplyBody, Server, TlsAcceptor, VhostTable, WrapperLimits};
-use aegis_types::RouteId;
 use aws_lc_rs::encoding::AsDer;
 use aws_lc_rs::rand::SystemRandom;
 use aws_lc_rs::signature::{self, EcdsaKeyPair, KeyPair};
+use monban_canon::Canon;
+use monban_canon::kind::{Authority, RoutePath};
+use monban_tls::{Profile, server_config};
+use monban_transport::exchange::{ExchangeBudget, FrontEnd, Head, HeadVerdict, MessageVerdict, Method, Mode};
+use monban_transport::{App, Reply, ReplyBody, Server, TlsAcceptor, VhostTable, WrapperLimits};
+use monban_types::RouteId;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::sign::{CertifiedKey, SingleCertAndKey};
 
@@ -60,9 +60,9 @@ fn credential() -> R<Arc<SingleCertAndKey>> {
     let kp = EcdsaKeyPair::generate(&signature::ECDSA_P256_SHA256_ASN1_SIGNING).map_err(|e| format!("ecdsa: {e}"))?;
     let spki = kp.public_key().as_der().map_err(|e| format!("spki: {e}"))?;
     let alg = seq(&[&tlv(0x06, OID_ECDSA_SHA256)]);
-    let name = seq(&[&tlv(0x31, &seq(&[&tlv(0x06, OID_CN), &tlv(0x0c, b"aegis.test")]))]);
+    let name = seq(&[&tlv(0x31, &seq(&[&tlv(0x06, OID_CN), &tlv(0x0c, b"monban.test")]))]);
     let validity = seq(&[&tlv(0x17, b"260101000000Z"), &tlv(0x18, b"20991231235959Z")]);
-    let san = seq(&[&tlv(0x82, b"aegis.test"), &tlv(0x82, b"localhost")]);
+    let san = seq(&[&tlv(0x82, b"monban.test"), &tlv(0x82, b"localhost")]);
     let exts = tlv(0xa3, &seq(&[&seq(&[&tlv(0x06, OID_SAN), &tlv(0x04, &san)])]));
     let tbs =
         seq(&[&tlv(0xa0, &tlv(0x02, &[2])), &tlv(0x02, &[1]), &alg, &name, &validity, &name, spki.as_ref(), &exts]);
@@ -114,7 +114,7 @@ impl App for Subject {
         match head.route.get() {
             2 => Reply::new(200, "application/octet-stream", ReplyBody::Fill { len: self.big, byte: 0xA5 }),
             3 => Reply::new(200, "text/plain", ReplyBody::Owned(message.len().to_string().into_bytes())),
-            _ => Reply::new(200, "text/plain", ReplyBody::Static(b"aegis ok\n")),
+            _ => Reply::new(200, "text/plain", ReplyBody::Static(b"monban ok\n")),
         }
     }
 }
@@ -149,9 +149,9 @@ fn opts() -> R<Opts> {
 }
 
 fn limits() -> R<WrapperLimits> {
-    let f8 = aegis_config::Limits::default();
+    let f8 = monban_config::Limits::default();
     let mut l = WrapperLimits::GOLDEN;
-    for (&(name, ..), v) in aegis_config::Limits::BOUNDS.iter().zip(f8.values()) {
+    for (&(name, ..), v) in monban_config::Limits::BOUNDS.iter().zip(f8.values()) {
         l.set_f8(name, v).map_err(|e| format!("limits.{name}: {e}"))?;
     }
     Ok(l)
@@ -163,7 +163,7 @@ async fn run(o: Opts) -> R<()> {
     let mut vhosts = VhostTable::new();
     // `127.0.0.1` is the address the listener is bound to: clients that address it directly (h2spec via
     // oracles/h2-conformance) must reach the routes, not a 421 that would end every stream before its request does.
-    for h in ["aegis.test", "localhost", "127.0.0.1"] {
+    for h in ["monban.test", "localhost", "127.0.0.1"] {
         vhosts.add(h.as_bytes(), &[]);
         vhosts.add(format!("{h}:{port}").as_bytes(), &[]);
     }

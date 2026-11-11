@@ -1,4 +1,4 @@
-{"id":"P2-upgrade-002","crates":["aegis-ops"],
+{"id":"P2-upgrade-002","crates":["monban-ops"],
  "spec_refs":["F11 (SCM_RIGHTS transport)","F1#UP-2","units/BACKLOG.md Upgrade"],
  "acceptance":{"cmd":"ci/heavy.sh oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 --listeners 4 && oracles/upgrade-harness/run --self-test","must":"PASS with 4 listeners handed over via SCM_RIGHTS; no unsafe in first-party code"},
- "write_scope":["crates/aegis-ops/**","subjects/upgrade-subject/**","oracles/upgrade-harness/**"],"infeasible_exit":true,"max_retries":30,"passes":false}
+ "write_scope":["crates/monban-ops/**","subjects/upgrade-subject/**","oracles/upgrade-harness/**"],"infeasible_exit":true,"max_retries":30,"passes":false}

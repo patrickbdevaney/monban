@@ -1,4 +1,4 @@
-module aegis.local/tlog-verify
+module monban.local/tlog-verify
 
 go 1.26.0
 

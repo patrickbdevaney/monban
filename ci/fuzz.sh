@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS fuzz gate (unit P3-fuzz-001): libFuzzer targets in fuzz/ (a separate cargo workspace).
+# Monban fuzz gate (unit P3-fuzz-001): libFuzzer targets in fuzz/ (a separate cargo workspace).
 #
 #   ci/fuzz.sh setup                     install the pinned nightly + cargo-fuzz (ci/tools.lock "#fuzz:" rows)
 #   ci/fuzz.sh seed                      regenerate the seed inputs in fuzz/corpus/ from the crates' own encoders

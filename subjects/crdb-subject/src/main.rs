@@ -1,11 +1,11 @@
-//! crdb-subject: drives `aegis-adapter-pg` with the CockroachDB dialect (feature `crdb`) for oracles/lowering-read,
+//! crdb-subject: drives `monban-adapter-pg` with the CockroachDB dialect (feature `crdb`) for oracles/lowering-read,
 //! lowering-write and schema-gate (`--engine crdb`), over JSON lines on stdin/stdout.
 //!
 //! * `crdb-subject lowering [--mutant drop-tenant]`: protocol v2, `"dialect":"crdb"`, rendered by
-//!   `aegis_adapter_pg::lower::render_dialect(.., Dialect::Crdb)` (see `lowering.rs`).
+//!   `monban_adapter_pg::lower::render_dialect(.., Dialect::Crdb)` (see `lowering.rs`).
 //! * `crdb-subject schema`: schema-gate protocol v1, mode `crdb` through live introspection
-//!   (`aegis_adapter_pg::check_live_schema_dialect(.., Dialect::Crdb)`, version-gated connect
-//!   `aegis_adapter_pg::crdb::connect_admitted`; see `gate.rs`), plus `static`.
+//!   (`monban_adapter_pg::check_live_schema_dialect(.., Dialect::Crdb)`, version-gated connect
+//!   `monban_adapter_pg::crdb::connect_admitted`; see `gate.rs`), plus `static`.
 //!
 //! Unknown modes exit 2 with a usage line; nothing is ever guessed as an accept.
 #![forbid(unsafe_code)]

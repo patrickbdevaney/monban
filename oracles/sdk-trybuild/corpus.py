@@ -14,9 +14,9 @@ Research provenance: research/state/raw/round-004/05-work/mutants.py (shape b2nd
 # ---------------------------------------------------------------------------------------------------------------------
 # B2 baseline: the research notes app on F7. Request input is modelled as plain data on the handler value (`Raw`):
 # F7 gives a handler only `Ctx` and a db view; the bearer token never reaches the app.
-B2_BASE = r'''use aegis_data_ir::{Op, OpKind, Pred, Value};
-use aegis_sdk::*;
-use aegis_types::{Principal, Subject};
+B2_BASE = r'''use monban_data_ir::{Op, OpKind, Pred, Value};
+use monban_sdk::*;
+use monban_types::{Principal, Subject};
 
 pub const SELECT: u8 = op_code(OpKind::Select);
 pub const INSERT: u8 = op_code(OpKind::Insert);
@@ -164,12 +164,12 @@ b2("M6", "write in read-only (GET) handler",
    "runtime: F7 has no static read/write handler split; Ctx::grant::<INSERT> is checked against the route endowment "
    "at run time and fails closed", [])
 b2("M7", "forge principal from request header",
-   [(CREATE_OWNER, "(OWNER, owner(&Principal { tenant: aegis_types::TenantId::new(self.raw.header_tenant.unwrap_or(1))"
+   [(CREATE_OWNER, "(OWNER, owner(&Principal { tenant: monban_types::TenantId::new(self.raw.header_tenant.unwrap_or(1))"
      ".map_err(|_| SdkError::Denied)?, subject: Subject::Public })), (BODY")],
    "type: Principal fields are private (F2)", ["E0451"])
 b2("M8", "tenant from request path (IDOR)",
    [(LIST_RUN, "        let mut q = op(&ctx, OpKind::Select, filter, Vec::new());\n"
-     "        q.tenant = aegis_types::TenantId::new(self.raw.path_tenant).map_err(|_| SdkError::Denied)?;\n"
+     "        q.tenant = monban_types::TenantId::new(self.raw.path_tenant).map_err(|_| SdkError::Denied)?;\n"
      "        let _rows = db.run(&mut tx, &read, q)?;\n")],
    "runtime: Op::tenant is a public field, but the SDK host overwrites it with the principal's tenant", [])
 b2("M9", "SQL string concatenation of user input",
@@ -267,11 +267,11 @@ b2("N15", "Tx moved into a spawned thread (commit after the response)",
    "type: Tx<'r, Open> and &D are request-scoped and not Send", LIFETIME + NOT_THREAD)
 
 B2_PROBES = {
-    "H1": dict(cls="host seam: app drives aegis_sdk::host itself (compiles with feature host; only layering catches it)",
-               edits=[(LIST_ITEM, "pub fn sneak<B: aegis_sdk::host::Backend, S: aegis_sdk::host::Session>("
-                       "req: &aegis_sdk::host::Request<'_, B, S>) {\n"
-                       "    let _ = aegis_sdk::host::drive(&ListNotes { raw: Raw::default() }, req);\n}\n" + LIST_ITEM)],
-               why="lint: in-oracle owner scan (cargo xtask layering equivalent: only aegis-adapter-host names host)",
+    "H1": dict(cls="host seam: app drives monban_sdk::host itself (compiles with feature host; only layering catches it)",
+               edits=[(LIST_ITEM, "pub fn sneak<B: monban_sdk::host::Backend, S: monban_sdk::host::Session>("
+                       "req: &monban_sdk::host::Request<'_, B, S>) {\n"
+                       "    let _ = monban_sdk::host::drive(&ListNotes { raw: Raw::default() }, req);\n}\n" + LIST_ITEM)],
+               why="lint: in-oracle owner scan (cargo xtask layering equivalent: only monban-adapter-host names host)",
                must=["owner:host"]),
     "M4s": dict(cls="markup returned as a String Response (M4 written without the research Resp::html)",
                 edits=[(LIST_END, '        Ok(format!("<li>{}</li>", self.raw.param))\n')],
@@ -282,9 +282,9 @@ B2_PROBES = {
 # ---------------------------------------------------------------------------------------------------------------------
 # F7b (q4-001 design D2) on the real SDK. tokio::spawn -> std::thread::spawn, tokio mpsc -> std mpsc,
 # ctx.detach -> db.detach (JobQueue is TenantDb's supertrait), f7x::Db -> TenantDb, string WS messages -> WsMsg.
-F7B_PRE = r'''use aegis_data_ir::{Op, OpKind, Pred, Value};
-use aegis_sdk::*;
-use aegis_types::{Principal, TenantId};
+F7B_PRE = r'''use monban_data_ir::{Op, OpKind, Pred, Value};
+use monban_sdk::*;
+use monban_types::{Principal, TenantId};
 use core::marker::PhantomData;
 
 pub const SELECT: u8 = op_code(OpKind::Select);

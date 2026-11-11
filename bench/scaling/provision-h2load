@@ -12,7 +12,7 @@ BUILD=kamrui TO=desktop
 while [ $# -gt 0 ]; do case "$1" in
   --build-host) BUILD="$2"; shift 2;; --to) TO="$2"; shift 2;;
   *) echo "usage: provision-h2load [--build-host H] [--to H]"; exit 2;; esac; done
-IMG=aegis-h2load:1.69.0 V=h2load-1.69.0
+IMG=monban-h2load:1.69.0 V=h2load-1.69.0
 ssh -o BatchMode=yes "$BUILD" "docker image inspect $IMG >/dev/null 2>&1 || docker build -q -t $IMG -" \
   < "$ROOT/oracles/transport-limits/Dockerfile" >/dev/null
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT

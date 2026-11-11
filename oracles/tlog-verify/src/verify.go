@@ -1,8 +1,8 @@
-// Independent verifier for a C2SP tlog-tiles audit log written by aegis-audit.
+// Independent verifier for a C2SP tlog-tiles audit log written by monban-audit.
 //
 // Uses golang.org/x/mod/sumdb/note (signed-note open/verify) and golang.org/x/mod/sumdb/tlog (RFC 6962 tile
 // authentication, tree hashes, record and tree proofs). Checkpoint text, tile paths, entry bundles and the F9 leaf
-// schema are parsed here from the specs, not from aegis code.
+// schema are parsed here from the specs, not from monban code.
 package main
 
 import (
@@ -30,7 +30,7 @@ import (
 
 const tileH = 8
 
-// mldsaSigType is aegis' signed-note type for ML-DSA-87 cosignatures: 0xff followed by a longer identifier
+// mldsaSigType is monban' signed-note type for ML-DSA-87 cosignatures: 0xff followed by a longer identifier
 // (c2sp.org/signed-note@v1.1.0 "Signature types").
 var mldsaSigType = append([]byte{0xff}, []byte("aegis-mldsa87-note-v1")...)
 
@@ -77,7 +77,7 @@ func loadTrust(files []string) (*trust, error) {
 		if err != nil {
 			return nil, fail("keys", "%v", err)
 		}
-		// A key file holds one vkey per line: audit-subject writes `vkey` and `vkey.mldsa87` separately, aegis-bin
+		// A key file holds one vkey per line: audit-subject writes `vkey` and `vkey.mldsa87` separately, monban-bin
 		// writes both into `vkey` (Ed25519 first). Every non-empty line must be a valid key; one bad line fails all.
 		lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 		if len(lines) == 1 && strings.TrimSpace(lines[0]) == "" {
@@ -98,7 +98,7 @@ func loadTrust(files []string) (*trust, error) {
 	return t, nil
 }
 
-// add parses one vkey line: an x/mod Ed25519 verifier key, or aegis' ML-DSA-87 cosigner key.
+// add parses one vkey line: an x/mod Ed25519 verifier key, or monban' ML-DSA-87 cosigner key.
 func (t *trust) add(vk string) error {
 	if v, err := note.NewVerifier(vk); err == nil {
 		t.ed = append(t.ed, v)

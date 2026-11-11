@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS state-props (oracle for INV-IDEMP, NC2 commit-point latch, NC6 outbox; plus NC1 for the idempotency row and
+"""Monban state-props (oracle for INV-IDEMP, NC2 commit-point latch, NC6 outbox; plus NC1 for the idempotency row and
 INV-DURABLE across SIGKILL). Run as `python3 -I stateprops.py`, normally via ./run.
 
 The oracle drives a subject store over a line protocol (README "Subject protocol"), one process per store life:

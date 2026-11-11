@@ -91,12 +91,12 @@ def make_creds(openssl, w):
                     "-keyout", f"{w}/ca.key", "-out", f"{w}/ca.pem", "-days", "2", "-subj", "/CN=lcx test CA",
                     "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign"], **q)
     with open(f"{w}/ext", "w") as f:
-        f.write("subjectAltName=DNS:aegis.test\nbasicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\n")
+        f.write("subjectAltName=DNS:monban.test\nbasicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\n")
     for name, algo in (("ecdsa", ["-algorithm", "EC", "-pkeyopt", "ec_paramgen_curve:P-256"]),
                        ("ed25519", ["-algorithm", "ED25519"])):
         subprocess.run([openssl, "genpkey", *algo, "-out", f"{w}/{name}.key"], **q)
         subprocess.run([openssl, "req", "-new", "-key", f"{w}/{name}.key", "-out", f"{w}/{name}.csr",
-                        "-subj", "/CN=aegis.test"], **q)
+                        "-subj", "/CN=monban.test"], **q)
         subprocess.run([openssl, "x509", "-req", "-in", f"{w}/{name}.csr", "-CA", f"{w}/ca.pem", "-CAkey",
                         f"{w}/ca.key", "-out", f"{w}/{name}.leaf.pem", "-days", "2", "-extfile", f"{w}/ext"], **q)
         with open(f"{w}/{name}.chain.pem", "w") as out:
@@ -120,7 +120,7 @@ def run_cell(a, cell):
     if peer == "openssl":
         cli = Proc([a.openssl, "s_client", "-connect", f"127.0.0.1:{port}", "-tls1_3", "-groups", gname,
                     "-ciphersuites", sname, "-CAfile", f"{w}/ca.pem", "-verify_return_error", "-verify_hostname",
-                    "aegis.test", "-servername", "aegis.test", "-nocommands"])
+                    "monban.test", "-servername", "monban.test", "-nocommands"])
         if cli.wait_for(r"^(New, TLSv1\.3, Cipher is|CIPHER is) ", TIMEOUT):
             cli.p.stdin.write((nonce + "\n").encode())
             cli.p.stdin.flush()

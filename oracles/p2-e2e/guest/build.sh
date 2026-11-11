@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the p2-e2e guests (wasm32-unknown-unknown, no dependencies). Must be called under ci/heavy.sh.
 # Usage: build.sh <target-dir>
-#   <target-dir>/plain/wasm32-unknown-unknown/release/p2e2e_guest.wasm   F14 `aegis` imports only
+#   <target-dir>/plain/wasm32-unknown-unknown/release/p2e2e_guest.wasm   F14 `monban` imports only
 #   <target-dir>/fault/wasm32-unknown-unknown/release/p2e2e_guest.wasm   + env.host_fault (test-hooks workers only)
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)

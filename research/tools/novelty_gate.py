@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic dedup / novelty gate for the AEGIS research track (directive §0d).
+"""Deterministic dedup / novelty gate for the Monban research track (directive §0d).
 
 No LLM judgment: canonical-URL set membership plus token-set Jaccard over queries, node titles and target briefs.
 Ground truth is every earlier round's raw output (state/raw/round-NNN/*.json, _queries.log) plus the integrator's

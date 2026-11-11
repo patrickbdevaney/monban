@@ -1,4 +1,4 @@
-"""AEGIS oracle cred-select (P7-oracle-sel-001): the MTC CredentialSelector decision table, F1 SEL-1..3 (D-P7.4).
+"""Monban oracle cred-select (P7-oracle-sel-001): the MTC CredentialSelector decision table, F1 SEL-1..3 (D-P7.4).
 
 Stdlib only; run as `python3 -I oracle.py` (via ./run). README.md has the subject protocol, the decision table, the
 generator, every check and the self-test mutants.
@@ -207,7 +207,7 @@ def directed():
     api_set = [mk("api-x509", "api", "x509", 0x0403), mk("api-mldsa", "api", "mldsa", 0x0904),
                mk("api-mtc", "api", "mtc", 0x0403, tid), mk("pub-x509", "pub", "x509", 0x0503)]
     sig = [0x0403, 0x0503, 0x0904, 0x0906]
-    H = lambda **k: ch.record(ch.build(sni="aegis.test", groups=GROUPS, **k))  # noqa: E731
+    H = lambda **k: ch.record(ch.build(sni="monban.test", groups=GROUPS, **k))  # noqa: E731
     cases = [
         ("sel1.match", "P-PUBLIC-WEB", "pub", pub_set, H(sigalgs=sig, trust_anchors=[tid]), "pub-mtc"),
         ("sel1.no-extension", "P-PUBLIC-WEB", "pub", pub_set, H(sigalgs=sig), "pub-x509"),

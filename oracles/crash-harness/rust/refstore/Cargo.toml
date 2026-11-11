@@ -1,5 +1,5 @@
 [package]
-name = "aegis-crash-refstore"
+name = "monban-crash-refstore"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true

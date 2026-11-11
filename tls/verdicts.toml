@@ -1,4 +1,4 @@
-# AEGIS frozen interface F12: TLS handshake verdicts + per-profile key-exchange / signature lists.
+# Monban frozen interface F12: TLS handshake verdicts + per-profile key-exchange / signature lists.
 #
 # Spec: spec/SPEC_INVARIANTS.md section F (P-PQ1..P-PQ6, Select(model)); ARCHITECTURE.md section 3.2.
 # Checked by: oracles/hrr-verdicts  (`oracles/hrr-verdicts/run --file tls/verdicts.toml` -> HRR-VERDICTS: PASS iff diff == 0).
@@ -10,7 +10,7 @@
 # Amendment 2026-11-04 (Phase 6, unit P6-spec-001, PLAN-6 "Interfaces" F12; re-frozen in the same commit):
 #   - P-UNIVERSAL, P-BSI-ALT and P-CNSA: status pending -> active; new frozen verdicts UNI-T1..T5, BSI-T1..T4,
 #     CNSA-T1..T4. PUB-T1..T6 and FIPS-F1..F6 are byte-identical.
-#   - P-PUBLIC-WEB: 0x11ED (SECP384R1MLKEM1024) goes from kx_groups_target to kx_groups (aegis-tls::kx, Phase 6).
+#   - P-PUBLIC-WEB: 0x11ED (SECP384R1MLKEM1024) goes from kx_groups_target to kx_groups (monban-tls::kx, Phase 6).
 #   - New row vocabulary (offer_versions, profile sigalg_cover) and the Select model's admission steps, defined
 #     below under "Row vocabulary added 2026-11-04". The oracle (P6-oracle-hrr-001) implements them.
 #   - UNI-T5 and CNSA-T3 freeze alert 49, not the 40 in the PLAN-6 draft: see "Admission order" below.
@@ -78,14 +78,14 @@
 #
 # Admission order (why 70 and 49, read from rustls 0.23.46 src/server/hs.rs, ExpectClientHello::with_certified_key):
 #   the supported_versions check runs first and sends ProtocolVersion (70) when the client offers no enabled
-#   version; the certificate resolver runs next, before choose_suite_and_kx_group; aegis-tls wraps every
+#   version; the certificate resolver runs next, before choose_suite_and_kx_group; monban-tls wraps every
 #   resolver in ProfileCertResolver, which returns None when no offered scheme is both allowed by the profile and
 #   signable by the key, and rustls then sends AccessDenied (49) "no server certificate chain resolved". The group
 #   check (NoKxGroupsInCommon -> 40) and HRR come after. A handshake_failure (40) for "no common signature scheme"
 #   exists in rustls only in tls13 emit_certificate_verify, after the ServerHello has been sent, so it can never be
 #   the first server record: freezing 40 for UNI-T5 / CNSA-T3 would freeze an unreachable verdict.
 
-schema = "aegis.tls.verdicts/1"
+schema = "monban.tls.verdicts/1"
 interface = "F12"
 frozen = "2026-10-25"
 
@@ -109,11 +109,11 @@ mldsa65 = 0x0905
 mldsa87 = 0x0906
 
 # Fields of the hand-built ClientHello that the verdicts do not vary (same shape as the research probes:
-# legacy_version 0x0303, supported_versions [TLS 1.3], one suite, null compression, SNI aegis.test).
+# legacy_version 0x0303, supported_versions [TLS 1.3], one suite, null compression, SNI monban.test).
 [client_hello]
 versions = ["TLS13"]
 cipher_suites = [0x1301]
-sni = "aegis.test"
+sni = "monban.test"
 
 # --------------------------------------------------------------------------------------------- profiles
 # selector: "client-order" = rustls 0.23.x (server picks the first client-listed group it supports; HRR iff no
@@ -130,7 +130,7 @@ status = "active"
 listener = "public browser listener"
 selector = "client-order"
 kx_groups = ["X25519MLKEM768", "SECP384R1MLKEM1024", "SECP256R1MLKEM768", "X25519", "SECP256R1"]
-kx_note = "2026-11-04: kx_groups_target became kx_groups. SECP384R1MLKEM1024 (0x11ED) is not in rustls (PR #3293 closed unmerged); it is aegis-tls::kx::SecP384r1MlKem1024 (Phase 6: kx-kat, kx-interop, kani-kx)."
+kx_note = "2026-11-04: kx_groups_target became kx_groups. SECP384R1MLKEM1024 (0x11ED) is not in rustls (PR #3293 closed unmerged); it is monban-tls::kx::SecP384r1MlKem1024 (Phase 6: kx-kat, kx-interop, kani-kx)."
 sigalgs = ["ecdsa_secp256r1_sha256"]
 credential = "ECDSA-P256 (public WebPKI; CA/B SC-106 withdrawn)"
 versions = ["TLS13"]
@@ -179,7 +179,7 @@ sigalg_cover = "all-or-none"
 credential = "ML-DSA-87 or ECDSA-P384 (either is in profile; sigalg_cover makes the verdicts independent of which one the subject serves)"
 versions = ["TLS13"]
 early_data = false
-kx_note = "0x11ED is AEGIS-owned (aegis-tls::kx, P-384 share first then ML-KEM-1024); activated 2026-11-04 with UNI-T1..T5. FIPS is not claimed for this profile until the 3.1.0 boundary check (ARCHITECTURE 3.2) passes."
+kx_note = "0x11ED is Monban-owned (monban-tls::kx, P-384 share first then ML-KEM-1024); activated 2026-11-04 with UNI-T1..T5. FIPS is not claimed for this profile until the 3.1.0 boundary check (ARCHITECTURE 3.2) passes."
 
 [profiles.P-BSI-ALT]
 status = "active"
@@ -371,7 +371,7 @@ witnesses = ["P-PQ2", "Select", "P-PQ5"]
 note = "Both hybrid shares offered: the FIPS listener takes 0x11EB even though the client listed 0x11EC first."
 
 # Phase 6 government profiles (2026-11-04, P6-spec-001; spec-authored from PLAN-6 F12 and rustls 0.23.46 server/hs.rs,
-# not from research probes). requires = "floor": 0x11ED is aegis-tls code and MLKEM1024 / ML-DSA-87 are in the floor lock.
+# not from research probes). requires = "floor": 0x11ED is monban-tls code and MLKEM1024 / ML-DSA-87 are in the floor lock.
 
 [[verdict]]
 id = "UNI-T1"

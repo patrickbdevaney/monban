@@ -1,20 +1,20 @@
-# P8-audit-001 patch for aegis-bin (single writer P8-bin-001; outside this unit's write_scope oracles/tlog-verify/**)
+# P8-audit-001 patch for monban-bin (single writer P8-bin-001; outside this unit's write_scope oracles/tlog-verify/**)
 #
 # Rationale: gate tlog-mldsa-openssl verifies with OpenSSL 3.5.3 the ML-DSA-87 checkpoint cosignatures in
-# aegis-bin's audit log. But aegis-bin's Auditor::open passes an empty cosigner list to aegis_audit::Log::new, so its
+# monban-bin's audit log. But monban-bin's Auditor::open passes an empty cosigner list to monban_audit::Log::new, so its
 # checkpoints carry only the Ed25519 log signature and there is nothing to verify. /healthz says so
 # ("cosign":"none"), while COMPLIANCE_MAP AU-9(3) claims "+ ML-DSA-87 cosign on the floor build". This patch adds a
-# fresh per-process MlDsa87NoteSigner cosigner whenever aegis_audit::MLDSA87_COSIGN is true (the floor build). Its
+# fresh per-process MlDsa87NoteSigner cosigner whenever monban_audit::MLDSA87_COSIGN is true (the floor build). Its
 # vkey is written to <audit-dir>/<ms>-<pid>/vkey as the second line, after the Ed25519 key. /healthz then reports
 # "cosign":"mldsa87" on the floor build and "none" on cmvp. cmvp behaviour is unchanged (PLAN-6 D15: ML-DSA-87 is
 # compiled out there, and the cosigner is not constructed). No oracle or Rust test matches "cosign":"none", but the
 # integrator should re-run front-equiv, proxy-e2e and native-e2e. Each checkpoint gets 4627 more bytes, and boot does
 # one ML-DSA-87 keygen. With the patch applied, the acceptance passed on kamrui on 2026-11-06 (tails in the unit
 # report). Apply it with: git apply units/phase-8/patches/P8-audit-001.patch
-diff --git a/crates/aegis-bin/src/admin.rs b/crates/aegis-bin/src/admin.rs
+diff --git a/crates/monban-bin/src/admin.rs b/crates/monban-bin/src/admin.rs
 index 6b31b19..8bb16cd 100644
---- a/crates/aegis-bin/src/admin.rs
-+++ b/crates/aegis-bin/src/admin.rs
+--- a/crates/monban-bin/src/admin.rs
++++ b/crates/monban-bin/src/admin.rs
 @@ -60,8 +60,9 @@ pub fn metrics_text(shared: &Shared) -> Result<String, String> {
  }
  
@@ -24,10 +24,10 @@ index 6b31b19..8bb16cd 100644
 +/// `fips.cosign` is the audit checkpoint cosignature algorithm: `"mldsa87"` on the floor build (every checkpoint carries
 +/// an ML-DSA-87 cosignature), `"none"` on the cmvp build, where ML-DSA-87 is compiled out
 +/// (`fips.cosign_mldsa87 = "compiled-out"`, PLAN-6 D15).
- fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
+ fn healthz(shared: &Shared, fips: &monban_tls::FipsStatus) -> String {
      let snap = shared.snapshot();
      // The module string comes from the C library; emit it only if it is plain printable ASCII without JSON
-@@ -72,7 +73,7 @@ fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
+@@ -72,7 +73,7 @@ fn healthz(shared: &Shared, fips: &monban_tls::FipsStatus) -> String {
          Some(_) => "\"unreadable\"".to_string(),
      };
      format!(
@@ -35,22 +35,22 @@ index 6b31b19..8bb16cd 100644
 +        "{{\"status\":\"{}\",\"generation\":{},\"config_hash\":\"{}\",\"fips\":{{\"config_fips\":{},\"module_fips_mode\":{},\"module\":{},\"cmvp_claim\":{},\"cosign\":\"{}\",\"cosign_mldsa87\":\"{}\"}}}}\n",
          if shared.is_draining() { "draining" } else { "ok" },
          snap.generation,
-         aegis_config::hex(&snap.hash),
-@@ -80,6 +81,7 @@ fn healthz(shared: &Shared, fips: &aegis_tls::FipsStatus) -> String {
+         monban_config::hex(&snap.hash),
+@@ -80,6 +81,7 @@ fn healthz(shared: &Shared, fips: &monban_tls::FipsStatus) -> String {
          fips.module_fips_mode,
          module,
          fips.cmvp_claim,
-+        if aegis_audit::MLDSA87_COSIGN { "mldsa87" } else { "none" },
-         if aegis_audit::MLDSA87_COSIGN { "available" } else { "compiled-out" },
++        if monban_audit::MLDSA87_COSIGN { "mldsa87" } else { "none" },
+         if monban_audit::MLDSA87_COSIGN { "available" } else { "compiled-out" },
      )
  }
-diff --git a/crates/aegis-bin/src/audit.rs b/crates/aegis-bin/src/audit.rs
+diff --git a/crates/monban-bin/src/audit.rs b/crates/monban-bin/src/audit.rs
 index 3e5d7e3..5f32160 100644
---- a/crates/aegis-bin/src/audit.rs
-+++ b/crates/aegis-bin/src/audit.rs
+--- a/crates/monban-bin/src/audit.rs
++++ b/crates/monban-bin/src/audit.rs
 @@ -15,7 +15,7 @@ use std::sync::Mutex;
  
- use aegis_audit::{
+ use monban_audit::{
      Action, Actor, AuditEvent, AuditSink, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass, FailurePolicy,
 -    FipsStatus, Log, LogConfig, Outcome, SinkError, TilePath, Untrusted,
 +    FipsStatus, Log, LogConfig, MLDSA87_COSIGN, MlDsa87NoteSigner, NoteSigner, Outcome, SinkError, TilePath, Untrusted,

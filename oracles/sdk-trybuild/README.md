@@ -1,6 +1,6 @@
-# sdk-trybuild: compile-fail corpus against the real aegis-sdk (gate sdk-trybuild)
+# sdk-trybuild: compile-fail corpus against the real monban-sdk (gate sdk-trybuild)
 
-Unit P4-oracle-trybuild-001 (spec author). This gate checks the B2 handler SDK (`sdk/aegis-sdk`, frozen F7 + F7b,
+Unit P4-oracle-trybuild-001 (spec author). This gate checks the B2 handler SDK (`sdk/monban-sdk`, frozen F7 + F7b,
 re-frozen by P4-spec-002 with `Ctx::grant`, the `host` feature and `TenantDb: JobQueue`). It checks that the
 capability discipline holds at compile time. Covers INV-NO-AMBIENT, INV-NOMUT-C and ARCHITECTURE §3.12
 ("B2 25/32 ... residual {M15, M16} after the lint tier"), under decision D5 of `units/phase-4/PLAN.md`.
@@ -15,25 +15,25 @@ through ci/remote.sh.
 
 ## What runs
 
-1. `cargo build -p aegis-sdk --features host --locked` (main workspace and lock, `--offline` first). The corpus is
+1. `cargo build -p monban-sdk --features host --locked` (main workspace and lock, `--offline` first). The corpus is
    compiled against the `host` build. That is the worst case: an out-of-tree app could enable the feature too.
-2. `cargo test --doc -p aegis-sdk --locked`, in its own target dir: P4-spec-002's privacy compile_fail checks are doc
+2. `cargo test --doc -p monban-sdk --locked`, in its own target dir: P4-spec-002's privacy compile_fail checks are doc
    tests, and the `tests` gate (`--all-targets`) skips doc tests. Then the same compile_fail blocks are replicated
    with rustc, so the self-test can apply them to mutated SDK copies. The replication must agree on the real SDK
    (7/7).
-3. Every case (`corpus.py`) is compiled by the pinned rustc (metadata only), with externs `aegis_sdk`,
-   `aegis_types`, `aegis_data_ir` and `aegis_authz`. A real app may depend on aegis-sdk alone (`cargo xtask
+3. Every case (`corpus.py`) is compiled by the pinned rustc (metadata only), with externs `monban_sdk`,
+   `monban_types`, `monban_data_ir` and `monban_authz`. A real app may depend on monban-sdk alone (`cargo xtask
    layering`), so the corpus is more permissive than a real app, and every catch here is conservative.
    - If rustc accepts a case, clippy-driver runs next with the workspace lints (`forbid(unsafe_code)`, the deny
      list) and the ban list in `clippy.toml`.
-   - If clippy accepts it too, an owner scan flags any naming of `aegis_sdk::host`. That is the in-oracle
+   - If clippy accepts it too, an owner scan flags any naming of `monban_sdk::host`. That is the in-oracle
      equivalent of `cargo xtask layering`, which only scans workspace crates.
 4. Compiled B2 cases and the baseline go into one harness binary. It drives the handlers through the SDK's own
-   host loop (`aegis_sdk::host::drive`) over a recording backend, and checks what reaches the backend: the
+   host loop (`monban_sdk::host::drive`) over a recording backend, and checks what reaches the backend: the
    tenant, writes under a read endowment, the owner conjunct on delete, the archived filter on list, a forged
    owner on insert, and a transaction left open.
-   - The harness needs `Principal` minting, which only the authn path has. So aegis-types (feature
-     `authn-path`), aegis-data-ir and aegis-sdk are recompiled by rustc against the cargo-built third-party rlibs.
+   - The harness needs `Principal` minting, which only the authn path has. So monban-types (feature
+     `authn-path`), monban-data-ir and monban-sdk are recompiled by rustc against the cargo-built third-party rlibs.
      One cargo target dir cannot hold both feature sets, because cargo reuses the artifact file names.
 5. Verdict against `expected.txt` (frozen) and `snapshots.txt`. Categories:
    - **caught**: rustc or the lint tier rejects the case.
@@ -83,7 +83,7 @@ Per id (stage and codes in `snapshots.txt`):
 | N14 | `transmute::<&D, &'static D>` then spawn | type E0277: rejected before the `forbid(unsafe_code)` tier is reached |
 | E1–E17, E12b (F7b) | q4-001 D2 mutants, `tokio::spawn` → `std::thread::spawn`, `ctx.detach` → `db.detach` | type: E0521 / LT / E0277 / E0599 (no Clone) / E0308 / E0382 / E0451 |
 | E18 (F7b) | `transmute` `Granted<'r>` → `'static` (Granted is Send) | lint only: unsafe_code + disallowed_methods |
-| H1 (probe) | app calls `aegis_sdk::host::drive` | compiles; caught only by the owner scan |
+| H1 (probe) | app calls `monban_sdk::host::drive` | compiles; caught only by the owner scan |
 | M4s (probe) | markup returned as a `String` Response | **compiles** (frozen as residual): escaping is a host obligation |
 
 ### Decision D5 bookkeeping
@@ -119,14 +119,14 @@ Per id (stage and codes in `snapshots.txt`):
 - **The ban list is enforced here, not on `apps/*`.** No `clippy.toml` or app-scoped lint config exists in the
   workspace. M3, M12 and N9 are caught only because this oracle applies `clippy.toml`. The integrator should apply
   the same list to `apps/*`; that is outside this unit's write scope.
-- **F7 apps cannot construct an `Op`.** Layering allows app → aegis-sdk only, and aegis-sdk does not re-export
-  `aegis_data_ir::{Op, OpKind, Pred, Value}` (the P4-spec-002 doc test uses aegis_data_ir directly). The corpus
-  gets aegis_data_ir and aegis_types as externs. Re-exporting or adding Op builders is an SDK (spec-author) change.
+- **F7 apps cannot construct an `Op`.** Layering allows app → monban-sdk only, and monban-sdk does not re-export
+  `monban_data_ir::{Op, OpKind, Pred, Value}` (the P4-spec-002 doc test uses monban_data_ir directly). The corpus
+  gets monban_data_ir and monban_types as externs. Re-exporting or adding Op builders is an SDK (spec-author) change.
 - F7 gives a handler no request input. The corpus models parsed input as data on the handler value (`Raw`), with
   no token field.
 - Absence catches prove that the surface is missing, not that the property holds. In particular, M4's XSS
   obligation moves to the host's Response serialization, and the M4s probe shows a markup String compiles. This
   belongs to P4-host-001 / native-e2e.
-- The neutralized verdicts rest on the SDK's own host loop over a recording backend, not on aegis-adapter-host.
+- The neutralized verdicts rest on the SDK's own host loop over a recording backend, not on monban-adapter-host.
 - The mutants are self-built, as in the research and the spike. The counts are not a general rejection rate.
 - Only one rustc (1.99.1). A toolchain bump needs `--bless` and a review of the snapshot diff.

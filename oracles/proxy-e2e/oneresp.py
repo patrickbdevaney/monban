@@ -1,10 +1,10 @@
 """One request, one response on malformed chunked framing (PREFLIGHT R6; unit P8-oracle-001). Stdlib only.
 
-Shared by oracles/proxy-e2e (gate reverse-proxy-e2e, the default aegis build) and oracles/bin-residuals (gate
-bin-residuals, aegis built with --features mtc,l4).
+Shared by oracles/proxy-e2e (gate reverse-proxy-e2e, the default monban build) and oracles/bin-residuals (gate
+bin-residuals, monban built with --features mtc,l4).
 
 Finding being closed (units/phase-7/reports/P7-oracle-uring-001.md finding 2): one bad chunk-size line, or a bare LF
-in a chunk line, makes aegis send two 400 responses on one connection (hyper's, with a `date` field, then the strict
+in a chunk line, makes monban send two 400 responses on one connection (hyper's, with a `date` field, then the strict
 filter's, without one) before it closes. RFC 9112 section 7.1 makes the chunk-size line `chunk-size [ chunk-ext ]
 CRLF` with `chunk-size = 1*HEXDIG`; a recipient that cannot parse the framing cannot find the end of the message and
 must close after its response (RFC 9112 section 9.6 / 11.2). One request produces exactly one response (RFC 9110

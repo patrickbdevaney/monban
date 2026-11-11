@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS Lean axiom allowlist gate (core-Lean only; no `import Lean` needed, so it runs on an Init-only toolchain).
+"""Monban Lean axiom allowlist gate (core-Lean only; no `import Lean` needed, so it runs on an Init-only toolchain).
 Usage: python3 -I ci/axiom_audit.py <project_dir>
  1. forbids source tokens that bypass or extend the kernel's trust (sorry/admit/native_decide/ofReduceBool/...);
  2. emits `#print axioms` for EVERY theorem/lemma declared in the library roots and checks each against the

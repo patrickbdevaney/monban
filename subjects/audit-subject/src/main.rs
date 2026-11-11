@@ -1,4 +1,4 @@
-//! audit-subject: drives `aegis_audit::Log` with a file-backed `AuditSink` and writes a C2SP tlog-tiles
+//! audit-subject: drives `monban_audit::Log` with a file-backed `AuditSink` and writes a C2SP tlog-tiles
 //! directory for `oracles/tlog-verify`.
 //!
 //! Usage: `audit-subject --out DIR [--n N] [--checkpoints S1,S2,...] [--origin O] [--key-seed HEX32]
@@ -17,11 +17,11 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use aegis_audit::{
+use monban_audit::{
     Action, Actor, Appended, AuditEvent, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass, FailurePolicy,
     FipsStatus, Log, LogConfig, MlDsa87NoteSigner, NoteSigner, Outcome, Untrusted,
 };
-use aegis_types::TenantId;
+use monban_types::TenantId;
 
 struct Args {
     out: PathBuf,
@@ -52,7 +52,7 @@ fn parse_args() -> Result<Args, String> {
         out: PathBuf::new(),
         n: 70_000,
         checkpoints: vec![1, 300, 33_333, 65_536],
-        origin: "aegis.example/audit-subject".into(),
+        origin: "monban.example/audit-subject".into(),
         key_seed: None,
         pq_seed: None,
         pq: true,
@@ -92,7 +92,7 @@ fn parse_args() -> Result<Args, String> {
 
 /// Deterministic but varied events, including hostile `object` / detail strings and every actor kind.
 fn event(i: u64, variant: u64) -> Result<AuditEvent, String> {
-    let e = |x: aegis_audit::EventError| x.to_string();
+    let e = |x: monban_audit::EventError| x.to_string();
     let admin = i % 1999 == 5;
     let actor = match i % 4 {
         0 => Actor::public(),

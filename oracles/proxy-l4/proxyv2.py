@@ -1,7 +1,7 @@
 """PROXY protocol v2: encoder and reference parser (oracle proxy-l4; stdlib only).
 
 Written from haproxy.org/download/3.2/doc/proxy-protocol.txt section 2.2 (sha256 in README.md). The parser is the
-reference model for the AEGIS receiver rules in README.md ("PROXY v2 acceptance rules"), which add the PLAN-7 limits
+reference model for the Monban receiver rules in README.md ("PROXY v2 acceptance rules"), which add the PLAN-7 limits
 (v1 refused, declared length <= 536) and fail-closed choices where the spec leaves the receiver free.
 
 parse(buf) -> dict on success, raises Incomplete (need more bytes) or Reject(cls). `mutant` selects a deliberately

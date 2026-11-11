@@ -2,7 +2,7 @@
 # locally (oracles/*/needs).
 # Phase 3 go/no-go: agent gateway "G" (IMPLEMENTATION_PLAN §3 Phase 3). Run: python3 -I ci/run-gates.py --phase 3
 # Carries every Phase-2 gate (reverse proxy must not regress) and adds the Phase-3 criteria:
-#   43-case MCP corpus + 33 advisory cases, 0 handler invocations on rejects ... gate mcp-gateway (real aegis binary)
+#   43-case MCP corpus + 33 advisory cases, 0 handler invocations on rejects ... gate mcp-gateway (real monban binary)
 #   Lean Combine/Token gate ......................................................... gate proof (spec/AegisIR/{Combine,Token}.lean)
 #   DRT Lean vs Rust verifier, 1e6 cases, 0 divergence .............................. oracles-local: token-drt (needs lean)
 #   host-mapping DST (timeout/crash/panic/garbage -> Error -> Deny) .................. oracles-remote: pdp-dst
@@ -11,7 +11,7 @@
 #   dudect on MAC compare, no leak ................................................... oracles-remote: ct-dudect (unit P3-dudect-001)
 #   Cedar `#print axioms` recorded ................................................... spikes/cedar-axioms (axiom sets grade A;
 #                                                                                       theorems cited at B until a paranoid re-check)
-#   Shipped graph: aegis-bin links no Cedar crate ..................................... gate no-cedar-in-bin
+#   Shipped graph: monban-bin links no Cedar crate ..................................... gate no-cedar-in-bin
 phase = 3
 go_no_go = "all gates pass && all self-tests pass"
 
@@ -84,13 +84,13 @@ remote = true
 
 [[gate]]
 name = "fail-closed-boot"
-cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+cmd = "ci/heavy.sh cargo build --locked -q -p monban-bin && { target/debug/monban; test $? -eq 78; }"
 remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp -p ct-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
-selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p monban-bin -p audit-subject -p upgrade-subject -p egress-subject -p monban-pdp -p ct-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true
 
@@ -155,7 +155,7 @@ remote = true
 
 [[gate]]
 name = "config-totality"
-cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p monban-config"
 remote = true
 
 [[gate]]
@@ -166,7 +166,7 @@ remote = true
 
 [[gate]]
 name = "systemd-hardening"
-cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+cmd = "s=$(systemd-analyze security --offline=yes deploy/monban-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
 
 [[gate]]
 name = "kani-tbi"
@@ -183,23 +183,23 @@ heavy = true
 # OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/monban"
 selftest = "oracles/proxy-e2e/run --self-test"
 remote = true
 
 
 [[gate]]
 name = "mcp-gateway"
-# Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
+# Launches target/release/monban with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
 # full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin -p aegis-pdp && ci/mcp-gate.sh run --flood-n 20000"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin -p monban-pdp && ci/mcp-gate.sh run --flood-n 20000"
 selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
 remote = true
 
 [[gate]]
 name = "no-cedar-in-bin"
-cmd = "! cargo tree --locked -e normal,build -p aegis-bin --prefix none | grep -q '^cedar-policy'"
-selftest = "cargo tree --locked -e normal,build -p aegis-pdp --prefix none | grep -q '^cedar-policy'"
+cmd = "! cargo tree --locked -e normal,build -p monban-bin --prefix none | grep -q '^cedar-policy'"
+selftest = "cargo tree --locked -e normal,build -p monban-pdp --prefix none | grep -q '^cedar-policy'"
 
 [[gate]]
 name = "fuzz"

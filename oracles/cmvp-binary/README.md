@@ -1,6 +1,6 @@
 # cmvp-binary: the fips-binary and cmvp-client-policy gates
 
-This oracle judges the cmvp build of aegis: `target/cmvp/release/aegis`, built by `profiles/cmvp/build.sh` inside
+This oracle judges the cmvp build of monban: `target/cmvp/release/monban`, built by `profiles/cmvp/build.sh` inside
 the AL2023 image on kamrui. It has two entry points, both used by `gates/phase-6.toml`.
 
 | entry point | gate | spec |
@@ -12,7 +12,7 @@ Each entry point also has `--self-test`, which is heavy. It builds `fixtures/` t
 `target/cmvp-binary-fixtures/`. Run it on kamrui:
 `ci/remote.sh --host kamrui oracles/cmvp-binary/run --self-test` (and the same for `client-policy --self-test`).
 
-**State.** There is no real cmvp aegis binary until P6-cmvp-001: `build.sh --check` fails on the 3 ML-DSA sites.
+**State.** There is no real cmvp monban binary until P6-cmvp-001: `build.sh --check` fails on the 3 ML-DSA sites.
 Until then both gates are red on the real build, and the self-tests run on synthetic fixtures.
 
 ## `run` (fips-binary)
@@ -41,7 +41,7 @@ Without `--expect`, the binary is judged as cmvp. Checks F1, F2 and F4 read the 
 
 ### The `--fips-check` contract (for P6-cmvp-001)
 
-The oracle runs `aegis --fips-check` with:
+The oracle runs `monban --fips-check` with:
 - an empty environment;
 - cwd `/`;
 - stdin `/dev/null`;
@@ -60,7 +60,7 @@ The fields:
   This is `FipsStatus.module` (D2).
 - `fips_mode`: `aws_lc_rs::try_fips_mode().is_ok()`.
 - `config_fips`: `ServerConfig::fips()` of the config the boot path would build for the default cmvp profile, with
-  no config file needed. aegis-tls `fips_status(&cfg).config_fips`.
+  no config file needed. monban-tls `fips_status(&cfg).config_fips`.
 
 `--fips-check` must not bind sockets, read a config, or need certificates.
 
@@ -70,13 +70,13 @@ This is a port of `spikes/cmvp-client-policy/fips_client_policy.py`. With `--mod
 line is exactly `CLIENT-POLICY: PASS (compiled-out)` or `CLIENT-POLICY: PASS (pq-only)`. The ledger entries for 0349
 and 0382 cite the compiled-out line as their `evidence_must`.
 
-**Real run.** The gate passes `--binary target/cmvp/release/aegis` and nothing else. The oracle then:
+**Real run.** The gate passes `--binary target/cmvp/release/monban` and nothing else. The oracle then:
 - re-prepares `target/cmvp-src` with `build.sh --metadata`;
-- judges `-p aegis-bin --features aegis-bin/cmvp`;
+- judges `-p monban-bin --features monban-bin/cmvp`;
 - relinks inside the AL2023 image, with the same mounts, environment and cargo flags (`--locked --release
   --no-default-features`, `DOCKER_CARGO_FLAGS`) as `build.sh --check`. Keep the two in sync; the client-policy
   self-test checks the flags against build.sh's `flags=(...)` line. Without `--no-default-features` cargo passes
-  `--cfg feature="default"` to aegis-bin, its `-C metadata` (symbol hashes) changes, and R0 is ERROR
+  `--cfg feature="default"` to monban-bin, its `-C metadata` (symbol hashes) changes, and R0 is ERROR
   (P6-oracle-fips-002, measured with `cargo build -v` vs `cargo rustc -v`).
 
 **How the spike's strip=symbols problem is solved.** The shipped binary has no symbols. So the oracle relinks only
@@ -101,7 +101,7 @@ the packages that `cargo tree` reports.
 | id | mode | check |
 |---|---|---|
 | M0 | both | rustls is in the graph, else ERROR |
-| M1 | A | No first-party package has `tls-client` (aegis-tls, aegis-egress) or `acme` (aegis-ops) on. |
+| M1 | A | No first-party package has `tls-client` (monban-tls, monban-egress) or `acme` (monban-ops) on. |
 | B0 | both | Positive control: the twin has `rustls::server` symbols and the map has `6rustls6server` refs. A blind view (stripped and no map, or the wrong artifact) is ERROR. |
 | B1 | A | 0 `rustls::client::` symbols in the twin (or in the unstripped `--binary`). A compiled-out PASS needs a symbol view. |
 | B2 | A | 0 `6rustls6client` refs in the shipped-config map. A compiled-out PASS needs the map. |
@@ -172,8 +172,8 @@ Every case names the check id that must produce its verdict.
   - verifier only in the binary (C2);
   - verifier only in the source (C2).
 - **Real cmvp overlay graph (light):**
-  - the M1 baseline (`aegis-bin/cmvp`, no client feature);
-  - three feature mutants (`aegis-tls/tls-client`, `aegis-egress/tls-client`, `aegis-ops/acme`), each caught;
+  - the M1 baseline (`monban-bin/cmvp`, no client feature);
+  - three feature mutants (`monban-tls/tls-client`, `monban-egress/tls-client`, `monban-ops/acme`), each caught;
   - the D13 source baseline over every package in the real cmvp graph: no verifier construction.
 
 ## Results
@@ -191,7 +191,7 @@ are red until P6-cmvp-001.
   - they miss construction done through macros;
   - they flag cfg'd-out code. That is conservative.
 - **The probe server is well-behaved**, not an active attacker (spike limit).
-- **pq-only on the real binary** needs a clippy log and probe JSON that aegis does not produce today. The cmvp gate
+- **pq-only on the real binary** needs a clippy log and probe JSON that monban does not produce today. The cmvp gate
   runs compiled-out.
 - **The `/healthz` `module` field (D2) is not checked here.** It needs a booted server; conformance and the cmvp
   ClientHello gate boot one.

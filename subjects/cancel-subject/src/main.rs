@@ -1,4 +1,4 @@
-//! cancel-subject: `aegis-adapter-pg`'s pool and NC3 release path under a synchronous DST host shell, over the
+//! cancel-subject: `monban-adapter-pg`'s pool and NC3 release path under a synchronous DST host shell, over the
 //! `oracles/cancel-sweep` subject event protocol (README "Subject event protocol" and "Synchronous host").
 //!
 //! ```text
@@ -6,7 +6,7 @@
 //! oracles/cancel-sweep/run --self-test --subject target/release/cancel-subject     (appends --mutate <name>)
 //! ```
 //!
-//! Code under test: `aegis_adapter_pg::pool` (key, bound, epoch retirement, leases) and `aegis_adapter_pg::checkin`
+//! Code under test: `monban_adapter_pg::pool` (key, bound, epoch retirement, leases) and `monban_adapter_pg::checkin`
 //! (checkin predicate on the client's `ProtoState`, quarantine, recovery within the op budget without a
 //! CancelRequest, discard with a CancelRequest, NC4 charges, C8 reset on recycle). Harness code: the DST shell
 //! (`host.rs`: handler on a worker thread, cancellation points at host-call boundaries, commit-point latch, limiter,
@@ -24,10 +24,10 @@ use std::collections::BTreeMap;
 use std::io::{BufRead, Read, Write};
 use std::process::ExitCode;
 
-use aegis_adapter_pg::TenantId;
 use fake::{World, s};
 use host::{Abort, Host, Mode, Muts, Req, Step};
 use json::{Json, emit};
+use monban_adapter_pg::TenantId;
 
 const MAX_LINE: u64 = 1 << 20;
 const MODES: [&str; 5] = ["drop", "rst", "timeout", "stage_timeout", "crash"];
@@ -196,7 +196,7 @@ fn main() -> ExitCode {
             Some("hello") => {
                 let mut m = BTreeMap::new();
                 m.insert("ev".to_owned(), s("hello"));
-                m.insert("impl".to_owned(), s("aegis-adapter-pg pool + NC3 release (cancel-subject, sync DST host)"));
+                m.insert("impl".to_owned(), s("monban-adapter-pg pool + NC3 release (cancel-subject, sync DST host)"));
                 m.insert("host".to_owned(), s("sync"));
                 m.insert("modes".to_owned(), Json::Arr(MODES.iter().map(|x| s(x)).collect()));
                 m.insert("mutations".to_owned(), Json::Arr(names.iter().map(|x| s(x)).collect()));

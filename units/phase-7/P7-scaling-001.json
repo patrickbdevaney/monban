@@ -13,8 +13,8 @@
   "self-test: a fake h2load reporting 1 error at 8 cores -> red; a missing core point -> red; a report file not written -> red"
  ],
  "acceptance": {
-  "cmd": "ci/remote.sh bench/scaling/run --cores 1,2 --record /tmp/aegis-scaling-smoke && ci/remote.sh bench/scaling/run --self-test",
-  "must": "PASS; harness pins aegis (default build, reverse-proxy mode, static upstream) and h2load to disjoint cpusets with taskset; per point: req/s, p50/p99, errors, cpu count from aegis's own cpus.rs; writes bench/scaling/out/<host>-<date>.json; --gcp <machine-type> path documented and refuses to start when CPUS_ALL_REGIONS < cores (operator quota step), never retries in a loop"
+  "cmd": "ci/remote.sh bench/scaling/run --cores 1,2 --record /tmp/monban-scaling-smoke && ci/remote.sh bench/scaling/run --self-test",
+  "must": "PASS; harness pins monban (default build, reverse-proxy mode, static upstream) and h2load to disjoint cpusets with taskset; per point: req/s, p50/p99, errors, cpu count from monban's own cpus.rs; writes bench/scaling/out/<host>-<date>.json; --gcp <machine-type> path documented and refuses to start when CPUS_ALL_REGIONS < cores (operator quota step), never retries in a loop"
  },
  "write_scope": [
   "bench/scaling/**"

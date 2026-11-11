@@ -1,5 +1,5 @@
 //! admission-subject: speaks the admission-props event protocol (oracles/admission-props/README.md) on
-//! stdin/stdout, driving the production `aegis-admission` pipeline.
+//! stdin/stdout, driving the production `monban-admission` pipeline.
 //!
 //! Input: JSON lines (`config` resets state; `arrive` yields exactly one decision line; `done`/`close` yield none).
 //! A malformed `arrive` whose id can still be read, or an `arrive` before any `config`, is rejected fail-closed
@@ -11,9 +11,9 @@ mod json;
 use std::io::{BufRead, BufWriter, Write};
 use std::process::ExitCode;
 
-use aegis_admission::{Admission, Arrive, Close, Config, Credential, Done, Lane, RejectStatus, Stage, Verdict};
-use aegis_budget::Gcra;
 use json::Json;
+use monban_admission::{Admission, Arrive, Close, Config, Credential, Done, Lane, RejectStatus, Stage, Verdict};
+use monban_budget::Gcra;
 
 fn req_u64(j: &Json, k: &str) -> Result<u64, String> {
     j.get(k).and_then(Json::u64).ok_or_else(|| format!("missing/invalid u64 field {k:?}"))

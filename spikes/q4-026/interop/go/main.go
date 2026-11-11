@@ -23,8 +23,8 @@ var groups = []tls.CurveID{tls.SecP384r1MLKEM1024}
 
 func cert() tls.Certificate {
 	k, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	t := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "aegis.test"},
-		DNSNames: []string{"aegis.test"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour)}
+	t := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "monban.test"},
+		DNSNames: []string{"monban.test"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(24 * time.Hour)}
 	der, _ := x509.CreateCertificate(rand.Reader, t, t, &k.PublicKey, k)
 	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: k}
 }
@@ -56,7 +56,7 @@ func main() {
 			tc.Close()
 		}
 	case "client":
-		cfg := &tls.Config{MinVersion: tls.VersionTLS13, CurvePreferences: groups, InsecureSkipVerify: true, ServerName: "aegis.test"}
+		cfg := &tls.Config{MinVersion: tls.VersionTLS13, CurvePreferences: groups, InsecureSkipVerify: true, ServerName: "monban.test"}
 		c, err := tls.Dial("tcp", os.Args[2], cfg)
 		if err != nil {
 			fmt.Println("client handshake error:", err)

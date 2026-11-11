@@ -1,7 +1,7 @@
 //! Harness pgwire fake (trusted test code, not the unit under test) and the event sink.
 //!
 //! The server side executes a frontend message group on arrival and queues its backend messages (real
-//! `aegis_adapter_pg::wire::Backend` values); the client side is the adapter's own protocol mirror (`ProtoState`,
+//! `monban_adapter_pg::wire::Backend` values); the client side is the adapter's own protocol mirror (`ProtoState`,
 //! driven through the `checkin::sim` seam), so the NC3 predicate, drain and recovery run on the production code.
 //! Semantics follow PostgreSQL where the cancel-sweep model needs them: txn status I/T/E, autocommit outside a
 //! transaction, named statements until Close / DISCARD ALL, named portals until the end of the (implicit or explicit)
@@ -17,9 +17,9 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::rc::Rc;
 
-use aegis_adapter_pg::checkin::sim::SimProto;
-use aegis_adapter_pg::wire::{self, Backend, DbError, Event, Expect, ProtoState, TxnStatus, Unrecoverable};
-use aegis_adapter_pg::{PgSession, Pooled};
+use monban_adapter_pg::checkin::sim::SimProto;
+use monban_adapter_pg::wire::{self, Backend, DbError, Event, Expect, ProtoState, TxnStatus, Unrecoverable};
+use monban_adapter_pg::{PgSession, Pooled};
 
 use crate::json::{Json, emit};
 

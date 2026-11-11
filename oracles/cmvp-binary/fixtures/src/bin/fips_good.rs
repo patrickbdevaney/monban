@@ -1,4 +1,4 @@
-//! Positive stand-in for the cmvp aegis: the module string is a contiguous literal; --fips-check per the contract.
+//! Positive stand-in for the cmvp monban: the module string is a contiguous literal; --fips-check per the contract.
 include!("../fipsstub.rs");
 static MODULE: &[u8] = b"AWS-LC FIPS 3.1.0";
 fn main() {

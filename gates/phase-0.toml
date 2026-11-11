@@ -69,7 +69,7 @@ heavy = true
 
 [[gate]]
 name = "fail-closed-boot"
-cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+cmd = "ci/heavy.sh cargo build --locked -q -p monban-bin && { target/debug/monban; test $? -eq 78; }"
 
 [[gate]]
 name = "oracles"

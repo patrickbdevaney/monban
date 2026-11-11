@@ -1,20 +1,20 @@
 [package]
 name = "sqlite-subject"
-description = "Oracle subject: aegis-adapter-sqlite (renderer and live schema check) over the lowering-read/-write and schema-gate JSON-lines protocols. Never linked into aegis."
+description = "Oracle subject: monban-adapter-sqlite (renderer and live schema check) over the lowering-read/-write and schema-gate JSON-lines protocols. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # No third-party dependencies: JSON via the strict parser in src/json.rs; SQLite comes through the adapter.
 [dependencies]
-aegis-adapter-sqlite = { workspace = true }
-aegis-data-ir = { workspace = true }
-aegis-types = { workspace = true }
+monban-adapter-sqlite = { workspace = true }
+monban-data-ir = { workspace = true }
+monban-types = { workspace = true }
 
 [lints]
 workspace = true

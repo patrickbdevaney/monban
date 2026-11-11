@@ -17,7 +17,7 @@ for b in base metrics metrics+logs metrics+logs+otlp metrics+logs+otlp-grpc; do
   for _ in $(seq 50); do grep -q ready "$here/results/stderr-$b.log" 2>/dev/null && break; sleep 0.1; done
   sleep 2; r0=$(rss $pid); thr0=$(ls /proc/$pid/task | wc -l)
   for i in $(seq 100); do curl -sk --http1.1 "https://localhost:$port/" -o /dev/null; curl -sk --http2 "https://localhost:$port/" -o /dev/null; done
-  m=""; [ "${b#*metrics}" != "$b" ] && m=$(curl -s http://127.0.0.1:9100/metrics | grep -c '^aegis_' || true)
+  m=""; [ "${b#*metrics}" != "$b" ] && m=$(curl -s http://127.0.0.1:9100/metrics | grep -c '^monban_' || true)
   sleep 3; r1=$(rss $pid); thr1=$(ls /proc/$pid/task | wc -l)
   kill $pid; wait $pid 2>/dev/null || true
   echo "{\"variant\":\"$b\",\"stripped_bytes\":$size,\"idle_rss_kb_start\":$r0,\"idle_rss_kb_after_200req\":$r1,\"threads_start\":$thr0,\"threads_after\":$thr1,\"openmetrics_series\":\"$m\"}"

@@ -2,7 +2,7 @@
  "id": "P4-datair-001",
  "role": "implementer",
  "crates": [
-  "aegis-data-ir",
+  "monban-data-ir",
   "xtask (allowlist subcommand body)"
  ],
  "depends_on": [
@@ -31,11 +31,11 @@
   "must": "schema-gate static PASS (every counterexample refused with the expected class, every golden accepted); lock regeneration byte-identical across two runs with different env (LC_ALL, TZ, PWD, hash seed); self-test: a mutated declaration or a denylisted entry (Redis EVAL) makes --check red"
  },
  "write_scope": [
-  "crates/aegis-data-ir/src/lower.rs",
-  "crates/aegis-data-ir/src/capset.rs",
-  "crates/aegis-data-ir/src/lock.rs",
-  "crates/aegis-data-ir/src/lib.rs (module lines only)",
-  "crates/aegis-data-ir/tests/**",
+  "crates/monban-data-ir/src/lower.rs",
+  "crates/monban-data-ir/src/capset.rs",
+  "crates/monban-data-ir/src/lock.rs",
+  "crates/monban-data-ir/src/lib.rs (module lines only)",
+  "crates/monban-data-ir/tests/**",
   "xtask/src/allowlist.rs",
   "subjects/datair-subject/**"
  ],

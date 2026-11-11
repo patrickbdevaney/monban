@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""kx-interop oracle (PLAN-6 D4, PREFLIGHT D-P4): AEGIS PQ key-exchange groups against independent TLS stacks.
+"""kx-interop oracle (PLAN-6 D4, PREFLIGHT D-P4): Monban PQ key-exchange groups against independent TLS stacks.
 
-Invoked by ./run (python3 -I, stdlib only). For every matrix cell the subject (aegis tls-subject, or the reference /
+Invoked by ./run (python3 -I, stdlib only). For every matrix cell the subject (monban tls-subject, or the reference /
 a mutant in --self-test) speaks TLS over stdin/stdout and this script bridges it to a TCP socket on which the peer
 (OpenSSL 3.5.3 CLI, Go 1.27.3 crypto/tls, BoringSSL bssl) runs. The bridge parses every plaintext TLS record in both
 directions, so the negotiated group and any HelloRetryRequest are observed on the wire, independently of what
@@ -331,9 +331,9 @@ def make_creds(env):
                     "-keyout", f"{w}/ca.key", "-out", env.ca, "-days", "2", "-subj", "/CN=kx-interop test CA",
                     "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign"], **q)
     subprocess.run([o, "req", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-384", "-nodes", "-keyout", env.key,
-                    "-out", f"{w}/leaf.csr", "-subj", "/CN=aegis.test"], **q)
+                    "-out", f"{w}/leaf.csr", "-subj", "/CN=monban.test"], **q)
     with open(f"{w}/ext", "w") as f:
-        f.write("subjectAltName=DNS:aegis.test\nbasicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\n")
+        f.write("subjectAltName=DNS:monban.test\nbasicConstraints=CA:FALSE\nextendedKeyUsage=serverAuth\n")
     subprocess.run([o, "x509", "-req", "-in", f"{w}/leaf.csr", "-CA", env.ca, "-CAkey", f"{w}/ca.key", "-out",
                     env.leaf, "-days", "2", "-extfile", f"{w}/ext"], **q)
     for f in (env.key, f"{w}/ca.key"):
@@ -367,11 +367,11 @@ def client_peer(env, peer, port, groups, nonce):
     if peer == "openssl":
         names = ":".join(NAMES[g][0] for g in groups)
         return Proc([env.openssl, "s_client", "-connect", f"127.0.0.1:{port}", "-tls1_3", "-groups", names,
-                     "-servername", "aegis.test", "-nocommands"]), True
+                     "-servername", "monban.test", "-nocommands"]), True
     if peer == "bssl":
         names = ":".join(NAMES[g][1] for g in groups)
         argv, name = env.docker(["client", "-connect", f"127.0.0.1:{port}", "-curves", names, "-min-version",
-                                 "tls1.3", "-max-version", "tls1.3", "-server-name", "aegis.test",
+                                 "tls1.3", "-max-version", "tls1.3", "-server-name", "monban.test",
                                  # BoringSSL's default verify list has no ML-DSA; P-CNSA servers sign with ML-DSA-87.
                                  "-sigalgs", "mldsa87:ecdsa_secp384r1_sha384:ecdsa_secp256r1_sha256"])
         return Proc(argv, name), True
@@ -412,7 +412,7 @@ def peer_report(peer, lines):
 # ------------------------------------------------------------------------------------------------ cells
 
 def run_cell(env, subject, cell):
-    nonce = "aegis-nonce-" + secrets.token_hex(12)
+    nonce = "monban-nonce-" + secrets.token_hex(12)
     role, peer, groups = cell["role"], cell["peer"], cell["peer_groups"]
     sub_argv = subject + (["interop-server", cell["profile"]] if role == "server"
                           else ["interop-client", cell["profile"], env.ca, nonce])

@@ -1,4 +1,4 @@
-//! Egress URL / address classification (aegis-egress: `Url::parse`, `Url::join`, `classify`, `Prefix`,
+//! Egress URL / address classification (monban-egress: `Url::parse`, `Url::join`, `classify`, `Prefix`,
 //! `check_addr`, `vet`, `Policy`), plus the HTTP/1.1 response reader (`http1::exchange`) over an in-memory stream.
 //!
 //! Properties:
@@ -20,12 +20,12 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::pin::{Pin, pin};
 use std::task::{Context, Poll, Waker};
 
-use aegis_egress::fetch::MAX_ADDRS;
-use aegis_egress::http1::{Method, encode_head, exchange};
-use aegis_egress::{
+use monban_egress::fetch::MAX_ADDRS;
+use monban_egress::http1::{Method, encode_head, exchange};
+use monban_egress::{
     AddrClass, BoxFuture, EgressError, HostRule, Policy, Prefix, Resolver, Url, check_addr, classify, vet,
 };
-use aegis_fuzz::{Unstructured, byte, bytes, flag, selftest};
+use monban_fuzz::{Unstructured, byte, bytes, flag, selftest};
 use libfuzzer_sys::fuzz_target;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 

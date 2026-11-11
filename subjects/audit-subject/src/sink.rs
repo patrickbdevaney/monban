@@ -1,4 +1,4 @@
-//! File-backed `AuditSink` (subject only; the production sink belongs to aegis-state).
+//! File-backed `AuditSink` (subject only; the production sink belongs to monban-state).
 //!
 //! Every resource is written to a temp file, fsynced, and renamed into place; an existing resource must have
 //! identical bytes (full and partial tiles are both determined by the tree, so any difference is a fork and is
@@ -10,7 +10,7 @@ use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use aegis_audit::{AuditSink, SinkError, TilePath};
+use monban_audit::{AuditSink, SinkError, TilePath};
 
 #[derive(Debug)]
 pub struct FileSink {

@@ -1,4 +1,4 @@
-//! datair-subject: the production `aegis-data-ir` behind two tool interfaces.
+//! datair-subject: the production `monban-data-ir` behind two tool interfaces.
 //!
 //!   datair-subject schema          schema-gate subject (oracles/schema-gate/README.md), static mode: each request's
 //!                                  F4 Schema is admitted iff `check_schema(probe, schema, Exact)` is Ok, with
@@ -14,11 +14,11 @@
 
 mod json;
 
-use aegis_data_ir::{
+use json::Json;
+use monban_data_ir::{
     Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema, generate, verify,
 };
-use aegis_types::TenantId;
-use json::Json;
+use monban_types::TenantId;
 use std::io::{BufRead, BufWriter, Write};
 use std::process::ExitCode;
 

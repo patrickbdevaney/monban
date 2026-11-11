@@ -1,4 +1,4 @@
-//! TLS ClientHello peek (aegis-wire `tls_peek::client_hello`; F1 L4-1, SEL-1 input).
+//! TLS ClientHello peek (monban-wire `tls_peek::client_hello`; F1 L4-1, SEL-1 input).
 //!
 //! Properties:
 //! - total: `client_hello` returns on every input, never panics;
@@ -12,8 +12,8 @@
 //! Seeds: `fuzz/corpus/client_hello_peek/` holds every oracles/proxy-l4 ClientHello vector (valid and hostile).
 #![no_main]
 
-use aegis_fuzz::selftest;
-use aegis_wire::tls_peek::{MAX_RECORD, PeekError, client_hello};
+use monban_fuzz::selftest;
+use monban_wire::tls_peek::{MAX_RECORD, PeekError, client_hello};
 use libfuzzer_sys::fuzz_target;
 
 fn inside(data: &[u8], consumed: usize, field: Option<&[u8]>) -> bool {

@@ -1,4 +1,4 @@
-# AEGIS round 1 report (2026-10-24)
+# Monban round 1 report (2026-10-24)
 
 Integrator: round-1 sole writer of map state. Inputs: 12 explorers (raw JSON in `state/raw/round-001/`) and 12 two-sided verifier passes. Blind research rule (§0a) held: the integrator did not open `state/prior_treatments/` or `state/seed_conversation.md`. Explorer 12 (calibration) reported exists/doesn't-exist verdicts only; those enter the map as K-CALIBRATION nodes, not as design input.
 

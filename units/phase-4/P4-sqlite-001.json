@@ -2,7 +2,7 @@
  "id": "P4-sqlite-001",
  "role": "implementer",
  "crates": [
-  "aegis-adapter-sqlite"
+  "monban-adapter-sqlite"
  ],
  "depends_on": [
   "P4-datair-001",
@@ -32,8 +32,8 @@
   "must": "read leak=widen=miss=0 >= 100k at SQLite 3.53.2; write 0 violations >= 300/family; schema gate PASS; subject --mutant drop-tenant red"
  },
  "write_scope": [
-  "crates/aegis-adapter-sqlite/src/**",
-  "crates/aegis-adapter-sqlite/tests/**",
+  "crates/monban-adapter-sqlite/src/**",
+  "crates/monban-adapter-sqlite/tests/**",
   "subjects/sqlite-subject/**"
  ],
  "infeasible_exit": true,

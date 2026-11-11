@@ -337,7 +337,7 @@ def generate(cases_per_adapter, seed):
 # ----------------------------------------------------------------------------------------------- subjects
 
 def replies_reference(cases, mutation):
-    ref = _load("aegis_nonempty_ref", "ref_subject.py")
+    ref = _load("monban_nonempty_ref", "ref_subject.py")
     return [ref.decide(m, mutation) for m, _, _ in cases]
 
 

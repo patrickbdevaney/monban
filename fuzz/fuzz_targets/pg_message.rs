@@ -1,4 +1,4 @@
-//! PG v3 backend message framing + parse (aegis-adapter-pg `wire::msg::{body_len, parse_backend}`; PREFLIGHT R14).
+//! PG v3 backend message framing + parse (monban-adapter-pg `wire::msg::{body_len, parse_backend}`; PREFLIGHT R14).
 //!
 //! Registered by P8-spec-002; body by P8-hardening-001.
 //!
@@ -24,8 +24,8 @@
 //! - an unknown message type is refused.
 #![no_main]
 
-use aegis_adapter_pg::wire::msg::{Auth, Backend, DEFAULT_MAX_MESSAGE, HARD_MAX_MESSAGE, body_len, parse_backend};
-use aegis_fuzz::selftest;
+use monban_adapter_pg::wire::msg::{Auth, Backend, DEFAULT_MAX_MESSAGE, HARD_MAX_MESSAGE, body_len, parse_backend};
+use monban_fuzz::selftest;
 use libfuzzer_sys::fuzz_target;
 
 const KNOWN: &[u8] = b"RKSZ123nsIctTDCENAvGHWd";

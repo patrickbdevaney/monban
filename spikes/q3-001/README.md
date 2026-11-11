@@ -103,9 +103,9 @@ starved: server utilisation 0.01–0.05 while loadavg hit 40); not used.
 ```
 cd spikes/q3-001
 CARGO_TARGET_DIR=$PWD/target ../../ci/heavy.sh cargo build --release --offline   # lock = oracles/hrr-verdicts
-ssh kamrui 'mkdir -p ~/aegis-spike-q3/q3-001'; scp target/release/hsbench bench.sh kamrui:aegis-spike-q3/q3-001/
+ssh kamrui 'mkdir -p ~/aegis-spike-q3/q3-001'; scp target/release/hsbench bench.sh kamrui:monban-spike-q3/q3-001/
 ssh kamrui 'cd ~/aegis-spike-q3/q3-001 && ./bench.sh ./hsbench kamrui-hs.jsonl 3 0-2 5 8 24'
-scp kamrui:aegis-spike-q3/q3-001/kamrui-hs.jsonl . && python3 -I summarize.py kamrui-hs.jsonl
+scp kamrui:monban-spike-q3/q3-001/kamrui-hs.jsonl . && python3 -I summarize.py kamrui-hs.jsonl
 # laptop contrast: ../../ci/heavy.sh ./bench.sh target/release/hsbench laptop-hs.jsonl 4 8-15 2 8 24
 # remote load generator variant (orchestrated from the laptop; kamrui ufw only admits tailnet traffic):
 #   ./bench-remote.sh kamrui desktop 100.103.183.65 OUT.jsonl 3 REPS

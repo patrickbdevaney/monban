@@ -2,8 +2,8 @@ Status: DRAFT, not published
 
 # Open-source steward attestation (draft, CRA Art 24)
 
-Applies only if a legal person acts as open-source software steward for AEGIS (CRA Art 3(14)): one that
-systematically supports the development of free and open-source software intended for commercial activities. AEGIS
+Applies only if a legal person acts as open-source software steward for Monban (CRA Art 3(14)): one that
+systematically supports the development of free and open-source software intended for commercial activities. Monban
 is Apache-2.0 and distributed free of charge (operator decision 2026-11-11). No legal person acts as steward today,
 so this attestation is not made. Who, if anyone, acts as steward later is `<operator to supply>`.
 

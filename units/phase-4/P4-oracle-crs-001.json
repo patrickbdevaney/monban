@@ -21,15 +21,15 @@
   "crs-diff --family data: two-scope differential (same request under scope A then scope B) over PG pool, Redis connection, statement/type cache, idempotency store, outbox; PASS iff B's observable state never depends on A"
  ],
  "acceptance": {
-  "cmd": "oracles/crs-diff/run --self-test && ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/crs-diff/run --family tls-resume --subject target/release/aegis",
-  "must": "self-test PASS (tls: an in-oracle vulnerable server reproducing the CVE-2025-23419 shape, i.e. SNI-switched context accepting a ticket minted for a vhost without client-cert verification, is caught; data: shared-pool, pool-key-no-tenant, pool-key-no-epoch, no-reset-on-recycle, idem-key-without-principal reference mutants caught); real aegis tls-resume PASS"
+  "cmd": "oracles/crs-diff/run --self-test && ci/heavy.sh cargo build --release --locked -q -p monban-bin && oracles/crs-diff/run --family tls-resume --subject target/release/monban",
+  "must": "self-test PASS (tls: an in-oracle vulnerable server reproducing the CVE-2025-23419 shape, i.e. SNI-switched context accepting a ticket minted for a vhost without client-cert verification, is caught; data: shared-pool, pool-key-no-tenant, pool-key-no-epoch, no-reset-on-recycle, idem-key-without-principal reference mutants caught); real monban tls-resume PASS"
  },
  "write_scope": [
   "oracles/crs-diff/**"
  ],
- "notes": "aegis currently disables tickets and has no mTLS listener, so tls-resume passes by construction today; the gate is the regression guard for the scoped ticketer (P2-tls-002). The vulnerable replica uses Python ssl (sni_callback context switch; resumption skips the client-cert check) with system openssl 3.0 as client; if Python cannot reproduce it, build a minimal rustls mutant in an oracle-local workspace. OpenSSL 3.0 lacks X25519MLKEM768: use a P-PUBLIC-WEB listener. data family subject protocol: {op:'scope', principal, tenant, epoch} + {op:'do', ...} events reporting conn ids, session GUCs and stored outcomes.",
+ "notes": "monban currently disables tickets and has no mTLS listener, so tls-resume passes by construction today; the gate is the regression guard for the scoped ticketer (P2-tls-002). The vulnerable replica uses Python ssl (sni_callback context switch; resumption skips the client-cert check) with system openssl 3.0 as client; if Python cannot reproduce it, build a minimal rustls mutant in an oracle-local workspace. OpenSSL 3.0 lacks X25519MLKEM768: use a P-PUBLIC-WEB listener. data family subject protocol: {op:'scope', principal, tenant, epoch} + {op:'do', ...} events reporting conn ids, session GUCs and stored outcomes.",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: crs-diff tls-resume (CVE-2025-23419 replica caught; aegis passes by construction, tickets off) + data family checker 6/6 mutants"
+ "status": "pass: crs-diff tls-resume (CVE-2025-23419 replica caught; monban passes by construction, tickets off) + data family checker 6/6 mutants"
 }

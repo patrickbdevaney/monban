@@ -1,7 +1,7 @@
 //! `host-subject nonempty`: oracles/nonempty-props subject protocol (README "Subject protocol").
 //!
 //! Per request: the wire capset becomes an `Endowment` (the F8 `data` shape, parsed strictly: one malformed element
-//! fails the whole capset), aegis-adapter-host converts it to a `CapSet` (`host::endow::capset`), and the op goes
+//! fails the whole capset), monban-adapter-host converts it to a `CapSet` (`host::endow::capset`), and the op goes
 //! through `dispatch::prepare` (authorize → check_schema → allowlist → budget pre-debit → render) against the
 //! adapter's renderer with the request's schema as the introspected schema. `decision` is whether the
 //! authorization stage passed; `rendered` is whether `prepare` reached the renderer, as reported by the pipeline
@@ -9,11 +9,11 @@
 
 use std::io::{BufRead, Write};
 
-use aegis_adapter_host::dispatch::{self, DispatchMutations, Refusal, Renderer};
-use aegis_adapter_host::host::budget::{Remaining, RequestBudget};
-use aegis_adapter_host::host::endow::{self, CapParts, Endowment};
-use aegis_adapter_host::host::oop::OopRenderer;
-use aegis_data_ir::{Collation, Column, Op, OpKind, Pred, Schema, UniqueIndex, Value, parse_tenant_text};
+use monban_adapter_host::dispatch::{self, DispatchMutations, Refusal, Renderer};
+use monban_adapter_host::host::budget::{Remaining, RequestBudget};
+use monban_adapter_host::host::endow::{self, CapParts, Endowment};
+use monban_adapter_host::host::oop::OopRenderer;
+use monban_data_ir::{Collation, Column, Op, OpKind, Pred, Schema, UniqueIndex, Value, parse_tenant_text};
 
 use crate::engines::{KvRenderer, PgRenderer, SqliteRenderer};
 use crate::json::{self, Json};
@@ -183,7 +183,7 @@ fn schema(j: &Json) -> Option<Schema> {
 }
 
 /// (decision allowed, render reached) through the real pipeline.
-fn judge<R: Renderer>(r: &R, caps: Option<&aegis_data_ir::CapSet>, op: &Op, m: DispatchMutations) -> (bool, bool) {
+fn judge<R: Renderer>(r: &R, caps: Option<&monban_data_ir::CapSet>, op: &Op, m: DispatchMutations) -> (bool, bool) {
     let budget = RequestBudget::new(Remaining::DEFAULT);
     match dispatch::prepare_with(caps, r, op, &budget, m) {
         Ok(_) => (true, true),

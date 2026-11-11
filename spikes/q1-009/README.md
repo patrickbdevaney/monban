@@ -69,7 +69,7 @@ exploitation rate* (1.3% vs 1.4%). The flip condition, "exploited above the base
 | row | before | after | why |
 |---|---|---|---|
 | own attacker-reachable code | ≤24 h | **keep ≤24 h** | n-day exploitation lands in hours to about 2 days; buyers must patch internet-facing critical bugs within 48 h (ASD ISM-1877) |
-| Tier-S dependency, critical or pre-auth reachable via AEGIS, or KEV-listed | ≤7 d | **≤48 h** | a 7-day rebuild lands after the 7-day middle-tier median; OSS first exploitation at 30–48 h |
+| Tier-S dependency, critical or pre-auth reachable via Monban, or KEV-listed | ≤7 d | **≤48 h** | a 7-day rebuild lands after the 7-day middle-tier median; OSS first exploitation at 30–48 h |
 | Tier-S dependency, other | ≤7 d | keep ≤7 d | — |
 | any TCB, best case drill | ≤6 h (E) | **keep as drill target** | still unmeasured; the release-drill spike sets the real number |
 | kill-switch per feature | B | keep | about 34% of middle-tier exploitation is at or before disclosure, where no rebuild SLA helps |

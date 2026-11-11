@@ -1,6 +1,6 @@
 //! `cargo xtask metrics-check [--self-test]` (Phase-2 metrics gate, ARCHITECTURE §3.10).
 //!
-//! Runs the `aegis-metrics` `dump` example with no default features (metrics are always compiled, no feature
+//! Runs the `monban-metrics` `dump` example with no default features (metrics are always compiled, no feature
 //! flag) and checks that every family in the crate's `GOLDEN` table, and every family this gate requires on its
 //! own, appears in the exposition with a matching `# TYPE` line and at least one sample, and that the exposition
 //! ends with `# EOF`. `--self-test` deletes one golden family from the dump and must report it missing.
@@ -13,14 +13,14 @@ use std::process::Command;
 /// Families the gate requires independently of the crate's `GOLDEN` table, so trimming `GOLDEN` cannot pass.
 /// Name and OpenMetrics type.
 pub const REQUIRED: &[(&str, &str)] = &[
-    ("aegis_admission_rejects", "counter"),
-    ("aegis_budget_debits", "counter"),
-    ("aegis_crash_budget_trips", "counter"),
-    ("aegis_cert_seconds_to_expiry", "gauge"),
-    ("aegis_fips_status", "gauge"),
-    ("aegis_config_generation_hash", "gauge"),
-    ("aegis_config_lkg_fallbacks", "counter"),
-    ("aegis_upgrade_forced_closes", "counter"),
+    ("monban_admission_rejects", "counter"),
+    ("monban_budget_debits", "counter"),
+    ("monban_crash_budget_trips", "counter"),
+    ("monban_cert_seconds_to_expiry", "gauge"),
+    ("monban_fips_status", "gauge"),
+    ("monban_config_generation_hash", "gauge"),
+    ("monban_config_lkg_fallbacks", "counter"),
+    ("monban_upgrade_forced_closes", "counter"),
 ];
 
 /// One `GOLDEN` row as printed by `dump --golden`: `name type label,label`.
@@ -48,7 +48,7 @@ fn run_dump(extra: &[&str]) -> Result<String, String> {
         "run",
         "-q",
         "-p",
-        "aegis-metrics",
+        "monban-metrics",
         "--example",
         "dump",
         "--no-default-features",
@@ -202,12 +202,12 @@ mod tests {
         assert!(!check_exposition(&wrong_type, &g).is_empty());
         let no_label = good_full().replace("a_c_total{stage=\"S0\"} 0", "a_c_total 0");
         assert!(!check_exposition(&no_label, &g).is_empty());
-        let trimmed: Vec<GoldenRow> = g.iter().filter(|r| r.name != "aegis_fips_status").cloned().collect();
+        let trimmed: Vec<GoldenRow> = g.iter().filter(|r| r.name != "monban_fips_status").cloned().collect();
         assert!(check_exposition(&good_full(), &trimmed).iter().any(|m| m.contains("lacks required")));
         assert!(drop_family(&good_full(), "a_c").lines().all(|l| !l.contains("a_c")));
     }
 
-    /// Demonstration on the real crate: runs `cargo run -p aegis-metrics --example dump` and checks it.
+    /// Demonstration on the real crate: runs `cargo run -p monban-metrics --example dump` and checks it.
     /// Ignored by default because it spawns a cargo build; run with `--ignored`.
     #[test]
     #[ignore = "spawns cargo; run explicitly with --ignored"]

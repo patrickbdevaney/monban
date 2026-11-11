@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""bin-residuals: the Phase-7 residuals of aegis-bin that no gate drove end to end (unit P8-oracle-001; PREFLIGHT
+"""bin-residuals: the Phase-7 residuals of monban-bin that no gate drove end to end (unit P8-oracle-001; PREFLIGHT
 R6, R7). Stdlib only; run as `python3 -I oracle.py`. Contract and check list: README.md.
 
-One aegis process built with `--features mtc,l4` and one oracle-written F8 config:
+One monban process built with `--features mtc,l4` and one oracle-written F8 config:
 - SEL-1..3 through the binary: for each ClientHello the oracle reads which credential the server put in its
   Certificate message (tls13.py decrypts the server's first flight), or which alert it sent;
 - L4 idle timeout after routing (`limits.idle_timeout_ms`, no byte either way), with activity in either direction
@@ -39,7 +39,7 @@ import tls13  # noqa: E402
 NAME = "BIN-RESIDUALS"
 MUTANTS = ["sel1-any-trust-anchor", "sel1-prefix-match", "sel2-mldsa-public", "sel3-other-listener",
            "ta-codepoint-lenient", "idle-ignored", "idle-absolute", "two-responses"]
-VHOST = "aegis.test"
+VHOST = "monban.test"
 L4_SNI = "a.l4.test"
 IDLE_MS = 1500                  # limits.idle_timeout_ms written into the config (schema minimum 1000)
 IDLE_EARLY = 0.25               # s: a close this much before the idle bound is premature
@@ -207,7 +207,7 @@ class Run:
     def __init__(self, cmd, env_extra=None, verbose=False, openssl="openssl", reference=False):
         self.cmd, self.env_extra, self.verbose, self.openssl = cmd, env_extra or {}, verbose, openssl
         self.reference = reference
-        self.dir = tempfile.mkdtemp(prefix="aegis-bin-residuals-")
+        self.dir = tempfile.mkdtemp(prefix="monban-bin-residuals-")
         os.chmod(self.dir, 0o700)
         self.failures, self.passed, self.notes = [], 0, []
         self.lock = threading.Lock()
@@ -241,7 +241,7 @@ class Run:
         """An MTC credential is an opaque operator blob (D-P7.4): here random bytes with a marker, never PEM, so the
         served certificate_list entry must be exactly the file. The key is an ordinary P-256 key (scheme 0x0403)."""
         _, k, _ = self.ec_cred(name + "-key")
-        blob = b"AEGIS-ORACLE-OPAQUE-MTC/" + name.encode() + b"/" + secrets.token_bytes(96)
+        blob = b"Monban-ORACLE-OPAQUE-MTC/" + name.encode() + b"/" + secrets.token_bytes(96)
         p = os.path.join(self.dir, f"{name}.mtc")
         with open(p, "wb") as f:
             f.write(blob)
@@ -261,7 +261,7 @@ class Run:
         # Reference subject only: a stand-in (the reference never signs; it reads the scheme from the key's OID).
         oid = bytes.fromhex("0609608648016503040311")  # id-ml-dsa-44 2.16.840.1.101.3.4.3.17
         key_der = bytes.fromhex("3016020100300b") + oid + bytes.fromhex("0404") + secrets.token_bytes(4)
-        cert_der = b"\x30\x82\x01\x00" + b"AEGIS-ORACLE-STANDIN-MLDSA44/" + secrets.token_bytes(64)
+        cert_der = b"\x30\x82\x01\x00" + b"Monban-ORACLE-STANDIN-MLDSA44/" + secrets.token_bytes(64)
         with open(k, "w") as f:
             f.write("-----BEGIN PRIVATE KEY-----\n" + base64.b64encode(key_der).decode() + "\n-----END PRIVATE KEY-----\n")
         with open(c, "w") as f:
@@ -359,7 +359,7 @@ class Run:
         try:
             self.material()
             self.p_pub, self.p_pub2, self.p_pq, self.p_web, self.p_l4, self.p_admin = (free_port() for _ in range(6))
-            self.cfg = os.path.join(self.dir, "aegis.json")
+            self.cfg = os.path.join(self.dir, "monban.json")
             with open(self.cfg, "w") as f:
                 json.dump(self.config(), f)
             self.start()
@@ -605,7 +605,7 @@ def summary(r):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--binary", "--subject", dest="binary", default=None,
-                    help="aegis built with --features mtc,l4 (default: the reference ref_server.py)")
+                    help="monban built with --features mtc,l4 (default: the reference ref_server.py)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--openssl", default=os.environ.get("AEGIS_OPENSSL", "openssl"),
                     help="openssl CLI (>= 3.5 needed for the ML-DSA-44 credential of a real binary)")

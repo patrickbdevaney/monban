@@ -562,7 +562,7 @@
    "kind": "host",
    "input": "example.com\n",
    "expect": "reject",
-   "note": "found by aegis-canon P2-canon-001: Python `$` matched before a trailing newline"
+   "note": "found by monban-canon P2-canon-001: Python `$` matched before a trailing newline"
   },
   {
    "id": "ref-dollar-newline-label",

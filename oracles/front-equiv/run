@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# AEGIS oracle: front-equiv (unit P7-oracle-uring-001; F1 FRONT-1, PREFLIGHT D-P7.3). Contract: oracles/README.md.
+# Monban oracle: front-equiv (unit P7-oracle-uring-001; F1 FRONT-1, PREFLIGHT D-P7.3). Contract: oracles/README.md.
 # Last line: FRONT-EQUIV: PASS|FAIL (...)  /  FRONT-EQUIV SELF-TEST: PASS|FAIL (...).
-#   ./run --binary target/release/aegis   the same binary with --front epoll and --front uring: byte-identical
+#   ./run --binary target/release/monban   the same binary with --front epoll and --front uring: byte-identical
 #                                         responses/rejects/close behaviour, /proc front identity, fail-closed without
 #                                         io_uring, hardened unit refuses io_uring unless deploy/uring.conf is installed
-#   ./run --binary-from-build             build aegis-bin --features uring into target/front-equiv first (ci/heavy.sh)
-#   ./run --self-test                     reference front (front_ref.py around a default aegis) must PASS; every
+#   ./run --binary-from-build             build monban-bin --features uring into target/front-equiv first (ci/heavy.sh)
+#   ./run --self-test                     reference front (front_ref.py around a default monban) must PASS; every
 #                                         front and unit mutant must FAIL
 # Desktop only (kernel.io_uring_disabled=0): ci/remote.sh oracles/front-equiv/run ...
 set -u

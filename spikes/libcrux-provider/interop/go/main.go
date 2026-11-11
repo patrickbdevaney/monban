@@ -2,7 +2,7 @@
 //
 //	lcx-gopeer -connect 127.0.0.1:PORT -group 0x11ec -ca ca.pem -nonce NONCE
 //
-// Verifies the server chain against -ca for server name aegis.test (so the server's CertificateVerify signature,
+// Verifies the server chain against -ca for server name monban.test (so the server's CertificateVerify signature,
 // made by the libcrux provider, is checked by an independent implementation), enables only -group, prints
 // "HANDSHAKE ok group=0x.... suite=0x.... sig=<leaf key type>" or "HANDSHAKE fail err=...", sends "NONCE\n",
 // reads one line back and prints "ECHO ok" or "ECHO mismatch". Exit 0 only when both succeeded.
@@ -44,7 +44,7 @@ func run() int {
 		fmt.Println("usage: -ca has no certificates")
 		return 2
 	}
-	cfg := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, ServerName: "aegis.test",
+	cfg := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, ServerName: "monban.test",
 		RootCAs: roots, CurvePreferences: []tls.CurveID{tls.CurveID(g)}}
 	d := &tls.Dialer{Config: cfg}
 	c, err := d.Dial("tcp", *connect)

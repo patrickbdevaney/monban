@@ -1,5 +1,5 @@
-; Frozen interface F10: out-of-process module/adapter wire (aegis-adapter-host <-> third-party module).
-; Transport: SOCK_SEQPACKET UDS, one frame per message, postcard-encoded per the WIT package aegis:data@0.1.0;
+; Frozen interface F10: out-of-process module/adapter wire (monban-adapter-host <-> third-party module).
+; Transport: SOCK_SEQPACKET UDS, one frame per message, postcard-encoded per the WIT package monban:data@0.1.0;
 ; this CDDL is the normative shape (postcard is a positional encoding of the same structures).
 ; Host-side decoders of module output are in the verified TCB (SPEC_INVARIANTS §H): every frame is length-capped
 ; (64 KiB default), fully validated before use, and a decode failure kills the module (crash budget), never the host.

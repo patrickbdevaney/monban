@@ -1,4 +1,4 @@
-//! PROXY protocol v2 header parse (aegis-wire `proxy::parse_v2`; F1 PROXY-1..3).
+//! PROXY protocol v2 header parse (monban-wire `proxy::parse_v2`; F1 PROXY-1..3).
 //!
 //! Properties:
 //! - total: `parse_v2` returns on every input, never panics;
@@ -12,8 +12,8 @@
 //! Seeds: `fuzz/corpus/proxy_v2/` holds every oracles/proxy-l4 PROXY vector (spec, trailing, policy, hostile).
 #![no_main]
 
-use aegis_fuzz::selftest;
-use aegis_wire::proxy::{Addresses, FIXED_LEN, MAX_DECLARED_LEN, ProxyError, parse_v2};
+use monban_fuzz::selftest;
+use monban_wire::proxy::{Addresses, FIXED_LEN, MAX_DECLARED_LEN, ProxyError, parse_v2};
 use libfuzzer_sys::fuzz_target;
 
 fn inside(data: &[u8], consumed: usize, f: &[u8]) -> bool {

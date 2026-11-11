@@ -1,16 +1,16 @@
-"""front-equiv self-test subject: a reference implementation of the `--front` interface around today's aegis.
+"""front-equiv self-test subject: a reference implementation of the `--front` interface around today's monban.
 
 It accepts exactly the interface README.md defines for the real binary:
 
     front_ref.py --config <f> [--cert <pem>] [--key <pem>] [--audit-dir <d>] [--front epoll|uring] [...]
 
 and resolves the front the same way (CLI flag > `listeners[].front` > epoll; `--front <other>` -> exit 64; config
-`front` other than epoll/uring -> exit 78). The real aegis it wraps is $FRONT_REF_AEGIS (a default build).
+`front` other than epoll/uring -> exit 78). The real monban it wraps is $FRONT_REF_Monban (a default build).
 
-* epoll: execv()s aegis (same pid, so the oracle inspects aegis itself: its sockets sit in tokio's epoll).
+* epoll: execv()s monban (same pid, so the oracle inspects monban itself: its sockets sit in tokio's epoll).
 * uring: checks io_uring_setup first (unavailable -> message naming io_uring, exit 71, nothing bound), creates a real
   ring, binds the public listener itself and terminates TLS there (same cert/key, ALPN, SNI forwarded), and relays
-  plaintext to an aegis child bound on a private loopback port. Each accepted connection submits one IORING_OP_NOP,
+  plaintext to an monban child bound on a private loopback port. Each accepted connection submits one IORING_OP_NOP,
   so CqTail moves with traffic; connection I/O uses blocking sockets + poll(2), never an epoll instance.
 
 $FRONT_REF_MUTANT picks a deliberately broken uring front (each must turn the oracle red):
@@ -278,17 +278,17 @@ class UringFront:
 
 
 def main():
-    aegis = os.environ.get("FRONT_REF_AEGIS", "")
-    if not os.access(aegis, os.X_OK):
-        die(EX_OSERR, f"FRONT_REF_AEGIS={aegis!r} is not an executable aegis")
+    monban = os.environ.get("FRONT_REF_Monban", "")
+    if not os.access(monban, os.X_OK):
+        die(EX_OSERR, f"FRONT_REF_Monban={monban!r} is not an executable monban")
     opts, cli_front, cfg_path = parse_args(sys.argv[1:])
     if cfg_path is None:
-        os.execv(aegis, [aegis] + opts)  # aegis decides (exit 78 bare / missing config)
+        os.execv(monban, [monban] + opts)  # monban decides (exit 78 bare / missing config)
     try:
         with open(cfg_path, "rb") as f:
             doc = json.loads(f.read())
     except (OSError, ValueError):
-        os.execv(aegis, [aegis] + opts)  # let aegis report the unreadable / invalid file itself
+        os.execv(monban, [monban] + opts)  # let monban report the unreadable / invalid file itself
     fronts = set()
     for l in doc.get("listeners", []) if isinstance(doc, dict) else []:
         if isinstance(l, dict) and "front" in l:
@@ -304,7 +304,7 @@ def main():
             with open(stripped, "w") as f:
                 json.dump(strip_front(doc), f)
             opts = [stripped if o == cfg_path else o for o in opts]
-        os.execv(aegis, [aegis] + opts)
+        os.execv(monban, [monban] + opts)
 
     # ---- uring: fail closed before anything is bound
     ring = None
@@ -320,7 +320,7 @@ def main():
     l0 = listeners[0]
     cert = opts[opts.index("--cert") + 1] if "--cert" in opts else None
     key = opts[opts.index("--key") + 1] if "--key" in opts else None
-    # The aegis child listens on the same port on 127.0.0.2, so the authority the client sends (aegis.test:<port>)
+    # The monban child listens on the same port on 127.0.0.2, so the authority the client sends (monban.test:<port>)
     # still matches its listener; the reference front itself owns 127.0.0.1:<port>.
     inner = strip_front(doc)
     pub_bind = l0["bind"]
@@ -338,7 +338,7 @@ def main():
         except (OSError, ValueError, AttributeError, TypeError):
             with open(cfg_path, "rb") as f:
                 raw = f.read()
-            with open(inner_path, "wb") as f:  # pass the broken bytes through: aegis keeps its last-known-good
+            with open(inner_path, "wb") as f:  # pass the broken bytes through: monban keeps its last-known-good
                 f.write(raw)
             return
         with open(inner_path, "w") as f:
@@ -347,7 +347,7 @@ def main():
     with open(inner_path, "w") as f:
         json.dump(inner, f)
     front_srv = UringFront(pub_bind, l0.get("alpn", ["h2", "http/1.1"]), cert, key, bport, ring)
-    child = subprocess.Popen([aegis] + [inner_path if o == cfg_path else o for o in opts])
+    child = subprocess.Popen([monban] + [inner_path if o == cfg_path else o for o in opts])
 
     def on_hup(_s, _f):
         write_inner()

@@ -2,8 +2,8 @@
 //! oracles/lowering-write/README.md, section "MariaDB and CockroachDB"), dialect `crdb`, served by the production
 //! code path:
 //!
-//! request → F4 `Op` + `Schema` + renderer `PgTable` (from the request's declaration) → `aegis_data_ir::lower_op`
-//! (F4 `check_schema`, shape rules, `lowerQ`) → `aegis_adapter_pg::lower::{render_dialect(.., Dialect::Crdb),
+//! request → F4 `Op` + `Schema` + renderer `PgTable` (from the request's declaration) → `monban_data_ir::lower_op`
+//! (F4 `check_schema`, shape rules, `lowerQ`) → `monban_adapter_pg::lower::{render_dialect(.., Dialect::Crdb),
 //! render_filter}`. The crdb forms are the postgres forms (`$n`, `c::text = $n::text COLLATE "C"`, `::bigint`,
 //! `left(c::text, $n::int)`) with the q4-005 upsert guard `"t"."tenant"::text = excluded."tenant"::text COLLATE "C"`;
 //! the `UPSERT` statement is never rendered.
@@ -29,12 +29,12 @@
 use std::collections::BTreeMap;
 use std::process::ExitCode;
 
-use aegis_adapter_pg::TenantId;
-use aegis_adapter_pg::data_ir::{
+use monban_adapter_pg::TenantId;
+use monban_adapter_pg::data_ir::{
     Collation, Column, Fidelity, Field, Lowered, Op, OpKind, Pred, Schema, SqlExpr, Stmt, UniqueIndex, UpsertAction,
     Value, lower_op, parse_tenant_text,
 };
-use aegis_adapter_pg::lower::{
+use monban_adapter_pg::lower::{
     Dialect, Param, PgClass, PgColumn, PgForeignKey, PgTable, Rendered, render_dialect, render_filter,
 };
 
@@ -374,7 +374,7 @@ fn write(req: &Json, op_name: &str, mutant: bool) -> R<String> {
 fn handle(req: &Json, mutant: bool) -> R<String> {
     match req.get("op").and_then(Json::str) {
         Some("hello") => Ok(format!(
-            "\"name\":\"crdb-subject lowering (aegis-adapter-pg::lower, Dialect::Crdb)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
+            "\"name\":\"crdb-subject lowering (monban-adapter-pg::lower, Dialect::Crdb)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
             if mutant { "[\"drop-tenant\"]" } else { "[]" }
         )),
         Some("read") => read(req, mutant),

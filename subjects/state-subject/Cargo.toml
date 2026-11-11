@@ -1,17 +1,17 @@
 [package]
 name = "state-subject"
-description = "Oracle subject: exposes aegis-state idempotency, outbox and commit-point latch over the state-props line protocol. Never linked into aegis."
+description = "Oracle subject: exposes monban-state idempotency, outbox and commit-point latch over the state-props line protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 [dependencies]
-aegis-state = { workspace = true }
+monban-state = { workspace = true }
 
 [lints]
 workspace = true

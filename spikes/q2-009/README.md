@@ -121,13 +121,13 @@ Frame-level outcomes (`raw/*rapidreset*.log`, `raw/*continuation*.log`):
 - **Cap needed without the ledger**: 0.417–0.424 MiB/stream peak → ⌊16 / 0.424⌋ = **37** streams (40 by pure
   16 MiB / 400 KiB arithmetic). Keeping 100 streams instead needs max_send_buf ≤ ~130 KiB.
 
-## Wrapper prototype (seed for aegis-transport)
+## Wrapper prototype (seed for monban-transport)
 Rules: (1) hand a chunk to h2 only while `ledger + chunk ≤ budget` (budget 12 MiB = M_conn 16 MiB minus measured fixed
 state), where the ledger is exact (bytes handed − bytes written to the socket); (2) a stream with no send progress for
 10 s, for any reason (window, TCP backpressure, ledger exhaustion), gets RST_STREAM(ENHANCE_YOUR_CALM) and is dropped,
 which frees its h2 buffer; (3) close a connection after 30 s without stream progress. Porting it to hyper (not done
 here) needs the same counting IO plus a ledger-gated `Body` whose `poll_frame` returns `Pending` while the ledger is
-full and `Err` at the stall deadline, so that hyper resets the stream. In aegis-transport it also has to follow the
+full and `Err` at the stall deadline, so that hyper resets the stream. In monban-transport it also has to follow the
 workspace lints (this harness uses indexing in the test client and `unwrap_or_default` on a builder).
 
 ```rust
@@ -244,7 +244,7 @@ async fn serve_h2(sock: TcpStream, body_bytes: usize, wrapper: bool, ledger_budg
     }
 }
 
-// Wrapper sender (prototype of the AEGIS wrapper): per-connection memory ledger (TBI-6/7) + per-stream
+// Wrapper sender (prototype of the Monban wrapper): per-connection memory ledger (TBI-6/7) + per-stream
 // 10 s stall deadline (TBI-8). The ledger is exact: bytes handed to h2 minus bytes h2 wrote to the socket.
 // A chunk is handed to h2 only while ledger + chunk <= ledger_budget. Any stream that cannot make send
 // progress (window, TCP backpressure, or ledger exhaustion) for STALL_MS is reset and dropped, which frees

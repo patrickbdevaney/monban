@@ -1,8 +1,8 @@
 {
  "id": "P3-pdp-001",
  "crates": [
-  "aegis-authz",
-  "aegis-pdp (new binary crate, L5)"
+  "monban-authz",
+  "monban-pdp (new binary crate, L5)"
  ],
  "spec_refs": [
   "DEVIATIONS X-8 (Cedar out of process)",
@@ -15,17 +15,17 @@
   "Cedar validation + policy tests on example policy sets"
  ],
  "acceptance": {
-  "cmd": "oracles/pdp-dst/run --subject target/release/aegis-pdp && oracles/pdp-dst/run --self-test",
+  "cmd": "oracles/pdp-dst/run --subject target/release/monban-pdp && oracles/pdp-dst/run --self-test",
   "must": "PASS"
  },
  "write_scope": [
-  "crates/aegis-authz/**",
-  "crates/aegis-pdp/**",
+  "crates/monban-authz/**",
+  "crates/monban-pdp/**",
   "oracles/pdp-dst/**",
   "Cargo.toml (workspace member + cedar-policy pin, integrator applies)"
  ],
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: 224 faulted exchanges all Deny, 40 Cedar matches; 4/4 mutants; socket transport to move to an L4 crate before aegis-bin uses it"
+ "status": "pass: 224 faulted exchanges all Deny, 40 Cedar matches; 4/4 mutants; socket transport to move to an L4 crate before monban-bin uses it"
 }

@@ -14,7 +14,7 @@
  ],
  "acceptance": {
   "cmd": "oracles/soak/run --self-test && ci/remote.sh --host quiet oracles/soak/run --hours 0.25",
-  "must": "oracles/soak: h2load steady load (50% of measured 4-core throughput), PROXY + selector + crdb-less config (sqlite native route) + aegis-otlp sidecar; samples RSS/fds/tasks from /proc and metrics; RSS slope <= 1 MiB/h after 15 min warm-up; fds/tasks baseline +-5 after load; 0 errors; audit log verifies; --hours 24 record-only"
+  "must": "oracles/soak: h2load steady load (50% of measured 4-core throughput), PROXY + selector + crdb-less config (sqlite native route) + monban-otlp sidecar; samples RSS/fds/tasks from /proc and metrics; RSS slope <= 1 MiB/h after 15 min warm-up; fds/tasks baseline +-5 after load; 0 errors; audit log verifies; --hours 24 record-only"
  },
  "write_scope": [
   "oracles/soak/**"

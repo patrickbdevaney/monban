@@ -1,5 +1,5 @@
 # Frozen wasmtime pin and effective-config expectation (ARCHITECTURE §3.6 R-ISO-2, PLAN D4 + D11).
-# Checked by: python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2   (gate wasmtime-config)
+# Checked by: python3 -I ci/wasmtime-config.py check --worker target/p2/release/monban-p2   (gate wasmtime-config)
 # Self-test:  python3 -I ci/wasmtime-config.py --self-test
 # Owner: spec author (unit P5-oracle-wtcfg-001). Implementers never edit this file. ci/wasmtime-config.py also holds
 # hard floors (4 GiB reservation, 32 MiB guard, guard before memory, epoch + fuel on, memory64/gc/threads/component
@@ -56,7 +56,7 @@ floor = "49.0.4"
 
 [cargo_tree]
 # Static half. Run from the repo root; it resolves metadata only (no compile).
-command = ["cargo", "tree", "--offline", "--locked", "-e", "features", "-p", "aegis-p2"]
+command = ["cargo", "tree", "--offline", "--locked", "-e", "features", "-p", "monban-p2"]
 # The exact set of `wasmtime feature "<f>"` nodes that the tree may show (feature closure, including cargo's
 # implicit dependency features). Recorded 2026-10-31 from a real `cargo tree -e features` of the
 # oracles/isolation-fi host manifest (wasmtime =50.0.0, default-features = false) with features
@@ -80,7 +80,7 @@ wasmtime_features = [
   "wasmtime-jit-icache-coherence",
   "wasmtime-unwinder",
 ]
-# Crates that must not appear in the aegis-p2 tree. Exact names, then name prefixes.
+# Crates that must not appear in the monban-p2 tree. Exact names, then name prefixes.
 # wasmtime-wasi-http: RUSTSEC-2026-0350/0376 (never, ARCHITECTURE §3.6). wasi/winch/fiber(async)/wmemcheck: D11.
 forbidden_crates = [
   "wasmtime-wasi",
@@ -107,13 +107,13 @@ forbidden_crate_prefixes = ["wasmtime-wasi", "wasi-common"]
 
 [deserialize]
 # PLAN D4 / runwasi CVE-2026-47218: exactly one Module/Component deserialize call in the product tree, in
-# aegis-wasm, on a .cwasm whose sha256 was checked first. Comments are ignored; strings are not (stricter).
+# monban-wasm, on a .cwasm whose sha256 was checked first. Comments are ignored; strings are not (stricter).
 scan_roots = ["crates", "subjects"]
 expected_sites = 1
-site_prefix = "crates/aegis-wasm/src/"
+site_prefix = "crates/monban-wasm/src/"
 
 [effective]
-# Runtime half: `aegis-p2 config --json` must print exactly this JSON object (same keys, same values, nothing
+# Runtime half: `monban-p2 config --json` must print exactly this JSON object (same keys, same values, nothing
 # else) for the built-in F8 defaults (no config file). The values are the ones passed to wasmtime::Config and
 # PoolingAllocationConfig, and the JSON must be produced from the same settings value the engine is built from,
 # never from a separate literal. Keys are wasmtime 50.0.0 setter names (pooling_* = PoolingAllocationConfig).
@@ -137,6 +137,6 @@ epoch_interruption = true
 consume_fuel = true
 
 [effective_mpk]
-# `aegis-p2 config --json --mpk` must equal [effective] with only these keys changed. Reservation, guard and every
+# `monban-p2 config --json --mpk` must equal [effective] with only these keys changed. Reservation, guard and every
 # other key stay identical (ARCHITECTURE §3.6: MPK is density "while keeping guard protection", never shrinking).
 memory_protection_keys = "yes"

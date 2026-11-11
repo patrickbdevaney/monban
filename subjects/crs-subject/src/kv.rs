@@ -6,13 +6,13 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
-use aegis_adapter_pg::TenantId;
-use aegis_adapter_pg::data_ir::tenant_text;
-use aegis_adapter_pg::pool::PoolMutations;
-use aegis_adapter_pg::{PlainReuse, Pool, PoolConfig, Pooled};
-use aegis_adapter_redis::render::physical_key;
-use aegis_adapter_redis::resp::{self, DEFAULT_LIMITS};
-use aegis_adapter_redis::{ConnectConfig, Connection, Endpoint, KvPins, Reply, TenantUser};
+use monban_adapter_pg::TenantId;
+use monban_adapter_pg::data_ir::tenant_text;
+use monban_adapter_pg::pool::PoolMutations;
+use monban_adapter_pg::{PlainReuse, Pool, PoolConfig, Pooled};
+use monban_adapter_redis::render::physical_key;
+use monban_adapter_redis::resp::{self, DEFAULT_LIMITS};
+use monban_adapter_redis::{ConnectConfig, Connection, Endpoint, KvPins, Reply, TenantUser};
 
 use crate::{Mutants, Scope, pool_key, random_hex};
 

@@ -14,7 +14,7 @@ and IANA has not assigned one (registry checked 2026-11-06); the deployed experi
 (BoringSSL include/openssl/tls1.h `TLSEXT_TYPE_trust_anchors 0xca34`, the one Chrome's MTC experiment uses). It is a
 parameter here (`TRUST_ANCHORS_EXT`, `ta_codepoint=`) so the final IANA value is a one-line change.
 
-The peek rules are the AEGIS L4/selector ClientHello peek contract (README.md "ClientHello peek rules"): exactly one
+The peek rules are the Monban L4/selector ClientHello peek contract (README.md "ClientHello peek rules"): exactly one
 handshake record of at most 16384 bytes holding exactly one complete ClientHello; anything else is refused.
 """
 

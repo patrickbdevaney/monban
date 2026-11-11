@@ -1,10 +1,10 @@
-//! mariadb-subject: drives `aegis-adapter-mysql` for oracles/lowering-read, lowering-write and schema-gate
-//! (`--engine mariadb`) over JSON lines. Never linked into aegis.
+//! mariadb-subject: drives `monban-adapter-mysql` for oracles/lowering-read, lowering-write and schema-gate
+//! (`--engine mariadb`) over JSON lines. Never linked into monban.
 //!
 //! * `mariadb-subject lowering [--mutant drop-tenant]`: lowering-read / lowering-write protocol v2, dialect
-//!   `mariadb`, through the production renderer (`aegis_adapter_mysql::lower`, see `lowering.rs`).
+//!   `mariadb`, through the production renderer (`monban_adapter_mysql::lower`, see `lowering.rs`).
 //! * `mariadb-subject schema`: schema-gate protocol v1, `mariadb` mode through live `information_schema`
-//!   introspection (`aegis_adapter_mysql::check_live_schema`, see `gate.rs`).
+//!   introspection (`monban_adapter_mysql::check_live_schema`, see `gate.rs`).
 //!
 //! Unknown ops, unreadable lines and over-long lines (1 MiB) get a refusal; the subject never guesses an accept.
 #![forbid(unsafe_code)]

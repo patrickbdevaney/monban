@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: crash harness (INV-DURABLE). Contract: oracles/README.md. Last line: CRASH-HARNESS: PASS|FAIL (...).
+# Monban oracle: crash harness (INV-DURABLE). Contract: oracles/README.md. Last line: CRASH-HARNESS: PASS|FAIL (...).
 #   ./run                     reduced run (default; < 10 min on the laptop)
 #   ./run --full              research-size run (CI/VPS job; see README)
 #   ./run --self-test         mutations that must be caught

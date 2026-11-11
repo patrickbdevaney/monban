@@ -19,10 +19,10 @@ for the desktop or kamrui.
 | `kani-kx-client`: Kani harnesses on the client side of 0x11ED/0x11EB share handling (client keygen share encoding, server-share parse + decapsulation input bounds, no panic) | laptop (drives kamrui) | R2 | P8-kani-001 |
 | `conformance-full`: C0–C4 all 100%. C3 requires every DRT gate's log from this run at 0 divergence. C4 requires spec/TRACE.toml to map every F1 statement to ≥1 gate with a passing log. Config-pin requires that each judged subject booted with the effective-config hash the report pins. | laptop | R3 | P8-conformance-001 |
 | `native-e2e-mariadb`: the notes app on a MariaDB backend end to end (reads, writes, tenant isolation, schema refusal). | kamrui | R4 | P8-oracle-001 → P8-mariadb-001 |
-| `bin-residuals`: through aegis-bin (features mtc,l4): <br>• MTC/ML-DSA/x509 credential chosen per ClientHello (SEL-1..3 end to end) <br>• L4 idle timeout after routing <br>• one response per request on malformed chunked input (R6) | desktop | R6, R7 | P8-oracle-001 → P8-bin-001, P8-transport-001 |
-| `crdb-live`: aegis-bin with adapter-crdb on CockroachDB: <br>• a contention workload produces 40001s and is never answered wrong <br>• CancelRequest on a slow query returns within its deadline and the pooled connection is reset or retired | kamrui | R8 | P8-oracle-001 → P8-bin-001 |
-| `tlog-mldsa-openssl`: OpenSSL 3.5.3 `pkeyutl -verify` independently verifies the ML-DSA-87 checkpoint cosignatures of a log written by aegis-bin | kamrui | R10 | P8-audit-001 |
-| `no-test-faults`: aegis-ops `Faults` exists only under feature `test-faults`. No release graph (default, native, all shipped profiles, cmvp) enables it. | laptop | R11 | P8-hardening-001 |
+| `bin-residuals`: through monban-bin (features mtc,l4): <br>• MTC/ML-DSA/x509 credential chosen per ClientHello (SEL-1..3 end to end) <br>• L4 idle timeout after routing <br>• one response per request on malformed chunked input (R6) | desktop | R6, R7 | P8-oracle-001 → P8-bin-001, P8-transport-001 |
+| `crdb-live`: monban-bin with adapter-crdb on CockroachDB: <br>• a contention workload produces 40001s and is never answered wrong <br>• CancelRequest on a slow query returns within its deadline and the pooled connection is reset or retired | kamrui | R8 | P8-oracle-001 → P8-bin-001 |
+| `tlog-mldsa-openssl`: OpenSSL 3.5.3 `pkeyutl -verify` independently verifies the ML-DSA-87 checkpoint cosignatures of a log written by monban-bin | kamrui | R10 | P8-audit-001 |
+| `no-test-faults`: monban-ops `Faults` exists only under feature `test-faults`. No release graph (default, native, all shipped profiles, cmvp) enables it. | laptop | R11 | P8-hardening-001 |
 | `egress-tls-e2e`: an egress-subject with `tls-client` does a real TLS 1.3 handshake to a local upstream for each client profile (PQ-first). It refuses resumption and early data, and refuses a wrong-name or untrusted upstream. | desktop | R15 | P8-hardening-001 |
 | `engine-pins-kamrui`: `ci/engines.sh check` plus a pg17/pg18/valkey start on kamrui. Every pin carries a host-independent `config_digest`. | kamrui | R16 | P8-spec-002 |
 | `soak` (D-P8.4): 2 h on aegis-quiet. RSS slope ≤ 1 MiB/h, fds and tasks back to baseline ±5, 0 errors, audit log verifies. | quiet | R17 | P8-soak-001 |
@@ -58,18 +58,18 @@ Both re-frozen.
 ## Roles and single writers
 
 - **Integrator (P8-spec-002):**
-  - aegis-ops feature `test-faults`, plus its use by acme-subject;
-  - tls-subject feature `indicator` (cmvp only), plus the aegis-iso cmvp indicator sites (≤ 2, cap 20 kept);
+  - monban-ops feature `test-faults`, plus its use by acme-subject;
+  - tls-subject feature `indicator` (cmvp only), plus the monban-iso cmvp indicator sites (≤ 2, cap 20 kept);
   - fuzz target registration `pg_message`;
   - engine pin `config_digest`s.
 - **Single writers:**
-  - aegis-bin: P8-bin-001
-  - aegis-tls: P8-kani-001 (harness module only)
-  - aegis-transport: P8-transport-001
-  - aegis-data-ir: P8-mariadb-001
+  - monban-bin: P8-bin-001
+  - monban-tls: P8-kani-001 (harness module only)
+  - monban-transport: P8-transport-001
+  - monban-data-ir: P8-mariadb-001
   - apps/notes: P8-mariadb-001
-  - aegis-ops, aegis-state, aegis-config, aegis-adapter-pg, aegis-egress: P8-hardening-001, after P8-spec-001 for
-    aegis-config
+  - monban-ops, monban-state, monban-config, monban-adapter-pg, monban-egress: P8-hardening-001, after P8-spec-001 for
+    monban-config
 
 ## Waves
 
@@ -90,5 +90,5 @@ GO  python3 -I ci/run-gates.py --phase 8
 | 0x11ED built only from #5314-approved components; combiner per SP 800-227 §4.6.2. **Not** "FIPS-approved key establishment". | R1 documentation + R2 indicator run |
 | Kani on the client share path | R2, bounded, on the Rust code |
 | Conformance C0–C4 | 100%, gated |
-| MariaDB servable through aegis-bin | R2 end to end |
+| MariaDB servable through monban-bin | R2 end to end |
 | Soak | 2 h, one host; provisional for long-run claims |

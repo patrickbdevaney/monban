@@ -1,5 +1,5 @@
 //! SecP384r1MLKEM1024 (TLS supported group 0x11ED) as a rustls `SupportedKxGroup`, built directly on
-//! aws-lc-rs primitives (ECDH P-384 + ML-KEM-1024). Seed for `aegis-tls::kx` (ARCHITECTURE 3.2).
+//! aws-lc-rs primitives (ECDH P-384 + ML-KEM-1024). Seed for `monban-tls::kx` (ARCHITECTURE 3.2).
 //!
 //! Wire format and combiner: RFC 10024 (published Aug 2026 from draft-ietf-tls-ecdhe-mlkem; draft-05 text is
 //! identical for this group):
@@ -19,7 +19,7 @@
 //! client/tls13.rs:173). The RFC's "internal_error on other decapsulation failure" cannot occur: ML-KEM
 //! decapsulation of a correctly sized ciphertext never fails (implicit rejection).
 //!
-//! Spike code: no unwrap/expect/panic/indexing (AEGIS workspace lints).
+//! Spike code: no unwrap/expect/panic/indexing (Monban workspace lints).
 
 #![forbid(unsafe_code)]
 
@@ -104,7 +104,7 @@ fn combine(ecdh: &[u8], mlkem: &[u8]) -> Result<SharedSecret, Error> {
     z.extend_from_slice(ecdh);
     z.extend_from_slice(mlkem);
     // SharedSecret zeroizes on drop. The component Vec from ecdh_p384 is not zeroized (spike limit; the
-    // aegis-tls version should use zeroize::Zeroizing).
+    // monban-tls version should use zeroize::Zeroizing).
     Ok(SharedSecret::from(z))
 }
 

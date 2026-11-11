@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS write-path differential oracle: INV-WRITE-SUBSET W1/W2/W4/W6 (+W3 via W1, +W7 for Redis), SPEC_INVARIANTS E.
+"""Monban write-path differential oracle: INV-WRITE-SUBSET W1/W2/W4/W6 (+W3 via W1, +W7 for Redis), SPEC_INVARIANTS E.
 
 Per case the subject renders ONE statement (UPDATE / DELETE / INSERT / UPSERT, or Redis commands); the oracle runs
 it in a transaction that is rolled back, diffs the WHOLE table (all tenants) pre vs post, and checks
@@ -736,9 +736,9 @@ FROZEN_RESP_DENY = ["EVAL", "EVALSHA", "EVAL_RO", "EVALSHA_RO", "FCALL", "FCALL_
                     "SELECT", "CLIENT", "ACL", "CONFIG", "DEBUG", "MODULE", "MONITOR"]
 
 def resp_denylist():
-    """The frozen RESP denylist (aegis_data_ir::denylist, crates/aegis-data-ir/src/ir.rs RESP_DENY); the embedded
+    """The frozen RESP denylist (monban_data_ir::denylist, crates/monban-data-ir/src/ir.rs RESP_DENY); the embedded
     copy is used only when the oracle runs outside the repo. Every item must be covered by the hostile corpus."""
-    p = os.path.join(L.repo_root(HERE), "crates", "aegis-data-ir", "src", "ir.rs")
+    p = os.path.join(L.repo_root(HERE), "crates", "monban-data-ir", "src", "ir.rs")
     try:
         src = open(p, encoding="utf-8").read()
     except OSError:
@@ -751,7 +751,7 @@ def resp_denylist():
 def hostile_corpus(T, O):
     """(label, argv) hostile commands for tenant hex T against tenant hex O. Keys use the reference encoding."""
     own, fk = f"t:{{{T}}}:c:k1", f"t:{{{O}}}:c:k1"
-    lua = "#!lua name=aegislib\nredis.register_function('aegisf', function(keys, args) return 1 end)"
+    lua = "#!lua name=monbanlib\nredis.register_function('monbanf', function(keys, args) return 1 end)"
     c = [
         ("FLUSHALL", ["FLUSHALL"]), ("FLUSHALL ASYNC", ["FLUSHALL", "ASYNC"]), ("FLUSHDB", ["FLUSHDB"]),
         ("KEYS *", ["KEYS", "*"]), ("KEYS foreign", ["KEYS", f"t:{{{O}}}:*"]), ("KEYS own", ["KEYS", f"t:{{{T}}}:*"]),
@@ -765,8 +765,8 @@ def hostile_corpus(T, O):
         ("SCRIPT LOAD", ["SCRIPT", "LOAD", "return 1"]), ("SCRIPT FLUSH", ["SCRIPT", "FLUSH"]),
         ("SCRIPT EXISTS", ["SCRIPT", "EXISTS", "e0e1f9fabfc9d4800c877a703b823ac0578ff8db"]),
         ("FUNCTION LOAD", ["FUNCTION", "LOAD", lua]), ("FUNCTION LIST", ["FUNCTION", "LIST"]),
-        ("FUNCTION FLUSH", ["FUNCTION", "FLUSH"]), ("FCALL", ["FCALL", "aegisf", "0"]), ("FCALL_RO", ["FCALL_RO", "aegisf", "0"]),
-        ("MODULE LIST", ["MODULE", "LIST"]), ("MODULE LOAD", ["MODULE", "LOAD", "/nonexistent/aegis.so"]),
+        ("FUNCTION FLUSH", ["FUNCTION", "FLUSH"]), ("FCALL", ["FCALL", "monbanf", "0"]), ("FCALL_RO", ["FCALL_RO", "monbanf", "0"]),
+        ("MODULE LIST", ["MODULE", "LIST"]), ("MODULE LOAD", ["MODULE", "LOAD", "/nonexistent/monban.so"]),
         ("DEBUG SLEEP", ["DEBUG", "SLEEP", "0"]), ("DEBUG OBJECT", ["DEBUG", "OBJECT", own]),
         ("MIGRATE own key", ["MIGRATE", "127.0.0.1", "1", own, "0", "10"]),
         ("MIGRATE KEYS foreign", ["MIGRATE", "127.0.0.1", "1", "", "0", "10", "KEYS", fk]),
@@ -781,8 +781,8 @@ def hostile_corpus(T, O):
         ("CLIENT KILL ID", ["CLIENT", "KILL", "ID", "999999999"]), ("CLIENT KILL ADDR", ["CLIENT", "KILL", "ADDR", "192.0.2.1:1"]),
         ("CLIENT SETNAME", ["CLIENT", "SETNAME", "x"]), ("CLIENT NO-EVICT", ["CLIENT", "NO-EVICT", "on"]),
         ("ACL WHOAMI", ["ACL", "WHOAMI"]), ("ACL LIST", ["ACL", "LIST"]), ("ACL GETUSER default", ["ACL", "GETUSER", "default"]),
-        ("ACL SETUSER self +@all", ["ACL", "SETUSER", f"aegis_kv_{T}", "+@all", "~*"]),
-        ("ACL DELUSER", ["ACL", "DELUSER", "aegis_nonexistent"]), ("ACL LOG", ["ACL", "LOG"]),
+        ("ACL SETUSER self +@all", ["ACL", "SETUSER", f"monban_kv_{T}", "+@all", "~*"]),
+        ("ACL DELUSER", ["ACL", "DELUSER", "monban_nonexistent"]), ("ACL LOG", ["ACL", "LOG"]),
         ("MONITOR", ["MONITOR"]),
         ("PUBLISH", ["PUBLISH", f"t:{{{O}}}:ch", "m"]), ("SPUBLISH", ["SPUBLISH", f"t:{{{O}}}:ch", "m"]),
         ("SUBSCRIBE", ["SUBSCRIBE", f"t:{{{O}}}:ch"]), ("PSUBSCRIBE", ["PSUBSCRIBE", "*"]),
@@ -887,7 +887,7 @@ def kv_acl_family(subject, cfg, st, eng, url):
     base = seed()
     for i, t in enumerate(KV_TEN):
         o = KV_TEN[(i + 1) % len(KV_TEN)]
-        user = f"aegis_kv_{t}"; pw = os.urandom(12).hex()
+        user = f"monban_kv_{t}"; pw = os.urandom(12).hex()
         rep = subject.call({"op": "kv_acl", "tenant": t})
         st["cases"] += 1
         if "refuse" in rep or not isinstance(rep.get("rules"), list):
@@ -956,10 +956,10 @@ def kv_acl_family(subject, cfg, st, eng, url):
 # every permissive policy carries USING and an explicit WITH CHECK on the tenant column vs current_setting(S)),
 # BIND (after COMMIT/ROLLBACK -- the checkin -- the connection is back to the login role with the setting empty),
 # and the owner path (owner login with the setting bound but no role switch: FORCE must stop the owner bypass).
-RLS_ROLE, RLS_LOGIN, RLS_SETTING = "aegis_rls_app", "aegis_rls_login", "aegis.tenant"
+RLS_ROLE, RLS_LOGIN, RLS_SETTING = "monban_rls_app", "monban_rls_login", "monban.tenant"
 RLS_COLS = ["id", "tenant", "peer", "grp", "x", "y", "secret"]
 RLS_DECL = {"id": "int", "tenant": "text", "peer": "text", "grp": "text", "x": "text", "y": "text", "secret": "text"}
-RLS_SNAP = "select id, tenant, peer, grp, x, y, secret from aegis_rls_snap()"
+RLS_SNAP = "select id, tenant, peer, grp, x, y, secret from monban_rls_snap()"
 RLS_KINDS = ["sel", "upd", "del", "updall", "delall", "inso", "move", "movew", "insf", "upg", "upgt"]
 RLS_WELLFORMED = {"sel", "upd", "del", "updall", "delall", "inso"}
 
@@ -974,11 +974,11 @@ def rls_setup(admin, dsn, rows):
         if admin.query("select 1 from pg_roles where rolname = $1", (r,))[1]:
             admin.simple(f"drop owned by {r} cascade")
     admin.simple("drop table if exists rt cascade")
-    admin.simple("drop function if exists aegis_rls_snap()")
+    admin.simple("drop function if exists monban_rls_snap()")
     for r in (RLS_LOGIN, RLS_ROLE):
         admin.simple(f"drop role if exists {r}")
     admin.simple(f"create role {RLS_ROLE} nologin")
-    # NOINHERIT: policies TO aegis_rls_app must not apply to the owner login implicitly (else a binding without
+    # NOINHERIT: policies TO monban_rls_app must not apply to the owner login implicitly (else a binding without
     # SET LOCAL ROLE, mutant rls-no-role, would be indistinguishable from a correct one)
     admin.simple(f"create role {RLS_LOGIN} login noinherit nosuperuser nobypassrls password '{pw}'")
     admin.simple(f"grant {RLS_ROLE} to {RLS_LOGIN}")
@@ -989,10 +989,10 @@ def rls_setup(admin, dsn, rows):
     admin.simple(f"alter table rt owner to {RLS_LOGIN}")
     admin.simple(f"grant select, insert, update, delete on rt to {RLS_ROLE}")
     # superuser-owned SECURITY DEFINER snapshot: sees the whole table, including this transaction's own changes
-    admin.simple("create function aegis_rls_snap() returns setof rt language sql security definer "
+    admin.simple("create function monban_rls_snap() returns setof rt language sql security definer "
                  "set search_path = public as $$ select * from rt $$")
-    admin.simple("revoke all on function aegis_rls_snap() from public")
-    admin.simple(f"grant execute on function aegis_rls_snap() to {RLS_ROLE}, {RLS_LOGIN}")
+    admin.simple("revoke all on function monban_rls_snap() from public")
+    admin.simple(f"grant execute on function monban_rls_snap() to {RLS_ROLE}, {RLS_LOGIN}")
     return L.Pg(login_dsn(dsn, RLS_LOGIN, pw))
 
 def _strip_literals(s):
@@ -1173,7 +1173,7 @@ def rls_family(admin, dsn, subject, cfg, fams, tag):
                 st["blocked"] += 1
             login.simple("rollback")
         login.close()
-    admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists aegis_rls_snap()")
+    admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists monban_rls_snap()")
 
 # =========================================================================================== PG ON CONFLICT information run
 INFO_NAME = "LOWERING-WRITE PG-ONCONFLICT-INFO"
@@ -1193,9 +1193,9 @@ def pg_onconflict_info(dsns, subject):
         admin.simple(f"create table rt2(tenant text not null, id int not null, x text, primary key (tenant, id))")
         admin.simple(f"insert into rt2 values ('{A_}', 1, 'secretA'), ('{B_}', 2, 'secretB')")
         admin.simple(f"alter table rt2 owner to {RLS_LOGIN}"); admin.simple(f"grant select, insert, update, delete on rt2 to {RLS_ROLE}")
-        admin.simple("create or replace function aegis_peek(text) returns boolean language plpgsql as "
+        admin.simple("create or replace function monban_peek(text) returns boolean language plpgsql as "
                      "$$ begin raise notice 'AEGIS_PEEK %', $1; return true; end $$")
-        admin.simple(f"grant execute on function aegis_peek(text) to {RLS_ROLE}")
+        admin.simple(f"grant execute on function monban_peek(text) to {RLS_ROLE}")
         admin.simple(f"create view rtv with (security_barrier = true) as select * from rt where tenant = current_setting('{RLS_SETTING}', true)")
         admin.simple(f"grant select, insert on rtv to {RLS_ROLE}")
         for tbl in ("rt", "rt2"):
@@ -1204,14 +1204,14 @@ def pg_onconflict_info(dsns, subject):
             for s in pol.get("statements", []): login.simple(s)
         probes = [
             ("P1 ON CONFLICT (id) DO UPDATE .. WHERE peek(t.x), global arbiter, foreign id 2",
-             "INSERT INTO rt(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO UPDATE SET x = excluded.x WHERE aegis_peek(rt.x)"),
+             "INSERT INTO rt(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO UPDATE SET x = excluded.x WHERE monban_peek(rt.x)"),
             ("P2 hardened: composite arbiter (tenant,id) .. WHERE peek(t.x), id 2",
-             "INSERT INTO rt2(tenant, id, x) VALUES ($1, 2, 'n') ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE aegis_peek(rt2.x)"),
-            ("P3 control UPDATE .. WHERE peek(x)", "UPDATE rt SET x = 'z' WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
-            ("P4 control DELETE .. WHERE peek(x)", "DELETE FROM rt WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
+             "INSERT INTO rt2(tenant, id, x) VALUES ($1, 2, 'n') ON CONFLICT (tenant, id) DO UPDATE SET x = excluded.x WHERE monban_peek(rt2.x)"),
+            ("P3 control UPDATE .. WHERE peek(x)", "UPDATE rt SET x = 'z' WHERE monban_peek(x) AND $1::text IS NOT NULL"),
+            ("P4 control DELETE .. WHERE peek(x)", "DELETE FROM rt WHERE monban_peek(x) AND $1::text IS NOT NULL"),
             ("P5 control MERGE .. WHEN MATCHED AND peek(t.x)",
-             "MERGE INTO rt USING (SELECT 2 AS id, $1::text AS t) s ON rt.id = s.id WHEN MATCHED AND aegis_peek(rt.x) THEN UPDATE SET x = 'm'"),
-            ("P6 control SELECT .. WHERE peek(x)", "SELECT id FROM rt WHERE aegis_peek(x) AND $1::text IS NOT NULL"),
+             "MERGE INTO rt USING (SELECT 2 AS id, $1::text AS t) s ON rt.id = s.id WHEN MATCHED AND monban_peek(rt.x) THEN UPDATE SET x = 'm'"),
+            ("P6 control SELECT .. WHERE peek(x)", "SELECT id FROM rt WHERE monban_peek(x) AND $1::text IS NOT NULL"),
             ("P7 ON CONFLICT (id) DO SELECT RETURNING (PG19 syntax), RLS table",
              "INSERT INTO rt(id, tenant, x) VALUES (2, $1, 'n') ON CONFLICT (id) DO SELECT RETURNING id, tenant, x"),
             ("P8 ON CONFLICT (id) DO SELECT via security_barrier view (view tenancy, not RLS)",
@@ -1235,9 +1235,9 @@ def pg_onconflict_info(dsns, subject):
             print(f"    {label}: foreign row {'SEEN' if leak else 'not seen'}; {outcome}"
                   + (f"; notices={seen}" if seen else ""))
         login.close()
-        for o in ("view if exists rtv", "table if exists rt2", "function if exists aegis_peek(text)"):
+        for o in ("view if exists rtv", "table if exists rt2", "function if exists monban_peek(text)"):
             admin.simple(f"drop {o}")
-        admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists aegis_rls_snap()")
+        admin.simple("drop table if exists rt cascade"); admin.simple("drop function if exists monban_rls_snap()")
         admin.close()
         word = lambda k: "n/a" if res.get(k) is None else "LEAKS" if res[k] else "clean"
         summary.append(f"pg{v}: P1 foreign-row peek {'REPRODUCES' if res.get('P1') else 'does not reproduce'}, "

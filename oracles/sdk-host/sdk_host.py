@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""AEGIS sdk-host oracle: the F7b streaming host obligations left to aegis-adapter-host (spikes/APPLIED.md q4-001,
-sdk/aegis-sdk/src/host.rs module doc, DEVIATIONS X-11). Run as `python3 -I sdk_host.py`, normally via ./run.
+"""Monban sdk-host oracle: the F7b streaming host obligations left to monban-adapter-host (spikes/APPLIED.md q4-001,
+sdk/monban-sdk/src/host.rs module doc, DEVIATIONS X-11). Run as `python3 -I sdk_host.py`, normally via ./run.
 
 The oracle drives a host subject over the JSON-lines protocol in README.md ("Subject protocol"), one process per
 seed, keeps its own model of sessions, streams, budgets, the pool and the job store, and compares every op's event

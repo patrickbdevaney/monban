@@ -1,7 +1,7 @@
-{"id":"P2-audit-001","crates":["aegis-audit"],
+{"id":"P2-audit-001","crates":["monban-audit"],
  "spec_refs":["F9 interfaces/F9-audit-event.schema.json","F1#Audit-I1..I7","ARCHITECTURE §3.10 (C2SP tlog-tiles, single writer, checkpoint after fsync, Ed25519 signed-note + ML-DSA-87 cosignature in gov profiles)"],
  "oracles":["oracles/tlog-verify (new, Go: golang.org/x/mod/sumdb/{tlog,note} + C2SP checkpoint/tile verification) run against tiles written by subjects/audit-subject; self-test: tampered leaf, reordered tile, forked checkpoint, unsigned checkpoint must fail"],
  "acceptance":{"cmd":"oracles/tlog-verify/run --subject target/release/audit-subject && oracles/tlog-verify/run --self-test","must":"TLOG-VERIFY: PASS and SELF-TEST: PASS"},
- "write_scope":["crates/aegis-audit/**","subjects/audit-subject/**","oracles/tlog-verify/**"],
+ "write_scope":["crates/monban-audit/**","subjects/audit-subject/**","oracles/tlog-verify/**"],
  "note":"oracle and implementation written in one unit for bootstrap; the oracle uses an independent implementation (Go x/mod tlog) so it is not self-grading",
  "infeasible_exit":true,"max_retries":30,"passes":false}

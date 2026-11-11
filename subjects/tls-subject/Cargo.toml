@@ -1,33 +1,33 @@
 [package]
 name = "tls-subject"
-description = "Oracle subject for oracles/hrr-verdicts (F12): builds every listener config through aegis-tls's public API."
+description = "Oracle subject for oracles/hrr-verdicts (F12): builds every listener config through monban-tls's public API."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 [features]
 # PLAN-6 D1: the subject built against the cmvp overlay lock (profiles/cmvp/build.sh).
 # Exclusive with `interop`: profiles/cmvp/build.sh builds tls-subject with --no-default-features.
-# aegis-iso/cmvp: the linked module's version string for `describe` (PLAN-6 D16).
-cmvp = ["aegis-tls/cmvp", "dep:aegis-iso", "aegis-iso/cmvp"]
+# monban-iso/cmvp: the linked module's version string for `describe` (PLAN-6 D16).
+cmvp = ["monban-tls/cmvp", "dep:monban-iso", "monban-iso/cmvp"]
 # PREFLIGHT D-P8.2 (P8-spec-002 pre-wiring; mode body by P8-cmvp-002): `tls-subject indicator` reads AWS-LC's FIPS
 # service indicator around ECDH P-384, ML-KEM-1024 encap/decap, HKDF and one 0x11ED handshake. cmvp only.
-indicator = ["cmvp", "aegis-iso/indicator"]
+indicator = ["cmvp", "monban-iso/indicator"]
 # P7-mtc-001: CredentialSelector (PLAN-7 D-P7.4); never in the cmvp build.
-mtc = ["aegis-tls/mtc"]
-# oracles/kx-interop `interop-client`: the product client builder `aegis_tls::client_config`. On in the floor build,
+mtc = ["monban-tls/mtc"]
+# oracles/kx-interop `interop-client`: the product client builder `monban_tls::client_config`. On in the floor build,
 # off in the cmvp build (no rustls client there, spikes/cmvp-client-policy mode A).
 default = ["interop"]
-interop = ["aegis-tls/tls-client"]
+interop = ["monban-tls/tls-client"]
 
 [dependencies]
-aegis-tls = { workspace = true }
-aegis-iso = { workspace = true, optional = true }
+monban-tls = { workspace = true }
+monban-iso = { workspace = true, optional = true }
 rustls = { workspace = true }
 aws-lc-rs = { workspace = true }
 

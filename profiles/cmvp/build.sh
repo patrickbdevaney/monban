@@ -4,7 +4,7 @@
 # profiles/cmvp/Cargo.lock as its lock. Nothing outside target/ is written (except --lock, which rewrites
 # profiles/cmvp/Cargo.lock).
 #
-#   profiles/cmvp/build.sh [--check]   build aegis-bin (feature cmvp) and tls-subject (cmvp,indicator), one cargo
+#   profiles/cmvp/build.sh [--check]   build monban-bin (feature cmvp) and tls-subject (cmvp,indicator), one cargo
 #                                      invocation each (no feature unification across them), with --locked
 #                                      --release inside the AL2023 image (deploy/build/al2023.Containerfile, < 500 MB
 #                                      asserted); output in target/cmvp/release/. Needs docker, Go 1.27.3
@@ -16,7 +16,7 @@
 #   profiles/cmvp/build.sh --metadata  print `cargo metadata --locked --format-version 1` of the overlay tree (light;
 #                                      used by `cargo xtask fips-lock --profile cmvp`)
 #   profiles/cmvp/build.sh --vet       `cargo vet --locked` over the overlay tree and the cmvp lock (light)
-# Env: CMVP_CARGO_PROFILE=release|dev (default release), CMVP_PACKAGES (default "aegis-bin tls-subject").
+# Env: CMVP_CARGO_PROFILE=release|dev (default release), CMVP_PACKAGES (default "monban-bin tls-subject").
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 P="$ROOT/profiles/cmvp"
@@ -64,7 +64,7 @@ case "$MODE" in
     prepare
     cp "$P/Cargo.lock" "$SRC/Cargo.lock"
     CF="$ROOT/deploy/build/al2023.Containerfile"
-    IMG="aegis-al2023-build:$(sha256sum "$CF" | cut -c1-12)"
+    IMG="monban-al2023-build:$(sha256sum "$CF" | cut -c1-12)"
     if ! docker image inspect "$IMG" > /dev/null 2>&1; then
       docker build -q -t "$IMG" -f "$CF" "$ROOT/deploy/build" > /dev/null
     fi
@@ -83,9 +83,9 @@ case "$MODE" in
     mkdir -p "$OUT/home"
     prof="${CMVP_CARGO_PROFILE:-release}"
     # One cargo invocation per package (P8-spec-002, PREFLIGHT D-P8.2): cargo unifies features across the packages
-    # of one invocation, so building tls-subject (cmvp + indicator) together with aegis-bin would switch aegis-iso's
-    # `indicator` on inside aegis-bin too. Built alone, aegis-bin's graph is exactly its own `cmvp` closure.
-    for p in ${CMVP_PACKAGES:-aegis-bin tls-subject}; do
+    # of one invocation, so building tls-subject (cmvp + indicator) together with monban-bin would switch monban-iso's
+    # `indicator` on inside monban-bin too. Built alone, monban-bin's graph is exactly its own `cmvp` closure.
+    for p in ${CMVP_PACKAGES:-monban-bin tls-subject}; do
       feats="$p/cmvp"; [ "$p" = tls-subject ] && feats="$feats,$p/indicator"
       flags=(--locked --keep-going --no-default-features -p "$p" --features "$feats")
       [ "$prof" = release ] && flags+=(--release)

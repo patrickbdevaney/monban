@@ -1,11 +1,11 @@
-{"ts":"2026-11-06T12:00:00.000000001Z","level":"TRACE","target":"aegis::admin","msg":"admin connection accepted"}
-{"ts":"2026-11-06T12:00:00.5Z","level":"DEBUG","target":"aegis::proxy","msg":"route matched","route":1,"vhost":"aegis.test"}
-{"ts":"2026-11-06T12:00:01.123456789Z","level":"INFO","target":"aegis::serve","msg":"config generation 2 applied","generation":2,"config_hash":"0cfda536f65bff1f"}
-{"ts":"2026-11-06T12:00:02Z","level":"WARN","target":"aegis::serve","msg":"no authz policy; every request is denied (INV-NONEMPTY)","route":"/vhosts/0/routes/1","trace_id":"5B8EFFF798038103D269B633813FC60C","span_id":"EEE19B7EC3C1B174"}
-{"ts":"2026-11-06T12:00:03.25Z","level":"ERROR","target":"aegis::proxy","msg":"upstream connect failed","upstream":"127.0.0.1:18445","os_error":111,"latency_s":0.0125,"retryable":false,"peer":{"ip":"127.0.0.1","port":18445},"tags":["upstream","connect"]}
-{"ts":"2026-11-06T12:00:04Z","level":"FATAL","target":"aegis::serve","msg":"no validated configuration; refusing to serve (fail-closed boot)"}
-{"ts":"2026-11-06T12:00:05Z","level":"warn","target":"aegis::agent","msg":"lowercase level is case-insensitive"}
-{"ts":"2026-11-06T12:00:06Z","level":"NOTICE","target":"aegis::agent","msg":"unknown level keeps its text, severityNumber 0","note":null}
+{"ts":"2026-11-06T12:00:00.000000001Z","level":"TRACE","target":"monban::admin","msg":"admin connection accepted"}
+{"ts":"2026-11-06T12:00:00.5Z","level":"DEBUG","target":"monban::proxy","msg":"route matched","route":1,"vhost":"monban.test"}
+{"ts":"2026-11-06T12:00:01.123456789Z","level":"INFO","target":"monban::serve","msg":"config generation 2 applied","generation":2,"config_hash":"0cfda536f65bff1f"}
+{"ts":"2026-11-06T12:00:02Z","level":"WARN","target":"monban::serve","msg":"no authz policy; every request is denied (INV-NONEMPTY)","route":"/vhosts/0/routes/1","trace_id":"5B8EFFF798038103D269B633813FC60C","span_id":"EEE19B7EC3C1B174"}
+{"ts":"2026-11-06T12:00:03.25Z","level":"ERROR","target":"monban::proxy","msg":"upstream connect failed","upstream":"127.0.0.1:18445","os_error":111,"latency_s":0.0125,"retryable":false,"peer":{"ip":"127.0.0.1","port":18445},"tags":["upstream","connect"]}
+{"ts":"2026-11-06T12:00:04Z","level":"FATAL","target":"monban::serve","msg":"no validated configuration; refusing to serve (fail-closed boot)"}
+{"ts":"2026-11-06T12:00:05Z","level":"warn","target":"monban::agent","msg":"lowercase level is case-insensitive"}
+{"ts":"2026-11-06T12:00:06Z","level":"NOTICE","target":"monban::agent","msg":"unknown level keeps its text, severityNumber 0","note":null}
 {"level":"INFO","msg":"no ts: timeUnixNano left unset"}
 [1,2,3]
 {"ts":"2026-11-06T12:00:07Z","level":"INFO","msg":"broken json

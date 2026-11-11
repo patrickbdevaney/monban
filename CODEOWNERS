@@ -9,7 +9,7 @@
 /tls/                   @patrickd
 /supply-chain/          @patrickd
 /.github/               @patrickd
-/crates/aegis-types/    @patrickd
+/crates/monban-types/    @patrickd
 /Cargo.toml             @patrickd
 /Cargo.lock             @patrickd
 /deny.toml              @patrickd

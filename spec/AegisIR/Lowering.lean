@@ -1,5 +1,5 @@
 /-
-AEGIS op-capability IR — filter fragment and its SQL lowering, core Lean 4 only (no Mathlib, no Batteries).
+Monban op-capability IR — filter fragment and its SQL lowering, core Lean 4 only (no Mathlib, no Batteries).
 STATUS: r3 draft written 2026-10-25 without a toolchain; r4 E01 CHECKED it with lean 4.35.0 (eb6cafb) on 2026-10-25.
         r3 draft as written FAILED: 3 errors (anyEq_sound: `simp [List.contains]` hit maxRecDepth twice; lower_sound_pos
         isIn case: simp normalises `vs.contains x = true` to `x ∈ vs`) + 1 sorry (lower_sound_full).

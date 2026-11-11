@@ -8,9 +8,9 @@ interoperates with OpenSSL 3.5.9 and Go crypto/tls (see the "Interop" table for 
 path). It passes a composite KAT built from public vectors, 15 negative handshake tests, 5 ACVP invalid-key
 rejections and a 3000-input fuzz (malformed input gets an alert, never a panic). Both components are inside the AWS-LC FIPS 3.1.0 approved boundary (CMVP #5298/#5314), so a
 FIPS claim for 0x11ED is possible on the cmvp lock, under the conditions in "FIPS boundary". The FIPS half was
-checked against documents only; no build ran. 0x11ED stays AEGIS-owned code in aegis-tls::kx.
+checked against documents only; no build ran. 0x11ED stays Monban-owned code in monban-tls::kx.
 
-## Code location (seed for `aegis-tls::kx`)
+## Code location (seed for `monban-tls::kx`)
 
 | file | what |
 |---|---|
@@ -169,22 +169,22 @@ CARGO_TARGET_DIR=$PWD/target ../../ci/heavy.sh cargo build --offline     # 20 s,
 ./target/debug/kx11ed selftest                                          # -> SELFTEST: PASS (41 pass, 0 fail)
 
 # OpenSSL 3.5.9 image (9 MB): alpine:3.22 + apk openssl
-docker build -t aegis-q4026-openssl -f interop/Dockerfile.openssl interop
+docker build -t monban-q4026-openssl -f interop/Dockerfile.openssl interop
 # rustls server <- OpenSSL client (direct, HRR, multi-group)
 ./target/debug/kx11ed server 18443 3 &
-printf 'GET / HTTP/1.0\r\n\r\n' | docker run --rm -i --network host aegis-q4026-openssl \
+printf 'GET / HTTP/1.0\r\n\r\n' | docker run --rm -i --network host monban-q4026-openssl \
    s_client -connect 127.0.0.1:18443 -tls1_3 -groups SecP384r1MLKEM1024 -ign_eof
 #   ... -groups X25519:SecP384r1MLKEM1024 -trace      (HRR to 0x11ED)
 #   ... -groups SecP384r1MLKEM1024:X25519MLKEM768
 # OpenSSL server <- rustls client
-docker run -d --name q4026srv --network host --entrypoint sh aegis-q4026-openssl -c \
-  "openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-384 -nodes -keyout /k.pem -out /c.pem -subj /CN=aegis.test \
+docker run -d --name q4026srv --network host --entrypoint sh monban-q4026-openssl -c \
+  "openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-384 -nodes -keyout /k.pem -out /c.pem -subj /CN=monban.test \
    && openssl s_server -accept 18444 -cert /c.pem -key /k.pem -tls1_3 -groups SecP384r1MLKEM1024 -www -naccept 1 -trace"
 ./target/debug/kx11ed client 127.0.0.1:18444
 # Go 1.26 crypto/tls (multi-stage image; builder golang:1.26-alpine 241 MB, final ~16 MB)
-ci/heavy.sh docker build -t aegis-q4026-gotls interop/go
-docker run --rm --network host aegis-q4026-gotls server 127.0.0.1:18446 &  ./target/debug/kx11ed client 127.0.0.1:18446
-./target/debug/kx11ed server 18447 1 &  docker run --rm --network host aegis-q4026-gotls client 127.0.0.1:18447
+ci/heavy.sh docker build -t monban-q4026-gotls interop/go
+docker run --rm --network host monban-q4026-gotls server 127.0.0.1:18446 &  ./target/debug/kx11ed client 127.0.0.1:18446
+./target/debug/kx11ed server 18447 1 &  docker run --rm --network host monban-q4026-gotls client 127.0.0.1:18447
 # order mutant (must FAIL with every peer)
 ./target/debug/kx11ed server-swapped 18448 2 &  (OpenSSL s_client and Go client as above, port 18448)
 rm -rf target
@@ -193,7 +193,7 @@ rm -rf target
 ## Limits (honest)
 
 - **Laptop, loopback, one run per case** (grade B ceiling per the contract; reached R2: executed against two
-  independent implementations). The 0x11ED code is not yet in `aegis-tls`; the Kani share-parsing harness
+  independent implementations). The 0x11ED code is not yet in `monban-tls`; the Kani share-parsing harness
   (Phase-6 gate) is not written.
 - **No published 0x11ED KAT exists.** The composite KAT uses third-party component vectors (ACVP ML-KEM-1024,
   RFC 5903 P-384). It covers only the client-side `complete`. Server-side `start_and_complete` uses fresh randomness
@@ -207,8 +207,8 @@ rm -rf target
 - **FIPS half is a desk check.** No aws-lc-fips-sys build, no `config.fips()`, no module-string check, and the cmvp
   lock (rustls 0.23.43 / aws-lc-rs 1.15.3) was source-inspected, not compiled. Grade C for the FIPS answer.
 - Secret hygiene: the 48-byte ECDH and 32-byte ML-KEM intermediates are plain `Vec`/`SharedSecret` and are not
-  zeroized; the combined `SharedSecret` is zeroized. `aegis-tls` should use `zeroize::Zeroizing`.
+  zeroized; the combined `SharedSecret` is zeroized. `monban-tls` should use `zeroize::Zeroizing`.
 - The negative-test harness mutates shares through wrapper groups and one wire rewrite. It is not a full TLS
   fuzzer. F1 is a 3000-iteration xorshift fuzz of the two entry points, not coverage-guided.
-- Docker images used: aegis-q4026-openssl 9.15 MB, aegis-q4026-gotls 15.6 MB, builder golang:1.26-alpine 241 MB
+- Docker images used: monban-q4026-openssl 9.15 MB, monban-q4026-gotls 15.6 MB, builder golang:1.26-alpine 241 MB
   (all under 500 MB). All three were removed after the run.

@@ -1,4 +1,4 @@
-"""AEGIS oracle proxy-l4 (P7-oracle-proxy-001): PROXY v2 + L4 SNI passthrough, F1 PROXY-1..3 and L4-1..2.
+"""Monban oracle proxy-l4 (P7-oracle-proxy-001): PROXY v2 + L4 SNI passthrough, F1 PROXY-1..3 and L4-1..2.
 
 Stdlib only; run as `python3 -I oracle.py` (via ./run). See README.md for the subject contract, the F8 config, the
 receiver rules, every check and the self-test mutants.
@@ -259,7 +259,7 @@ class Run:
         self.failures = []
         self.passed = 0
         self.lock = threading.Lock()
-        self.dir = tempfile.mkdtemp(prefix="aegis-proxy-l4-")
+        self.dir = tempfile.mkdtemp(prefix="monban-proxy-l4-")
         self.proc = None
         self.expect_audit = collections.Counter()
         self.expect_up = {"a": 0, "b": 0}
@@ -309,7 +309,7 @@ class Run:
             lst.append({"name": "pub6", "bind": f"[::1]:{self.p_pub6}", "profile": "P-PUBLIC-WEB",
                         "alpn": ["http/1.1"], "proxy_protocol": {"trusted": ["::1/128"]}})
         doc = {"v": 1, "listeners": lst, "admin": {"bind": f"127.0.0.1:{self.p_admin}"},
-               "vhosts": [{"host": "aegis.test", "routes": [
+               "vhosts": [{"host": "monban.test", "routes": [
                    {"id": 1, "path": "/api/", "to": {"upstream": f"127.0.0.1:{self.rec.port}"},
                     "authz": "allow-all"}]}]}
         if mutate:
@@ -378,10 +378,10 @@ class Run:
         """TLS (prefix bytes coalesced in front of the ClientHello) + one HTTP/1.1 GET. Returns (status|None, pump,
         error)."""
         s = connect(port, src, host, fam)
-        p = Pump(s, self.http_ctx(), server_hostname="aegis.test", prefix=prefix)
+        p = Pump(s, self.http_ctx(), server_hostname="monban.test", prefix=prefix)
         try:
             p.handshake()
-            p.write(b"GET " + target + f" HTTP/1.1\r\nHost: aegis.test:{port}\r\nConnection: close\r\n\r\n".encode())
+            p.write(b"GET " + target + f" HTTP/1.1\r\nHost: monban.test:{port}\r\nConnection: close\r\n\r\n".encode())
             resp = p.read_all()
             line = resp.split(b"\r\n", 1)[0].split(b" ")
             return (int(line[1]) if len(line) > 1 and line[1].isdigit() else None), p, None
@@ -420,7 +420,7 @@ class Run:
         try:
             if not shutil.which("openssl"):
                 raise RuntimeError("openssl CLI not found (mints the throwaway certificates)")
-            self.crt, self.key = self.mint("aegis", "aegis.test", ["aegis.test"])
+            self.crt, self.key = self.mint("monban", "monban.test", ["monban.test"])
             self.ca_a, ka = self.mint("a", "a.l4.test", ["a.l4.test"])
             self.ca_b, kb = self.mint("b", "b.l4.test", ["b.l4.test"])
             self.rec = Recorder()
@@ -522,7 +522,7 @@ class Run:
     # -------------------------------------------------------------------------------------------- PROXY (HTTP)
 
     def proxy_checks(self):
-        hello = ch.record(ch.build(sni="aegis.test", alpn=["http/1.1"], seed=3))
+        hello = ch.record(ch.build(sni="monban.test", alpn=["http/1.1"], seed=3))
         P = self.p_pub
         # spec / trailing / policy vectors from a trusted source
         for v in self.pv["vectors"]:
@@ -880,7 +880,7 @@ def self_test(jobs):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--binary", "--subject", dest="subject", help="aegis binary (built with proxy-protocol,l4)")
+    ap.add_argument("--binary", "--subject", dest="subject", help="monban binary (built with proxy-protocol,l4)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--ref-mutant", help=argparse.SUPPRESS)
     ap.add_argument("--jobs", type=int, default=4)
@@ -888,7 +888,7 @@ def main():
     a = ap.parse_args()
     if a.self_test:
         return 0 if self_test(a.jobs) else 1
-    subj = a.subject or "target/release/aegis"
+    subj = a.subject or "target/release/monban"
     if subj != "ref" and not os.path.exists(subj):
         print(f"{NAME}: FAIL (subject {subj} not found)")
         return 1

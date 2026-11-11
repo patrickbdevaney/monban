@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""lowmy.py -- MariaDB and CockroachDB dialects for the AEGIS lowering oracles (stdlib only, run with python3 -I).
+"""lowmy.py -- MariaDB and CockroachDB dialects for the Monban lowering oracles (stdlib only, run with python3 -I).
 
 Copied byte-identically into oracles/lowering-read/ and oracles/lowering-write/ (like lowir.py; both READMEs record
 its sha256). It imports lowir.py UNMODIFIED: the IR, the Lean model, the reference renderer and the PG wire client
@@ -562,7 +562,7 @@ class ExtRenderer:
         self.maria, self.crdb = MariaRenderer(mutants), CrdbRenderer(mutants)
     def handle(self, req):
         if req.get("op") == "hello" and "refuse-all" not in self.m:
-            return {"name": "aegis-reference-renderer(lowmy.py)", "mutants": sorted(self.m), "protocol": L.PROTOCOL}
+            return {"name": "monban-reference-renderer(lowmy.py)", "mutants": sorted(self.m), "protocol": L.PROTOCOL}
         d = req.get("dialect")
         if d == "mariadb": return self.maria.handle(req)
         if d == "crdb": return self.crdb.handle(req)

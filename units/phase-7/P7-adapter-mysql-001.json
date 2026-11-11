@@ -24,7 +24,7 @@
   "must": "PASS on all three mariadb gates; own MySQL wire client (handshake v10, mysql_native_password, auth switch; caching_sha2 refused with a clear error until TLS path exists; COM_STMT_PREPARE/EXECUTE binary protocol only, never text-protocol interpolation); q4-005 mandated forms; tenant/key collation must be binary (W3); connect timeout; packet length caps; fuzz-safe parser (no indexing panics)"
  },
  "write_scope": [
-  "crates/aegis-adapter-mysql/src/**",
+  "crates/monban-adapter-mysql/src/**",
   "subjects/mariadb-subject/src/**"
  ],
  "notes": "Non-golden until all three gates pass; then golden at rung R2 per q4-005."

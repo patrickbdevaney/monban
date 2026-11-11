@@ -1,20 +1,20 @@
 [package]
 name = "redis-subject"
-description = "Oracle subject: the KV renderer and per-tenant ACL rules of aegis-adapter-redis over JSON lines (oracles/lowering-read, oracles/lowering-write). Never linked into aegis."
+description = "Oracle subject: the KV renderer and per-tenant ACL rules of monban-adapter-redis over JSON lines (oracles/lowering-read, oracles/lowering-write). Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
-# No third-party dependencies: keys, patterns and ACL rules come from aegis-adapter-redis (kv_plan underneath).
+# No third-party dependencies: keys, patterns and ACL rules come from monban-adapter-redis (kv_plan underneath).
 [dependencies]
-aegis-adapter-redis = { workspace = true }
-aegis-data-ir = { workspace = true }
-aegis-types = { workspace = true }
+monban-adapter-redis = { workspace = true }
+monban-data-ir = { workspace = true }
+monban-types = { workspace = true }
 
 [lints]
 workspace = true

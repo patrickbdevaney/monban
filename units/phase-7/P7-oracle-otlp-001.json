@@ -18,7 +18,7 @@
  ],
  "acceptance": {
   "cmd": "oracles/otlp-export/run --self-test",
-  "must": "red before P7-otlp-001; Python collector on loopback validating OTLP/HTTP JSON per opentelemetry-proto JSON mapping (metrics: sum monotonic/cumulative for counters, gauge, histogram; logs: severityNumber, body, attributes); feeds a recorded aegis /metrics text and JSON log stream"
+  "must": "red before P7-otlp-001; Python collector on loopback validating OTLP/HTTP JSON per opentelemetry-proto JSON mapping (metrics: sum monotonic/cumulative for counters, gauge, histogram; logs: severityNumber, body, attributes); feeds a recorded monban /metrics text and JSON log stream"
  },
  "write_scope": [
   "oracles/otlp-export/**"

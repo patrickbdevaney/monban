@@ -1,0 +1,20 @@
+[package]
+name = "monban-adapter-sqlite"
+description = "SQLite adapter: lowering and driver."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+[dependencies]
+monban-types = { workspace = true }
+monban-data-ir = { workspace = true }
+# Pre-wired by P4-spec-002: bundled SQLite 3.54.1 (trusted, not verified C; DEVIATIONS X-10).
+rusqlite = { workspace = true }
+
+[lints]
+workspace = true

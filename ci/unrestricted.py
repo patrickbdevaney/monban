@@ -5,15 +5,15 @@ INV-NONEMPTY (spec/SPEC_INVARIANTS.md): an empty capability set denies; `Unrestr
 default config boot has no effective `None` limit. This script is the "CI-gated" and "default boot" half; the
 property half is oracles/nonempty-props.
 
-  python3 -I ci/unrestricted.py check [--aegis '<cmd>'] [--allow FILE] [--schema FILE]
+  python3 -I ci/unrestricted.py check [--monban '<cmd>'] [--allow FILE] [--schema FILE]
   python3 -I ci/unrestricted.py --self-test
 
 check:
   1. In-tree configs: every git-tracked *.json outside research/ spikes/ units/ interfaces/ fuzz/ oracles/
      ci/fixtures/ supply-chain/ target/ whose top level is an object with "v", "listeners" and "vhosts". Each is run
-     through `aegis check-config <path> --print-effective` (default command: target/release/aegis) and judged on
+     through `monban check-config <path> --print-effective` (default command: target/release/monban) and judged on
      its EFFECTIVE form (defaults applied), not its source text. A config the binary rejects cannot boot, so it is
-     skipped and listed, except under deploy/ apps/ examples/ config/ configs/ or named *aegis.json, where a
+     skipped and listed, except under deploy/ apps/ examples/ config/ configs/ or named *monban.json, where a
      rejection fails the check.
   2. The built-in default: ci/fixtures/unrestricted/default-boot.json (only the schema's required members, so the
      effective form is the schema defaults). It must be accepted and must contain no `unrestricted` at all; the
@@ -208,14 +208,14 @@ def discover(root):
         except (OSError, ValueError):
             continue
         if isinstance(doc, dict) and {"v", "listeners", "vhosts"} <= set(doc):
-            req = rel.startswith(REQUIRED_DIRS) or os.path.basename(rel).endswith("aegis.json")
+            req = rel.startswith(REQUIRED_DIRS) or os.path.basename(rel).endswith("monban.json")
             out.append((rel, req))
     return out
 
 
-def effective(aegis, root, rel):
+def effective(monban, root, rel):
     """-> (doc or None, error text)"""
-    argv = aegis + ["check-config", os.path.join(root, rel), "--print-effective"]
+    argv = monban + ["check-config", os.path.join(root, rel), "--print-effective"]
     try:
         p = subprocess.run(argv, capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.TimeoutExpired) as e:
@@ -229,11 +229,11 @@ def effective(aegis, root, rel):
         return None, "no effective JSON on stdout"
 
 
-def pipeline(root, configs, aegis, allow_text, schema, default_rel):
+def pipeline(root, configs, monban, allow_text, schema, default_rel):
     """configs: [(rel, required)] -> (errors, notes)"""
     errs, notes, entries = [], [], []
     for rel, req, dflt in [(default_rel, True, True)] + [(r, q, False) for r, q in configs]:
-        doc, why = effective(aegis, root, rel)
+        doc, why = effective(monban, root, rel)
         if doc is None:
             if req:
                 errs.append("%s: %s" % (rel, why))
@@ -256,8 +256,8 @@ def read(path):
 
 
 def cmd_check(args):
-    aegis = shlex.split(args.get("--aegis") or os.environ.get("AEGIS_BIN") or
-                        shlex.quote(os.path.join(ROOT, "target", "release", "aegis")))
+    monban = shlex.split(args.get("--monban") or os.environ.get("AEGIS_BIN") or
+                        shlex.quote(os.path.join(ROOT, "target", "release", "monban")))
     allow_path = args.get("--allow") or os.path.join(ROOT, "ci", "unrestricted.allow")
     schema_path = args.get("--schema") or os.path.join(ROOT, "interfaces", "F8-config.schema.json")
     try:
@@ -267,7 +267,7 @@ def cmd_check(args):
     except (OSError, ValueError, RuntimeError) as e:
         print("%s: FAIL (%s)" % (NAME, e))
         return 1
-    errs, notes, n = pipeline(ROOT, configs, aegis, allow_text, schema, DEFAULT_BOOT)
+    errs, notes, n = pipeline(ROOT, configs, monban, allow_text, schema, DEFAULT_BOOT)
     for x in notes:
         print("  note: " + x)
     for x in errs:
@@ -341,7 +341,7 @@ def self_test():
         print("  %-60s %s%s" % (label, "ok" if good else "WRONG", (" (red: %s)" % errs[0]) if errs and good else
                                 ("" if good else " errs=%s" % errs)))
     # end to end through the check-config plumbing, with a stand-in binary
-    fake = [sys.executable, "-I", "-B", fx("fake-aegis.py")]
+    fake = [sys.executable, "-I", "-B", fx("fake-monban.py")]
     dboot = FIX + "/effective-default.json"
     e2e = [
         ("e2e: listed config passes", [(lp, True)], listed, True, None),
@@ -377,9 +377,9 @@ def main(argv):
         return self_test()
     if argv and argv[0] == "check" and len(argv) % 2 == 1:
         opts = dict(zip(argv[1::2], argv[2::2]))
-        if set(opts) <= {"--aegis", "--allow", "--schema"}:
+        if set(opts) <= {"--monban", "--allow", "--schema"}:
             return cmd_check(opts)
-    sys.stderr.write("usage: python3 -I ci/unrestricted.py check [--aegis '<cmd>'] [--allow FILE] [--schema FILE]\n"
+    sys.stderr.write("usage: python3 -I ci/unrestricted.py check [--monban '<cmd>'] [--allow FILE] [--schema FILE]\n"
                      "       python3 -I ci/unrestricted.py --self-test\n")
     print("%s: FAIL (usage)" % NAME)
     return 2

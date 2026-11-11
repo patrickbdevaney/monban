@@ -21,10 +21,10 @@
  ],
  "acceptance": {
   "cmd": "see gates/phase-8.toml bin-residuals, crdb-live, native-e2e-mariadb and bench/scaling with runtime.worker_threads",
-  "must": "F8 runtime.worker_threads wired (absent = 2); mariadb backend servable; crdb CancelRequest + pool reset on cancel; L4 idle timeout after routing; MTC selector through bin per SEL-1..3; budget PASS; every carried aegis-bin gate green"
+  "must": "F8 runtime.worker_threads wired (absent = 2); mariadb backend servable; crdb CancelRequest + pool reset on cancel; L4 idle timeout after routing; MTC selector through bin per SEL-1..3; budget PASS; every carried monban-bin gate green"
  },
  "write_scope": [
-  "crates/aegis-bin/src/**",
+  "crates/monban-bin/src/**",
   "bench/scaling/**"
  ],
  "notes": ""

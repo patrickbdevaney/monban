@@ -1,6 +1,6 @@
 # oracles/cmvp-binary self-test fixtures. Own workspace (the root workspace excludes "oracles").
 # Floor profile (rustls 0.23.46 + aws-lc-rs 1.18.2, the root pins; lock ported from spikes/cmvp-client-policy/tlsbins),
-# NOT the cmvp lock: the fixtures stand in for the cmvp aegis binary until P6-cmvp-001 produces one. Built only by
+# NOT the cmvp lock: the fixtures stand in for the cmvp monban binary until P6-cmvp-001 produces one. Built only by
 # oracles/cmvp-binary/lib/fixtures.sh (through ci/heavy.sh) into target/cmvp-binary-fixtures/.
 [package]
 name = "cmvp-fixtures"
@@ -13,8 +13,8 @@ members = [".", "mtls"]
 
 [features]
 default = []
-# Stands in for the AEGIS features that gate every rustls client (aegis-tls/tls-client, aegis-egress/tls-client,
-# aegis-ops/acme). M1 judges first-party features by these names.
+# Stands in for the Monban features that gate every rustls client (monban-tls/tls-client, monban-egress/tls-client,
+# monban-ops/acme). M1 judges first-party features by these names.
 tls-client = []
 
 [dependencies]
@@ -68,7 +68,7 @@ name = "fips_mismatch"
 # Mutant: string present, but a second module identity "AWS-LC FIPS 2.0.0" is also in the binary.
 [[bin]]
 name = "fips_decoy"
-# Mutant: string present, but --fips-check is not implemented (usage on stderr, exit 2), like today's aegis.
+# Mutant: string present, but --fips-check is not implemented (usage on stderr, exit 2), like today's monban.
 [[bin]]
 name = "fips_noflag"
 

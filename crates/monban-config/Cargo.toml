@@ -1,0 +1,18 @@
+[package]
+name = "monban-config"
+description = "Typed config, JSON Schema, check-config, last-known-good (CFG-1..4)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 2
+
+[dependencies]
+monban-types = { workspace = true }
+monban-canon = { workspace = true }
+
+[lints]
+workspace = true

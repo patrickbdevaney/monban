@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""p2-e2e reference (mock) worker: stands in for aegis-p2 behind ref_subject.py. Oracle-local; never shipped.
+"""p2-e2e reference (mock) worker: stands in for monban-p2 behind ref_subject.py. Oracle-local; never shipped.
 
 It does not execute Wasm: each module is a stub carrying its behaviour kind in a custom section (p2wire.stub_module),
 and the worker plays that kind. What it does model is the process structure the oracle judges: an exec-spawned

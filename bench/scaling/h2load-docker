@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# h2load through the digest-pinned image oracles/transport-limits builds (aegis-h2load:1.69.0, about 26 MB), for a
+# h2load through the digest-pinned image oracles/transport-limits builds (monban-h2load:1.69.0, about 26 MB), for a
 # host that has docker but no installed h2load (kamrui). P8-bin-002: lets bench/scaling reproduce small points there
 # without installing anything into ~/aegis-ci/tools (which other runs on that host share).
 #   bench/scaling/run ... --h2load bench/scaling/h2load-docker
 # The container gets the caller's CPU affinity (scaling.py runs this under `taskset -c <h2load set>`) as its cpuset,
-# host networking (aegis listens on 127.0.0.1), and the --log-file directory bind-mounted at the same path.
+# host networking (monban listens on 127.0.0.1), and the --log-file directory bind-mounted at the same path.
 set -euo pipefail
-IMG=aegis-h2load:1.69.0
+IMG=monban-h2load:1.69.0
 docker image inspect "$IMG" >/dev/null 2>&1 || {
   echo "h2load-docker: image $IMG missing (build it: oracles/transport-limits/run builds it on first use)" >&2
   exit 2

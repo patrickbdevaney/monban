@@ -12,7 +12,7 @@ Gates `spec/SPEC_INVARIANTS.md` §B:
 - **IDEMP-R** (§F Phase-8 addendum, F8 `state.idempotency_retention_s`; PREFLIGHT R12, case added by
   P8-hardening-001): see "Retention" below.
 
-Gate `state-props` in `gates/phase-4.toml`, implemented by P4-state-002 (aegis-state idem/outbox/latch). Written in
+Gate `state-props` in `gates/phase-4.toml`, implemented by P4-state-002 (monban-state idem/outbox/latch). Written in
 P4-oracle-state-001. The semantics follow ARCHITECTURE §3.7 R-STATE-2/3 (draft-ietf-httpapi-idempotency-key-header-08
 and Stripe: 409 for a key in flight, 422-class for a payload mismatch, stored outcome replayed).
 
@@ -22,7 +22,7 @@ and Stripe: 409 for a key in flight, 422-class for a payload mismatch, stored ou
 oracles/state-props/run                       # reference subject, 60 seeds (PR size)
 oracles/state-props/run --seeds 1000          # nightly size
 oracles/state-props/run --self-test           # 6 mutations of the reference subject, each red within 10 seeds
-oracles/state-props/run --subject '<cmd> {dir}'              # the aegis-state wrapper (P4-state-002)
+oracles/state-props/run --subject '<cmd> {dir}'              # the monban-state wrapper (P4-state-002)
 oracles/state-props/run --self-test --subject '<cmd> {dir}'  # + every mutation the subject advertises
 ```
 
@@ -100,7 +100,7 @@ model, and the subject contract it checks:
 - a completed key replays (same digest) or conflicts (other digest) while `0 <= now - committed_at < R`, where
   `committed_at` is the clock at its COMMIT, durable across SIGKILL;
 - once `now - committed_at >= R` the key is forgotten: BEGIN answers NEW for any digest (IDEMP-R says "may be
-  forgotten"; aegis-state's contract is exact to the second, and this case holds it to that);
+  forgotten"; monban-state's contract is exact to the second, and this case holds it to that);
 - a record from the future (the clock was set back below `committed_at`) is kept;
 - `PURGE` deletes exactly the expired records not held by an open request and answers `PURGED <n>`;
 - restarted without `--idempotency-retention` (F8 absent), the same store never expires anything, even 10^8 s later,
@@ -111,7 +111,7 @@ another digest), the second key still replays; PURGE twice (1, then 0); re-use t
 then a seeded tail of clock steps (0, 1, R-1, R, R+1, random up to 2R), commits, probes, PURGEs and SIGKILLs; a final
 restart probe of every key; then the no-retention restart. Every violation here is clause `IDEMP-R`.
 
-Self-test mutations (reference subject; the aegis subject advertises the first two and `purge-noop`):
+Self-test mutations (reference subject; the monban subject advertises the first two and `purge-noop`):
 
 | mutation | breaks | first red (2026-11-06) |
 |---|---|---|
@@ -161,7 +161,7 @@ lowercase hex; `status` is a decimal HTTP status. Pre-CP state (leases, buffered
 durable: after a SIGKILL an open request is gone, and its key answers NEW. Each reply line must be flushed before the
 next command is read.
 
-How the aegis-state crate maps onto it (P4-state-002): `idem.rs` answers BEGIN from the (principal, key) table and the
+How the monban-state crate maps onto it (P4-state-002): `idem.rs` answers BEGIN from the (principal, key) table and the
 in-flight set; `latch.rs` is the COMMIT path (one SQLite transaction for rows + outcome + outbox, then the response,
 202 when the request timer has fired after CP); `outbox.rs` is DELIVER (relay pass, mark after the sink's ACK) with a dedupe key
 derived from the idempotency key and the effect's position. The subject wrapper (`subjects/state-subject`) only parses
@@ -194,7 +194,7 @@ ARCHITECTURE §3.7 (R-STATE-2/3) and the unit text of P4-oracle-state-001. Nothi
 ## Known limits
 
 - One subject process, with requests interleaved over one stdin. There is no real concurrency: two OS threads racing
-  on the same key are not tested. That race needs the DST shell or a loom test in aegis-state.
+  on the same key are not tested. That race needs the DST shell or a loom test in monban-state.
 - SIGKILL only (page cache survives). Power loss, torn writes and fsync EIO for this store are crash-harness's job
   (P4-state-001 runs its store under it); state-props does not re-run them.
 - The timer is a protocol flag. The subject is told "the timer fired after CP", so the host's own timer wiring is not

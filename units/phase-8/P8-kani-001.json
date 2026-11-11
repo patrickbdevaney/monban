@@ -14,11 +14,11 @@
   "ci/kani.sh self-test with --only client_: planted OOB in a client harness copy fails"
  ],
  "acceptance": {
-  "cmd": "ci/kani.sh --serial --mem 6G -p aegis-tls --only client_ && ci/kani.sh --self-test -p aegis-tls --only client_",
-  "must": "client_* harnesses in crates/aegis-tls/src/kani_proofs.rs: client key-share encoding length, server-share parse bounds for 0x11ED/0x11EB/0x0202, decapsulation input length checks, no panic; each under kani.sh limits; ci/kani.sh gains --only <prefix> (this unit may edit ci/kani.sh)"
+  "cmd": "ci/kani.sh --serial --mem 6G -p monban-tls --only client_ && ci/kani.sh --self-test -p monban-tls --only client_",
+  "must": "client_* harnesses in crates/monban-tls/src/kani_proofs.rs: client key-share encoding length, server-share parse bounds for 0x11ED/0x11EB/0x0202, decapsulation input length checks, no panic; each under kani.sh limits; ci/kani.sh gains --only <prefix> (this unit may edit ci/kani.sh)"
  },
  "write_scope": [
-  "crates/aegis-tls/src/kani_proofs.rs",
+  "crates/monban-tls/src/kani_proofs.rs",
   "ci/kani.sh"
  ],
  "notes": ""

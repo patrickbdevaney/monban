@@ -10,7 +10,7 @@
 #   streams  one connection asking for 1,000 concurrent streams completes all requests (advertised cap respected).
 #   conns    300 connections x 10 requests complete with 0 errors.
 set -uo pipefail
-HERE="$(cd "$(dirname "$0")" && pwd)"; IMG=aegis-h2load:1.69.0
+HERE="$(cd "$(dirname "$0")" && pwd)"; IMG=monban-h2load:1.69.0
 docker image inspect $IMG >/dev/null 2>&1 || docker build -q -t $IMG "$HERE" >/dev/null || { echo "TRANSPORT-LIMITS: FAIL (cannot build $IMG)"; exit 1; }
 h2load() { docker run --rm --network host $IMG h2load "$@" 2>&1; }
 

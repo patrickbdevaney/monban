@@ -8,7 +8,7 @@ leak, and with that leak it accepts 17/20 mutants.
 Exact proposed API: `verdict.json` → `decision_effect`.
 
 ## Method
-- `f7x/src/surface.rs` mirrors the frozen F7 `sdk/aegis-sdk/src/surface.rs`: the same `Granted<'r,C>`, `Ctx<'r>`,
+- `f7x/src/surface.rs` mirrors the frozen F7 `sdk/monban-sdk/src/surface.rs`: the same `Granted<'r,C>`, `Ctx<'r>`,
   `TenantDb<'r>`, `Tx<'r,S>` and `ScopedHandler`, the same `PhantomData<&'r ()>` covariance, no `Clone`, and no
   public constructor. Mirror deviations are marked `MIRROR-DEVIATION`: `Ctx::grant`, an `Endowment` holding the
   live policy and revocation state, a concrete `Rows` (bound `Db<'r>`), and a `Tx` write buffer.
@@ -91,7 +91,7 @@ rm -rf target
 ```
 
 ## Honest limits
-- This is a mirror, not the real `aegis-sdk`. The host has to sit in the same crate to mint grants. The real
+- This is a mirror, not the real `monban-sdk`. The host has to sit in the same crate to mint grants. The real
   `Rows` is associated, not concrete, and the proposed text uses `TenantDb<'m>`.
 - No axum and no sockets: WS and SSE are message lists, and backpressure is a yield. Only one rustc (1.99.1).
   Clippy tier not run.

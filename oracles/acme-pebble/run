@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: ACME (RFC 8555 + RFC 9773 ARI) against Pebble, CERT-1..4. Contract: oracles/README.md.
+# Monban oracle: ACME (RFC 8555 + RFC 9773 ARI) against Pebble, CERT-1..4. Contract: oracles/README.md.
 #   ./run [--subject target/release/acme-subject]   issue + ARI renewal + clock renewal + atomic swap + alerts
 #   ./run --self-test                                mutations (wrong-key JWS, replayed nonce, tampered order,
 #                                                    tampered chain, expired without renewal) + negative controls

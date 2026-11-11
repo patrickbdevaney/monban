@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "sdk/aegis-sdk", "xtask", "subjects/*", "apps/*"]
+members = ["crates/*", "sdk/monban-sdk", "xtask", "subjects/*", "apps/*"]
 exclude = ["oracles", "research", "conformance", "bench", "profiles"]
-default-members = ["crates/*", "sdk/aegis-sdk"]
+default-members = ["crates/*", "sdk/monban-sdk"]
 
 [workspace.package]
 version = "0.0.0"
@@ -13,33 +13,33 @@ license = "Apache-2.0"
 # Pin rule (REPO_LAYOUT §1): caret ranges + security floors here; the golden Cargo.lock targets are
 # enforced by `xtask lock-targets`. Exact `=` pins live only in profiles/cmvp/, except io-uring (PREFLIGHT D-P7.3).
 [workspace.dependencies]
-aegis-adapter-host = { path = "crates/aegis-adapter-host" }
-aegis-adapter-mysql = { path = "crates/aegis-adapter-mysql" }
-aegis-adapter-pg = { path = "crates/aegis-adapter-pg" }
-aegis-adapter-redis = { path = "crates/aegis-adapter-redis" }
-aegis-adapter-sqlite = { path = "crates/aegis-adapter-sqlite" }
-aegis-admission = { path = "crates/aegis-admission" }
-aegis-agent = { path = "crates/aegis-agent" }
-aegis-audit = { path = "crates/aegis-audit" }
-aegis-authz = { path = "crates/aegis-authz" }
-aegis-budget = { path = "crates/aegis-budget" }
-aegis-canon = { path = "crates/aegis-canon" }
-aegis-config = { path = "crates/aegis-config" }
-aegis-data-ir = { path = "crates/aegis-data-ir" }
-aegis-egress = { path = "crates/aegis-egress" }
-aegis-iso = { path = "crates/aegis-iso" }
-aegis-metrics = { path = "crates/aegis-metrics" }
-aegis-ops = { path = "crates/aegis-ops" }
-aegis-p2 = { path = "crates/aegis-p2" }
-aegis-state = { path = "crates/aegis-state" }
-aegis-tls = { path = "crates/aegis-tls" }
-aegis-token = { path = "crates/aegis-token" }
-aegis-transport = { path = "crates/aegis-transport" }
-aegis-types = { path = "crates/aegis-types" }
-aegis-uring = { path = "crates/aegis-uring" }
-aegis-wasm = { path = "crates/aegis-wasm" }
-aegis-wire = { path = "crates/aegis-wire" }
-aegis-sdk = { path = "sdk/aegis-sdk" }
+monban-adapter-host = { path = "crates/monban-adapter-host" }
+monban-adapter-mysql = { path = "crates/monban-adapter-mysql" }
+monban-adapter-pg = { path = "crates/monban-adapter-pg" }
+monban-adapter-redis = { path = "crates/monban-adapter-redis" }
+monban-adapter-sqlite = { path = "crates/monban-adapter-sqlite" }
+monban-admission = { path = "crates/monban-admission" }
+monban-agent = { path = "crates/monban-agent" }
+monban-audit = { path = "crates/monban-audit" }
+monban-authz = { path = "crates/monban-authz" }
+monban-budget = { path = "crates/monban-budget" }
+monban-canon = { path = "crates/monban-canon" }
+monban-config = { path = "crates/monban-config" }
+monban-data-ir = { path = "crates/monban-data-ir" }
+monban-egress = { path = "crates/monban-egress" }
+monban-iso = { path = "crates/monban-iso" }
+monban-metrics = { path = "crates/monban-metrics" }
+monban-ops = { path = "crates/monban-ops" }
+monban-p2 = { path = "crates/monban-p2" }
+monban-state = { path = "crates/monban-state" }
+monban-tls = { path = "crates/monban-tls" }
+monban-token = { path = "crates/monban-token" }
+monban-transport = { path = "crates/monban-transport" }
+monban-types = { path = "crates/monban-types" }
+monban-uring = { path = "crates/monban-uring" }
+monban-wasm = { path = "crates/monban-wasm" }
+monban-wire = { path = "crates/monban-wire" }
+monban-sdk = { path = "sdk/monban-sdk" }
 
 # Third-party floors (REPO_LAYOUT §1). Lock targets: supply-chain/lock-targets.toml. 7-day cooldown via
 # `cargo xtask lock-age`; security bypasses only through supply-chain/exceptions.toml.
@@ -53,27 +53,27 @@ rustls-webpki = { version = "0.103.16", default-features = false }   # security 
 tokio-rustls = { version = "0.26.6", default-features = false }
 aws-lc-rs = { version = "1.18.2", default-features = false, features = ["aws-lc-sys"] }
 sd-notify = { version = "0.5.0", default-features = false }
-cedar-policy = { version = "4.14.0", default-features = false }   # aegis-pdp only (X-8: out of process); 4.14 is the GHSA-m84h floor
+cedar-policy = { version = "4.14.0", default-features = false }   # monban-pdp only (X-8: out of process); 4.14 is the GHSA-m84h floor
 rustix = { version = "1.1.5", default-features = false, features = ["std", "net"] }   # safe SCM_RIGHTS (OwnedFd) for F11
-# Embedded SQL store and SQLite adapter (aegis-state, aegis-adapter-sqlite). Bundled C SQLite: lock target
+# Embedded SQL store and SQLite adapter (monban-state, monban-adapter-sqlite). Bundled C SQLite: lock target
 # libsqlite3-sys 0.39.1 = SQLite 3.54.1 (golden floor >= 3.54.0, RUSTSEC-2026-0459; crash-harness pin).
 # Trusted, not verified C (D3).
 # No default features: no hashlink statement cache (3 fewer crates); prepare per statement.
 rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
-# P2 isolation (PLAN-5 D3/D11, DEVIATIONS X-13): wasmtime links ONLY into the aegis-p2 worker binary (through
-# aegis-wasm), never into aegis-bin (gate no-wasmtime-in-bin). Exactly these five features (R-ISO-2; PLAN-5 D11 as
+# P2 isolation (PLAN-5 D3/D11, DEVIATIONS X-13): wasmtime links ONLY into the monban-p2 worker binary (through
+# monban-wasm), never into monban-bin (gate no-wasmtime-in-bin). Exactly these five features (R-ISO-2; PLAN-5 D11 as
 # amended: memory-protection-keys is required for the MPK density option and implies call-hook): no
 # component-model, gc, threads, winch, wasi. Security floor 50.0.1 (RUSTSEC-2026-0422/0423/0424 affect 50.0.0; the
 # R-ISO-2 floor was >= 49.0.4, GHSA-897f). 50.0.1 needs cranelift ^0.137.1; both are 2 days old on 2026-10-31, so the
 # cooldown is bypassed through supply-chain/exceptions.toml (PLAN-5 D11) until they pass it on 2026-11-05.
 wasmtime = { version = "50.0.1", default-features = false, features = ["cranelift", "memory-protection-keys", "pooling-allocator", "runtime", "std"] }
-# SHA-256 of the .cwasm, checked in aegis-wasm before the one unsafe deserialize (PLAN-5 D4). Already in the aegis-p2
-# graph through cranelift-codegen, so no new crate; never in aegis-bin.
+# SHA-256 of the .cwasm, checked in monban-wasm before the one unsafe deserialize (PLAN-5 D4). Already in the monban-p2
+# graph through cranelift-codegen, so no new crate; never in monban-bin.
 sha2 = { version = "0.10.9", default-features = false }
-# aegis-iso raw syscalls (fork, prctl, seccomp, landlock_*, setitimer, _exit; PLAN-5 D4). Already in the lock and
-# in the default aegis-bin build (tokio/rustix); a root pin only, no new crate.
+# monban-iso raw syscalls (fork, prctl, seccomp, landlock_*, setitimer, _exit; PLAN-5 D4). Already in the lock and
+# in the default monban-bin build (tokio/rustix); a root pin only, no new crate.
 libc = { version = "0.2.191", default-features = false, features = ["std"] }
-# PREFLIGHT D-P7.3 (P7-spec-002): the opt-in io_uring front (aegis-uring, aegis-bin feature `uring`, off in every shipped
+# PREFLIGHT D-P7.3 (P7-spec-002): the opt-in io_uring front (monban-uring, monban-bin feature `uring`, off in every shipped
 # profile; gate default-graph). Exact pin: io-uring 0.7.15 (2026-09-07) directly, not a stale runtime crate (tokio-uring,
 # monoio). No features: no `bindgen` (build-time C header parsing), no `direct-syscall` (sc). Adds one crate to the lock;
 # bitflags 2, cfg-if and libc are already there. Vet: own safe-to-deploy audit (supply-chain/audits.toml), zero exemptions.
@@ -81,7 +81,7 @@ io-uring = { version = "=0.7.15", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(aegis_kani_negative)"] }
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(monban_kani_negative)"] }
 missing_debug_implementations = "warn"
 unused_must_use = "deny"
 
@@ -105,7 +105,7 @@ incremental = false
 # PLAN-5 D24: the bundled SQLite C (libsqlite3-sys) is built for size. It is the data engine, not request-path code,
 # and -Os is the size setting SQLite itself documents for embedded builds. This keeps the native,p2 binary within
 # the X-12 8.0 MB ceiling (measured on the desktop: 8,020,640 B at opt-level 3, 7,175,712 B with this override). Global
-# opt-level "s" (5.0 MB) was rejected: it changes every request-path crate. Per-crate "s" on aegis-bin/config/ops made
+# opt-level "s" (5.0 MB) was rejected: it changes every request-path crate. Per-crate "s" on monban-bin/config/ops made
 # the fat-LTO binary larger, not smaller.
 [profile.release.package.libsqlite3-sys]
 opt-level = "s"

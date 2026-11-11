@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: PQ key-exchange interop (PLAN-6 D4, PREFLIGHT D-P4). Contract: oracles/README.md; details: README.md.
+# Monban oracle: PQ key-exchange interop (PLAN-6 D4, PREFLIGHT D-P4). Contract: oracles/README.md; details: README.md.
 #   ./run [--subject "CMD ARGS"] [--only REGEX]   matrix.toml against the subject (default target/release/tls-subject,
 #                                                  rebuilt through ci/heavy.sh)
 #   ./run --self-test                              reference subject (ref-subject/) green on every cell, then mutants

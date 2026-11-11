@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -I
-"""AEGIS conformance runner (P6-conformance-001, P8-conformance-001; PLAN-6 D8; PREFLIGHT D-P8.5; ARCHITECTURE
+"""Monban conformance runner (P6-conformance-001, P8-conformance-001; PLAN-6 D8; PREFLIGHT D-P8.5; ARCHITECTURE
 R-ASSURE-2 C0-C4; frozen interface F13).
 
 Usage:
@@ -10,7 +10,7 @@ Usage:
 What it does. It reads the gate logs of the current run, maps the gates to conformance levels, writes one F13 report
 per subject to <out>/<subject>.json, triple-signs each report with per-run throwaway test keys, validates each report
 against interfaces/F13-conformance-report.schema.json and verifies the signatures back. The gate passes iff, for every
-golden subject (aegis-bin floor and aegis-bin cmvp), every REQUIRED level is 100% (passed == total), every subject's
+golden subject (monban-bin floor and monban-bin cmvp), every REQUIRED level is 100% (passed == total), every subject's
 report could be written, validated and verified, and (with --config-pin) every golden subject passes the config pin.
 Levels that are not required are reported, not gated. Without --require the required set is C0,C1,C2 (the Phase 6/7
 gate `conformance`); gate `conformance-full` (Phase 8, R3) passes --require C0,C1,C2,C3,C4 --config-pin.
@@ -33,7 +33,7 @@ Level map (real gate names; `g[o]` = oracle o judged inside aggregate gate g by 
   C3 model DRT   select-drt oracles-local[token-drt] oracles-remote[pdp-dst] lowering-read-{sqlite,pg,redis,mariadb,
                  crdb} lowering-write-{sqlite,pg,redis,mariadb,crdb} (D-P8.5: every DRT gate, 0 divergence)
   C4 trace       every F1 statement id of spec/STATEMENTS.sha256, through spec/TRACE.toml, plus the TRACE file itself
-  aegis-p2 (kind module; the P2 worker that hosts guest modules): C2 only (p2-hostile-worker, p2-hostile-host).
+  monban-p2 (kind module; the P2 worker that hosts guest modules): C2 only (p2-hostile-worker, p2-hostile-host).
 
 When a gate counts as passed (anything else is fail; a result is never "skipped"):
   - <logs>/.run-start exists (ci/run-gates.py writes it at the start of a run);
@@ -64,7 +64,7 @@ runs before this gate, and the list is non-empty. A statement passes iff it has 
 (cmd + selftest logs from this run, as above). C4 = (statements passed + TRACE ok) / (statements + 1).
 
 Config pin (--config-pin; D-P8.5). conformance/config-pin.toml pins, per golden subject, the effective-config hash
-(aegis-config config_hash) of its golden config. Evidence: lines `CONFORMANCE-BOOT: <subject> artifact A config H`
+(monban-config config_hash) of its golden config. Evidence: lines `CONFORMANCE-BOOT: <subject> artifact A config H`
 (printed by conformance/boot-pin, which boots the artifact with the golden config) in the passing cmd log of any
 gate placed before this gate. The pin passes iff the pin is a 64-hex value, at least one line exists for the
 subject, and every line has H == the pin and A == the subject's artifact_sha256. Otherwise the subject's report is
@@ -72,10 +72,10 @@ REFUSED (not written; an earlier one is removed) and the gate fails. A passing r
 `config_sha256` = the pin. The module subject is not pinned.
 
 Artifact digest (artifact_sha256). Taken only from logs that themselves pass the rule above:
-  - golden floor / cmvp: the line `RELEASE-PIPELINE: PASS (<profile>, artifacts/aegis-<profile> sha256 <hex>, ...)`
+  - golden floor / cmvp: the line `RELEASE-PIPELINE: PASS (<profile>, artifacts/monban-<profile> sha256 <hex>, ...)`
     that ci/release/pipeline.sh prints, found in the cmd logs of release-verify (floor) and release-rebuild (floor,
     cmvp) and in the subject's own gate logs;
-  - any subject: a line `CONFORMANCE-ARTIFACT: <subject> sha256 <hex>` in those same logs (aegis-p2 has no other
+  - any subject: a line `CONFORMANCE-ARTIFACT: <subject> sha256 <hex>` in those same logs (monban-p2 has no other
     source: the p2-hostile-* gates must print it for the module build they exercised).
   Every digest found for a subject must be identical; none found, or two different ones, fails the subject (no
   report can be written, since F13 requires artifact_sha256) and therefore the gate.
@@ -180,8 +180,8 @@ def levels_for(profile):
             "C2": list(C2_COMMON), "C3": list(C3_COMMON), "C4": None}  # C4 members come from spec/TRACE.toml
 
 
-GOLDEN = [("aegis-bin-floor", "golden", "floor"), ("aegis-bin-cmvp", "golden", "cmvp")]
-SUBJECTS = GOLDEN + [("aegis-p2", "module", "module")]
+GOLDEN = [("monban-bin-floor", "golden", "floor"), ("monban-bin-cmvp", "golden", "cmvp")]
+SUBJECTS = GOLDEN + [("monban-p2", "module", "module")]
 
 
 class Mode:
@@ -658,7 +658,7 @@ def config_pin(name, digest, pins, pin_problems, recs):
     return ok, entry, f"  {'pass' if ok else 'FAIL'} {name:16s} config-pin {why}"
 
 
-PIPE_RE = re.compile(r"RELEASE-PIPELINE: PASS \((floor|cmvp), artifacts/aegis-(floor|cmvp) sha256 ([0-9a-f]{64})\b")
+PIPE_RE = re.compile(r"RELEASE-PIPELINE: PASS \((floor|cmvp), artifacts/monban-(floor|cmvp) sha256 ([0-9a-f]{64})\b")
 ART_RE = re.compile(r"CONFORMANCE-ARTIFACT: ([A-Za-z0-9._-]+) sha256 ([0-9a-f]{64})\b")
 
 
@@ -1222,12 +1222,12 @@ def write_synth(d, gates, phase, pins, mutate=None, marker_phase_line=None):
     def boot(subj, art):
         return f"CONFORMANCE-BOOT: {subj} artifact {art} config {pins[subj]} (synthetic)\n" if subj in pins else ""
     extra = {
-        "release-verify": f"RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n"
-                          + boot("aegis-bin-floor", floor),
-        "release-rebuild": f"[A] RELEASE-PIPELINE: PASS (floor, artifacts/aegis-floor sha256 {floor}, 9 files)\n"
-                           f"[A] RELEASE-PIPELINE: PASS (cmvp, artifacts/aegis-cmvp sha256 {cmvp}, 9 files)\n"
-                           + boot("aegis-bin-cmvp", cmvp) + boot("fork-cmvp-tls-client", cmvp),
-        "p2-hostile-host": f"CONFORMANCE-ARTIFACT: aegis-p2 sha256 {p2}\n",
+        "release-verify": f"RELEASE-PIPELINE: PASS (floor, artifacts/monban-floor sha256 {floor}, 9 files)\n"
+                          + boot("monban-bin-floor", floor),
+        "release-rebuild": f"[A] RELEASE-PIPELINE: PASS (floor, artifacts/monban-floor sha256 {floor}, 9 files)\n"
+                           f"[A] RELEASE-PIPELINE: PASS (cmvp, artifacts/monban-cmvp sha256 {cmvp}, 9 files)\n"
+                           + boot("monban-bin-cmvp", cmvp) + boot("fork-cmvp-tls-client", cmvp),
+        "p2-hostile-host": f"CONFORMANCE-ARTIFACT: monban-p2 sha256 {p2}\n",
         "select-drt": f"PROFILE P-PUBLIC-WEB      cases=100000 sh=1 hrr=1 alert=1\nSELECT-DRT: PASS ({np} profiles x "
                       f"100000 cases = {np * 100000}, seed 1, 0 divergence; Lean table == F12; rung R4 model + R2)\n",
     }
@@ -1283,7 +1283,7 @@ def self_test(a):
           f"{'on' if mode.config_pin else 'off'}; toml {os.path.relpath(toml_path, ROOT)}")
     signer = Signer()
     results, bad = [], []
-    tmp = tempfile.mkdtemp(prefix="aegis-conformance-st-")
+    tmp = tempfile.mkdtemp(prefix="monban-conformance-st-")
     golden = {n for n, _, _ in GOLDEN}
     fork = ("fork-cmvp-tls-client", "fork", "cmvp")
     pin_vals = {n: hashlib.sha256(f"config of {n}".encode()).hexdigest() for n in golden | {fork[0]}}
@@ -1398,10 +1398,10 @@ def self_test(a):
                     return False, f"{n}.json not written"
                 if prof != "module" and (r.get("config_sha256") == pin_vals[n]) != mode.config_pin:
                     return False, f"{n}: config_sha256 {r.get('config_sha256')}"
-            if reports["aegis-p2"]["levels"].keys() != {"C2"} or "config_sha256" in reports["aegis-p2"]:
-                return False, "aegis-p2 must be C2 only, unpinned"
-            c3 = reports["aegis-bin-floor"]["levels"]["C3"]
-            c4 = reports["aegis-bin-floor"]["levels"]["C4"]
+            if reports["monban-p2"]["levels"].keys() != {"C2"} or "config_sha256" in reports["monban-p2"]:
+                return False, "monban-p2 must be C2 only, unpinned"
+            c3 = reports["monban-bin-floor"]["levels"]["C3"]
+            c4 = reports["monban-bin-floor"]["levels"]["C4"]
             if c3["total"] != len(C3_COMMON) or c4["total"] != len(tr.ids) + 1:
                 return False, f"C3 {c3} C4 {c4}"
             return True, (f"3 reports, schema + 3 signatures verified; C3 {c3['passed']}/{c3['total']}, C4 "
@@ -1418,11 +1418,11 @@ def self_test(a):
 
         # 3-8. C0-C2 log rules
         case("missing-log", lambda n, s, c: None if (n, s) == ("budget", "cmd") else c, False,
-             check=expect_entry("aegis-bin-floor", "budget", "log missing", level="C0"))
+             check=expect_entry("monban-bin-floor", "budget", "log missing", level="C0"))
         case("stale-log", lambda n, s, c: (c, 1_800_000_000 - 60) if (n, s) == ("kx-kat", "cmd") else c, False,
-             check=expect_entry("aegis-bin-cmvp", "kx-kat", "stale", level="C1"))
+             check=expect_entry("monban-bin-cmvp", "kx-kat", "stale", level="C1"))
         case("selftest-fails", sub("mcp-gateway", "selftest", "[exit 0]", "[exit 1]"), False,
-             check=expect_entry("aegis-bin-floor", "mcp-gateway", "selftest log ends", level="C2"))
+             check=expect_entry("monban-bin-floor", "mcp-gateway", "selftest log ends", level="C2"))
 
         def no_run_start(n, s, c):
             if (n, s) == ("layering", "cmd"):
@@ -1441,50 +1441,50 @@ def self_test(a):
                                       and not any("log fresh" in x for x in l), "other phase's run never judged"))
         case("wrong-cmd-line",
              lambda n, s, c: "$ true\n[exit 0]\n" if (n, s) == ("unsafe-sites", "cmd") else c, False,
-             check=expect_entry("aegis-bin-floor", "unsafe-sites", "does not start with", level="C0"))
+             check=expect_entry("monban-bin-floor", "unsafe-sites", "does not start with", level="C0"))
         case("ssrf-line-missing", sub("oracles-remote", "cmd", "[ssrf-corpus] SSRF-CORPUS: PASS",
                                       "[ssrf-corpus] SSRF-CORPUS: FAIL"), False,
-             check=expect_entry("aegis-bin-cmvp", SSRF, "lacks a line", level="C2"))
+             check=expect_entry("monban-bin-cmvp", SSRF, "lacks a line", level="C2"))
 
         # 9. artifact digest absent (cmvp) / conflicting (floor) / only in a failing log
         case("digest-absent",
              lambda n, s, c: re.sub(r".*RELEASE-PIPELINE: PASS \(cmvp.*\n", "", c) if s == "cmd" else c, False,
-             check=lambda l, r, o, p: (r.get("aegis-bin-cmvp") is None and not os.path.exists(
-                 os.path.join(o, "aegis-bin-cmvp.json")) and r.get("aegis-bin-floor") is not None,
+             check=lambda l, r, o, p: (r.get("monban-bin-cmvp") is None and not os.path.exists(
+                 os.path.join(o, "monban-bin-cmvp.json")) and r.get("monban-bin-floor") is not None,
                  "cmvp: no digest -> no report, FAIL"))
         case("digest-conflict", sub("release-verify", "cmd", hashlib.sha256(b"floor").hexdigest(), "f" * 64), False,
-             check=lambda l, r, o, p: (r.get("aegis-bin-floor") is None
+             check=lambda l, r, o, p: (r.get("monban-bin-floor") is None
                                       and any("conflicting artifact digests" in x for x in l), "floor: conflict"))
         case("digest-from-failing-log", sub("release-rebuild", "cmd", "[exit 0]", "[exit 1]"), False,
-             check=lambda l, r, o, p: (r.get("aegis-bin-cmvp") is None and r.get("aegis-bin-floor")
+             check=lambda l, r, o, p: (r.get("monban-bin-cmvp") is None and r.get("monban-bin-floor")
                                       is not None, "cmvp digest only in a failing log -> no report"))
 
         # 10. C3: divergence read from the verdict line, not the exit code (oracle: divergence 1 -> C3 red)
         exp3 = gated_only("C3")
         case("c3-select-divergence-1", sub("select-drt", "cmd", ", 0 divergence;", ", 1 divergence;"), exp3,
-             check=expect_entry("aegis-bin-floor", "select-drt", "1 divergence", level="C3"))
+             check=expect_entry("monban-bin-floor", "select-drt", "1 divergence", level="C3"))
         case("c3-token-divergence-1", sub("oracles-local", "cmd", "cases, 0 divergences", "cases, 1 divergences"),
-             exp3, check=expect_entry("aegis-bin-cmvp", TOKEN, "1 divergences", level="C3"))
+             exp3, check=expect_entry("monban-bin-cmvp", TOKEN, "1 divergences", level="C3"))
         case("c3-write-W2-1", sub("lowering-write-pg", "cmd", " W2=0 ", " W2=1 "), exp3,
-             check=expect_entry("aegis-bin-floor", "lowering-write-pg", "W2=1", level="C3"))
+             check=expect_entry("monban-bin-floor", "lowering-write-pg", "W2=1", level="C3"))
         case("c3-read-leak-1", sub("lowering-read-pg", "cmd", " leak=0 ", " leak=1 "), exp3,
-             check=expect_entry("aegis-bin-floor", "lowering-read-pg", "leak=1", level="C3"))
+             check=expect_entry("monban-bin-floor", "lowering-read-pg", "leak=1", level="C3"))
         case("c3-pdp-fail-verdict-exit0",
              sub("oracles-remote", "cmd", "[pdp-dst] PDP-DST: PASS (40 cases", "[pdp-dst] PDP-DST: FAIL (1 violations"
                  ")\n[pdp-dst] PDP-DST: PASS (40 cases"), exp3,
-             check=expect_entry("aegis-bin-floor", PDP, "FAIL (1 violations", level="C3"))
+             check=expect_entry("monban-bin-floor", PDP, "FAIL (1 violations", level="C3"))
         case("c3-counter-missing", sub("lowering-read-redis", "cmd", " unrefused=0", ""), exp3,
-             check=expect_entry("aegis-bin-cmvp", "lowering-read-redis", "lacks counter(s) unrefused", level="C3"))
+             check=expect_entry("monban-bin-cmvp", "lowering-read-redis", "lacks counter(s) unrefused", level="C3"))
         case("c3-verdict-line-missing",
              lambda n, s, c: re.sub(r"(?m)^LOWERING-WRITE: PASS.*\n", "", c) if (n, s) == ("lowering-write-redis",
                                                                                          "cmd") else c, exp3,
-             check=expect_entry("aegis-bin-floor", "lowering-write-redis", "no `LOWERING-WRITE", level="C3"))
+             check=expect_entry("monban-bin-floor", "lowering-write-redis", "no `LOWERING-WRITE", level="C3"))
         case("c3-diverge-line", sub("select-drt", "cmd", "PROFILE P-PUBLIC-WEB", "DIVERGE 17  sh 0x11ec vs hrr\n"
                                                                               "PROFILE P-PUBLIC-WEB"), exp3,
-             check=expect_entry("aegis-bin-floor", "select-drt", "DIVERGE line", level="C3"))
+             check=expect_entry("monban-bin-floor", "select-drt", "DIVERGE line", level="C3"))
         case("c3-stale-drt-log",
              lambda n, s, c: (c, 1_800_000_000 - 5) if (n, s) == ("lowering-read-sqlite", "cmd") else c, exp3,
-             check=expect_entry("aegis-bin-floor", "lowering-read-sqlite", "stale", level="C3"))
+             check=expect_entry("monban-bin-floor", "lowering-read-sqlite", "stale", level="C3"))
 
         # 11. C4 (oracles: an F1 statement with no TRACE row; a mapped gate without a log from this run)
         exp4 = gated_only("C4")
@@ -1501,22 +1501,22 @@ def self_test(a):
         row_re = re.compile(rf'(?m)^"{re.escape(first)}" = .*\n')
         case("c4-statement-without-row", None, exp4,
              m=M(trace=trace_variant("norow", lambda t: row_re.sub("", t))),
-             check=expect_entry("aegis-bin-floor", first, "no valid TRACE row", level="C4"))
+             check=expect_entry("monban-bin-floor", first, "no valid TRACE row", level="C4"))
         case("c4-row-unknown-id", None, exp4,
              m=M(trace=trace_variant("unknown", lambda t: t + '"AegisIR.Nope:AegisIR.Nope.x" = ["proof"]\n')),
-             check=expect_entry("aegis-bin-floor", TRACE_MEMBER, "not a statement id", level="C4"))
+             check=expect_entry("monban-bin-floor", TRACE_MEMBER, "not a statement id", level="C4"))
         case("c4-gate-not-a-gate", None, exp4,
              m=M(trace=trace_variant("notgate", lambda t: row_re.sub(f'"{first}" = ["proof", "no-such-gate"]\n', t))),
-             check=expect_entry("aegis-bin-cmvp", first, "no valid TRACE row", level="C4", fails=2))
+             check=expect_entry("monban-bin-cmvp", first, "no valid TRACE row", level="C4", fails=2))
         case("c4-stale-ledger-pin", None, exp4,
              m=M(trace=trace_variant("ledger", lambda t: re.sub(r'ledger_sha256 = "[0-9a-f]+"',
                                                                 f'ledger_sha256 = "{"0" * 64}"', t))),
-             check=expect_entry("aegis-bin-floor", TRACE_MEMBER, "re-frozen ledger", level="C4"))
+             check=expect_entry("monban-bin-floor", TRACE_MEMBER, "re-frozen ledger", level="C4"))
         case("c4-mapped-gate-no-log", lambda n, s, c: None if (n, s) == ("proof", "cmd") else c, exp4,
-             check=expect_entry("aegis-bin-floor", "proof", "log missing", level="C4", fails=len(tr.ids)))
+             check=expect_entry("monban-bin-floor", "proof", "log missing", level="C4", fails=len(tr.ids)))
         case("c4-mapped-gate-stale-selftest",
              lambda n, s, c: (c, 1_800_000_000 - 1) if (n, s) == ("select-drt", "selftest") else c,
-             exp3 and exp4, check=expect_entry("aegis-bin-cmvp", "select-drt", "selftest log stale", level="C3"))
+             exp3 and exp4, check=expect_entry("monban-bin-cmvp", "select-drt", "selftest log stale", level="C3"))
         if "C4" in req:
             later = order[order.index(mode.self_gate) + 1] if order.index(mode.self_gate) + 1 < len(order) else None
             if later:
@@ -1528,52 +1528,52 @@ def self_test(a):
         # 12. config pin (oracle: subject booted with a different effective-config hash -> red)
         if mode.config_pin:
             other = hashlib.sha256(b"another config").hexdigest()
-            case("pin-different-config-hash", sub("release-verify", "cmd", f"config {pin_vals['aegis-bin-floor']}",
+            case("pin-different-config-hash", sub("release-verify", "cmd", f"config {pin_vals['monban-bin-floor']}",
                                                    f"config {other}"), False,
-                 check=refused("aegis-bin-floor", "booted with effective-config hash"))
+                 check=refused("monban-bin-floor", "booted with effective-config hash"))
             case("pin-different-artifact", sub("release-rebuild", "cmd",
-                                               f"CONFORMANCE-BOOT: aegis-bin-cmvp artifact "
+                                               f"CONFORMANCE-BOOT: monban-bin-cmvp artifact "
                                                f"{hashlib.sha256(b'cmvp').hexdigest()}",
-                                               f"CONFORMANCE-BOOT: aegis-bin-cmvp artifact {'e' * 64}"), False,
-                 check=refused("aegis-bin-cmvp", "is not the judged artifact"))
+                                               f"CONFORMANCE-BOOT: monban-bin-cmvp artifact {'e' * 64}"), False,
+                 check=refused("monban-bin-cmvp", "is not the judged artifact"))
             case("pin-no-boot-record",
-                 lambda n, s, c: re.sub(r"(?m)^CONFORMANCE-BOOT: aegis-bin-floor .*\n", "", c), False,
-                 check=refused("aegis-bin-floor", "no CONFORMANCE-BOOT record"))
+                 lambda n, s, c: re.sub(r"(?m)^CONFORMANCE-BOOT: monban-bin-floor .*\n", "", c), False,
+                 check=refused("monban-bin-floor", "no CONFORMANCE-BOOT record"))
             case("pin-conflicting-boots", sub("select-drt", "cmd", "SELECT-DRT: PASS",
-                                              f"CONFORMANCE-BOOT: aegis-bin-floor artifact "
+                                              f"CONFORMANCE-BOOT: monban-bin-floor artifact "
                                               f"{hashlib.sha256(b'floor').hexdigest()} config {other}\nSELECT-DRT: PASS"),
-                 False, check=refused("aegis-bin-floor", "booted with effective-config hash"))
+                 False, check=refused("monban-bin-floor", "booted with effective-config hash"))
             unp = os.path.join(tmp, "pins-unpinned.toml")
-            synth_pins(unp, {k: (v if k != "aegis-bin-cmvp" else "") for k, v in pin_vals.items()})
+            synth_pins(unp, {k: (v if k != "monban-bin-cmvp" else "") for k, v in pin_vals.items()})
             case("pin-unpinned-subject", None, False, m=M(pins=unp),
-                 check=refused("aegis-bin-cmvp", "no 64-hex config_sha256 pinned"))
+                 check=refused("monban-bin-cmvp", "no 64-hex config_sha256 pinned"))
             case("pin-boot-in-failing-log", lambda n, s, c: c.replace("[exit 0]", "[exit 1]")
                  if (n, s) == ("release-verify", "cmd") else c, False,
-                 check=refused("aegis-bin-floor", "no CONFORMANCE-BOOT record"))
+                 check=refused("monban-bin-floor", "no CONFORMANCE-BOOT record"))
 
         # 13. the same C3 mutant only reports when C3 is not required (the legacy gate's view)
         case("legacy-view-c3-reported", sub("select-drt", "cmd", ", 0 divergence;", ", 1 divergence;"), True,
              m=M(required=LEGACY_REQUIRED, config_pin=False,
                  self_gate="conformance-full" if "conformance-full" in gates else mode.self_gate),
-             check=expect_entry("aegis-bin-floor", "select-drt", "(reported, not gated)", level="C3"))
+             check=expect_entry("monban-bin-floor", "select-drt", "(reported, not gated)", level="C3"))
 
         # 14. tamper after signing -> verification fails; one swapped signature -> that alg fails
         names = [n for n, _, _ in SUBJECTS]
-        p = os.path.join(o_all, "aegis-bin-floor.json")
+        p = os.path.join(o_all, "monban-bin-floor.json")
         r = json.load(open(p))
         r["levels"]["C0"]["passed"] = r["levels"]["C0"]["total"]
         r["gates"][0]["result"] = "pass" if r["gates"][0]["result"] == "fail" else "fail"
         json.dump(r, open(p, "w"), indent=1, sort_keys=True)
-        q = os.path.join(o_all, "aegis-bin-cmvp.json")
+        q = os.path.join(o_all, "monban-bin-cmvp.json")
         r2 = json.load(open(q))
-        other_r = json.load(open(os.path.join(o_all, "aegis-p2.json")))
+        other_r = json.load(open(os.path.join(o_all, "monban-p2.json")))
         r2["signatures"][2] = other_r["signatures"][2]
         json.dump(r2, open(q, "w"), indent=1, sort_keys=True)
         vok, vlines = verify_reports(o_all, names, pubs_all, signer)
-        floor_bad = any("aegis-bin-floor: signatures ed25519=BAD slh-dsa-sha2-128s=BAD ml-dsa-87=BAD" in x
+        floor_bad = any("monban-bin-floor: signatures ed25519=BAD slh-dsa-sha2-128s=BAD ml-dsa-87=BAD" in x
                         for x in vlines)
-        cmvp_bad = any("aegis-bin-cmvp: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=BAD" in x for x in vlines)
-        p2_ok = any("aegis-p2: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=ok" in x for x in vlines)
+        cmvp_bad = any("monban-bin-cmvp: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=BAD" in x for x in vlines)
+        p2_ok = any("monban-p2: signatures ed25519=ok slh-dsa-sha2-128s=ok ml-dsa-87=ok" in x for x in vlines)
         good = (not vok) and floor_bad and cmvp_bad and p2_ok
         print(f"  {'ok  ' if good else 'BAD '} tamper-after-signing: floor all 3 BAD={floor_bad}, cmvp swapped "
               f"ml-dsa-87 BAD={cmvp_bad}, untouched p2 verifies={p2_ok}")
@@ -1582,14 +1582,14 @@ def self_test(a):
             for l in vlines:
                 print("      " + l)
         pubs2, _ = signer.sign([b"x"])
-        vok2, vl2 = verify_reports(o_all, ["aegis-p2"], pubs2, signer)
+        vok2, vl2 = verify_reports(o_all, ["monban-p2"], pubs2, signer)
         print(f"  {'ok  ' if not vok2 else 'BAD '} other-run-keys: p2 report under a fresh key set "
               f"{'refused' if not vok2 else 'ACCEPTED'}")
         if vok2:
             bad.append("other-run-keys")
 
         # 15. schema mutants: both validators reject each (incl. the 2026-11-06 additive members)
-        base = json.load(open(os.path.join(o_all, "aegis-p2.json")))
+        base = json.load(open(os.path.join(o_all, "monban-p2.json")))
         base["config_sha256"] = "c" * 64  # exercise the optional member on a signed-shape report
         jran, _ = jsonschema_validate(base)
         muts = {

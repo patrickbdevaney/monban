@@ -27,8 +27,8 @@
  },
  "write_scope": [
   "subjects/crs-subject/**",
-  "crates/aegis-adapter-pg/src/pool.rs",
-  "crates/aegis-adapter-redis/src/conn.rs"
+  "crates/monban-adapter-pg/src/pool.rs",
+  "crates/monban-adapter-redis/src/conn.rs"
  ],
  "notes": "Fixes found here are limited to the two listed files; anything else is handed back as a finding.",
  "infeasible_exit": true,

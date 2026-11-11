@@ -219,8 +219,8 @@ step_bench() {
   q "$OPENSSL" req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -keyout "$w/ca.key" -out "$w/ca.pem" \
       -days 2 -subj "/CN=lcx bench CA" -addext basicConstraints=critical,CA:TRUE -addext keyUsage=critical,keyCertSign \
     && q "$OPENSSL" genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "$w/leaf.key" \
-    && q "$OPENSSL" req -new -key "$w/leaf.key" -out "$w/leaf.csr" -subj /CN=aegis.test \
-    && printf 'subjectAltName=DNS:aegis.test\n' > "$w/ext" \
+    && q "$OPENSSL" req -new -key "$w/leaf.key" -out "$w/leaf.csr" -subj /CN=monban.test \
+    && printf 'subjectAltName=DNS:monban.test\n' > "$w/ext" \
     && q "$OPENSSL" x509 -req -in "$w/leaf.csr" -CA "$w/ca.pem" -CAkey "$w/ca.key" -out "$w/leaf.pem" -days 2 -extfile "$w/ext" \
     && cat "$w/leaf.pem" "$w/ca.pem" > "$w/chain.pem" || { bad "bench credentials"; return 1; }
   { echo "# $(date -u +%FT%TZ) host=$(hostname -s) cpu=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //')"

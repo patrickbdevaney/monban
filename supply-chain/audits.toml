@@ -2,12 +2,12 @@
 # cargo-vet audits file
 
 [[audits.io-uring]]
-who = "AEGIS integrator agent (P7-spec-002, 2026-11-06; agent review, not yet countersigned by a human reviewer)"
+who = "Monban integrator agent (P7-spec-002, 2026-11-06; agent review, not yet countersigned by a human reviewer)"
 criteria = "safe-to-deploy"
 version = "0.7.15"
 notes = """
 Full review of the published .crate (sha256 ed3bd0ecfbb87805f538bb7b32e5239ca0763890c623e349860ecba69469f2bb, the
-Cargo.lock checksum), built as AEGIS builds it: no features. Hand-written code read in full: lib.rs, util.rs,
+Cargo.lock checksum), built as Monban builds it: no features. Hand-written code read in full: lib.rs, util.rs,
 squeue.rs, cqueue.rs, submit.rs, register.rs, types.rs, sys/mod.rs, opcode.rs; sys/sys_x86_64.rs and the other
 sys_*.rs are bindgen output of the io_uring UAPI header (struct layouts and constants only, no logic), spot-checked.
 build.rs without `bindgen` only prints two rustc-check-cfg lines: no file, network or process access. No proc
@@ -18,11 +18,11 @@ ring head/tail/flags with Acquire/Release (SeqCst fence before reading NEED_WAKE
 always masked with the kernel's ring_mask, and raw syscall(2) wrappers. SubmissionQueue::push is `unsafe`: keeping
 buffers referenced by an SQE alive until completion is the caller's contract; this is the crate's documented safety
 boundary, not a bug. RecvMsgOut::parse bounds-checks before its one read_unaligned.
-Caveats, none reachable from the aegis-uring use (accept/recv/send on plain sockets):
+Caveats, none reachable from the monban-uring use (accept/recv/send on plain sockets):
 - Submitter::register_ifq is a safe fn that hands the kernel a struct carrying raw user addresses (zero-copy rx
-  area and region); misuse lets the kernel write through them. aegis-uring must not call it.
+  area and region); misuse lets the kernel write through them. monban-uring must not call it.
 - CompletionQueue::{disable,enable}_eventfd write cq_off.flags, which is 0 on kernels older than 5.8 (it would hit
-  the head word). AEGIS boxes run 6.11 to 6.17; the front refuses to start where io_uring is unavailable.
+  the head word). Monban boxes run 6.11 to 6.17; the front refuses to start where io_uring is unavailable.
 The kernel io_uring surface itself (2026: >= 8 HIGH CVEs, PREFLIGHT P1) is out of scope of this audit and carried as
 the `uring` TCB line (SECURITY_CLAIMS); the feature is off in every shipped profile (PREFLIGHT D-P7.3).
 """

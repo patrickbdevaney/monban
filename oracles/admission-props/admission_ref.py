@@ -1,7 +1,7 @@
-"""AEGIS admission reference model: integer GCRA + the S0..S6 admission pipeline (ARCHITECTURE §3.4).
+"""Monban admission reference model: integer GCRA + the S0..S6 admission pipeline (ARCHITECTURE §3.4).
 
 Stdlib only; loaded by admission_props.py and ref_subject.py (python3 -I). This is the *subject-side* reference: it
-plays the role of the future Rust crates aegis-admission / aegis-budget until they exist. The property checker in
+plays the role of the future Rust crates monban-admission / monban-budget until they exist. The property checker in
 admission_props.py is written separately and does not import the pipeline logic below (only constants and
 `classify`, which is the frozen spec function for S2).
 

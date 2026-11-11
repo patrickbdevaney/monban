@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: state props (INV-IDEMP, NC2 commit-point latch, NC6 outbox, NC1 for the key). Contract: oracles/README.md.
+# Monban oracle: state props (INV-IDEMP, NC2 commit-point latch, NC6 outbox, NC1 for the key). Contract: oracles/README.md.
 #   ./run [--seeds N] [--tail N]          reference subject (default 60 seeds)
 #   ./run --self-test                     mutations that must be caught (reference; plus the subject's with --subject)
 #   ./run --subject '<cmd> {dir}'         external store speaking the README line protocol

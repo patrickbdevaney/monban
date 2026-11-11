@@ -1,4 +1,4 @@
-//! pg-subject: drives `aegis-adapter-pg` (owned PG v3 client + pins-compiled version gate) over JSON lines.
+//! pg-subject: drives `monban-adapter-pg` (owned PG v3 client + pins-compiled version gate) over JSON lines.
 //!
 //! `pg-subject connect` speaks the oracles/pg-version-gate subject protocol on stdin/stdout:
 //!
@@ -16,8 +16,8 @@
 //! Unknown ops, unreadable lines and over-long lines (1 MiB) get a refusal; the subject never guesses an accept.
 //!
 //! `pg-subject lowering [--mutant drop-tenant]` serves the lowering-read / lowering-write protocol v2 through the
-//! production renderer (`aegis_adapter_pg::lower`, see `lowering.rs`); `pg-subject schema` serves the schema-gate
-//! protocol, pg mode through live introspection (`aegis_adapter_pg::schema`, see `gate.rs`).
+//! production renderer (`monban_adapter_pg::lower`, see `lowering.rs`); `pg-subject schema` serves the schema-gate
+//! protocol, pg mode through live introspection (`monban_adapter_pg::schema`, see `gate.rs`).
 #![forbid(unsafe_code)]
 
 mod gate;
@@ -29,8 +29,8 @@ use std::io::{BufRead, Read, Write};
 use std::process::ExitCode;
 use std::time::Duration;
 
-use aegis_adapter_pg::{AdmittedVersion, ConnectConfig, ConnectError, Connection, connect_admitted};
 use json::{Json, emit, esc};
+use monban_adapter_pg::{AdmittedVersion, ConnectConfig, ConnectError, Connection, connect_admitted};
 
 const MAX_LINE: u64 = 1 << 20;
 const TERMINATE: Duration = Duration::from_millis(200);

@@ -1,0 +1,30 @@
+[package]
+name = "monban-adapter-pg"
+description = "PostgreSQL adapter: lowering, driver, NC3 checkin, per-tenant credentials."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+[features]
+default = []
+# PREFLIGHT D-P7.8 (P7-spec-002 pre-wiring; dialect by P7-adapter-crdb-001): the CockroachDB dialect over the PG wire
+# (upsert guard fix, bounded SERIALIZABLE 40001 retry, crdb version floor). Off by default: the golden PG build and
+# every carried PG gate compile without it. Enabled by monban-bin `adapter-crdb` and subjects/crdb-subject.
+crdb = []
+
+[dependencies]
+monban-types = { workspace = true }
+monban-data-ir = { workspace = true }
+# Pre-wired by P4-spec-002 (implementers do not edit manifests). SCRAM-SHA-256: HMAC, SHA-256, PBKDF2 (aws-lc-rs,
+# already in the shipped graph). Owned PG v3 client over std::net / UDS (DEVIATIONS X-10); rustix for socket options
+# ("time" only because rustix linux_raw sockopt needs it, as in monban-ops and monban-adapter-host).
+aws-lc-rs = { workspace = true }
+rustix = { workspace = true, features = ["time"] }
+
+[lints]
+workspace = true

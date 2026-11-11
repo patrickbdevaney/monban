@@ -20,7 +20,7 @@
  ],
  "acceptance": {
   "cmd": "python3 -I ci/tcb-lines.py && python3 -I ci/tcb-lines.py --self-test",
-  "must": "PASS; SECURITY_CLAIMS.md and COMPLIANCE_MAP gain one TCB line per Phase-7 feature (proxy-protocol, l4, uring, mtc, adapter-mariadb, adapter-crdb, aegis-otlp, libcrux spike) naming new crates/C/kernel surface, gate ids and rung; HTTP/3 + WebTransport recorded as deferred with the 2026-11-06 evidence and the 2027-03-30 re-check; 64-core run recorded as blocked on quota; DEVIATIONS updated"
+  "must": "PASS; SECURITY_CLAIMS.md and COMPLIANCE_MAP gain one TCB line per Phase-7 feature (proxy-protocol, l4, uring, mtc, adapter-mariadb, adapter-crdb, monban-otlp, libcrux spike) naming new crates/C/kernel surface, gate ids and rung; HTTP/3 + WebTransport recorded as deferred with the 2026-11-06 evidence and the 2027-03-30 re-check; 64-core run recorded as blocked on quota; DEVIATIONS updated"
  },
  "write_scope": [
   "SECURITY_CLAIMS.md",

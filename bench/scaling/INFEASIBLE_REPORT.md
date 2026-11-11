@@ -7,13 +7,13 @@ reverse-proxy mode:
 
 - h2load at 1, 2, 4, 8, 16 and 24 cores on the desktop;
 - `passes when every point ran with 0 errors and the report was written`;
-- (unit acceptance) aegis and h2load pinned to **disjoint** cpusets.
+- (unit acceptance) monban and h2load pinned to **disjoint** cpusets.
 
 ## Failing cases
 
 ### 1. Admission refuses any saturating single-source load (all points)
 
-`crates/aegis-bin/src/shared.rs::admission_config()` is hard-coded, with no config field or env:
+`crates/monban-bin/src/shared.rs::admission_config()` is hard-coded, with no config field or env:
 
 - S1 (pre-auth, per IP): `Gcra::new(1_000_000, 2_000)`, which is 1000 requests/s with a burst of 2000;
 - S3 anon (per IP): the same limit.
@@ -25,7 +25,7 @@ refused at S1 with 429. Desktop, 2026-11-06, default build:
 - report: `bench/scaling/out/patrickd-B550-AORUS-ELITE-AX-V2-2026-11-06.json`;
 - conditions: 32 conns × 16 streams, 10 s.
 
-| cores | 2xx req/s | 4xx (h2load) | aegis_admission_rejects_total delta |
+| cores | 2xx req/s | 4xx (h2load) | monban_admission_rejects_total delta |
 |---:|---:|---:|---|
 | 1 | 465 | 315,330 | S1 315,330 |
 | 2 | 391 | 316,073 | S1 316,073 |
@@ -33,7 +33,7 @@ refused at S1 with 429. Desktop, 2026-11-06, default build:
 | 8 | 377 | 316,215 | S1 316,215 |
 | 16 | 348 | 316,508 | S1 316,508 |
 
-h2load's 4xx count equals aegis's own S1 reject counter exactly. The 2xx rate is flat (about 350 to 465/s) whatever
+h2load's 4xx count equals monban's own S1 reject counter exactly. The 2xx rate is flat (about 350 to 465/s) whatever
 the core count, so this run measures the limiter, not scaling.
 
 There are two ways the harness could reach 0 errors, and both are refused here:
@@ -48,7 +48,7 @@ Treating 429 as success would weaken the gate. It is not done.
 
 ### 2. The 24-core point cannot be disjoint on a 24-thread host
 
-The desktop has 24 logical CPUs. aegis on 24 leaves 0 for h2load and the upstream, so disjoint cpusets are
+The desktop has 24 logical CPUs. monban on 24 leaves 0 for h2load and the upstream, so disjoint cpusets are
 impossible. The harness refuses the point and does not overlap. With the defaults (4 h2load CPUs, 2 upstream CPUs),
 the largest desktop point is 18.
 
@@ -56,7 +56,7 @@ the largest desktop point is 18.
 
 Either one of these resolves case 1:
 
-- **(a)** Make the admission numbers configurable: a `limits.admission` block in F8 / aegis-config with the current
+- **(a)** Make the admission numbers configurable: a `limits.admission` block in F8 / monban-config with the current
   values as defaults. The bench config then raises S1/S3 for loopback only. Admission stays on, so the run still
   pays its cost (the admission `Mutex` is on the hot path, and that is part of what scaling should show). This needs
   a re-freeze of the config schema.
@@ -70,4 +70,4 @@ The harness needs no change for either: once admission admits the load, the same
 
 ---
 
-**Resolution (integrator, 2026-11-06):** F8 `admission.per_ip` (P7-spec-001) is wired (P7-bin-001); the harness config lifts it and `limits.max_streams_per_conn` (the "320,000 response ceiling" was 32 conns x 10,000 streams, not h2load). Desktop run 1,2,4,8,16,18 cores: SCALING PASS, 0 errors. **Finding:** req/s plateaus at ~31-42k from 2 cores up because `crates/aegis-bin/src/serve.rs` builds tokio with `worker_threads(2)`; the curve measures that cap, not core scaling. Making worker threads an F8 knob is a Phase 8 item; the 64-core point additionally needs GCP quota.
+**Resolution (integrator, 2026-11-06):** F8 `admission.per_ip` (P7-spec-001) is wired (P7-bin-001); the harness config lifts it and `limits.max_streams_per_conn` (the "320,000 response ceiling" was 32 conns x 10,000 streams, not h2load). Desktop run 1,2,4,8,16,18 cores: SCALING PASS, 0 errors. **Finding:** req/s plateaus at ~31-42k from 2 cores up because `crates/monban-bin/src/serve.rs` builds tokio with `worker_threads(2)`; the curve measures that cap, not core scaling. Making worker threads an F8 knob is a Phase 8 item; the 64-core point additionally needs GCP quota.

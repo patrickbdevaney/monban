@@ -1,0 +1,24 @@
+[package]
+name = "monban-sdk"
+description = "Handler SDK (B2 scoped adapter). Separate trust zone: implementer agents may not edit."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = "sdk"
+
+[dependencies]
+monban-types = { workspace = true }
+monban-data-ir = { workspace = true }
+monban-authz = { workspace = true }
+
+[features]
+default = []
+# Host driving loop (D2(b)). Only monban-adapter-host may enable it (`cargo xtask layering`, OWNERS).
+host = []
+
+[lints]
+workspace = true

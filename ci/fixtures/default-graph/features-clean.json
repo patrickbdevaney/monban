@@ -1,64 +1,64 @@
 {
- "aegis-adapter-pg": {
+ "monban-adapter-pg": {
   "crdb": [],
   "default": []
  },
- "aegis-bin": {
+ "monban-bin": {
   "adapter-crdb": [
    "native",
-   "aegis-adapter-pg/crdb"
+   "monban-adapter-pg/crdb"
   ],
   "adapter-mariadb": [
    "native",
-   "dep:aegis-adapter-mysql"
+   "dep:monban-adapter-mysql"
   ],
   "cmvp": [
-   "aegis-tls/cmvp",
-   "aegis-audit/cmvp",
-   "aegis-token/cmvp",
-   "dep:aegis-iso",
-   "aegis-iso/cmvp"
+   "monban-tls/cmvp",
+   "monban-audit/cmvp",
+   "monban-token/cmvp",
+   "dep:monban-iso",
+   "monban-iso/cmvp"
   ],
   "default": [],
   "e2e-mutants": [
-   "aegis-transport/e2e-raw-target"
+   "monban-transport/e2e-raw-target"
   ],
   "l4": [
-   "dep:aegis-wire"
+   "dep:monban-wire"
   ],
   "mtc": [
-   "aegis-tls/mtc",
-   "dep:aegis-wire"
+   "monban-tls/mtc",
+   "dep:monban-wire"
   ],
   "native": [
-   "dep:aegis-adapter-pg",
-   "dep:aegis-adapter-redis",
-   "dep:aegis-adapter-sqlite",
-   "dep:aegis-data-ir",
-   "dep:aegis-state",
+   "dep:monban-adapter-pg",
+   "dep:monban-adapter-redis",
+   "dep:monban-adapter-sqlite",
+   "dep:monban-data-ir",
+   "dep:monban-state",
    "dep:notes",
    "dep:rusqlite"
   ],
   "p2": [
-   "dep:aegis-iso"
+   "dep:monban-iso"
   ],
   "p2-mutants": [
    "p2",
-   "aegis-iso/mutants"
+   "monban-iso/mutants"
   ],
   "proxy-protocol": [
-   "dep:aegis-wire"
+   "dep:monban-wire"
   ],
   "uring": [
-   "dep:aegis-uring"
+   "dep:monban-uring"
   ]
  },
- "aegis-tls": {
+ "monban-tls": {
   "cmvp": [],
   "default": [],
   "kat": [],
   "mtc": [
-   "dep:aegis-wire"
+   "dep:monban-wire"
   ],
   "order-mutant": [],
   "tls-client": []

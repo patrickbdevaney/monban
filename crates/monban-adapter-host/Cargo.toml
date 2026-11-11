@@ -1,0 +1,31 @@
+[package]
+name = "monban-adapter-host"
+description = "Out-of-process adapter/module protocol host (third-party backends, outside the golden TCB)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+[dependencies]
+monban-types = { workspace = true }
+monban-data-ir = { workspace = true }
+# PDP-1 client transport (pdp_uds): the pure codec/client seam it implements.
+monban-authz = { workspace = true }
+# Pre-wired by P4-spec-002 (D2(b)): the SDK host driving loop. adapter-host implements monban_sdk::host::Backend and
+# is the only crate allowed to enable feature `host` (xtask OWNERS). monban-state: idempotency/outbox/latch
+# (INTRA_LAYER edge). tokio: the bounded blocking pool for sync F7 handlers (DEVIATIONS X-11); monban-bin already
+# links tokio with a superset of these features.
+monban-sdk = { workspace = true, features = ["host"] }
+monban-state = { workspace = true }
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
+# Root pin ("std", "net"): SOCK_SEQPACKET socket/bind/listen/accept/connect, recv(MSG_TRUNC), SO_TYPE; all safe
+# APIs. "time" only because rustix's linux_raw sockopt code does not compile without it (as in monban-ops). Already
+# linked into monban-bin through monban-ops with a superset of these features.
+rustix = { workspace = true, features = ["time"] }
+
+[lints]
+workspace = true

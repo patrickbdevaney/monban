@@ -1,19 +1,19 @@
 [package]
 name = "admission-subject"
-description = "Oracle subject: exposes aegis-admission over the admission-props JSON-lines event protocol. Never linked into aegis."
+description = "Oracle subject: exposes monban-admission over the admission-props JSON-lines event protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # Zero external dependencies: JSON via the small strict parser in src/json.rs.
 [dependencies]
-aegis-admission = { workspace = true }
-aegis-budget = { workspace = true }
+monban-admission = { workspace = true }
+monban-budget = { workspace = true }
 
 [lints]
 workspace = true

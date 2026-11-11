@@ -2,7 +2,7 @@
  "id": "P4-pg-002",
  "role": "implementer",
  "crates": [
-  "aegis-adapter-pg"
+  "monban-adapter-pg"
  ],
  "depends_on": [
   "P4-pg-001",
@@ -32,10 +32,10 @@
   "must": "read leak=0 widen=0 miss=0 >= 100k cases per PG pin; write W1=W2=W4=E=0 at >= 300/family/schema/seed; schema gate PASS; subject --mutant drop-tenant red"
  },
  "write_scope": [
-  "crates/aegis-adapter-pg/src/lower.rs",
-  "crates/aegis-adapter-pg/src/schema.rs",
-  "crates/aegis-adapter-pg/src/lib.rs",
-  "crates/aegis-adapter-pg/tests/lower*.rs",
+  "crates/monban-adapter-pg/src/lower.rs",
+  "crates/monban-adapter-pg/src/schema.rs",
+  "crates/monban-adapter-pg/src/lib.rs",
+  "crates/monban-adapter-pg/tests/lower*.rs",
   "subjects/pg-subject/**"
  ],
  "infeasible_exit": true,

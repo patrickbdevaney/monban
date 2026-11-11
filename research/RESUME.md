@@ -13,7 +13,7 @@ Long runs leave progress on disk at four layers. Recover from the cheapest layer
 ## 1. Machine crashed, Claude session still resumable (same session)
 
 ```
-Workflow({scriptPath: "/home/patrickd/aegis/research/aegis.workflow.js",
+Workflow({scriptPath: "/home/patrickd/aegis/research/monban.workflow.js",
           resumeFromRunId: "<run id from .inflight-run>", args: <identical args>})
 ```
 

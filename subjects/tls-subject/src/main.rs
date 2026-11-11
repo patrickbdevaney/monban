@@ -1,4 +1,4 @@
-//! tls-subject: the aegis-tls listener configs over the oracles/hrr-verdicts `--subject` protocol (F12), and the
+//! tls-subject: the monban-tls listener configs over the oracles/hrr-verdicts `--subject` protocol (F12), and the
 //! oracles/kx-interop subject contract (oracles/kx-interop/README.md "Subject contract").
 //!
 //!   tls-subject [subject] describe <PROFILE>        key=value lines (kx_groups, versions, early_data, fips, module)
@@ -7,49 +7,49 @@
 //!                                                   config); reports the handshake, echoes application data
 //!   tls-subject [subject] interop-client <PROFILE> <CA_PEM> <NONCE>
 //!                                                   kx-interop: one client connection on stdin/stdout to
-//!                                                   `aegis.test` with `aegis_tls::client_config` (roots = CA_PEM);
+//!                                                   `monban.test` with `monban_tls::client_config` (roots = CA_PEM);
 //!                                                   sends `<NONCE>\n` and waits for the echo
 //!   tls-subject [subject] select                    oracles/cred-select (feature `mtc`; never in the cmvp build):
 //!                                                   one `<case> <credential id>|handshake_failure` line per
-//!                                                   request line, from `aegis_tls::CredentialSelector`
+//!                                                   request line, from `monban_tls::CredentialSelector`
 //!   tls-subject [subject] indicator                 oracles/fips-indicator (feature `indicator`, cmvp only;
 //!                                                   PREFLIGHT D-P8.2): one answer line per request line, each
 //!                                                   verdict read from AWS-LC's FIPS service indicator around one
 //!                                                   call (ECDH P-384, X25519, ML-KEM-1024, HKDF, the 0x11ED kx
 //!                                                   and one in-memory 0x11ED TLS 1.3 handshake)
 //!
-//! Every `ServerConfig` comes from `aegis_tls::server_config` (the production builder); this binary only supplies
+//! Every `ServerConfig` comes from `monban_tls::server_config` (the production builder); this binary only supplies
 //! credentials (self-signed certificates generated at start-up) and reads the built config back. Reported
 //! `kx_groups` are read from the built `CryptoProvider`, not from the profile constant, so a builder bug shows.
 //! Credentials (F12 `credential`): ML-DSA-44 on PQ-REQUIRED (private hops, as the oracle reference); ML-DSA-87 and
 //! ECDSA-P384 on P-UNIVERSAL and P-BSI-ALT (ML-DSA-87 served when the client offers it, else ECDSA-P384); ML-DSA-87
 //! only on P-CNSA; ECDSA-P256 elsewhere.
 //!
-//! The client config is `aegis_tls::client_config`, the product client builder (aegis-tls feature `tls-client`,
+//! The client config is `monban_tls::client_config`, the product client builder (monban-tls feature `tls-client`,
 //! enabled here by the default feature `interop`). The cmvp build is `--no-default-features --features cmvp`
-//! (profiles/cmvp/build.sh), so it has no aegis-tls client (no `tls-client`); `cmvp` together with `interop` is a
+//! (profiles/cmvp/build.sh), so it has no monban-tls client (no `tls-client`); `cmvp` together with `interop` is a
 //! compile error. Exception, this test subject only: the `indicator` mode (cmvp,indicator) builds one rustls
 //! client locally for its in-memory 0x11ED handshake (certificate pinned by DER, resumption and early data off).
-//! It is never the product builder, and aegis-bin's cmvp build has no client (spikes/cmvp-client-policy mode A,
-//! judged on `target/cmvp/release/aegis`; profiles/cmvp/build.sh builds the two packages in separate invocations).
+//! It is never the product builder, and monban-bin's cmvp build has no client (spikes/cmvp-client-policy mode A,
+//! judged on `target/cmvp/release/monban`; profiles/cmvp/build.sh builds the two packages in separate invocations).
 //!
 //! cmvp build (feature `cmvp`, PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out under `fips`, so there are no
 //! ML-DSA credentials: ECDSA-P384 only on P-UNIVERSAL and P-BSI-ALT, ECDSA-P256 on PQ-REQUIRED, and P-CNSA (ML-DSA-87
-//! only) is refused by `aegis_tls::server_config` with its reason. The module string (`describe` `module=`) is the
-//! linked module's own `awslc_version_string()`, read through aegis-iso's audited sites (PLAN-6 D16) and passed to
-//! `aegis_tls::server_config_with` / `fips_status_with`; the floor build has no FIPS module and reports none.
+//! only) is refused by `monban_tls::server_config` with its reason. The module string (`describe` `module=`) is the
+//! linked module's own `awslc_version_string()`, read through monban-iso's audited sites (PLAN-6 D16) and passed to
+//! `monban_tls::server_config_with` / `fips_status_with`; the floor build has no FIPS module and reports none.
 #![forbid(unsafe_code)]
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 use std::sync::Arc;
 
-use aegis_tls::{Profile, fips_status_with, negotiable_versions, server_config_with};
 use aws_lc_rs::encoding::AsDer;
 use aws_lc_rs::rand::SystemRandom;
 #[cfg(not(feature = "cmvp"))]
 use aws_lc_rs::signature::PqdsaKeyPair;
 use aws_lc_rs::signature::{self, EcdsaKeyPair, KeyPair};
+use monban_tls::{Profile, fips_status_with, negotiable_versions, server_config_with};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls::server::{ClientHello, ResolvesServerCert};
 use rustls::sign::CertifiedKey;
@@ -89,9 +89,9 @@ const OID_ML_DSA_44: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0
 const OID_ML_DSA_87: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x13];
 const OID_CN: &[u8] = &[0x55, 0x04, 0x03];
 const OID_SAN: &[u8] = &[0x55, 0x1d, 0x11];
-const HOST: &[u8] = b"aegis.test";
+const HOST: &[u8] = b"monban.test";
 
-/// Self-signed X.509 v3 certificate for `aegis.test` (CN + SAN dNSName). `sign` signs the TBSCertificate.
+/// Self-signed X.509 v3 certificate for `monban.test` (CN + SAN dNSName). `sign` signs the TBSCertificate.
 fn self_signed(sig_oid: &[u8], spki: &[u8], sign: impl Fn(&[u8]) -> R<Vec<u8>>) -> R<Vec<u8>> {
     let alg = seq(&[&tlv(0x06, sig_oid)]);
     let name = seq(&[&tlv(0x31, &seq(&[&tlv(0x06, OID_CN), &tlv(0x0c, HOST)]))]);
@@ -175,7 +175,7 @@ fn creds(profile: Profile) -> &'static [Cred] {
 }
 
 /// Serves the first credential that can sign with a scheme the client offered; `None` when none can, and the
-/// aegis-tls `ProfileCertResolver` wrapped around it then refuses the handshake (access_denied, 49).
+/// monban-tls `ProfileCertResolver` wrapped around it then refuses the handshake (access_denied, 49).
 #[derive(Debug)]
 struct FirstSignable(Vec<Arc<CertifiedKey>>);
 
@@ -211,10 +211,10 @@ fn resolver(profile: Profile) -> R<Served> {
 
 // ------------------------------------------------------------------------------------------------ protocol
 
-/// The linked AWS-LC module's version string (cmvp: aegis-iso, PLAN-6 D16; floor: none).
+/// The linked AWS-LC module's version string (cmvp: monban-iso, PLAN-6 D16; floor: none).
 fn linked_module() -> Option<&'static str> {
     #[cfg(feature = "cmvp")]
-    return aegis_iso::fips::awslc_version_string();
+    return monban_iso::fips::awslc_version_string();
     #[cfg(not(feature = "cmvp"))]
     None
 }
@@ -340,7 +340,7 @@ mod pump {
     }
 }
 
-/// `interop-server PROFILE`: one connection with `aegis_tls::server_config` (the `serve` config and credentials);
+/// `interop-server PROFILE`: one connection with `monban_tls::server_config` (the `serve` config and credentials);
 /// reports the handshake, echoes application data, answers close_notify.
 fn interop_server(name: &str) -> R<()> {
     let mut c: rustls::Connection = ServerConnection::new(Arc::new(build(name)?)).map_err(|e| e.to_string())?.into();
@@ -367,9 +367,9 @@ fn interop_server(name: &str) -> R<()> {
     }
 }
 
-/// `interop-client PROFILE CA_PEM NONCE` (feature `interop`, i.e. aegis-tls `tls-client`; never in the cmvp build).
-/// The config is `aegis_tls::client_config(profile, roots)`, the product client builder, with roots = the
-/// certificates in CA_PEM only: full WebPKI chain and name validation of `aegis.test`, no verifier override.
+/// `interop-client PROFILE CA_PEM NONCE` (feature `interop`, i.e. monban-tls `tls-client`; never in the cmvp build).
+/// The config is `monban_tls::client_config(profile, roots)`, the product client builder, with roots = the
+/// certificates in CA_PEM only: full WebPKI chain and name validation of `monban.test`, no verifier override.
 #[cfg(feature = "interop")]
 fn interop_client(name: &str, ca: &str, nonce: &str) -> R<()> {
     use rustls::pki_types::ServerName;
@@ -383,8 +383,8 @@ fn interop_client(name: &str, ca: &str, nonce: &str) -> R<()> {
     if roots.is_empty() {
         return Err(format!("ca {ca}: no certificates"));
     }
-    let cfg = aegis_tls::client_config(profile, roots).map_err(|e| format!("{name}: {e}"))?;
-    let server = ServerName::try_from("aegis.test").map_err(|e| e.to_string())?;
+    let cfg = monban_tls::client_config(profile, roots).map_err(|e| format!("{name}: {e}"))?;
+    let server = ServerName::try_from("monban.test").map_err(|e| e.to_string())?;
     let mut c: rustls::Connection =
         rustls::ClientConnection::new(Arc::new(cfg), server).map_err(|e| e.to_string())?.into();
     let (mut input, mut out) = (std::io::stdin().lock(), std::io::stdout().lock());
@@ -429,16 +429,16 @@ fn interop(r: R<()>) -> R<()> {
 
 /// `select` (feature `mtc`, never in the cmvp build): the oracles/cred-select line protocol (README "Subject
 /// protocol"). One request line in, one answer line out, in order; exit 0 at EOF. Each line builds a fresh
-/// `aegis_tls::CredentialSelector` over fresh keys of the listed schemes and answers with the id of
-/// `CredentialSelector::select` on the raw ClientHello bytes (the aegis-wire peek), or `handshake_failure`.
+/// `monban_tls::CredentialSelector` over fresh keys of the listed schemes and answers with the id of
+/// `CredentialSelector::select` on the raw ClientHello bytes (the monban-wire peek), or `handshake_failure`.
 #[cfg(all(feature = "mtc", not(feature = "cmvp")))]
 mod cred_select {
     use std::io::{BufRead, Write};
     use std::sync::Arc;
 
-    use aegis_tls::{Credential, CredentialKind, CredentialSelector, Profile};
     use aws_lc_rs::encoding::AsDer;
     use aws_lc_rs::signature::{self, EcdsaKeyPair, Ed25519KeyPair, KeyPair, PqdsaKeyPair};
+    use monban_tls::{Credential, CredentialKind, CredentialSelector, Profile};
     use rustls::SignatureScheme;
     use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
     use rustls::sign::CertifiedKey;
@@ -450,7 +450,7 @@ mod cred_select {
     /// id-Ed25519, 1.3.101.112.
     const OID_ED25519: &[u8] = &[0x2b, 0x65, 0x70];
 
-    /// The chain: a self-signed certificate over `spki`, or the opaque bytes (an MTC: AEGIS neither issues nor
+    /// The chain: a self-signed certificate over `spki`, or the opaque bytes (an MTC: Monban neither issues nor
     /// verifies it, D-P7.4).
     fn chain(opaque: &Option<Vec<u8>>, oid: &[u8], spki: &[u8], sign: impl Fn(&[u8]) -> R<Vec<u8>>) -> R<Vec<u8>> {
         match opaque {
@@ -593,20 +593,20 @@ fn select() -> R<()> {
 
 /// `indicator` (feature `indicator`, cmvp only; PREFLIGHT D-P8.2): the oracles/fips-indicator line protocol
 /// (README "Subject protocol"). One request line in, one answer line out, in order; exit 0 at EOF. Every verdict is
-/// `aegis_iso::fips::with_indicator` around exactly one call on this thread (AWS-LC's per-thread
+/// `monban_iso::fips::with_indicator` around exactly one call on this thread (AWS-LC's per-thread
 /// `FIPS_service_indicator_before_call` / `_after_call`); key generation and the peer's half of an agreement run
-/// outside the window. The verdict words come only from `aegis_iso::fips::Indicator`.
+/// outside the window. The verdict words come only from `monban_iso::fips::Indicator`.
 #[cfg(feature = "indicator")]
 mod indicator {
     use std::io::{BufRead, Write};
     use std::sync::Arc;
 
-    use aegis_iso::fips::{Indicator, with_indicator};
-    use aegis_tls::{Profile, server_config_with};
     use aws_lc_rs::agreement::{self, PrivateKey, UnparsedPublicKey};
     use aws_lc_rs::error::Unspecified;
     use aws_lc_rs::hkdf;
     use aws_lc_rs::kem::{Ciphertext, DecapsulationKey, ML_KEM_1024};
+    use monban_iso::fips::{Indicator, with_indicator};
+    use monban_tls::{Profile, server_config_with};
     use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
     use rustls::crypto::{CryptoProvider, SupportedKxGroup, WebPkiSupportedAlgorithms, verify_tls13_signature};
     use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
@@ -720,10 +720,10 @@ mod indicator {
         Ok(format!("indicator={} okm={}", verdict(ind), to_hex(&okm)))
     }
 
-    /// The AEGIS SecP384r1MLKEM1024 group alone (`aegis_tls::kx`): client start, server start-and-complete, client
+    /// The Monban SecP384r1MLKEM1024 group alone (`monban_tls::kx`): client start, server start-and-complete, client
     /// complete, each in its own window. Reported only.
     fn kx_0x11ed() -> R<String> {
-        let g = aegis_tls::kx::SECP384R1MLKEM1024;
+        let g = monban_tls::kx::SECP384R1MLKEM1024;
         let (c, i1) = with_indicator(|| g.start());
         let c = c.map_err(|e| format!("client start: {e}"))?;
         let client_share = c.pub_key().to_vec();
@@ -742,7 +742,7 @@ mod indicator {
     }
 
     /// The handshake client's verifier: the server's self-signed certificates generated by this process, pinned by
-    /// DER, for `aegis.test` only, with the TLS 1.3 CertificateVerify signature checked by the provider's algorithms.
+    /// DER, for `monban.test` only, with the TLS 1.3 CertificateVerify signature checked by the provider's algorithms.
     /// No WebPKI chain building (the certificates are generated here; there is no CA).
     #[derive(Debug)]
     struct Pinned {
@@ -808,7 +808,7 @@ mod indicator {
 
     /// Client and server, both in this thread, until both finish the handshake.
     fn run_handshake(server: Arc<rustls::ServerConfig>, client: Arc<ClientConfig>) -> R<(Connection, Connection)> {
-        let name = ServerName::try_from("aegis.test").map_err(|e| e.to_string())?;
+        let name = ServerName::try_from("monban.test").map_err(|e| e.to_string())?;
         let mut cli: Connection = ClientConnection::new(client, name).map_err(|e| e.to_string())?.into();
         let mut srv: Connection = ServerConnection::new(server).map_err(|e| e.to_string())?.into();
         for _ in 0..16 {
@@ -823,7 +823,7 @@ mod indicator {
         Err("handshake did not finish in 16 flights".into())
     }
 
-    /// One TLS 1.3 handshake on 0x11ED: the server is `aegis_tls::server_config_with` (the production builder,
+    /// One TLS 1.3 handshake on 0x11ED: the server is `monban_tls::server_config_with` (the production builder,
     /// cmvp credentials), the client a rustls client on the server's own provider with kx restricted to 0x11ED.
     /// Client construction (its key share) through the last flight is one window. Reported, not required (D-P8.1).
     fn handshake(args: &[&str]) -> R<String> {
@@ -833,7 +833,7 @@ mod indicator {
         let server = server_config_with(profile, res, linked_module()).map_err(|e| format!("{name}: {e}"))?;
         let base: &CryptoProvider = server.crypto_provider();
         let kx: Vec<&'static dyn SupportedKxGroup> =
-            base.kx_groups.iter().copied().filter(|g| u16::from(g.name()) == aegis_tls::kx::CODEPOINT).collect();
+            base.kx_groups.iter().copied().filter(|g| u16::from(g.name()) == monban_tls::kx::CODEPOINT).collect();
         if kx.is_empty() {
             return Err(format!("{name} does not offer 0x11ED"));
         }
@@ -901,7 +901,7 @@ fn indicator() -> R<()> {
 
 #[cfg(all(feature = "cmvp", feature = "interop"))]
 compile_error!(
-    "tls-subject: features `cmvp` and `interop` are exclusive (interop enables aegis-tls `tls-client`; the cmvp build \
+    "tls-subject: features `cmvp` and `interop` are exclusive (interop enables monban-tls `tls-client`; the cmvp build \
      compiles every rustls client out, spikes/cmvp-client-policy mode A): build with --no-default-features"
 );
 

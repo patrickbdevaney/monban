@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""p2-e2e reference (mock) subject: an oracle-local model of the aegis supervisor with feature `p2`.
+"""p2-e2e reference (mock) subject: an oracle-local model of the monban supervisor with feature `p2`.
 
 It follows the subject contract in README.md closely enough for the oracle to PASS on it, and each mutant
 (AEGIS_P2_MUTANT) breaks exactly one obligation. It is a model of supervisor behaviour, not of the product: TLS via
 the stdlib, a minimal F5 Tier-L verifier, the F8 subset the oracle writes, JSON frames to ref_worker.py instead of
-F14 postcard frames, and no sandbox. Never shipped, never a source of claims about aegis.
+F14 postcard frames, and no sandbox. Never shipped, never a source of claims about monban.
 
   ref_subject.py --config <f8.json> --cert <pem> --key <pem> --audit-dir <d> --runtime-dir <d> --token-keyring <f>
   ref_subject.py check-config <f8.json> [--print-effective]
@@ -432,7 +432,7 @@ class Runtime:
                 return None
             m = json.loads(d)
             if "layout" in m:
-                log("aegis-p2-layout " + json.dumps(m["layout"]))
+                log("monban-p2-layout " + json.dumps(m["layout"]))
                 continue
             return m
 
@@ -513,7 +513,7 @@ def make_handler(rt, keys, state):
             if "wasm" not in r.get("to", {}):
                 return self.reply(404, b"not found\n")
             auth = self.headers.get("authorization", "")
-            tenant = verify_token(auth[7:], keys, "aegis.test") if auth.startswith("Bearer ") else None
+            tenant = verify_token(auth[7:], keys, "monban.test") if auth.startswith("Bearer ") else None
             if tenant is None:
                 return self.reply(401, b"unauthorized\n")
             hdrs = []
@@ -536,7 +536,7 @@ def make_handler(rt, keys, state):
             if self.path == "/healthz":
                 body, st = b'{"status":"ok"}', 200
             elif self.path == "/metrics":
-                body, st = f"aegis_proxy_config_reloads {state.reloads}\n".encode(), 200
+                body, st = f"monban_proxy_config_reloads {state.reloads}\n".encode(), 200
             else:
                 body, st = b"", 404
             self.send_response(st)

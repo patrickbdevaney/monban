@@ -1,21 +1,21 @@
-//! aegis-adapter-host's Host API with real principals (aegis-token Tier-0 path): M4 end to end, leases on the
-//! cancellation / rejection / error / success paths, and the aegis-config → endowment → CapSet boot conversion.
+//! monban-adapter-host's Host API with real principals (monban-token Tier-0 path): M4 end to end, leases on the
+//! cancellation / rejection / error / success paths, and the monban-config → endowment → CapSet boot conversion.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-use aegis_adapter_host::host::endow::{CapParts, Endowment, capset};
-use aegis_adapter_host::host::lease::{Admission, Idem};
-use aegis_adapter_host::host::{Backends, BlockingPool, CancelToken, Host, SessionHandle, reply};
-use aegis_config::{
+use monban_adapter_host::host::endow::{CapParts, Endowment, capset};
+use monban_adapter_host::host::lease::{Admission, Idem};
+use monban_adapter_host::host::{Backends, BlockingPool, CancelToken, Host, SessionHandle, reply};
+use monban_config::{
     Backend as CfgBackend, FieldId, ResolvedData, ResolvedRoute, SchemaProvider, Unresolved, parse_config,
 };
-use aegis_data_ir::{CapSet, Op};
-use aegis_sdk::{Ctx, ScopedHandler, SdkError, TenantDb};
-use aegis_state::{IdemKey, State};
-use aegis_token::{Caveat, Req, Tier0Table};
-use aegis_types::{Principal, RouteId, TenantId};
+use monban_data_ir::{CapSet, Op};
+use monban_sdk::{Ctx, ScopedHandler, SdkError, TenantDb};
+use monban_state::{IdemKey, State};
+use monban_token::{Caveat, Req, Tier0Table};
+use monban_types::{Principal, RouteId, TenantId};
 
 fn principal(t: u64) -> Result<Principal, String> {
     let tenant = TenantId::new(t).map_err(|_| "tenant")?;
@@ -44,7 +44,7 @@ fn session(t: u64) -> Result<SessionHandle, String> {
 }
 
 struct NoopBackend;
-impl aegis_sdk::host::Backend for NoopBackend {
+impl monban_sdk::host::Backend for NoopBackend {
     type Rows = ();
     fn begin(&self) -> Result<(), SdkError> {
         Ok(())
@@ -229,7 +229,7 @@ impl SchemaProvider for Fixed {
     }
 }
 
-/// The assembly's mapping (field for field): aegis-config `ResolvedData` of a route → host `Endowment`. A route
+/// The assembly's mapping (field for field): monban-config `ResolvedData` of a route → host `Endowment`. A route
 /// that is not listed has no data block.
 fn endowment_of(routes: &[ResolvedRoute], host: &str, id: u64) -> Endowment {
     match routes.iter().find(|r| r.host == host && r.route_id == id).map(|r| &r.data) {

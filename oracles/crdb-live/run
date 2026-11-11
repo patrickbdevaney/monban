@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# AEGIS oracle: aegis-bin adapter-crdb against a live CockroachDB (unit P8-oracle-001; PREFLIGHT R8). Contract:
+# Monban oracle: monban-bin adapter-crdb against a live CockroachDB (unit P8-oracle-001; PREFLIGHT R8). Contract:
 # oracles/README.md; subject contract: oracles/crdb-live/README.md. Last line: CRDB-LIVE: PASS|FAIL (...).
-#   ci/engines.sh with crdb -- ./run --dsn @crdb --binary target/release/aegis   aegis --features adapter-crdb (gate)
+#   ci/engines.sh with crdb -- ./run --dsn @crdb --binary target/release/monban   monban --features adapter-crdb (gate)
 #   ci/engines.sh with crdb -- ./run --dsn @crdb                                 the reference subject
 #   ci/engines.sh with crdb -- ./run --self-test --dsn @crdb                     reference PASS, every mutant FAIL
 set -u

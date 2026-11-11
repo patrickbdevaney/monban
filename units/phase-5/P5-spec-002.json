@@ -3,8 +3,8 @@
  "role": "integrator",
  "crates": [
   "workspace Cargo.toml/Cargo.lock",
-  "crates/aegis-p2 (new, layer 5, skeleton)",
-  "aegis-wasm/aegis-iso/aegis-bin manifests",
+  "crates/monban-p2 (new, layer 5, skeleton)",
+  "monban-wasm/monban-iso/monban-bin manifests",
   "xtask",
   "supply-chain",
   "deny.toml"
@@ -19,36 +19,36 @@
   "ARCHITECTURE \u00a73.6 R-ISO-2 wasmtime pin and features",
   "supply-chain/lock-targets.toml wasmtime = 50.0.0; oracles/isolation-fi/README 'Pin' (cranelift 0.137.0 held)",
   "xtask budget: 45/60 third-party crates, non-crypto unsafe 4,948/5,000 (P4-spec-002 status)",
-  "CLAUDE.md: forbid(unsafe) everywhere except aegis-iso (<=20 audited sites)",
+  "CLAUDE.md: forbid(unsafe) everywhere except monban-iso (<=20 audited sites)",
   "DEVIATIONS X-8, X-12 precedent; supply-chain/POLICY.md vet baseline rule",
   "PLAN D3, D4, D11, D15"
  ],
  "oracles": [
-  "cargo xtask unsafe-sites --self-test (mutants: 21st aegis-iso site; 2nd aegis-wasm site; a site without `// SAFETY:`; unsafe in a third crate) each red",
-  "no-wasmtime-in-bin selftest: the same cargo-tree filter finds wasmtime in aegis-p2 (positive control, as no-cedar-in-bin)",
-  "cargo xtask budget --self-test (new mutant: aegis-p2 over its ceiling)"
+  "cargo xtask unsafe-sites --self-test (mutants: 21st monban-iso site; 2nd monban-wasm site; a site without `// SAFETY:`; unsafe in a third crate) each red",
+  "no-wasmtime-in-bin selftest: the same cargo-tree filter finds wasmtime in monban-p2 (positive control, as no-cedar-in-bin)",
+  "cargo xtask budget --self-test (new mutant: monban-p2 over its ceiling)"
  ],
  "acceptance": {
-  "cmd": "cargo xtask layering && cargo xtask unsafe-sites && cargo xtask unsafe-sites --self-test && ! cargo tree --locked -e normal,build -p aegis-bin --all-features --prefix none | grep -qE '^(wasmtime|wasmtime-environ|cranelift-codegen) ' && cargo tree --locked -e normal,build -p aegis-p2 --prefix none | grep -q '^wasmtime ' && cargo xtask lock-targets && cargo xtask lock-age --min-days 7 && cargo deny check && cargo vet --locked && python3 -I ci/vet-baseline.py && ci/remote.sh cargo xtask budget",
-  "must": "PASS; default and native aegis-bin budgets unchanged (no new third-party crate in any aegis-bin build); aegis-p2 measured (crates, stripped size, non-crypto unsafe) and its ceiling recorded as DEVIATIONS X-13 with reverse-if; X-14 (aegis-wasm one unsafe site) recorded; vet-baseline additions one line per crate with reason; every feature named in PLAN D15 defined"
+  "cmd": "cargo xtask layering && cargo xtask unsafe-sites && cargo xtask unsafe-sites --self-test && ! cargo tree --locked -e normal,build -p monban-bin --all-features --prefix none | grep -qE '^(wasmtime|wasmtime-environ|cranelift-codegen) ' && cargo tree --locked -e normal,build -p monban-p2 --prefix none | grep -q '^wasmtime ' && cargo xtask lock-targets && cargo xtask lock-age --min-days 7 && cargo deny check && cargo vet --locked && python3 -I ci/vet-baseline.py && ci/remote.sh cargo xtask budget",
+  "must": "PASS; default and native monban-bin budgets unchanged (no new third-party crate in any monban-bin build); monban-p2 measured (crates, stripped size, non-crypto unsafe) and its ceiling recorded as DEVIATIONS X-13 with reverse-if; X-14 (monban-wasm one unsafe site) recorded; vet-baseline additions one line per crate with reason; every feature named in PLAN D15 defined"
  },
  "write_scope": [
   "Cargo.toml",
   "Cargo.lock",
   "deny.toml",
   "supply-chain/** (except supply-chain/wasmtime-config.toml and supply-chain/engine-pins.toml)",
-  "crates/aegis-wasm/Cargo.toml",
-  "crates/aegis-iso/Cargo.toml",
-  "crates/aegis-p2/Cargo.toml",
-  "crates/aegis-p2/src/main.rs (fail-closed stub only: exit 78)",
-  "crates/aegis-bin/Cargo.toml",
+  "crates/monban-wasm/Cargo.toml",
+  "crates/monban-iso/Cargo.toml",
+  "crates/monban-p2/Cargo.toml",
+  "crates/monban-p2/src/main.rs (fail-closed stub only: exit 78)",
+  "crates/monban-bin/Cargo.toml",
   "xtask/src/main.rs",
   "xtask/src/budget.rs",
   "DEVIATIONS.md"
  ],
- "notes": "Pre-wire so no implementer touches a manifest: [workspace.dependencies] wasmtime = { version = \"50.0.0\", default-features = false, features = [\"cranelift\", \"pooling-allocator\", \"runtime\", \"std\"] }; libc root pin (0.2.191, already in the lock) for aegis-iso; aegis-wasm -> wasmtime, aegis-budget, aegis-types; aegis-iso -> libc, rustix (already pinned), aegis-types; aegis-p2 (layer 5) -> aegis-iso, aegis-wasm, aegis-types, aws-lc-rs only if the cwasm digest needs it (prefer passing the expected sha256 from the supervisor; aws-lc-rs is already in the tree). aegis-p2 features: test-hooks (env.host_fault, probe subcommand, layout report), mutants (AEGIS_P2_MUTANT). aegis-bin features: p2 (aegis-iso supervisor + F14 decoder; NO wasmtime), p2-mutants (oracle negative controls only). aegis-iso and aegis-wasm get an explicit [lints] table equal to the workspace one except unsafe_code = \"deny\" (sites carry #[allow(unsafe_code)] + // SAFETY:). xtask: UNSAFE_ALLOWED += aegis-wasm; new subcommand unsafe-sites (caps aegis-iso 20, aegis-wasm 1); budget judges a third binary aegis-p2 with its own ceilings (set by the integrator from the measurement, PLAN Q3). Check bytecode-alliance vet import coverage for wasmtime/cranelift 50.0.0 / 0.137.x and record it (PLAN Q4). cranelift: pin whichever passes lock-age today (PLAN Q12).",
+ "notes": "Pre-wire so no implementer touches a manifest: [workspace.dependencies] wasmtime = { version = \"50.0.0\", default-features = false, features = [\"cranelift\", \"pooling-allocator\", \"runtime\", \"std\"] }; libc root pin (0.2.191, already in the lock) for monban-iso; monban-wasm -> wasmtime, monban-budget, monban-types; monban-iso -> libc, rustix (already pinned), monban-types; monban-p2 (layer 5) -> monban-iso, monban-wasm, monban-types, aws-lc-rs only if the cwasm digest needs it (prefer passing the expected sha256 from the supervisor; aws-lc-rs is already in the tree). monban-p2 features: test-hooks (env.host_fault, probe subcommand, layout report), mutants (AEGIS_P2_MUTANT). monban-bin features: p2 (monban-iso supervisor + F14 decoder; NO wasmtime), p2-mutants (oracle negative controls only). monban-iso and monban-wasm get an explicit [lints] table equal to the workspace one except unsafe_code = \"deny\" (sites carry #[allow(unsafe_code)] + // SAFETY:). xtask: UNSAFE_ALLOWED += monban-wasm; new subcommand unsafe-sites (caps monban-iso 20, monban-wasm 1); budget judges a third binary monban-p2 with its own ceilings (set by the integrator from the measurement, PLAN Q3). Check bytecode-alliance vet import coverage for wasmtime/cranelift 50.0.0 / 0.137.x and record it (PLAN Q4). cranelift: pin whichever passes lock-age today (PLAN Q12).",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: wasmtime 50.0.1 (security release over 50.0.0: RUSTSEC-2026-0422/0423/0424; cooldown bypass via exceptions.toml, cranelift 0.137.1) wired into aegis-wasm only; aegis-p2 skeleton (L5, exit 78); aegis-bin p2/p2-mutants (no aegis-wasm edge), aegis-p2 test-hooks/mutants; budget default 5,350,208 B 45/60 4,948/5,000 and native 7,884,672 B 45/60 4,948 unchanged, p2 and native,p2 add 0 third-party crates; aegis-p2 64 crates, 6,243 unsafe, ceilings 11.0 MB / 64 / 6,500 (X-13, size from a 9,548,896 B same-profile wasmtime probe); unsafe-sites gate + self-test 7/7 mutants (X-14); vet baseline +47 (9/56 new crates import-covered; cargo-vet 0.10 ignored 80 bytecode-alliance audits)"
+ "status": "pass: wasmtime 50.0.1 (security release over 50.0.0: RUSTSEC-2026-0422/0423/0424; cooldown bypass via exceptions.toml, cranelift 0.137.1) wired into monban-wasm only; monban-p2 skeleton (L5, exit 78); monban-bin p2/p2-mutants (no monban-wasm edge), monban-p2 test-hooks/mutants; budget default 5,350,208 B 45/60 4,948/5,000 and native 7,884,672 B 45/60 4,948 unchanged, p2 and native,p2 add 0 third-party crates; monban-p2 64 crates, 6,243 unsafe, ceilings 11.0 MB / 64 / 6,500 (X-13, size from a 9,548,896 B same-profile wasmtime probe); unsafe-sites gate + self-test 7/7 mutants (X-14); vet baseline +47 (9/56 new crates import-covered; cargo-vet 0.10 ignored 80 bytecode-alliance audits)"
 }

@@ -1,12 +1,12 @@
 {
  "id": "P2-transport-001",
  "crates": [
-  "aegis-transport"
+  "monban-transport"
  ],
  "spec_refs": [
   "F3 exchange.rs",
   "F1#TBI-1..9",
-  "ARCHITECTURE \u00a73.1 golden h2 settings + AEGIS wrapper (field count \u2264128 incl. cookie crumbs, handler semaphore 100 + 4x queue then GOAWAY ENHANCE_YOUR_CALM, RST bucket 100/33 s^-1, \u226410k streams/conn, stall 10 s, idle 30 s, Host vs :authority binding via aegis-canon)",
+  "ARCHITECTURE \u00a73.1 golden h2 settings + Monban wrapper (field count \u2264128 incl. cookie crumbs, handler semaphore 100 + 4x queue then GOAWAY ENHANCE_YOUR_CALM, RST bucket 100/33 s^-1, \u226410k streams/conn, stall 10 s, idle 30 s, Host vs :authority binding via monban-canon)",
   "F1#H1-grammar (strict H1: reject CL+TE, dup CL, TE\u2260chunked, bare LF/CR, obs-fold)",
   "spikes/q2-009 (window-0 stall; prototype + verdict)"
  ],
@@ -19,7 +19,7 @@
   "must": "all PASS; h2spec 100% (or each failing case justified by RFC 9113 MAY and listed)"
  },
  "write_scope": [
-  "crates/aegis-transport/**",
+  "crates/monban-transport/**",
   "subjects/transport-subject/**",
   "oracles/transport-stall/**"
  ],

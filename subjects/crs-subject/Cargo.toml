@@ -1,20 +1,20 @@
 [package]
 name = "crs-subject"
-description = "Oracle subject: the CRS data plane (aegis-adapter-pg pool + RLS bind + C8 reset, aegis-adapter-redis per-tenant ACL users + D12 check, aegis-state idempotency and outbox) over the oracles/crs-diff --family data protocol, against live engines. Never linked into aegis."
+description = "Oracle subject: the CRS data plane (monban-adapter-pg pool + RLS bind + C8 reset, monban-adapter-redis per-tenant ACL users + D12 check, monban-state idempotency and outbox) over the oracles/crs-diff --family data protocol, against live engines. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # No third-party dependencies: pool, RLS bind, reset, ACL users, idempotency and outbox are the production crates'.
 [dependencies]
-aegis-adapter-pg = { workspace = true }
-aegis-adapter-redis = { workspace = true }
-aegis-state = { workspace = true }
+monban-adapter-pg = { workspace = true }
+monban-adapter-redis = { workspace = true }
+monban-state = { workspace = true }
 
 [lints]
 workspace = true

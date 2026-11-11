@@ -123,7 +123,7 @@ def main(argv):
                     "buildType": "urn:aegis:release:d6:v1",
                     "externalParameters": {
                         "profile": bi["profile"],
-                        "package": "aegis-bin",
+                        "package": "monban-bin",
                         "command": bi["command"],
                         "source": {"commit": src["commit"], "kind": src["kind"], "tree_sha256": src["tree_sha256"]},
                         "source_date_epoch": bi["source_date_epoch"],
@@ -139,9 +139,9 @@ def main(argv):
                         "paths": bi["paths"],
                     },
                     "resolvedDependencies": [
-                        {"uri": f"git+aegis@{src['commit']}", "digest": {"gitCommit": src["commit"]}}
+                        {"uri": f"git+monban@{src['commit']}", "digest": {"gitCommit": src["commit"]}}
                         if re.fullmatch(r"[0-9a-f]{40}", src["commit"]) else
-                        {"uri": "aegis-source-tree", "digest": {"sha256": src["tree_sha256"]}},
+                        {"uri": "monban-source-tree", "digest": {"sha256": src["tree_sha256"]}},
                         {"uri": f"docker-image://{bi['image']['base']}",
                          "digest": {"sha256": bi["image"]["base"].rsplit("sha256:", 1)[-1]}},
                         {"uri": f"docker-image://{bi['image']['name']}",

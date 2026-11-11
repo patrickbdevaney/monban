@@ -4,7 +4,7 @@
 Worker level: the oracle is the mock supervisor. It compiles each corpus module with `<worker> compile`, starts
 `<worker> zygote|cordon` on a listening SOCK_SEQPACKET socket (fd 3), speaks F14 frames, answers data_run, and judges
 the frames that come back (I1 imports and handles, I2 budgets and quotas).
-Host level (host.py): boots the real aegis binary (feature p2) with an oracle-written F8 config and judges response
+Host level (host.py): boots the real monban binary (feature p2) with an oracle-written F8 config and judges response
 bytes, the F9 audit log and the SQLite effect sink (I1 capabilities, I5, I6-host, I7).
 Contract, cases and expected outcomes: README.md and corpus/*.json.
 """
@@ -395,8 +395,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--level", choices=["worker", "host", "both"], default=None)
-    ap.add_argument("--subject", help="worker level: the aegis-p2 command; host level: the aegis binary")
-    ap.add_argument("--worker", help="host level: the aegis-p2 binary named in the F8 p2 block")
+    ap.add_argument("--subject", help="worker level: the monban-p2 command; host level: the monban binary")
+    ap.add_argument("--worker", help="host level: the monban-p2 binary named in the F8 p2 block")
     ap.add_argument("--mutant-subject")
     ap.add_argument("--mutant-worker")
     ap.add_argument("--paths", default="zygote,cordon", help="worker level paths (default both)")
@@ -410,7 +410,7 @@ def main():
     if a.subject and level == "both":
         print(f"{NAME}: FAIL (--subject judges one level: pass --level worker or --level host)")
         return 1
-    workdir = tempfile.mkdtemp(prefix="aegis-hostile-")
+    workdir = tempfile.mkdtemp(prefix="monban-hostile-")
     print(f"{NAME}: load average {loadavg()} at start", flush=True)
     try:
         # the host level always needs the reference worker: its escaped-worker cases run it as the compromised worker

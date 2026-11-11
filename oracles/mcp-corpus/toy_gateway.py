@@ -6,7 +6,7 @@ only, body cap, HS256 bearer with iss/aud/exp/nbf, one strict JSON parse (no BOM
 cap, no non-finite numbers), exact JSON-RPC shape, both MCP eras (2025-11-25 sessions bound to principal+route;
 2026-07-28 stateless with MCP-Protocol-Version/Mcp-Method/Mcp-Name/_meta consistency), method allowlist, namespaced
 multiplexed tool names, its own upstream credential (never the client's), no redirect following. It exists to show
-the oracle is satisfiable; it is not AEGIS.
+the oracle is satisfiable; it is not Monban.
 
 Each name in FLAWS removes or weakens exactly one of those checks, so the self-test can show that every check is
 observed by at least one corpus case.
@@ -22,7 +22,7 @@ import time
 import urllib.parse
 import uuid
 
-SECRET = b"aegis-oracle-test-secret-NOT-FOR-PRODUCTION"
+SECRET = b"monban-oracle-test-secret-NOT-FOR-PRODUCTION"
 ISS = "https://issuer.oracle.test"
 V_LEGACY, V_MODERN = "2025-11-25", "2026-07-28"
 META_PV = "io.modelcontextprotocol/protocolVersion"

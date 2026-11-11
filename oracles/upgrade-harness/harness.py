@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS oracle: upgrade harness (UP-1..7 under load). Contract: oracles/README.md.
+"""Monban oracle: upgrade harness (UP-1..7 under load). Contract: oracles/README.md.
 
 Opens new TCP connections at a steady rate, one HTTP/1.1 request each, while triggering N reloads of the subject
 at a fixed interval. Counts connections refused, connections reset (RST), requests dropped before the drain

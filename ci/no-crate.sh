@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Assert that none of the named crates is in a package's resolved build graph (normal + build edges, proc-macros
 # included, every target platform). Gate no-pg-query-in-bin (ARCHITECTURE §3.8: normalizers that link C such as
-# pg_query run at build time of tooling or out of process, never inside aegis-bin).
+# pg_query run at build time of tooling or out of process, never inside monban-bin).
 #   ci/no-crate.sh <package> <crate>...    PASS iff no listed crate appears in `cargo tree -p <package>`
 #   ci/no-crate.sh --self-test             the filter must go red on ci/fixtures/tree-pg_query.txt and stay green on
 #                                          the same fixture with the pg_query lines removed

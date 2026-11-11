@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use aegis_adapter_pg::data_ir::tenant_text;
-use aegis_adapter_pg::{
+use monban_adapter_pg::data_ir::tenant_text;
+use monban_adapter_pg::{
     AdmittedVersion, Checkout, ConnectConfig, Connection, NoObserver, PgConn, PgSession, Pool, PoolConfig, Release,
     TenantId, connect_admitted, pool::PoolMutations, rls_bind,
 };
@@ -15,17 +15,17 @@ use crate::{Mutants, Scope, pool_key, random_hex};
 const BUDGET_MS: u64 = 5_000;
 const TERMINATE: Duration = Duration::from_millis(200);
 /// The tenant GUC `rls_bind` sets (transaction-local) and RLS policies read.
-pub const TENANT_GUC: &str = "aegis.tenant";
+pub const TENANT_GUC: &str = "monban.tenant";
 /// A session-level GUC the request leaves behind (a per-connection residual the C8 reset must clear).
-const RESIDUAL_GUC: &str = "aegis.crs_residual";
+const RESIDUAL_GUC: &str = "monban.crs_residual";
 
 /// Residual per-connection state at acquire time: any temp relation, any prepared statement, or a non-empty
 /// session-level residual or tenant GUC.
 const PROBE: &str = "SELECT pg_catalog.pg_backend_pid()::text, (\
      EXISTS (SELECT 1 FROM pg_catalog.pg_class WHERE relnamespace = pg_catalog.pg_my_temp_schema()) \
      OR EXISTS (SELECT 1 FROM pg_catalog.pg_prepared_statements) \
-     OR COALESCE(pg_catalog.current_setting('aegis.crs_residual', true), '') <> '' \
-     OR COALESCE(pg_catalog.current_setting('aegis.tenant', true), '') <> '')::text";
+     OR COALESCE(pg_catalog.current_setting('monban.crs_residual', true), '') <> '' \
+     OR COALESCE(pg_catalog.current_setting('monban.tenant', true), '') <> '')::text";
 
 pub struct SqlObs {
     pub conn: String,
@@ -53,7 +53,7 @@ fn deadline() -> Instant {
     Instant::now() + Duration::from_millis(BUDGET_MS)
 }
 
-fn cell(r: &aegis_adapter_pg::wire::QueryResult, col: usize) -> Option<String> {
+fn cell(r: &monban_adapter_pg::wire::QueryResult, col: usize) -> Option<String> {
     r.rows.first().and_then(|row| row.get(col)).cloned().flatten()
 }
 
@@ -83,7 +83,7 @@ impl Pg {
         if let Some(r) = self.roles.get(&t) {
             return Ok((r.name.clone(), r.password.clone()));
         }
-        let name = format!("aegis_crs_t_{}", tenant_text(t));
+        let name = format!("monban_crs_t_{}", tenant_text(t));
         let password = random_hex(24)?;
         let sql = format!(
             "DO $$BEGIN IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = '{name}') THEN \

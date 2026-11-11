@@ -135,7 +135,7 @@ Full numbers, unique-target rates and examples are in `results/*.json`, `results
 - **p.trailing_slash.** canon_ref answers `/a/` with a 308 to `/a`, following the research owner table. On CC, 40% of URLs end in `/` (WordPress-style permalinks). Redirecting them costs a round trip each, and it would loop on any upstream whose own canonical form is `/a/`. RFC 3986 treats `/a/` and `/a` as different resources, which is one reading each, not an ambiguity. So the recommendation is accept.
 - **Query.** These are search forms (`?s=Logbuch+der+gegenwart`), correctly encoded nested URLs in values (`redirect_url=http%3A%2F%2F…%3Frefer%3D…`, `%252C`), base64 tokens (`?YWN0…==`), cache busters (`?1709465443916`), PHP arrays (`availabilities%5B%5D=…` repeated), SMF forums (`board=15.0;wap2`) and Apache autoindex sort links (`?C=M;O=A`).
   - Most of these have a single reading: an escaped `%26`/`%3D`/`%25` inside a value is the correct encoding, not an ambiguity.
-  - The ones that really are ambiguous (`+`, `;` as separator, duplicate names) only matter if AEGIS itself interprets the query. CANON-5 keys authz on the route id, not on query parameters.
+  - The ones that really are ambiguous (`+`, `;` as separator, duplicate names) only matter if Monban itself interprets the query. CANON-5 keys authz on the route id, not on query parameters.
   - Hence `query: "opaque"`: byte-exact forwarding after §6.2.2.1/2, and strict per-parameter rules only on routes that declare typed parameters.
 
 ## Reproduction
@@ -146,7 +146,7 @@ Full numbers, unique-target rates and examples are in `results/*.json`, `results
 `run.sh` runs `cc_sample.py`, then `analyze.py` once per source, then `summarize.py` and `utf8_check.py`. Every long step goes through
 `ci/heavy.sh`. The analysis takes about 19 CPU-minutes in total; the CC sampling took about 25 minutes of network time.
 
-The CC fetch on this run used `HEAVY_TIMEOUT=3000` for the network-bound sampler. Its User-Agent was `aegis-q4-008-research/1.0`, with no personal data; it is now `aegis-ci`, per CLAUDE.md.
+The CC fetch on this run used `HEAVY_TIMEOUT=3000` for the network-bound sampler. Its User-Agent was `monban-q4-008-research/1.0`, with no personal data; it is now `aegis-ci`, per CLAUDE.md.
 
 ## Limits (honest)
 

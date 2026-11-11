@@ -1,0 +1,18 @@
+[package]
+name = "monban-admission"
+description = "Admission and abuse control stages S0-S6 (I1-I11)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 2
+
+[dependencies]
+monban-types = { workspace = true }
+monban-budget = { workspace = true }
+
+[lints]
+workspace = true

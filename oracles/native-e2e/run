@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# AEGIS oracle: native handlers + data plane end to end, modes A/D (unit P4-oracle-e2e-001). Contract: oracles/README.md;
+# Monban oracle: native handlers + data plane end to end, modes A/D (unit P4-oracle-e2e-001). Contract: oracles/README.md;
 # subject contract: oracles/native-e2e/README.md. Last line: NATIVE-E2E: PASS|FAIL (...) / NATIVE-E2E SELF-TEST: ...
 #   ./run                                   the reference subject (ref_subject.py), SQLite backend only
-#   ./run --subject target/release/aegis --pg @pg17 [--kv @valkey]     the real binary (inside ci/engines.sh with ...)
+#   ./run --subject target/release/monban --pg @pg17 [--kv @valkey]     the real binary (inside ci/engines.sh with ...)
 #   ./run --self-test [--pg ..] [--kv ..]   reference must PASS, each reference mutant must FAIL
-#   ./run --self-test --subject target/release/aegis    the same against target/e2e-mutants/release/aegis
+#   ./run --self-test --subject target/release/monban    the same against target/e2e-mutants/release/monban
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../.." && pwd)

@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "aegis-crash-refstore"
+name = "monban-crash-refstore"
 version = "0.1.0"
 dependencies = [
  "redb",
@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aegis-crash-shim"
+name = "monban-crash-shim"
 version = "0.1.0"
 dependencies = [
  "cc",

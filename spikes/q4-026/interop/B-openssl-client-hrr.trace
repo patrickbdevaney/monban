@@ -19,7 +19,7 @@ Header:
         No Compression (0x00)
       extensions, length = 150
         extension_type=server_name(0), length=15
-          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....aegis.test
+          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....monban.test
         extension_type=ec_point_formats(11), length=4
           uncompressed (0)
           ansiX962_compressed_prime (1)
@@ -104,7 +104,7 @@ Header:
         No Compression (0x00)
       extensions, length = 1783
         extension_type=server_name(0), length=15
-          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....aegis.test
+          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....monban.test
         extension_type=ec_point_formats(11), length=4
           uncompressed (0)
           ansiX962_compressed_prime (1)
@@ -212,7 +212,7 @@ Certificate:
                 NIST CURVE: P-384
         X509v3 extensions:
             X509v3 Subject Alternative Name: 
-                DNS:aegis.test, DNS:localhost
+                DNS:monban.test, DNS:localhost
     Signature Algorithm: ecdsa-with-SHA384
     Signature Value:
         30:65:02:30:79:bf:90:1f:ac:38:70:c8:55:a1:cd:a3:e9:f2:

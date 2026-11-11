@@ -8,7 +8,7 @@ postgres dialect, used as-is for CockroachDB). Adds here:
   * MariaRenderer      -- the hardened MariaDB write forms (dialect "mariadb") + MariaDB mutants
   * engines            -- MariaEng / CrdbEng (CockroachDB over lowir.Pg)
 Usage:
-  python3 -I q4005.py --maria mysql://root:x@127.0.0.1:55721/aegis --crdb postgresql://root@127.0.0.1:55722/defaultdb
+  python3 -I q4005.py --maria mysql://root:x@127.0.0.1:55721/monban --crdb postgresql://root@127.0.0.1:55722/defaultdb
           [--n 300] [--seeds 1,2,3,20261025] [--json out.json] [--self-test]
 """
 import argparse, json, os, random, sys, time

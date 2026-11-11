@@ -3,7 +3,7 @@
  "packages":
  [{"type": "path",
    "scope": "",
-   "name": "aegisIR",
+   "name": "monbanIR",
    "manifestFile": "lake-manifest.json",
    "inherited": false,
    "dir": "../../spec",

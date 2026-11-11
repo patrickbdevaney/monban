@@ -83,7 +83,7 @@ Reject codes are informational. Only the decision is judged.
 
 ## Subjects
 
-- `default-subject`: `target/release/egress-subject` (`subjects/egress-subject`, aegis-egress built without
+- `default-subject`: `target/release/egress-subject` (`subjects/egress-subject`, monban-egress built without
   `tls-client`). In simulated cases its scripted connector records the vetted address egress hands it and does not
   dial. In live cases it uses the real `NetConnector` and reports every vetted address passed to it as a connect,
   before dialling.
@@ -121,9 +121,9 @@ ci/remote.sh bash -c 'cargo build --release -p egress-subject && oracles/ssrf-co
 ## Known limits
 
 - **Simulated responses.** Redirects come from the case table. HTTP framing is exercised only in the live cases and
-  in aegis-egress's unit tests.
+  in monban-egress's unit tests.
 - **No TLS.** The subject has no TLS (`tls-client` off). https cases use the scripted connector, so SNI is not
-  observed here. In aegis-egress, SNI comes from the same `Url::host()` as `Host`.
+  observed here. In monban-egress, SNI comes from the same `Url::host()` as `Host`.
 - **Reasons are not judged.** The decision is judged, not the reason code. A subject that rejects for the wrong
   reason still passes check 4.
 - **Derivability is per case.** If one hop dials another host's first answer, the address still counts as

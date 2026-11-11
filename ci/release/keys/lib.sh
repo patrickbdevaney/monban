@@ -19,7 +19,7 @@ keylib_openssl() {  # sets OPENSSL, or returns 1
 keylib_tmpfs() {  # $1 = name tag -> prints a fresh 0700 dir on tmpfs (/dev/shm), or fails
   [ -d /dev/shm ] && [ -w /dev/shm ] || { echo "no writable /dev/shm (tmpfs) for decrypted keys" >&2; return 1; }
   local d
-  d="$(mktemp -d "/dev/shm/aegis-$1.XXXXXX")" || return 1
+  d="$(mktemp -d "/dev/shm/monban-$1.XXXXXX")" || return 1
   chmod 700 "$d"
   printf '%s\n' "$d"
 }

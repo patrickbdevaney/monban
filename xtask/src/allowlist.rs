@@ -2,15 +2,15 @@
 //! byte-identical to the lock regenerated from its sibling `allowlist.<adapter>.decl` (gate allowlist-lock,
 //! R-DB-3/4; P4-datair-001).
 //!
-//! xtask has no dependencies on purpose (see its Cargo.toml), so it cannot link `aegis_data_ir`. This file is
+//! xtask has no dependencies on purpose (see its Cargo.toml), so it cannot link `monban_data_ir`. This file is
 //! therefore an independent second implementation of the F4 lock format and the lock.rs declaration rules, with its
 //! own FIPS 180-4 SHA-256. The denylist is not copied: it is read from the F4 source (`DenyEntry { item: ".." }` in
-//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` / `MARIADB_DENY` tables of crates/aegis-data-ir/src/ir.rs), and a
+//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` / `MARIADB_DENY` tables of crates/monban-data-ir/src/ir.rs), and a
 //! missing or empty table fails the gate. MariaDB's non-word form entries (`@`, `;`, `/*!`, `--`, ODKU without the
 //! tenant guard) are named constants outside the inline items: they constrain rendered SQL text (the adapter's
 //! `denied_in_sql` scan), never a word of the lock skeleton, exactly as in lock.rs. The production generator is
-//! `aegis_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI: `datair-subject lock <decl>`);
-//! crates/aegis-data-ir/tests/lock.rs regenerates every committed lock with it, so both implementations must agree
+//! `monban_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI: `datair-subject lock <decl>`);
+//! crates/monban-data-ir/tests/lock.rs regenerates every committed lock with it, so both implementations must agree
 //! byte for byte on every lock in the repository.
 //!
 //! `--check` (default): find every declaration/lock pair (orphans fail; zero pairs fail), regenerate each lock
@@ -144,7 +144,7 @@ impl Deny {
         })
     }
     fn load(root: &Path) -> Result<Deny, String> {
-        let p = root.join("crates/aegis-data-ir/src/ir.rs");
+        let p = root.join("crates/monban-data-ir/src/ir.rs");
         Deny::parse(&std::fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?)
     }
     fn hit(&self, family: &str, word: &str) -> Option<String> {
@@ -919,7 +919,7 @@ fn self_test_run(root: &Path) -> Result<(), String> {
     }
     // The MariaDB skeleton words are checked against the MariaDB table: a denylist source that also denies
     // DUPLICATE (an ODKU skeleton word) refuses the fixture's upsert, and a MariaDB lock is not a PostgreSQL one.
-    let src_dup = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?.replacen(
+    let src_dup = read(&root.join("crates/monban-data-ir/src/ir.rs"))?.replacen(
         "const MARIADB_DENY: &[DenyEntry] = &[",
         "const MARIADB_DENY: &[DenyEntry] = &[\n    DenyEntry { item: \"DUPLICATE\", trace: \"self-test\" },",
         1,
@@ -957,7 +957,7 @@ fn self_test_run(root: &Path) -> Result<(), String> {
     );
 
     // Environment determinism comparator: a child output differing from the committed lock is reported.
-    let tmp = std::env::temp_dir().join(format!("aegis-allowlist-selftest-{}", std::process::id()));
+    let tmp = std::env::temp_dir().join(format!("monban-allowlist-selftest-{}", std::process::id()));
     let setup = std::fs::create_dir_all(&tmp)
         .and_then(|()| std::fs::write(tmp.join("allowlist.st-kv.decl"), FIX_KV))
         .map_err(|e| format!("temp dir: {e}"));
@@ -996,7 +996,7 @@ fn self_test_run(root: &Path) -> Result<(), String> {
     let _ = std::fs::remove_dir_all(&tmp);
 
     // Fail-closed denylist source and SHA-256.
-    let src = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?;
+    let src = read(&root.join("crates/monban-data-ir/src/ir.rs"))?;
     let no_resp = src.replace("const RESP_DENY", "const RESP_DENY_GONE");
     expect_red("denylist-table-missing", Deny::parse(&no_resp).map(|_| 0), "not found");
     let no_my = src.replace("const MARIADB_DENY", "const MARIADB_DENY_GONE");

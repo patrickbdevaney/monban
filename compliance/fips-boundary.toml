@@ -62,7 +62,7 @@ absent = ["combiner", "11ED", "SecP384r1", "MLKEM1024", "X25519MLKEM"]
 id = "p384-keygen"
 role = "ephemeral P-384 key pair for the ECDHE half (both sides)"
 algorithm = "ECDSA KeyGen (FIPS 186-5), P-384"
-aegis_call = "aws_lc_rs::agreement::PrivateKey::generate(&ECDH_P384)"
+monban_call = "aws_lc_rs::agreement::PrivateKey::generate(&ECDH_P384)"
 table = "Table 9: Security Function Implementations"
 row = "Key Generation with ECDSA (AsymKeyPair-CKG, FIPS186-5)"
 page = 14
@@ -79,7 +79,7 @@ excerpts = [
 id = "p384-ecdh"
 role = "ECDHE shared secret S1 (x-coordinate, 48 bytes), first in the concatenation"
 algorithm = "KAS-ECC-SSC Sp800-56Ar3, P-384, ephemeralUnified, initiator and responder"
-aegis_call = "aws_lc_rs::agreement::agree(.., &ECDH_P384, ..)"
+monban_call = "aws_lc_rs::agreement::agree(.., &ECDH_P384, ..)"
 table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
 row = "KAS-ECC-SSC Sp800-56Ar3 (Table 5); KAS-ECC-SSC (Shared Secret Computation with EC Diffie-Hellman), IG D.F scenario 2 path (1) (Table 9)"
 page = 10
@@ -100,7 +100,7 @@ excerpts = [
 id = "mlkem1024-keygen"
 role = "client ML-KEM-1024 decapsulation key"
 algorithm = "ML-KEM KeyGen (FIPS 203), ML-KEM-1024"
-aegis_call = "aws_lc_rs::kem::DecapsulationKey::generate(&ML_KEM_1024)"
+monban_call = "aws_lc_rs::kem::DecapsulationKey::generate(&ML_KEM_1024)"
 table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
 row = "ML-KEM KeyGen (Table 5); Key Generation with ML-KEM (AsymKeyPair-CKG) (Table 9, p. 14)"
 page = 10
@@ -116,7 +116,7 @@ excerpts = [
 id = "mlkem1024-encapdecap"
 role = "ML-KEM-1024 shared secret S2 (32 bytes), second in the concatenation"
 algorithm = "ML-KEM EncapDecap (FIPS 203), ML-KEM-1024, encapsulation (server) and decapsulation (client)"
-aegis_call = "aws_lc_rs::kem::EncapsulationKey::encapsulate / DecapsulationKey::decapsulate (ML_KEM_1024)"
+monban_call = "aws_lc_rs::kem::EncapsulationKey::encapsulate / DecapsulationKey::decapsulate (ML_KEM_1024)"
 table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
 row = "ML-KEM EncapDecap (Table 5); Encapsulation/Decapsulation with ML-KEM, IG D.S scenario 1 (Table 9, p. 15)"
 page = 10
@@ -133,7 +133,7 @@ excerpts = [
 id = "hkdf"
 role = "the combiner's KDM: HKDF-Extract over Z = S1 || S2, then HKDF-Expand (SHA2-384 for the P-UNIVERSAL suites)"
 algorithm = "KDA HKDF Sp800-56Cr1, HMAC SHA2-256/SHA2-384"
-aegis_call = "rustls TLS 1.3 key schedule through the cmvp aws-lc-rs provider's HKDF"
+monban_call = "rustls TLS 1.3 key schedule through the cmvp aws-lc-rs provider's HKDF"
 table = "Table 5: Approved Algorithms; Table 9: Security Function Implementations"
 row = "KDA HKDF Sp800-56Cr1 (Table 5); Key Derivation with KDA HKDF (KAS-56CKDF) (Table 9, p. 15)"
 page = 10
@@ -150,7 +150,7 @@ excerpts = [
 id = "tls13-kdf"
 role = "the TLS 1.3 key schedule (RFC 8446 §7.1) as a named KDF"
 algorithm = "KDF TLS (CVL), SP 800-135 Rev. 1"
-aegis_call = "rustls TLS 1.3 key schedule"
+monban_call = "rustls TLS 1.3 key schedule"
 table = "Table 5: Approved Algorithms; §2.11 Industry Protocols"
 row = "KDF TLS (CVL): TLS Version - v1.0/1.1, v1.2 only; no v1.3 row"
 page = 10
@@ -183,7 +183,7 @@ evidence_refs = [
 ]
 
 [claim]
-# The only 0x11ED FIPS sentence AEGIS documents may make (D-P8.1), and the forms they may not.
+# The only 0x11ED FIPS sentence Monban documents may make (D-P8.1), and the forms they may not.
 permitted = "0x11ED built only from #5314-approved components (P-384 ECDH, ML-KEM-1024, HKDF); combiner per SP 800-227 §4.6.2 via the module's HKDF. 0x11ED as a whole is NOT CLAIMED as FIPS-approved key establishment, and the TLS 1.3 KDF is NOT CLAIMED (no CAVP row)."
 rung = "R1 documentation (this file and gate); R2 when fips-indicator (P8-cmvp-002) reports Approved for each component"
 refused = [

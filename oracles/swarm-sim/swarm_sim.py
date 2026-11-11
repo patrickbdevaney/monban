@@ -1,7 +1,7 @@
 """Ported verbatim from research/state/raw/round-003/07-work/swarm_sim.py (sha256 in README.md); in-repo changes are
-marked `# AEGIS-PORT:` (mutation hook for the oracle self-test, named configs, no __main__). ADVISORY, grade D.
+marked `# Monban-PORT:` (mutation hook for the oracle self-test, named configs, no __main__). ADVISORY, grade D.
 
-AEGIS r3 explorer 07: discrete-event simulation of the S0-S6 admission pipeline on a 1 vCPU box.
+Monban r3 explorer 07: discrete-event simulation of the S0-S6 admission pipeline on a 1 vCPU box.
 Run: python3 -I swarm_sim.py <mode>   (stdlib only, heapq, deterministic per seed)
 All stage costs / thresholds are parameters in P (defaults = r2 L5 abuse-L5-admission-pipeline-1vcpu unless noted).
 Time unit: seconds.  CPU model: processor-sharing (PS) for handler work; cheap pipeline stages are charged
@@ -47,17 +47,17 @@ def scenario(name, **kw):
              heavy_rate=0.0, heavy_cost=20, heavy_kind="naive")
     s.update(kw); s["name"] = name; return s
 
-MUTATIONS = ("time", "hash")  # AEGIS-PORT: deliberate nondeterminism, used only by `run --self-test`
+MUTATIONS = ("time", "hash")  # Monban-PORT: deliberate nondeterminism, used only by `run --self-test`
 
 class Sim:
-    def __init__(s, P, sc, mutate=None):  # AEGIS-PORT: mutate hook
+    def __init__(s, P, sc, mutate=None):  # Monban-PORT: mutate hook
         s.P, s.sc = P, sc
         s.mutate = mutate
         seed = P["seed"]
-        if mutate == "time":  # AEGIS-PORT: wall-clock leaks into the seed
+        if mutate == "time":  # Monban-PORT: wall-clock leaks into the seed
             import time as _time
             seed = seed ^ (_time.time_ns() & 0xFFFFFFFF)
-        elif mutate == "hash":  # AEGIS-PORT: per-scenario seed from str hash (randomized per interpreter process)
+        elif mutate == "hash":  # Monban-PORT: per-scenario seed from str hash (randomized per interpreter process)
             seed = seed ^ (hash(sc["name"]) & 0xFFFFFFFF)
         s.rng = random.Random(seed)
         s.t = 0.0; s.q = []; s.seq = 0
@@ -521,7 +521,7 @@ def i_is_nat(H): return H["ip"] == ("nat",)
 
 def P_ips24(P): return max(1, P["ips_per_24"])
 
-def run(over=None, mutate=None, **sckw):  # AEGIS-PORT: mutate passthrough
+def run(over=None, mutate=None, **sckw):  # Monban-PORT: mutate passthrough
     P = dict(P0); sc = scenario(sckw.pop("name", "x"), **sckw)
     if over: P.update(over)
     return Sim(P, sc, mutate).run()
@@ -540,7 +540,7 @@ SCEN = {
                heavy_rate=300, heavy_cost=20, heavy_kind="naive"),
 }
 
-# AEGIS-PORT: named configs. TUNED = research/state/raw/round-003/07-work/tuned.json (the ARCHITECTURE §3.4 table),
+# Monban-PORT: named configs. TUNED = research/state/raw/round-003/07-work/tuned.json (the ARCHITECTURE §3.4 table),
 # R2 = round-2 defaults (P0), PERIP = S0+S1 only. BROKEN = TUNED minus every identity-count-independent defence
 # (no expensive-tier aggregates, no fresh class, no expensive concurrency cap): self-test negative control.
 TUNED = {"fresh_class": True, "shares": (0.3, 0.4, 0.1, 0.2), "exp_frac": 0.25, "trig_cpu": 9,

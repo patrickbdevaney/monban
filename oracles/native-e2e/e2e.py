@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """native-e2e: black-box oracle for native handlers + data plane (IMPLEMENTATION_PLAN §7 modes A and D).
 
-Boots a subject (the reference `ref_subject.py`, or aegis via --subject) with an oracle-written F8 config that binds
+Boots a subject (the reference `ref_subject.py`, or monban via --subject) with an oracle-written F8 config that binds
 apps/notes routes to SQLite (always), PostgreSQL (--pg) and Valkey/Redis (--kv) backends, mints F5 Tier-L tokens
 for two random tenants, drives the subject over TLS (HTTP/1.1, and HTTP/2 for RST_STREAM), and judges every
 outcome against durable state read directly from the engines. Contract and check list: README.md.
@@ -39,10 +39,10 @@ import mywire  # noqa: E402
 NAME = "NATIVE-E2E"
 MUTANTS = ["tenant-from-path", "commit-despite-cancel", "body-before-cp", "empty-caps-means-all", "no-drain",
            "ack-then-drop"]
-# Reference-only negative controls, run only when their backend is present (aegis-bin's e2e-mutants feature does not
+# Reference-only negative controls, run only when their backend is present (monban-bin's e2e-mutants feature does not
 # implement them; the binary self-test runs MUTANTS only). P8-oracle-001: native-e2e-mariadb.
 REF_MUTANTS = {"my": ["drop-tenant"]}
-VHOST = "aegis.test"
+VHOST = "monban.test"
 HOLD = 1.2        # s: hold_ms the app sleeps inside the open transaction (before CP) or after CP
 CUT = 0.35        # s: when the client cancels after sending the request
 SETTLE = 1.0      # s: after the hold ends, before inspecting durable state
@@ -115,14 +115,14 @@ def mint(master, kid, tenant, aud=VHOST, ops=31, exp_delta=600, with_tenant=True
 
 
 # PostgreSQL provisioning (P4-oracle-schema-001 / R-DB-7 live schema gate). The table must pass
-# aegis_adapter_pg::check_live_schema: tenant text COLLATE "C", (tenant, id) the only unique index, ENABLE + FORCE
+# monban_adapter_pg::check_live_schema: tenant text COLLATE "C", (tenant, id) the only unique index, ENABLE + FORCE
 # ROW LEVEL SECURITY, and permissive policies whose USING and WITH CHECK are exactly the tenant guard. The policy is
-# the statement list of aegis_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "aegis_app", "aegis.tenant").
-# The role and the setting are aegis-bin's fixed names (PG_RLS_ROLE / PG_TENANT_SETTING). The role is a plain login
+# the statement list of monban_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "monban_app", "monban.tenant").
+# The role and the setting are monban-bin's fixed names (PG_RLS_ROLE / PG_TENANT_SETTING). The role is a plain login
 # role: NOSUPERUSER, NOBYPASSRLS, owns nothing (every table is owned by the provisioning superuser, so the role
 # cannot ALTER ... NO FORCE ROW LEVEL SECURITY), no CREATE on any schema.
-PG_ROLE = "aegis_app"
-PG_SETTING = "aegis.tenant"
+PG_ROLE = "monban_app"
+PG_SETTING = "monban.tenant"
 PG_GUARD = f"(\"tenant\" = current_setting('{PG_SETTING}', true) COLLATE \"C\")"
 
 
@@ -130,13 +130,13 @@ def pg_rls_policy(table):
     t = f'"public"."{table}"'
     return [f"ALTER TABLE {t} ENABLE ROW LEVEL SECURITY",
             f"ALTER TABLE {t} FORCE ROW LEVEL SECURITY",
-            f'CREATE POLICY aegis_tenant ON {t} AS PERMISSIVE FOR ALL TO "{PG_ROLE}" USING {PG_GUARD} '
+            f'CREATE POLICY monban_tenant ON {t} AS PERMISSIVE FOR ALL TO "{PG_ROLE}" USING {PG_GUARD} '
             f"WITH CHECK {PG_GUARD}"]
 
 
 def pg_teardown():
     # DROP OWNED also revokes the role's grants and removes anything a previous (crashed) subject left behind.
-    return ['DROP TABLE IF EXISTS "public"."notes", "public"."aegis_idem"',
+    return ['DROP TABLE IF EXISTS "public"."notes", "public"."monban_idem"',
             f'DO $$BEGIN IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = {wire.pg_quote(PG_ROLE)}) THEN '
             f'DROP OWNED BY "{PG_ROLE}"; DROP ROLE "{PG_ROLE}"; END IF; END$$']
 
@@ -149,13 +149,13 @@ def pg_provision(password):
         "body text NOT NULL, PRIMARY KEY (tenant, id))",
         *pg_rls_policy("notes"),
         f'GRANT SELECT, INSERT, UPDATE, DELETE ON "public"."notes" TO "{PG_ROLE}"',
-        # aegis-bin's in-band idempotency table (D14). A subject creates it at boot only if it is missing, which
+        # monban-bin's in-band idempotency table (D14). A subject creates it at boot only if it is missing, which
         # would need CREATE on public and would make the RLS role its owner; provisioned here by the superuser
         # instead, under the same RLS shape. A subject that keeps idempotency elsewhere ignores it.
-        'CREATE TABLE "public"."aegis_idem"(tenant text COLLATE "C" NOT NULL, principal text COLLATE "C" NOT NULL, '
+        'CREATE TABLE "public"."monban_idem"(tenant text COLLATE "C" NOT NULL, principal text COLLATE "C" NOT NULL, '
         'k text COLLATE "C" NOT NULL, status integer NOT NULL, body text NOT NULL, PRIMARY KEY (principal, k))',
-        *pg_rls_policy("aegis_idem"),
-        f'GRANT SELECT, INSERT ON "public"."aegis_idem" TO "{PG_ROLE}"',
+        *pg_rls_policy("monban_idem"),
+        f'GRANT SELECT, INSERT ON "public"."monban_idem" TO "{PG_ROLE}"',
     ]
 
 
@@ -171,11 +171,11 @@ def pg_role_dsn(dsn, user, password):
 
 
 # MariaDB provisioning (P8-oracle-001, gate native-e2e-mariadb). The table must pass
-# aegis_adapter_mysql::check_live_schema (oracles/schema-gate MariaDB golden shape): InnoDB, tenant and id VARCHAR
+# monban_adapter_mysql::check_live_schema (oracles/schema-gate MariaDB golden shape): InnoDB, tenant and id VARCHAR
 # utf8mb4_nopad_bin (byte equality, no PAD SPACE, W3 amendment), (tenant, id) the primary key and the only unique
 # index, no trigger, no FK. MariaDB has no row-level security: tenant isolation is the rendered tenant conjunct only,
 # so the login user is a plain user with DML on these two tables and nothing else (no DDL, no FILE, no other table).
-MY_USER = "aegis_app"
+MY_USER = "monban_app"
 MY_COLL = "CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin"
 
 
@@ -187,21 +187,21 @@ def my_notes_ddl(variant=None):
 
 
 def my_teardown():
-    return ["DROP TABLE IF EXISTS notes, aegis_idem", f"DROP USER IF EXISTS '{MY_USER}'@'%'"]
+    return ["DROP TABLE IF EXISTS notes, monban_idem", f"DROP USER IF EXISTS '{MY_USER}'@'%'"]
 
 
 def my_provision(password, variant=None):
     assert all(c in "0123456789abcdef" for c in password)
     return my_teardown() + [
         my_notes_ddl(variant),
-        # aegis-bin's in-band idempotency table (PLAN D14), provisioned here so the login user never needs DDL. A
+        # monban-bin's in-band idempotency table (PLAN D14), provisioned here so the login user never needs DDL. A
         # subject that keeps idempotency elsewhere ignores it.
-        f"CREATE TABLE aegis_idem (tenant VARCHAR(16) {MY_COLL} NOT NULL, principal VARCHAR(255) {MY_COLL} NOT NULL, "
+        f"CREATE TABLE monban_idem (tenant VARCHAR(16) {MY_COLL} NOT NULL, principal VARCHAR(255) {MY_COLL} NOT NULL, "
         f"k VARCHAR(64) {MY_COLL} NOT NULL, status INT NOT NULL, body MEDIUMTEXT {MY_COLL} NOT NULL, "
         f"PRIMARY KEY (principal, k)) ENGINE=InnoDB",
         f"CREATE USER '{MY_USER}'@'%' IDENTIFIED VIA mysql_native_password USING PASSWORD('{password}')",
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON notes TO '{MY_USER}'@'%'",
-        f"GRANT SELECT, INSERT ON aegis_idem TO '{MY_USER}'@'%'",
+        f"GRANT SELECT, INSERT ON monban_idem TO '{MY_USER}'@'%'",
     ]
 
 
@@ -354,7 +354,7 @@ class Client:
         if key:
             h.append(f"idempotency-key: {key}")
         if deadline is not None:
-            h.append(f"aegis-deadline-ms: {deadline}")
+            h.append(f"monban-deadline-ms: {deadline}")
         h += list(extra)
         t0 = time.monotonic()
         s.sendall(("\r\n".join(h) + "\r\n\r\n").encode() + data)
@@ -513,7 +513,7 @@ class Run:
         self.verbose = verbose
         self.lock = threading.Lock()
         self.failures, self.passed, self.notes = [], 0, []
-        self.dir = tempfile.mkdtemp(prefix="aegis-native-e2e-")
+        self.dir = tempfile.mkdtemp(prefix="monban-native-e2e-")
         self.proc = None
         rnd = random.SystemRandom()
         self.TA = rnd.randrange(1, 1 << 63) | 1
@@ -659,7 +659,7 @@ class Run:
             self.port, self.aport = free_port(), free_port()
             for st in self.stores.values():
                 st.setup()
-            self.cfg_path = os.path.join(self.dir, "aegis.json")
+            self.cfg_path = os.path.join(self.dir, "monban.json")
             with open(self.cfg_path, "w") as f:
                 json.dump(self.config(), f)
             self.boot_checks()
@@ -1035,11 +1035,11 @@ def subject_cmd(s):
 
 def build_mutant_subject(features="native,e2e-mutants"):
     target = os.path.join(REPO, "target", "native-mutants")   # D17: the data plane is feature `native`
-    binp = os.path.join(target, "release", "aegis")
+    binp = os.path.join(target, "release", "monban")
     env = dict(os.environ, CARGO_TARGET_DIR=target)
     print(f"building the negative-control subject ({binp}) through ci/heavy.sh ...", flush=True)
     p = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q", "-p",
-                        "aegis-bin", "--features", features], cwd=REPO, env=env)
+                        "monban-bin", "--features", features], cwd=REPO, env=env)
     return binp if p.returncode == 0 and os.access(binp, os.X_OK) else None
 
 
@@ -1084,7 +1084,7 @@ def main():
         return 1
 
     if a.subject:
-        subj = a.mutant_subject or os.path.join(REPO, "target", "native-mutants", "release", "aegis")
+        subj = a.mutant_subject or os.path.join(REPO, "target", "native-mutants", "release", "monban")
         if not os.access(subj, os.X_OK):
             subj = build_mutant_subject("native,e2e-mutants" + (",adapter-mariadb" if my else ""))
             if not subj:

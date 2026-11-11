@@ -4,10 +4,10 @@
 Three layers, mirroring the Rust split so that every mutation below is a *host* mutation (or, for
 detach-before-commit, a break of the SDK's committed-proof check that the frozen Rust SDK makes inexpressible):
 
-  SDK   `scope` / `HostDb` / `run_job`: a port of sdk/aegis-sdk/src/host.rs (liveness gate, one Ctx per scope,
+  SDK   `scope` / `HostDb` / `run_job`: a port of sdk/monban-sdk/src/host.rs (liveness gate, one Ctx per scope,
         rollback of a transaction left open, jobs returned in Driven.jobs, detach only with a committed proof).
   APP   `app_call`: the scripted test application (an interpreter of the per-call action script).
-  HOST  `Host`: what aegis-adapter-host owns: sessions, streams with idle/step budgets, the bounded blocking pool,
+  HOST  `Host`: what monban-adapter-host owns: sessions, streams with idle/step budgets, the bounded blocking pool,
         the job store and run_jobs. This is the code under test in host-subject.
 
 Usage: ref_subject.py [--mutate <name>]

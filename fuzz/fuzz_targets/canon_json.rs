@@ -1,4 +1,4 @@
-//! CANON-2: the one JSON parser / canonical serializer (aegis-canon `parse_json`, `canon_json`).
+//! CANON-2: the one JSON parser / canonical serializer (monban-canon `parse_json`, `canon_json`).
 //!
 //! Properties:
 //! - `parse_json` and `canon_json` accept exactly the same inputs, with the same reject;
@@ -7,8 +7,8 @@
 //! - member names in canonical objects are strictly ascending (sorted, and duplicates were rejected).
 #![no_main]
 
-use aegis_canon::{JsonValue, canon_json, parse_json};
-use aegis_fuzz::selftest;
+use monban_canon::{JsonValue, canon_json, parse_json};
+use monban_fuzz::selftest;
 use libfuzzer_sys::fuzz_target;
 
 /// Sort object members (recursively) so values that differ only in member order compare equal.

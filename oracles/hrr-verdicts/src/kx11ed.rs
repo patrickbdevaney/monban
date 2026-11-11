@@ -1,7 +1,7 @@
 //! SecP384r1MLKEM1024 (0x11ED) for the oracle's own reference subject and full-handshake client.
 //!
-//! Written for the oracle from RFC 10024 (draft-ietf-tls-ecdhe-mlkem) section 4, independently of aegis-tls
-//! (`crates/aegis-tls/src/kx.rs` is the subject's code and is not linked or read for this): the oracle must be
+//! Written for the oracle from RFC 10024 (draft-ietf-tls-ecdhe-mlkem) section 4, independently of monban-tls
+//! (`crates/monban-tls/src/kx.rs` is the subject's code and is not linked or read for this): the oracle must be
 //! able to serve and offer 0x11ED itself, otherwise the gov-profile verdicts could only be judged against the
 //! subject's own implementation. rustls 0.23.46 has no 0x11ED.
 //!

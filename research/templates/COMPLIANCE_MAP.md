@@ -10,7 +10,7 @@ Source: ARCHITECTURE.md v4 §3.11, R-OPS-1/3/4/10, R-PQC-2/3/8. Re-verified 2026
 
 ## 1. Dated obligations
 
-| date | obligation | AEGIS response | grade |
+| date | obligation | Monban response | grade |
 |---|---|---|---|
 | 2026-01-01 | CISA bad practices: memory-safety roadmap or MSL (voluntary) | Rust; roadmap row lists C residue (aws-lc, SQLite, kernel) | A ✓ |
 | 2026-06-22 | **EO 14412**: federal HVA/high-impact PQ key establishment by 2030-12-31, signatures by 2031-12-31; CBOM guidance in 270 days; FAR rule ~2026-12; NSS excluded | P-UNIVERSAL / P-PUBLIC-WEB; CBOM from the lock | A ✓ |
@@ -27,7 +27,7 @@ Source: ARCHITECTURE.md v4 §3.11, R-OPS-1/3/4/10, R-PQC-2/3/8. Re-verified 2026
 | profile | groups | signatures | jurisdictions | status |
 |---|---|---|---|---|
 | P-PUBLIC-WEB | 0x11EC, 0x11ED, 0x11EB, X25519, P-256 | ECDSA-P256 (WebPKI) | general | shipping |
-| P-UNIVERSAL | 0x11ED only | ML-DSA-87 / ECDSA-P384 private | the only group in the intersection of US-civil, EU (BSI/ANSSI), UK, AU, CA, JP post-2030 lists | **0x11ED is AEGIS-owned** (rustls #3293 closed unmerged); KATs + interop + Kani before claiming; FIPS-boundary check for cmvp |
+| P-UNIVERSAL | 0x11ED only | ML-DSA-87 / ECDSA-P384 private | the only group in the intersection of US-civil, EU (BSI/ANSSI), UK, AU, CA, JP post-2030 lists | **0x11ED is Monban-owned** (rustls #3293 closed unmerged); KATs + interop + Kani before claiming; FIPS-boundary check for cmvp |
 | P-BSI-ALT | 0x11ED, 0x11EB | — | DE | as above |
 | P-CNSA | ML-KEM-1024 (0x0202) + ML-DSA-87 | ML-DSA-87 | US NSS (opt-in) | pure ML-KEM non-conformant in FR (ANSSI-PG-083 v3.00), hybrid-only in BSI TR-02102 |
 | FIPS (cmvp lock) | SECP256R1MLKEM768, P-256, P-384 (+0x11ED after boundary check) | ECDSA (ML-DSA not approved in AWS-LC 3.1.0) | US federal | AL2023 OEs only |

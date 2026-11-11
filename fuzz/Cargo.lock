@@ -3,111 +3,111 @@
 version = 4
 
 [[package]]
-name = "aegis-adapter-pg"
+name = "monban-adapter-pg"
 version = "0.0.0"
 dependencies = [
- "aegis-data-ir",
- "aegis-types",
+ "monban-data-ir",
+ "monban-types",
  "aws-lc-rs",
  "rustix",
 ]
 
 [[package]]
-name = "aegis-agent"
+name = "monban-agent"
 version = "0.0.0"
 dependencies = [
- "aegis-authz",
- "aegis-canon",
- "aegis-token",
- "aegis-types",
+ "monban-authz",
+ "monban-canon",
+ "monban-token",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-audit"
+name = "monban-audit"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-authz"
+name = "monban-authz"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-budget"
+name = "monban-budget"
 version = "0.0.0"
 
 [[package]]
-name = "aegis-canon"
+name = "monban-canon"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-config"
+name = "monban-config"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-types",
+ "monban-canon",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-data-ir"
+name = "monban-data-ir"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-egress"
+name = "monban-egress"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-types",
+ "monban-canon",
+ "monban-types",
  "tokio",
 ]
 
 [[package]]
-name = "aegis-fuzz"
+name = "monban-fuzz"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-pg",
- "aegis-agent",
- "aegis-audit",
- "aegis-authz",
- "aegis-canon",
- "aegis-config",
- "aegis-egress",
- "aegis-token",
- "aegis-transport",
- "aegis-types",
- "aegis-wire",
+ "monban-adapter-pg",
+ "monban-agent",
+ "monban-audit",
+ "monban-authz",
+ "monban-canon",
+ "monban-config",
+ "monban-egress",
+ "monban-token",
+ "monban-transport",
+ "monban-types",
+ "monban-wire",
  "libfuzzer-sys",
  "tokio",
 ]
 
 [[package]]
-name = "aegis-token"
+name = "monban-token"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-transport"
+name = "monban-transport"
 version = "0.0.0"
 dependencies = [
- "aegis-budget",
- "aegis-canon",
- "aegis-types",
+ "monban-budget",
+ "monban-canon",
+ "monban-types",
  "h2",
  "http",
  "hyper",
@@ -116,11 +116,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "aegis-types"
+name = "monban-types"
 version = "0.0.0"
 
 [[package]]
-name = "aegis-wire"
+name = "monban-wire"
 version = "0.0.0"
 
 [[package]]

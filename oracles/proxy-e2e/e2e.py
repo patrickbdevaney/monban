@@ -1,6 +1,6 @@
-"""AEGIS oracle: reverse-proxy end-to-end (P2-proxy-001). Stdlib only; run as `python3 -I e2e.py`.
+"""Monban oracle: reverse-proxy end-to-end (P2-proxy-001). Stdlib only; run as `python3 -I e2e.py`.
 
-Drives a real `aegis` binary over TLS against a recording upstream that stores exactly the bytes it receives,
+Drives a real `monban` binary over TLS against a recording upstream that stores exactly the bytes it receives,
 and checks forwarding (CANON-4: upstream sees framing regenerated from Canon, never the client's bytes), the q4-008
 per-clause outcomes (308 for `//`, trailing slash distinct, opaque query), CANON-6 421, INV-NONEMPTY (route without
 authz => 403, upstream never sees it), the admin metrics endpoint (every golden family, counters move), CFG-3
@@ -27,14 +27,14 @@ import oneresp  # noqa: E402  (R6 one-response case, shared with oracles/bin-res
 
 NAME = "PROXY-E2E"
 GOLDEN = [
-    "aegis_admission_rejects",
-    "aegis_budget_debits",
-    "aegis_crash_budget_trips",
-    "aegis_cert_seconds_to_expiry",
-    "aegis_fips_status",
-    "aegis_config_generation_hash",
-    "aegis_config_lkg_fallbacks",
-    "aegis_upgrade_forced_closes",
+    "monban_admission_rejects",
+    "monban_budget_debits",
+    "monban_crash_budget_trips",
+    "monban_cert_seconds_to_expiry",
+    "monban_fips_status",
+    "monban_config_generation_hash",
+    "monban_config_lkg_fallbacks",
+    "monban_upgrade_forced_closes",
 ]
 MUTANTS = ["raw-path", "skip-authz-deny", "skip-lkg"]
 HOP = {b"connection", b"keep-alive", b"transfer-encoding", b"te", b"trailer", b"upgrade", b"proxy-connection"}
@@ -165,7 +165,7 @@ class H1:
         self.ctx = ssl.create_default_context(cafile=cafile)
         self.ctx.set_alpn_protocols(["http/1.1"])
 
-    def req(self, method, path, host, headers=(), body=None, sni="aegis.test", chunked=False, conn=None):
+    def req(self, method, path, host, headers=(), body=None, sni="monban.test", chunked=False, conn=None):
         own = conn is None
         c = conn or SNIConn(self.port, sni, self.ctx)
         c.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
@@ -192,7 +192,7 @@ class H1:
             c.close()
         return out
 
-    def conn(self, sni="aegis.test"):
+    def conn(self, sni="monban.test"):
         return SNIConn(self.port, sni, self.ctx)
 
 
@@ -207,8 +207,8 @@ def curl_has_h2():
 
 
 def curl_h2(port, cafile, path, host=None):
-    url = f"https://aegis.test:{port}{path}"
-    cmd = ["curl", "-sS", "--http2", "--cacert", cafile, "--resolve", f"aegis.test:{port}:127.0.0.1",
+    url = f"https://monban.test:{port}{path}"
+    cmd = ["curl", "-sS", "--http2", "--cacert", cafile, "--resolve", f"monban.test:{port}:127.0.0.1",
            "-o", "-", "-w", "\n%{http_code} %{http_version}", "-H", "X-H2:  spaced value ", url]
     if host:
         cmd += ["-H", f"Host: {host}"]
@@ -251,7 +251,7 @@ class Run:
         self.failures = []
         self.passed = 0
         self.notes = []
-        self.dir = tempfile.mkdtemp(prefix="aegis-proxy-e2e-")
+        self.dir = tempfile.mkdtemp(prefix="monban-proxy-e2e-")
         self.proc = None
         self.up = None
 
@@ -269,8 +269,8 @@ class Run:
             raise RuntimeError("openssl CLI not found (needed to mint the test certificate)")
         key, crt = os.path.join(self.dir, "key.pem"), os.path.join(self.dir, "cert.pem")
         subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1",
-                        "-nodes", "-keyout", key, "-out", crt, "-days", "30", "-subj", "/CN=aegis.test",
-                        "-addext", "subjectAltName=DNS:aegis.test,DNS:other.test"],
+                        "-nodes", "-keyout", key, "-out", crt, "-days", "30", "-subj", "/CN=monban.test",
+                        "-addext", "subjectAltName=DNS:monban.test,DNS:other.test"],
                        check=True, capture_output=True, timeout=30)
         return crt, key
 
@@ -290,7 +290,7 @@ class Run:
                            "alpn": ["h2", "http/1.1"]}],
             "admin": {"bind": f"127.0.0.1:{self.aport}"},
             "vhosts": [
-                {"host": "aegis.test", "routes": routes},
+                {"host": "monban.test", "routes": routes},
                 {"host": "other.test", "routes": [{"id": 1, "path": "/", "to": {"upstream": u}, "authz": "allow-all"}]},
             ],
         }
@@ -308,7 +308,7 @@ class Run:
         env.pop("AEGIS_UPGRADE_DIR", None)
         env.pop("AEGIS_E2E_MUTANT", None)
         env.update(self.env_extra)
-        self.log = open(os.path.join(self.dir, "aegis.log"), "wb")
+        self.log = open(os.path.join(self.dir, "monban.log"), "wb")
         self.proc = subprocess.Popen([self.subject, "--config", self.cfg_path, "--cert", self.crt, "--key", self.key,
                                       "--audit-dir", os.path.join(self.dir, "audit")],
                                      stdout=self.log, stderr=subprocess.STDOUT, env=env)
@@ -327,7 +327,7 @@ class Run:
 
     def tail(self):
         try:
-            with open(os.path.join(self.dir, "aegis.log"), "rb") as f:
+            with open(os.path.join(self.dir, "monban.log"), "rb") as f:
                 return f.read()[-2000:].decode(errors="replace")
         except OSError:
             return ""
@@ -364,7 +364,7 @@ class Run:
             self.crt, self.key = self.cert()
             self.up = Recorder()
             self.port, self.aport = free_port(), free_port()
-            self.cfg_path = os.path.join(self.dir, "aegis.json")
+            self.cfg_path = os.path.join(self.dir, "monban.json")
             self.write_config(self.config())
             self.start()
             self.checks()
@@ -380,8 +380,8 @@ class Run:
     def checks(self):
         h1 = H1(self.port, self.crt)
         P = self.port
-        host = f"AEGIS.test:{P}"  # canonical authority is lowercase
-        auth = f"aegis.test:{P}".encode()
+        host = f"Monban.test:{P}"  # canonical authority is lowercase
+        auth = f"monban.test:{P}".encode()
 
         # --- GET: canonical path / query / headers; framing regenerated
         n0 = self.up.count()
@@ -408,7 +408,7 @@ class Run:
 
         # --- POST: chunked from the client => content-length to the upstream; body exact
         payload = b"hello, chunked world"
-        st, _, _ = h1.req("POST", "/api/post", f"aegis.test:{P}", headers=[("Content-Type", "text/plain")],
+        st, _, _ = h1.req("POST", "/api/post", f"monban.test:{P}", headers=[("Content-Type", "text/plain")],
                           body=payload, chunked=True)
         r = self.up.last()
         low = dict((n.lower(), v) for n, v in r["fields"]) if r else {}
@@ -416,60 +416,60 @@ class Run:
         self.check("post.chunked.regenerated", r is not None and r["method"] == b"POST" and r["body"] == payload
                    and low.get(b"content-length") == str(len(payload)).encode() and b"transfer-encoding" not in low,
                    f"upstream saw {r and r['head']!r} body {r and r['body']!r}")
-        st, _, _ = h1.req("POST", "/api/post2", f"aegis.test:{P}", body=b"abc")
+        st, _, _ = h1.req("POST", "/api/post2", f"monban.test:{P}", body=b"abc")
         r = self.up.last()
         self.check("post.length", st == 200 and r["body"] == b"abc" and r["target"] == b"/api/post2",
                    f"status {st} upstream {r and r['head']!r}")
 
         # --- response hop-by-hop fields are not relayed
-        st, hd, _ = h1.req("GET", "/api/hop", f"aegis.test:{P}")
+        st, hd, _ = h1.req("GET", "/api/hop", f"monban.test:{P}")
         self.check("response.hop-by-hop", st == 200 and "x-hop" not in hd and "keep-alive" not in hd
                    and hd.get("x-upstream") == "rec", f"status {st} headers {hd}")
 
         # --- trailing slash is its own canonical form (q4-008)
-        st, _, _ = h1.req("GET", "/exact", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/exact", f"monban.test:{P}")
         r = self.up.last()
         self.check("slash.exact", st == 200 and r["target"] == b"/exact", f"status {st} target {r and r['target']!r}")
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/exact/", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/exact/", f"monban.test:{P}")
         self.check("slash.distinct", st == 404 and self.up.count() == n0, f"status {st}")
-        st, _, _ = h1.req("GET", "/api/dir/", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/api/dir/", f"monban.test:{P}")
         r = self.up.last()
         self.check("slash.kept", st == 200 and r["target"] == b"/api/dir/", f"status {st} target {r and r['target']!r}")
 
         # --- opaque query: byte order kept, never split or sorted; malformed rejected
-        st, _, _ = h1.req("GET", "/api/q?z=1&a=2&z=3&%41=x", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/api/q?z=1&a=2&z=3&%41=x", f"monban.test:{P}")
         r = self.up.last()
         self.check("query.opaque", st == 200 and r["target"] == b"/api/q?z=1&a=2&z=3&A=x",
                    f"status {st} target {r and r['target']!r}")
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/api/q?a=%zz", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/api/q?a=%zz", f"monban.test:{P}")
         self.check("query.malformed", st == 400 and self.up.count() == n0, f"status {st}")
 
         # --- // => 308 to the merged path, never forwarded
         n0 = self.up.count()
-        st, hd, _ = h1.req("GET", "/api//x?q=1", f"aegis.test:{P}")
+        st, hd, _ = h1.req("GET", "/api//x?q=1", f"monban.test:{P}")
         self.check("empty-segment.308", st == 308 and hd.get("location") == "/api/x?q=1" and self.up.count() == n0,
                    f"status {st} location {hd.get('location')!r}")
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/api/a/../b", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/api/a/../b", f"monban.test:{P}")
         self.check("dot-segment.400", st == 400 and self.up.count() == n0, f"status {st}")
 
-        # --- CANON-6: SNI aegis.test, Host other.test => 421
+        # --- CANON-6: SNI monban.test, Host other.test => 421
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/api/x", "other.test", sni="aegis.test")
+        st, _, _ = h1.req("GET", "/api/x", "other.test", sni="monban.test")
         self.check("sni-host.421", st == 421 and self.up.count() == n0, f"status {st}")
         st, _, _ = h1.req("GET", "/x", "other.test", sni="other.test")
         self.check("other-vhost.ok", st == 200, f"status {st}")
 
         # --- INV-NONEMPTY: route without authz => 403, upstream never sees it; unknown policy => 403
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/noauthz/x", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/noauthz/x", f"monban.test:{P}")
         self.check("noauthz.403", st == 403, f"status {st}")
-        st2, _, _ = h1.req("POST", "/noauthz/x", f"aegis.test:{P}", body=b"x" * 10)
+        st2, _, _ = h1.req("POST", "/noauthz/x", f"monban.test:{P}", body=b"x" * 10)
         self.check("noauthz.never-forwarded", st2 == 403 and self.up.count() == n0, f"status {st2}")
         n0 = self.up.count()
-        st, _, _ = h1.req("GET", "/cedar/x", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/cedar/x", f"monban.test:{P}")
         self.check("unknown-policy.403", st == 403 and self.up.count() == n0, f"status {st}")
 
         # --- HTTP/2 (curl --http2)
@@ -502,47 +502,47 @@ class Run:
         self.check("metrics.golden-families", not missing and m1.rstrip().endswith("# EOF"), f"missing {missing}")
         st, hz = admin_get(self.aport, "/healthz")
         self.check("healthz", st == 200 and '"status":"ok"' in hz, f"{st} {hz!r}")
-        d0 = metric(m1, 'aegis_budget_debits_total{scope="ip"}') or 0
-        a0 = metric(m1, "aegis_proxy_authz_denied_total") or 0
-        h1.req("GET", "/api/m", f"aegis.test:{P}")
-        h1.req("GET", "/noauthz/m", f"aegis.test:{P}")
+        d0 = metric(m1, 'monban_budget_debits_total{scope="ip"}') or 0
+        a0 = metric(m1, "monban_proxy_authz_denied_total") or 0
+        h1.req("GET", "/api/m", f"monban.test:{P}")
+        h1.req("GET", "/noauthz/m", f"monban.test:{P}")
         m2 = self.metrics()
-        self.check("metrics.counters-move", (metric(m2, 'aegis_budget_debits_total{scope="ip"}') or 0) >= d0 + 2
-                   and (metric(m2, "aegis_proxy_authz_denied_total") or 0) >= a0 + 1, "debits/denied did not move")
-        cert = metric(m2, 'aegis_cert_seconds_to_expiry{slot="serving"}') or 0
+        self.check("metrics.counters-move", (metric(m2, 'monban_budget_debits_total{scope="ip"}') or 0) >= d0 + 2
+                   and (metric(m2, "monban_proxy_authz_denied_total") or 0) >= a0 + 1, "debits/denied did not move")
+        cert = metric(m2, 'monban_cert_seconds_to_expiry{slot="serving"}') or 0
         self.check("metrics.cert-gauge", 20 * 86400 < cert <= 31 * 86400, f"cert gauge {cert}")
 
         # --- CFG-3: a bad reload keeps the old config serving and counts a last-known-good fallback
         for label, bad in [("syntax", '{"v":1, "listeners": [}'),
-                           ("plan", json.dumps({**self.config(), "vhosts": [{"host": "aegis.test", "routes": [
+                           ("plan", json.dumps({**self.config(), "vhosts": [{"host": "monban.test", "routes": [
                                {"id": 1, "path": "/api/", "to": {"static": "/srv"}, "authz": "allow-all"}]}]}))]:
-            lkg0 = metric(self.metrics(), "aegis_config_lkg_fallbacks_total") or 0
+            lkg0 = metric(self.metrics(), "monban_config_lkg_fallbacks_total") or 0
             self.write_config(bad)
-            moved = self.sighup_and_wait("aegis_config_lkg_fallbacks_total", lkg0)
-            self.check(f"lkg.{label}.counter", moved, "aegis_config_lkg_fallbacks did not increment")
+            moved = self.sighup_and_wait("monban_config_lkg_fallbacks_total", lkg0)
+            self.check(f"lkg.{label}.counter", moved, "monban_config_lkg_fallbacks did not increment")
             n0 = self.up.count()
-            st, _, _ = h1.req("GET", "/api/after-bad-reload", f"aegis.test:{P}")
+            st, _, _ = h1.req("GET", "/api/after-bad-reload", f"monban.test:{P}")
             self.check(f"lkg.{label}.old-config-serves", st == 200 and self.up.count() == n0 + 1, f"status {st}")
-            st, _, _ = h1.req("GET", "/noauthz/x", f"aegis.test:{P}")
+            st, _, _ = h1.req("GET", "/noauthz/x", f"monban.test:{P}")
             self.check(f"lkg.{label}.old-config-denies", st == 403, f"status {st}")
 
         # --- CRS C5: pooled upstream connections are reused within a config, never across a change
-        h1.req("GET", "/api/pool-a", f"aegis.test:{P}")
+        h1.req("GET", "/api/pool-a", f"monban.test:{P}")
         ca = self.up.last()["conn"]
-        h1.req("GET", "/api/pool-b", f"aegis.test:{P}")
+        h1.req("GET", "/api/pool-b", f"monban.test:{P}")
         cb = self.up.last()["conn"]
         self.check("pool.reused-within-epoch", ca == cb, f"conn {ca} then {cb}")
-        r0 = metric(self.metrics(), "aegis_proxy_config_reloads_total") or 0
+        r0 = metric(self.metrics(), "monban_proxy_config_reloads_total") or 0
         self.write_config(self.config(extra_route=True))
-        applied = self.sighup_and_wait("aegis_proxy_config_reloads_total", r0)
+        applied = self.sighup_and_wait("monban_proxy_config_reloads_total", r0)
         self.check("reload.applied", applied, "good reload not applied")
-        st, _, _ = h1.req("GET", "/new/route", f"aegis.test:{P}")
+        st, _, _ = h1.req("GET", "/new/route", f"monban.test:{P}")
         cc = self.up.last()["conn"]
         self.check("reload.new-route", st == 200 and self.up.last()["target"] == b"/new/route", f"status {st}")
         self.check("pool.not-reused-across-epoch", cc != cb, f"conn {cb} reused after config change")
 
         # --- R6 (P8-oracle-001): one malformed chunked request gets exactly one 400, then a close; never forwarded
-        oneresp.run_cases(self.check, P, "aegis.test", self.crt, f"aegis.test:{P}", "/api/chunk",
+        oneresp.run_cases(self.check, P, "monban.test", self.crt, f"monban.test:{P}", "/api/chunk",
                           upstream_count=self.up.count, prefix="r6.")
 
     def boot_checks(self):
@@ -551,13 +551,13 @@ class Run:
         try:
             p = subprocess.run([self.subject], capture_output=True, timeout=20, env=self.clean_env())
             self.check("boot.no-config.78", p.returncode == 78, f"exit {p.returncode}")
-            d = tempfile.mkdtemp(prefix="aegis-proxy-e2e-boot-")
+            d = tempfile.mkdtemp(prefix="monban-proxy-e2e-boot-")
             try:
                 bad = os.path.join(d, "bad.json")
                 with open(bad, "w") as f:
                     json.dump({"v": 1, "listeners": [{"name": "pub", "bind": f"127.0.0.1:{port}",
                                                       "profile": "P-PUBLIC-WEB"}],
-                               "vhosts": [{"host": "aegis.test", "routes": [
+                               "vhosts": [{"host": "monban.test", "routes": [
                                    {"id": 1, "path": "/", "to": {"upstream": "127.0.0.1:1"}, "bogus": 1}]}]}, f)
                 pr = subprocess.Popen([self.subject, "--config", bad, "--audit-dir", d], stdout=subprocess.DEVNULL,
                                       stderr=subprocess.PIPE, env=self.clean_env())
@@ -614,11 +614,11 @@ def run_subject(subject, env_extra=None, verbose=False):
 
 def build_mutant_subject(repo):
     target = os.path.join(repo, "target", "e2e-mutants")
-    binp = os.path.join(target, "release", "aegis")
+    binp = os.path.join(target, "release", "monban")
     env = dict(os.environ, CARGO_TARGET_DIR=target)
     print(f"building the negative-control subject ({binp}) through ci/heavy.sh ...")
     p = subprocess.run([os.path.join(repo, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-p",
-                        "aegis-bin", "--features", "e2e-mutants"], cwd=repo, env=env)
+                        "monban-bin", "--features", "e2e-mutants"], cwd=repo, env=env)
     if p.returncode != 0 or not os.path.exists(binp):
         return None
     return binp
@@ -626,7 +626,7 @@ def build_mutant_subject(repo):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", default="target/release/aegis")
+    ap.add_argument("--subject", default="target/release/monban")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--mutant-subject", default=None, help="prebuilt e2e-mutants binary for --self-test")
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -650,14 +650,14 @@ def main():
     jr = Run(None)
     try:
         crt, key = jr.cert()
-        jok, jsum = oneresp.judge_selftest(crt, key, "aegis.test")
+        jok, jsum = oneresp.judge_selftest(crt, key, "monban.test")
     finally:
         shutil.rmtree(jr.dir, ignore_errors=True)
     if not jok:
         print(f"{NAME} SELF-TEST: FAIL ({jsum})")
         return 1
     print(f"  {jsum}")
-    subj = a.mutant_subject or os.path.join(repo, "target", "e2e-mutants", "release", "aegis")
+    subj = a.mutant_subject or os.path.join(repo, "target", "e2e-mutants", "release", "monban")
     if not os.access(subj, os.X_OK):
         subj = build_mutant_subject(repo)
         if not subj:

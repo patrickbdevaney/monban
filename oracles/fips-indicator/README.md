@@ -3,7 +3,7 @@
 **Spec:** PREFLIGHT D-P8.2, D-P8.1. F1 FIPS-B1: a FIPS claim names only components the cited certificate approves.
 **Closes:** residual R1, the indicator half. The documentation half is `fips-boundary`, P8-fips-001.
 **Subject:** `target/cmvp/release/tls-subject indicator`. This is the cmvp tls-subject (features `cmvp,indicator`),
-built by `profiles/cmvp/build.sh` in the AL2023 image on kamrui. It is never aegis-bin.
+built by `profiles/cmvp/build.sh` in the AL2023 image on kamrui. It is never monban-bin.
 
 ## What is checked
 
@@ -35,8 +35,8 @@ Notes on the rows:
   aws-lc-rs 1.15.3 `Salt::extract` and `Okm::fill` call the one-shot `HKDF()`, and an empty `Box<[u8]>` salt is a
   non-null pointer. So the approved and not-approved expectations of A3 and C3 come from the module, not from a
   table the subject chooses. A3 and C3 run the same primitive and differ only in parameters.
-- **K.** The AEGIS SecP384r1MLKEM1024 group (`aegis_tls::kx`) is run alone.
-- **H.** The handshake is one in-memory TLS 1.3 handshake. The server is `aegis_tls::server_config_with`. The client
+- **K.** The Monban SecP384r1MLKEM1024 group (`monban_tls::kx`) is run alone.
+- **H.** The handshake is one in-memory TLS 1.3 handshake. The server is `monban_tls::server_config_with`. The client
   is a subject-local rustls client restricted to 0x11ED. The verdict is not required because the TLS 1.3 key schedule
   has no CAVP row: PREFLIGHT D-P8.1 claims "built only from #5314-approved components", never "FIPS-approved key
   establishment". A single verdict over a handshake also only shows that *some* approved service ran inside it.
@@ -54,7 +54,7 @@ The subject exits 0 at EOF.
 
 How the subject takes its readings:
 - Every verdict is AWS-LC's `FIPS_service_indicator_before_call` / `_after_call` read around exactly one call, on the
-  calling thread, through `aegis_iso::fips::with_indicator`. These are the aegis-iso audited sites, feature
+  calling thread, through `monban_iso::fips::with_indicator`. These are the monban-iso audited sites, feature
   `indicator`.
 - Key generation and the peer's side of each agreement run outside the window.
 
@@ -102,12 +102,12 @@ mutant-specific substring. A missing binary must also be red. The mutants cover:
 - **The oracle judges what the subject reports.** A subject written to imitate AWS-LC's rule table, while also
   computing HKDF itself, would pass. `fake_subject.py honest` is exactly that, and it is the self-test's positive
   control. The binding to the real module rests on three things outside this oracle:
-  - the subject source: every verdict comes from `aegis_iso::fips::with_indicator`, the only constructor of
-    `aegis_iso::fips::Indicator`;
-  - aegis-iso's `link_name` pin, `aws_lc_fips_0_13_11_…`: any other module, including the non-FIPS stubs that
+  - the subject source: every verdict comes from `monban_iso::fips::with_indicator`, the only constructor of
+    `monban_iso::fips::Indicator`;
+  - monban-iso's `link_name` pin, `aws_lc_fips_0_13_11_…`: any other module, including the non-FIPS stubs that
     always return Approved, is a link error;
   - the `module` row.
 - **The indicator is per thread.** The subject runs every op on its main thread. A verdict means some approved
   service completed inside the window.
 - **Rung R2** (PREFLIGHT, PLAN "Claims"): one run of the real cmvp module on one host (kamrui, AL2023 image). It is
-  not a CMVP validation of AEGIS. It is not an approval of the 0x11ED composite or of the TLS 1.3 KDF.
+  not a CMVP validation of Monban. It is not an approval of the 0x11ED composite or of the TLS 1.3 KDF.

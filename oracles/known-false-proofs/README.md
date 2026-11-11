@@ -1,7 +1,7 @@
 # known-false-proofs oracle (Phase 0 "verify wall")
 
 A corpus of **known ways to make a proof checker accept a false or unjustified theorem**. Every
-case MUST be *rejected* by the AEGIS proof gate (`ci/gate.sh`), and the rejection MUST *name the
+case MUST be *rejected* by the Monban proof gate (`ci/gate.sh`), and the rejection MUST *name the
 planted defect* (not an unrelated error). This is the negative half of R-FORMAL-5 / AA7
 ("proof false PASS"): an oracle that cannot be made red is not a gate.
 

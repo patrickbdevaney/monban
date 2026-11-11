@@ -1,4 +1,4 @@
-# AEGIS round 4 report (2026-10-25)
+# Monban round 4 report (2026-10-25)
 
 Integrator: the only writer of map state for round 4. Inputs: 12 explorers (raw JSON in `state/raw/round-004/`) and 12 two-sided verifier passes. The blind-research rule (§0a) held: the integrator did not open `state/prior_treatments/` or `state/seed_conversation.md`.
 

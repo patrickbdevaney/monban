@@ -171,7 +171,7 @@ def main_prod(rel, kd, days, enc, passfile, roots_dir):
     from tuf.api.metadata import Metadata, MetaFile, Snapshot, TargetFile, Targets, Timestamp
     from tuf.api.serialization.json import JSONSerializer
 
-    spec = importlib.util.spec_from_file_location("aegis_keys_root", os.path.join(HERE, "..", "keys", "root.py"))
+    spec = importlib.util.spec_from_file_location("monban_keys_root", os.path.join(HERE, "..", "keys", "root.py"))
     rootlib = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(rootlib)
 

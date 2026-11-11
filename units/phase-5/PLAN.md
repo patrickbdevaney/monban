@@ -6,7 +6,7 @@ assertions). Both P2 paths are built and gated, because P(R1 fires within 12 mon
 rate (ARCHITECTURE §3.6). The Phase-1 verdict q4-006 picks the default (D1). Gate file: `gates/phase-5.toml`
 (67 gates = 57 carried from Phase 4 + 10 new). Units: 16 JSON files here.
 
-Starting point: `crates/aegis-iso` and `crates/aegis-wasm` are Phase-0 stubs (4-line lib.rs each, no third-party
+Starting point: `crates/monban-iso` and `crates/monban-wasm` are Phase-0 stubs (4-line lib.rs each, no third-party
 dependency). wasmtime is not in the workspace Cargo.lock; it is pinned at 50.0.0 only in the
 `oracles/isolation-fi/rust` workspace and in `supply-chain/lock-targets.toml`. The reference subjects in
 `oracles/isolation-fi` (isofi: cordon and fork+Wasm, hand-rolled Landlock and seccomp over libc) are the measured
@@ -24,23 +24,23 @@ design. Phase 5 ports that design into the product crates and gates the real cod
 | wasmtime pin/config assertions (MPK only with unchanged reservation and guards) | wasmtime-config | P5-wasm-001 |
 | re-run on a quiet VPS-class runner; thresholds move only if shifted >2× | p2-fault-vps | P5-vps-001 |
 | (added) exec zygote and exec respawn, cordon per principal, crash budgets, dumpable=0, default path switchable by config, fail-closed boot | p2-e2e | P5-bin-001 |
-| (added) no wasmtime/cranelift in any aegis-bin build (D3, X-13) | no-wasmtime-in-bin | P5-spec-002 |
-| (added) unsafe sites: aegis-iso ≤20, aegis-wasm =1, each with `// SAFETY:` (D4, X-14) | unsafe-sites | P5-spec-002 |
+| (added) no wasmtime/cranelift in any monban-bin build (D3, X-13) | no-wasmtime-in-bin | P5-spec-002 |
+| (added) unsafe sites: monban-iso ≤20, monban-wasm =1, each with `// SAFETY:` (D4, X-14) | unsafe-sites | P5-spec-002 |
 
 Every new gate has a selftest that turns red on a mutant. The mutants are listed in each unit's `oracles` and
 `acceptance.must`. Carried gates: the seven Phase-3/4 gates that still have no selftest (hygiene, tests, audit,
 fail-closed-boot, build-subjects, config-totality, systemd-hardening) are unchanged. `budget` is extended to the
-aegis-p2 worker binary (P5-spec-002), and `oracles-local` also builds the p2 targets. P5-config-001 has no gate of
+monban-p2 worker binary (P5-spec-002), and `oracles-local` also builds the p2 targets. P5-config-001 has no gate of
 its own: the carried config-totality gate and the p2-e2e boot family cover it.
 
 ## Roles
 
 As in Phase 4, oracles and harness pieces are spec-author units. Every oracle exists outside the implementer's write
 scope and has gone red before an implementer is assigned (§2). Implementer units never touch Cargo.toml or
-Cargo.lock. P5-spec-002 pre-wires every third-party edge (wasmtime into aegis-wasm, libc into aegis-iso), creates
-the `crates/aegis-p2` crate skeleton, and defines every cargo feature named below (aegis-bin `p2`/`p2-mutants`,
-aegis-p2 `test-hooks`/`mutants`). The new subject crate `subjects/p2-subject` has path dependencies only (on
-aegis-iso and aegis-wasm, never on wasmtime directly), so its unit may write its manifest. The integrator re-locks
+Cargo.lock. P5-spec-002 pre-wires every third-party edge (wasmtime into monban-wasm, libc into monban-iso), creates
+the `crates/monban-p2` crate skeleton, and defines every cargo feature named below (monban-bin `p2`/`p2-mutants`,
+monban-p2 `test-hooks`/`mutants`). The new subject crate `subjects/p2-subject` has path dependencies only (on
+monban-iso and monban-wasm, never on wasmtime directly), so its unit may write its manifest. The integrator re-locks
 path-only entries at merge, and lock-targets and lock-age must show no third-party version change.
 
 ## Unit graph and waves (→ = depends on)
@@ -50,11 +50,11 @@ W0  start now:   P5-spec-001  P5-spec-002  P5-oracle-fi-001  P5-oracle-syscall-0
 W0b spec-001 → P5-oracle-hostile-001, P5-oracle-e2e-001          (both need the F14 ABI and the F8 p2 block)
 W1  P5-iso-001     → spec-002, oracle-syscall                     (sandbox: Landlock, seccomp, dumpable, probe)
     P5-wasm-001    → spec-001, spec-002, oracle-wtcfg             (engine config, cwasm, fresh Store, fuel, epoch, MPK)
-    P5-config-001  → spec-001                                     (F8 p2 block in aegis-config)
+    P5-config-001  → spec-001                                     (F8 p2 block in monban-config)
 W2  P5-iso-002     → iso-001, wasm-001, oracle-fi                 (exec zygote, fork+Wasm, worker binary, p2-subject)
 W3  P5-iso-003     → iso-002                                      (cordon per principal, crash budget, supervisor respawn)
     P5-wasm-002    → wasm-001, iso-002, oracle-hostile            (F14 linker allowlist, handles, quotas)
-W4  P5-bin-001     → iso-003, wasm-002, config-001, oracle-e2e    (aegis-bin feature p2: routes wasm:, F14 decoder, I5)
+W4  P5-bin-001     → iso-003, wasm-002, config-001, oracle-e2e    (monban-bin feature p2: routes wasm:, F14 decoder, I5)
     P5-vps-001     → iso-003, oracle-fi, oracle-syscall           (kamrui re-run + laptop reference file)
 W5  P5-bin-002     → bin-001, oracle-hostile                      (data_run authorize, audit-before-effect, I7 mapping)
 GO  python3 -I ci/run-gates.py --phase 5
@@ -65,7 +65,7 @@ still ≤2 compiling agents (heavy.sh 6 GB). A wasmtime+cranelift release build 
 prefer `ci/remote.sh` for implementer iteration builds. Oracle units that build Wasm guests or reference hosts
 (fi, syscall, hostile, e2e) compile in their own oracle workspaces. Write scopes are disjoint for every pair of units
 not ordered by depends_on (checked by script over the JSON files). Units that share a crate are chained: iso-001 →
-iso-002 → iso-003 (aegis-iso, aegis-p2, p2-subject); wasm-001 → wasm-002 (aegis-wasm; wasm-001 owns
+iso-002 → iso-003 (monban-iso, monban-p2, p2-subject); wasm-001 → wasm-002 (monban-wasm; wasm-001 owns
 `src/abi/mod.rs` as a fail-closed stub only); bin-001 → bin-002. The one textual overlap,
 `supply-chain/wasmtime-config.toml`, is excluded from spec-002's `supply-chain/**`.
 
@@ -86,12 +86,12 @@ iso-002 → iso-003 (aegis-iso, aegis-p2, p2-subject); wasm-001 → wasm-002 (ae
 
 ## Interfaces (frozen F-files)
 
-Phase 5 **must not change** F2 (aegis-types), F3 (Exchange), F4 (data IR), F5 (token), F6 (combine), F7/F7b (SDK),
+Phase 5 **must not change** F2 (monban-types), F3 (Exchange), F4 (data IR), F5 (token), F6 (combine), F7/F7b (SDK),
 F9 (audit event), F10 (out-of-process module wire), F11 (upgrade handover), F12 (verdicts) or F13 (conformance
 report). It needs these amendments, all in P5-spec-001 with re-freeze in the same commit:
 
 - **F14 (new)** `interfaces/F14-p2-guest-abi.cddl` defines the P2 core-module guest ABI and the worker↔supervisor
-  frames. Imports are a closed allowlist in module `aegis`. The request arrives as canonical structured values
+  frames. Imports are a closed allowlist in module `monban`. The request arrives as canonical structured values
   (never raw bytes). Response head and body are written through host calls and re-serialized by the supervisor.
   `log` takes module-authored data. `data_run` carries an F4 op encoded with the F10 `op` rule, cited by name (F10
   bytes unchanged). Handles are per-request, generation-tagged ids. `env.host_fault` exists only in `test-hooks`
@@ -116,8 +116,8 @@ row is not edited here.
 - **D1 default path (from q4-006).** Multi-principal P2 data routes default to fork+Wasm. The alternative is one
   fresh-Wasm cordon per principal. Single-tenant P2 routes run fresh instances in a per-principal cordon.
 - **D2 namespaces are unavailable; record what that means for cordons and for the negative tests.**
-- **D3 wasmtime cannot enter aegis-bin within the budget.**
-- **D4 `Module::deserialize` is `unsafe`, and aegis-wasm is `forbid(unsafe_code)`.**
+- **D3 wasmtime cannot enter monban-bin within the budget.**
+- **D4 `Module::deserialize` is `unsafe`, and monban-wasm is `forbid(unsafe_code)`.**
 - **D5–D16** follow from the spike limits and ARCHITECTURE R-ISO-2..5; see Decisions.
 
 ## Infeasible or blocked as written
@@ -138,7 +138,7 @@ row is not edited here.
    runner, with the claims capped at B?
 2. Will the operator accept a per-runner threshold for the kamrui fork+Wasm loop recovery if it reproduces at >2×
    (D10)? Or should a kamrui miss count as evidence for the cordon-per-principal default?
-3. aegis-p2 budget ceilings (crates, stripped size, non-crypto unsafe) are unknown until P5-spec-002 measures them.
+3. monban-p2 budget ceilings (crates, stripped size, non-crypto unsafe) are unknown until P5-spec-002 measures them.
    No number is proposed here.
 4. cargo-vet coverage of wasmtime/cranelift 50.0.0 through the bytecode-alliance import is unverified. How large is
    the vet-baseline addition?
@@ -182,7 +182,7 @@ row is not edited here.
   - Alternative: `isolation = "cordon"`, one exec-spawned cordon per principal, with a fresh instance per request,
     a 64-slot pool, fuel and a 100 ms epoch.
   - Single-tenant routes use the cordon, keyed by principal.
-  - A cordon shared by principals cannot be configured. aegis-iso refuses it at runtime because the cordon key is the
+  - A cordon shared by principals cannot be configured. monban-iso refuses it at runtime because the cordon key is the
     principal.
   - Amended by D23 (b): the F8 default is now `isolation = "auto"`, which is forkwasm with ≥ 8 usable CPUs and
     cordon below that (VPS-class hosts). Explicit values are unchanged.
@@ -212,23 +212,23 @@ row is not edited here.
      - A VPS kernel without the AppArmor restriction, where CLONE_NEWUSER grants capabilities, is more exposed. The
        filter is the control on either kernel.
 - **D3 separate worker binary (DEVIATIONS X-13, proposed).** wasmtime and cranelift link only into a new crate,
-  `crates/aegis-p2` (layer 5): the zygote, cordon and compile entry points, built on aegis-iso and aegis-wasm.
-  aegis-bin (default, `native`, `p2` and every combination) gets no wasmtime or cranelift node, enforced by the gate
-  no-wasmtime-in-bin. aegis-bin's `p2` feature adds only the aegis-iso supervisor (spawn, fd passing, respawn,
+  `crates/monban-p2` (layer 5): the zygote, cordon and compile entry points, built on monban-iso and monban-wasm.
+  monban-bin (default, `native`, `p2` and every combination) gets no wasmtime or cranelift node, enforced by the gate
+  no-wasmtime-in-bin. monban-bin's `p2` feature adds only the monban-iso supervisor (spawn, fd passing, respawn,
   crash budget) and the F14 decoder, with no new third-party crate. Reasons:
   - The core is at 45/60 third-party crates and 4,948/5,000 non-crypto unsafe lines (P4-spec-002 status).
   - The isolation-fi lock has 106 entries for wasmtime 50.0.0 + cranelift 0.137.0, including build and guest
     crates.
   - The design already exec-spawns the zygote, and fork cost grows with zygote RSS (q4-006 limits).
 
-  aegis-p2 gets its own explicit ceilings, measured by P5-spec-002 and set by the integrator before W1 implementers
-  start (Q3). The same pattern as X-8 (aegis-pdp) and X-12.
-- **D4 unsafe sites (DEVIATIONS X-14, proposed).** aegis-iso: ≤20 sites (fork, prctl, seccomp, landlock_*,
-  setitimer, fd adoption, _exit), each with `// SAFETY:`. aegis-wasm: exactly 1, the `Module::deserialize_file` of a
-  `.cwasm` that this boot's sandboxed `aegis-p2 compile` produced. Its sha256 must equal the digest the supervisor
+  monban-p2 gets its own explicit ceilings, measured by P5-spec-002 and set by the integrator before W1 implementers
+  start (Q3). The same pattern as X-8 (monban-pdp) and X-12.
+- **D4 unsafe sites (DEVIATIONS X-14, proposed).** monban-iso: ≤20 sites (fork, prctl, seccomp, landlock_*,
+  setitimer, fd adoption, _exit), each with `// SAFETY:`. monban-wasm: exactly 1, the `Module::deserialize_file` of a
+  `.cwasm` that this boot's sandboxed `monban-p2 compile` produced. Its sha256 must equal the digest the supervisor
   holds and passes to the zygote/cordon. Never bytes from config or from a tenant (runwasi CVE-2026-47218 pattern).
   The alternative, compiling in the zygote with no unsafe, is rejected by q4-006: zygote RSS 11.8 vs 5.9 MiB and
-  +43–84 µs per fork. xtask `UNSAFE_ALLOWED` gains aegis-wasm with a cap of 1. The new `cargo xtask unsafe-sites`
+  +43–84 µs per fork. xtask `UNSAFE_ALLOWED` gains monban-wasm with a cap of 1. The new `cargo xtask unsafe-sites`
   enforces both caps and the SAFETY comments.
 - **D5 seccomp layout.** One filter is installed in the zygote and in each cordon before it serves:
   - an argument-free allowlist of hot syscalls (cache-friendly);
@@ -251,8 +251,8 @@ row is not edited here.
   is a trap, an abnormal child exit, a cordon death, or an F14 decode failure caused by that principal's request.
   Healthy failures and other principals' faults never count. The gate scales the window and penalty through the F8
   knobs, which have bounded minimums. p2-e2e reads the effective defaults from the config dump.
-- **D8 exec respawn.** A replacement zygote or cordon is always a fresh execve of aegis-p2 (new ASLR layout), never
-  a fork of a template (BROP crash oracle, R-ISO-5). p2-e2e checks this with a `test-hooks` build of aegis-p2 that
+- **D8 exec respawn.** A replacement zygote or cordon is always a fresh execve of monban-p2 (new ASLR layout), never
+  a fork of a template (BROP crash oracle, R-ISO-5). p2-e2e checks this with a `test-hooks` build of monban-p2 that
   reports its own load base in an F14 status frame. dumpable=0 makes `/proc/<pid>/maps` unreadable from outside,
   which p2-e2e checks too: `/proc/<pid>` is owned by root while the worker is non-dumpable.
 - **D9 residual: fork children share the zygote's layout.** That is inherent to fork. Probing layout by crashing
@@ -282,7 +282,7 @@ row is not edited here.
     zeroing, teardown; ~25x a healthy child) and ran whole ~3 ms EEVDF slices while freshly forked healthy children
     waited; two or three overlapping oom children stopped all completions for ~9-20 ms. Fix, no check changed:
     `sandbox::install(Profile::zygote)` requests a 100 us slice (`sched_setattr` sched_runtime, current nice kept,
-    unprivileged, inherited by every fork child; aegis-iso unsafe sites 13 -> 14). Re-run on GCP: p2-fault-forkwasm
+    unprivileged, inherited by every fork child; monban-iso unsafe sites 13 -> 14). Re-run on GCP: p2-fault-forkwasm
     PASS, oom recovery p99 1451 us, every other cell <= 949 us, healthy rps x1.00 of baseline. Cordon is unchanged (a
     short slice there raised healthy p50 ~145 -> ~200 us across 64 threads); it passes on GCP as is (oom 1129 us, loop
     1931 us). Slices are a Linux >= 6.12 feature; older kernels accept and ignore the request (`Installed::slice_ns`
@@ -306,7 +306,7 @@ row is not edited here.
   - MPK = `memory_protection_keys` as a density option only, with the reservation and guard asserted unchanged
     with and without it. All three hosts report `pku`.
   - `epoch_interruption(true)` and `consume_fuel(true)`.
-  - The expected effective config is frozen in `supply-chain/wasmtime-config.toml`. `aegis-p2 config --json` must
+  - The expected effective config is frozen in `supply-chain/wasmtime-config.toml`. `monban-p2 config --json` must
     match it.
   - Security releases of wasmtime may bypass the 7-day lock-age only through `supply-chain/exceptions.toml`. Tenant
     code reaches Wasmtime, so a critical wasmtime fix is treated as attacker-reachable under the q1-009 ≤48 h
@@ -321,7 +321,7 @@ row is not edited here.
 - **D14 trials.** At GO, the p2-fault gates run 3 trials per cell (about 90 faults per class), because 1 trial
   resolves 0.05/fault only as "0 or >0.03". PR checks run 1 trial. The existing rule stays: re-drive a cell once,
   for timing criteria only.
-- **D15 test-only code.** `env.host_fault`, the syscall probe and the layout report live behind aegis-p2 feature
+- **D15 test-only code.** `env.host_fault`, the syscall probe and the layout report live behind monban-p2 feature
   `test-hooks`; the mutants live behind `mutants`/`p2-mutants`. Golden builds enable neither, and P5-bin-001 asserts
   this with a test like X-12's golden_build.rs. Probe and fault runs build into their own target dirs
   (target/p2-test, target/p2-mutants), so target/p2 always holds the shipped configuration.
@@ -334,23 +334,23 @@ row is not edited here.
   "Error ⇒ Deny", and one response for both stops a client from telling a trap from a deny. The p2-e2e oracle first
   expected 502 for Error and hostile-host expected the Deny bytes; p2-e2e now follows this rule and tells Error from
   Deny by route and process state, never by status.
-- **D18 test-hooks never reach a shipped worker build.** p2-subject turns on aegis-iso/test-hooks, so p2-subject and
-  aegis-p2 are never built in the same cargo invocation; cargo unifies features only within one invocation. The
-  shipped worker is built alone (`-p aegis-p2`), and the test-hooks worker builds into target/p2-test. Gate commands
+- **D18 test-hooks never reach a shipped worker build.** p2-subject turns on monban-iso/test-hooks, so p2-subject and
+  monban-p2 are never built in the same cargo invocation; cargo unifies features only within one invocation. The
+  shipped worker is built alone (`-p monban-p2`), and the test-hooks worker builds into target/p2-test. Gate commands
   keep this split.
-- **D19 integrator wiring after W1.** `aegis-bin` refuses `{"wasm": id}` routes with a fail-closed error until
-  P5-bin-001 lands (plan.rs). `aegis-p2 main` dispatches `config` and `compile` (P5-wasm-001). The unsandboxed
+- **D19 integrator wiring after W1.** `monban-bin` refuses `{"wasm": id}` routes with a fail-closed error until
+  P5-bin-001 lands (plan.rs). `monban-p2 main` dispatches `config` and `compile` (P5-wasm-001). The unsandboxed
   `compile` refuses unless NoNewPrivs=1 and Seccomp=2, until P5-iso-002 installs the compile profile.
-- **D20 fault-injection guest support in aegis-wasm (integrator, after W2).** The isolation-fi guest exports
-  `handle(id, fault)` and imports `env.host_fault`, so it is not an F14 module. `crates/aegis-wasm/src/fi.rs` runs it
+- **D20 fault-injection guest support in monban-wasm (integrator, after W2).** The isolation-fi guest exports
+  `handle(id, fault)` and imports `env.host_fault`, so it is not an F14 module. `crates/monban-wasm/src/fi.rs` runs it
   behind `test-hooks` only: no unsafe code, no new dependency, the same engine config, the same digest-checked load
-  and a fresh instance per call. P5-iso-002 supplied it as a patch because aegis-wasm is outside its write scope; the
+  and a fresh instance per call. P5-iso-002 supplied it as a patch because monban-wasm is outside its write scope; the
   integrator applied it. P5-wasm-002 owns the file from here on and must keep it test-hooks only. The P5-iso-002
   compile profile (Kind::Compile: cordon layout plus fsync, rename and unlink, with Landlock write access only under
   `--out`) was reviewed and accepted; the denylist is unchanged.
 - **D21 W3 integration: MPK cell, shared F14 codec, no pipelining, hostile oracle fix (integrator, after W3).**
   P5-iso-003 and P5-wasm-002 were merged; both were blocked only by write scope. The integrator applied:
-  - **pkey_mprotect allowed** (x86_64 nr 329) in the aegis-iso seccomp ALLOWLIST. With MPK, wasmtime colours each
+  - **pkey_mprotect allowed** (x86_64 nr 329) in the monban-iso seccomp ALLOWLIST. With MPK, wasmtime colours each
     pool slot with a key on every instance allocation. pkey_alloc stays denied after install, so it grants no more
     than mprotect on the process's own mappings. The DENYLIST, the child filter and the clone/prctl/setsockopt
     rules are unchanged.
@@ -359,9 +359,9 @@ row is not edited here.
     `pool_retry_limit` (the pool size with MPK, 0 without) let `store::Worker::handle`, `fi::FiWorker::instance`
     (still test-hooks only, D20) and `abi::Session` move a refused request to a new Store before any guest code
     runs. The engine configuration is unchanged, and without MPK behaviour is unchanged.
-  - **One F14 codec.** The zygote fork child and the cordon both serve through `aegis_wasm::abi::F14Worker`/`Session`
-    and encode and decode frames only with `aegis_wasm::abi::frame`. The private codecs in zygote.rs and cordon.rs
-    are gone. The cordon keeps the aegis-iso registry, crash budget, idle reaping, threads on demand and the epoch
+  - **One F14 codec.** The zygote fork child and the cordon both serve through `monban_wasm::abi::F14Worker`/`Session`
+    and encode and decode frames only with `monban_wasm::abi::frame`. The private codecs in zygote.rs and cordon.rs
+    are gone. The cordon keeps the monban-iso registry, crash budget, idle reaping, threads on demand and the epoch
     wall bound (wall timeout = `resp-end` trap 2).
   - **No pipelining.** A worker connection carries one request at a time: the fork child serves exactly one, and a
     cordon connection serves them in sequence. Cordon concurrency comes from parallel connections. The supervisor
@@ -372,7 +372,7 @@ row is not edited here.
     layout frame alone, so the zygote half of the self-test was vacuous.
 - **D22 P5-bin-001 integration (integrator, after W4).**
   - **What a P2 principal is.** The crash-budget and cordon key is the verified token's (tenant, issuer kid). It is
-    not the full Principal: aegis_token's subject includes the token nonce, so every new token would be a new
+    not the full Principal: monban_token's subject includes the token nonce, so every new token would be a new
     principal, and a client could reset its crash budget by minting a token. Coarser is the safe direction here: one
     issuer's tokens for one tenant share a budget and a cordon. Principals of different tenants or issuers never
     share a cordon (D1 holds).
@@ -386,7 +386,7 @@ row is not edited here.
   - **Accepted residuals.** No F14 cancel is sent when the client disconnects; the request is bounded by wall_ms plus
     2 s. On a decode failure or timeout the supervisor closes the fork child's connection instead of SIGKILLing it,
     because it does not learn the child's pid; the child dies at its next frame I/O or at its ITIMER_REAL bound.
-  - **Integrator fixes applied.** The dumpable-1 worker mutant is in aegis-iso, mutants builds only. The p2-e2e
+  - **Integrator fixes applied.** The dumpable-1 worker mutant is in monban-iso, mutants builds only. The p2-e2e
     oracle accepts the OpenMetrics `_total` sample of the reload counter. The p2-e2e selftest gets a mutants+test-hooks
     worker (--mutant-test-worker). The p2-fault-vps cmd runs every step and combines the exit codes.
 - **D23 kamrui timing: resolved, option (b) (operator consent 2026-10-31; integrator Decision under D10).**
@@ -403,7 +403,7 @@ row is not edited here.
     forkwasm missed 5 ms on the 4-core N95 and passed on the 32-thread laptop (the reference). The cause of the
     miss was not isolated, and nothing between 4 and 32 CPUs was measured under the gate, so 8 is a conservative
     split, not a measured knee. It puts typical VPS sizes (1-4 vCPU) on cordon. Explicit `"forkwasm"` / `"cordon"`
-    behave exactly as before. Single-tenant modules always get a per-principal cordon (D1). aegis logs the configured
+    behave exactly as before. Single-tenant modules always get a per-principal cordon (D1). monban logs the configured
     value, the resolved path and the CPU count at boot and at each reload. `check-config --print-effective` adds
     `p2.isolation_effective` and `p2.usable_cpus` to the dump. The config hash covers only the configured value, so
     it does not depend on the host.
@@ -411,7 +411,7 @@ row is not edited here.
     forkwasm keeps its count criteria gated, but its timing criteria (G3, G4) are report-only on kamrui
     (`--timing advisory`). That is allowed only because this Decision makes forkwasm a non-default path on
     VPS-class hosts. It is not a threshold move: the laptop gates p2-fault-forkwasm and p2-fault-cordon keep both
-    paths fully timed. A new step builds aegis with feature p2 on kamrui and checks that the default resolves to
+    paths fully timed. A new step builds monban with feature p2 on kamrui and checks that the default resolves to
     cordon there (`ci/p2-auto-resolve.py`). p2-e2e adds the `auto` family: under `taskset` with 4 CPUs the default
     config resolves to cordon and serves wasm routes with one cordon per principal and no zygote; with 8 CPUs it
     resolves to forkwasm (zygote observed). On a host with fewer than 8 usable CPUs that half FAILs; it is never
@@ -430,7 +430,7 @@ row is not edited here.
   already over before that unit. The ceiling is kept. `[profile.release.package.libsqlite3-sys] opt-level = "s"`
   builds the bundled SQLite C for size, giving 7,175,712 B (native,p2) and 7,065,920 B (native; was 7,958,680),
   measured on the desktop. SQLite is the data engine, not request-path Rust. Rejected alternatives: global
-  opt-level "s" (5.0 MB, but it changes every request-path crate) and per-crate "s" on aegis-bin, config and ops
+  opt-level "s" (5.0 MB, but it changes every request-path crate) and per-crate "s" on monban-bin, config and ops
   (larger under fat LTO). Cost: SQLite query CPU may rise; no gate measures it at this point (BENCH_PLAN). Gap noted:
   `cargo xtask budget` judges the size of default and native but not native,p2; adding native,p2 is a follow-up.
   Accepted P5-bin-002 readings:
@@ -440,7 +440,7 @@ row is not edited here.
   - Only SQLite is exercised by an oracle; the PG pairing compiles but is unverified.
 - **Open: one unexplained crash-harness state_mismatch (2026-11-03).** The full run with chain d01db4695c0a was
   NO-GO. Besides two disk refusals, crash-harness reported one state_mismatch in 58,190 images: seed 2, main cut
-  5352, subset/strict, c=237 acked=237, integrity ok. crash-subject and aegis-state are unchanged since the Phase 4
+  5352, subset/strict, c=237 acked=237, integrity ok. crash-subject and monban-state are unchanged since the Phase 4
   GO. The finding did not reproduce:
   - in 75 main-stage reruns (about 513k images, seeds 1-3);
   - in a full gate rerun;

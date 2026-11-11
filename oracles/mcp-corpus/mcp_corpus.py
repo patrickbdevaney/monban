@@ -25,7 +25,7 @@ NAME = "MCP-CORPUS"
 
 
 def _load(name):
-    sp = importlib.util.spec_from_file_location("aegis_mcp_" + name, os.path.join(HERE, name + ".py"))
+    sp = importlib.util.spec_from_file_location("monban_mcp_" + name, os.path.join(HERE, name + ".py"))
     m = importlib.util.module_from_spec(sp)
     sp.loader.exec_module(m)
     return m

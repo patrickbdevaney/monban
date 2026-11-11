@@ -8,7 +8,7 @@
 #       SIGTERM) and exits with <cmd>'s status. Also exported: AEGIS_ENGINES=<names>, AEGIS_ENGINE_<NAME>=<url>.
 #         postgres: postgresql://postgres:<random>@127.0.0.1:<port>/postgres   (SCRAM-SHA-256)
 #         valkey/redis: redis://127.0.0.1:<port>                               (default user, no password)
-#         mariadb:  mysql://root:<random>@127.0.0.1:<port>/aegis                (mysql_native_password; P7)
+#         mariadb:  mysql://root:<random>@127.0.0.1:<port>/monban                (mysql_native_password; P7)
 #         crdb:     postgresql://root@127.0.0.1:<port>/defaultdb              (start-single-node --insecure,
 #                   in-memory store: loopback-only throwaway, never a deployment shape; P7)
 #   ci/engines.sh versions      (inside `with`) probe each running engine from the host over its URL, compare with
@@ -20,7 +20,7 @@
 #                               size/digest/config-digest checks as `check`; an oversize image is removed again.
 #   ci/engines.sh self-test     fake-docker + fake-server fixtures: oversize image, unpinned tag, digest/Id mismatch,
 #                               version below floor or not matching pin are refused; mutants of this script go red.
-#   ci/engines.sh reap          remove leftover containers labelled aegis.engines=1 (crashed runs only; it never
+#   ci/engines.sh reap          remove leftover containers labelled monban.engines=1 (crashed runs only; it never
 #                               touches unlabelled containers).
 # Image size: max(docker inspect .Size, sum of `docker history` layer sizes). On a containerd-snapshotter store
 # (kamrui, docker 29) .Size is the compressed content size and Id is the index digest; the history sum is the unpacked
@@ -44,7 +44,7 @@ import tomllib
 
 MUTANT = os.environ.get("AEGIS_ENGINES_MUTANT", "")  # self-test only: proves each check is load-bearing
 DOCKER = os.environ.get("ENGINES_DOCKER", "docker")
-LABEL = "aegis.engines"
+LABEL = "monban.engines"
 
 class Refuse(Exception):
     pass
@@ -462,7 +462,7 @@ def url_for(e, port, password):
     if e["kind"] == "postgres":
         return f"postgresql://postgres:{password}@127.0.0.1:{port}/postgres"
     if e["kind"] == "mariadb":
-        return f"mysql://root:{password}@127.0.0.1:{port}/aegis"
+        return f"mysql://root:{password}@127.0.0.1:{port}/monban"
     if e["kind"] == "crdb":
         return f"postgresql://root@127.0.0.1:{port}/defaultdb"
     return f"redis://127.0.0.1:{port}"
@@ -490,7 +490,7 @@ class Run:
 
     def start(self, name, e):
         password = secrets.token_hex(16)
-        cname = f"aegis-eng-{name}-{self.run_id}"
+        cname = f"monban-eng-{name}-{self.run_id}"
         args = ["run", "-d", "--rm", "--name", cname,
                 "--label", f"{LABEL}=1", "--label", f"{LABEL}.run={self.run_id}", "--label", f"{LABEL}.engine={name}",
                 "-p", f"127.0.0.1::{e['port']}",
@@ -503,7 +503,7 @@ class Run:
             args += ["-e", f"POSTGRES_PASSWORD={password}", "-e", "POSTGRES_HOST_AUTH_METHOD=scram-sha-256",
                      "-e", "POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256", "--shm-size", "256m"]
         if e["kind"] == "mariadb":
-            args += ["-e", f"MARIADB_ROOT_PASSWORD={password}", "-e", "MARIADB_DATABASE=aegis"]
+            args += ["-e", f"MARIADB_ROOT_PASSWORD={password}", "-e", "MARIADB_DATABASE=monban"]
         args.append(ref(e))
         if e["kind"] == "crdb":
             # in-memory store (>= 640 MiB is CockroachDB's minimum), admin UI on the container's own loopback only

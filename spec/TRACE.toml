@@ -1,4 +1,4 @@
-# AEGIS traceability map, C4 (P8-conformance-001; PREFLIGHT D-P8.5; ARCHITECTURE R-ASSURE-2 C4).
+# Monban traceability map, C4 (P8-conformance-001; PREFLIGHT D-P8.5; ARCHITECTURE R-ASSURE-2 C4).
 #
 # Every F1 statement id in spec/STATEMENTS.sha256 (the frozen Lean declaration ledger) has exactly one row here,
 # naming >= 1 gate id of the current gates/phase-N.toml whose passing logs in a run are the evidence for it.

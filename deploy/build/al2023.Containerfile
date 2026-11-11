@@ -1,4 +1,4 @@
-# AEGIS cmvp build image (PLAN-6 D1/D6/D7, PREFLIGHT P2): Amazon Linux 2023, the only tested operational environment
+# Monban cmvp build image (PLAN-6 D1/D6/D7, PREFLIGHT P2): Amazon Linux 2023, the only tested operational environment
 # of AWS-LC FIPS 3.1.0 (CMVP #5298/#5314). The base is pinned by digest and the dnf repo snapshot by --releasever
 # (the base image's own release, 2023.12.20261102, so installed packages match its glibc). One RUN layer; docs,
 # locales and man pages are not installed or are removed. Go (~/aegis-ci/go1.27.3) and the Rust toolchain

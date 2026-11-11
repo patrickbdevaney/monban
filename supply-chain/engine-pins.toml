@@ -1,5 +1,5 @@
 # Live database engine pins (ENGINE_PIN) for Phase 4. Owner: P4-engines-001. Consumers: ci/engines.sh (starts and
-# version-checks the containers), oracles/* --engine-pin (put the version in the PASS line), aegis-adapter-pg build.rs
+# version-checks the containers), oracles/* --engine-pin (put the version in the PASS line), monban-adapter-pg build.rs
 # (compiles the PG floors; no hand-copied constant), oracles/pg-version-gate (refusal matrix).
 # Resolved 2026-10-30 by reading the advisories cited per entry. A bump is a spec-change PR: new digest + config_digest + image_id +
 # bytes + version, re-run `ci/engines.sh self-test && ci/engines.sh with <all> -- ci/engines.sh versions`, and re-run every

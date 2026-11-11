@@ -2,13 +2,13 @@ Status: DRAFT, not published
 
 # EU declaration of conformity (draft, CRA Annex V structure)
 
-Not signed, not issued. A declaration of conformity is drawn up only by a manufacturer that places AEGIS on the EU
+Not signed, not issued. A declaration of conformity is drawn up only by a manufacturer that places Monban on the EU
 market, after the conformity assessment. Self-assessment (module A, internal control) is the intended route; it is
-available only if AEGIS is not an important product of class II or a critical product. Admission control is
+available only if Monban is not an important product of class II or a critical product. Admission control is
 therefore described as rate limiting and resource budgeting, not as a network filtering product (COMPLIANCE_MAP
-wording rules). Whether AEGIS falls under Annex III at all is `<operator to supply>` (legal review).
+wording rules). Whether Monban falls under Annex III at all is `<operator to supply>` (legal review).
 
-1. Product: AEGIS web server, version `<operator to supply>`, builds floor and cmvp; identified by the release
+1. Product: Monban web server, version `<operator to supply>`, builds floor and cmvp; identified by the release
    `SHA256SUMS` digest.
 2. Manufacturer: `<operator to supply>` (name and address); authorised representative: `<operator to supply>`.
 3. This declaration is issued under the sole responsibility of the manufacturer.

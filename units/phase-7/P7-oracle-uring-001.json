@@ -17,7 +17,7 @@
  ],
  "acceptance": {
   "cmd": "ci/remote.sh oracles/front-equiv/run --self-test",
-  "must": "red before P7-uring-001; drives the proxy-e2e request corpus (incl. strict-H1 rejects, h2 limits via h2load) against --front epoll and --front uring on the same binary; compares status, headers, body bytes, close behaviour; systemd-analyze syscall-filter check of deploy/aegis-hardened.service vs deploy/uring.conf drop-in"
+  "must": "red before P7-uring-001; drives the proxy-e2e request corpus (incl. strict-H1 rejects, h2 limits via h2load) against --front epoll and --front uring on the same binary; compares status, headers, body bytes, close behaviour; systemd-analyze syscall-filter check of deploy/monban-hardened.service vs deploy/uring.conf drop-in"
  },
  "write_scope": [
   "oracles/front-equiv/**",

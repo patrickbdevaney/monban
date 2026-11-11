@@ -1,27 +1,27 @@
 [package]
 name = "egress-subject"
-description = "Oracle subject: exposes aegis-egress over the ssrf-corpus JSON-lines protocol. Never linked into aegis."
+description = "Oracle subject: exposes monban-egress over the ssrf-corpus JSON-lines protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 [features]
 default = []
 # P8-hardening-001 (PREFLIGHT R15, oracles/egress-tls): https egress through the product client profiles
-# (aegis_tls::client_config) injected into aegis-egress `tls-client`. Off by default: the ssrf-corpus build and
-# workspace builds keep aegis-egress WITHOUT the rustls client (enabling it unconditionally here would feature-unify
-# it into workspace builds of aegis-egress). Gate egress-tls-e2e builds `-p egress-subject --features tls-client`.
-tls-client = ["aegis-egress/tls-client", "dep:aegis-tls", "aegis-tls/tls-client", "dep:rustls"]
+# (monban_tls::client_config) injected into monban-egress `tls-client`. Off by default: the ssrf-corpus build and
+# workspace builds keep monban-egress WITHOUT the rustls client (enabling it unconditionally here would feature-unify
+# it into workspace builds of monban-egress). Gate egress-tls-e2e builds `-p egress-subject --features tls-client`.
+tls-client = ["monban-egress/tls-client", "dep:monban-tls", "monban-tls/tls-client", "dep:rustls"]
 
 [dependencies]
-aegis-egress = { workspace = true }
+monban-egress = { workspace = true }
 tokio = { workspace = true, features = ["rt", "net", "time", "io-util"] }
-aegis-tls = { workspace = true, optional = true }
+monban-tls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 
 [lints]

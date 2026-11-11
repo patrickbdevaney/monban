@@ -66,8 +66,8 @@ func selfCert() (tls.Certificate, error) {
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	t := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "aegis.test"},
-		DNSNames: []string{"aegis.test"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour)}
+	t := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "monban.test"},
+		DNSNames: []string{"monban.test"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour)}
 	der, err := x509.CreateCertificate(rand.Reader, t, t, &k.PublicKey, k)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -170,7 +170,7 @@ func client(args []string) int {
 		return 2
 	}
 	cfg := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, CurvePreferences: gs,
-		InsecureSkipVerify: true, ServerName: "aegis.test", ClientSessionCache: nil}
+		InsecureSkipVerify: true, ServerName: "monban.test", ClientSessionCache: nil}
 	d := &net.Dialer{Timeout: 10 * time.Second}
 	raw, err := d.Dial("tcp", *connect)
 	if err != nil {

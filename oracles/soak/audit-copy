@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# tlog-verify subject adapter for oracles/soak: `audit-copy <aegis log dir> --out DIR` copies the one tlog-tiles
-# directory aegis wrote (<audit-dir>/<unix-ms>-<pid>/, with its vkey) to DIR, so oracles/tlog-verify/run judges the
+# tlog-verify subject adapter for oracles/soak: `audit-copy <monban log dir> --out DIR` copies the one tlog-tiles
+# directory monban wrote (<audit-dir>/<unix-ms>-<pid>/, with its vkey) to DIR, so oracles/tlog-verify/run judges the
 # soak's own audit log. It never writes into the source directory.
 set -euo pipefail
 src=$1; shift

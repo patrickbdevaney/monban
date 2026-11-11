@@ -137,7 +137,7 @@ def report(findings):
 def self_test():
     """Clean files pass; every planted form of a private key is found (generic scan, and the known-key scan for the
     forms the generic scan cannot see: raw seed and hex seed)."""
-    t = tempfile.mkdtemp(prefix="aegis-leakcheck-")
+    t = tempfile.mkdtemp(prefix="monban-leakcheck-")
     try:
         kd = os.path.join(t, "keys")
         os.makedirs(kd, mode=0o700)

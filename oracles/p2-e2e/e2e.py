@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """p2-e2e: black-box oracle for the P2 supervisor end to end (Phase-5 gate p2-e2e, unit P5-oracle-e2e-001).
 
-Boots a subject (the reference ref_subject.py + ref_worker.py, or aegis with feature p2 + the aegis-p2 worker) with
+Boots a subject (the reference ref_subject.py + ref_worker.py, or monban with feature p2 + the monban-p2 worker) with
 oracle-written F8 configs whose routes target {"wasm": <id>}, drives it over TLS with F5 Tier-L tokens for several
 principals, and judges the outcomes plus the process tree under the subject (/proc), the F14 layout reports of a
 test-hooks worker, and the effective-config dump. Families and the subject contract: README.md.
@@ -36,7 +36,7 @@ sys.dont_write_bytecode = True  # keep the oracle directory clean
 import p2wire  # noqa: E402
 
 NAME = "P2-E2E"
-VHOST = "aegis.test"
+VHOST = "monban.test"
 # mutant -> check-name prefix that must be among its failures (a mutant caught only by unrelated noise is not caught)
 MUTANTS = {
     "shared-cordon": "cordon.per-principal",
@@ -230,7 +230,7 @@ class Client:
 
 def build_guests():
     """Real subjects: build the Rust guests through ci/heavy.sh and derive one F14 module per kind."""
-    tdir = tempfile.mkdtemp(prefix="aegis-p2-e2e-guest-")
+    tdir = tempfile.mkdtemp(prefix="monban-p2-e2e-guest-")
     try:
         p = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), os.path.join(HERE, "guest", "build.sh"), tdir],
                            cwd=REPO)
@@ -264,7 +264,7 @@ class Subject:
         self.pin = pin  # CPU list: start the subject under `taskset -c <list>` (D23 auto family)
         self.port = int(cfg["listeners"][0]["bind"].rsplit(":", 1)[1])
         self.aport = int(cfg["admin"]["bind"].rsplit(":", 1)[1])
-        self.cfg_path = os.path.join(run.dir, f"aegis-{secrets.token_hex(4)}.json")
+        self.cfg_path = os.path.join(run.dir, f"monban-{secrets.token_hex(4)}.json")
         self.write(cfg)
         self.env_extra = env_extra or {}
         self.proc = None
@@ -311,9 +311,9 @@ class Subject:
 
     def reloads(self):
         for ln in self.admin_get("/metrics").split(b"\n"):
-            # OpenMetrics renders a counter sample as <family>_total (aegis-metrics; proxy-e2e reads that form); the
+            # OpenMetrics renders a counter sample as <family>_total (monban-metrics; proxy-e2e reads that form); the
             # reference subject prints the bare family name.
-            if ln.startswith(b"aegis_proxy_config_reloads ") or ln.startswith(b"aegis_proxy_config_reloads_total "):
+            if ln.startswith(b"monban_proxy_config_reloads ") or ln.startswith(b"monban_proxy_config_reloads_total "):
                 try:
                     return int(float(ln.split()[1]))
                 except (IndexError, ValueError):
@@ -361,11 +361,11 @@ class Subject:
         except OSError:
             return out
         for ln in data.splitlines():
-            i = ln.find("aegis-p2-layout ")
+            i = ln.find("monban-p2-layout ")
             if i < 0:
                 continue
             try:
-                o = json.loads(ln[i + len("aegis-p2-layout "):].strip())
+                o = json.loads(ln[i + len("monban-p2-layout "):].strip())
                 out.append((int(o["pid"]), int(o["load_base"])))
             except (ValueError, KeyError, TypeError):
                 pass
@@ -420,7 +420,7 @@ class Run:
         self.families = families
         self.lock = threading.Lock()
         self.failures, self.passed, self.notes = [], 0, []
-        self.dir = tempfile.mkdtemp(prefix="aegis-p2-e2e-")
+        self.dir = tempfile.mkdtemp(prefix="monban-p2-e2e-")
         self.started = []
         self.kid = b"p2e2e-" + secrets.token_hex(3).encode()
         self.master = secrets.token_bytes(32)
@@ -698,7 +698,7 @@ class Run:
             fn(c)
             return c
 
-        self.boot_refused("missing-worker", mut(lambda c: c["p2"].__setitem__("worker", "/nonexistent/aegis-p2-e2e")))
+        self.boot_refused("missing-worker", mut(lambda c: c["p2"].__setitem__("worker", "/nonexistent/monban-p2-e2e")))
         self.boot_refused("digest-mismatch",
                           mut(lambda c: c["p2"]["modules"][0].__setitem__("sha256", "0" * 64)))
         self.boot_refused("undeclared-module",
@@ -718,7 +718,7 @@ class Run:
             self.boot_refused(f"shared-cordon.{n}", mut(fn))
         # Landlock ABI < 4 refuses P2 (D2), simulated through the test-hooks worker's ABI override
         if not self.test_worker:
-            self.check("boot.landlock-abi3.exit78", False, "needs --test-worker (test-hooks aegis-p2)")
+            self.check("boot.landlock-abi3.exit78", False, "needs --test-worker (test-hooks monban-p2)")
             return
         cfg = self.config(["echo_a"], worker=self.test_worker)
         self.boot_refused("landlock-abi3", cfg, env={"AEGIS_P2_TEST_LANDLOCK_ABI": "3"})
@@ -918,7 +918,7 @@ class Run:
     # ---------------------------------------------------------------- family: exec respawn (test-hooks worker)
     def respawn_family(self):
         if not self.test_worker:
-            self.check("respawn.zygote.load-base-changed", False, "needs --test-worker (test-hooks aegis-p2)")
+            self.check("respawn.zygote.load-base-changed", False, "needs --test-worker (test-hooks monban-p2)")
             return
         kinds = ["echo_a", "spin", "abort"]
         s = Subject(self, self.config(kinds, isolation="forkwasm", cb=CB_LOOSE, worker=self.test_worker))
@@ -930,7 +930,7 @@ class Run:
             self.answer(s, f"{name}.answer", "echo_a", T)
             time.sleep(0.1)
             ls = s.layouts(off)
-            self.check(f"{name}.layout-reported", bool(ls), "no aegis-p2-layout line for the request")
+            self.check(f"{name}.layout-reported", bool(ls), "no monban-p2-layout line for the request")
             return ls[-1] if ls else None
 
         l1 = base_after_echo("respawn.zygote.before")
@@ -1000,10 +1000,10 @@ def subject_cmd(s):
 
 
 def ref_workers(d):
-    """Wrappers for the reference worker: <d>/aegis-p2 (golden) and <d>/aegis-p2-test (test-hooks)."""
+    """Wrappers for the reference worker: <d>/monban-p2 (golden) and <d>/monban-p2-test (test-hooks)."""
     os.makedirs(d, exist_ok=True)
     out = []
-    for name, hooks in (("aegis-p2", False), ("aegis-p2-test", True)):
+    for name, hooks in (("monban-p2", False), ("monban-p2-test", True)):
         p = os.path.join(d, name)
         with open(p, "w") as f:
             f.write("#!/bin/sh\n" + ("export AEGIS_REF_TEST_HOOKS=1\n" if hooks else "") +
@@ -1019,9 +1019,9 @@ def summary(r):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", default=None, help="aegis (feature p2); default: the reference ref_subject.py")
-    ap.add_argument("--worker", default=None, help="aegis-p2 release worker (required with --subject)")
-    ap.add_argument("--test-worker", default=None, help="aegis-p2 built with test-hooks (respawn + Landlock)")
+    ap.add_argument("--subject", default=None, help="monban (feature p2); default: the reference ref_subject.py")
+    ap.add_argument("--worker", default=None, help="monban-p2 release worker (required with --subject)")
+    ap.add_argument("--test-worker", default=None, help="monban-p2 built with test-hooks (respawn + Landlock)")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--mutant-subject", default=None)
     ap.add_argument("--mutant-worker", default=None)
@@ -1031,7 +1031,7 @@ def main():
     a = ap.parse_args()
     fams = set(a.families.split(",")) if a.families else None
     print(f"load average {os.getloadavg()[0]:.2f} {os.getloadavg()[1]:.2f} {os.getloadavg()[2]:.2f}", flush=True)
-    wdir = tempfile.mkdtemp(prefix="aegis-p2-e2e-bin-")
+    wdir = tempfile.mkdtemp(prefix="monban-p2-e2e-bin-")
     try:
         return _main(a, fams, wdir)
     finally:
@@ -1043,8 +1043,8 @@ def _main(a, fams, wdir):
     if not a.self_test:
         if a.subject:
             # ci/oracles.sh passes only --subject (default-subject): the workers default to the gate's build dirs.
-            a.worker = a.worker or os.path.join(os.path.dirname(os.path.abspath(a.subject)), "aegis-p2")
-            dflt_tw = os.path.join(REPO, "target", "p2-test", "release", "aegis-p2")
+            a.worker = a.worker or os.path.join(os.path.dirname(os.path.abspath(a.subject)), "monban-p2")
+            dflt_tw = os.path.join(REPO, "target", "p2-test", "release", "monban-p2")
             a.test_worker = a.test_worker or (dflt_tw if os.access(dflt_tw, os.X_OK) else None)
             if not os.access(a.worker, os.X_OK):
                 print(f"{NAME}: FAIL (worker {a.worker} missing; pass --worker)")
@@ -1068,8 +1068,8 @@ def _main(a, fams, wdir):
         return 1
 
     if a.subject or a.mutant_subject:
-        subj = a.mutant_subject or os.path.join(REPO, "target", "p2-mutants", "release", "aegis")
-        wk = a.mutant_worker or os.path.join(REPO, "target", "p2-mutants", "release", "aegis-p2")
+        subj = a.mutant_subject or os.path.join(REPO, "target", "p2-mutants", "release", "monban")
+        wk = a.mutant_worker or os.path.join(REPO, "target", "p2-mutants", "release", "monban-p2")
         twk = a.mutant_test_worker or wk
         for p in (subj, wk, twk):
             if not os.access(p, os.X_OK):

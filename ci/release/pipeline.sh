@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS release pipeline (P6-release-001; PLAN-6 D6/D7; PREFLIGHT D-P2/D-P5). Runs on kamrui inside ~/aegis-ci/repo
+# Monban release pipeline (P6-release-001; PLAN-6 D6/D7; PREFLIGHT D-P2/D-P5). Runs on kamrui inside ~/aegis-ci/repo
 # with the ci/remote.sh environment (gate release-verify, remote = "kamrui"):
 #
 #   ci/release/pipeline.sh --profile floor|cmvp --out DIR
@@ -154,9 +154,9 @@ job build "$J/build.sh" --profile "$PROFILE" --src "$SRC" --registry "$REG" --to
 job sbom "$J/sbom.sh" --profile "$PROFILE" --src "$SRC" --registry "$REG" --toolchain "$TC" \
   --cyclonedx "$TOOLS/bin/cargo-cyclonedx" --image "$IMG" --epoch "$EPOCH" --scratch "$WORK/jobs/sbom" --out "$S"
 
-ART="artifacts/aegis-$PROFILE"
+ART="artifacts/monban-$PROFILE"
 mkdir -p "$R/artifacts"
-cp "$B/aegis-$PROFILE" "$R/$ART"
+cp "$B/monban-$PROFILE" "$R/$ART"
 cp "$S/sbom.cdx.json" "$R/sbom.cdx.json"
 (cd "$R" && sha256sum "$ART" sbom.cdx.json | LC_ALL=C sort -k2 > SHA256SUMS)
 ART_SHA=$(sha256sum "$R/$ART" | cut -d' ' -f1)
@@ -168,9 +168,9 @@ AEGIS_OPENSSL="$OPENSSL" AEGIS_PY_TUF_PYTHON="$PY_TUF" "$ROOT/ci/release/sign-re
   | sed '/^SIGN-RELEASE: PASS/d' || fail "keyed jobs failed (sign-release.sh)"
 
 # ------------------------------------------------------------------ checks and hand-over
-leftover=$(find "$KEYROOT" -maxdepth 1 -name 'aegis-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null | head -1)
+leftover=$(find "$KEYROOT" -maxdepth 1 -name 'monban-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null | head -1)
 [ -z "$leftover" ] || echo "pipeline: note: stale key dir from an earlier run: $leftover (shredding)"
-for d in $(find "$KEYROOT" -maxdepth 1 -name 'aegis-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null); do
+for d in $(find "$KEYROOT" -maxdepth 1 -name 'monban-release-keys.*' -user "$(id -u)" -mmin +120 2> /dev/null); do
   find "$d" -type f -exec shred -u -z {} + 2> /dev/null || true; rm -rf "$d"
 done
 mkdir -p "$(dirname "$OUT")"

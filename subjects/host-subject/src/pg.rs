@@ -1,6 +1,6 @@
-//! The P4-pg-003 pool slotted into aegis-adapter-host's executor seam (`dispatch::Executor<aegis_adapter_pg::Rendered>`).
+//! The P4-pg-003 pool slotted into monban-adapter-host's executor seam (`dispatch::Executor<monban_adapter_pg::Rendered>`).
 //!
-//! It lives here because aegis-adapter-host has no dependency edge to aegis-adapter-pg (same layer). It is the
+//! It lives here because monban-adapter-host has no dependency edge to monban-adapter-pg (same layer). It is the
 //! pairing P4-bin-001 lifts into the assembly unchanged (it uses only public API of both crates).
 //!
 //! Per scope:
@@ -23,12 +23,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use aegis_adapter_host::dispatch::{EngineError, Executor, ScopeInfo};
-use aegis_adapter_host::host::CancelToken;
-use aegis_adapter_host::host::budget::{ChargeSink, OpLimits, Usage};
-use aegis_adapter_host::host::session::principal_bytes;
-use aegis_adapter_pg::wire::{self, QueryResult, ResultLimits};
-use aegis_adapter_pg::{
+use monban_adapter_host::dispatch::{EngineError, Executor, ScopeInfo};
+use monban_adapter_host::host::CancelToken;
+use monban_adapter_host::host::budget::{ChargeSink, OpLimits, Usage};
+use monban_adapter_host::host::session::principal_bytes;
+use monban_adapter_pg::wire::{self, QueryResult, ResultLimits};
+use monban_adapter_pg::{
     Charge, Checkout, Epoch, Nc3Observer, PgConn, PgSession, Pool, PoolConfig, PoolKey, Release, Released, Rendered,
     rls_bind,
 };
@@ -236,7 +236,7 @@ impl<C: PgSql> Executor<Rendered> for PgExecutor<C> {
         }
         let timeout = Rendered {
             sql: "SELECT pg_catalog.set_config('statement_timeout', $1, true)".into(),
-            params: vec![aegis_adapter_pg::Param::Text(format!("{budget}ms"))],
+            params: vec![monban_adapter_pg::Param::Text(format!("{budget}ms"))],
         };
         run_sql(c, &timeout, budget, lim)?;
         Ok(tx)
@@ -290,10 +290,10 @@ impl<C: PgSql> Executor<Rendered> for PgExecutor<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aegis_adapter_host::host::budget::PrincipalLedger;
-    use aegis_adapter_pg::Pooled;
-    use aegis_adapter_pg::checkin::sim::SimProto;
-    use aegis_adapter_pg::wire::{ProtoState, TxnStatus};
+    use monban_adapter_host::host::budget::PrincipalLedger;
+    use monban_adapter_pg::Pooled;
+    use monban_adapter_pg::checkin::sim::SimProto;
+    use monban_adapter_pg::wire::{ProtoState, TxnStatus};
     use std::sync::Mutex;
 
     /// A session whose protocol mirror is always clean (every statement completes); records what it was sent.
@@ -377,9 +377,9 @@ mod tests {
                 }
                 Ok(Fake { proto: SimProto::started(TxnStatus::Idle), log: Arc::clone(&l2), fail_simple, generation: 0 })
             }),
-            login_role: "aegis_login".into(),
-            rls_role: "aegis_app".into(),
-            setting: "aegis.tenant".into(),
+            login_role: "monban_login".into(),
+            rls_role: "monban_app".into(),
+            setting: "monban.tenant".into(),
             epoch: 1,
             op_budget_ms: 100,
             charges: ledger.clone(),
@@ -394,7 +394,7 @@ mod tests {
     #[test]
     fn begin_binds_rls_after_begin_and_recycles_with_reset() -> Result<(), String> {
         let (ex, log, ledger) = setup(false);
-        let p = crate::token::principal(aegis_types::TenantId::new(42).map_err(|_| "t")?)?;
+        let p = crate::token::principal(monban_types::TenantId::new(42).map_err(|_| "t")?)?;
         let cancel = CancelToken::new();
         let info = ScopeInfo { principal: &p, tenant: p.tenant(), cancel: &cancel };
         let tx = ex.begin(&info).map_err(|e| e.to_string())?;
@@ -402,7 +402,7 @@ mod tests {
         let first = take(&log);
         assert_eq!(first.first().map(String::as_str), Some("CONNECT"));
         assert_eq!(first.get(1).map(String::as_str), Some("BEGIN"));
-        assert!(first.get(2).is_some_and(|s| s.starts_with("SET LOCAL ROLE \"aegis_app\"")), "{first:?}");
+        assert!(first.get(2).is_some_and(|s| s.starts_with("SET LOCAL ROLE \"monban_app\"")), "{first:?}");
         assert!(first.get(3).is_some_and(|s| s.contains("set_config") && s.contains("000000000000002a")), "{first:?}");
         assert_eq!(first.last().map(String::as_str), Some("COMMIT"));
         // Same principal/tenant/role/epoch: the idle connection is reused, after the C8 reset.
@@ -426,7 +426,7 @@ mod tests {
     #[test]
     fn cancel_before_commit_never_commits_and_is_charged() -> Result<(), String> {
         let (ex, log, ledger) = setup(true); // recovery's DISCARD ALL fails: the connection is discarded
-        let p = crate::token::principal(aegis_types::TenantId::new(7).map_err(|_| "t")?)?;
+        let p = crate::token::principal(monban_types::TenantId::new(7).map_err(|_| "t")?)?;
         let cancel = CancelToken::new();
         let info = ScopeInfo { principal: &p, tenant: p.tenant(), cancel: &cancel };
         let tx = ex.begin(&info).map_err(|e| e.to_string())?;
@@ -436,7 +436,7 @@ mod tests {
         assert!(!l.contains(&"COMMIT".to_string()), "{l:?}");
         assert!(l.contains(&"CANCELREQUEST".to_string()) && l.contains(&"TERMINATE".to_string()), "{l:?}");
         // Quarantine (>= 1) + discard (DISCARD_COST) charged to the cancelling principal.
-        assert!(ledger.charged(&principal_bytes(&p)) > aegis_adapter_pg::DISCARD_COST);
+        assert!(ledger.charged(&principal_bytes(&p)) > monban_adapter_pg::DISCARD_COST);
         assert_eq!(ex.pool().open(), 0);
         // A cancelled scope never begins.
         assert!(ex.begin(&info).is_err());

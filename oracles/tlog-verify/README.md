@@ -1,8 +1,8 @@
 # tlog-verify
 
-An independent verifier for the aegis audit log (unit P2-audit-001). It is written in Go against
+An independent verifier for the monban audit log (unit P2-audit-001). It is written in Go against
 `golang.org/x/mod/sumdb/note` and `golang.org/x/mod/sumdb/tlog` (v0.42.0, pinned in `src/go.mod` / `src/go.sum`),
-so it shares no code with `crates/aegis-audit`. That makes it the "independent verification" evidence for Audit I5.
+so it shares no code with `crates/monban-audit`. That makes it the "independent verification" evidence for Audit I5.
 
 ## Usage
 
@@ -39,7 +39,7 @@ committed.
 | No two signed checkpoints of the same size may have different roots (fork), and no history checkpoint may be larger than the head (rollback). Each successive pair of checkpoints must be consistent (`ProveTree` / `CheckTree`), and each older checkpoint's own partial tiles must still rebuild its root. | Audit I1; tlog-checkpoint "MUST NOT sign inconsistent checkpoints" |
 
 Ordering (Audit I4, checkpoint only after fsync) and the failure policy (I7) are runtime properties. The oracle
-cannot observe them; the `aegis-audit` unit tests cover them (`tests.rs`: sync precedes every publish, a failed
+cannot observe them; the `monban-audit` unit tests cover them (`tests.rs`: sync precedes every publish, a failed
 sync publishes nothing, admin events fail closed, dropped data-plane events are counted and consume no seq).
 
 **Pass criterion:** every check above holds for the subject's output → `TLOG-VERIFY: PASS`.
@@ -49,7 +49,7 @@ sync publishes nothing, admin events fail closed, dropped data-plane events are 
 The self-test runs two controls first, and both must pass:
 
 1. The unmutated subject output verifies.
-2. An independent x/mod `tlog` writer (`writeLog`) rebuilds the same entries, reproduces the aegis root bit for
+2. An independent x/mod `tlog` writer (`writeLog`) rebuilds the same entries, reproduces the monban root bit for
    bit, and verifies.
 
 Then it applies 17 mutations, each to a fresh copy. Each mutation must fail with its intended error category,
@@ -77,16 +77,16 @@ and a failure for any other reason counts as a self-test failure:
 ## OpenSSL ML-DSA-87 cosignature check (`--openssl-mldsa`, P8-audit-001, gate `tlog-mldsa-openssl`)
 
 This mode closes residual R10 from Phase 8 (see Known limits below). It checks the ML-DSA-87 cosignature
-cryptographically, with code independent of aegis: OpenSSL 3.5.3 verifies it. Neither aws-lc nor any aegis crate is
+cryptographically, with code independent of monban: OpenSSL 3.5.3 verifies it. Neither aws-lc nor any monban crate is
 on the verify path.
 
-    oracles/tlog-verify/run --openssl-mldsa --binary target/release/aegis   # last line: TLOG-MLDSA-OPENSSL: PASS (...)
-    oracles/tlog-verify/run --openssl-mldsa --self-test [--binary <aegis>]  # last line: TLOG-MLDSA-OPENSSL SELF-TEST: PASS (...)
+    oracles/tlog-verify/run --openssl-mldsa --binary target/release/monban   # last line: TLOG-MLDSA-OPENSSL: PASS (...)
+    oracles/tlog-verify/run --openssl-mldsa --self-test [--binary <monban>]  # last line: TLOG-MLDSA-OPENSSL SELF-TEST: PASS (...)
 
 Host: kamrui (`/usr/bin/openssl` must report `OpenSSL 3.5.3`; `TLOG_MLDSA_OPENSSL` overrides the path). The checker
 is `openssl_mldsa.py` (python3 -I, stdlib only). No Go build and no container.
 
-**Subject.** The real `aegis` binary (aegis-bin): `--config <f8.json> --cert --key --audit-dir <d>`. The checker:
+**Subject.** The real `monban` binary (monban-bin): `--config <f8.json> --cert --key --audit-dir <d>`. The checker:
 
 1. boots it and waits for `/healthz`;
 2. applies one config change (SIGHUP, waiting for `generation` + 1);
@@ -107,9 +107,9 @@ Keys come from the binary's `vkey` file, trust on first use, the same as `--subj
 
 **Self-test.** Both controls must verify:
 
-1. A reference note in aegis-bin's encoding, signed by OpenSSL-generated ML-DSA-87 and Ed25519 keys. This checks
-   the encoding (SPKI, key ID, note framing) without trusting aegis.
-2. The head checkpoint of a real aegis-bin log.
+1. A reference note in monban-bin's encoding, signed by OpenSSL-generated ML-DSA-87 and Ed25519 keys. This checks
+   the encoding (SPKI, key ID, note framing) without trusting monban.
+2. The head checkpoint of a real monban-bin log.
 
 Then 11 mutants run on each of those two notes, plus one parameter mutant on the reference. Each must fail with its
 intended category:
@@ -124,15 +124,15 @@ intended category:
 - cosignature truncated → `parse`
 - ML-DSA-87 vkey absent → `key`
 - Ed25519 signature byte flipped → `ed25519-verify`
-- reference signed with `context-string:aegis` → `mldsa-verify`. This pins the empty context.
+- reference signed with `context-string:monban` → `mldsa-verify`. This pins the empty context.
 
 **Limits.**
 
 - Keys are trusted on first use from the binary's own `vkey`. The check proves that the cosignature verifies under
   the published key, not that the key is the right one. That needs a pinned key or a witness (ARCHITECTURE §3.10).
-- aegis-bin makes a fresh ML-DSA-87 key per process, so a log does not survive a restart.
+- monban-bin makes a fresh ML-DSA-87 key per process, so a log does not survive a restart.
 - On the cmvp build ML-DSA-87 is compiled out (PLAN-6 D15). There is no cosignature there, and this mode would
-  report `key`. The gate builds the floor aegis-bin.
+  report `key`. The gate builds the floor monban-bin.
 - Rung: R2 (an independent implementation verifies the real binary's output). The gate covers only the checkpoints
   that one boot/reload/stop run produces.
 
@@ -157,12 +157,12 @@ commit `fea9004f73fb` (2026-10-22):
 ## Known limits
 
 - **In `--subject` mode, the ML-DSA-87 cosignature is checked for presence and shape only, not cryptographically.**
-  `--openssl-mldsa` (above) checks it cryptographically with OpenSSL 3.5.3, against aegis-bin's log. Go 1.26 has ML-DSA
+  `--openssl-mldsa` (above) checks it cryptographically with OpenSSL 3.5.3, against monban-bin's log. Go 1.26 has ML-DSA
   only in `crypto/internal/fips140/mldsa`, which cannot be imported, and no new Go dependency was allowed. The
-  cosignature is verified cryptographically in Rust (aws-lc-rs `ML_DSA_87`) by the `aegis-audit` unit tests
+  cosignature is verified cryptographically in Rust (aws-lc-rs `ML_DSA_87`) by the `monban-audit` unit tests
   (`note::tests`, `tests::gapless_tiles_rebuild_root_and_checkpoints_consistent`). That is self-graded, not
   independent.
-- signed-note assigns no type byte to ML-DSA-87. aegis uses `0xff || "aegis-mldsa87-note-v1"` as the signed-note
+- signed-note assigns no type byte to ML-DSA-87. monban uses `0xff || "aegis-mldsa87-note-v1"` as the signed-note
   "longer identifier", and signs the plain note text with no timestamp. This is not interoperable with
   c2sp.org/tlog-cosignature witnesses, which use timestamped ML-DSA-44 under type `0x06`.
 - Keys are trusted on first use: `run` copies the subject's `vkey*` files out before verifying. A real deployment

@@ -1,30 +1,30 @@
 # default-graph baseline (P7-spec-002): the package set of
-#   cargo tree -p aegis-bin -e normal,build --target all --locked --prefix none -f '{p}'
+#   cargo tree -p monban-bin -e normal,build --target all --locked --prefix none -f '{p}'
 # at e06550e (Phase 6 GO + ledger housekeeping), deduplicated, path suffixes dropped: one "name version" per line.
-# Gate default-graph (ci/default-graph.py) requires the default aegis-bin graph to equal this set exactly. Changing
+# Gate default-graph (ci/default-graph.py) requires the default monban-bin graph to equal this set exactly. Changing
 # this file is a spec change to the §6 budget build, never a way to make the gate pass.
 # Spec change 2026-11-09 (RUSTSEC-2026-0459 / CVE-2026-119375): rusqlite 0.40.2 -> 0.41.1 and libsqlite3-sys
 # 0.38.2 -> 0.39.1 (bundled SQLite 3.53.2 -> 3.54.1); re-versioned in place, no package added or removed. The
 # fixture trees here carry the same two re-versioned lines.
-aegis-adapter-host 0.0.0
-aegis-admission 0.0.0
-aegis-agent 0.0.0
-aegis-audit 0.0.0
-aegis-authz 0.0.0
-aegis-bin 0.0.0
-aegis-budget 0.0.0
-aegis-canon 0.0.0
-aegis-config 0.0.0
-aegis-data-ir 0.0.0
-aegis-egress 0.0.0
-aegis-metrics 0.0.0
-aegis-ops 0.0.0
-aegis-sdk 0.0.0
-aegis-state 0.0.0
-aegis-tls 0.0.0
-aegis-token 0.0.0
-aegis-transport 0.0.0
-aegis-types 0.0.0
+monban-adapter-host 0.0.0
+monban-admission 0.0.0
+monban-agent 0.0.0
+monban-audit 0.0.0
+monban-authz 0.0.0
+monban-bin 0.0.0
+monban-budget 0.0.0
+monban-canon 0.0.0
+monban-config 0.0.0
+monban-data-ir 0.0.0
+monban-egress 0.0.0
+monban-metrics 0.0.0
+monban-ops 0.0.0
+monban-sdk 0.0.0
+monban-state 0.0.0
+monban-tls 0.0.0
+monban-token 0.0.0
+monban-transport 0.0.0
+monban-types 0.0.0
 atomic-waker 1.1.2
 aws-lc-rs 1.18.2
 aws-lc-sys 0.46.0

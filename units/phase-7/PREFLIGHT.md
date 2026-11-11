@@ -31,7 +31,7 @@ needed. Every probe below was run on 2026-11-06 and names its host or URL.
 | io_uring available | `/proc/sys/kernel/io_uring_disabled` (laptop 6.17.0-14, desktop 6.11.0-29, kamrui 6.17.0-41) | 0 on all three | Tests run on the desktop. The hardened unit's `SystemCallFilter=@system-service` is checked by the unit for whether it admits io_uring_*. |
 | 64-core scaling run | `gcloud compute project-info describe`, `regions describe us-central1` | **CPUS_ALL_REGIONS limit = 12**, C2 = 8, C2D = 100, N2 = 200 regional | **A 64-vCPU VM cannot start.** See D-P7.7. |
 | MariaDB and CockroachDB images | spikes/q4-005 (measured 2026-10) | mariadb:11.8 334.5 MB, cockroach v25.4 464.3 MB unpacked; MySQL 8.4 829 MB | Both are under 500 MB, so they run on kamrui. MySQL stays out. |
-| laptop disk | `df -h /` | 8.7 GB free, under the 10 GB floor. AEGIS `target/` is 2.4 GB; the rest is not AEGIS's. | Clear `target/` before full runs. Leftover agent worktrees were removed (branches kept). Remote per-worktree dirs on desktop and kamrui were deleted. |
+| laptop disk | `df -h /` | 8.7 GB free, under the 10 GB floor. Monban `target/` is 2.4 GB; the rest is not Monban's. | Clear `target/` before full runs. Leftover agent worktrees were removed (branches kept). Remote per-worktree dirs on desktop and kamrui were deleted. |
 | AL2023 build image size | kamrui `docker image inspect` | 168 MB compressed; `image.sh` asserts unpacked < 500 MB | unchanged |
 
 ## P3. Decisions
@@ -42,7 +42,7 @@ preconditions mandatory, and both fail. Phase 7 delivers instead:
   advisory list for quinn, quinn-proto and quinn-udp). It prints `H3-PRECONDITION: MET` or `NOT MET (…)` with dates.
   It is a manual check, not a gate, because gates do not depend on the network. Its offline self-test runs on recorded
   fixtures.
-- Gate `no-quic`: no quinn\*, h3\* or wtransport crate in either lock or in any aegis-bin feature graph, so H3 cannot
+- Gate `no-quic`: no quinn\*, h3\* or wtransport crate in either lock or in any monban-bin feature graph, so H3 cannot
   arrive by accident.
 - Re-check date: 2027-03-30, or sooner if the PRs merge and a release ships. If HTTP/3 is built later, it needs our own
   frame/QPACK limits in front of h3, and quinn-proto ≥ 0.11.19 / quinn-udp ≥ 0.5.16 as floors.
@@ -59,7 +59,7 @@ claim is advisory; the gate is behavioural equivalence with the epoll front.
 
 **D-P7.4 MTC: CredentialSelector only.** A selector picks a credential per ClientHello: an MTC credential when the
 client's `trust_anchors` names a configured MTC trust anchor ID, else ML-DSA for private hops, else the classical
-chain. The MTC credential is an operator-supplied opaque blob. AEGIS neither issues nor verifies MTCs (rung: selection
+chain. The MTC credential is an operator-supplied opaque blob. Monban neither issues nor verifies MTCs (rung: selection
 logic R2 against a decision-table oracle; no MTC validity claim). Feature `mtc`, off by default. Because rustls 0.23
 does not expose `trust_anchors`, the selector reads it from the same ClientHello peek as D-P7.2.
 
@@ -80,18 +80,18 @@ does not expose `trust_anchors`, the selector reads it from the same ClientHello
 - Its verdict says whether the "smaller C surface" claim holds, at which rung, and with the upstream caveat that
   side-channel resistance is not verified.
 
-**D-P7.6 OTLP: `aegis-otlp`, a separate binary with no OpenTelemetry crates.**
+**D-P7.6 OTLP: `monban-otlp`, a separate binary with no OpenTelemetry crates.**
 - What it does:
   - scrapes the admin listener's OpenMetrics text;
-  - reads aegis JSON logs on stdin;
+  - reads monban JSON logs on stdin;
   - POSTs OTLP/HTTP JSON (`/v1/metrics`, `/v1/logs`).
 - How it is built: a hand-rolled encoder on hyper (already in the graph).
 - Gates:
-  - `no-otel-in-bin`: no opentelemetry\* or prost in the aegis-bin graph.
+  - `no-otel-in-bin`: no opentelemetry\* or prost in the monban-bin graph.
   - `otlp-export`: exporter end-to-end against a dummy collector that checks the OTLP JSON mapping, with mutants.
 
 **D-P7.7 The 64-core scaling run is blocked by GCP quota; the harness is built and run on the desktop.**
-- `bench/scaling` drives aegis with h2load (the approved public tool) at 1, 2, 4, 8, 16 and 24 cores on the desktop
+- `bench/scaling` drives monban with h2load (the approved public tool) at 1, 2, 4, 8, 16 and 24 cores on the desktop
   (24 threads). It records req/s and p99 per core count. Gate `scaling` is **advisory, record_only**: it passes when
   every point ran with 0 errors and the report was written.
 - The 64-core point needs CPUS_ALL_REGIONS ≥ 64. The planned shape is c2d-standard-64 in us-central1, about an hour.
@@ -101,8 +101,8 @@ does not expose `trust_anchors`, the selector reads it from the same ClientHello
 **D-P7.8 More adapters: MariaDB and CockroachDB, golden only after a two-sided oracle at 0 leaks.**
 - From q4-005: both engines are 0 leaks in 10 800 cases per engine, with the engine-specific mandated forms and the
   amended W3 schema gate.
-- CockroachDB rides the PG wire (`aegis-adapter-pg` with a `crdb` dialect: upsert guard fix, SERIALIZABLE retry).
-- MariaDB needs a new `aegis-adapter-mysql` with our own wire client:
+- CockroachDB rides the PG wire (`monban-adapter-pg` with a `crdb` dialect: upsert guard fix, SERIALIZABLE retry).
+- MariaDB needs a new `monban-adapter-mysql` with our own wire client:
   - mysql_native_password and caching_sha2 refused at first;
   - binary prepared statements only;
   - loopback or TLS.
@@ -123,7 +123,7 @@ does not expose `trust_anchors`, the selector reads it from the same ClientHello
 - **io-uring 0.7.15 vet audit** (P7-spec-002): no import set covered it at safe-to-deploy, so the zero-exemption rule
   forced an own audit (all ~5.9k hand-written lines, ~87 unsafe sites read). Its `who` records an agent review: the
   operator should countersign or replace it with a human audit before the `uring` feature is used in production.
-- **aegis-uring unsafe budget** (DEVIATIONS X-19): io-uring's submission API is `unsafe fn`, so aegis-uring may hold
+- **monban-uring unsafe budget** (DEVIATIONS X-19): io-uring's submission API is `unsafe fn`, so monban-uring may hold
   ≤ 6 audited sites; `cargo xtask unsafe-sites` enforces it.
 - **F8 admission.per_ip** (P7-spec-001, wired by P7-bin-001): the S1 per-IP GCRA (1000/s, burst 2000) was hard-coded;
   the scaling bench from one source IP was all 429s. Absent = today's values.

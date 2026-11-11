@@ -1,4 +1,4 @@
-"""CT-DUDECT: dudect-style constant-time check (Reparaz, Balasch, Verbauwhede 2017) of aegis-token's tag compare.
+"""CT-DUDECT: dudect-style constant-time check (Reparaz, Balasch, Verbauwhede 2017) of monban-token's tag compare.
 
 Stdlib only; run as `python3 -I`. The subject (subjects/ct-subject) times one call per measurement and returns the
 raw nanosecond durations; every statistic is computed here, so the subject cannot grade itself. See README.md.

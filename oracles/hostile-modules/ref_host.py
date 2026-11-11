@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Reference P2 supervisor for oracles/hostile-modules (host level). Stdlib only.
 
-A small stand-in for aegis (feature p2) that follows the host-level subject contract in README.md: the same command
-line as aegis, F8 config subset (listener, admin, data.backends sqlite, vhosts/routes with to.wasm and data caps,
+A small stand-in for monban (feature p2) that follows the host-level subject contract in README.md: the same command
+line as monban, F8 config subset (listener, admin, data.backends sqlite, vhosts/routes with to.wasm and data caps,
 p2 block), TLS HTTP/1.1, F5 Tier-L tokens, F9 audit events in C2SP tlog-tiles entry bundles, the F14 supervisor
 obligations (Part 3: I5 re-serialization, I1 decode/overwrite/authorize, I6-host audit before effect, I7 tri-state
 mapping, D7 crash budget), and the worker command line (`<worker> compile|zygote|cordon`).
@@ -38,7 +38,7 @@ sys.path.insert(0, HERE)
 import f14  # noqa: E402
 
 MUT = os.environ.get("AEGIS_P2_MUTANT", "")
-VHOST = "aegis.test"
+VHOST = "monban.test"
 GRACE_S = 2.0
 DENY = b"HTTP/1.1 403 Forbidden\r\ncontent-type: text/plain\r\ncontent-length: 7\r\nconnection: close\r\n\r\ndenied\n"
 TOO_MANY = (b"HTTP/1.1 429 Too Many Requests\r\ncontent-type: text/plain\r\ncontent-length: 13\r\n"

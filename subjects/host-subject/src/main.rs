@@ -1,13 +1,13 @@
-//! Oracle subject for aegis-adapter-host (never linked into aegis).
+//! Oracle subject for monban-adapter-host (never linked into monban).
 //!
 //! ```text
 //! host-subject sdk-host [--mutate <m>]    oracles/sdk-host protocol (F7b host obligations, X-11 pool)
 //! host-subject nonempty [--mutate <m>]    oracles/nonempty-props protocol (INV-NONEMPTY through dispatch)
 //! ```
 //!
-//! Both modes drive production code: `aegis_adapter_host::host::Host` (pool, sessions, streams, jobs) and
-//! `aegis_adapter_host::dispatch::prepare` (authorize → check_schema → allowlist → pre-debit → render) with the
-//! adapters' real renderers. Mutations are aegis-adapter-host's own `#[doc(hidden)]` self-test switches; an unknown
+//! Both modes drive production code: `monban_adapter_host::host::Host` (pool, sessions, streams, jobs) and
+//! `monban_adapter_host::dispatch::prepare` (authorize → check_schema → allowlist → pre-debit → render) with the
+//! adapters' real renderers. Mutations are monban-adapter-host's own `#[doc(hidden)]` self-test switches; an unknown
 //! mutation name exits 2.
 
 mod engines;
@@ -37,7 +37,7 @@ fn main() -> ExitCode {
     let r = match mode {
         "nonempty" => {
             let m = match mutate {
-                None => aegis_adapter_host::dispatch::DispatchMutations::NONE,
+                None => monban_adapter_host::dispatch::DispatchMutations::NONE,
                 Some(n) => match nonempty::mutations(n) {
                     Some(m) => m,
                     None => {

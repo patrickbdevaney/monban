@@ -1,4 +1,4 @@
-"""Ported verbatim from research/state/raw/round-003/07-work/cost_model.py (sha256 in README.md). AEGIS-PORT changes:
+"""Ported verbatim from research/state/raw/round-003/07-work/cost_model.py (sha256 in README.md). Monban-PORT changes:
 importing builds `out` and nothing else (the original printed it and wrote cost_model.json into its own directory).
 All prices are a 2026-10-25 snapshot; stage costs mix grades B/C/D/E as labelled per row. ADVISORY.
 
@@ -100,4 +100,4 @@ for label, us in (("429 reject after full TLS", (424 + 10 + 0.1 + 8) / 0.5), ("c
         row[f"attacker_usd_per_hour_{pn}"] = round(rps * 3600 * b / 1e9 * p, 2)
     cap[label] = row
 out["saturate_one_vcpu"] = cap
-# AEGIS-PORT: print + json.dump(out, open("cost_model.json", "w")) removed
+# Monban-PORT: print + json.dump(out, open("cost_model.json", "w")) removed

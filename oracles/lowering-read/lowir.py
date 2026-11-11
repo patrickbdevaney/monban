@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""lowir.py -- shared reference model for the AEGIS lowering oracles (stdlib only, run with python3 -I).
+"""lowir.py -- shared reference model for the Monban lowering oracles (stdlib only, run with python3 -I).
 
 This file is copied byte-identically into oracles/lowering-read/ and oracles/lowering-write/ (each oracle dir is
 self-contained); both READMEs record its sha256.
@@ -8,12 +8,12 @@ Contents
   1. IR (Pred) exactly as spec/AegisIR/Lowering.lean: tt ff eq in range pfx and or not, plus andN/orN which
      desugar as Pred.andN [] = tt, Pred.orN [] = ff.  Values are int | str (Lean `Value`), nothing else.
      Tenant handles are the D4 canonical text of a TenantId (u64): exactly 16 lower-case hex digits, not all zero
-     (aegis_data_ir::tenant_text / parse_tenant_text).
+     (monban_data_ir::tenant_text / parse_tenant_text).
   2. eval (two-valued policy semantics; absent/NULL field => atom false), lower, lowerQ, sql3 (Kleene 3VL,
      NULL column => UNKNOWN), keeps, refQ -- line-for-line ports of the Lean definitions.
-  3. The reference renderer (the "subject" until aegis-adapter-* exist): SQLite and Postgres dialects for read
+  3. The reference renderer (the "subject" until monban-adapter-* exist): SQLite and Postgres dialects for read
      filters (lowerQ) and write statements (UPDATE / DELETE / INSERT / composite-arbiter UPSERT), Postgres RLS policy
-     and per-transaction tenant binding, and a Redis/Valkey renderer following aegis_data_ir::kv_plan (keys
+     and per-transaction tenant binding, and a Redis/Valkey renderer following monban_data_ir::kv_plan (keys
      `t:{<16hex>}:<collection>:<key>`, GET / SET [NX|XX] / DEL / SCAN MATCH, ACL SETUSER rules).  Mutants
      (deliberately broken renderers) for the self-tests.
   4. The line-oriented JSON subject protocol v2 (see README.md) -- `python3 -I lowir.py serve [--mutant M ...]`
@@ -39,7 +39,7 @@ def check_value(v):
         raise ValueError(f"IR value must be int or str (Lean Value), got {type(v).__name__}")
     return v
 
-# ---- D4 tenant encoding (aegis_data_ir::tenant_text): u64 -> 16 lower-case hex digits; 0 is not a TenantId
+# ---- D4 tenant encoding (monban_data_ir::tenant_text): u64 -> 16 lower-case hex digits; 0 is not a TenantId
 TENANT_TEXT_LEN = 16
 _HEX = set("0123456789abcdef")
 
@@ -53,10 +53,10 @@ def valid_tenant(t):
 _COLLECTION = re.compile(r"[a-z_][a-z0-9_]{0,62}")
 
 def valid_collection(c):
-    """aegis_data_ir::valid_collection: ^[a-z_][a-z0-9_]{0,62}$ (no ':', no glob metacharacter)."""
+    """monban_data_ir::valid_collection: ^[a-z_][a-z0-9_]{0,62}$ (no ':', no glob metacharacter)."""
     return type(c) is str and _COLLECTION.fullmatch(c) is not None
 
-KV_MAX_KEY_BYTES = 1024          # aegis_data_ir::KV_MAX_KEY_BYTES (keys and SCAN patterns)
+KV_MAX_KEY_BYTES = 1024          # monban_data_ir::KV_MAX_KEY_BYTES (keys and SCAN patterns)
 
 def validate(p, fields):
     """Raise ValueError unless p is a well-formed Pred over `fields`."""
@@ -256,7 +256,7 @@ def col_class(decl):
     return None
 
 def glob_escape(s: bytes) -> bytes:
-    """aegis_data_ir::glob_escape: backslash before * ? [ ] \\ (stringmatchlen then matches only the literal)."""
+    """monban_data_ir::glob_escape: backslash before * ? [ ] \\ (stringmatchlen then matches only the literal)."""
     out = bytearray()
     for b in s:
         if b in b"*?[]\\": out += b"\\"
@@ -275,7 +275,7 @@ class Renderer:
             return {"refuse": "mutant refuse-all"}
         op = req.get("op")
         if op == "hello":
-            return {"name": "aegis-reference-renderer(lowir.py)", "mutants": sorted(self.m), "protocol": PROTOCOL}
+            return {"name": "monban-reference-renderer(lowir.py)", "mutants": sorted(self.m), "protocol": PROTOCOL}
         if op == "read":
             return self.read(req)
         if op in ("update", "delete", "upsert", "insert"):
@@ -578,17 +578,17 @@ class Renderer:
         if "rls-no-force" not in self.m:
             st.append(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         if "rls-split-update-true" in self.m:
-            st += [f"CREATE POLICY aegis_s ON {table} FOR SELECT TO {qi(role)} USING {guard}",
-                   f"CREATE POLICY aegis_i ON {table} FOR INSERT TO {qi(role)} WITH CHECK {guard}",
-                   f"CREATE POLICY aegis_d ON {table} FOR DELETE TO {qi(role)} USING {guard}",
-                   f"CREATE POLICY aegis_u ON {table} FOR UPDATE TO {qi(role)} USING (true) WITH CHECK (true)"]
+            st += [f"CREATE POLICY monban_s ON {table} FOR SELECT TO {qi(role)} USING {guard}",
+                   f"CREATE POLICY monban_i ON {table} FOR INSERT TO {qi(role)} WITH CHECK {guard}",
+                   f"CREATE POLICY monban_d ON {table} FOR DELETE TO {qi(role)} USING {guard}",
+                   f"CREATE POLICY monban_u ON {table} FOR UPDATE TO {qi(role)} USING (true) WITH CHECK (true)"]
         else:
             chk = (" WITH CHECK (true)" if "rls-check-true" in self.m else "" if "rls-no-check" in self.m
                    else f" WITH CHECK {guard}")
-            st.append(f"CREATE POLICY aegis_tenant ON {table} AS PERMISSIVE FOR ALL TO {qi(role)} USING {guard}{chk}")
+            st.append(f"CREATE POLICY monban_tenant ON {table} AS PERMISSIVE FOR ALL TO {qi(role)} USING {guard}{chk}")
         return {"statements": st}
 
-    # ------------------------------------------------------------------ Redis / Valkey (aegis_data_ir::kv_plan)
+    # ------------------------------------------------------------------ Redis / Valkey (monban_data_ir::kv_plan)
     def kv(self, req):
         op = req["op"]
         m = self.m

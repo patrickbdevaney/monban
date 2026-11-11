@@ -37,7 +37,7 @@ WRONG = "other.test"
 PQ = {0x0200, 0x0201, 0x0202, 0x11EB, 0x11EC, 0x11ED}
 OSSL_NAME = {0x11EC: "X25519MLKEM768", 0x11ED: "SecP384r1MLKEM1024", 0x11EB: "SecP256r1MLKEM768",
              0x001D: "x25519", 0x0017: "secp256r1", 0x0018: "secp384r1", 0x0202: "MLKEM1024"}
-# Client profiles (F12 rows with a client definition, aegis-tls `client_config`): name -> ordered kx list.
+# Client profiles (F12 rows with a client definition, monban-tls `client_config`): name -> ordered kx list.
 PROFILES = {
     "P-PUBLIC-WEB": [0x11EC, 0x11ED, 0x11EB, 0x001D, 0x0017],
     "PQ-REQUIRED": [0x11EC],

@@ -1,4 +1,4 @@
-{"id":"P2-metrics-001","crates":["aegis-metrics"],
+{"id":"P2-metrics-001","crates":["monban-metrics"],
  "spec_refs":["ARCHITECTURE §3.10 golden counters","IMPLEMENTATION_PLAN Phase 2 metrics gate"],
- "acceptance":{"cmd":"ci/heavy.sh cargo test -p aegis-metrics && cargo xtask metrics-check","must":"OpenMetrics text output parses (exposition-format checker in tests); every golden counter present with no feature flags"},
- "write_scope":["crates/aegis-metrics/**","xtask/src/metrics.rs"],"infeasible_exit":true,"max_retries":30,"passes":false}
+ "acceptance":{"cmd":"ci/heavy.sh cargo test -p monban-metrics && cargo xtask metrics-check","must":"OpenMetrics text output parses (exposition-format checker in tests); every golden counter present with no feature flags"},
+ "write_scope":["crates/monban-metrics/**","xtask/src/metrics.rs"],"infeasible_exit":true,"max_retries":30,"passes":false}

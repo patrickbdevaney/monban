@@ -8,7 +8,7 @@ Spec: ARCHITECTURE §3.8 **R-DB-1** (PG ≥ 18.6 / 17.11, CVE-2026-14666; recycl
 upgrades) and **R-DB-8** (PG19 gated on the ON CONFLICT WHERE-before-RLS fix, `wpo-pg-onconflict-where-peek` A 0.86;
 units/phase-4/PLAN.md: every 19.x refused until a spec change names the fixed minor). Neither is a numbered clause in
 `spec/SPEC_INVARIANTS.md`. The closest clause is F7 tenant isolation, which assumes the engine is not one with a known
-RLS bug. Admission semantics mirror `aegis-data-ir` `EnginePin::admit` (crates/aegis-data-ir/src/ir.rs).
+RLS bug. Admission semantics mirror `monban-data-ir` `EnginePin::admit` (crates/monban-data-ir/src/ir.rs).
 
 ## Run
 

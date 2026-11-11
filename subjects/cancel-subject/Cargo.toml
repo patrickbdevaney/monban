@@ -1,19 +1,19 @@
 [package]
 name = "cancel-subject"
-description = "Oracle subject: aegis-adapter-pg pool + NC3 checkin/recovery under a synchronous DST host shell (CancelAt at host-call boundaries) with a pgwire fake, over the oracles/cancel-sweep event protocol. Never linked into aegis."
+description = "Oracle subject: monban-adapter-pg pool + NC3 checkin/recovery under a synchronous DST host shell (CancelAt at host-call boundaries) with a pgwire fake, over the oracles/cancel-sweep event protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # No third-party dependencies: the pool, the NC3 release path and the protocol mirror are the adapter's; the DST shell
 # and the pgwire fake are test code in this crate.
 [dependencies]
-aegis-adapter-pg = { workspace = true }
+monban-adapter-pg = { workspace = true }
 
 [lints]
 workspace = true

@@ -6,8 +6,8 @@ conformance/config-pin.toml; no Phase-8 gate prints that line yet, so without th
 both golden subjects by design (no boot evidence). The patch appends conformance/boot-pin (which boots the artifact
 with its golden config and requires check-config, the boot log line of the started pid and /healthz to agree) to the
 two gates that already produce the judged artifacts: release-verify (floor, on kamrui; artifact
-target/release-out/artifacts/aegis-floor) and release-rebuild (cmvp, laptop; the A-side copy
-target/release-rebuild/cmvp/A/aegis-cmvp). Both gates run before conformance-full, so their logs are in the window
+target/release-out/artifacts/monban-floor) and release-rebuild (cmvp, laptop; the A-side copy
+target/release-rebuild/cmvp/A/monban-cmvp). Both gates run before conformance-full, so their logs are in the window
 the runner accepts. Two follow-ups are needed after applying: (1) the cmvp pin in conformance/config-pin.toml is empty
 (a FIPS-CMVP listener only loads in the cmvp build, which this unit did not build); copy the hash from the first
 release-rebuild log's CONFORMANCE-BOOT line into it after checking the line, in the same change that records the
@@ -24,7 +24,7 @@ from the same toml, so nothing else moves.
  [[gate]]
  name = "release-verify"
 -cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out"
-+cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out && python3 -I conformance/boot-pin --subject aegis-bin-floor --binary target/release-out/artifacts/aegis-floor"
++cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out && python3 -I conformance/boot-pin --subject monban-bin-floor --binary target/release-out/artifacts/monban-floor"
  selftest = "ci/release/verify.py --self-test"
  heavy = true
  remote = "kamrui"
@@ -32,7 +32,7 @@ from the same toml, so nothing else moves.
  [[gate]]
  name = "release-rebuild"
 -cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp"
-+cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && python3 -I conformance/boot-pin --subject aegis-bin-cmvp --binary target/release-rebuild/cmvp/A/aegis-cmvp"
++cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && python3 -I conformance/boot-pin --subject monban-bin-cmvp --binary target/release-rebuild/cmvp/A/monban-cmvp"
  selftest = "ci/release/rebuild.sh --self-test"
  heavy = true
  
@@ -44,6 +44,6 @@ from the same toml, so nothing else moves.
  | F12 | `tls/verdicts.toml` | provisional: q4-026 | PUB-T1..T6, FIPS-F1..F6; 0x11ED from our own KxGroup (Phase 6) |
 -| F13 | `interfaces/F13-conformance-report.schema.json` | frozen | C0–C4 report |
 +| F13 | `interfaces/F13-conformance-report.schema.json` | frozen; additive members `gated` and `config_sha256` P8-conformance-001 (2026-11-06, v stays 1, absent = pre-Phase-8 meaning) | C0–C4 report |
- | F14 | `interfaces/F14-p2-guest-abi.cddl` | frozen (new, P5-spec-001) | P2 core-module guest ABI: closed import allowlist in module `aegis` (req_head, req_body_read, resp_head, resp_write, log, data_run, result_read, handle_drop), export `handle() -> u32` (0 Allow, 1 Deny, else Error ⇒ Deny); per-request generation-tagged handles (forged/foreign/stale trap); `env.host_fault` only in `test-hooks` builds; worker↔supervisor SOCK_SEQPACKET frames in the F10 encoding, capped by F8 `p2.frame_max_bytes`; `data_run` carries the F10 `op` rule by name (F10 unchanged); decode failure kills the worker and charges the principal's crash budget, never the supervisor; supervisor re-serializes all module output (I5), authorizes + audits every data_run before effect (I1, I6-host), module failure ⇒ Deny (I7) |
+ | F14 | `interfaces/F14-p2-guest-abi.cddl` | frozen (new, P5-spec-001) | P2 core-module guest ABI: closed import allowlist in module `monban` (req_head, req_body_read, resp_head, resp_write, log, data_run, result_read, handle_drop), export `handle() -> u32` (0 Allow, 1 Deny, else Error ⇒ Deny); per-request generation-tagged handles (forged/foreign/stale trap); `env.host_fault` only in `test-hooks` builds; worker↔supervisor SOCK_SEQPACKET frames in the F10 encoding, capped by F8 `p2.frame_max_bytes`; `data_run` carries the F10 `op` rule by name (F10 unchanged); decode failure kills the worker and charges the principal's crash budget, never the supervisor; supervisor re-serializes all module output (I5), authorizes + audits every data_run before effect (I1, I6-host), module failure ⇒ Deny (I7) |
  
  "Provisional" means frozen now, with a named Phase-1 spike that may force one re-freeze before Phase 2.

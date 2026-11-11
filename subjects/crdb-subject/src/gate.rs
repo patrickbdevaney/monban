@@ -1,8 +1,8 @@
 //! `crdb-subject schema`: the schema-gate subject protocol (oracles/schema-gate/README.md, "MariaDB and CockroachDB
 //! modes").
 //!
-//! * `crdb` mode: connect to `dsn` (gated on the CockroachDB release, `aegis_adapter_pg::crdb::connect_admitted`),
-//!   then `aegis_adapter_pg::check_live_schema_dialect(.., Dialect::Crdb)` on `namespace` (a schema in the DSN's
+//! * `crdb` mode: connect to `dsn` (gated on the CockroachDB release, `monban_adapter_pg::crdb::connect_admitted`),
+//!   then `monban_adapter_pg::check_live_schema_dialect(.., Dialect::Crdb)` on `namespace` (a schema in the DSN's
 //!   database) and `collection`: the live catalog decides collations, NULL-ability, unique indexes, types, triggers and
 //!   FK actions; `declared` contributes only names, field numbers, roles and `permitted`. No RLS requirement (RLS is
 //!   not part of the crdb dialect).
@@ -16,10 +16,10 @@ use std::collections::HashMap;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
-use aegis_adapter_pg::TenantId;
-use aegis_adapter_pg::crdb::{CrdbConnectError, connect_admitted};
-use aegis_adapter_pg::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
-use aegis_adapter_pg::{ConnectConfig, Connection, Dialect, check_live_schema_dialect};
+use monban_adapter_pg::TenantId;
+use monban_adapter_pg::crdb::{CrdbConnectError, connect_admitted};
+use monban_adapter_pg::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
+use monban_adapter_pg::{ConnectConfig, Connection, Dialect, check_live_schema_dialect};
 
 use crate::json::{self, Json, emit, esc};
 

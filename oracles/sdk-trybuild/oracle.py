@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """sdk-trybuild oracle (gate sdk-trybuild, unit P4-oracle-trybuild-001). Invoked by ./run; stdlib only.
 
-  oracle.py check      build the real aegis-sdk, run its doc tests, judge the corpus against expected.txt
+  oracle.py check      build the real monban-sdk, run its doc tests, judge the corpus against expected.txt
   oracle.py self-test  judge the corpus and the SDK's compile_fail doc tests against mutated SDK copies; every
                        mutant must turn the verdict red
   oracle.py bless      check, then rewrite snapshots.txt from the observed rejection codes (review the diff)
@@ -9,7 +9,7 @@
 trybuild-equivalent, without the trybuild crate: every case is compiled by the pinned rustc itself (metadata only),
 then by clippy-driver with the workspace lints and the ban list (clippy.toml), then scanned for the host seam. The
 rejection codes are compared with snapshots.txt the way trybuild compares .stderr files. Compiled B2 cases run
-through a harness built on the SDK's own host loop (`aegis_sdk::host`) over a recording backend.
+through a harness built on the SDK's own host loop (`monban_sdk::host`) over a recording backend.
 """
 import concurrent.futures
 import json
@@ -26,11 +26,11 @@ import corpus  # noqa: E402  (own directory, inserted explicitly because python3
 
 TARGET = os.environ.get("SDK_TRYBUILD_TARGET", os.path.join(HERE, "target"))
 JOBS = max(1, int(os.environ.get("CARGO_BUILD_JOBS", "4")))
-SDK_SRC = os.path.join(REPO, "sdk", "aegis-sdk", "src")
+SDK_SRC = os.path.join(REPO, "sdk", "monban-sdk", "src")
 WORKSPACE_CLIPPY = ["unwrap_used", "expect_used", "panic", "todo", "unimplemented", "indexing_slicing", "dbg_macro"]
 BAN_CLIPPY = ["disallowed_methods", "disallowed_types", "mem_forget"]
-OWNER_RE = re.compile(r'\bhost::|aegis_sdk::host|feature\s*=\s*"host"')
-EXTERN_NAMES = ("aegis_sdk", "aegis_types", "aegis_data_ir", "aegis_authz")
+OWNER_RE = re.compile(r'\bhost::|monban_sdk::host|feature\s*=\s*"host"')
+EXTERN_NAMES = ("monban_sdk", "monban_types", "monban_data_ir", "monban_authz")
 
 
 def log(msg):
@@ -46,8 +46,8 @@ def run(cmd, env=None, cwd=REPO, timeout=None):
 
 # ---------------------------------------------------------------------------------------------------------------- build
 def cargo_build(features):
-    """Build aegis-sdk with `features` in the main workspace (locked); return its lib artifacts and native paths."""
-    base = ["cargo", "build", "--manifest-path", os.path.join(REPO, "Cargo.toml"), "-p", "aegis-sdk",
+    """Build monban-sdk with `features` in the main workspace (locked); return its lib artifacts and native paths."""
+    base = ["cargo", "build", "--manifest-path", os.path.join(REPO, "Cargo.toml"), "-p", "monban-sdk",
             "--features", features, "--locked", "--message-format=json-render-diagnostics"]
     env = {"CARGO_TARGET_DIR": TARGET}
     r = run(base + ["--offline"], env)
@@ -67,10 +67,10 @@ def cargo_build(features):
                 libs[m["target"]["name"]] = rl[0]
         elif m.get("reason") == "build-script-executed":
             native.update(m.get("linked_paths", []))
-    for n in ("aegis_sdk", "aegis_types", "aegis_data_ir"):
+    for n in ("monban_sdk", "monban_types", "monban_data_ir"):
         if n not in libs:
             raise RuntimeError(f"cargo build ({features}): no rlib for {n}")
-    return {"libs": libs, "deps": [os.path.dirname(libs["aegis_types"])], "native": sorted(native)}
+    return {"libs": libs, "deps": [os.path.dirname(libs["monban_types"])], "native": sorted(native)}
 
 
 def dep_args(build):
@@ -94,35 +94,35 @@ def rustc_lib(name, src, externs, build, out_dir, cfgs=()):
 
 
 def harness_build(build_a, sdk_src, out_dir):
-    """The runtime harness needs `Principal` minting (aegis-types feature authn-path), which the corpus build must
+    """The runtime harness needs `Principal` minting (monban-types feature authn-path), which the corpus build must
     not have. One cargo target dir cannot hold both (a dependency feature change reuses artifact file names), so the
     three first-party crates are recompiled here by rustc against build A's third-party rlibs."""
     b = {"libs": dict(build_a["libs"]), "deps": build_a["deps"] + [out_dir], "native": build_a["native"]}
-    b["libs"]["aegis_types"] = rustc_lib("aegis_types", os.path.join(REPO, "crates", "aegis-types", "src", "lib.rs"),
+    b["libs"]["monban_types"] = rustc_lib("monban_types", os.path.join(REPO, "crates", "monban-types", "src", "lib.rs"),
                                          [], b, out_dir, cfgs=['feature="authn-path"'])
-    b["libs"]["aegis_data_ir"] = rustc_lib("aegis_data_ir", os.path.join(REPO, "crates", "aegis-data-ir", "src", "lib.rs"),
-                                           ["aegis_types", "aws_lc_rs"], b, out_dir)
-    b["libs"]["aegis_sdk"] = rustc_lib("aegis_sdk", os.path.join(sdk_src, "lib.rs"),
-                                       ["aegis_types", "aegis_data_ir"], b, out_dir, cfgs=['feature="host"'])
-    b["libs"].pop("aegis_authz", None)
+    b["libs"]["monban_data_ir"] = rustc_lib("monban_data_ir", os.path.join(REPO, "crates", "monban-data-ir", "src", "lib.rs"),
+                                           ["monban_types", "aws_lc_rs"], b, out_dir)
+    b["libs"]["monban_sdk"] = rustc_lib("monban_sdk", os.path.join(sdk_src, "lib.rs"),
+                                       ["monban_types", "monban_data_ir"], b, out_dir, cfgs=['feature="host"'])
+    b["libs"].pop("monban_authz", None)
     return b
 
 
 def rustc_sdk(src_dir, build, out_dir):
     """Compile an (optionally mutated) copy of the SDK sources with feature host against `build`'s dependencies."""
     os.makedirs(out_dir, exist_ok=True)
-    out = os.path.join(out_dir, "libaegis_sdk.rlib")
-    cmd = ["rustc", "--edition", "2024", "--crate-name", "aegis_sdk", "--crate-type", "rlib", "--cfg", 'feature="host"',
+    out = os.path.join(out_dir, "libmonban_sdk.rlib")
+    cmd = ["rustc", "--edition", "2024", "--crate-name", "monban_sdk", "--crate-type", "rlib", "--cfg", 'feature="host"',
            "-C", "panic=abort", "-C", "metadata=sdktrybuildmut", "--cap-lints", "allow",
            "-o", out, os.path.join(src_dir, "lib.rs")] + dep_args(build)
-    for n in ("aegis_types", "aegis_data_ir", "aegis_authz"):
+    for n in ("monban_types", "monban_data_ir", "monban_authz"):
         if n in build["libs"]:
             cmd += ["--extern", f"{n}={build['libs'][n]}"]
     r = run(cmd)
     if r.returncode != 0:
         raise RuntimeError(f"rustc of SDK copy {src_dir} failed:\n{r.stderr[-3000:]}")
     b = dict(build)
-    b["libs"] = dict(build["libs"], aegis_sdk=out)
+    b["libs"] = dict(build["libs"], monban_sdk=out)
     return b
 
 
@@ -199,10 +199,10 @@ def judge_case(case, build, clippy, work):
 
 # -------------------------------------------------------------------------------------------------------------- harness
 HARNESS_HEAD = r'''#![allow(unused, dead_code, unused_imports, non_snake_case)]
-use aegis_data_ir::{Op, OpKind, Pred, Value};
-use aegis_sdk::host::{self, Backend, Request, Session};
-use aegis_sdk::{ScopedHandler, SdkError};
-use aegis_types::{authn_path, Principal, RouteId, TenantId};
+use monban_data_ir::{Op, OpKind, Pred, Value};
+use monban_sdk::host::{self, Backend, Request, Session};
+use monban_sdk::{ScopedHandler, SdkError};
+use monban_types::{authn_path, Principal, RouteId, TenantId};
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 
@@ -302,7 +302,7 @@ def run_harness(ids_srcs, build, work):
            "-C", "panic=abort", "-A", "warnings", "-o", exe] + dep_args(build)
     for npath in build["native"]:
         cmd += ["-L", npath]
-    for n in ("aegis_sdk", "aegis_types", "aegis_data_ir"):
+    for n in ("monban_sdk", "monban_types", "monban_data_ir"):
         cmd += ["--extern", f"{n}={build['libs'][n]}"]
     r = run(cmd + [path], timeout=600)
     if r.returncode != 0:
@@ -507,8 +507,8 @@ def cmd_check(bless=False):
     exp = read_expected()
     build_a = cargo_build("host")
     build_b = harness_build(build_a, SDK_SRC, os.path.join(TARGET, "sdk-trybuild", "harness-real"))
-    log("doc tests: cargo test --doc -p aegis-sdk")
-    base = ["cargo", "test", "--manifest-path", os.path.join(REPO, "Cargo.toml"), "--doc", "-p", "aegis-sdk", "--locked"]
+    log("doc tests: cargo test --doc -p monban-sdk")
+    base = ["cargo", "test", "--manifest-path", os.path.join(REPO, "Cargo.toml"), "--doc", "-p", "monban-sdk", "--locked"]
     # Own target dir: the doc-test build reuses the dev artifact names with panic=unwind and would overwrite the
     # panic=abort rlibs the corpus links against.
     denv = {"CARGO_TARGET_DIR": os.path.join(TARGET, "doc")}
@@ -522,7 +522,7 @@ def cmd_check(bless=False):
     os.makedirs(work)
     problems = []
     if r.returncode != 0:
-        problems.append("cargo test --doc -p aegis-sdk failed:\n" + r.stdout[-2000:] + r.stderr[-2000:])
+        problems.append("cargo test --doc -p monban-sdk failed:\n" + r.stdout[-2000:] + r.stderr[-2000:])
     dfail = doc_check(os.path.join(SDK_SRC, "lib.rs"), build_a, work)
     nblocks = len(doc_compile_fail_blocks(os.path.join(SDK_SRC, "lib.rs")))
     log(f"  compile_fail replication on the real SDK: {nblocks - len(dfail)}/{nblocks} as declared")

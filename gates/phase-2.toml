@@ -75,13 +75,13 @@ remote = true
 
 [[gate]]
 name = "fail-closed-boot"
-cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+cmd = "ci/heavy.sh cargo build --locked -q -p monban-bin && { target/debug/monban; test $? -eq 78; }"
 remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
-selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p monban-bin -p audit-subject -p upgrade-subject && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true
 
@@ -146,7 +146,7 @@ remote = true
 
 [[gate]]
 name = "config-totality"
-cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p monban-config"
 remote = true
 
 [[gate]]
@@ -157,7 +157,7 @@ remote = true
 
 [[gate]]
 name = "systemd-hardening"
-cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+cmd = "s=$(systemd-analyze security --offline=yes deploy/monban-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
 
 [[gate]]
 name = "kani-tbi"
@@ -174,7 +174,7 @@ heavy = true
 # OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/monban"
 selftest = "oracles/proxy-e2e/run --self-test"
 remote = true
 

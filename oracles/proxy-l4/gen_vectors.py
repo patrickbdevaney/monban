@@ -80,7 +80,7 @@ def tcp6(p, tlvs=(), **kw):
 
 
 def unix(tlvs=(), **kw):
-    return pp.encode(fam=pp.FAM_UNIX, src="/run/lb.sock", dst="/run/aegis.sock", tlvs=tlvs, **kw)
+    return pp.encode(fam=pp.FAM_UNIX, src="/run/lb.sock", dst="/run/monban.sock", tlvs=tlvs, **kw)
 
 
 def ssl_all():
@@ -274,7 +274,7 @@ def proxy_vectors():
           "tlv-truncated")
     hello = ch.record(ch.build(sni="a.l4.test", seed=7))
     p.add("h-no-header-tls", "hostile", hello, "reject", "sig")
-    p.add("h-no-header-http", "hostile", b"GET / HTTP/1.1\r\nHost: aegis.test\r\n\r\n", "reject", "sig")
+    p.add("h-no-header-http", "hostile", b"GET / HTTP/1.1\r\nHost: monban.test\r\n\r\n", "reject", "sig")
     return p.v
 
 

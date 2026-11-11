@@ -18,11 +18,11 @@
   "otlp-export self-test"
  ],
  "acceptance": {
-  "cmd": "ci/heavy.sh cargo build --release --locked -q -p aegis-otlp && oracles/otlp-export/run --exporter target/release/aegis-otlp",
-  "must": "PASS; aegis-otlp binary: scrape admin listener (UDS or loopback) OpenMetrics text on an interval, parse with a bounded parser, map to OTLP JSON metrics; read JSON log lines on stdin, map to OTLP logs; POST to a configured endpoint over hyper (TLS via aegis-tls client profile when https); bounded queues, drop-oldest with a counter; no opentelemetry/prost crates"
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p monban-otlp && oracles/otlp-export/run --exporter target/release/monban-otlp",
+  "must": "PASS; monban-otlp binary: scrape admin listener (UDS or loopback) OpenMetrics text on an interval, parse with a bounded parser, map to OTLP JSON metrics; read JSON log lines on stdin, map to OTLP logs; POST to a configured endpoint over hyper (TLS via monban-tls client profile when https); bounded queues, drop-oldest with a counter; no opentelemetry/prost crates"
  },
  "write_scope": [
-  "crates/aegis-otlp/src/**"
+  "crates/monban-otlp/src/**"
  ],
  "notes": ""
 }

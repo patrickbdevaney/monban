@@ -24,7 +24,7 @@ def _load(modname, fname):
     return m
 
 
-SIM = _load("aegis_swarm_sim", "swarm_sim.py")
+SIM = _load("monban_swarm_sim", "swarm_sim.py")
 SCENARIOS = tuple(SIM.SCEN)          # baseline, swarm_naive_1k, ..., mixed (research order)
 DUR = SIM.P0["T"] - SIM.P0["warm"]   # 100 s measured window
 CAPACITY_UNITS_S = 3333              # 1 vCPU / 30 ms * 100 units (research C4 derivation)
@@ -231,7 +231,7 @@ def reproduce(cname, st, seeds):
 
 
 def cost_lines():
-    cm = _load("aegis_cost_model", "cost_model.py").out
+    cm = _load("monban_cost_model", "cost_model.py").out
     s = cm["saturate_one_vcpu"]
     out = ["cost model (prices 2026-10-25 snapshot; stage costs B/C/D/E per row; D overall):"]
     for k, r in s.items():

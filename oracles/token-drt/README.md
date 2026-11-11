@@ -1,6 +1,6 @@
 # token-drt: Rust Tier-L verifier vs the Lean Token model
 
-Differential random testing (DRT) of `aegis-token` (unit P3-token-001) against the definitions in
+Differential random testing (DRT) of `monban-token` (unit P3-token-001) against the definitions in
 `spec/AegisIR/Token.lean`, evaluated by a compiled core-Lean program.
 
 ## What is checked
@@ -9,7 +9,7 @@ Differential random testing (DRT) of `aegis-token` (unit P3-token-001) against t
   subset, D3 depth at verify, D4 a missing argument denies; `now` is a parameter. F5 additions: the mint-shape check
   (`[aud, exp, depth_left]` first) and 1..64 caveats. Holder `attenuate` (T5') is exercised on every case.
 - **INV-NO-AMBIENT (F1)** only indirectly: the subject's `verify` result is "a `Principal` was minted".
-- Per case the oracle compares four bits: `verify` (Rust: `aegis_token::verify` on the **encoded wire bytes**, so
+- Per case the oracle compares four bits: `verify` (Rust: `monban_token::verify` on the **encoded wire bytes**, so
   the det-CBOR encoder and decoder are in the loop), `denote`, `depthOk`, `shapeOk`.
 
 **Pass criterion:** 0 divergences over N cases (default N = 1e6, `--cases` or `TOKEN_DRT_CASES` to change), no

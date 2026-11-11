@@ -35,7 +35,7 @@ count). Every profile with `status = "active"` or `"cmvp-pending"` is checked; s
 all seven (P-UNIVERSAL, P-BSI-ALT, P-CNSA became active). A profile with `status = "pending"` would be listed and
 skipped with an `info` line.
 
-The oracle carries its own 0x11ED (`src/kx11ed.rs`, written from RFC 10024 section 4, not from aegis-tls): the
+The oracle carries its own 0x11ED (`src/kx11ed.rs`, written from RFC 10024 section 4, not from monban-tls): the
 reference subject serves it and the full-handshake client offers it, so P-PQ2 handshakes on P-UNIVERSAL / P-BSI-ALT
 / P-PUBLIC-WEB complete end to end (both sides must derive the same 80-byte secret). It is not a KAT; the 0x11ED
 KATs and interop are the kx-kat / kx-interop gates.
@@ -94,7 +94,7 @@ process and through the external hook) must be clean with 0 SKIPs; then each mut
 
 ## Subject interface (`--subject`)
 
-Until `aegis-tls` exists the oracle uses a built-in reference profile builder whose lists are written in code from
+Until `monban-tls` exists the oracle uses a built-in reference profile builder whose lists are written in code from
 ARCHITECTURE.md 3.2 (independently of the verdict file). The real builder plugs in as an external command, without
 editing the oracle:
 
@@ -122,8 +122,8 @@ PQ-REQUIRED, FIPS, FIPS-PQ-REQUIRED, P-UNIVERSAL, P-BSI-ALT, P-CNSA). What the s
 | P-BSI-ALT | `0x11ed,0x11eb` | ML-DSA-87 and/or ECDSA-P384 | as P-UNIVERSAL |
 | P-CNSA | `0x0202` | ML-DSA-87 only | None unless mldsa87 offered |
 
-All three gov profiles: `versions=TLS13`, `early_data=false`; a TLS 1.2-only hello must get alert 70. The expected implementation is a thin `aegis-tls` test binary
-(e.g. `aegis-tls-subject`) wrapping `aegis_tls::profile::server_config(Profile, CredentialSelector) -> ServerConfig`;
+All three gov profiles: `versions=TLS13`, `early_data=false`; a TLS 1.2-only hello must get alert 70. The expected implementation is a thin `monban-tls` test binary
+(e.g. `monban-tls-subject`) wrapping `monban_tls::profile::server_config(Profile, CredentialSelector) -> ServerConfig`;
 it should report `kx_groups` from the built `CryptoProvider` (not from the profile constant) so that a builder bug is
 visible. The oracle's own binary implements the protocol (`target/debug/hrr-verdicts subject [--mutate M] ...`) and
 the self-test runs through it, so the hook is exercised on every self-test.

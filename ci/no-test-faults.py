@@ -1,35 +1,35 @@
 #!/usr/bin/env python3
-"""Gate no-test-faults (P8-hardening-001; PREFLIGHT R11, PLAN-8): aegis-ops `acme::Faults` (deliberate ACME faults for
-the acme-pebble oracle's self-test) exists only under aegis-ops feature `test-faults`, and no release graph enables it.
+"""Gate no-test-faults (P8-hardening-001; PREFLIGHT R11, PLAN-8): monban-ops `acme::Faults` (deliberate ACME faults for
+the acme-pebble oracle's self-test) exists only under monban-ops feature `test-faults`, and no release graph enables it.
 
 Usage: python3 -I ci/no-test-faults.py | --self-test
 
 Checks, each with its own id in the failure lines:
-  T1 feature   aegis-ops/Cargo.toml declares `test-faults`; it is not reachable from `default`, nor from any other
-               aegis-ops feature (closure over its own [features] table), so turning on `acme` never turns it on.
+  T1 feature   monban-ops/Cargo.toml declares `test-faults`; it is not reachable from `default`, nor from any other
+               monban-ops feature (closure over its own [features] table), so turning on `acme` never turns it on.
   T2 enablers  across every manifest of the workspace (root [workspace.dependencies], crates/*, subjects/*, apps/*,
                sdk/*, xtask, fuzz/) only the packages in ALLOWED (acme-subject, an oracle subject never linked into
-               aegis) enable `aegis-ops/test-faults`, through a dependency's `features` list or a [features] entry
-               (`aegis-ops/test-faults`, `aegis-ops?/test-faults`).
-  T3 resolved  cargo's feature resolver (`cargo tree -p aegis-bin -e normal,build --target all -f '{p} |{f}|'`) leaves
-               `test-faults` off on aegis-ops in every release graph: aegis-bin default, `--features native`, each
+               monban) enable `monban-ops/test-faults`, through a dependency's `features` list or a [features] entry
+               (`monban-ops/test-faults`, `monban-ops?/test-faults`).
+  T3 resolved  cargo's feature resolver (`cargo tree -p monban-bin -e normal,build --target all -f '{p} |{f}|'`) leaves
+               `test-faults` off on monban-ops in every release graph: monban-bin default, `--features native`, each
                shipped feature alone (native, p2, proxy-protocol, l4, mtc, uring, adapter-mariadb, adapter-crdb), all of
                them together, and the cmvp build's flags (`--no-default-features --features cmvp`; the overlay lock
                changes versions, not feature resolution). Oracle-only features (e2e-mutants, p2-mutants) are not
-               release graphs. Every aegis-bin feature must be classified here, so a new feature cannot slip past.
+               release graphs. Every monban-bin feature must be classified here, so a new feature cannot slip past.
   T4 builds    the release build scripts (ci/repro.sh, ci/release/rebuild.sh, ci/release/jobs/build.sh,
-               profiles/cmvp/build.sh) build aegis-bin in its own cargo invocation: no `--workspace`/`--all`, and no
+               profiles/cmvp/build.sh) build monban-bin in its own cargo invocation: no `--workspace`/`--all`, and no
                acme-subject, so feature unification cannot carry `test-faults` in from the oracle subject.
-  T5 source    in crates/aegis-ops/src, every code line naming `Faults` or `faults` is gated: it sits in a module
+  T5 source    in crates/monban-ops/src, every code line naming `Faults` or `faults` is gated: it sits in a module
                declared under `#[cfg(feature = "test-faults")]`, or carries that attribute (directly or among the
                attributes right above it). `pub struct Faults` must exist and be gated (a vacuous pass is a FAIL).
 
 No network: cargo runs --offline first and only retries online if the offline resolve fails. Nothing is built.
 
---self-test: fixture mutants under ci/fixtures/no-test-faults/ (a tree where aegis-bin's graph has aegis-ops
-|test-faults|, an aegis-bin manifest enabling aegis-ops/test-faults, an aegis-ops source with an ungated Faults, a
+--self-test: fixture mutants under ci/fixtures/no-test-faults/ (a tree where monban-bin's graph has monban-ops
+|test-faults|, an monban-bin manifest enabling monban-ops/test-faults, an monban-ops source with an ungated Faults, a
 release script building --workspace) and in-memory manifest mutants (default -> test-faults, acme -> test-faults, the
-workspace dependency carrying the feature, an unclassified aegis-bin feature) must each FAIL with their own check id;
+workspace dependency carrying the feature, an unclassified monban-bin feature) must each FAIL with their own check id;
 the clean fixtures must PASS. A live mutant runs the real resolver on acme-subject (which does enable the feature) and
 judges it as a release graph: it must FAIL T3.
 """
@@ -38,10 +38,10 @@ import json, os, re, subprocess, sys, tomllib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "ci", "fixtures", "no-test-faults")
 
-PKG = "aegis-ops"
+PKG = "monban-ops"
 FEAT = "test-faults"
 ALLOWED = {"acme-subject"}
-# aegis-bin features: release (shipped) vs oracle-only. T3 refuses an aegis-bin feature in neither list.
+# monban-bin features: release (shipped) vs oracle-only. T3 refuses an monban-bin feature in neither list.
 SHIPPED = ["native", "p2", "proxy-protocol", "l4", "mtc", "uring", "adapter-mariadb", "adapter-crdb"]
 ORACLE_ONLY = ["e2e-mutants", "p2-mutants", "cmvp"]  # cmvp is judged as its own graph below
 RELEASE_SCRIPTS = ["ci/repro.sh", "ci/release/rebuild.sh", "ci/release/jobs/build.sh", "profiles/cmvp/build.sh"]
@@ -76,7 +76,7 @@ def check_feature_table(table):
 
 
 def enables(manifest):
-    """Places in one parsed manifest that switch aegis-ops/test-faults on: [(where, text)]."""
+    """Places in one parsed manifest that switch monban-ops/test-faults on: [(where, text)]."""
     out = []
     sections = [("dependencies", manifest.get("dependencies", {})),
                 ("build-dependencies", manifest.get("build-dependencies", {})),
@@ -157,7 +157,7 @@ def check_graph(feats, label):
 
 def check_classified(bin_features):
     known = set(SHIPPED) | set(ORACLE_ONLY) | {"default"}
-    return [f"T3 resolved: aegis-bin feature {f} is neither shipped nor oracle-only in ci/no-test-faults.py"
+    return [f"T3 resolved: monban-bin feature {f} is neither shipped nor oracle-only in ci/no-test-faults.py"
             for f in sorted(set(bin_features) - known)]
 
 
@@ -170,7 +170,7 @@ def cargo(args):
     raise RuntimeError(f"cargo {' '.join(args)} failed: {r.stderr.strip()[-600:]}")
 
 
-def tree(pkg="aegis-bin", features=None, no_default=False):
+def tree(pkg="monban-bin", features=None, no_default=False):
     args = ["tree", "-p", pkg, "-e", "normal,build", "--target", "all", "--prefix", "none", "-f", TREE_FMT]
     if no_default:
         args.append("--no-default-features")
@@ -180,7 +180,7 @@ def tree(pkg="aegis-bin", features=None, no_default=False):
 
 
 def release_graphs():
-    """[(label, tree kwargs)] for every release graph of aegis-bin."""
+    """[(label, tree kwargs)] for every release graph of monban-bin."""
     g = [("default", {}), ("native", {"features": "native"})]
     g += [(f"--features {f}", {"features": f}) for f in SHIPPED if f != "native"]
     g.append(("all shipped features", {"features": ",".join(SHIPPED)}))
@@ -268,7 +268,7 @@ def attr_above(lines, i):
 
 
 def check_source(files):
-    """files: {path relative to aegis-ops/src: text}."""
+    """files: {path relative to monban-ops/src: text}."""
     v = []
     gated = gated_modules(files)
 
@@ -289,7 +289,7 @@ def check_source(files):
                 continue
             v.append(f"T5 source: {rel}:{i + 1} names Faults/faults outside {ATTR}: {l[:100]}")
     if not struct_ok:
-        v.append("T5 source: no gated `pub struct Faults` found in aegis-ops/src")
+        v.append("T5 source: no gated `pub struct Faults` found in monban-ops/src")
     return v
 
 
@@ -310,7 +310,7 @@ def live():
     ops = load(os.path.join(ROOT, "crates", PKG, "Cargo.toml"))
     v += check_feature_table(ops.get("features", {}))
     v += check_enablers(live_manifests())
-    binm = load(os.path.join(ROOT, "crates", "aegis-bin", "Cargo.toml"))
+    binm = load(os.path.join(ROOT, "crates", "monban-bin", "Cargo.toml"))
     v += check_classified(binm.get("features", {}).keys())
     graphs = release_graphs()
     for label, kw in graphs:
@@ -344,16 +344,16 @@ def self_test():
 
     # T3 fixture trees.
     expect("clean tree", check_graph(parse_tree(fixture("clean.tree")), "fixture"), None)
-    expect("mutant tree: aegis-bin graph with aegis-ops test-faults",
+    expect("mutant tree: monban-bin graph with monban-ops test-faults",
            check_graph(parse_tree(fixture("mutant-bin-test-faults.tree")), "fixture"),
-           ["T3 resolved: aegis-ops/test-faults is on"])
-    expect("mutant tree: aegis-ops missing", check_graph(parse_tree(fixture("mutant-no-ops.tree")), "fixture"),
-           ["T3 resolved: aegis-ops is not in"])
+           ["T3 resolved: monban-ops/test-faults is on"])
+    expect("mutant tree: monban-ops missing", check_graph(parse_tree(fixture("mutant-no-ops.tree")), "fixture"),
+           ["T3 resolved: monban-ops is not in"])
 
-    # T1 feature-table mutants (from the live aegis-ops manifest).
+    # T1 feature-table mutants (from the live monban-ops manifest).
     table = load(os.path.join(ROOT, "crates", PKG, "Cargo.toml")).get("features", {})
     if FEAT not in table:
-        errs.append(f"live aegis-ops has no {FEAT} feature: the T1 mutants below would be meaningless")
+        errs.append(f"live monban-ops has no {FEAT} feature: the T1 mutants below would be meaningless")
 
     def mut(fn):
         t = json.loads(json.dumps(table))
@@ -361,30 +361,30 @@ def self_test():
         return t
     expect("clean feature table", check_feature_table(table), None)
     expect("mutant default = [test-faults]", check_feature_table(mut(lambda t: t.update(default=[FEAT]))),
-           ["T1 feature: aegis-ops/test-faults is reachable from aegis-ops/default"])
+           ["T1 feature: monban-ops/test-faults is reachable from monban-ops/default"])
     expect("mutant acme -> test-faults", check_feature_table(mut(lambda t: t["acme"].append(FEAT))),
-           ["T1 feature: aegis-ops/test-faults is reachable from aegis-ops/acme"])
+           ["T1 feature: monban-ops/test-faults is reachable from monban-ops/acme"])
     expect("mutant feature removed", check_feature_table(mut(lambda t: t.pop(FEAT))),
-           ["T1 feature: aegis-ops declares no feature"])
+           ["T1 feature: monban-ops declares no feature"])
 
-    # T2: the fixture aegis-bin manifest, and in-memory mutants of the live set.
+    # T2: the fixture monban-bin manifest, and in-memory mutants of the live set.
     mans = live_manifests()
     expect("clean manifests", check_enablers(mans), None)
-    bad_bin = tomllib.loads(fixture("aegis-bin.enables.Cargo.toml"))
-    expect("mutant fixture aegis-bin manifest enabling aegis-ops/test-faults",
-           check_enablers({**mans, "aegis-bin": bad_bin}), ["T2 enablers: aegis-bin enables"])
+    bad_bin = tomllib.loads(fixture("monban-bin.enables.Cargo.toml"))
+    expect("mutant fixture monban-bin manifest enabling monban-ops/test-faults",
+           check_enablers({**mans, "monban-bin": bad_bin}), ["T2 enablers: monban-bin enables"])
     m2 = json.loads(json.dumps(mans))
     m2["workspace-root"]["workspace"]["dependencies"][PKG]["features"] = [FEAT]
     expect("mutant workspace dependency with test-faults", check_enablers(m2),
            ["T2 enablers: workspace-root enables"])
     m3 = json.loads(json.dumps(mans))
-    m3["aegis-bin"].setdefault("features", {})["native"] = m3["aegis-bin"]["features"]["native"] + [f"{PKG}/{FEAT}"]
-    expect("mutant aegis-bin native -> aegis-ops/test-faults", check_enablers(m3),
-           ["T2 enablers: aegis-bin enables"])
-    binf = load(os.path.join(ROOT, "crates", "aegis-bin", "Cargo.toml")).get("features", {})
-    expect("clean aegis-bin feature classification", check_classified(binf.keys()), None)
-    expect("mutant unclassified aegis-bin feature", check_classified(list(binf.keys()) + ["debug-hooks"]),
-           ["T3 resolved: aegis-bin feature debug-hooks"])
+    m3["monban-bin"].setdefault("features", {})["native"] = m3["monban-bin"]["features"]["native"] + [f"{PKG}/{FEAT}"]
+    expect("mutant monban-bin native -> monban-ops/test-faults", check_enablers(m3),
+           ["T2 enablers: monban-bin enables"])
+    binf = load(os.path.join(ROOT, "crates", "monban-bin", "Cargo.toml")).get("features", {})
+    expect("clean monban-bin feature classification", check_classified(binf.keys()), None)
+    expect("mutant unclassified monban-bin feature", check_classified(list(binf.keys()) + ["debug-hooks"]),
+           ["T3 resolved: monban-bin feature debug-hooks"])
 
     # T4 release scripts.
     expect("clean release scripts", check_scripts(live_scripts()), None)
@@ -403,7 +403,7 @@ def self_test():
     # Live mutant: the real resolver on the one crate that does enable the feature, judged as a release graph.
     try:
         v = check_graph(parse_tree(tree("acme-subject")), "acme-subject (live mutant)")
-        if any(x.startswith("T3 resolved: aegis-ops/test-faults is on") for x in v):
+        if any(x.startswith("T3 resolved: monban-ops/test-faults is on") for x in v):
             print(f"self-test live acme-subject graph: FAIL as expected ({v[0]})")
         else:
             errs.append(f"live acme-subject graph: T3 did not report test-faults: {v}")
@@ -435,8 +435,8 @@ def main():
     if v:
         print(f"NO-TEST-FAULTS: FAIL ({len(v)} violations)")
         sys.exit(1)
-    print(f"NO-TEST-FAULTS: PASS ({PKG}/{FEAT} off in {n} release graphs of aegis-bin; enabled only by "
-          f"{','.join(sorted(ALLOWED))}; release scripts build aegis-bin alone; Faults code gated)")
+    print(f"NO-TEST-FAULTS: PASS ({PKG}/{FEAT} off in {n} release graphs of monban-bin; enabled only by "
+          f"{','.join(sorted(ALLOWED))}; release scripts build monban-bin alone; Faults code gated)")
 
 
 if __name__ == "__main__":

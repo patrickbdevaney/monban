@@ -3,7 +3,7 @@
 Source: ARCHITECTURE.md v4 §2, §4. Grades per META §3.
 
 ## 1. Scope and assumptions
-- Asset under protection: the AEGIS binary in front of (or replacing) an app server, its data-plane adapters, its build and release chain.
+- Asset under protection: the Monban binary in front of (or replacing) an app server, its data-plane adapters, its build and release chain.
 - Out of scope: ML-model threats (poisoning, extraction); the server bounds a confused model's authority (AA4), it does not defend the model.
 - Assumed: TLS 1.3 and hybrid-KEM security (literature + rustls); HMAC EUF-CMA; Linux kernel enforces seccomp/Landlock as documented; CMVP module behaves as certified on AL2023.
 
@@ -28,7 +28,7 @@ Source: ARCHITECTURE.md v4 §2, §4. Grades per META §3.
 1. Cross-tenant data. 2. Authority material (MAC keys, STEKs, TLS keys, per-tenant DB creds, signing/TUF keys). 3. Availability per tenant and global. 4. Audit-log integrity. 5. Build identity. 6. PQ confidentiality of recorded sessions.
 
 ## 4. Trust boundaries
-TB1 Internet → TLS + aegis-canon (reject-don't-repair). TB2 capability boundary at handler dispatch (sealed `Cap<O>`, `Ctx<'r>`). TB3 per-tenant OS cordon / fork child for P2. TB4 backend (per-tenant native credentials; RLS as defence in depth; engine bugs in scope). TB5 build side (proof + supply-chain gate). Diagram: ARCHITECTURE.md §2.3.
+TB1 Internet → TLS + monban-canon (reject-don't-repair). TB2 capability boundary at handler dispatch (sealed `Cap<O>`, `Ctx<'r>`). TB3 per-tenant OS cordon / fork child for P2. TB4 backend (per-tenant native credentials; RLS as defence in depth; engine bugs in scope). TB5 build side (proof + supply-chain gate). Diagram: ARCHITECTURE.md §2.3.
 
 ## 5. Ranked threats (KEV and advisory-volume metrics both kept)
 
@@ -64,7 +64,7 @@ Reverse: a year of KEV + advisory data reorders the top three under both metrics
 
 | component class | trigger | SLO | grade |
 |---|---|---|---|
-| aegis-canon, transport wrapper, H1 framing | report/advisory | ≤24 h to signed release | C cadence / E number |
+| monban-canon, transport wrapper, H1 framing | report/advisory | ≤24 h to signed release | C cadence / E number |
 | Tier-S dependency | upstream fix | ≤7 days to signed rebuild | B direction / E number |
 | any TCB component | advisory | ≤6 h to TUF release (drill target) | E |
 | any feature while unpatched | — | runtime kill-switch | B |
