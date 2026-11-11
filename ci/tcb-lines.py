@@ -34,7 +34,8 @@ check fails (last line `TCB-LINES: FAIL (<n> violation(s): <tags>)`, exit 1) on:
                    2027-03-30 re-check, or either file calling HTTP/3 / WebTransport "unsupported by design"
   blocked          the 64-core row missing, or neither (a) "running"/"queued" on the approved quota
                    (CPUS_ALL_REGIONS = 80) with the TO-FILL(64-core) placeholder in its evidence, nor (b) "measured
-                   <date>" with c2d-standard-64 evidence called provisional and no placeholder
+                   <date>" with evidence naming the 64-vCPU machine type (<family>-standard-64, e.g. the
+                   n2-standard-64 that ran) called provisional and no placeholder
   residual-table   R1..R17 not each present once, a status not closed/partial/carried, no rung, a short evidence
                    cell, or a row that drops a fact it must carry (RES_REQ: D-P8.1 text for R1, the uncovered 0x11EB/
                    0x0202 client paths for R2, the cmvp config_sha256 pin for R3, the unrun 2 h quiet soak for R17,
@@ -156,6 +157,7 @@ RES_REQ = {  # facts each residual row's evidence (or rung) must carry
             ("15-min substitute", r"0\.25 h|15-min"), ("no soak claim", r"no soak claim")],
 }
 TOFILL = "TO-FILL(64-core)"
+MACHINE64 = re.compile(r"\b[a-z][a-z0-9]*-standard-64\b")  # the 64-vCPU GCP type the run used
 RUNG = re.compile(r"\bR[0-4]\b")
 TRUSTED_SC = [("hyper", r"\bhyper\b"), ("h2", r"\bh2\b"), ("tokio", r"\btokio\b"), ("rustls", r"\brustls\b"),
               ("AWS-LC C", r"AWS-LC C"), ("rustc", r"\brustc\b"), ("io_uring", r"io_uring"), ("libcrux", r"\blibcrux\b")]
@@ -375,11 +377,11 @@ def check(root):
             st, ev = r["status"], r["evidence"]
             waiting = (re.search(r"\b(running|queued)\b", st, re.I) and re.search(r"CPUS_ALL_REGIONS\s*=\s*80\b", st)
                        and TOFILL in ev)
-            measured = (re.search(r"\bmeasured\s+20\d\d-\d\d-\d\d\b", st) and "c2d-standard-64" in ev
+            measured = (re.search(r"\bmeasured\s+20\d\d-\d\d-\d\d\b", st) and MACHINE64.search(ev)
                         and re.search(r"\bprovisional\b", ev) and TOFILL not in ev)
             if not (waiting or measured):
                 E("blocked", f"{f}:{ln}: 64-core row must be 'running'/'queued' on CPUS_ALL_REGIONS = 80 with the {TOFILL} "
-                             f"placeholder, or 'measured <date>' with c2d-standard-64 evidence called provisional")
+                             f"placeholder, or 'measured <date>' with <family>-standard-64 evidence called provisional")
     for f in (SC, CM):
         for n, ln in enumerate(texts[f].splitlines(), 1):
             if BY_DESIGN.search(ln):
@@ -607,10 +609,10 @@ MUTANTS = [
     ("scaling-placeholder-dropped", {"blocked"}, scaling_mut(SC,
         lambda c: _cells(c, evidence=c["evidence"].replace(TOFILL, "result")),
         lambda c: _cells(c, evidence=re.sub(r"\bprovisional\b", "final", c["evidence"])))),
-    # waiting: "measured" with the placeholder still in; measured: "measured" without the c2d-standard-64 evidence
+    # waiting: "measured" with the placeholder still in; measured: "measured" without any <family>-standard-64 evidence
     ("scaling-measured-no-evidence", {"blocked"}, scaling_mut(CM,
         lambda c: _cells(c, status="measured 2026-11-07"),
-        lambda c: _cells(c, status="measured 2026-11-07", evidence=c["evidence"].replace("c2d-standard-64", "a VM")))),
+        lambda c: _cells(c, status="measured 2026-11-07", evidence=MACHINE64.sub("a VM", c["evidence"])))),
     # waiting: the pre-approval quota; measured: "measured" with no date
     ("scaling-old-quota", {"blocked"}, scaling_mut(SC,
         lambda c: _cells(c, status=c["status"].replace("= 80", "= 12")),
