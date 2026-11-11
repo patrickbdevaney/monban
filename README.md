@@ -6,7 +6,7 @@ machine-checked models and tested against the running code.
 > [!IMPORTANT]
 > **Pre-release research software. Do not use in production.** There is no release yet, no external audit, and no
 > production deployment. Most of the code was written by AI agents working under the gates described below; no
-> human has reviewed all of it. "Monban" is a working name.
+> human has reviewed all of it. Formerly called AEGIS.
 
 ## Why
 
