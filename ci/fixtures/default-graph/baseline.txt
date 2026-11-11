@@ -63,7 +63,7 @@ pin-project-lite 0.2.17
 pkg-config 0.3.34
 r-efi 6.0.0
 rusqlite 0.41.1
-rustix 1.1.5
+rustix 1.1.6
 rustls 0.23.46
 rustls-pki-types 1.15.1
 rustls-webpki 0.103.16
