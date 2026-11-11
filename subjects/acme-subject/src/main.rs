@@ -1,11 +1,11 @@
-//! acme-subject: aegis-ops ACME + CERT-1..4 over the oracles/acme-pebble `--subject` protocol.
+//! acme-subject: monban-ops ACME + CERT-1..4 over the oracles/acme-pebble `--subject` protocol.
 //!
 //!   acme-subject --directory URL --acme-ca PEM --domain NAME --https-addr IP:PORT --http01-addr IP:PORT
 //!                [--profile P-PUBLIC-WEB] [--no-renew] [--ari-min-secs N] [--ari-max-secs N]
 //!                [--poll-min-secs N] [--poll-max-secs N] [--tick-ms N] [--mutate NAME]...
 //!
 //! Obtains a certificate from the ACME directory (HTTP-01 answered on --http01-addr), installs it through the
-//! CERT-3 preflight into the swappable `CertStore`, serves it over TLS on --https-addr (aegis-tls `server_config`),
+//! CERT-3 preflight into the swappable `CertStore`, serves it over TLS on --https-addr (monban-tls `server_config`),
 //! and renews when the injected clock reaches the RFC 9773 renewal time. One JSON object per stdout line.
 //!
 //! stdin commands (one per line): `offset <secs>` (set the injected clock offset), `advance <secs>`, `status`,
@@ -22,12 +22,12 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
 
-use aegis_ops::acme::json::quote;
-use aegis_ops::acme::{AcmeClient, AcmeConfig, AcmeError, AcmeEvent, Faults, Http01Tokens, Issued, PollBounds, ari};
-use aegis_ops::cert::time::format_rfc3339;
-use aegis_ops::cert::x509::{hex, parse_cert, pem_certificates};
-use aegis_ops::cert::{CertStore, Clock, ExpiryTracker, OffsetClock, PreflightReport, SystemClock};
-use aegis_tls::Profile;
+use monban_ops::acme::json::quote;
+use monban_ops::acme::{AcmeClient, AcmeConfig, AcmeError, AcmeEvent, Faults, Http01Tokens, Issued, PollBounds, ari};
+use monban_ops::cert::time::format_rfc3339;
+use monban_ops::cert::x509::{hex, parse_cert, pem_certificates};
+use monban_ops::cert::{CertStore, Clock, ExpiryTracker, OffsetClock, PreflightReport, SystemClock};
+use monban_tls::Profile;
 use rustls::pki_types::CertificateDer;
 use rustls::sign::CertifiedKey;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -397,8 +397,8 @@ impl Ctx {
     fn status(&mut self) {
         let Some(i) = self.store.current() else { return };
         let now = self.clock.now();
-        let secs = aegis_ops::cert::seconds_to_expiry(i.report.not_after, now);
-        let level = if has(&self.args, "silence-alerts") { "ok" } else { aegis_ops::cert::alert_level(secs).name() };
+        let secs = monban_ops::cert::seconds_to_expiry(i.report.not_after, now);
+        let level = if has(&self.args, "silence-alerts") { "ok" } else { monban_ops::cert::alert_level(secs).name() };
         emit(&format!(
             r#"{{"event":"status","now":{now},"offset":{},"cert_seconds_to_expiry":{secs},"alert":"{level}","serial":"{}","generation":{},"renew_at":{},"renewals":{}}}"#,
             self.clock.offset(),
@@ -470,7 +470,7 @@ fn run() -> Result<(), (u8, String)> {
         (2, e.to_string())
     })?;
     ctx.install(issued).map_err(|e| (3, e))?;
-    let scfg = aegis_tls::server_config(ctx.args.profile, store.clone()).map_err(|e| (70, e.to_string()))?;
+    let scfg = monban_tls::server_config(ctx.args.profile, store.clone()).map_err(|e| (70, e.to_string()))?;
     let scfg = Arc::new(scfg);
     std::thread::spawn(move || serve_https(https, scfg, store));
     emit(&format!(

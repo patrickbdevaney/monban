@@ -70,9 +70,9 @@ half the laptop-derived 12.4k. A pipe-pair transport would recover ≈8.9–13.1
 ```
 cd spikes/q3-002
 CARGO_TARGET_DIR=$PWD/target ../../ci/heavy.sh cargo build --release --offline
-ssh kamrui 'mkdir -p ~/aegis-spike-q3/q3-002'; scp target/release/ipchop bench.sh kamrui:aegis-spike-q3/q3-002/
+ssh kamrui 'mkdir -p ~/aegis-spike-q3/q3-002'; scp target/release/ipchop bench.sh kamrui:monban-spike-q3/q3-002/
 ssh kamrui 'cd ~/aegis-spike-q3/q3-002 && ./bench.sh ./ipchop kamrui-ipc.jsonl 3 2 5'
-scp kamrui:aegis-spike-q3/q3-002/kamrui-ipc.jsonl . && python3 -I summarize.py kamrui-ipc.jsonl
+scp kamrui:monban-spike-q3/q3-002/kamrui-ipc.jsonl . && python3 -I summarize.py kamrui-ipc.jsonl
 # laptop contrast: ../../ci/heavy.sh ./bench.sh target/release/ipchop laptop-ipc.jsonl 4 6 3
 rm -rf target; ssh kamrui 'rm -rf ~/aegis-spike-q3'
 ```

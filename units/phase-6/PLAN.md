@@ -19,7 +19,7 @@ directory.
 ## Starting point (inventory 2026-11-04)
 
 **Already in place:**
-- **0x11ED key exchange.** `crates/aegis-tls/src/kx.rs` builds it on aws-lc-rs: P-384 first, then ML-KEM-1024.
+- **0x11ED key exchange.** `crates/monban-tls/src/kx.rs` builds it on aws-lc-rs: P-384 first, then ML-KEM-1024.
   - ACVP and RFC 5903 KATs, plus negative-share and order-mutant tests, are in `kx.rs` tests and `kat/`.
   - Spike evidence of interop with OpenSSL 3.5.9 and Go 1.26.10 is in `spikes/q4-026/interop/`. There is no interop
     gate.
@@ -32,7 +32,7 @@ directory.
 - **`cargo xtask fips-lock --profile cmvp`:** checks `profiles/cmvp/Cargo.lock` text against `profiles/cmvp/pins.toml`.
   That lockfile does not exist yet, so the check is red by design. It is in no gate file.
 - **Known gaps:** BACKLOG G1–G8 list what fips-lock still lacks.
-- **FIPS status reporting.** `FipsStatus` already flows to the audit log, `/healthz` and the `aegis_fips_status`
+- **FIPS status reporting.** `FipsStatus` already flows to the audit log, `/healthz` and the `monban_fips_status`
   metric. The module identity is hard-coded to `None`.
 - **Client-policy check.** `spikes/cmvp-client-policy/fips_client_policy.py` has 12/12 self-tests on the floor
   profile. It is not wired to any gate.
@@ -47,7 +47,7 @@ directory.
   - There is no `conformance/` directory.
 - **Compliance:** only the template `research/templates/COMPLIANCE_MAP.md` exists.
 - **Lean:** five modules. The group-selection model exists only as text (SPEC_INVARIANTS §F `Select(model)`).
-- **Kani:** `ci/kani.sh` hard-codes aegis-budget.
+- **Kani:** `ci/kani.sh` hard-codes monban-budget.
 
 ## Gate → unit (each new gate is in exactly one unit's acceptance)
 
@@ -80,7 +80,7 @@ mutants.
   Each oracle goes red before its implementer starts (§2).
 - **Integrator unit.** P6-spec-002 pre-wires every third-party edge and every tool pin. Implementers never touch
   Cargo.toml, Cargo.lock, `profiles/cmvp/Cargo.lock`, `ci/tools.lock` or `supply-chain/`.
-- **Single writer.** `crates/aegis-tls` has one writer: P6-tls-001, then P6-cmvp-001 (sequential, not parallel).
+- **Single writer.** `crates/monban-tls` has one writer: P6-tls-001, then P6-cmvp-001 (sequential, not parallel).
 
 ## Unit graph and waves (→ = depends on)
 
@@ -170,18 +170,18 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
   - The integrator regenerates the lock (P6-spec-002), and lock-age and vet apply to it as to the root lock.
   - `profiles/floor` is the root lock, renamed only in reports. G5 checks its lineage.
   - **Risk:** the code uses APIs newer than rustls 0.23.43 or aws-lc-rs 1.15.3 (for example ML-DSA, which is
-    `unstable` in 1.15.3, in aegis-audit). P6-spec-002 measures this first. Any gap is closed behind a `cmvp` cfg in
+    `unstable` in 1.15.3, in monban-audit). P6-spec-002 measures this first. Any gap is closed behind a `cmvp` cfg in
     the owning crate, never by dropping a profile. The fallback for the audit ML-DSA cosignature on cmvp is "absent,
     reported", because ML-DSA is not FIPS-approved in 3.1.0 anyway.
 - **D2 FipsStatus is real.** `fips_status()` reads the linked module's version string at runtime
   (`awslc_version_string` through aws-lc-rs on cmvp) and reports `module = Some("AWS-LC FIPS 3.1.0")` only on the cmvp
   build with `fips()` true.
-  - fips-binary greps the release binary for the contiguous string. It also runs `aegis --fips-check`, which must
+  - fips-binary greps the release binary for the contiguous string. It also runs `monban --fips-check`, which must
     print the same module string, and the `/healthz` field `module`.
   - If the bytes are not contiguous, that is an INFEASIBLE report, not a split match (PREFLIGHT P2).
 - **D3 Lean Select.**
   - `AegisIR/Select.lean` defines `select : Profile → ClientHello → Outcome`. Outcome is ServerHello g, HRR g, or
-    Alert 40. It is modelled on rustls 0.23.46 client-order selection plus the AEGIS profile filter.
+    Alert 40. It is modelled on rustls 0.23.46 client-order selection plus the Monban profile filter.
   - Theorems:
     - `select_in_profile`: a negotiated group is in profile.kx and in the client's supported_groups.
     - `pq_required_no_classical`: P-PQ1.
@@ -200,11 +200,11 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
   - Both directions where the peer has the group.
   - Each cell checks the negotiated group, completed handshake and application data echo. For 0x11ED it also checks
     HRR.
-  - Mutant: the aegis-tls `order-mutant` feature (ML-KEM first) must fail every 0x11ED cell.
+  - Mutant: the monban-tls `order-mutant` feature (ML-KEM first) must fail every 0x11ED cell.
 - **D5 Kani.**
-  - `ci/kani.sh` takes `--crate` and `--neg`, defaulting to the current aegis-budget values, so `kani-tbi` is
+  - `ci/kani.sh` takes `--crate` and `--neg`, defaulting to the current monban-budget values, so `kani-tbi` is
     unchanged.
-  - The harnesses in `aegis-tls/src/kani_proofs.rs` (`#[cfg(kani)]`) cover `split_share` and both `start_and_complete`
+  - The harnesses in `monban-tls/src/kani_proofs.rs` (`#[cfg(kani)]`) cover `split_share` and both `start_and_complete`
     / `complete` parse paths on symbolic bytes of any length up to SERVER_SHARE_LEN+1. They prove no panic and that
     any wrong length is an error.
   - aws-lc calls are stubbed, as share parsing is pure Rust.
@@ -242,8 +242,8 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
 
   The runner reads each gate's log from this run, by sha256, and writes an F13 report per subject.
   - Subjects:
-    - golden aegis-bin, floor;
-    - golden aegis-bin, cmvp;
+    - golden monban-bin, floor;
+    - golden monban-bin, cmvp;
     - the p2-subject module.
   - The report is triple-signed with test keys.
   - The gate requires C0–C2 `passed == total` for each golden subject.
@@ -278,7 +278,7 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
 
 ## Open questions
 
-1. Can rustls 0.23.43 + aws-lc-rs 1.15.3 build the current aegis-tls and aegis-audit code? P6-spec-002 measures
+1. Can rustls 0.23.43 + aws-lc-rs 1.15.3 build the current monban-tls and monban-audit code? P6-spec-002 measures
    this before any other W1 work (D1 risk).
 2. Is the 0x11ED FIPS-boundary check (ARCHITECTURE §R-PQC: both components inside 3.1.0) a documentation check of the
    security policy for #5298, or a runtime indicator check (AWS-LC's service indicator)? Plan: both. The service
@@ -321,11 +321,11 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
   on cmvp, because it requires ML-DSA-87. It is refused at boot on cmvp, with a reason. This matches the
   COMPLIANCE_MAP statement that ML-DSA is not approved in AWS-LC 3.1.0.
 - **D16 module string (resolves P6-cmvp-001-INFEASIBLE.md): option B.**
-  - aegis-iso gets a `cmvp` feature with an optional dependency on `aws-lc-fips-sys` (already in the cmvp lock; no
+  - monban-iso gets a `cmvp` feature with an optional dependency on `aws-lc-fips-sys` (already in the cmvp lock; no
     new crate) and two audited `unsafe` sites: call `awslc_version_string`, then `CStr::from_ptr`. That takes
-    aegis-iso from 14 to 16 of its 20 sites.
-  - aegis-bin (L5) and tls-subject read the value and pass it into aegis-tls with `fips_status_with`, so aegis-tls
-    never depends on aegis-iso and the layering holds.
+    monban-iso from 14 to 16 of its 20 sites.
+  - monban-bin (L5) and tls-subject read the value and pass it into monban-tls with `fips_status_with`, so monban-tls
+    never depends on monban-iso and the layering holds.
   - Option C, a compile-time identity only, was rejected: it weakens P-PQ5's runtime read.
 - **D17 P-CNSA on cmvp.** F12 is re-frozen: profile P-CNSA gets `requires = "floor"`, and a new field
   `cmvp = "refused"`.
@@ -337,8 +337,8 @@ All amendments are in P6-spec-001, with a re-freeze in the same commit:
   when it is never enabled. It brought 11 crates that the floor never compiles, and it turned the root audit, vet
   and deny gates red. Fixing that would have meant ledgering or baselining dead crates, which would weaken those
   gates. What was done instead:
-  - aegis-iso's `cmvp` feature depends on aws-lc-rs, which is already in both locks. The two sites in
-    `aegis-iso/src/fips.rs` are an `extern` declaration whose `link_name` is pinned to the 0.13.11 symbol, plus
+  - monban-iso's `cmvp` feature depends on aws-lc-rs, which is already in both locks. The two sites in
+    `monban-iso/src/fips.rs` are an `extern` declaration whose `link_name` is pinned to the 0.13.11 symbol, plus
     `CStr::from_ptr`.
   - Any other module (a pin change, the 4.2.0 decoy, or the floor) fails to link, which fails closed.
-  - aegis-iso now uses 16 of its 20 `unsafe` sites.
+  - monban-iso now uses 16 of its 20 `unsafe` sites.

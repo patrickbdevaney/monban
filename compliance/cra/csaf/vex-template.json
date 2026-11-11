@@ -6,7 +6,7 @@
       {
         "category": "general",
         "title": "Status",
-        "text": "Status: DRAFT, not published. VEX template, one per release: for each upstream advisory that matches a component in the release SBOM, it states whether each AEGIS build is affected. Placeholders (OPERATOR-TO-SUPPLY, CRATE, X.Y.Z, RUSTSEC-YYYY-NNNN, 2000-01-01T00:00:00Z) are replaced at publication."
+        "text": "Status: DRAFT, not published. VEX template, one per release: for each upstream advisory that matches a component in the release SBOM, it states whether each Monban build is affected. Placeholders (OPERATOR-TO-SUPPLY, CRATE, X.Y.Z, RUSTSEC-YYYY-NNNN, 2000-01-01T00:00:00Z) are replaced at publication."
       },
       {
         "category": "description",
@@ -16,13 +16,13 @@
     ],
     "publisher": {
       "category": "vendor",
-      "name": "OPERATOR-TO-SUPPLY (AEGIS steward or manufacturer)",
+      "name": "OPERATOR-TO-SUPPLY (Monban steward or manufacturer)",
       "namespace": "https://example.invalid/operator-to-supply"
     },
-    "title": "AEGIS X.Y.Z: VEX for third-party advisories",
+    "title": "Monban X.Y.Z: VEX for third-party advisories",
     "tracking": {
       "current_release_date": "2000-01-01T00:00:00Z",
-      "id": "AEGIS-VEX-X.Y.Z",
+      "id": "Monban-VEX-X.Y.Z",
       "initial_release_date": "2000-01-01T00:00:00Z",
       "revision_history": [
         {
@@ -39,26 +39,26 @@
     "branches": [
       {
         "category": "vendor",
-        "name": "AEGIS",
+        "name": "Monban",
         "branches": [
           {
             "category": "product_name",
-            "name": "aegis",
+            "name": "monban",
             "branches": [
               {
                 "category": "product_version",
                 "name": "X.Y.Z floor",
                 "product": {
-                  "name": "aegis floor X.Y.Z",
-                  "product_id": "AEGIS-FLOOR-XYZ"
+                  "name": "monban floor X.Y.Z",
+                  "product_id": "Monban-FLOOR-XYZ"
                 }
               },
               {
                 "category": "product_version",
                 "name": "X.Y.Z cmvp",
                 "product": {
-                  "name": "aegis cmvp X.Y.Z",
-                  "product_id": "AEGIS-CMVP-XYZ"
+                  "name": "monban cmvp X.Y.Z",
+                  "product_id": "Monban-CMVP-XYZ"
                 }
               }
             ]
@@ -84,17 +84,17 @@
       ],
       "product_status": {
         "known_not_affected": [
-          "AEGIS-CMVP-XYZ"
+          "Monban-CMVP-XYZ"
         ],
         "fixed": [
-          "AEGIS-FLOOR-XYZ"
+          "Monban-FLOOR-XYZ"
         ]
       },
       "flags": [
         {
           "label": "vulnerable_code_not_present",
           "product_ids": [
-            "AEGIS-CMVP-XYZ"
+            "Monban-CMVP-XYZ"
           ]
         }
       ],
@@ -103,7 +103,7 @@
           "category": "impact",
           "details": "Justification, citing the gate log that proves it for this release (example shape: the cmvp client-policy gate log line showing that the rustls client is compiled out). No not-affected statement is issued without a gate log from the same release run.",
           "product_ids": [
-            "AEGIS-CMVP-XYZ"
+            "Monban-CMVP-XYZ"
           ]
         }
       ],

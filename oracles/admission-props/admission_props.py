@@ -31,7 +31,7 @@ def _load(modname, fname):
     return m
 
 
-REF = _load("aegis_admission_ref", "admission_ref.py")
+REF = _load("monban_admission_ref", "admission_ref.py")
 
 U64 = (1 << 64) - 1
 CAP_NS = 600 * 10**9

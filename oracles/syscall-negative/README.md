@@ -71,7 +71,7 @@ socket_unix socket_netlink socketpair tcp_ulp bpf io_uring_setup perf_event_open
 keyctl mount execve fork open_inside open_outside connect_tcp`. Each run has a 15 s timeout; the oracle starts the
 subject in its own session and SIGKILLs that process group by its explicit pgid on timeout.
 
-Real subjects (gate cmd): `target/p2/release/p2-subject probe` and `target/p2-test/release/aegis-p2 probe`
+Real subjects (gate cmd): `target/p2/release/p2-subject probe` and `target/p2-test/release/monban-p2 probe`
 (test-hooks build, PLAN D15).
 
 ## Reference subject (`rust/`, `synprobe`)

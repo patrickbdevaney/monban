@@ -1,4 +1,4 @@
-//! redis-subject: exposes the KV renderer of `aegis-adapter-redis` over the lowering oracles' subject protocol v2
+//! redis-subject: exposes the KV renderer of `monban-adapter-redis` over the lowering oracles' subject protocol v2
 //! (`oracles/lowering-read/README.md` "Subject protocol", `oracles/lowering-write/README.md`).
 //!
 //! ```text
@@ -8,7 +8,7 @@
 //! ```
 //!
 //! Ops: `kv_key`, `kv_get`, `kv_set`, `kv_setnx`, `kv_setxx`, `kv_del`, `kv_scan` (all planned by
-//! `aegis_data_ir::kv_plan` through `aegis_adapter_redis::plan`), `kv_acl` (the per-tenant ACL rules), `hello`.
+//! `monban_data_ir::kv_plan` through `monban_adapter_redis::plan`), `kv_acl` (the per-tenant ACL rules), `hello`.
 //! Everything else (SQL ops, `merge`/`cte`/`replace`/`raw_sql`, RLS ops) is refused: this subject is KV-only. A
 //! tenant that is not the D4 canonical text, a bad collection, a key or pattern over 1024 bytes, a non-UTF-8 key or
 //! value, or a malformed request is refused; the subject never guesses an accept.
@@ -22,10 +22,10 @@ mod json;
 use std::io::{BufRead, Read, Write};
 use std::process::ExitCode;
 
-use aegis_adapter_redis::{KvOp, command_args, plan, tenant_acl_rules};
-use aegis_data_ir::{KvCommand, kv_key_prefix, parse_tenant_text};
-use aegis_types::TenantId;
 use json::Json;
+use monban_adapter_redis::{KvOp, command_args, plan, tenant_acl_rules};
+use monban_data_ir::{KvCommand, kv_key_prefix, parse_tenant_text};
+use monban_types::TenantId;
 
 const MAX_LINE: u64 = 1 << 20;
 const PROTOCOL: u32 = 2;
@@ -108,7 +108,7 @@ impl Subject {
         let op = req.get("op").and_then(Json::str).ok_or("missing op")?;
         if op == "hello" {
             return Ok(format!(
-                "\"name\":\"redis-subject(aegis-adapter-redis)\",\"protocol\":{PROTOCOL},\"mutants\":[{}]",
+                "\"name\":\"redis-subject(monban-adapter-redis)\",\"protocol\":{PROTOCOL},\"mutants\":[{}]",
                 if self.drop_tenant { "\"drop-tenant\"" } else { "" }
             ));
         }

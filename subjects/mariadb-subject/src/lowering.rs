@@ -1,8 +1,8 @@
 //! `mariadb-subject lowering`: the lowering-read / lowering-write subject protocol v2 (oracles/lowering-read/README.md,
 //! oracles/lowering-write/README.md), dialect `mariadb`, served by the production code path:
 //!
-//! request → F4 `Op` + `Schema` + renderer `MyTable` (from the request's declaration) → `aegis_data_ir::lower_op`
-//! (F4 `check_schema`, shape rules, `lowerQ`) → `aegis_adapter_mysql::lower::{render, render_filter}`.
+//! request → F4 `Op` + `Schema` + renderer `MyTable` (from the request's declaration) → `monban_data_ir::lower_op`
+//! (F4 `check_schema`, shape rules, `lowerQ`) → `monban_adapter_mysql::lower::{render, render_filter}`.
 //!
 //! Protocol adaptation (as pg-subject), stated so nothing is hidden:
 //! * columns are numbered in name order (the JSON object's key order is not significant);
@@ -23,12 +23,12 @@
 use std::collections::BTreeMap;
 use std::process::ExitCode;
 
-use aegis_adapter_mysql::TenantId;
-use aegis_adapter_mysql::data_ir::{
+use monban_adapter_mysql::TenantId;
+use monban_adapter_mysql::data_ir::{
     Collation, Column, Fidelity, Field, Lowered, Op, OpKind, Pred, Schema, SqlExpr, Stmt, UniqueIndex, UpsertAction,
     Value, lower_op, parse_tenant_text,
 };
-use aegis_adapter_mysql::{MyClass, MyColumn, MyForeignKey, MyTable, Param, Statement, render, render_filter};
+use monban_adapter_mysql::{MyClass, MyColumn, MyForeignKey, MyTable, Param, Statement, render, render_filter};
 
 use crate::json::{self, Json, emit, esc};
 
@@ -373,7 +373,7 @@ fn write(req: &Json, op_name: &str, mutant: bool) -> R<String> {
 fn handle(req: &Json, mutant: bool) -> R<String> {
     match req.get("op").and_then(Json::str) {
         Some("hello") => Ok(format!(
-            "\"name\":\"mariadb-subject lowering (aegis-adapter-mysql::lower)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
+            "\"name\":\"mariadb-subject lowering (monban-adapter-mysql::lower)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
             if mutant { "[\"drop-tenant\"]" } else { "[]" }
         )),
         Some("read") => read(req, mutant),

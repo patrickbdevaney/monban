@@ -25,7 +25,7 @@ oracles/schema-gate/run --self-test [--static] [--engine sqlite] [--engine pg --
 Without a mode flag, the run covers `static` and `sqlite`. `-v` prints one line per case. The last line is
 `SCHEMA-GATE: PASS (...)` or `SCHEMA-GATE: FAIL (...)`. The exit code is 0 only on PASS. **The PG target must be
 throwaway:** the oracle runs `create extension citext`, creates the collations `ci_nd` and `nd_canon` in `public`,
-and drops and recreates the schema `aegis_sg` for every case. SQLite cases are fresh files in a temporary directory.
+and drops and recreates the schema `monban_sg` for every case. SQLite cases are fresh files in a temporary directory.
 The subject is started once, with the current directory as its working directory.
 
 ## Subject protocol (`--subject "<cmd>"`)
@@ -40,11 +40,11 @@ Anything else is a protocol failure, and the case fails: no reply within 60 s, a
 ```json
 {"v":1,"id":1,"op":"schema","mode":"static","schema":{ F4 Schema }}
 {"v":1,"id":2,"op":"schema","mode":"sqlite","path":"/tmp/schema-gate-x/case03.sqlite","collection":"notes","declared":{ F4 Schema }}
-{"v":1,"id":3,"op":"schema","mode":"pg","dsn":"postgresql://postgres:pw@127.0.0.1:5xxxx/postgres","namespace":"aegis_sg","collection":"notes","declared":{ F4 Schema }}
+{"v":1,"id":3,"op":"schema","mode":"pg","dsn":"postgresql://postgres:pw@127.0.0.1:5xxxx/postgres","namespace":"monban_sg","collection":"notes","declared":{ F4 Schema }}
 -> {"v":1,"id":1,"ok":true}   |   {"v":1,"id":1,"refuse":"UpsertArbiterNotTenantScoped"}
 ```
 
-F4 Schema JSON uses the field names of `crates/aegis-data-ir/src/ir.rs`:
+F4 Schema JSON uses the field names of `crates/monban-data-ir/src/ir.rs`:
 `{"collection","tenant_field","columns":[{"field","name","nullable","collation":"Binary|PadSpace|CaseInsensitive|Nondeterministic","key"}],"permitted":[...],"unique_indexes":[{"fields":[...],"prefix":bool}]}`.
 
 * **static.** Admission means `check_schema(probe, schema, Fidelity::Exact)` returns `Ok`, where
@@ -77,7 +77,7 @@ F4 Schema JSON uses the field names of `crates/aegis-data-ir/src/ir.rs`:
 | `NotATable` | no (adapter) | the collection is a view or a (SQLite) virtual table |
 
 F4 `SchemaError` has no variants for the live-only classes, and F4 is frozen (outside this unit's write scope). So
-these classes are protocol vocabulary that the adapter error types (aegis-adapter-sqlite/-pg) must carry next to
+these classes are protocol vocabulary that the adapter error types (monban-adapter-sqlite/-pg) must carry next to
 `SchemaError`. Whether to add them to F4 is a decision for the integrator.
 
 ## Corpus
@@ -103,7 +103,7 @@ generated tenant; a view; an fts5 virtual table (D7: module registration is per-
 
 **PG (36 or 37: 7 golden, 29 or 30 counterexamples).** Every golden and every counterexample that is not about RLS
 has `ENABLE` + `FORCE ROW LEVEL SECURITY` and a policy
-`USING (tenant = current_setting('aegis.tenant')) WITH CHECK (same)`. Goldens are the lowering-oracle PG layouts
+`USING (tenant = current_setting('monban.tenant')) WITH CHECK (same)`. Goldens are the lowering-oracle PG layouts
 with a `"C"` tenant and PK (tenant,id): deterministic default collation, ICU ks-level2, ICU und with a plain index,
 and citext on the data column `x`; plus a varchar tenant with a text key, both C; a sole unique index with separate
 SELECT/INSERT policies; and a table partitioned by `list(tenant)` with one partition. Counterexamples: nullable
@@ -166,7 +166,7 @@ where tenant `...AB` overwrites tenant `...ab`.
 
 | sha256 | path | used for |
 |---|---|---|
-| 79af59aa6990e85f78dcf62c27ff0fb479d684f38a867e9e19f9a88a494a4a90 | crates/aegis-data-ir/src/ir.rs | Schema/Collation/SchemaError layout, `check_schema` order (ported in `refsubject.py`) |
+| 79af59aa6990e85f78dcf62c27ff0fb479d684f38a867e9e19f9a88a494a4a90 | crates/monban-data-ir/src/ir.rs | Schema/Collation/SchemaError layout, `check_schema` order (ported in `refsubject.py`) |
 | 99c60c0e0d599d4ec7cfd7e90e609a65eb43a1b2180f17f82936b1345d2ae4dc | spec/SPEC_INVARIANTS.md | §E, W3, W5, C8 (D7) |
 | f728d518fd3f1d304e1c63cbcdbbf685133da4e123c2483fcf7cc057648d24f6 | spikes/q4-005/README.md | PadSpace, second UNIQUE(id), UNIQUE(tenant,x), prefix key part, ICU level2 counterexamples |
 | 09ef3bb1bcbe877571dbe7fbee6914e987ebdb3680f86f196cc72f0fcedcbcec | spikes/q4-005/verdict.json | W3 amendment text |
@@ -186,7 +186,7 @@ crdb iff `version()` says CockroachDB); `--engine-pin` checks each live engine a
 static+sqlite modes. `--self-test --subject CMD` (new; it used to be an error) runs the usual reference + mutant
 self-test and then requires CMD to pass the same corpus.
 
-Requests: `{"v":1,"id":N,"op":"schema","mode":"mariadb","dsn":"mysql://..","namespace":"aegis_sg","collection":"notes","declared":{F4 Schema}}`
+Requests: `{"v":1,"id":N,"op":"schema","mode":"mariadb","dsn":"mysql://..","namespace":"monban_sg","collection":"notes","declared":{F4 Schema}}`
 (namespace = the database the oracle drops and recreates per case) and the same with `"mode":"crdb"` and a
 `postgresql://` DSN (namespace = schema in `defaultdb`). As for pg, the subject must introspect the live catalog,
 never `declared`.

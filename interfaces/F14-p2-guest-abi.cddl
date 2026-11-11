@@ -1,9 +1,9 @@
-; Frozen interface F14: P2 core-module guest ABI and the aegis-p2 worker <-> supervisor frames (Phase 5,
+; Frozen interface F14: P2 core-module guest ABI and the monban-p2 worker <-> supervisor frames (Phase 5,
 ; P5-spec-001; PLAN D1, D2, D6, D7, D11, D12, D13; SPEC_INVARIANTS H, INV-P2).
 ;
-; Scope. A P2 module is a core WebAssembly module (no component model, no WASI: D13). It runs in the aegis-p2
+; Scope. A P2 module is a core WebAssembly module (no component model, no WASI: D13). It runs in the monban-p2
 ; worker (a fork child of the exec-spawned zygote, or a per-principal cordon), one fresh instance per request.
-; The worker talks to the supervisor (aegis-bin, feature p2) over SOCK_SEQPACKET Unix sockets with the frames
+; The worker talks to the supervisor (monban-bin, feature p2) over SOCK_SEQPACKET Unix sockets with the frames
 ; below. The supervisor holds all authority: the module and the worker hold none (I1).
 ;
 ; Encoding. Every structure here, and every value a host call copies into or out of guest memory, uses the F10
@@ -28,35 +28,35 @@
 ;                                           decision is one input, never the only one).
 ; A start function is allowed and runs under the same fuel, wall and memory bounds as handle().
 ;
-; Imports: a closed allowlist in module "aegis". A module importing anything else (another name, another module,
-; a memory, table or global, or an allowlisted name with another type) is refused by `aegis-p2 compile` before
+; Imports: a closed allowlist in module "monban". A module importing anything else (another name, another module,
+; a memory, table or global, or an allowlisted name with another type) is refused by `monban-p2 compile` before
 ; instantiation, and the worker's Linker defines only these names, so instantiation would fail too (I1).
 ;
-;   aegis.req_head(dst: i32, cap: i32) -> i32
+;   monban.req_head(dst: i32, cap: i32) -> i32
 ;       Total encoded length L of `req-head` (below). Writes the encoding at dst only if cap >= L (all or
 ;       nothing), so a module can size its buffer with cap = 0.
-;   aegis.req_body_read(dst: i32, cap: i32) -> i32
+;   monban.req_body_read(dst: i32, cap: i32) -> i32
 ;       Copies up to cap bytes of the next request-body bytes to dst; returns the count, 0 at end of body.
-;   aegis.resp_head(status: i32, src: i32, len: i32) -> i32
+;   monban.resp_head(status: i32, src: i32, len: i32) -> i32
 ;       status in 200..599; src/len = encoded `resp-headers`. Returns 0. Traps if called twice, with a status
 ;       out of range, or with headers that fail the I5 rules below.
-;   aegis.resp_write(src: i32, len: i32) -> i32
+;   monban.resp_write(src: i32, len: i32) -> i32
 ;       Appends response body bytes. Returns 0. Traps before resp_head, or past p2.max_resp_bytes.
-;   aegis.log(level: i32, src: i32, len: i32) -> i32
+;   monban.log(level: i32, src: i32, len: i32) -> i32
 ;       level 0 error, 1 warn, 2 info, 3 debug, 4 trace; other levels trap. The bytes are module-authored data:
 ;       the host records them as an opaque, typed `module_data` field (typed redaction, audit I6), never parses
 ;       them into host fields, and makes no claim about their content (ASSUME golden). Returns 0. Traps past
 ;       p2.max_log_bytes.
-;   aegis.data_run(src: i32, len: i32) -> i32
+;   monban.data_run(src: i32, len: i32) -> i32
 ;       src/len = one F10 `op` (F10 encoding rule). Blocks until the supervisor replies, then returns a handle
 ;       (u32 read from the i32 bits) to the result. The op's tenant field is a placeholder that the supervisor
 ;       ignores and overwrites with the route-bound tenant; it must still satisfy the F10 rule (uint .gt 0;
 ;       convention 1). Traps past p2.max_data_runs or p2.max_data_bytes. A denied op is not a trap: its result
 ;       is F10 [1, error-code] with the uniform code (W6, no existence oracle).
-;   aegis.result_read(handle: i32, dst: i32, cap: i32) -> i32
+;   monban.result_read(handle: i32, dst: i32, cap: i32) -> i32
 ;       Total encoded length L of the handle's F10 `result`; writes it at dst only if cap >= L. Repeatable until
 ;       the handle is dropped.
-;   aegis.handle_drop(handle: i32) -> ()
+;   monban.handle_drop(handle: i32) -> ()
 ;       Releases the handle. Dropping it again traps.
 ;
 ; Common rules for every import:
@@ -67,7 +67,7 @@
 ;     0..p2.max_data_runs-1 and is never reused within a request. A handle whose generation is not the current
 ;     request's (foreign), whose slot was not issued (forged), or whose slot was dropped (stale) traps. Handles
 ;     die with the request and its fresh instance.
-;   - Test-only import env.host_fault(code: i32) -> () exists only in aegis-p2 builds with the `test-hooks`
+;   - Test-only import env.host_fault(code: i32) -> () exists only in monban-p2 builds with the `test-hooks`
 ;     feature (D15): code 1 = abort the worker process (abort(3)), code 2 = corrupt host state (later replies
 ;     of this process are wrong; oracles/isolation-fi hostpoison), any other code traps. A golden build's
 ;     Linker has no `env` module at all, so a module importing it is refused like any non-allowlisted import.
@@ -137,7 +137,7 @@ cancel     = [3, req-id]                             ; the request is over (clie
 w2s = ready / resp-head / resp-body / resp-end / data-run / log / layout
 ready      = [16, 0, guest-api-version, module-sha256: bstr .size 32]
              ; first frame on every connection; the digest must equal the one the supervisor holds for the
-             ; .cwasm it had `aegis-p2 compile` produce at this boot (D4), else decode failure
+             ; .cwasm it had `monban-p2 compile` produce at this boot (D4), else decode failure
 resp-head  = [17, req-id, status: 200..599, resp-headers]
 resp-body  = [18, req-id, chunk: bstr]
 resp-end   = [19, req-id, end, fuel-used: uint]

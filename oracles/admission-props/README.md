@@ -1,6 +1,6 @@
 # admission-props: property oracle for GCRA and the S0–S6 admission pipeline (a gate)
 
-A blocking gate for the future `aegis-admission` and `aegis-budget` crates. It checks the admission invariants in
+A blocking gate for the future `monban-admission` and `monban-budget` crates. It checks the admission invariants in
 `spec/SPEC_INVARIANTS.md` §C ("Admission I1–I11") on seeded random event traces. A subject is judged only by the
 decisions it returns. Until the crates exist, the subject is the stdlib reference model in `admission_ref.py`
 (ARCHITECTURE §3.4, stages S0–S6).
@@ -57,7 +57,7 @@ expected property:
 It also sends 300 traces through `ref_subject.py` over stdin/stdout. Their decision digest must equal the
 in-process reference. `ref_subject.py --mutate tat_shared`, served over the protocol, must be caught by I2.
 
-## Subject event protocol (for aegis-admission / aegis-budget)
+## Subject event protocol (for monban-admission / monban-budget)
 
 `--subject '<cmd>'` is split with shlex (no shell). The oracle starts it once per chunk of 200 runs, writes JSON
 lines to its stdin and reads JSON lines from its stdout. All times are u64 nanoseconds, and the subject must use

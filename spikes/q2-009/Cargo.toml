@@ -1,4 +1,4 @@
-# Spike q2-009: window-0 stall harness for the AEGIS transport wrapper.
+# Spike q2-009: window-0 stall harness for the Monban transport wrapper.
 # Not a workspace member; own Cargo.lock. Pins are the golden lock-targets (supply-chain/lock-targets.toml,
 # re-verified 2026-10-25) for hyper/h2/tokio; others resolve from the local offline cache.
 # Build ONLY via ci/heavy.sh with CARGO_TARGET_DIR=spikes/q2-009/target (see README "Reproduce").

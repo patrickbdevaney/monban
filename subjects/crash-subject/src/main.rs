@@ -1,4 +1,4 @@
-//! crash-subject: the aegis-state durable store over the crash-harness subject protocol
+//! crash-subject: the monban-state durable store over the crash-harness subject protocol
 //! (`oracles/crash-harness/README.md`, "Subject protocol").
 //!
 //! Usage: `crash-subject <dir> [--ack-early] [--no-dirsync] [--no-mode-recheck]`
@@ -14,8 +14,8 @@ use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use aegis_state::store::CrashMutations;
-use aegis_state::{CrashSubject, Store};
+use monban_state::store::CrashMutations;
+use monban_state::{CrashSubject, Store};
 
 const MUTATIONS: &str = "ack-early,no-dirsync,no-mode-recheck";
 
@@ -95,8 +95,11 @@ fn main() -> ExitCode {
             return ExitCode::from(3);
         }
     };
-    if reply(&format!("READY aegis-state store sqlite={} mutations={MUTATIONS}", aegis_state::store::sqlite_version()))
-        .is_err()
+    if reply(&format!(
+        "READY monban-state store sqlite={} mutations={MUTATIONS}",
+        monban_state::store::sqlite_version()
+    ))
+    .is_err()
     {
         return ExitCode::from(4);
     }

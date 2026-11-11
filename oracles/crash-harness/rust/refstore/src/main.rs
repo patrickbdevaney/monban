@@ -1,4 +1,4 @@
-//! Reference subjects for the AEGIS crash harness, speaking the subject line protocol (README "Subject protocol").
+//! Reference subjects for the Monban crash harness, speaking the subject line protocol (README "Subject protocol").
 //! Port of research round-002 `wl/src/main.rs`, restricted to the golden floor (SQLite, redb) plus the own-log
 //! controls, with the workload moved into the driver (the oracle owns the workload; a subject is only a store).
 //!
@@ -149,7 +149,7 @@ mod redb_s {
     }
 }
 
-// Own append-only log (the shape the future aegis-state WAL is expected to take). record = len u32 | crc32 | payload.
+// Own append-only log (the shape the future monban-state WAL is expected to take). record = len u32 | crc32 | payload.
 mod wal_s {
     use super::*;
     use std::fs::*;

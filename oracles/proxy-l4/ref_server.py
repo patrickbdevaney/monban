@@ -285,7 +285,7 @@ class Server:
             t.write(b"HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
             return
         u = socket.create_connection(self.route_up, timeout=10)
-        u.sendall(b"GET " + path + b" HTTP/1.1\r\nhost: aegis.test\r\nconnection: close\r\n\r\n")
+        u.sendall(b"GET " + path + b" HTTP/1.1\r\nhost: monban.test\r\nconnection: close\r\n\r\n")
         resp = b""
         while True:
             d = u.recv(65536)

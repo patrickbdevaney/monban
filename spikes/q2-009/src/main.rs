@@ -31,7 +31,7 @@ const SEND_BUFFER: usize = 400 * 1024; // 400 KiB per stream
 const MAX_PENDING_ACCEPT_RESET: usize = 20;
 
 const CHUNK: usize = 16 * 1024; // 16 KiB body chunk
-// wrapper budgets (AEGIS wrapper; hyper/h2 lack these)
+// wrapper budgets (Monban wrapper; hyper/h2 lack these)
 // TBI-7 per-connection memory target M_CONN = 16 MiB; the data ledger budget (--ledger-mib, default 12)
 // leaves headroom for fixed per-stream state.
 const STALL_MS: u64 = 10_000; // TBI-8 no progress > 10 s -> reap
@@ -289,7 +289,7 @@ async fn send_body_baseline(mut respond: h2::server::SendResponse<Bytes>, body_b
     let _ = send.send_data(Bytes::new(), true);
 }
 
-// Wrapper sender (prototype of the AEGIS wrapper): per-connection memory ledger (TBI-6/7) + per-stream
+// Wrapper sender (prototype of the Monban wrapper): per-connection memory ledger (TBI-6/7) + per-stream
 // 10 s stall deadline (TBI-8). The ledger is exact: bytes handed to h2 minus bytes h2 wrote to the socket.
 // A chunk is handed to h2 only while ledger + chunk <= ledger_budget. Any stream that cannot make send
 // progress (window, TCP backpressure, or ledger exhaustion) for STALL_MS is reset and dropped, which frees

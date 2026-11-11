@@ -40,7 +40,7 @@ fn pump(from: &mut dyn FnMut(&mut Vec<u8>) -> std::io::Result<usize>, buf: &mut 
 /// One handshake; returns (server time, total time).
 fn handshake(ccfg: &Arc<ClientConfig>, scfg: &Arc<ServerConfig>) -> Result<(Duration, Duration), String> {
     let start = Instant::now();
-    let name = ServerName::try_from("aegis.test").map_err(|e| e.to_string())?;
+    let name = ServerName::try_from("monban.test").map_err(|e| e.to_string())?;
     let mut c = ClientConnection::new(ccfg.clone(), name).map_err(|e| e.to_string())?;
     let mut s = ServerConnection::new(scfg.clone()).map_err(|e| e.to_string())?;
     let mut srv = Duration::ZERO;

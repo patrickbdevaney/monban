@@ -6,7 +6,7 @@
 decision text.
 
 ## Method
-`hello/` is a representative AEGIS "hello" server: tokio (multi-thread, 1 worker), hyper 1.12 (h1 + h2 via
+`hello/` is a representative Monban "hello" server: tokio (multi-thread, 1 worker), hyper 1.12 (h1 + h2 via
 hyper-util auto), and tokio-rustls / rustls 0.23.46 / aws-lc-rs 1.18.2 with prefer-post-quantum. It serves TLS 1.3
 on loopback. It is built with the release profile from the root `Cargo.toml` (fat LTO, cgu=1, panic=abort,
 strip=symbols). Features add one layer at a time:
@@ -80,7 +80,7 @@ operator who turns the feature on gets a binary that breaks the lean-core budget
   (4.8–8.1 µs).
 - **Metrics:** need no exporter. An OpenTelemetry Collector's Prometheus receiver scrapes the always-on
   OpenMetrics admin endpoint.
-- **`aegis-otel-export`:** about the measured otlp variant minus the TLS server: about 5–6 MB, about 7.5 MB RSS,
+- **`monban-otel-export`:** about the measured otlp variant minus the TLS server: about 5–6 MB, about 7.5 MB RSS,
   70–90 crates. It is vetted as its own artifact, runs unprivileged, and is the only process with egress to the
   collector.
 - **cmvp:** HTTPS to a collector means a rustls client (hyper-rustls). Out of process, that client stays out of
@@ -97,7 +97,7 @@ rm -rf target bins
 ```
 
 ## Limits
-- A hello server is not the AEGIS core. The deltas are added to the w02 core baseline, and the w02 crate-count
+- A hello server is not the Monban core. The deltas are added to the w02 core baseline, and the w02 crate-count
   method is not recorded.
 - The collector was reached over plain HTTP. HTTPS would add hyper-rustls and a rustls client, so the in-process
   numbers are a lower bound. The OTLP logs signal was not exercised.

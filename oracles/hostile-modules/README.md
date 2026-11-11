@@ -9,12 +9,12 @@ self-test refuses to pass if a corpus id is missing from this file.
 ```
 oracles/hostile-modules/run                       # both levels against the reference (hostref + ref_host.py)
 oracles/hostile-modules/run --self-test           # both levels: reference green, 5 + 7 reference mutants red
-oracles/hostile-modules/run --level worker --subject target/p2/release/aegis-p2                      # gate cmd
-oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/aegis-p2 \
-    --mutant-subject target/p2-mutants/release/aegis-p2                                              # gate selftest
-oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2
-oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 \
-    --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2
+oracles/hostile-modules/run --level worker --subject target/p2/release/monban-p2                      # gate cmd
+oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/monban-p2 \
+    --mutant-subject target/p2-mutants/release/monban-p2                                              # gate selftest
+oracles/hostile-modules/run --level host --subject target/p2/release/monban --worker target/p2/release/monban-p2
+oracles/hostile-modules/run --self-test --level host --subject target/p2/release/monban --worker target/p2/release/monban-p2 \
+    --mutant-subject target/p2-mutants/release/monban --mutant-worker target/p2-mutants/release/monban-p2
 ```
 
 The last line is `HOSTILE-MODULES: PASS|FAIL (...)` or `HOSTILE-MODULES SELF-TEST: PASS|FAIL (...)`; exit 0 only on
@@ -24,13 +24,13 @@ under `ci/heavy.sh` and `rust/target` is deleted at exit (`--keep-build` keeps i
 start and end; the oracle has count criteria only (no `needs` file), so it runs on the desktop (`remote = true`).
 Deadlines are wall_ms + 2 s grace per request.
 
-## Worker level (`--level worker`): subject contract for aegis-p2
+## Worker level (`--level worker`): subject contract for monban-p2
 
-The oracle is the mock supervisor. It requires this worker command line (it is the same one aegis-bin must use to
+The oracle is the mock supervisor. It requires this worker command line (it is the same one monban-bin must use to
 spawn the worker, so the host level can substitute the escaped worker):
 
 - `<w> compile --in <module.wasm> --out <module.cwasm>`: exit 0 and the file written, or non-zero (78) = refused.
-  The F14 static check happens here: imports outside the eight `aegis.*` functions with their exact types (any
+  The F14 static check happens here: imports outside the eight `monban.*` functions with their exact types (any
   other module or name, a memory, table or global import, `env.host_fault` in a golden build) and exports other than
   exactly `memory` + `handle() -> i32` refuse the module **before instantiation**.
 - `<w> zygote --module <c.cwasm> --sha256 <hex>` (fork+Wasm) and `<w> cordon --module <c.cwasm> --sha256 <hex>`:
@@ -62,7 +62,7 @@ it (unbounded request).
 | `w-control-data-run` | control | ok | Vacuity: data_run, result_read of a valid handle returns the supervisor's F10 result bytes, handle_drop. |
 | `w-i1-import-host-fault` | I1 | refused | The test-only env.host_fault in a golden build (D15): refused at compile. |
 | `w-i1-import-wasi` | I1 | refused | WASI (no ambient I/O, D13): refused. |
-| `w-i1-import-unknown-aegis` | I1 | refused | A non-allowlisted name in module aegis (egress fetch is out of scope, D13): refused. |
+| `w-i1-import-unknown-monban` | I1 | refused | A non-allowlisted name in module monban (egress fetch is out of scope, D13): refused. |
 | `w-i1-import-shared-kv` | I1 | refused | An effective-context-switch import (survival table I1: no effective-context switch): refused. |
 | `w-i1-import-wrong-type` | I1 | refused | An allowlisted name with another signature: refused. |
 | `w-i1-import-memory` | I1 | refused | A memory import: refused. |
@@ -93,11 +93,11 @@ it (unbounded request).
 | `w-i2-response-size-bomb` | I2 | fail (trap 6); max_resp_body<=65536 | 819,200 body bytes against max_resp_bytes = 65,536: trap 6; at most 65,536 body bytes are forwarded. |
 | `w-i2-log-flood` | I2 | fail (trap 6); max_log_bytes<=4096 | 102,400 log bytes against max_log_bytes = 4,096: trap 6; at most 4,096 log bytes are forwarded. |
 
-## Host level (`--level host`): subject contract for aegis (feature p2)
+## Host level (`--level host`): subject contract for monban (feature p2)
 
-Command line as for oracles/native-e2e (P4): `<aegis> --config <f8.json> --cert --key --audit-dir --runtime-dir
+Command line as for oracles/native-e2e (P4): `<monban> --config <f8.json> --cert --key --audit-dir --runtime-dir
 --token-keyring`; readiness `GET /healthz` = 200 on `admin.bind`. The oracle writes one F8 config per boot: listener
-`P-PUBLIC-WEB`, vhost `aegis.test`, backend `sq` (sqlite, `path:<tmp>/notes.db`, `op_budget_ms` 5000), and per case
+`P-PUBLIC-WEB`, vhost `monban.test`, backend `sq` (sqlite, `path:<tmp>/notes.db`, `op_budget_ms` 5000), and per case
 one module `m<i>` (`p2.modules[]`: path, sha256, optional `wall_ms`) and one route `{"path": "/c<i>/", "to": {"wasm":
 "m<i>"}, "authz": "allow-all", "data": <cap>}`; `p2 = {worker, cache_dir, isolation, modules}` with every other p2
 field at its default (crash budget 3/60 s/600 s). Four boots: `isolation = forkwasm` and `cordon`, each with the
@@ -125,7 +125,7 @@ Judged by:
 `HOSTILE_ESCAPED=1`: it skips the worker-side I5 checks, forwards a second resp-head, sends a 70,000-byte resp-body
 in one frame, and after a trap appends a late resp-head/resp-body/resp-end(0). It stands for a worker whose sandbox
 or Wasmtime was escaped, and judges the supervisor's own decoder (§H: host decoders of module output are in the
-verified TCB). It requires aegis-bin to spawn the worker with the worker command line above.
+verified TCB). It requires monban-bin to spawn the worker with the worker command line above.
 
 ### Host-level cases (`corpus/host.json`)
 | case | inv | worker | cap | expected outcome | what |
@@ -206,7 +206,7 @@ The reference controls: worker level 68/68 cells green (34 cases × 2 paths), ho
   ResourceLimiter (memory_mib; tables ≤ 65,536 elements), the I5 header rules, and on-demand allocation (a pool
   bound would mask the no-limiter mutant). No sandbox: that is oracles/syscall-negative. The unit text says wasmtime
   =50.0.0; PLAN-5 D11 as amended moved the product and every oracle to 50.0.1 (RUSTSEC-2026-0422/0423/0424).
-- `ref_host.py`: a stdlib-Python stand-in for aegis (feature p2) on the host contract above: TLS front, F5 token
+- `ref_host.py`: a stdlib-Python stand-in for monban (feature p2) on the host contract above: TLS front, F5 token
   check, crash budget, F14 decoder with the supervisor re-checks, data_run decode / tenant overwrite / authorize /
   audit / execute on SQLite, re-serialization, the deny response `403 denied`. Reference simplifications: requests
   on one cordon are sequential; on a decode failure a fork child is disconnected, not SIGKILLed.
@@ -238,12 +238,12 @@ The reference controls: worker level 68/68 cells green (34 cases × 2 paths), ho
 - Negative subject `/bin/false`: worker FAIL (26 ok = the 13 must-refuse cases x 2, 42 failed), host FAIL (0 ok,
   88 failed): refusing everything does not pass.
 - Plain `./run` (laptop): PASS, worker 68 cells, host 96 cells (load 27, another agent's build running).
-- The repo's current aegis-p2 (fail-closed stub, exit 78) behaves like `/bin/false`: the gates are red until
+- The repo's current monban-p2 (fail-closed stub, exit 78) behaves like `/bin/false`: the gates are red until
   P5-wasm-002 and P5-bin-002 land.
 
 ## Known limits
 
-- The real aegis-p2, aegis-bin p2 data_run and their mutants do not exist yet (W2–W5); the oracle has run only
+- The real monban-p2, monban-bin p2 data_run and their mutants do not exist yet (W2–W5); the oracle has run only
   against its reference. The worker command line, the `p2.data_run` audit event shape and the deny-equality rule are
   defined here first; P5-iso-002/003, P5-wasm-002 and P5-bin-001/002 implement them (and p2-e2e must agree on the
   spawn command line).

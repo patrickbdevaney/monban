@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS read-lowering differential oracle (SPEC_INVARIANTS E: lowering soundness; Lowering.lean lowerQ/sql3).
+"""Monban read-lowering differential oracle (SPEC_INVARIANTS E: lowering soundness; Lowering.lean lowerQ/sql3).
 
 For every (DB state, tenant handle t, Pred p) the subject renders lowerQ(t, p) as a SQL boolean expression; the
 oracle runs it on the engine and compares the returned row ids with reference sets computed over the rows AS STORED
@@ -526,7 +526,7 @@ def check_selfjoin(subject, db, cols, t, pa, pb, shape, st):
     if widen: st["widen"] += 1
     if miss: st["miss"] += 1; st["miss_rows"] += len(miss)
 
-# ----- Redis / Valkey keyspace family (aegis_data_ir::kv_plan read side: Select Eq -> GET, Tt/Pfx -> SCAN MATCH).
+# ----- Redis / Valkey keyspace family (monban_data_ir::kv_plan read side: Select Eq -> GET, Tt/Pfx -> SCAN MATCH).
 # Logical rows (tenant, collection, key) -> value; the subject's kv_key answers give the physical keys (encoding-
 # independent). A SCAN must return exactly the physical keys of the tenant's rows in that collection whose key starts
 # with the prefix; a GET must return exactly the row's value. Keys must be injective (a physical key shared by two

@@ -82,8 +82,8 @@ def subject(port, d):
             if self.path == "/healthz":
                 self.reply("{}")
             elif self.path == "/metrics":
-                self.reply("# TYPE aegis_admission_rejects counter\naegis_admission_rejects_total 0\n"
-                           "# TYPE aegis_proxy_upstream_errors counter\naegis_proxy_upstream_errors_total 0\n# EOF\n")
+                self.reply("# TYPE monban_admission_rejects counter\nmonban_admission_rejects_total 0\n"
+                           "# TYPE monban_proxy_upstream_errors counter\nmonban_proxy_upstream_errors_total 0\n# EOF\n")
             elif self.path == "/load/start":
                 start()
                 self.reply("ok")

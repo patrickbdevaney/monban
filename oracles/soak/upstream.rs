@@ -2,7 +2,7 @@
 //! self-contained. std only, built with plain `rustc -O`, no dependencies.
 //!
 //! `soak-upstream <port>`: listens on 127.0.0.1:<port>, one thread per connection, keep-alive, and answers every
-//! request head with the same fixed 200 response. Request bodies are skipped by `content-length` (aegis regenerates
+//! request head with the same fixed 200 response. Request bodies are skipped by `content-length` (monban regenerates
 //! framing and never sends chunked upstream). It is the static upstream of the soak proxy route, not a load client.
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

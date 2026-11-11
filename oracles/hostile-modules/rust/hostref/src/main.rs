@@ -1,12 +1,12 @@
-// hostref: reference aegis-p2 worker for oracles/hostile-modules (F14 guest ABI + worker frames).
+// hostref: reference monban-p2 worker for oracles/hostile-modules (F14 guest ABI + worker frames).
 //
-// It implements the worker command line that oracles/hostile-modules/README.md fixes for aegis-p2:
+// It implements the worker command line that oracles/hostile-modules/README.md fixes for monban-p2:
 //   hostref compile --in <module.wasm> --out <module.cwasm>     exit 0 = compiled; 78 = refused (F14 static check)
 //   hostref zygote  --module <module.cwasm> --sha256 <hex>      fd 3 = listening SOCK_SEQPACKET socket; fork per
 //                                                               connection, one request per child (fork+Wasm)
 //   hostref cordon  --module <module.cwasm> --sha256 <hex>      fd 3 = listening SOCK_SEQPACKET socket; one
 //                                                               connection, many requests, fresh instance each
-// Mutants (oracle negative controls) are selected by AEGIS_P2_MUTANT, the selector the real aegis-p2 `mutants`
+// Mutants (oracle negative controls) are selected by AEGIS_P2_MUTANT, the selector the real monban-p2 `mutants`
 // build reads: extra-import, handle-not-cleared, no-hostcall-quota, no-fuel-no-epoch, no-limiter.
 // HOSTILE_ESCAPED=1 turns the worker into a compromised worker (it forwards whatever the module emits, without the
 // worker-side I5 checks, and appends a late response after a trap). The host level uses it to judge the
@@ -361,7 +361,7 @@ fn headers_ok(enc: &[u8]) -> bool {
 fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
     let mut l = Linker::<Req>::new(eng);
     let r = (|| -> Result<()> {
-        l.func_wrap("aegis", "req_head", |mut c: Caller<'_, Req>, dst: i32, cap: i32| -> Result<i32> {
+        l.func_wrap("monban", "req_head", |mut c: Caller<'_, Req>, dst: i32, cap: i32| -> Result<i32> {
             count(&mut c)?;
             let h = c.data().head.clone();
             if cap as u32 as usize >= h.len() {
@@ -369,7 +369,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             }
             Ok(h.len() as i32)
         })?;
-        l.func_wrap("aegis", "req_body_read", |mut c: Caller<'_, Req>, dst: i32, cap: i32| -> Result<i32> {
+        l.func_wrap("monban", "req_body_read", |mut c: Caller<'_, Req>, dst: i32, cap: i32| -> Result<i32> {
             count(&mut c)?;
             let (off, len) = (c.data().body_off, c.data().body.len());
             let n = (cap as u32 as usize).min(len - off);
@@ -378,7 +378,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             c.data_mut().body_off += n;
             Ok(n as i32)
         })?;
-        l.func_wrap("aegis", "resp_head", |mut c: Caller<'_, Req>, status: i32, src: i32, len: i32| -> Result<i32> {
+        l.func_wrap("monban", "resp_head", |mut c: Caller<'_, Req>, status: i32, src: i32, len: i32| -> Result<i32> {
             count(&mut c)?;
             let esc = ESCAPED.load(Ordering::Relaxed);
             if c.data().resp_started && !esc {
@@ -398,7 +398,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             send(&mut c, &e.0)?;
             Ok(0)
         })?;
-        l.func_wrap("aegis", "resp_write", |mut c: Caller<'_, Req>, src: i32, len: i32| -> Result<i32> {
+        l.func_wrap("monban", "resp_write", |mut c: Caller<'_, Req>, src: i32, len: i32| -> Result<i32> {
             count(&mut c)?;
             if !c.data().resp_started {
                 return Err(fault(&mut c, 7));
@@ -420,7 +420,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             }
             Ok(0)
         })?;
-        l.func_wrap("aegis", "log", |mut c: Caller<'_, Req>, level: i32, src: i32, len: i32| -> Result<i32> {
+        l.func_wrap("monban", "log", |mut c: Caller<'_, Req>, level: i32, src: i32, len: i32| -> Result<i32> {
             count(&mut c)?;
             if !(0..=4).contains(&level) {
                 return Err(fault(&mut c, 7));
@@ -436,7 +436,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             send(&mut c, &e.0)?;
             Ok(0)
         })?;
-        l.func_wrap("aegis", "data_run", |mut c: Caller<'_, Req>, src: i32, len: i32| -> Result<i32> {
+        l.func_wrap("monban", "data_run", |mut c: Caller<'_, Req>, src: i32, len: i32| -> Result<i32> {
             count(&mut c)?;
             let op = read_guest(&mut c, src, len)?;
             c.data_mut().data_runs += 1;
@@ -493,7 +493,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             }
             Ok(s)
         }
-        l.func_wrap("aegis", "result_read", |mut c: Caller<'_, Req>, h: i32, dst: i32, cap: i32| -> Result<i32> {
+        l.func_wrap("monban", "result_read", |mut c: Caller<'_, Req>, h: i32, dst: i32, cap: i32| -> Result<i32> {
             count(&mut c)?;
             let s = slot(&mut c, h)?;
             let r = c.data().ht.slots[s].clone().unwrap_or_default();
@@ -502,7 +502,7 @@ fn linker(eng: &Engine, m: Mutant) -> Linker<Req> {
             }
             Ok(r.len() as i32)
         })?;
-        l.func_wrap("aegis", "handle_drop", |mut c: Caller<'_, Req>, h: i32| -> Result<()> {
+        l.func_wrap("monban", "handle_drop", |mut c: Caller<'_, Req>, h: i32| -> Result<()> {
             count(&mut c)?;
             let s = slot(&mut c, h)?;
             c.data_mut().ht.slots[s] = None;
@@ -542,14 +542,14 @@ fn engine() -> Engine {
 fn allowlist(m: Mutant) -> Vec<(&'static str, &'static str, Vec<ValType>, Vec<ValType>)> {
     use ValType::I32;
     let mut v = vec![
-        ("aegis", "req_head", vec![I32, I32], vec![I32]),
-        ("aegis", "req_body_read", vec![I32, I32], vec![I32]),
-        ("aegis", "resp_head", vec![I32, I32, I32], vec![I32]),
-        ("aegis", "resp_write", vec![I32, I32], vec![I32]),
-        ("aegis", "log", vec![I32, I32, I32], vec![I32]),
-        ("aegis", "data_run", vec![I32, I32], vec![I32]),
-        ("aegis", "result_read", vec![I32, I32, I32], vec![I32]),
-        ("aegis", "handle_drop", vec![I32], vec![]),
+        ("monban", "req_head", vec![I32, I32], vec![I32]),
+        ("monban", "req_body_read", vec![I32, I32], vec![I32]),
+        ("monban", "resp_head", vec![I32, I32, I32], vec![I32]),
+        ("monban", "resp_write", vec![I32, I32], vec![I32]),
+        ("monban", "log", vec![I32, I32, I32], vec![I32]),
+        ("monban", "data_run", vec![I32, I32], vec![I32]),
+        ("monban", "result_read", vec![I32, I32, I32], vec![I32]),
+        ("monban", "handle_drop", vec![I32], vec![]),
     ];
     if m == Mutant::ExtraImport {
         v.push(("env", "host_fault", vec![I32], vec![])); // MUTANT extra-import

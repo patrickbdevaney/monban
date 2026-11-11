@@ -1,6 +1,6 @@
 """Minimal io_uring access from stdlib Python (ctypes + mmap), x86_64 / aarch64 syscall numbers.
 
-Used by the front-equiv oracle in two places, never by aegis:
+Used by the front-equiv oracle in two places, never by monban:
   * front_ref.py (the self-test reference "uring" front) owns a real ring and submits one IORING_OP_NOP per accepted
     connection, so its /proc/<pid>/fdinfo shows an `anon_inode:[io_uring]` whose CqTail moves with traffic;
   * systemd_probe(): `python3 -I uring.py probe` prints `io_uring_setup: ok` or `io_uring_setup: errno N`, run under a

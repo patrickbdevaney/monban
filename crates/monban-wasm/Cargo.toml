@@ -1,0 +1,44 @@
+[package]
+name = "monban-wasm"
+description = "Wasm handler runtime (P2 worker only): fresh Store per request, fuel, epoch watchdog, linker allowlist."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+# Linked only into the monban-p2 worker binary, never into monban-bin (PLAN-5 D3, DEVIATIONS X-13, gate
+# no-wasmtime-in-bin).
+[dependencies]
+monban-types = { workspace = true }
+monban-budget = { workspace = true }
+wasmtime = { workspace = true }
+# .cwasm digest check before Module::deserialize_file (X-14). Already in the graph via cranelift-codegen: no new crate.
+sha2 = { workspace = true }
+
+[features]
+# F14 `env.host_fault` import (fault oracles only, PLAN-5 D15), enabled through monban-p2 `test-hooks`. Never shipped.
+test-hooks = []
+# Oracle negative controls only (monban-p2 `mutants`, PLAN-5 D15). Never shipped.
+mutants = []
+
+# Equal to [workspace.lints] except unsafe_code = "deny" (not "forbid"): exactly one audited site, the
+# Module::deserialize_file of a digest-checked .cwasm, with #[allow(unsafe_code)] and `// SAFETY:` (DEVIATIONS X-14,
+# `cargo xtask unsafe-sites` cap 1).
+[lints.rust]
+unsafe_code = "deny"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(kani)", "cfg(monban_kani_negative)"] }
+missing_debug_implementations = "warn"
+unused_must_use = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+indexing_slicing = "deny"
+dbg_macro = "deny"

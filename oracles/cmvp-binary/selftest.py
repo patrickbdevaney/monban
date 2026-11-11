@@ -136,7 +136,7 @@ def fips_binary_selftest():
             ok = ok and not bad
         fails += not ok
         row(name, want + (f" {pre}" if pre else ""), v, "; ".join(bad) or info[0], ok)
-    # the entry point with RELATIVE --binary/--metadata (the gate passes target/cmvp/release/aegis): they must be
+    # the entry point with RELATIVE --binary/--metadata (the gate passes target/cmvp/release/monban): they must be
     # resolved before --fips-check runs the binary with cwd /
     rel = [os.path.relpath(b("fips_good"), T), os.path.relpath(mpath["meta_real"], T)]
     r = subprocess.run([os.path.join(HERE, "run"), "--binary", rel[0], "--metadata", rel[1]], cwd=T,
@@ -303,7 +303,7 @@ def client_policy_selftest():
                 "; ".join(why) or r.get("client_cert_line", ""), ok)
             if name in ("srv_only", "d13_srv_mtls"):
                 print("     " + r.get("client_cert_line", ""))
-    # --- the entry point with RELATIVE --binary/--manifest/--target-dir (the gate passes target/cmvp/release/aegis):
+    # --- the entry point with RELATIVE --binary/--manifest/--target-dir (the gate passes target/cmvp/release/monban):
     # unresolved, the relink's -Map= paths would be written relative to the workspace root rustc runs in -> ERROR
     n += 1
     r = subprocess.run([os.path.join(HERE, "client-policy"), "--mode", "compiled-out", "--binary",
@@ -334,11 +334,11 @@ def client_policy_selftest():
         if r.returncode != 0:
             raise RuntimeError("profiles/cmvp/build.sh --metadata failed")
         src = os.path.join(ROOT, "target", "cmvp-src")
-        for feats, want_on in (("aegis-bin/cmvp", []), ("aegis-bin/cmvp,aegis-tls/tls-client", ["aegis-tls/tls-client"]),
-                               ("aegis-bin/cmvp,aegis-egress/tls-client", ["aegis-egress/tls-client"]),
-                               ("aegis-bin/cmvp,aegis-ops/acme", ["aegis-ops/acme"])):
+        for feats, want_on in (("monban-bin/cmvp", []), ("monban-bin/cmvp,monban-tls/tls-client", ["monban-tls/tls-client"]),
+                               ("monban-bin/cmvp,monban-egress/tls-client", ["monban-egress/tls-client"]),
+                               ("monban-bin/cmvp,monban-ops/acme", ["monban-ops/acme"])):
             n += 1
-            g = cp.graph(src, "aegis-bin", feats)
+            g = cp.graph(src, "monban-bin", feats)
             on = sorted(f"{nm}/{f}" for nm, v, d, fp, fs in g if fp for f in fs if f in cp.CLIENT_FEATURES)
             ok = set(want_on) <= set(on) and (on == [] if not want_on else True) and any(x[0] == "rustls" for x in g)
             fails += not ok

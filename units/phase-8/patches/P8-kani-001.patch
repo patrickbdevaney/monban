@@ -1,17 +1,17 @@
-P8-kani-001 patch for the integrator. It touches crates/aegis-tls/src/kx.rs, which is outside this unit's write_scope,
+P8-kani-001 patch for the integrator. It touches crates/monban-tls/src/kx.rs, which is outside this unit's write_scope,
 and kani_proofs.rs. Rationale: no Kani harness can build a `kx::Active` or reach `Active::new`. Its arguments are
-aws-lc key handles that only C can produce, and aegis-tls forbids `unsafe`, so a stub cannot write the C
+aws-lc key handles that only C can produce, and monban-tls forbids `unsafe`, so a stub cannot write the C
 out-parameters (see P8-kani-001.INFEASIBLE_REPORT.md section 1). The patch moves the 0x11ED client share encoding
 (RFC 10024 4.1: point 97 || ek 1568) into the pure function `kx::encode_client_share`. It also moves the P-384 point
 check that `p384_public` and `complete_hybrid_component` share into `kx::is_uncompressed_p384`. Behaviour, error
 values and error order are unchanged. The patch then adds the harnesses `client_share_encoding_0x11ed`, `client_share_encoding_lengths_0x11ed` and
 `client_point_check_0x11ed`, which the kani-kx-client gate (`--only client_`) picks up. Apply on top of p8/kani-001
-with `git apply units/phase-8/patches/P8-kani-001.patch`. Then run cargo test -p aegis-tls (kx unit tests and KAT)
+with `git apply units/phase-8/patches/P8-kani-001.patch`. Then run cargo test -p monban-tls (kx unit tests and KAT)
 and the kani-kx-client gate. The patched tree's kani-kx-client result on kamrui is in the P8-kani-001 final report.
-diff --git a/crates/aegis-tls/src/kx.rs b/crates/aegis-tls/src/kx.rs
+diff --git a/crates/monban-tls/src/kx.rs b/crates/monban-tls/src/kx.rs
 index bc78a2c..2f582c8 100644
---- a/crates/aegis-tls/src/kx.rs
-+++ b/crates/aegis-tls/src/kx.rs
+--- a/crates/monban-tls/src/kx.rs
++++ b/crates/monban-tls/src/kx.rs
 @@ -90,15 +90,35 @@ fn ecdh_p384_into(private: &agreement::PrivateKey, peer_point: &[u8], out: &mut
      })
  }
@@ -72,10 +72,10 @@ index bc78a2c..2f582c8 100644
              return Err(INVALID_KEY_SHARE);
          }
          let mut z = Vec::with_capacity(P384_SECRET_LEN);
-diff --git a/crates/aegis-tls/src/kani_proofs.rs b/crates/aegis-tls/src/kani_proofs.rs
+diff --git a/crates/monban-tls/src/kani_proofs.rs b/crates/monban-tls/src/kani_proofs.rs
 index d99d728..dfcf3cb 100644
---- a/crates/aegis-tls/src/kani_proofs.rs
-+++ b/crates/aegis-tls/src/kani_proofs.rs
+--- a/crates/monban-tls/src/kani_proofs.rs
++++ b/crates/monban-tls/src/kani_proofs.rs
 @@ -255,4 +255,90 @@ mod harnesses {
          let _ = check_client_split!(share, &r, "NEGATIVE CONTROL: planted-OOB copy broke the client split contract");
          core::mem::forget(r); // see split_share_any_input

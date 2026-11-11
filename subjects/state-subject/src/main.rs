@@ -1,4 +1,4 @@
-//! state-subject: aegis-state idempotency, outbox and commit-point latch over the state-props line protocol
+//! state-subject: monban-state idempotency, outbox and commit-point latch over the state-props line protocol
 //! (`oracles/state-props/README.md`, "Subject protocol").
 //!
 //! Usage: `state-subject <dir> [--idempotency-retention <s>] [--mutate <name>]...`
@@ -14,7 +14,7 @@
 //! live in memory.
 //!
 //! Self-test mutations: `idem-key-without-principal`, `replay-reexecutes`, `effect-before-commit` and
-//! `outbox-drop-on-restart` are aegis-state's hidden [`StateMutations`]; `latch-returns-408` (a 202 is printed as
+//! `outbox-drop-on-restart` are monban-state's hidden [`StateMutations`]; `latch-returns-408` (a 202 is printed as
 //! 408) and `dedupe-unstable` (a fresh dedupe key on every delivery) are applied here, at the output.
 #![forbid(unsafe_code)]
 
@@ -23,7 +23,7 @@ use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use aegis_state::{Begin, DeliverError, IdemKey, Lease, Outcome, Reply, State, StateMutations};
+use monban_state::{Begin, DeliverError, IdemKey, Lease, Outcome, Reply, State, StateMutations};
 
 const MUTATIONS: [&str; 9] = [
     "idem-key-without-principal",
@@ -141,14 +141,14 @@ fn main() -> ExitCode {
     // CLOCK sets this; until then the system clock (u64::MAX = unset).
     let clock = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(u64::MAX));
     let c = std::sync::Arc::clone(&clock);
-    let system = aegis_state::Clock::system();
-    st.set_clock(aegis_state::Clock::new(move || match c.load(std::sync::atomic::Ordering::SeqCst) {
+    let system = monban_state::Clock::system();
+    st.set_clock(monban_state::Clock::new(move || match c.load(std::sync::atomic::Ordering::SeqCst) {
         u64::MAX => system.now(),
         t => t,
     }));
     if reply(&format!(
-        "READY aegis-state idem/outbox/latch sqlite={} features=retention mutations={}",
-        aegis_state::store::sqlite_version(),
+        "READY monban-state idem/outbox/latch sqlite={} features=retention mutations={}",
+        monban_state::store::sqlite_version(),
         MUTATIONS.join(",")
     ))
     .is_err()
@@ -239,7 +239,7 @@ fn serve(st: &mut State, args: &Args, clock: &std::sync::atomic::AtomicU64) -> R
                         match st.commit(lease, Outcome { status: s, body: b }, t) {
                             Ok(Reply::Outcome(o)) => reply(&format!("RESP {rid} {} {}", o.status, hex(&o.body))),
                             Ok(Reply::Accepted) => {
-                                let code = if args.latch_408 { 408 } else { aegis_state::ACCEPTED_STATUS }; // MUTATION
+                                let code = if args.latch_408 { 408 } else { monban_state::ACCEPTED_STATUS }; // MUTATION
                                 reply(&format!("RESP {rid} {code} -"))
                             }
                             Err(e) => {

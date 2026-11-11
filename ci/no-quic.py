@@ -2,7 +2,7 @@
 """Gate no-quic (PREFLIGHT D-P7.1): HTTP/3 and WebTransport are deferred with evidence, so no QUIC stack may arrive
 by accident. FAIL if any QUIC / HTTP/3 / WebTransport crate is
   - a package of either shipped lock (Cargo.lock, profiles/cmvp/Cargo.lock; fuzz/Cargo.lock too when present), or
-  - a node of the aegis-bin build graph (normal + build edges, every target platform) with default features or with
+  - a node of the monban-bin build graph (normal + build edges, every target platform) with default features or with
     --all-features (the union of every feature graph).
 Banned names: quinn, quinn-*, h3, h3-*, wtransport, wtransport-*, web-transport, web-transport-*, quiche,
 tokio-quiche, s2n-quic, s2n-quic-*, neqo-*, msquic, tquic. (`h3` is matched exactly or with a `-` suffix, so an
@@ -13,7 +13,7 @@ gates/phase-7.toml: --self-test-otel runs that exact filter (read from the gate 
 
 Usage: python3 -I ci/no-quic.py                 the check (light: cargo tree --offline, no compile)
        python3 -I ci/no-quic.py --self-test     red on a fixture lock with quinn-proto 0.11.19, red on a fixture
-                                                aegis-bin --all-features tree with h3 (and on each other banned
+                                                monban-bin --all-features tree with h3 (and on each other banned
                                                 family), green on the clean controls
        python3 -I ci/no-quic.py --self-test-otel  the no-otel-in-bin filter is red on fixture trees with prost /
                                                 opentelemetry* / tonic and green on a clean tree
@@ -32,7 +32,7 @@ BANNED = re.compile(
     r"^(quinn(-.+)?|h3(-.+)?|wtransport(-.+)?|web-transport(-.+)?|quiche|tokio-quiche|s2n-quic(-.+)?|neqo-.+|msquic"
     r"|tquic)$"
 )
-TREE_ARGS = ["cargo", "tree", "--locked", "--offline", "-e", "normal,build", "--target", "all", "-p", "aegis-bin",
+TREE_ARGS = ["cargo", "tree", "--locked", "--offline", "-e", "normal,build", "--target", "all", "-p", "monban-bin",
              "--prefix", "none", "--no-dedupe"]
 
 
@@ -104,12 +104,12 @@ def check():
         r = subprocess.run(TREE_ARGS + extra, cwd=ROOT, capture_output=True, text=True)
         nodes = tree_nodes(r.stdout)
         if r.returncode != 0 or not nodes:
-            bad.append(f"cargo tree aegis-bin ({label}) failed: {r.stderr.strip()[:300]}")
+            bad.append(f"cargo tree monban-bin ({label}) failed: {r.stderr.strip()[:300]}")
             continue
         hits = tree_hits(r.stdout)
         if hits:
-            bad.append(f"aegis-bin graph ({label}): " + ", ".join(hits))
-        notes.append(f"aegis-bin {label} {len(set(nodes))} nodes")
+            bad.append(f"monban-bin graph ({label}): " + ", ".join(hits))
+        notes.append(f"monban-bin {label} {len(set(nodes))} nodes")
     return bad, notes
 
 
@@ -181,7 +181,7 @@ def self_test_otel():
     fails = []
     if not sep or not head.startswith("! "):
         fails.append(f"gate cmd is not of the form '! <cargo tree> | <filter>': {cmd!r}")
-    for need in ("cargo tree", "-p aegis-bin", "--all-features", "--prefix none", "normal,build"):
+    for need in ("cargo tree", "-p monban-bin", "--all-features", "--prefix none", "normal,build"):
         if need not in head:
             fails.append(f"gate cmd's tree lacks {need!r}")
     if fails:

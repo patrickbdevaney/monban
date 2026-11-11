@@ -1,4 +1,4 @@
-"""AEGIS oracle: cross-request-state (CRS) differential oracle (P4-oracle-crs-001 / P4-crs-001).
+"""Monban oracle: cross-request-state (CRS) differential oracle (P4-oracle-crs-001 / P4-crs-001).
 
 Two families, one differential idea: a response- or authz-determining piece of state carried between requests must
 depend only on the scope of the request that uses it, never on an earlier request in a different scope
@@ -17,7 +17,7 @@ depend only on the scope of the request that uses it, never on an earlier reques
                         per-connection state; C8 R-DB-5: no backend connection shared across tenants).
 
 Stdlib only; run as `python3 -I crsdiff.py`. See README.md for the subject wire protocol and the honest-scope note
-(against today's aegis, tls-resume PASSES by construction: tickets are off and there is no mTLS listener, so the
+(against today's monban, tls-resume PASSES by construction: tickets are off and there is no mTLS listener, so the
 gate's teeth are the self-test and the guard for the future scoped ticketer P2-tls-002).
 """
 
@@ -111,7 +111,7 @@ def tls_check(server, verbose=False):
         mint = s_client(server.port, open_scope, "http/1.1", sess_out=sess)
         notes.append(f"mint[{open_scope},http/1.1]={mint}")
         if not os.path.exists(sess) or os.path.getsize(sess) == 0:
-            # The server issued no resumable session at all (today's aegis: tickets off). Nothing can be Reused.
+            # The server issued no resumable session at all (today's monban: tickets off). Nothing can be Reused.
             notes.append("no resumable session issued (tickets off) -> no cross-scope reuse possible")
             return viols, notes
 
@@ -146,8 +146,8 @@ def tls_check(server, verbose=False):
     return viols, notes
 
 
-class AegisTlsServer:
-    """The real aegis binary, driven over TLS like proxy-e2e. Two vhosts a.test/b.test; SIGHUP = epoch bump."""
+class MonbanTlsServer:
+    """The real monban binary, driven over TLS like proxy-e2e. Two vhosts a.test/b.test; SIGHUP = epoch bump."""
 
     open_sni = "a.test"
     other_sni = "b.test"
@@ -156,7 +156,7 @@ class AegisTlsServer:
         self.subject = subject
         self.proc = None
         self.up = None
-        self.dir = tempfile.mkdtemp(prefix="crs-tls-aegis-")
+        self.dir = tempfile.mkdtemp(prefix="crs-tls-monban-")
 
     def _recorder(self):
         s = socket.socket()
@@ -203,12 +203,12 @@ class AegisTlsServer:
         self.up_port = self._recorder()
         self.port, self.aport = free_port(), free_port()
         self.crt, self.key, _ca = mint_cert(self.dir)
-        self.cfg = os.path.join(self.dir, "aegis.json")
+        self.cfg = os.path.join(self.dir, "monban.json")
         self._write_config()
         env = dict(os.environ)
         env.pop("NOTIFY_SOCKET", None)
         env.pop("AEGIS_UPGRADE_DIR", None)
-        self.log = open(os.path.join(self.dir, "aegis.log"), "wb")
+        self.log = open(os.path.join(self.dir, "monban.log"), "wb")
         self.proc = subprocess.Popen(
             [self.subject, "--config", self.cfg, "--cert", self.crt, "--key", self.key,
              "--audit-dir", os.path.join(self.dir, "audit")],
@@ -216,7 +216,7 @@ class AegisTlsServer:
         until = time.time() + 20
         while time.time() < until:
             if self.proc.poll() is not None:
-                raise RuntimeError(f"aegis exited {self.proc.returncode} at start: {self._tail()}")
+                raise RuntimeError(f"monban exited {self.proc.returncode} at start: {self._tail()}")
             try:
                 with socket.create_connection(("127.0.0.1", self.aport), timeout=0.5) as c:
                     c.sendall(b"GET /healthz HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n")
@@ -225,10 +225,10 @@ class AegisTlsServer:
             except OSError:
                 pass
             time.sleep(0.1)
-        raise RuntimeError(f"aegis did not become healthy: {self._tail()}")
+        raise RuntimeError(f"monban did not become healthy: {self._tail()}")
 
     def bump_epoch(self):
-        # A config reload is an epoch change for the serving config generation. aegis issues no ticket, so this is
+        # A config reload is an epoch change for the serving config generation. monban issues no ticket, so this is
         # exercised for completeness; a scoped ticketer must not resume across it.
         if self.proc and self.proc.poll() is None:
             self.proc.send_signal(signal.SIGHUP)
@@ -238,7 +238,7 @@ class AegisTlsServer:
 
     def _tail(self):
         try:
-            with open(os.path.join(self.dir, "aegis.log"), "rb") as f:
+            with open(os.path.join(self.dir, "monban.log"), "rb") as f:
                 return f.read()[-2000:].decode(errors="replace")
         except OSError:
             return ""
@@ -260,7 +260,7 @@ class PyReplicaServer:
     """In-oracle reference TLS server using Python ssl. `vulnerable=True` reproduces the CVE-2025-23419 shape: an
     SNI callback switches the connection to a client-cert-verifying context (secure.test) *after* the base context
     has already accepted a resumption ticket it minted on the open context (a.test), so the client-cert check is
-    skipped on resumption. `vulnerable=False` is the safe control: resumption disabled, like today's aegis."""
+    skipped on resumption. `vulnerable=False` is the safe control: resumption disabled, like today's monban."""
 
     open_sni = "a.test"
     other_sni = "secure.test"
@@ -278,7 +278,7 @@ class PyReplicaServer:
         base.load_cert_chain(crt, key)
         base.set_alpn_protocols(["h2", "http/1.1"])
         if not self.vulnerable:
-            # Safe control, like today's aegis: issue no TLS 1.3 session tickets, so nothing is ever resumable.
+            # Safe control, like today's monban: issue no TLS 1.3 session tickets, so nothing is ever resumable.
             try:
                 base.num_tickets = 0
             except (ValueError, AttributeError):
@@ -340,9 +340,9 @@ def run_tls(subject, verbose=False):
         line(f"{NAME}: FAIL (openssl CLI not found; needed for the s_client resumption client)")
         return 1
     if not subject:
-        line(f"{NAME}: FAIL (tls-resume needs --subject <aegis binary>)")
+        line(f"{NAME}: FAIL (tls-resume needs --subject <monban binary>)")
         return 1
-    srv = AegisTlsServer(subject)
+    srv = MonbanTlsServer(subject)
     try:
         srv.start()
         viols, notes = tls_check(srv, verbose)
@@ -381,7 +381,7 @@ def selftest_tls(verbose=False):
         line(f"{NAME} SELF-TEST: FAIL (the CVE-2025-23419 vulnerable replica was NOT caught: {'; '.join(notes)})")
         return 1
     caught = "; ".join(viols)
-    # 2) The safe control (resumption disabled, like today's aegis) MUST pass (no false positive).
+    # 2) The safe control (resumption disabled, like today's monban) MUST pass (no false positive).
     safe = PyReplicaServer(vulnerable=False)
     try:
         safe.start()
@@ -402,7 +402,7 @@ def selftest_tls(verbose=False):
 # subject's business.
 #
 #   {"op":"hello"}                                   -> {"ok":true}
-#   {"op":"scope","principal":P,"tenant":T,"epoch":E}-> {"ok":true}   (T is 16-hex u64, aegis_data_ir::tenant_text)
+#   {"op":"scope","principal":P,"tenant":T,"epoch":E}-> {"ok":true}   (T is 16-hex u64, monban_data_ir::tenant_text)
 #   {"op":"do","kind":"sql"}                         -> {"conn":str,"guc":{"tenant":str},"temp_residual":bool,"cache":str}
 #   {"op":"do","kind":"idem","key":K,"value":V}      -> {"idem": <stored value or null>, "fresh": bool}
 #   {"op":"do","kind":"outbox","entry":X}            -> {"outbox": [<entries visible under current scope>]}
@@ -523,7 +523,7 @@ class ProcSubject:
             self.p.kill()
 
 
-# Two scopes used throughout the data differential (tenants are 16-hex u64, aegis_data_ir::tenant_text).
+# Two scopes used throughout the data differential (tenants are 16-hex u64, monban_data_ir::tenant_text).
 TA = "000000000000000a"
 TB = "000000000000000b"
 PA = "principal-a"
@@ -676,7 +676,7 @@ def selftest_data(verbose=False):
 def main():
     ap = argparse.ArgumentParser(description="CRS differential oracle (tls-resume + data families)")
     ap.add_argument("--family", choices=["tls-resume", "data", "all"], default=None)
-    ap.add_argument("--subject", default=None, help="tls: aegis binary; data: crs-subject (quoted argv allowed)")
+    ap.add_argument("--subject", default=None, help="tls: monban binary; data: crs-subject (quoted argv allowed)")
     ap.add_argument("--self-test", action="store_true", dest="selftest")
     ap.add_argument("--pg", default=None)       # accepted and ignored here: the data subject connects to engines
     ap.add_argument("--redis", default=None)    # itself; the oracle passes these through to the subject argv.
@@ -697,7 +697,7 @@ def main():
             rc |= (selftest_tls if f == "tls-resume" else selftest_data)(args.verbose)
         return rc
 
-    # The ci/oracles.sh sweep passes only --subject (default-subject: the aegis binary): that is the tls-resume run.
+    # The ci/oracles.sh sweep passes only --subject (default-subject: the monban binary): that is the tls-resume run.
     # The data family needs engines, so it runs only as gate crs-data with an explicit --family data.
     if args.family is None and args.subject and not (args.pg or args.redis):
         args.family = "tls-resume"

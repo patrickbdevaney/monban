@@ -34,7 +34,7 @@ Still open:
 
 ## State (from crash-harness / cancel-sweep ports, 2026-10-25)
 - NEW: SQLite 3.53.2 silently falls back from WAL to rollback-journal if the first fsync fails during WAL
-  conversion (PRAGMA had already returned "wal"); acked writes are then lost. aegis-state MUST re-read
+  conversion (PRAGMA had already returned "wal"); acked writes are then lost. monban-state MUST re-read
   journal_mode and synchronous after the first write and refuse to serve otherwise (INV-DURABLE).
 - redb 2PC passes only with the bootstrap parent-directory fsync (research's 1,176/8,020 losses reproduce without it).
 - Store creation must be temp file + rename + dir fsync so a crash inside create is retryable.
@@ -57,18 +57,18 @@ Still open:
 - lowering-read: PG/Redis engines not re-run after the refQ3 switch.
 
 ## Config (from P2-config-001)
-- F8 route `path` pattern admits `..`, `//`, `;` which aegis-canon rejects at request time → such routes are dead.
+- F8 route `path` pattern admits `..`, `//`, `;` which monban-canon rejects at request time → such routes are dead.
   Add a check-config cross-check: route path must itself pass `canon_path` unchanged (spec-author decision; reject).
 - Route id capped at 2^53−1 (I-JSON safe range); empty `authz` ⇒ Deny; 1 MiB cap also applies to the effective form.
-- aegis-config carries its own SHA-256 (FIPS 180-4 vectors); aegis-audit uses aws-lc-rs — consolidate on aws-lc-rs
-  if aegis-config may take that dependency (it is L2 pure; keep in-crate unless the TCB ledger prefers one impl).
+- monban-config carries its own SHA-256 (FIPS 180-4 vectors); monban-audit uses aws-lc-rs — consolidate on aws-lc-rs
+  if monban-config may take that dependency (it is L2 pure; keep in-crate unless the TCB ledger prefers one impl).
 
 ## Audit (from P2-audit-001)
 - ML-DSA-87 checkpoint cosignature verified only by Rust tests (Go 1.26 has ML-DSA internal-only): add an
   independent verifier (e.g. OpenSSL 3.5 `pkeyutl -verify` with ML-DSA-87) to oracles/tlog-verify.
 - Cosignature uses signed-note escape type 0xff + "aegis-mldsa87-note-v1" without a timestamp: not interoperable
   with C2SP witnesses (timestamped ML-DSA-44). Revisit when a witness standard for ML-DSA-87 exists.
-- Log restart from existing tiles (resume at size N) belongs to aegis-state; in-memory hash store grows ~64 B/entry.
+- Log restart from existing tiles (resume at size N) belongs to monban-state; in-memory hash store grows ~64 B/entry.
 - Admin path: a checkpoint failure leaves the event in the log (published later) — log may record an attempted but
   unapplied action, never the reverse. Document in the audit-failure policy.
 
@@ -80,17 +80,17 @@ Still open:
   FDSTORE closes this.
 
 ## ACME (from P2-acme-cert-001)
-- `aegis_ops::acme::Faults` (oracle fault hooks) is public production API, off by default: move behind a
+- `monban_ops::acme::Faults` (oracle fault hooks) is public production API, off by default: move behind a
   `test-faults` feature so release builds cannot enable it.
 - Not done: TLS-ALPN-01, EAB; Let's Encrypt staging interop (needs a public name); PQ group negotiation with Pebble
   unverified (only a unit test checks the PQ-first preference). ACME uses blocking std sockets + rustls (no tokio).
 
 ## Transport (from P2-transport-001, 2026-10-25)
 - h2spec: RESOLVED by P2-transport-002 (145/146 stable; failures were a subject vhost misconfig). Two h2 0.4.20
-  deviations remain (crates/aegis-transport/INFEASIBLE_REPORT.md): GOAWAY(PROTOCOL_ERROR) instead of STREAM_CLOSED
+  deviations remain (crates/monban-transport/INFEASIBLE_REPORT.md): GOAWAY(PROTOCOL_ERROR) instead of STREAM_CLOSED
   for HEADERS on a client-reset stream; pseudo-headers in END_STREAM trailers accepted. Strict tests #[ignore]d.
 - Resource-limit oracle: RESOLVED with the public tool h2load (oracles/transport-limits; operator approved
-  2026-10-25). Previously not built because generating a custom client tripped a content safety stop. Coverage today: aegis-transport e2e
+  2026-10-25). Previously not built because generating a custom client tripped a content safety stop. Coverage today: monban-transport e2e
   tests (window-0 stall reset, 431 on 129 cookie crumbs, idle close, strict H1 rejects) and spike q2-009's
   measurements. Operator decision needed on how to provide this gate (e.g. an established public HTTP/2 test tool).
 - h2spec v2.6.0 cannot negotiate TLS 1.3, so conformance runs over h2c; TLS-path conformance needs a newer client.
@@ -99,10 +99,10 @@ Still open:
 
 ## Developer recipes and extension contracts (operator request 2026-10-25; schedule with Phase 3–4)
 1. Normative extension contracts (frozen): F10 data adapters (how to add a DB family; two-sided oracle; mandated
-   write forms; golden criteria), Wasm handlers (P2), SDK handlers (F7/F7b), Cedar policies via aegis-pdp.
+   write forms; golden criteria), Wasm handlers (P2), SDK handlers (F7/F7b), Cedar policies via monban-pdp.
    Each: grammar/ABI, host guarantees, extension obligations, conformance tests, report label.
 2. Ingress recipes: React/Next.js, Vue/Nuxt, SvelteKit, htmx, mobile, plain fetch; MCP clients. Auth (cookie vs
-   DPoP-bound tokens), Origin/CORS binding, CSRF, streaming. Exact AEGIS config, tested in CI against the binary.
+   DPoP-bound tokens), Origin/CORS binding, CSRF, streaming. Exact Monban config, tested in CI against the binary.
 3. Egress recipes: Postgres, SQLite, MariaDB, CockroachDB, Redis/Valkey (golden/eligible); MySQL, Mongo, managed
    platforms as non-golden adapters; upstream app servers in reverse-proxy mode.
 4. Reverse direction: webhooks (raw-byte signatures), outbox, SSE.
@@ -122,33 +122,33 @@ Still open:
   BTreeMap with a fixed-array structure amenable to Kani; or move those obligations to Verus.
 - Ops note: during a stuck run the agent ran `pkill -x bash -P <sshd pids>` on kamrui (kills sshd-child bash
   shells); no side effects observed. Agents must never pkill broadly on shared boxes.
-- aegis-egress builds its PQ client profile directly on rustls (aegis-tls is also L3; edge not allowed). Consider one owner for TLS profiles (move into aegis-tls or allow the edge). No end-to-end TLS handshake test yet (subject has no TLS).
-  DONE 2026-10-29: one owner. aegis-tls builds every TLS profile: `client_config(profile, roots)` +
+- monban-egress builds its PQ client profile directly on rustls (monban-tls is also L3; edge not allowed). Consider one owner for TLS profiles (move into monban-tls or allow the edge). No end-to-end TLS handshake test yet (subject has no TLS).
+  DONE 2026-10-29: one owner. monban-tls builds every TLS profile: `client_config(profile, roots)` +
   `assert_client_profile` (feature `tls-client`, off by default and in cmvp) next to `server_config`, kx from the same
   per-profile tables (P-PUBLIC-WEB = the former egress list [0x11EC, 0x11EB, 0x001D, 0x0017]; PQ-REQUIRED [0x11EC];
   FIPS-PQ-REQUIRED [0x11EB], the P-PQ6 shape; pending profiles -> `Pending`, FIPS -> `NotForClients` by P-PQ6).
-  aegis-egress builds no ClientConfig: `TlsClient::from_config(Arc<ClientConfig>)` re-checks TLS 1.3 / no resumption /
-  no early data / ALPN and refuses otherwise. No caller injects one yet (aegis-bin and egress-subject run with
-  `tls-client` off, plain-HTTP connector), so the end-to-end handshake test is still open. aegis-ops ACME still
-  builds its own ClientConfig (L4; could call aegis-tls).
+  monban-egress builds no ClientConfig: `TlsClient::from_config(Arc<ClientConfig>)` re-checks TLS 1.3 / no resumption /
+  no early data / ALPN and refuses otherwise. No caller injects one yet (monban-bin and egress-subject run with
+  `tls-client` off, plain-HTTP connector), so the end-to-end handshake test is still open. monban-ops ACME still
+  builds its own ClientConfig (L4; could call monban-tls).
 
 ## Token (from P3-token-001)
 - DONE 2026-10-29 (F5 re-frozen, info = label ‖ be16|aud| ‖ aud ‖ be16|kid| ‖ kid; unit test k_aud_info_is_length_prefixed;
   token-drt 1e6 PASS with the updated model). Was: F5 K_aud derivation is ambiguous: HKDF info "aegis-cap-v1"‖aud‖kid has no length prefixes, so (aud="api",kid="k1")
   and (aud="apik",kid="1") derive the same key. Not exploitable as found (aud caveat and kid‖nonce chain root still
-  differ), but fix by spec-change PR: length-prefix aud and kid (re-freeze F5, update aegis-token + token-drt).
+  differ), but fix by spec-change PR: length-prefix aud and kid (re-freeze F5, update monban-token + token-drt).
 - Bridged spec gaps: Lean tenant Bytes vs wire uint (8-byte BE); wire `any` limited to int/string; dudect-quality
   constant-time testing still a follow-up.
 
 ## Pause point (2026-10-26, operator low on tokens)
 Phase 3 done: token, pdp, egress units. Remaining Phase 3: P3-agent-001 (MCP listener gate on the owned transport,
-wire aegis-token verify + aegis-pdp via an L4 transport crate + aegis-egress into aegis-bin), then gates/phase-3.toml
+wire monban-token verify + monban-pdp via an L4 transport crate + monban-egress into monban-bin), then gates/phase-3.toml
 (corpus 100% + zero handler invocations, token DRT, pdp DST, ssrf corpus, Lean Combine/Token gate) and the Phase-3 GO
 run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 crate, egress TLS profile ownership.
 
 ## Agent gateway (from P3-agent-001, 2026-10-29)
-- The JWT subject is an agent-local `Subject`, not a `Principal` (only aegis-token may construct one). Move the HS256/
-  JWT bearer profile into aegis-token so the gate yields a real Principal.
+- The JWT subject is an agent-local `Subject`, not a `Principal` (only monban-token may construct one). Move the HS256/
+  JWT bearer profile into monban-token so the gate yields a real Principal.
 - Not yet built: sealed requestState (MRTR), SSE responses (one JSON reply per POST today), TLS on the agent
   listener, and the h2c `:authority` corpus case (needs an HTTP/2 client in the oracle).
 - PDP calls go through one mutex-guarded client on a blocking pool capped at 8; add a client pool for throughput.
@@ -158,32 +158,32 @@ run. Also queued: F5 K_aud length-prefix fix, PDP socket transport into an L4 cr
   `App::origin_refusal_status`, default 421.
 
 ## Phase 4 follow-ups (integrator, 2026-10-30)
-- xtask rule: only `subjects/crash-subject` may call `aegis_state::Store::open_with` (the mutation seam is `#[doc(hidden)]` but unenforced).
+- xtask rule: only `subjects/crash-subject` may call `monban_state::Store::open_with` (the mutation seam is `#[doc(hidden)]` but unenforced).
 - P4-state-001's remote build used `--cfg rustix_use_libc`; confirm whether the GO crash-harness gate needs it and record why.
 - P4-pg-001: run a mutated-pins control (raise the pg17 floor in a scratch copy of engine-pins.toml, rebuild, expect live 17.11 refused) to prove the floors are read from the pins file at build time; add a fuzz target for the PG message parser; add a connect timeout for Unix sockets; SASLprep (non-ASCII SCRAM passwords are refused today).
-- aegis-state: completed idempotency keys never expire (unbounded growth); add a retention window with an F8 limit before production. Consider making `Lease` abort on Drop instead of relying on the host to call abort.
-- F10 decoder (when built): cap Pred nesting depth before constructing (frozen recursive Pred overflows the stack on drop at ~100k levels); aegis-data-ir refuses >64.
-- `allowlist.<adapter>.decl` is a new format defined by P4-datair-001 (grammar in crates/aegis-data-ir/src/lock.rs). Fold it into F4 at the next re-freeze, and consider giving xtask a path dependency on aegis-data-ir instead of its second implementation.
+- monban-state: completed idempotency keys never expire (unbounded growth); add a retention window with an F8 limit before production. Consider making `Lease` abort on Drop instead of relying on the host to call abort.
+- F10 decoder (when built): cap Pred nesting depth before constructing (frozen recursive Pred overflows the stack on drop at ~100k levels); monban-data-ir refuses >64.
+- `allowlist.<adapter>.decl` is a new format defined by P4-datair-001 (grammar in crates/monban-data-ir/src/lock.rs). Fold it into F4 at the next re-freeze, and consider giving xtask a path dependency on monban-data-ir instead of its second implementation.
 - crs-diff oracle gaps (from P4-crs-001): (1) the tenant case changes principal and tenant together, so a pool key that drops only the tenant can't be caught. Add a same-principal/different-tenant case if a principal can span tenants, or record that principal ⇒ tenant. (2) It sends a lower epoch after a higher one and expects service, so `retire_before` (C5 retirement) can't be exercised. Make epochs monotone and add a retired-epoch-refused case.
-- D18: Redis native mode. Add +multi +exec +discard to kv_acl (oracle reference + aegis-adapter-redis), confirm the hostile family stays red, wire the MULTI/EXEC executor in aegis-bin, and run native-e2e with --kv @valkey.
-- adapter-host: pass a per-call session/context id through ScopeBackend, so aegis-bin can drop its per-(backend, tenant) request serialization (correct and fail-closed, but it limits throughput).
-- F8: fields for the PG provisioning role and tenant setting names (aegis-bin hardcodes aegis_app / aegis.tenant).
+- D18: Redis native mode. Add +multi +exec +discard to kv_acl (oracle reference + monban-adapter-redis), confirm the hostile family stays red, wire the MULTI/EXEC executor in monban-bin, and run native-e2e with --kv @valkey.
+- adapter-host: pass a per-call session/context id through ScopeBackend, so monban-bin can drop its per-(backend, tenant) request serialization (correct and fail-closed, but it limits throughput).
+- F8: fields for the PG provisioning role and tenant setting names (monban-bin hardcodes monban_app / monban.tenant).
 
 ## Phase 7 findings (2026-11-06)
-- aegis-transport: a bad chunk-size line or bare-LF chunk line yields TWO 400 responses for one request (hyper's,
+- monban-transport: a bad chunk-size line or bare-LF chunk line yields TWO 400 responses for one request (hyper's,
   with `date`, then the strict filter's, without), then close (45/45, P7-oracle-uring-001). One request must get one
   response. Owner: Phase 8 (transport).
 - Admission per-IP GCRA numbers were hard-coded (now F8 `admission`, P7-spec-001); load oracles sized around it.
 - ci/oracles.sh has no "own gate, no aggregate" marker other than `needs = kamrui` (front-equiv uses it though it
   runs on the desktop). Add a proper `own-gate` marker.
 - io-uring 0.7.15 vet audit is an agent review: operator countersign before production use of `uring`.
-- aegis-bin `serve.rs` hard-codes tokio `worker_threads(2)`: scaling plateaus at ~31-42k req/s from 2 cores up
+- monban-bin `serve.rs` hard-codes tokio `worker_threads(2)`: scaling plateaus at ~31-42k req/s from 2 cores up
   (bench/scaling, 2026-11-06). Make it an F8 knob (default 2 keeps every timing gate) before the 64-core run.
-- MariaDB backend boots fail closed (exit 78) in aegis-bin: aegis-data-ir has no EngineFamily::Mariadb + MySQL denylist
+- MariaDB backend boots fail closed (exit 78) in monban-bin: monban-data-ir has no EngineFamily::Mariadb + MySQL denylist
   and apps/notes has no allowlist.notes-mariadb.lock (P7-bin-001). Spec-author work, Phase 8.
 - MariaDB adapter: no pool/cancel (KILL QUERY), loopback only (no TLS), Rust client not live-tested on write forms.
 - CockroachDB reuses the PG denylist and notes PG allowlist lock; 40001 surfaces as a conflict (no whole-txn retry
   through the SDK host); CancelRequest path and L4 idle timeout after routing have no oracle.
 - native-e2e PG half and unrestricted-ledger need the laptop (>= 10 GB free) or kamrui-valid pg image pins
   (kamrui rejects the laptop-style pg image Ids).
-- No gate drives the MTC selector through aegis-bin (cred-select uses tls-subject).
+- No gate drives the MTC selector through monban-bin (cred-select uses tls-subject).

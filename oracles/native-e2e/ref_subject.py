@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """native-e2e reference subject: a small stdlib-Python server that follows the native-e2e contract (README.md,
 "Subject contract") so the oracle can be shown to PASS on a correct subject and go red on each mutant before
-aegis-bin has a data plane (P4-bin-001). Not a model of aegis internals: only its observable behaviour matters.
+monban-bin has a data plane (P4-bin-001). Not a model of monban internals: only its observable behaviour matters.
 
     ref_subject.py --config <f8.json> --cert <pem> --key <pem> [--audit-dir d] [--runtime-dir d] [--token-keyring f]
 
 Negative controls: AEGIS_E2E_MUTANT = tenant-from-path | commit-despite-cancel | body-before-cp |
-empty-caps-means-all | no-drain | ack-then-drop (the same names aegis-bin's `e2e-mutants` feature must implement).
+empty-caps-means-all | no-drain | ack-then-drop (the same names monban-bin's `e2e-mutants` feature must implement).
 """
 
 import base64
@@ -37,8 +37,8 @@ MUTANT = os.environ.get("AEGIS_E2E_MUTANT", "")
 EX_CONFIG = 78
 APP_NOTES = "app:notes"
 ALLOW_ALL = "allow-all"
-PG_ROLE = "aegis_app"          # aegis-bin PG_RLS_ROLE
-PG_SETTING = "aegis.tenant"     # aegis-bin PG_TENANT_SETTING
+PG_ROLE = "monban_app"          # monban-bin PG_RLS_ROLE
+PG_SETTING = "monban.tenant"     # monban-bin PG_TENANT_SETTING
 OP_BIT = {"select": 1, "insert": 2, "update": 4, "delete": 8, "upsert": 16}
 METHOD_OP = {"GET": "select", "POST": "insert", "PATCH": "update", "DELETE": "delete", "PUT": "upsert"}
 TENANT_RE = re.compile(r"^[0-9a-f]{16}$")
@@ -329,8 +329,8 @@ class SqliteTx:
 
 
 class PgTx:
-    """Runs as the RLS role with the tenant bound per transaction (aegis_adapter_pg::rls_bind): SET LOCAL ROLE and a
-    transaction-local `aegis.tenant`, both set before the transaction's first statement."""
+    """Runs as the RLS role with the tenant bound per transaction (monban_adapter_pg::rls_bind): SET LOCAL ROLE and a
+    transaction-local `monban.tenant`, both set before the transaction's first statement."""
 
     def __init__(self, dsn, write):
         self.c = wire.PgConn(dsn)
@@ -479,11 +479,11 @@ class CrdbPool:
             cols = {r[0] for r in c.query("SELECT column_name FROM information_schema.columns WHERE "
                                           "table_schema = 'public' AND table_name = 'notes'")}
             idem = c.query("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND "
-                           "table_name = 'aegis_idem'")
+                           "table_name = 'monban_idem'")
         finally:
             c.close()
         if not {"tenant", "id", "body"} <= cols or idem != [["1"]]:
-            raise ConfigError("crdb backend: public.notes(tenant,id,body) and public.aegis_idem must exist")
+            raise ConfigError("crdb backend: public.notes(tenant,id,body) and public.monban_idem must exist")
 
 
 class CrdbTx:
@@ -665,7 +665,7 @@ def check_backend(b):
         if rls != [["t", "t"]]:
             raise ConfigError(f"backend {b['id']}: schema gate: RlsNotForced")
     elif b["engine"] == "mariadb":
-        # the live schema gate's MariaDB rules that this oracle exercises (aegis_adapter_mysql::check_live_schema):
+        # the live schema gate's MariaDB rules that this oracle exercises (monban_adapter_mysql::check_live_schema):
         # InnoDB, tenant/id byte-compared (VARBINARY or *_nopad_bin), (tenant, id) the only unique key
         c = mywire.My(b["target"])
         try:
@@ -1049,7 +1049,7 @@ def serve_h1(srv, tls):
     if srv.stopping:
         resp = (503, jbody({"error": "draining"}), [])
     else:
-        dl = headers.get("aegis-deadline-ms")
+        dl = headers.get("monban-deadline-ms")
         if dl is not None and not (dl.isdigit() and 1 <= int(dl) <= 60000):
             resp = (400, jbody({"error": "bad_deadline"}), [])
         else:
@@ -1205,7 +1205,7 @@ class H2Conn:
             resp = (503, jbody({"error": "draining"}), [])
         else:
             ex = Exchange(self.srv, h.get(":method", ""), h.get(":path", "/"), h, st["body"])
-            dl = h.get("aegis-deadline-ms")
+            dl = h.get("monban-deadline-ms")
             if dl and dl.isdigit():
                 ex.deadline = min(ex.deadline, ex.t0 + int(dl) / 1000.0)
             resp = ex.await_response(lambda: st["reset"] or self.closed)

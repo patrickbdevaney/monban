@@ -20,12 +20,12 @@
  ],
  "acceptance": {
   "cmd": "ci/remote.sh --host kamrui bash -c 'ci/heavy.sh cargo build --release --locked -q -p crdb-subject && ci/engines.sh with crdb -- oracles/lowering-write/run --engine-pin --skip-sqlite --subject \"target/release/crdb-subject lowering\" --engine crdb --dsn @crdb'",
-  "must": "PASS on all three crdb gates and every carried PG gate (lowering-*-pg, schema-gate-pg, pg-version-floor, pg19-blocked); `Dialect::Crdb` in aegis-adapter-pg: q4-005 upsert guard fix, SERIALIZABLE retry (40001) bounded, crdb version floor from engine-pins"
+  "must": "PASS on all three crdb gates and every carried PG gate (lowering-*-pg, schema-gate-pg, pg-version-floor, pg19-blocked); `Dialect::Crdb` in monban-adapter-pg: q4-005 upsert guard fix, SERIALIZABLE retry (40001) bounded, crdb version floor from engine-pins"
  },
  "write_scope": [
-  "crates/aegis-adapter-pg/src/**",
+  "crates/monban-adapter-pg/src/**",
   "subjects/crdb-subject/src/**",
-  "crates/aegis-adapter-pg/build.rs"
+  "crates/monban-adapter-pg/build.rs"
  ],
  "notes": ""
 }

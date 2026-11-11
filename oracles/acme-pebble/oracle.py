@@ -1,4 +1,4 @@
-"""AEGIS oracle: ACME issuance/renewal against Pebble (RFC 8555, RFC 9773 ARI) + CERT-1..4. Stdlib only.
+"""Monban oracle: ACME issuance/renewal against Pebble (RFC 8555, RFC 9773 ARI) + CERT-1..4. Stdlib only.
 
 Contract: oracles/README.md. See README.md next to this file for the subject protocol and the checks.
 """
@@ -68,7 +68,7 @@ class Pebble:
 
     def __init__(self, work):
         self.work = work
-        self.tag = f"aegis-acme-pebble-{os.getpid()}"
+        self.tag = f"monban-acme-pebble-{os.getpid()}"
         self.acme = free_port()
         self.mgmt = free_port()
         self.http01 = free_port()

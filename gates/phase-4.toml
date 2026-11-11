@@ -14,7 +14,7 @@
 #   crash harness incl. double fault ............................... crash-harness [P4-state-001]
 #   PG minor floor asserted ........................................ pg-version-floor [P4-pg-001]
 #   PG19 blocked until ON CONFLICT fix ............................. pg19-blocked [P4-pg-001]
-#   no pg_query in aegis-bin graph ................................. no-pg-query-in-bin [P4-spec-002]
+#   no pg_query in monban-bin graph ................................. no-pg-query-in-bin [P4-spec-002]
 # Added by this plan (not in the §3 list; derived from APPLIED.md q4-001, SPEC INV-IDEMP/NC2/NC6 and modes A/D):
 #   F7b host obligations ........................................... sdk-host [P4-host-001]
 #   idempotency / latch / outbox ................................... state-props [P4-state-002]
@@ -91,20 +91,20 @@ remote = true
 
 [[gate]]
 name = "fail-closed-boot"
-cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+cmd = "ci/heavy.sh cargo build --locked -q -p monban-bin && { target/debug/monban; test $? -eq 78; }"
 remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
-selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p monban-bin -p audit-subject -p upgrade-subject -p egress-subject -p monban-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true
 
 [[gate]]
 name = "oracles-local"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/oracles.sh run --where local"
-selftest = "ci/heavy.sh cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && ci/oracles.sh self-test --where local"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p acme-subject -p audit-subject -p transport-subject -p token-subject -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native && ci/oracles.sh run --where local"
+selftest = "ci/heavy.sh cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native && CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native,e2e-mutants && ci/oracles.sh self-test --where local"
 heavy = true
 
 [[gate]]
@@ -162,7 +162,7 @@ remote = true
 
 [[gate]]
 name = "config-totality"
-cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p monban-config"
 remote = true
 
 [[gate]]
@@ -173,7 +173,7 @@ remote = true
 
 [[gate]]
 name = "systemd-hardening"
-cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+cmd = "s=$(systemd-analyze security --offline=yes deploy/monban-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
 
 [[gate]]
 name = "kani-tbi"
@@ -190,23 +190,23 @@ heavy = true
 # OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/monban"
 selftest = "oracles/proxy-e2e/run --self-test"
 remote = true
 
 
 [[gate]]
 name = "mcp-gateway"
-# Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
+# Launches target/release/monban with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
 # full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin -p aegis-pdp && ci/mcp-gate.sh run --flood-n 20000"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin -p monban-pdp && ci/mcp-gate.sh run --flood-n 20000"
 selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
 remote = true
 
 [[gate]]
 name = "no-cedar-in-bin"
-cmd = "! cargo tree --locked -e normal,build -p aegis-bin --prefix none | grep -q '^cedar-policy'"
-selftest = "cargo tree --locked -e normal,build -p aegis-pdp --prefix none | grep -q '^cedar-policy'"
+cmd = "! cargo tree --locked -e normal,build -p monban-bin --prefix none | grep -q '^cedar-policy'"
+selftest = "cargo tree --locked -e normal,build -p monban-pdp --prefix none | grep -q '^cedar-policy'"
 
 [[gate]]
 name = "fuzz"
@@ -281,7 +281,7 @@ remote = true
 
 [[gate]]
 name = "unrestricted-ledger"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && python3 -I ci/unrestricted.py check"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && python3 -I ci/unrestricted.py check"
 selftest = "python3 -I ci/unrestricted.py --self-test"
 remote = true
 
@@ -300,7 +300,7 @@ remote = true
 [[gate]]
 name = "crs-tls"
 # nginx CVE-2025-23419 replica (cross-vhost / cross-epoch / cross-ALPN resumption). Needs the host openssl client.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/crs-diff/run --family tls-resume --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && oracles/crs-diff/run --family tls-resume --subject target/release/monban"
 selftest = "oracles/crs-diff/run --self-test --family tls-resume"
 
 [[gate]]
@@ -353,13 +353,13 @@ heavy = true
 
 [[gate]]
 name = "no-pg-query-in-bin"
-cmd = "ci/no-crate.sh aegis-bin pg_query libpg_query pg_query_sys"
+cmd = "ci/no-crate.sh monban-bin pg_query libpg_query pg_query_sys"
 selftest = "ci/no-crate.sh --self-test"
 
 [[gate]]
 name = "native-e2e"
 # PLAN D17: the data plane is the `native` build (own target dirs, so the core build in target/release and the
 # proxy-e2e `e2e-mutants` build in target/e2e-mutants are never overwritten).
-cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/aegis --pg @pg17"
-selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/aegis --mutant-subject target/native-mutants/release/aegis"
+cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/monban --pg @pg17"
+selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/monban --mutant-subject target/native-mutants/release/monban"
 heavy = true

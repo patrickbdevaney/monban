@@ -1,4 +1,4 @@
-# fips_client_policy layer S (first-party source): only aegis-tls::pqclient may build a rustls ClientConfig.
+# fips_client_policy layer S (first-party source): only monban-tls::pqclient may build a rustls ClientConfig.
 disallowed-methods = [
   { path = "rustls::ClientConfig::builder", reason = "P-PQ6: use pqclient::pq_only_client_config" },
   { path = "rustls::ClientConfig::builder_with_provider", reason = "P-PQ6: use pqclient::pq_only_client_config" },

@@ -11,6 +11,6 @@ if [ "$free_gb" -lt "$MIN_FREE_GB" ]; then
 fi
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4} CARGO_INCREMENTAL=0
 echo "heavy.sh: waiting for the heavy-job lock (one at a time)..." >&2
-exec flock /tmp/aegis-heavy.lock \
+exec flock /tmp/monban-heavy.lock \
   systemd-run --user --scope -q -p MemoryMax=${HEAVY_MEM:-6G} -p MemorySwapMax=1G \
   nice -n 15 timeout ${HEAVY_TIMEOUT:-1800} "$@"

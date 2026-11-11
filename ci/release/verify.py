@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -I
-"""AEGIS release verifier (P6-oracle-release-001; PLAN-6 D6; F1 REL-1..REL-5; PREFLIGHT D-P2).
+"""Monban release verifier (P6-oracle-release-001; PLAN-6 D6; F1 REL-1..REL-5; PREFLIGHT D-P2).
 
 Usage:
   ci/release/verify.py [--allow-test-keys] [--trusted-root ROOT.json] [--state DIR]
@@ -114,8 +114,8 @@ FIXED_TARGETS = {"SHA256SUMS", "sbom.cdx.json", "provenance.intoto.json", "attes
 }
 OPTIONAL_TARGETS = {"TEST_KEYS"}
 ROLES = ("root", "timestamp", "snapshot", "targets")
-META_BASE = "aegis-release://metadata/"
-TARGET_BASE = "aegis-release://targets/"
+META_BASE = "monban-release://metadata/"
+TARGET_BASE = "monban-release://targets/"
 PRIVATE_PEM = re.compile(rb"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----")
 
 
@@ -392,8 +392,8 @@ def stage_b(rel, files, args, work):
 
     # monotonic versions against recorded state (REL-2)
     prev = {}
-    if args.state and os.path.isfile(os.path.join(args.state, "aegis-state.json")):
-        prev = strict_json(read(os.path.join(args.state, "aegis-state.json")), "state", "REL-2 state-invalid")
+    if args.state and os.path.isfile(os.path.join(args.state, "monban-state.json")):
+        prev = strict_json(read(os.path.join(args.state, "monban-state.json")), "state", "REL-2 state-invalid")
         prev = prev.get("roles", {}) if isinstance(prev, dict) else {}
     for r in ROLES:
         p = prev.get(r)
@@ -617,7 +617,7 @@ def verify(args):
     exe = openssl_bin()
     rel = os.path.abspath(args.release)
     files = stage_a(rel)
-    work = tempfile.mkdtemp(prefix="aegis-relverify-")
+    work = tempfile.mkdtemp(prefix="monban-relverify-")
     try:
         b = stage_b(rel, files, args, work)
         v, mds = b["vdir"], b["mds"]
@@ -646,7 +646,7 @@ def verify(args):
             os.makedirs(args.state, exist_ok=True)
             st = {"v": 1, "roles": {r: {"version": mds[r].signed.version, "sha256": sha256(b["trusted"][r])}
                                     for r in ROLES}}
-            for name, data in (("root.json", b["trusted"]["root"]), ("aegis-state.json",
+            for name, data in (("root.json", b["trusted"]["root"]), ("monban-state.json",
                                                                     json.dumps(st, indent=1).encode() + b"\n")):
                 tmp = os.path.join(args.state, f".{name}.tmp")
                 with open(tmp, "wb") as f:
@@ -751,7 +751,7 @@ SELF_TEST_CASES = (
     ("attest-sig-bad", "REL-3 attest-signature", ["--allow-test-keys", "--trusted-root", "@root"]),
     ("attest-key-reuse", "REL-3 attest-key-reuse", ["--allow-test-keys", "--trusted-root", "@root"]),
     ("rebuild-mismatch", "REL-3 rebuild-mismatch", ["--allow-test-keys", "--trusted-root", "@root",
-                                                     "--expect-sha256", "artifacts/aegis-floor=" + "0" * 64]),
+                                                     "--expect-sha256", "artifacts/monban-floor=" + "0" * 64]),
     ("artifact-tampered", "REL-2 target-hash", ["--allow-test-keys", "--trusted-root", "@root"]),
     ("unlisted-file", "REL-2 unlisted-file", ["--allow-test-keys", "--trusted-root", "@root"]),
     ("private-key", "D-P2 private-key-material", ["--allow-test-keys", "--trusted-root", "@root"]),
@@ -773,12 +773,12 @@ def _invoke(release, flags):
 def self_test(pin_src):
     import importlib.util
 
-    spec = importlib.util.spec_from_file_location("aegis_gen_release", os.path.join(HERE, "fixtures", "gen_release.py"))
+    spec = importlib.util.spec_from_file_location("monban_gen_release", os.path.join(HERE, "fixtures", "gen_release.py"))
     gen = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gen)
     exe = openssl_bin()
     bad = []
-    tmp = tempfile.mkdtemp(prefix="aegis-relverify-selftest-")
+    tmp = tempfile.mkdtemp(prefix="monban-relverify-selftest-")
     try:
         keys = gen.Keys(os.path.join(tmp, "keys"), exe)
         root1 = os.path.join(tmp, "root1.json")

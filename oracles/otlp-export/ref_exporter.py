@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reference aegis-otlp exporter (oracle-only, stdlib). It implements the CLI contract in README.md so that the
+"""Reference monban-otlp exporter (oracle-only, stdlib). It implements the CLI contract in README.md so that the
 oracle can show it is satisfiable, and it carries the negative controls the self-test turns on through
 AEGIS_OTLP_REF_MUTANT (that variable is not part of the contract; the real exporter ignores it).
 
@@ -8,7 +8,7 @@ AEGIS_OTLP_REF_MUTANT (that variable is not part of the contract; the real expor
 
 P8-oracle-001 (R9): https through --ca-file only; 429/502/503/504 and transport errors retried with exponential
 backoff (100, 200, 400, 800 ms: 5 attempts), then the request is dropped and its records counted in
-aegis_otlp_dropped_log_records / aegis_otlp_dropped_metric_points. Logs and metrics are posted from separate threads
+monban_otlp_dropped_log_records / monban_otlp_dropped_metric_points. Logs and metrics are posted from separate threads
 in interval mode, so a failing signal never stalls the other.
 """
 import argparse
@@ -264,7 +264,7 @@ def resource(args):
     return {"attributes": a}
 
 
-SCOPE = {"name": "aegis-otlp", "version": "0.0.0-reference"}
+SCOPE = {"name": "monban-otlp", "version": "0.0.0-reference"}
 
 
 def parse_ts(s):
@@ -357,13 +357,13 @@ class Poster:
     def __init__(self, endpoint, ca_file=None):
         u = urllib.parse.urlsplit(endpoint)
         if u.scheme not in ("http", "https"):
-            raise SystemExit("aegis-otlp(ref): endpoint must be http:// or https://")
+            raise SystemExit("monban-otlp(ref): endpoint must be http:// or https://")
         self.https = u.scheme == "https"
         self.skip = self.https and MUTANT == "https-skipped"
         self.ctx = None
         if self.https and not self.skip:
             if not ca_file:
-                raise SystemExit("aegis-otlp(ref): https --endpoint needs --ca-file")
+                raise SystemExit("monban-otlp(ref): https --endpoint needs --ca-file")
             self.ctx = ssl.create_default_context(cafile=ca_file)
             self.ctx.minimum_version = ssl.TLSVersion.TLSv1_3
             if MUTANT == "https-no-verify":
@@ -431,7 +431,7 @@ def read_line(stream):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="aegis-otlp")
+    ap = argparse.ArgumentParser(prog="monban-otlp")
     ap.add_argument("--scrape", required=True)
     ap.add_argument("--endpoint", required=True)
     ap.add_argument("--service-name", required=True)
@@ -452,16 +452,16 @@ def main():
     def self_metrics(now):
         with poster.lock:
             dl, dm = poster.dropped["logs"], poster.dropped["metrics"]
-        return [counter("aegis_otlp_dropped_log_records", "Log records dropped (queue full or retries exhausted).",
+        return [counter("monban_otlp_dropped_log_records", "Log records dropped (queue full or retries exhausted).",
                         dropped[0] + dl, now),
-                counter("aegis_otlp_dropped_metric_points", "Metric points dropped (retries exhausted).", dm, now)]
+                counter("monban_otlp_dropped_metric_points", "Metric points dropped (retries exhausted).", dm, now)]
 
     def export_metrics():
         now = time.time_ns()
         try:
             fams = parse_openmetrics(scrape(args.scrape))
         except (OSError, ParseError, UnicodeDecodeError) as e:
-            print(f"aegis-otlp(ref): scrape: {e}", file=sys.stderr)
+            print(f"monban-otlp(ref): scrape: {e}", file=sys.stderr)
             return False
         ms = build_metrics(fams, now, self_metrics(now))
         npts = sum(len((m.get("sum") or m.get("gauge") or m.get("histogram") or {}).get("dataPoints", [])) for m in ms)

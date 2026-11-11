@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -I
-"""Production TUF root metadata for AEGIS releases (F1 REL-2: 5 Ed25519 root keys, threshold 3). Runs under the
+"""Production TUF root metadata for Monban releases (F1 REL-2: 5 Ed25519 root keys, threshold 3). Runs under the
 hash-locked python-tuf venv (~/aegis-ci/py-tuf; $AEGIS_PY_TUF_PYTHON), like ci/release/jobs/tuf.py.
 
   root.py make  --pubdir DIR --signdir DIR --days N --out FILE
@@ -177,7 +177,7 @@ def check_pins():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
-        "aegis_tuf_job", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "jobs", "tuf.py"))
+        "monban_tuf_job", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "jobs", "tuf.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     mod.check_pins()  # exits non-zero on a version that is not the ci/tools.lock pin

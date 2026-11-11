@@ -1,4 +1,4 @@
-# Derives aegis.workflow.js from ~/frontier-research/arsenal/arsenal.workflow.js (same pattern as sovereign/tools/derive_workflow.py).
+# Derives monban.workflow.js from ~/frontier-research/arsenal/arsenal.workflow.js (same pattern as sovereign/tools/derive_workflow.py).
 # Run: python3 -I ~/aegis/research/tools/derive_workflow.py
 # Refuses while research/.inflight-run exists: regenerating changes agent prompts and voids that run's resume cache.
 import os, sys
@@ -11,14 +11,14 @@ def rep(a, b):
     assert a in s, a[:80]
     s = s.replace(a, b)
 
-rep("name: 'frontier-cartographer-arsenal'", "name: 'frontier-cartographer-aegis'")
+rep("name: 'frontier-cartographer-arsenal'", "name: 'frontier-cartographer-monban'")
 rep("description: 'Recursive deep research on the operator leverage ladder + full-stack toolchain; then synthesize PLAYBOOK.md'",
     "description: 'Recursive deep research on the formally-assured, agent-hardened, post-quantum middle-tier web server; then synthesize ARCHITECTURE.md + repo/implementation plan'")
 rep("{ title: 'Final', detail: 'write PLAYBOOK.md and templates' }", "{ title: 'Final', detail: 'write ARCHITECTURE.md and templates' }")
 rep("const ROOT = '/home/patrickd/frontier-research/arsenal'", "const ROOT = '/home/patrickd/aegis/research'")
 rep("const DIRECTIVE = `${ROOT}/ARSENAL_QUESTION.md`", "const DIRECTIVE = `${ROOT}/AEGIS_QUESTION.md`")
 rep("You are part of the FRONTIER CARTOGRAPHER — ARSENAL track. Read the directive ${DIRECTIVE} in full first (especially §3 calibration doctrine, §4 layers, §7 schema, §11 epistemics).",
-    "You are part of the FRONTIER CARTOGRAPHER — AEGIS track. Read the directive ${DIRECTIVE} in full first (especially §0a OPERATOR STEER against anchoring, §1 questions, §3 calibration, §4 layers, §7 schema, §11 epistemics). "
+    "You are part of the FRONTIER CARTOGRAPHER — Monban track. Read the directive ${DIRECTIVE} in full first (especially §0a OPERATOR STEER against anchoring, §1 questions, §3 calibration, §4 layers, §7 schema, §11 epistemics). "
     "META rules it inherits are in /home/patrickd/frontier-research/meta/META_RESEARCH_PROMPT.md (§3, §8, §8a, §11). BLIND RESEARCH (§0a): do NOT open ${ROOT}/state/prior_treatments/ or ${ROOT}/state/seed_conversation.md "
     "unless your brief is the round-1 identifier-calibration target (that target reports exists/doesn't-exist verdicts only). Your work and insights must be independent; reconciliation with prior research happens only at final synthesis.")
 
@@ -33,7 +33,7 @@ s = s[:a] + ("'This is the FIRST round: state files may not exist yet. Seed from
              "calibration target that checks every suspicious identifier flagged in state/seed_conversation.md (MCP 2026-07-28 headers, spargio, KVerus, AIP, "
              "wasmtime #13467, x402 volumes, RFC 9680, crate versions). Pillars not covered this round go first in round 2.'") + s[b:]
 
-rep("You are ARSENAL EXPLORER", "You are AEGIS EXPLORER")
+rep("You are ARSENAL EXPLORER", "You are Monban EXPLORER")
 rep("practitioner threads (Lean Zulip, HN, X, Discord), conference talks, negative results.",
     "RFCs/IETF drafts/datatracker and spec repos, RustSec/GHSA/CVE databases and incident write-ups, OSS-Fuzz, academic venues "
     "(OSDI/SOSP/USENIX Security/CCS/S&P/NDSS/PLDI/CAV/POPL 2024–2026), verification tool repos and Zulip, practitioner threads (HN, lobste.rs, "
@@ -50,7 +50,7 @@ rep("best-known tools/rungs/processes per question A-LADDER/A-TOOLS/A-PROCESS/A-
 rep("1. Dedup per §8 against ${ROOT}/state/graph.jsonl and seen.jsonl",
     "1. Dedup per §8 against ${ROOT}/state/graph.jsonl and seen.jsonl")
 for w in ("ARSENAL round", "ARSENAL saturated", "ARSENAL map"):
-    rep(w, w.replace("ARSENAL", "AEGIS"))
+    rep(w, w.replace("ARSENAL", "Monban"))
 
 a = s.index("const ANGLES = [")
 b = s.index("]\n", a) + 2
@@ -80,12 +80,12 @@ s = s[:a] + """(a) ${ROOT}/ARCHITECTURE.md per directive §9 (version it v${last
 rep("If ${prog} already exists, read it first and continue from it instead of restarting.",
     "If ${prog} already exists, read it first and continue from it instead of restarting. If ${raw} already exists and is complete JSON "
     "(nodes + source list), a previous attempt finished: do NOT redo research, return its contents as the structured result.")
-rep("You are the INTEGRATOR for AEGIS round ${round} — the ONLY writer of map state.",
-    "You are the INTEGRATOR for AEGIS round ${round} — the ONLY writer of map state. IDEMPOTENCY: a previous attempt may have crashed mid-write, "
+rep("You are the INTEGRATOR for Monban round ${round} — the ONLY writer of map state.",
+    "You are the INTEGRATOR for Monban round ${round} — the ONLY writer of map state. IDEMPOTENCY: a previous attempt may have crashed mid-write, "
     "so before appending check state/graph.jsonl, edges.jsonl and seen.jsonl for entries with first_seen_round=${round} and skip ids/URLs already present; "
     "rewrite whole files (frontier_queue, LATEST, ARCHITECTURE-DRAFT) via a temp file then rename, never truncate in place.")
 
 left = [l for l in s.splitlines() if 'ARSENAL' in l or 'PLAYBOOK' in l or 'A-LADDER' in l]
 assert not left, left
-open('/home/patrickd/aegis/research/aegis.workflow.js', 'w').write(s)
+open('/home/patrickd/aegis/research/monban.workflow.js', 'w').write(s)
 print('ok', len(s))

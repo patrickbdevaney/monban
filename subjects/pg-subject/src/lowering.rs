@@ -1,8 +1,8 @@
 //! `pg-subject lowering`: the lowering-read / lowering-write subject protocol v2 (oracles/lowering-read/README.md,
 //! oracles/lowering-write/README.md), dialect `postgres`, served by the production code path:
 //!
-//! request → F4 `Op` + `Schema` + renderer `PgTable` (from the request's declaration) → `aegis_data_ir::lower_op`
-//! (F4 `check_schema`, shape rules, `lowerQ`) → `aegis_adapter_pg::lower::{render, render_filter}`.
+//! request → F4 `Op` + `Schema` + renderer `PgTable` (from the request's declaration) → `monban_data_ir::lower_op`
+//! (F4 `check_schema`, shape rules, `lowerQ`) → `monban_adapter_pg::lower::{render, render_filter}`.
 //!
 //! Protocol adaptation, stated so nothing is hidden:
 //! * columns are numbered in name order (the JSON object's key order is not significant);
@@ -13,7 +13,7 @@
 //!   clamps (or becomes empty when a bound lies beyond the other end); in written values they are refused;
 //! * an upsert's `update` list narrows `UpsertAction::Update.set` (F4 DO UPDATE sets every written non-key column);
 //!   it must be a subset of the written non-key columns, an empty list is DO NOTHING;
-//! * `rls_policy` / `rls_bind` are `aegis_adapter_pg::lower::{rls_policy, rls_bind}`.
+//! * `rls_policy` / `rls_bind` are `monban_adapter_pg::lower::{rls_policy, rls_bind}`.
 //!
 //! `--mutant drop-tenant` (self-test only) removes the tenant conjunct (the left child of the root `And`) from every
 //! lowered filter before rendering. Everything else is refused with a reason: sqlite dialect, KV ops, `merge`,
@@ -22,12 +22,12 @@
 use std::collections::BTreeMap;
 use std::process::ExitCode;
 
-use aegis_adapter_pg::TenantId;
-use aegis_adapter_pg::data_ir::{
+use monban_adapter_pg::TenantId;
+use monban_adapter_pg::data_ir::{
     Collation, Column, Fidelity, Field, Lowered, Op, OpKind, Pred, Schema, SqlExpr, Stmt, UniqueIndex, UpsertAction,
     Value, lower_op, parse_tenant_text,
 };
-use aegis_adapter_pg::lower::{
+use monban_adapter_pg::lower::{
     Param, PgClass, PgColumn, PgForeignKey, PgTable, Rendered, render, render_filter, rls_bind, rls_policy,
 };
 
@@ -384,7 +384,7 @@ fn rls(req: &Json, op_name: &str) -> R<String> {
 fn handle(req: &Json, mutant: bool) -> R<String> {
     match req.get("op").and_then(Json::str) {
         Some("hello") => Ok(format!(
-            "\"name\":\"pg-subject lowering (aegis-adapter-pg::lower)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
+            "\"name\":\"pg-subject lowering (monban-adapter-pg::lower)\",\"protocol\":{PROTOCOL},\"mutants\":{}",
             if mutant { "[\"drop-tenant\"]" } else { "[]" }
         )),
         Some("read") => read(req, mutant),

@@ -3,7 +3,7 @@
 #   ci/remote.sh [--host H] <command...>     default host: desktop (Ryzen 9 5900X, shared with other builds)
 # Syncs the working tree (including uncommitted changes, excluding build output) to H:~/aegis-ci/repo (or repo-<hash>), then runs the
 # command there with an isolated toolchain (~/aegis-ci/{rustup,cargo}, Rust from rust-toolchain.toml), its own
-# target dir, and polite limits: one aegis job at a time on that host (flock), MemoryMax 12G and 8 build jobs (kamrui: 9G, 4), nice 15.
+# target dir, and polite limits: one monban job at a time on that host (flock), MemoryMax 12G and 8 build jobs (kamrui: 9G, 4), nice 15.
 # Nested ci/heavy.sh calls run directly (AEGIS_HEAVY_HELD=1): the remote lock already serializes.
 # The command travels base64-encoded, so quoting inside it cannot break the remote shell.
 # Exit status is the remote command's. Nothing outside ~/aegis-ci is touched on the remote host.
@@ -30,7 +30,7 @@ fi
 RSH="ssh -o BatchMode=yes"; [ ${#HOPTS[@]} -eq 0 ] || RSH="$RSH $(printf '%q ' "${HOPTS[@]}")"
 [ $# -gt 0 ] || { echo "usage: ci/remote.sh [--host H] <command...>"; exit 2; }
 # One remote tree per local checkout, so parallel worktrees (agents) never rsync --delete over each other's source.
-REPO=repo; [ "$(basename "$ROOT")" = aegis ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
+REPO=repo; [ "$(basename "$ROOT")" = monban ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
 rsync -az --delete \
   --exclude /target/ --exclude /.claude/ --exclude '**/target/' --exclude '**/.lake/' --exclude '/research/state/raw/' \
   --exclude '**/__pycache__/' --exclude '/gates/out/' \
@@ -78,9 +78,9 @@ off=0; down_since=
 while :; do
   # One poll: the exit code (read first: once it exists the log is complete), the log bytes after $off, then the code
   # on a marker line.
-  if out=$("${SSH[@]}" "$HOST" "rc=\$(cat $J/$id.rc 2>/dev/null); tail -c +$((off + 1)) $J/$id.log; printf '\\n@@AEGIS-RC@@%s' \"\$rc\"" 2>/dev/null); then
+  if out=$("${SSH[@]}" "$HOST" "rc=\$(cat $J/$id.rc 2>/dev/null); tail -c +$((off + 1)) $J/$id.log; printf '\\n@@Monban-RC@@%s' \"\$rc\"" 2>/dev/null); then
     down_since=
-    body=${out%$'\n'@@AEGIS-RC@@*}; rc=${out##*@@AEGIS-RC@@}
+    body=${out%$'\n'@@Monban-RC@@*}; rc=${out##*@@Monban-RC@@}
     printf '%s' "$body"; off=$((off + $(printf '%s' "$body" | wc -c)))
     [ -n "$rc" ] && exit "$rc"
   else

@@ -1,32 +1,32 @@
-# otlp-export: aegis-otlp vs a mapping-checking OTLP/HTTP JSON collector
+# otlp-export: monban-otlp vs a mapping-checking OTLP/HTTP JSON collector
 
 Unit P7-oracle-otlp-001. Gate `otlp-export` (gates/phase-7.toml, laptop). Implementer unit: P7-otlp-001.
-Decision: PREFLIGHT D-P7.6. OTLP stays out of process (spikes/otlp-footprint, verdict flip). `aegis-otlp` is a
-separate binary with no OpenTelemetry crates. It scrapes the admin listener's OpenMetrics text, reads aegis log
+Decision: PREFLIGHT D-P7.6. OTLP stays out of process (spikes/otlp-footprint, verdict flip). `monban-otlp` is a
+separate binary with no OpenTelemetry crates. It scrapes the admin listener's OpenMetrics text, reads monban log
 lines on stdin, and POSTs OTLP/HTTP JSON to `/v1/metrics` and `/v1/logs`.
 
 ```
 oracles/otlp-export/run                                      # reference exporter (ref_exporter.py): PASS
-oracles/otlp-export/run --exporter target/release/aegis-otlp # the gate: the real binary
+oracles/otlp-export/run --exporter target/release/monban-otlp # the gate: the real binary
 oracles/otlp-export/run --self-test                          # reference PASS, 23 mutants + stub + absent FAIL
 ```
 `--subject` is accepted as an alias of `--exporter` (oracles/README.md contract). With no flag the oracle judges
 the reference, so the aggregate `oracles` gate (which runs every oracle without `needs`) stays green before
 P7-otlp-001. The `otlp-export` gate always passes `--exporter`, so it is red until the binary exists and conforms.
 There is no `default-subject` file yet. When P7-otlp-001 lands, the integrator can add one
-(`target/release/aegis-otlp`) once `build-subjects` builds `-p aegis-otlp`.
+(`target/release/monban-otlp`) once `build-subjects` builds `-p monban-otlp`.
 
 ## Exporter CLI contract (what P7-otlp-001 must provide)
 
 ```
-aegis-otlp --scrape <TARGET> --endpoint <URL> --service-name <S> [--interval-ms <N>] [--resource-attr k=v]... [--once]
+monban-otlp --scrape <TARGET> --endpoint <URL> --service-name <S> [--interval-ms <N>] [--resource-attr k=v]... [--once]
 ```
 
 | flag | meaning |
 |---|---|
 | `--scrape http://HOST:PORT/PATH` | GET this URL over HTTP/1.1 on loopback TCP (the oracle passes `http://127.0.0.1:P/metrics`). |
 | `--scrape unix:/ABS/PATH.sock` | GET `/metrics` over this unix stream socket (the admin listener's UDS form). |
-| `--endpoint URL` | OTLP/HTTP **base** URL. Strip trailing `/`, then append `/v1/metrics` and `/v1/logs`. A path prefix is kept, so `http://h:p/collector/` gives `/collector/v1/metrics`. `https://` goes through the aegis-tls client profile (P8: exercised, see "https, retry and drop-and-count"). |
+| `--endpoint URL` | OTLP/HTTP **base** URL. Strip trailing `/`, then append `/v1/metrics` and `/v1/logs`. A path prefix is kept, so `http://h:p/collector/` gives `/collector/v1/metrics`. `https://` goes through the monban-tls client profile (P8: exercised, see "https, retry and drop-and-count"). |
 | `--ca-file PEM` | Required for `https://`: the only trust roots (no platform store). The oracle passes it. |
 | `--service-name S` | Required. Every Resource carries the attribute `service.name` = S (`stringValue`). |
 | `--interval-ms N` | Scrape and export period in interval mode. Default 10000. |
@@ -60,7 +60,7 @@ The oracle's collector answers `200`, `Content-Type: application/json`, `{}`, ex
   sent for a request after one attempt was accepted.
 - **Not retryable:** any other 4xx (the oracle uses 400): exactly one attempt.
 - **Drop and count.** A request whose attempts are exhausted (or that got a non-retryable answer) is dropped; its log
-  records are added to `aegis_otlp_dropped_log_records` and its metric points to `aegis_otlp_dropped_metric_points`
+  records are added to `monban_otlp_dropped_log_records` and its metric points to `monban_otlp_dropped_metric_points`
   (monotonic cumulative sums, exported as self-metrics). `--once` exits nonzero if anything was dropped.
 - **No stall.** In interval mode a failing signal never stops the other: with `/v1/logs` failing, metrics exports keep
   being accepted at the interval. SIGTERM still exits 0 within 5 s (at most one more attempt per queued request).
@@ -94,12 +94,12 @@ The oracle's collector answers `200`, `Content-Type: application/json`, `{}`, ex
 | any other value token | `asDouble` |
 | one scrape | each series exactly once. `timeUnixNano` lies within the run window. |
 
-- The exporter must not invent metrics, except its own self-metrics named `aegis_otlp_*` (e.g. a drop counter).
+- The exporter must not invent metrics, except its own self-metrics named `monban_otlp_*` (e.g. a drop counter).
 - An exposition without the terminating `# EOF` is rejected whole. No points are exported from it, and `--once`
   exits nonzero.
 
-**Log line mapping.** aegis today writes plain text to stderr (`aegis[PID]: msg`, `aegis: …`; see
-`fixtures/aegis-stderr.log`). ARCHITECTURE §3.10 promises structured JSON logs. The exporter accepts both, one
+**Log line mapping.** monban today writes plain text to stderr (`monban[PID]: msg`, `monban: …`; see
+`fixtures/monban-stderr.log`). ARCHITECTURE §3.10 promises structured JSON logs. The exporter accepts both, one
 record per non-empty line:
 
 | input line | LogRecord |
@@ -119,7 +119,7 @@ Records arrive in input order.
 
 | case | scrape | stdin | asserts |
 |---|---|---|---|
-| once-tcp-real | TCP, `fixtures/aegis-metrics.txt` | `aegis-stderr.log` + `json-logs.jsonl` | every series of the 15 real families (26 points) mapped, spot values (debits{ip}=4, cert{serving}=2592000 gauge, config hash 14283538101851 exact, proxy_requests sum 4); 17 log records incl. all six levels, lowercase, unknown, missing ts, non-object, broken JSON, hex trace ids, typed/nested attributes |
+| once-tcp-real | TCP, `fixtures/monban-metrics.txt` | `monban-stderr.log` + `json-logs.jsonl` | every series of the 15 real families (26 points) mapped, spot values (debits{ip}=4, cert{serving}=2592000 gauge, config hash 14283538101851 exact, proxy_requests sum 4); 17 log records incl. all six levels, lowercase, unknown, missing ts, non-object, broken JSON, hex trace ids, typed/nested attributes |
 | once-unix-synthetic | UDS, `fixtures/synthetic-metrics.txt` | 100 KiB line + one JSON line | histogram buckets/bounds/count/sum/`_created`/unit, label and HELP unescaping, 2⁵³+1 exact, float and negative gauges; oversize line bounded |
 | once-truncated | TCP, real fixture minus `# EOF` | one JSON line | nonzero exit, no points, logs still exported |
 | daemon | TCP, real fixture with a counter that moves per scrape | two lines written while running | ≥3 exports in ~5 s at 250 ms; exported values are scraped values, non-decreasing; `timeUnixNano` strictly increasing; `startTimeUnixNano` fixed; logs streamed ≤3 s; SIGTERM → exit 0 ≤5 s; endpoint prefix `/collector/` honoured |
@@ -128,7 +128,7 @@ Records arrive in input order.
 | retry-recover | 503, 503, then 200 on each path | same | exit 0; scraped once; statuses per path exactly 503, 503, 200; backoff; accepted payloads map exactly once |
 | retry-exhaust | 503 always | same | nonzero exit; 2..8 attempts per path; backoff; one payload per path |
 | no-retry-400 | 400 always | same | nonzero exit; exactly one attempt per path |
-| daemon-drop | `/v1/logs` 503 always, metrics 200, 250 ms interval | 3 JSON lines | keeps running; >= 3 metrics exports accepted in the 5 s after the lines; logs retried; an accepted export shows `aegis_otlp_dropped_log_records` >= 3 within 45 s; SIGTERM exit 0 <= 5 s |
+| daemon-drop | `/v1/logs` 503 always, metrics 200, 250 ms interval | 3 JSON lines | keeps running; >= 3 metrics exports accepted in the 5 s after the lines; logs retried; an accepted export shows `monban_otlp_dropped_log_records` >= 3 within 45 s; SIGTERM exit 0 <= 5 s |
 
 Each case also checks:
 - **wire+schema**: every request has the right path and Content-Type, and passes the JSON-mapping validator.
@@ -169,23 +169,23 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 
 ## Provenance
 
-- `fixtures/aegis-metrics.txt` (sha256 `1e4d83f5…6001`) is the real `GET /metrics` body from the prebuilt
-  `~/aegis/target/release/aegis`:
+- `fixtures/monban-metrics.txt` (sha256 `1e4d83f5…6001`) is the real `GET /metrics` body from the prebuilt
+  `~/aegis/target/release/monban`:
   - binary sha256 `1674648655a5f3a05bafb8d48cf296d46d58b9cd3b1d6bb7c4eb6c7580d51ca4`, built 2026-11-04;
   - recorded 2026-11-06 on the laptop, with no rebuild;
   - config: one listener, admin on loopback, two routes (one with no authz), upstream down;
   - traffic: 4 requests (502, 403, 502, 400), then a SIGHUP;
-  - format: `crates/aegis-metrics/src/render.rs` plus the `aegis_proxy_*` families from
-    `crates/aegis-bin/src/admin.rs`;
+  - format: `crates/monban-metrics/src/render.rs` plus the `monban_proxy_*` families from
+    `crates/monban-bin/src/admin.rs`;
   - response header: `content-type: application/openmetrics-text; version=1.0.0; charset=utf-8`.
 
   The oracle's admin mimic reproduces admin.rs's response shape: `HTTP/1.1`, lowercase headers,
   `connection: close`, one request per connection.
-- `fixtures/aegis-stderr.log` (`aa417b24…6103`) is the same run's stderr, unmodified except one substitution: the
-  scratch audit directory path is replaced by `/var/lib/aegis/audit/`.
-- `fixtures/json-logs.jsonl` and `fixtures/synthetic-metrics.txt` are **synthetic**. aegis emits no JSON logs and
+- `fixtures/monban-stderr.log` (`aa417b24…6103`) is the same run's stderr, unmodified except one substitution: the
+  scratch audit directory path is replaced by `/var/lib/monban/audit/`.
+- `fixtures/json-logs.jsonl` and `fixtures/synthetic-metrics.txt` are **synthetic**. monban emits no JSON logs and
   no histogram today. They pin the contract for the promised JSON log shape and for OpenMetrics features (histogram,
-  `_created`, UNIT, escapes, floats) that aegis-metrics' renderer can express or will grow.
+  `_created`, UNIT, escapes, floats) that monban-metrics' renderer can express or will grow.
 - `proto-excerpts.txt` comes from opentelemetry-proto commit `169f2f2c7c1550c364d5eecb05d1b6163a011b06`, with the
   upstream sha256s listed in that file. It contains the JSON-encoding section of docs/specification.md verbatim
   and the field lists of the messages used. No whole files are vendored.
@@ -195,7 +195,7 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 - `run`: `OTLP-EXPORT: PASS (53 checks, subject reference ref_exporter.py)`, 3 of 3 runs, about 5.5 s each.
 - `run --self-test`: `OTLP-EXPORT SELF-TEST: PASS (reference green; 16/16 mutants red; stub and absent binary
   red)`, about 28 s.
-- `run --exporter target/release/aegis-otlp`: `OTLP-EXPORT: FAIL (exporter target/release/aegis-otlp is absent or
+- `run --exporter target/release/monban-otlp`: `OTLP-EXPORT: FAIL (exporter target/release/monban-otlp is absent or
   not executable)`. That is red before P7-otlp-001, as required.
 - A fail-closed stub (exit 1): 31 of 53 checks fail.
 
@@ -203,13 +203,13 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 
 - P8: https, retry with backoff, the 400 no-retry rule, drop-and-count of log records and the no-stall rule are
   exercised (above). Still not exercised: `Retry-After`, 429/502/504 individually (503 stands for the retryable set),
-  the bounded stdin queue's drop-oldest under a slow collector, and `aegis_otlp_dropped_metric_points`' value (it can
+  the bounded stdin queue's drop-oldest under a slow collector, and `monban_otlp_dropped_metric_points`' value (it can
   only be exported through the failing metrics path). Self-metrics are otherwise allowed but not checked.
 - The TLS collector is Python ssl (OpenSSL 3.x, TLS 1.3, P-256, X25519): it shows the exporter verifies the chain
-  against `--ca-file` and speaks TLS 1.3, not which groups the aegis-tls client profile offers (the tls gates do).
-- OpenMetrics features absent from aegis's renderer are not fed: per-sample timestamps, `info`/`stateset`/`summary`/
+  against `--ca-file` and speaks TLS 1.3, not which groups the monban-tls client profile offers (the tls gates do).
+- OpenMetrics features absent from monban's renderer are not fed: per-sample timestamps, `info`/`stateset`/`summary`/
   `gaugehistogram`, exemplars, NaN/Inf values.
-- The JSON log input schema is defined here because aegis does not yet emit JSON logs. If aegis-bin adopts a
+- The JSON log input schema is defined here because monban does not yet emit JSON logs. If monban-bin adopts a
   different JSON shape, this oracle and the contract change together, in a spec-author unit.
 - The timing bounds in daemon mode (≤3 s log latency, ≥3 exports in about 5 s at 250 ms, exit ≤5 s after SIGTERM) are
   generous for loopback and are not performance claims.
@@ -221,6 +221,6 @@ A stub that exits 0 and sends nothing must also FAIL, and so must an absent `--e
 - `run`: `OTLP-EXPORT: PASS (95 checks, subject reference ref_exporter.py)`, about 19 s.
 - `run --self-test`: `OTLP-EXPORT SELF-TEST: PASS (reference green; 23/23 mutants red; stub and absent binary red)`,
   about 2.5 min (drop-uncounted waits the full 45 s for a count that never comes).
-- Against today's aegis-otlp (kamrui build at base 0e27b11): `OTLP-EXPORT: FAIL (10 failed, 85 passed)`. https-once
+- Against today's monban-otlp (kamrui build at base 0e27b11): `OTLP-EXPORT: FAIL (10 failed, 85 passed)`. https-once
   and https-untrusted pass (https through `--ca-file` already works); every retry check is red (one attempt per
   request, no retry), and so is `daemon-drop.drop-counted`. no-retry-400 passes.

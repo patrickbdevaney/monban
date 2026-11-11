@@ -2,7 +2,7 @@
  "id": "P4-host-001",
  "role": "implementer",
  "crates": [
-  "aegis-adapter-host (SDK host + golden dispatch)"
+  "monban-adapter-host (SDK host + golden dispatch)"
  ],
  "depends_on": [
   "P4-datair-001",
@@ -34,17 +34,17 @@
   "must": "0 allows on empty/non-covering capsets over >= 100k cases for each of sqlite, pg, redis, out-of-process; no render reached on deny; F7b obligations hold; subject mutants red"
  },
  "write_scope": [
-  "crates/aegis-adapter-host/src/lib.rs",
-  "crates/aegis-adapter-host/src/host/**",
-  "crates/aegis-adapter-host/src/dispatch.rs",
-  "crates/aegis-adapter-host/tests/**",
+  "crates/monban-adapter-host/src/lib.rs",
+  "crates/monban-adapter-host/src/host/**",
+  "crates/monban-adapter-host/src/dispatch.rs",
+  "crates/monban-adapter-host/tests/**",
   "subjects/host-subject/**",
-  "sdk/aegis-sdk/src/query.rs",
-  "sdk/aegis-sdk/src/lib.rs"
+  "sdk/monban-sdk/src/query.rs",
+  "sdk/monban-sdk/src/lib.rs"
  ],
- "notes": "Order per op: authorize(CapSet) -> check_schema(introspected) -> budget pre-debit (NC4) -> render -> execute. pdp_uds.rs untouched. From P4-oracle-trybuild-001: (1) M4 (markup returned as String) is counted caught only if the host never serves a handler String as HTML (fixed text/plain or JSON content type, nosniff); prove it with a test, or M4 becomes residual and sdk-trybuild must be re-frozen. (2) Apps cannot build an Op because aegis-sdk does not re-export aegis_data_ir::{Op, OpKind, Pred, Value}; decide the app-facing query surface with the integrator before P4-bin-001's apps/notes. From P4-state-002: a dropped aegis_state Lease keeps its idempotency key InFlight until restart; the host must end every lease in exactly one commit/abort on every path (cancellation, panic=abort aside, timeouts, pool rejection). Test it: a cancelled request's key must be reusable afterwards.",
+ "notes": "Order per op: authorize(CapSet) -> check_schema(introspected) -> budget pre-debit (NC4) -> render -> execute. pdp_uds.rs untouched. From P4-oracle-trybuild-001: (1) M4 (markup returned as String) is counted caught only if the host never serves a handler String as HTML (fixed text/plain or JSON content type, nosniff); prove it with a test, or M4 becomes residual and sdk-trybuild must be re-frozen. (2) Apps cannot build an Op because monban-sdk does not re-export monban_data_ir::{Op, OpKind, Pred, Value}; decide the app-facing query surface with the integrator before P4-bin-001's apps/notes. From P4-state-002: a dropped monban_state Lease keeps its idempotency key InFlight until restart; the host must end every lease in exactly one commit/abort on every path (cancellation, panic=abort aside, timeouts, pool rejection). Test it: a cancelled request's key must be reusable afterwards.",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass (gate runner on main): nonempty-props 100k x 4 adapters on real dispatch (digest = reference), sdk-host 200 seeds, self-tests 5/5 and 21/21; M4 proven (sealed Respond, text/plain+nosniff+CSP sandbox); lease commit/abort on every path; PG pool behind seam (pg.rs to lift into aegis-bin)"
+ "status": "pass (gate runner on main): nonempty-props 100k x 4 adapters on real dispatch (digest = reference), sdk-host 200 seeds, self-tests 5/5 and 21/21; M4 proven (sealed Respond, text/plain+nosniff+CSP sandbox); lease commit/abort on every path; PG pool behind seam (pg.rs to lift into monban-bin)"
 }

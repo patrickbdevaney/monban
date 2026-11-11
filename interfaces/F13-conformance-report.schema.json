@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aegis:interfaces:F13:conformance-report:1",
-  "title": "AEGIS conformance report (frozen interface F13)",
+  "title": "Monban conformance report (frozen interface F13)",
   "description": "Signed JSON report emitted by conformance/ for a build or a third-party extension. Levels C0-C4 (C3 model DRT, C4 traceability of the F1 statement ledger; gated from Phase 8, see `gated`); the golden reference claims only what its gates executed.",
   "type": "object",
   "additionalProperties": false,
@@ -24,7 +24,7 @@
     "not_claimed": {"type": "array", "items": {"type": "string"}},
     "gated": {"description": "Amended 2026-11-06 (P8-conformance-001, PREFLIGHT D-P8.5; additive, v stays 1; absent = not stated, read as C0-C2 as before Phase 8). The levels this report's gate required at 100% (passed == total) for this subject; a level in `levels` but not here was reported, not gated. Phase 8 gate conformance-full: C0-C4 for golden subjects.",
       "type": "array", "uniqueItems": true, "items": {"enum": ["C0", "C1", "C2", "C3", "C4"]}},
-    "config_sha256": {"description": "Amended 2026-11-06 (P8-conformance-001, PREFLIGHT D-P8.5 config-pin; additive, v stays 1; absent = no config pin). The effective-config hash (aegis-config config_hash: SHA-256 of the canonical effective F8 JSON) of the subject's golden config, pinned in conformance/config-pin.toml. Present only if every boot record of the subject in this run (conformance/boot-pin: check-config, the boot log line and /healthz agree) names this hash and the report's artifact_sha256; a subject that booted with a different hash gets no report.",
+    "config_sha256": {"description": "Amended 2026-11-06 (P8-conformance-001, PREFLIGHT D-P8.5 config-pin; additive, v stays 1; absent = no config pin). The effective-config hash (monban-config config_hash: SHA-256 of the canonical effective F8 JSON) of the subject's golden config, pinned in conformance/config-pin.toml. Present only if every boot record of the subject in this run (conformance/boot-pin: check-config, the boot log line and /healthz agree) names this hash and the report's artifact_sha256; a subject that booted with a different hash gets no report.",
       "type": "string", "pattern": "^[0-9a-f]{64}$"},
     "test_keys": {"type": "boolean", "description": "true iff the signatures were made with per-run test keys (PLAN-6 D-P2, REL-4); absent means false. A verifier refuses a report with test_keys true unless it is run with --allow-test-keys."},
     "signatures": {"description": "Amended 2026-11-04 (P6-spec-001, PLAN-6 Interfaces F13; was a single `signature`; v stays 1, no consumer existed). Exactly three signatures, one per algorithm, in this order, all over the same message: the same report with the `signatures` member removed, serialized as Python json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False) encoded as UTF-8 (REL-1: accepted only if all three verify).",

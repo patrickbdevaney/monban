@@ -1,23 +1,23 @@
 //! `cargo xtask budget [--self-test]`: binary budget gate (REPO_LAYOUT §6, R-PERF-1).
 //!
-//! Measures the default release build of `aegis-bin` (binary `aegis`) and judges it against the §6 limits:
+//! Measures the default release build of `monban-bin` (binary `monban`) and judges it against the §6 limits:
 //!
 //! | criterion | limit | how it is measured |
 //! |---|---|---|
-//! | stripped size | ≤ 6.0 MB (6,000,000 bytes, decimal) | `target/release/aegis`; stripped by the release profile, confirmed by the absence of a `.symtab` ELF section |
+//! | stripped size | ≤ 6.0 MB (6,000,000 bytes, decimal) | `target/release/monban`; stripped by the release profile, confirmed by the absence of a `.symtab` ELF section |
 //! | shipped crates | ≤ 60 third-party | `cargo tree -e normal,no-proc-macro --no-dedupe`, deduped by name+version (the resolved build graph, as in spikes/otlp-footprint; `cargo metadata` over-counts never-built crates such as ring). Workspace crates are reported but not counted against the limit (the floor came from a hello-world build that counted dependencies) |
 //! | non-crypto unsafe | ≤ 5,100 lines | lines with the word `unsafe` outside comments and string/char literals in `src/**/*.rs` of each shipped third-party crate in the cargo registry; aws-lc-*, rustls*, ring are counted separately as crypto |
-//! | idle RSS | ≤ 8 MB (8,000,000 bytes) | VmRSS of a started `aegis` after 1 s; `n/a` while the binary exits at boot (fail-closed), not judged |
+//! | idle RSS | ≤ 8 MB (8,000,000 bytes) | VmRSS of a started `monban` after 1 s; `n/a` while the binary exits at boot (fail-closed), not judged |
 //! | 1k idle TLS | ≤ 25 MB | `n/a` until a listener exists, not judged |
 //!
 //! Then it builds and measures the `--features native` build (the native data plane, PLAN D17, into `target/native`)
 //! against the same criteria with its own stripped-size ceiling of 8.0 MB (DEVIATIONS X-12).
 //!
-//! Third, the P2 worker binary `aegis-p2` (PLAN-5 D3, DEVIATIONS X-13: the only binary that links wasmtime and
+//! Third, the P2 worker binary `monban-p2` (PLAN-5 D3, DEVIATIONS X-13: the only binary that links wasmtime and
 //! cranelift), built into `target/p2`, against its own explicit ceilings for stripped size, third-party crates and
 //! non-crypto unsafe lines (set from the 2026-10-31 measurement). All three must pass.
 //!
-//! Finally, aegis-bin's `p2` feature must add no third-party crate: the resolved graphs of `p2` and `native,p2` must
+//! Finally, monban-bin's `p2` feature must add no third-party crate: the resolved graphs of `p2` and `native,p2` must
 //! hold exactly the third-party crates of the default and `native` builds (`cargo tree`, no build needed).
 //!
 //! Measurement (`measure`) and judgement (`judge_build`) are separate so `--self-test` can feed synthetic
@@ -51,15 +51,15 @@ pub struct Build {
     pub max_crates: usize,
     /// Non-crypto `unsafe` line ceiling.
     pub max_unsafe: u64,
-    /// Start the binary with a minimal serving config for the idle-RSS probe (aegis-bin only).
+    /// Start the binary with a minimal serving config for the idle-RSS probe (monban-bin only).
     pub serve: bool,
 }
 
 /// The default build: the core (mode R, gateway G), REPO_LAYOUT §6 limits.
 pub const CORE: Build = Build {
     name: "default",
-    package: "aegis-bin",
-    bin: "aegis",
+    package: "monban-bin",
+    bin: "monban",
     features: "",
     target: None,
     max_size: MAX_STRIPPED_BYTES,
@@ -71,8 +71,8 @@ pub const CORE: Build = Build {
 /// directory the native-e2e gate uses), so the core build in `target/release` is never overwritten.
 pub const NATIVE: Build = Build {
     name: "native",
-    package: "aegis-bin",
-    bin: "aegis",
+    package: "monban-bin",
+    bin: "monban",
     features: "native",
     target: Some("target/native"),
     max_size: MAX_NATIVE_STRIPPED_BYTES,
@@ -84,8 +84,8 @@ pub const NATIVE: Build = Build {
 /// shipped p2 configuration (no `test-hooks`, no `mutants`; PLAN-5 D15).
 pub const P2: Build = Build {
     name: "p2-worker",
-    package: "aegis-p2",
-    bin: "aegis-p2",
+    package: "monban-p2",
+    bin: "monban-p2",
     features: "",
     target: Some("target/p2"),
     max_size: MAX_P2_STRIPPED_BYTES,
@@ -93,17 +93,17 @@ pub const P2: Build = Build {
     max_unsafe: MAX_P2_NONCRYPTO_UNSAFE,
     serve: false,
 };
-/// aegis-bin feature sets that must resolve to exactly the third-party crates of a measured build (PLAN-5 D3: the
-/// `p2` feature adds only the aegis-iso supervisor and the F14 decoder, no third-party crate).
+/// monban-bin feature sets that must resolve to exactly the third-party crates of a measured build (PLAN-5 D3: the
+/// `p2` feature adds only the monban-iso supervisor and the F14 decoder, no third-party crate).
 pub const SAME_CRATES: &[(&str, &str)] = &[("p2", ""), ("native,p2", "native")];
-/// Shipped third-party crate limit (both aegis-bin builds).
+/// Shipped third-party crate limit (both monban-bin builds).
 pub const MAX_CRATES: usize = 60;
-/// aegis-p2 ceilings (DEVIATIONS X-13), set by the integrator from the measurement of 2026-10-31 (PLAN-5 Q3):
+/// monban-p2 ceilings (DEVIATIONS X-13), set by the integrator from the measurement of 2026-10-31 (PLAN-5 Q3):
 /// * size: the skeleton links no wasmtime code (286,584 B), so the ceiling comes from a probe with the same release
 ///   profile exercising the worker's wasmtime surface (compile, serialize, deserialize_file, pooling, fuel, epoch,
-///   linker, InstancePre): 9,548,896 B stripped. 11.0 MB leaves ~1.45 MB for aegis-iso, F14 and the subcommands.
+///   linker, InstancePre): 9,548,896 B stripped. 11.0 MB leaves ~1.45 MB for monban-iso, F14 and the subcommands.
 /// * crates: 64 third-party (wasmtime 50.0.1 + cranelift 0.137.1 graph, incl. libc/rustix/sha2); any new crate needs
-///   an integrator decision, as in aegis-bin.
+///   an integrator decision, as in monban-bin.
 /// * non-crypto unsafe: 6,243 lines over those 64 crates; 6,500 leaves room for a wasmtime 50.0.x security bump.
 pub const MAX_P2_STRIPPED_BYTES: u64 = 11_000_000;
 pub const MAX_P2_CRATES: usize = 64;
@@ -337,7 +337,7 @@ pub fn measure(root: &Path, b: &Build) -> Result<Measured, String> {
 pub type Crates = Vec<(String, String)>;
 
 /// Parses `cargo tree --prefix none --no-dedupe` output into deduped (third-party, workspace) crate lists.
-/// Workspace crates are those with a local path source in the line, e.g. `aegis-types v0.0.0 (/path)`.
+/// Workspace crates are those with a local path source in the line, e.g. `monban-types v0.0.0 (/path)`.
 pub fn parse_tree(out: &str, root: &Path) -> (Crates, Crates) {
     let root_s = root.to_string_lossy();
     let mut third = BTreeSet::new();
@@ -647,10 +647,10 @@ pub fn unsafe_lines(src: &str) -> u64 {
 }
 
 /// Writes a minimal serving setup (self-signed P-256 cert via the openssl CLI, one loopback listener, one route,
-/// admin on loopback) into `dir` and returns the arguments to start aegis with. None if openssl is missing.
+/// admin on loopback) into `dir` and returns the arguments to start monban with. None if openssl is missing.
 fn serving_args(dir: &Path) -> Option<Vec<String>> {
     std::fs::create_dir_all(dir).ok()?;
-    let (key, crt, cfg) = (dir.join("key.pem"), dir.join("cert.pem"), dir.join("aegis.json"));
+    let (key, crt, cfg) = (dir.join("key.pem"), dir.join("cert.pem"), dir.join("monban.json"));
     let ok = Command::new("openssl")
         .args(["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "2"])
         .args(["-subj", "/CN=budget.test", "-addext", "subjectAltName=DNS:budget.test"])
@@ -819,7 +819,7 @@ fn self_test_run() -> Result<(), String> {
         failures.push("build table: the default build must be featureless at 6.0 MB, native at `native`".into());
     }
     // The P2 worker (PLAN-5 D3, DEVIATIONS X-13): its own ceilings; each single over-ceiling input must FAIL, the
-    // input exactly at its ceilings must PASS, and its ceilings must not leak into the aegis-bin builds.
+    // input exactly at its ceilings must PASS, and its ceilings must not leak into the monban-bin builds.
     let p2_edge = Measured {
         size_bytes: MAX_P2_STRIPPED_BYTES,
         third_party: (0..MAX_P2_CRATES).map(|i| (format!("c{i}"), "1.0.0".into())).collect(),
@@ -854,10 +854,10 @@ fn self_test_run() -> Result<(), String> {
             println!("  over-budget '{label}': FAIL (as required: {})", v.join("; "));
         }
     }
-    if P2.package != "aegis-p2" || P2.bin != "aegis-p2" || !P2.features.is_empty() || P2.target != Some("target/p2") {
-        failures.push("build table: the p2 worker must be aegis-p2, featureless, in target/p2 (PLAN-5 D15)".into());
+    if P2.package != "monban-p2" || P2.bin != "monban-p2" || !P2.features.is_empty() || P2.target != Some("target/p2") {
+        failures.push("build table: the p2 worker must be monban-p2, featureless, in target/p2 (PLAN-5 D15)".into());
     }
-    // aegis-bin `p2` must add no third-party crate (PLAN-5 D3).
+    // monban-bin `p2` must add no third-party crate (PLAN-5 D3).
     let c = |n: &str| (n.to_string(), "1.0.0".to_string());
     let core_set = vec![c("tokio"), c("hyper")];
     if !same_crates_violations("p2", &core_set, "", &core_set).is_empty() {
@@ -866,9 +866,9 @@ fn self_test_run() -> Result<(), String> {
     let with_wasmtime = vec![c("tokio"), c("hyper"), c("wasmtime")];
     let v = same_crates_violations("p2", &with_wasmtime, "", &core_set);
     if v.is_empty() {
-        failures.push("aegis-bin p2 adding a third-party crate (wasmtime) was not rejected".into());
+        failures.push("monban-bin p2 adding a third-party crate (wasmtime) was not rejected".into());
     } else {
-        println!("  mutant 'aegis-bin p2 adds wasmtime': FAIL (as required: {})", v.join("; "));
+        println!("  mutant 'monban-bin p2 adds wasmtime': FAIL (as required: {})", v.join("; "));
     }
     if SAME_CRATES != [("p2", ""), ("native,p2", "native")] {
         failures.push("SAME_CRATES must compare p2 with default and native,p2 with native".into());
@@ -884,7 +884,7 @@ fn self_test_run() -> Result<(), String> {
         failures.push("crypto classification wrong".into());
     }
     // cargo tree parsing: workspace vs third-party, dedupe by name+version.
-    let tree = "aegis-bin v0.0.0 (/r/crates/aegis-bin)\nlibc v0.2.1\nlibc v0.2.1\nlibc v0.3.0\n";
+    let tree = "monban-bin v0.0.0 (/r/crates/monban-bin)\nlibc v0.2.1\nlibc v0.2.1\nlibc v0.3.0\n";
     let (t, w) = parse_tree(tree, Path::new("/r"));
     if t.len() != 2 || w.len() != 1 {
         failures.push(format!("cargo tree parse: expected 2 third-party / 1 workspace, got {} / {}", t.len(), w.len()));
@@ -918,17 +918,17 @@ pub fn budget(self_test: bool) -> Result<(), String> {
         }
     }
     for (with, base) in SAME_CRATES {
-        let (a, _) = shipped_crates(&root, "aegis-bin", with)?;
-        let (b, _) = shipped_crates(&root, "aegis-bin", base)?;
+        let (a, _) = shipped_crates(&root, "monban-bin", with)?;
+        let (b, _) = shipped_crates(&root, "monban-bin", base)?;
         let v = same_crates_violations(with, &a, base, &b);
         println!(
-            "budget: aegis-bin --features {with}: {} third-party crates (vs {} for {})",
+            "budget: monban-bin --features {with}: {} third-party crates (vs {} for {})",
             a.len(),
             b.len(),
             if base.is_empty() { "default" } else { base }
         );
         if v.is_empty() {
-            lines.push(format!("aegis-bin {with}: no new third-party crate"));
+            lines.push(format!("monban-bin {with}: no new third-party crate"));
         } else {
             for x in &v {
                 println!("  - {x}");
@@ -945,12 +945,12 @@ pub fn budget(self_test: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// Third-party crates that aegis-bin feature set `with` resolves beyond those of `base` (PLAN-5 D3).
+/// Third-party crates that monban-bin feature set `with` resolves beyond those of `base` (PLAN-5 D3).
 pub fn same_crates_violations(with: &str, a: &[(String, String)], base: &str, b: &[(String, String)]) -> Vec<String> {
     let base = if base.is_empty() { "default" } else { base };
     a.iter()
         .filter(|c| !b.contains(c))
-        .map(|(n, v)| format!("aegis-bin --features {with} adds third-party crate {n} {v} (not in the {base} build)"))
+        .map(|(n, v)| format!("monban-bin --features {with} adds third-party crate {n} {v} (not in the {base} build)"))
         .collect()
 }
 

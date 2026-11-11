@@ -1,7 +1,7 @@
 {"id":"P2-canon-001",
- "crates":["aegis-canon"],
- "spec_refs":["F1#CANON-1..8","F1#H1-grammar","F2 Canon<K> via canon_owner","F8 canon block","DEVIATIONS.md X-2 (strict I-JSON parser owned by aegis-canon)"],
+ "crates":["monban-canon"],
+ "spec_refs":["F1#CANON-1..8","F1#H1-grammar","F2 Canon<K> via canon_owner","F8 canon block","DEVIATIONS.md X-2 (strict I-JSON parser owned by monban-canon)"],
  "oracles":["oracles/canon-diff/run --subject target/release/canon-subject","oracles/canon-diff/run --self-test"],
  "acceptance":{"cmd":"ci/heavy.sh cargo build --release -p canon-subject && oracles/canon-diff/run --subject target/release/canon-subject","must":"CANON-DIFF: PASS nonzero_cells=0 over G1 100k + G2 + G3"},
- "write_scope":["crates/aegis-canon/**","subjects/canon-subject/**"],
+ "write_scope":["crates/monban-canon/**","subjects/canon-subject/**"],
  "infeasible_exit":true,"max_retries":30,"passes":false}

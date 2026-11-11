@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # TLOG-VERIFY oracle entry point (oracles/README.md contract).
-#   run --subject <cmd>        run <cmd> --out <tmp> (an aegis-audit tlog-tiles writer), then verify its output
-#   run --openssl-mldsa --binary <aegis>   boot aegis-bin, OpenSSL 3.5.3 verifies its ML-DSA-87 checkpoint cosignatures
-#   run --openssl-mldsa --self-test [--binary <aegis>]   OpenSSL-signed reference + aegis-bin log, then mutants
+#   run --subject <cmd>        run <cmd> --out <tmp> (an monban-audit tlog-tiles writer), then verify its output
+#   run --openssl-mldsa --binary <monban>   boot monban-bin, OpenSSL 3.5.3 verifies its ML-DSA-87 checkpoint cosignatures
+#   run --openssl-mldsa --self-test [--binary <monban>]   OpenSSL-signed reference + monban-bin log, then mutants
 #   run --self-test [--subject <cmd>]   mutate the subject's output (default subject: target/release/audit-subject)
 #                                        and require every mutation to FAIL for its intended reason
 # The Go verifier is built on first use (and whenever src/ changes) inside a digest-pinned golang:1.26-alpine
@@ -36,19 +36,19 @@ while [ $# -gt 0 ]; do
     --self-test) selftest=1; shift ;;
     --openssl-mldsa) mldsa=1; shift ;;
     --binary) binary="$2"; shift 2 ;;
-    *) echo "usage: run --subject <cmd> | --self-test [--subject <cmd>] | --openssl-mldsa (--binary <aegis> | --self-test [--binary <aegis>])" >&2
+    *) echo "usage: run --subject <cmd> | --self-test [--subject <cmd>] | --openssl-mldsa (--binary <monban> | --self-test [--binary <monban>])" >&2
        echo "TLOG-VERIFY: FAIL (usage)"; exit 2 ;;
   esac
 done
 
-# --openssl-mldsa (P8-audit-001, gate tlog-mldsa-openssl): OpenSSL 3.5.3 verifies aegis-bin's ML-DSA-87 checkpoint
+# --openssl-mldsa (P8-audit-001, gate tlog-mldsa-openssl): OpenSSL 3.5.3 verifies monban-bin's ML-DSA-87 checkpoint
 # cosignatures (openssl_mldsa.py; no Go build, no container). Host: kamrui (/usr/bin/openssl 3.5.3).
 if [ "$mldsa" = 1 ]; then
   OPENSSL="${TLOG_MLDSA_OPENSSL:-/usr/bin/openssl}"
-  binary="${binary:-$repo/target/release/aegis}"
+  binary="${binary:-$repo/target/release/monban}"
   case "$binary" in /*) ;; *) binary="$PWD/$binary" ;; esac
   name="TLOG-MLDSA-OPENSSL"; [ "$selftest" = 1 ] && name="TLOG-MLDSA-OPENSSL SELF-TEST"
-  [ -x "$binary" ] || { echo "$name: FAIL (aegis-bin $binary not found; build it: ci/heavy.sh cargo build --release --locked -p aegis-bin)"; exit 1; }
+  [ -x "$binary" ] || { echo "$name: FAIL (monban-bin $binary not found; build it: ci/heavy.sh cargo build --release --locked -p monban-bin)"; exit 1; }
   work="$(mktemp -d "${TMPDIR:-/tmp}/tlog-mldsa.XXXXXX")"
   trap 'rm -rf "$work"' EXIT
   mode=binary; [ "$selftest" = 1 ] && mode=selftest

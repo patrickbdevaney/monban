@@ -9,7 +9,7 @@ set -euo pipefail
 REPO=/home/patrickd/aegis
 MAX_KB=${CKPT_MAX_KB:-2048}                      # skip binaries/tool caches explorers leave behind
 SESS=/home/patrickd/.claude/projects/-home-patrickd
-exec 9>/tmp/aegis-checkpoint.lock; flock -n 9 || exit 0
+exec 9>/tmp/monban-checkpoint.lock; flock -n 9 || exit 0
 cd "$REPO"
 
 # 1. Mirror live workflow journals (agent return values = the resume cache) into the repo tree.
@@ -18,7 +18,7 @@ J=research/state/raw/_journals
 mkdir -p "$J"
 find "$SESS" -path '*/subagents/workflows/wf_*/journal.jsonl' -mmin -2880 2>/dev/null | while read -r f; do
   run=$(basename "$(dirname "$f")")
-  grep -q 'AEGIS' "$f" 2>/dev/null || continue     # only this track's runs
+  grep -q 'Monban' "$f" 2>/dev/null || continue     # only this track's runs
   cp -p "$f" "$J/$run.journal.jsonl.tmp" && mv "$J/$run.journal.jsonl.tmp" "$J/$run.journal.jsonl"
 done
 

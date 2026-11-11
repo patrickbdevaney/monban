@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# AEGIS oracle: aegis-otlp exporter vs a mapping-checking OTLP/HTTP JSON collector (unit P7-oracle-otlp-001,
+# Monban oracle: monban-otlp exporter vs a mapping-checking OTLP/HTTP JSON collector (unit P7-oracle-otlp-001,
 # PREFLIGHT D-P7.6). Contract: oracles/README.md. Exporter CLI contract: oracles/otlp-export/README.md.
 # Last line: OTLP-EXPORT: PASS|FAIL (...)  /  OTLP-EXPORT SELF-TEST: PASS|FAIL (...).
 #   ./run                                   against the reference exporter (ref_exporter.py)
-#   ./run --exporter target/release/aegis-otlp   against the real exporter (gate otlp-export)
+#   ./run --exporter target/release/monban-otlp   against the real exporter (gate otlp-export)
 #   ./run --self-test                       reference PASS; every mutant, a stub and an absent binary FAIL
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)

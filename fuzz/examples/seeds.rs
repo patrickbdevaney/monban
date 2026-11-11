@@ -5,9 +5,9 @@
 use std::fs;
 use std::path::Path;
 
-use aegis_authz::Decision;
-use aegis_authz::pdp::{EntityData, PdpRequest, Uid, Value, encode_reply, encode_request};
-use aegis_token::{Caveat, KeyRing, MintParams, TokenL, attenuate, mint};
+use monban_authz::Decision;
+use monban_authz::pdp::{EntityData, PdpRequest, Uid, Value, encode_reply, encode_request};
+use monban_token::{Caveat, KeyRing, MintParams, TokenL, attenuate, mint};
 
 fn put(dir: &Path, target: &str, name: &str, bytes: &[u8]) -> std::io::Result<()> {
     let d = dir.join(target);
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         put(dir, "canon_json", &format!("seed{i}"), s)?;
     }
 
-    // config (from crates/aegis-config/tests/schema.rs BASE / MINIMAL)
+    // config (from crates/monban-config/tests/schema.rs BASE / MINIMAL)
     put(
         dir,
         "config",

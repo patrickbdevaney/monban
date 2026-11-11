@@ -1,11 +1,11 @@
-//! `do idem` / `do outbox` on aegis-state: idempotency keyed by (principal, key); outbox entries scoped by
+//! `do idem` / `do outbox` on monban-state: idempotency keyed by (principal, key); outbox entries scoped by
 //! (principal, tenant).
 
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use aegis_adapter_pg::data_ir::tenant_text;
-use aegis_state::{Begin, IdemKey, Outcome, State, StateMutations};
+use monban_adapter_pg::data_ir::tenant_text;
+use monban_state::{Begin, IdemKey, Outcome, State, StateMutations};
 
 use crate::{Mutants, Scope};
 

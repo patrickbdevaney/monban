@@ -1,17 +1,17 @@
 # proxy-l4: PROXY v2 + L4 SNI passthrough oracle (unit P7-oracle-proxy-001)
 
-Black-box oracle for the Phase 7 `proxy-protocol` and `l4` features of `aegis` (gate `proxy-l4`, implementers
+Black-box oracle for the Phase 7 `proxy-protocol` and `l4` features of `monban` (gate `proxy-l4`, implementers
 P7-wire-001 and P7-bin-001). It checks F1 PROXY-1..3 and L4-1..2 (PLAN-7 "Interfaces", PREFLIGHT D-P7.2) end to end
 against stdlib-Python upstreams. It also ships the parser-level vector sets and the shared ClientHello builder.
 
 ```
-oracles/proxy-l4/run --binary target/release/aegis [-v|-vv]   # binary built with --features proxy-protocol,l4
+oracles/proxy-l4/run --binary target/release/monban [-v|-vv]   # binary built with --features proxy-protocol,l4
 oracles/proxy-l4/run --self-test [--jobs 4]
 ```
 
 `run` execs `python3 -I oracle.py` from the repo root. The last line is `PROXY-L4: PASS (...)` or
 `PROXY-L4: FAIL (...)`, and the exit code is 0 only on PASS. Self-test prints `PROXY-L4 SELF-TEST: PASS|FAIL (...)`.
-`--subject` is an alias of `--binary`; `default-subject` is `target/release/aegis`. Needs: python3 ≥ 3.10, the
+`--subject` is an alias of `--binary`; `default-subject` is `target/release/monban`. Needs: python3 ≥ 3.10, the
 `openssl` CLI (mints three throwaway ECDSA P-256 certificates and runs one `s_client`), and Linux loopback, where
 any 127.0.0.0/8 address can be a source. `::1` is optional: without it the IPv6 checks are skipped and the PASS
 line says so. The oracle runs on the desktop (`ci/remote.sh`). One run takes about 30 s, the self-test about 2 min.
@@ -48,7 +48,7 @@ loader already reads:
    "proxy_protocol": {"trusted": ["::1/128"]}}
  ],
  "admin": {"bind": "127.0.0.1:P_ADMIN"},
- "vhosts": [{"host": "aegis.test", "routes": [
+ "vhosts": [{"host": "monban.test", "routes": [
    {"id": 1, "path": "/api/", "to": {"upstream": "127.0.0.1:P_REC"}, "authz": "allow-all"}]}]
 }
 ```
@@ -195,11 +195,11 @@ PROXY vector fields:
   `transport`), `stream_accept`, and `tlvs` (`[[type, value-hex], ...]`, top level, in order);
 - `listener` (`accept` | `close`).
 
-Mapping to `aegis_wire::proxy::parse_v2(&[u8]) -> Result<(Header, consumed)>`:
+Mapping to `monban_wire::proxy::parse_v2(&[u8]) -> Result<(Header, consumed)>`:
 - `ok` → Ok, with these fields and `consumed`.
 - `incomplete` → the need-more-bytes result.
 - `reject` → Err.
-- `stream_accept=false` (DGRAM) parses Ok. The refusal is policy, in aegis-bin.
+- `stream_accept=false` (DGRAM) parses Ok. The refusal is policy, in monban-bin.
 
 ClientHello vector fields:
 - `expect`, `class`;
@@ -207,7 +207,7 @@ ClientHello vector fields:
   `trust_anchors` (null = extension absent, [] = empty list, else hex IDs), `consumed` (= 5 + record length);
 - `route` (`a` | `b` | `close`, for the routes `a.l4.test` / `b.l4.test`).
 
-These map onto `aegis_wire::tls_peek::client_hello` in the same way. A Rust test reads the JSON (for example with
+These map onto `monban_wire::tls_peek::client_hello` in the same way. A Rust test reads the JSON (for example with
 `include_str!` in a test-only module); the data is not code. `python3 -I oracles/proxy-l4/vectors_check.py` runs
 the reference parsers over both files.
 
@@ -292,7 +292,7 @@ The CRC32C implementation is checked at import against the RFC 3720 check value 
   The reference subject scored `PROXY-L4: PASS (399 checks; 242 PROXY vectors incl. 205 hostile, 84 ClientHello
   vectors)`.
 - Red today:
-  - The gate command's build step fails: `error: the package 'aegis-bin' does not contain these features: l4,
+  - The gate command's build step fails: `error: the package 'monban-bin' does not contain these features: l4,
     proxy-protocol`.
   - The oracle against today's default release build gives `PROXY-L4: FAIL (1 failed, 0 passed: harness: subject
     exited 78 at start: ... config error at "/listeners/0/proxy_protocol": UnknownField ...)`.

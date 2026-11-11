@@ -1,7 +1,7 @@
 //! `mariadb-subject schema`: the schema-gate subject protocol (oracles/schema-gate/README.md).
 //!
-//! * `mariadb` mode: connect to `dsn` (loopback, version-gated, session-pinned: `aegis_adapter_mysql::connect`), then
-//!   `aegis_adapter_mysql::check_live_schema` on `namespace`.`collection`: the live `information_schema` decides
+//! * `mariadb` mode: connect to `dsn` (loopback, version-gated, session-pinned: `monban_adapter_mysql::connect`), then
+//!   `monban_adapter_mysql::check_live_schema` on `namespace`.`collection`: the live `information_schema` decides
 //!   collations, NULL-ability, unique indexes, types, triggers, FK actions and the storage engine; `declared`
 //!   contributes only names, field numbers, roles and `permitted`.
 //! * `static` mode: F4 `check_schema` on the admission probe (as pg-subject), for completeness.
@@ -15,9 +15,9 @@ use std::collections::HashMap;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
-use aegis_adapter_mysql::TenantId;
-use aegis_adapter_mysql::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
-use aegis_adapter_mysql::{ConnectConfig, Connection, check_live_schema, connect};
+use monban_adapter_mysql::TenantId;
+use monban_adapter_mysql::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
+use monban_adapter_mysql::{ConnectConfig, Connection, check_live_schema, connect};
 
 use crate::json::{self, Json, emit, esc};
 

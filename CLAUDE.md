@@ -1,6 +1,6 @@
-# AEGIS: working rules for agents
+# Monban: working rules for agents
 
-AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-tier web server. The design is
+Monban is a single-binary, formally-assured, agent-hardened, post-quantum middle-tier web server. The design is
 `research/ARCHITECTURE.md`; the plan is `research/templates/IMPLEMENTATION_PLAN.md`; invariants are
 `spec/SPEC_INVARIANTS.md` (frozen F1).
 
@@ -19,7 +19,7 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
 
 ## Roles and write scope (IMPLEMENTATION_PLAN §6)
 - Spec author / integrator: may change `spec/ interfaces/ oracles/ sdk/ ci/ gates/ tls/ supply-chain/ .github/`,
-  `crates/aegis-types/`, `Cargo.toml`, `Cargo.lock`. Any change to a frozen file needs a re-freeze
+  `crates/monban-types/`, `Cargo.toml`, `Cargo.lock`. Any change to a frozen file needs a re-freeze
   (`python3 -I ci/interfaces.py freeze`, `python3 -I ci/statements.py freeze spec`) in the same commit, with the reason.
 - Implementer: edits only the files in its unit's `write_scope`. Implementer sessions load
   `ci/hooks/claude-settings.implementer.json`, whose hook denies writes to the verify wall and hub files.
@@ -29,10 +29,10 @@ AEGIS is a single-binary, formally-assured, agent-hardened, post-quantum middle-
 ## Code rules
 - Layering is machine-checked (`cargo xtask layering`): a crate depends only on lower layers (L1 types → L2 pure
   logic → L3 protocol shells → L4 effects → L5 assembly); the SDK sees L1/L2 only.
-- `#![forbid(unsafe_code)]` everywhere except `aegis-iso` (≤20 audited sites, each with `// SAFETY:`).
+- `#![forbid(unsafe_code)]` everywhere except `monban-iso` (≤20 audited sites, each with `// SAFETY:`).
 - Workspace lints deny `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!`, and indexing. Stubs fail closed
   (return an error or `Decision::Deny`), never `todo!()`.
-- Constructors of `Principal`, `Canon<K>` and `RawFor<S>` are owned by aegis-token, aegis-canon and aegis-transport.
+- Constructors of `Principal`, `Canon<K>` and `RawFor<S>` are owned by monban-token, monban-canon and monban-transport.
 - New dependencies: only with a pin in `[workspace.dependencies]`, ≥7 days since publish (`cargo xtask lock-age`),
   vet-covered with zero exemptions, and allowed by `deny.toml`. Lock targets live in `supply-chain/lock-targets.toml`.
 

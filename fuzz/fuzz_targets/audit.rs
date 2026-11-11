@@ -1,9 +1,9 @@
-//! F9: audit event encode / verify round-trip (aegis-audit: leaf encoding, checkpoints, signed notes, Merkle
+//! F9: audit event encode / verify round-trip (monban-audit: leaf encoding, checkpoints, signed notes, Merkle
 //! proofs, base64).
 //!
 //! Properties:
 //! - a leaf built from attacker-influenced strings is printable ASCII, within the leaf cap, and (when its numbers
-//!   are I-JSON-safe and its strings NUL-free, which the strict aegis-canon parser requires) parses back to the same
+//!   are I-JSON-safe and its strings NUL-free, which the strict monban-canon parser requires) parses back to the same
 //!   `object`, `action`, `seq` and detail strings;
 //! - decoders accept only canonical text: `base64_decode(s) = Some(b)` => `base64_encode(b) = s`;
 //!   `Checkpoint::parse(t) = Ok(c)` => `c.text() = t`;
@@ -15,16 +15,16 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
-use aegis_audit::encoding::{base64_decode, base64_encode};
-use aegis_audit::event::MAX_LEAF_BYTES;
-use aegis_audit::{
+use monban_audit::encoding::{base64_decode, base64_encode};
+use monban_audit::event::MAX_LEAF_BYTES;
+use monban_audit::{
     Action, Actor, AuditEvent, Checkpoint, Detail, DetailKey, DetailValue, Ed25519NoteSigner, EventClass, FipsStatus,
     MerkleStore, NoteSigner, NoteVerifier, Outcome, Untrusted, leaf_hash, open_note, sign_note, verify_consistency,
     verify_inclusion,
 };
-use aegis_canon::{JsonValue, parse_json};
-use aegis_fuzz::{LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};
-use aegis_types::TenantId;
+use monban_canon::{JsonValue, parse_json};
+use monban_fuzz::{LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};
+use monban_types::TenantId;
 use libfuzzer_sys::fuzz_target;
 
 const SAFE: u64 = (1 << 53) - 1;

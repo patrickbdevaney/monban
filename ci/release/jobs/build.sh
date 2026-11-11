@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release job 1: build A (PLAN-6 D6). Runs `cargo auditable build --release --locked --offline -p aegis-bin` inside
+# Release job 1: build A (PLAN-6 D6). Runs `cargo auditable build --release --locked --offline -p monban-bin` inside
 # the pinned AL2023 image (deploy/build/al2023.Containerfile), with no network, the source, the cargo registry, the
 # Rust toolchain, Go and cargo-auditable all mounted read-only, and fixed in-container paths so an independent
 # rebuild (D7, P6-release-002) sees the same paths.
@@ -7,7 +7,7 @@
 #   build.sh --profile floor|cmvp --src DIR --registry DIR --toolchain DIR --go DIR --auditable FILE
 #            --image NAME:TAG --epoch N --scratch DIR --out DIR
 #
-# Writes OUT/aegis-<profile> (the binary) and OUT/build-info.json (image id, rustc -vV, go version, cargo -V,
+# Writes OUT/monban-<profile> (the binary) and OUT/build-info.json (image id, rustc -vV, go version, cargo -V,
 # cargo-auditable sha256, rustflags, epoch, command, sha256 of the binary and of Cargo.lock). Holds no keys.
 # Reproducibility: SOURCE_DATE_EPOCH = the commit time (given by the pipeline), RUSTFLAGS remaps the registry and
 # toolchain paths as ci/repro.sh does (RUSTFLAGS replaces .cargo/config.toml's build.rustflags), and the profile is the
@@ -23,14 +23,14 @@ while [ $# -gt 0 ]; do
   shift 2
 done
 for v in PROFILE SRC REG TC GO AUD IMG EPOCH S OUT; do [ -n "${!v:-}" ] || die "missing --${v,,}"; done
-case "$PROFILE" in floor) FEAT=() ;; cmvp) FEAT=(--features aegis-bin/cmvp) ;; *) die "profile must be floor or cmvp" ;; esac
+case "$PROFILE" in floor) FEAT=() ;; cmvp) FEAT=(--features monban-bin/cmvp) ;; *) die "profile must be floor or cmvp" ;; esac
 [[ "$EPOCH" =~ ^[0-9]+$ ]] || die "bad epoch"
 mkdir -p "$S/target" "$S/home" "$S/cargo-home/registry" "$OUT"
 RUSTFLAGS="--remap-path-prefix=/src=/src --remap-path-prefix=/job/cargo-home/registry/src=/cargo/registry"
 RUSTFLAGS+=" --remap-path-prefix=/opt/rust=/rustup --remap-path-prefix=/job/target=/target -Cforce-frame-pointers=yes"
-CMD=(cargo auditable build --release --locked --offline -p aegis-bin "${FEAT[@]}")
-LIMITS=(--label "aegis-release-job=$$" --memory 8g --memory-swap 9g --cpu-shares 256)
-trap 'docker ps -aq --filter "label=aegis-release-job=$$" | xargs -r docker rm -f > /dev/null 2>&1 || true' EXIT
+CMD=(cargo auditable build --release --locked --offline -p monban-bin "${FEAT[@]}")
+LIMITS=(--label "monban-release-job=$$" --memory 8g --memory-swap 9g --cpu-shares 256)
+trap 'docker ps -aq --filter "label=monban-release-job=$$" | xargs -r docker rm -f > /dev/null 2>&1 || true' EXIT
 RUN=(docker run --rm --network none "${LIMITS[@]}" --user "$(id -u):$(id -g)"
   -v "$SRC:/src:ro" -v "$S/target:/job/target" -v "$S/home:/job/home" -v "$S/cargo-home:/job/cargo-home"
   -v "$REG:/job/cargo-home/registry:ro" -v "$TC:/opt/rust:ro" -v "$GO:/opt/go:ro"
@@ -49,14 +49,14 @@ echo "build: ${CMD[*]}"
 if ! "${RUN[@]}" "${CMD[@]}"; then
   if [ "$PROFILE" = cmvp ]; then
     die "cmvp build FAILED. Known cause until P6-cmvp-001 lands (PLAN-6 D15): aws-lc-rs 1.15.3 compiles ML-DSA out \
-under fips, so aegis-audit/src/note.rs, aegis-token/src/tier_x.rs (and tls-subject) do not compile on cmvp."
+under fips, so monban-audit/src/note.rs, monban-token/src/tier_x.rs (and tls-subject) do not compile on cmvp."
   fi
   die "$PROFILE build FAILED"
 fi
-BIN="$S/target/release/aegis"
-[ -f "$BIN" ] || die "no binary at target/release/aegis"
-cp "$BIN" "$OUT/aegis-$PROFILE"
-bin_sha=$(sha256sum "$OUT/aegis-$PROFILE" | cut -d' ' -f1)
+BIN="$S/target/release/monban"
+[ -f "$BIN" ] || die "no binary at target/release/monban"
+cp "$BIN" "$OUT/monban-$PROFILE"
+bin_sha=$(sha256sum "$OUT/monban-$PROFILE" | cut -d' ' -f1)
 img_id=$(docker image inspect -f '{{.Id}}' "$IMG")
 base=$(sed -n 's/^FROM \(.*\)$/\1/p' "$SRC/deploy/build/al2023.Containerfile")
 BI_PROFILE="$PROFILE" BI_SHA="$bin_sha" BI_CMD="${CMD[*]}" BI_EPOCH="$EPOCH" BI_RUSTFLAGS="$RUSTFLAGS" BI_IMG="$IMG" \
@@ -67,7 +67,7 @@ import json, os, sys
 e = os.environ
 info = {
     "profile": e["BI_PROFILE"],
-    "artifact": "artifacts/aegis-" + e["BI_PROFILE"],
+    "artifact": "artifacts/monban-" + e["BI_PROFILE"],
     "sha256": e["BI_SHA"],
     "command": e["BI_CMD"].split(),
     "source_date_epoch": int(e["BI_EPOCH"]),
@@ -87,4 +87,4 @@ with open(sys.argv[1], "w") as f:
     json.dump(info, f, indent=1, sort_keys=True)
     f.write("\n")
 ' "$OUT/build-info.json"
-echo "build: $PROFILE aegis-$PROFILE sha256 $bin_sha"
+echo "build: $PROFILE monban-$PROFILE sha256 $bin_sha"

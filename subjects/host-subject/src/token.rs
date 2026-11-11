@@ -1,8 +1,8 @@
-//! Principals for test sessions, minted through the production authentication path: an aegis-token Tier-0 handle
-//! with a `tenant` caveat, resolved by `Tier0Table::lookup` (which calls `aegis_types::authn_path::mint`).
+//! Principals for test sessions, minted through the production authentication path: an monban-token Tier-0 handle
+//! with a `tenant` caveat, resolved by `Tier0Table::lookup` (which calls `monban_types::authn_path::mint`).
 
-use aegis_token::{Caveat, Req, Tier0Table};
-use aegis_types::{Principal, TenantId};
+use monban_token::{Caveat, Req, Tier0Table};
+use monban_types::{Principal, TenantId};
 
 pub fn principal(tenant: TenantId) -> Result<Principal, String> {
     let mut table = Tier0Table::new();

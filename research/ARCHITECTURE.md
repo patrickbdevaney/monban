@@ -1,4 +1,4 @@
-# AEGIS reference architecture and decision record, v4
+# Monban reference architecture and decision record, v4
 
 | field | value |
 |---|---|
@@ -10,7 +10,7 @@
 | grade convention | META §3. A rule's grade is its weakest load-bearing input. "E design" = our own inference from graded inputs. Tags like `[A executed / B decision / D numbers]` grade each part separately |
 | companion files | `templates/{REPO_LAYOUT, IMPLEMENTATION_PLAN, THREAT_MODEL, VERIFICATION_PLAN, SPEC_INVARIANTS, SUPPLY_CHAIN, COMPLIANCE_MAP, BENCH_PLAN}.md` |
 
-**Naming hard gate.** RFC 10032 (the AEGIS AEAD, CFRG) collides with the working name. Rename before any public release. Crate names use `aegis-` as a placeholder.
+**Naming hard gate.** RFC 10032 (the Monban AEAD, CFRG) collides with the working name. Rename before any public release. Crate names use `monban-` as a placeholder.
 
 **Optimization axes are reported separately, never as one score** (directive §0): AI-adversary security · PQ confidentiality and authenticity · correctness · durability and crash isolation · performance · household leanness · developer and agent ergonomics · enterprise and government adoptability.
 
@@ -18,7 +18,7 @@
 
 | item | value on 2026-10-25 | consequence |
 |---|---|---|
-| rustls | 0.23.46 (2026-10-14); **no SecP384r1MLKEM1024 (0x11ED)** | the 0x11ED group is AEGIS-owned code (see below) |
+| rustls | 0.23.46 (2026-10-14); **no SecP384r1MLKEM1024 (0x11ED)** | the 0x11ED group is Monban-owned code (see below) |
 | rustls PR #2929 "Add ML-KEM-1024 KEM" | **merged 2026-02-23** (source of `kx_group::MLKEM1024`) | pure ML-KEM-1024 (P-CNSA) is available upstream |
 | rustls PR #3293 "Add SECP384R1MLKEM1024 hybrid key exchange" | **closed unmerged 2026-10-01**; maintainer: build it through the public `SupportedKxGroup` API ("literally the 10-line structure which is in this PR") | `pred-rustls-secp384r1mlkem1024` (p = 0.6) is stale; re-scored to **p ≈ 0.2 [E]** for an upstream group by end-2027. 0x11ED enters the Tier-S TCB as our code |
 | rustls-webpki | 0.103.16 (2026-10-20) | floor ≥0.103.16 |
@@ -119,8 +119,8 @@ Our core measures 4.21 MB stripped, 40 crates, idle RSS 3.4–5.9 MB (`w02.size-
  Internet (browsers, REST agents, MCP agents, browser-driving agents, AI exploit tooling)   AA2 AA3 AA5 AA9
    │  TLS 1.3 only; one TLS mode per port (R-TLS-8); jurisdiction kx profile per listener
  ┌─▼──────────── supervisor (exec-spawned; holds listen sockets, STEK ring, crash budgets) ─────────────┐
- │ TB1 B1 transport: rustls + hyper/h2 + AEGIS budget wrapper (TBI-1..9)                               │
- │     B2 aegis-canon: one owner per identity kind, reject-don't-repair (CANON-1..8)                    │
+ │ TB1 B1 transport: rustls + hyper/h2 + Monban budget wrapper (TBI-1..9)                               │
+ │     B2 monban-canon: one owner per identity kind, reject-don't-repair (CANON-1..8)                    │
  │     B3 admission S0..S6 (pre-auth GCRA, classes, aggregate cost budgets, CoDel, deadlines)           │
  │     B4 authn → Principal (not default-constructible) → Cedar PDP + token verifier → tri-state Combine│
  │ TB2 B5 handler dispatch by provenance [capability boundary: sealed Cap<O>, Ctx<'r>, no ambient]       │
@@ -169,7 +169,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
 
 - **Pick [A]:** hyper 1.12.0 + h2 0.4.20 on tokio 1.54.x, epoll, HTTP/1.1 + HTTP/2. Floors: hyper ≥1.12.0, h2 ≥0.4.20.
 - **Golden settings** (`l5-config-pin-table-transport`): max_concurrent_streams 100; max_header_list_size 16384; header_table_size 4096; max_pending_accept_reset_streams 20; max_local_error_reset_streams 256; stream/conn window 256 KiB / 1 MiB; max_frame 16384; send buffer 400 KiB; keepalive interval and timeout 20 s.
-- **AEGIS wrapper (ours; hyper/h2 lack these):** field count ≤128 incl. cookie crumbs; handler semaphore 100 with 4× queue, then GOAWAY ENHANCE_YOUR_CALM; RST bucket burst 100, refill 33/s; ≤10k total streams per connection; per-stream stall deadline 10 s; connection idle 30 s; Host vs :authority binding (hyper/h2 never compare them: `r4e07.hyper-h2-authority-host-unchecked` A).
+- **Monban wrapper (ours; hyper/h2 lack these):** field count ≤128 incl. cookie crumbs; handler semaphore 100 with 4× queue, then GOAWAY ENHANCE_YOUR_CALM; RST bucket burst 100, refill 33/s; ≤10k total streams per connection; per-stream stall deadline 10 s; connection idle 30 s; Host vs :authority binding (hyper/h2 never compare them: `r4e07.hyper-h2-authority-host-unchecked` A).
 - **Invariant:** TBI-1..9 (`l5-transport-budget-invariant-tbi` B): Kani for pure counters, Verus for ledgers, Lean for composition, fuzz (resource-ratio oracle) + DST for stalls.
 - **Upstream framing [B]:** H2 or framed UDS; any H1 upstream regenerates framing (R-TLS-3).
 - **Alternatives:** Pingora core (174 crates; tokio panic; MadeYouReset RUSTSEC-2025-0070) — not a base. Hand-written H1 + EverParse/Vest framings — no verified HPACK/QPACK decoder exists in any prover (`l4-no-verified-hpack-qpack-decoder` B); Vest H2 frame header only as later hardening. io_uring thread-per-core — rejected (D-2).
@@ -194,7 +194,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
   | P-CNSA (opt-in, US NSS) | [0x0202 ML-KEM-1024] + ML-DSA-87 | pure ML-KEM is non-conformant in France (ANSSI-PG-083 v3.00) and hybrid-only in BSI TR-02102 (`r4e10.anssi-pg083-pure-nonconformant` A) |
 
   All government profiles: TLS 1.3 only, AES-GCM only; no 0-RTT, X25519, Ed25519 or ChaCha20.
-  - **0x11ED is AEGIS-owned [A fact / B decision].** rustls PR #3293 closed unmerged; build a `SupportedKxGroup` composing aws-lc-rs P-384 ECDH + ML-KEM-1024 (RFC 10024 order). It enters Tier-S TCB with: KATs against draft-ietf-tls-ecdhe-mlkem vectors; interop vs OpenSSL 3.5+ and BoringSSL; a Kani panic-freedom harness on share parsing (**Phase-6 gate**, not optional); a FIPS-boundary check that both components are inside the AWS-LC 3.1.0 approved boundary before claiming FIPS for P-UNIVERSAL. Reverse: an upstream rustls group lands (p ≈ 0.2, E).
+  - **0x11ED is Monban-owned [A fact / B decision].** rustls PR #3293 closed unmerged; build a `SupportedKxGroup` composing aws-lc-rs P-384 ECDH + ML-KEM-1024 (RFC 10024 order). It enters Tier-S TCB with: KATs against draft-ietf-tls-ecdhe-mlkem vectors; interop vs OpenSSL 3.5+ and BoringSSL; a Kani panic-freedom harness on share parsing (**Phase-6 gate**, not optional); a FIPS-boundary check that both components are inside the AWS-LC 3.1.0 approved boundary before claiming FIPS for P-UNIVERSAL. Reverse: an upstream rustls group lands (p ≈ 0.2, E).
 - **FIPS (R-PQC-2) [B]: two locks**, because no lock satisfies both rustls ≥0.23.44 and fips-sys 0.13.11 (`r4tri.no-co-resolvable-lock` A 0.95).
   - **floor:** rustls 0.23.46 + aws-lc-rs 1.18.x; module source AWS-LC FIPS 4.2.0, **not certified**; no CMVP claim.
   - **cmvp:** rustls =0.23.43 + aws-lc-rs =1.15.3 + aws-lc-fips-sys =0.13.11 = AWS-LC FIPS 3.1.0 (CMVP #5298/#5314). aws-lc-rs window 1.15.2–1.17.1 (1.17.2 yanked). Tested operational environments **Amazon Linux 2023 only** (`r4tri.tested-env-only-al2023` A 0.85), so Debian/Ubuntu/musl household builds cannot claim approved mode. ML-KEM approved; ML-DSA and SLH-DSA not; X25519 outside the boundary. FIPS listener groups explicit: [SECP256R1MLKEM768, P-256, P-384] with `config.fips()` asserted (DEFAULT_KX_GROUPS lacks 0x11EB even with prefer-post-quantum).
@@ -213,7 +213,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
 ### 3.3 Parser and normalizer (ingress core)
 
 - **Pick [B decision; A executed differential; E invariant]:** one normalization core whose object is an **Exchange** with a message stream (per-message and per-lifetime budgets, non-destructive, raw bytes retained). Feature-gated front ends: WS, SSE, WebTransport as stream modes; gRPC, GraphQL, MCP, webhooks as handler layers; L4/PROXY a separate crate. Zero-copy normalization: 30 µs user CPU per 10 MB (`w02.norm-copy-cost-measured` A 0.75).
-- **aegis-canon (R-ING-4):** pure, `forbid(unsafe)`, one `canon_K` per identity kind, sealed `Canon_K` newtypes. CANON-2 reject-don't-repair (encoded `/ \ ;` NUL, dot segments, duplicate singletons, duplicate JSON keys, NBSP-trimmed cookies, duplicate media-type params, userinfo in :authority). Hosts: exact ASCII-lowercase A-label match, **no IDNA on ingress**. SNI, :authority and Origin bind to one vhost, else 421. Authz keys only on the matched route id (grpc-go CVE-2026-33186 matched a raw `:path`). JSON: I-JSON, parsed once by a duplicate-rejecting serde_json 1.0.154 visitor shared by policy and handler; simd-json and sonic-rs banned.
+- **monban-canon (R-ING-4):** pure, `forbid(unsafe)`, one `canon_K` per identity kind, sealed `Canon_K` newtypes. CANON-2 reject-don't-repair (encoded `/ \ ;` NUL, dot segments, duplicate singletons, duplicate JSON keys, NBSP-trimmed cookies, duplicate media-type params, userinfo in :authority). Hosts: exact ASCII-lowercase A-label match, **no IDNA on ingress**. SNI, :authority and Origin bind to one vhost, else 421. Authz keys only on the matched route id (grpc-go CVE-2026-33186 matched a raw `:path`). JSON: I-JSON, parsed once by a duplicate-rejecting serde_json 1.0.154 visitor shared by policy and handler; simd-json and sonic-rs banned.
   - **Executed:** a strict reference canonicalizer drove pairwise disagreement on accepted inputs from 331/331/69 to 0/0/0 (paths, hosts, JSON) across 12 Rust parsers + CPython (`r4e07.canon-ref-zero-disagreement` A).
   - **Gate CANON-DIFF G1–G4:** ≥100k-case proptest; pinned WPT + IdnaTestV2 through every identity parser in the lock in <1 s; 34 dated regressions; lock bans.
 - **Front ends (R-ING-2) [A classes / C numbers]:** WebSocket — typed Origin, leave framed mode only after a validated 101 (Pingora CVE-2026-2833), no permessage-deflate, 1 MiB message / 64 KiB frame. gRPC — explicit limits (tonic 0.14.6 passes `None`, overriding hyper's 200). GraphQL — behind the core; 415 on text/plain, 405 on mutation-over-GET, 64 KiB body, explicit depth/complexity/alias (async-graphql 7.2.1 defaults all `None`). Webhooks — raw-byte signature with `subtle` compare, replay store TTL ≥ retry horizon (Stripe 3 days), egress guard. SSE — ≤8 streams per principal.
@@ -306,7 +306,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
 ### 3.9 Agent-protocol projection
 
 - **Pick [A]:** MCP 2026-07-28 primary + the 2025-11-25 path mandatory until ≥2027-07 (SEP-2596). 2026-07-28 removes sessions and initialize, adds MRTR `InputRequiredResult`, requires Mcp-Method/Mcp-Name headers (SEP-2243) (`rec60-mcp-2026-07-28`, `cal-mcp-2026-07-28` A). Header values with control characters are base64-sentinel encoded, not rejected. Stateless is **not** a security property: seal requestState by default. rmcp 3.7.0 (Apache-2.0) pinned, re-audited per bump (5 GHSAs Jun–Oct 2026).
-- **Listener gate as a type (R-AGENT-4/7) [B]:** Host/:authority allowlist; Origin allowlist in both eras regardless of SDK defaults (`l4.defaults-vs-configurable-matrix` B); absent Origin only with bearer or mTLS; `application/json` POST; header/body consistency (-32020) checked against the **same** JSON owner as aegis-canon; sealed handles over (principal, route, backend, policy version, ttl); resolved-address egress; case-folded tool namespace. CI runs the executed **43-case corpus** with a zero-handler counter assertion. The official conformance suite is not evidence (its dns-rebinding scenario passes rmcp default with no Origin validation; -32020 violations are warnings; `l4.conformance-suite-gap-origin-only`).
+- **Listener gate as a type (R-AGENT-4/7) [B]:** Host/:authority allowlist; Origin allowlist in both eras regardless of SDK defaults (`l4.defaults-vs-configurable-matrix` B); absent Origin only with bearer or mTLS; `application/json` POST; header/body consistency (-32020) checked against the **same** JSON owner as monban-canon; sealed handles over (principal, route, backend, policy version, ttl); resolved-address egress; case-folded tool namespace. CI runs the executed **43-case corpus** with a zero-handler counter assertion. The official conformance suite is not evidence (its dns-rebinding scenario passes rmcp default with no Origin validation; -32020 violations are warnings; `l4.conformance-suite-gap-origin-only`).
 - **Projection (R-AGENT-2) [C]:** one handler IR in JSON Schema 2020-12 → OpenAPI 3.2.1, MCP tools, WebMCP, Server Card.
 - **Control plane (R-AGENT-6) [B]:** tenant A's route/policy never binds tenant B's backend without a grant (agentgateway GHSA-g7j8/jwm2).
 - **Alternatives:** stateless-only MCP (rejected: deprecation window); an MCP gateway in front (agentgateway, docker-mcp — defaults fail the corpus); A2A v1.0.x, AP2 v0.2.0 as later handler layers.
@@ -320,7 +320,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
 
 ### 3.11 Config and ops
 
-- **Config [A/B]:** typed parse with `deny_unknown_fields` + emitted JSON Schema; `aegis check-config` (pure, nonzero on error) in ExecStartPre; secrets via systemd `LoadCredential(Encrypted)`; `parse_config` total, never panics (CFG-1: Kani + 1e7 fuzz); hard size caps (CFG-2); last-known-good on Err (CFG-3); staged apply shadow → 1% → bake → full with auto-rollback (CFG-4); deny `unwrap`/`expect` in core. Basis: Cloudflare 2025-11-18 (oversized generated file hit an `unwrap`, `uu11.cfg-push-class` A).
+- **Config [A/B]:** typed parse with `deny_unknown_fields` + emitted JSON Schema; `monban check-config` (pure, nonzero on error) in ExecStartPre; secrets via systemd `LoadCredential(Encrypted)`; `parse_config` total, never panics (CFG-1: Kani + 1e7 fuzz); hard size caps (CFG-2); last-known-good on Err (CFG-3); staged apply shadow → 1% → bake → full with auto-rollback (CFG-4); deny `unwrap`/`expect` in core. Basis: Cloudflare 2025-11-18 (oversized generated file hit an `unwrap`, `uu11.cfg-push-class` A).
 - **ACME and certs [B/C]:** instant-acme 0.8.5 with `fips` (no release since 2026-02-24: maintenance watch; alternative rustls-acme), ARI renewal, Pebble in CI, atomic `ResolvesServerCert` swap; CERT-1..4: expiry gauge with alerts at 30/14/7/3 days, `check-config --tls` preflight, faketime +400 d CI test. In the cmvp profile ACME is external or PQ-only per §3.2.
 - **systemd [A]:** `systemd-analyze security --offline --threshold=2` CI gate (measured 1.4) + runtime test; DynamicUser, ProtectSystem=strict, CapabilityBoundingSet=CAP_NET_BIND_SERVICE, MemoryDenyWriteExecute; a Cranelift worker gets its own unit.
 - **Upgrade (R-OPS-7) [C protocol / A mechanisms]:** parent spawns child with fd inheritance (`nix` 0.31 + `sd-notify` 0.5) + FDSTORE. **Never a second-process SO_REUSEPORT bind** (RSTs queued connections: 2–3 per million per reload in HAProxy's measurement). UP-1..7: claim-or-close every received fd, two-phase GOAWAY, drain deadline, STEK by pipe, authenticated handover socket. Gate: 200 upgrades at 5/s under 2k new conn/s with 0 RSTs.
@@ -351,7 +351,7 @@ Each entry: pick, pin, ≥2 alternatives, grade, reversal.
 
   | component class | trigger | SLO | grade |
   |---|---|---|---|
-  | `aegis-canon`, transport wrapper, H1 framing (our attacker-reachable code) | private report or advisory | ≤24 h to signed release | C cadence (`rec60-ai-offense-trend`) / E number |
+  | `monban-canon`, transport wrapper, H1 framing (our attacker-reachable code) | private report or advisory | ≤24 h to signed release | C cadence (`rec60-ai-offense-trend`) / E number |
   | any Tier-S dependency | upstream fix published | ≤7 days to signed golden rebuild | B direction (R-THR-2) / E number |
   | any TCB component, best case | published advisory | ≤6 h advisory → TUF-published release, measured by a quarterly drill | E (target to measure, not a commitment) |
   | all features | any of the above while unpatched | runtime kill-switch per feature | B |
@@ -416,8 +416,8 @@ Every row has ≥2 evidence kinds (R-FORMAL-5). "Executed" = run on pinned versi
 | rustls + webpki ≥0.103.16 | 45.7k LOC, 6 unsafe sites; protocol logic unsafe-free | TLS 1.3 | verdict gate; BoGo, Wycheproof |
 | aws-lc-rs / aws-lc-sys (floor) and aws-lc-fips-sys (cmvp) | 11,271 unsafe binding lines; ~2.09M bundled C/asm lines measured in r4 on the floor tree incl. generated asm (r2 said 1.5M, different scope); **cmvp tree to be measured separately** | crypto; FIPS boundary on cmvp (#5298/#5314) | verified parts only (s2n-bignum, mlkem-native); libcrux-provider spike for non-FIPS |
 | **0x11ED hybrid KxGroup (ours)** | ~10–50 LOC composition | upstream declined (#3293) | KATs, interop, Kani share parsing (Phase-6 gate) |
-| AEGIS transport wrapper | ours, small | TBI-1/4/5/8 | Kani + Verus |
-| aegis-canon | ours + serde_json 1.0.154 dup-rejecting visitor, http 1.5.0, percent-encoding 2.3.2 | single identity owner | CANON-DIFF; optional Verus |
+| Monban transport wrapper | ours, small | TBI-1/4/5/8 | Kani + Verus |
+| monban-canon | ours + serde_json 1.0.154 dup-rejecting visitor, http 1.5.0, percent-encoding 2.3.2 | single identity owner | CANON-DIFF; optional Verus |
 | Cedar Rust evaluator 4.14.0 | 15.7k LOC (cedar-policy-core 134k lines in lock) | PDP | DRT vs Lean; axiom audit pending |
 | token verifier + EverParse det-CBOR | ours + vendored verified parser (tree hash recorded) | Tier L | T1–T5 model; mint-shape check to add |
 | in-process adapters | mongodb 91.7k / 14 unsafe; scylla 93.9k / 3; redis 49.3k / 6 | backend access | two-sided oracles per ENGINE_PIN |
@@ -568,7 +568,7 @@ The repository layout, phased plan, gate YAMLs and agent execution rules are in 
 - **Phase 0** repo, pins, frozen interfaces F1–F13, verify wall ported with every negative control red. **Phase 1** eleven decision-flipping spikes (+ q4-003/q1-009 reading). **Phase 2** reverse-proxy mode (first shippable). **Phase 3** agent gateway. **Phase 4** data plane + native SDK handlers. **Phase 5** P2 isolation (fresh-Wasm cordons **and** fork+Wasm). **Phase 6** jurisdiction/FIPS profiles, 0x11ED + Lean selection model gates, reproducible triple-signed release. **Phase 7** deferred modules (H3, L4, WebTransport, io_uring front, MTC, libcrux provider).
 - **Minimum shippable cut line (synthesis review):** Phases 0–2 with gates 0–8, 12, 18, 21 and the metrics gate. Phases 4–6 are conditional on q4-003, q1-009 and the velocity measured after Phase 2. Total phases 0–6 ≈ 1,050–2,050 agent-hours [E] + 8–14 person-weeks spec review + 2–4 checker qualification.
 
-**Hard gates (§9.9).** No offensive tooling beyond test harnesses for our own server (red-team stage and differential fuzzers target only AEGIS staging; HTTP Garden, which is GPL-3.0, runs as an external container and is not linked). Licenses: cargo-deny 11-SPDX allowlist; Tenuo CEL finding is under private disclosure, not published. **Export control [E: not researched in the map; general knowledge only]:** AEGIS uses standard, publicly available TLS 1.3, ML-KEM, ML-DSA, SLH-DSA and AES-GCM; open-source publication of such crypto is generally treated as publicly available under US EAR (§734.3(b)(3), with the 2021 simplification of the TSU notification) and as mass-market elsewhere. Record the classification in `COMPLIANCE_MAP.md` before distributing binaries commercially; this is not legal advice.
+**Hard gates (§9.9).** No offensive tooling beyond test harnesses for our own server (red-team stage and differential fuzzers target only Monban staging; HTTP Garden, which is GPL-3.0, runs as an external container and is not linked). Licenses: cargo-deny 11-SPDX allowlist; Tenuo CEL finding is under private disclosure, not published. **Export control [E: not researched in the map; general knowledge only]:** Monban uses standard, publicly available TLS 1.3, ML-KEM, ML-DSA, SLH-DSA and AES-GCM; open-source publication of such crypto is generally treated as publicly available under US EAR (§734.3(b)(3), with the 2021 simplification of the TSU notification) and as mass-market elsewhere. Record the classification in `COMPLIANCE_MAP.md` before distributing binaries commercially; this is not legal advice.
 
 ---
 
@@ -671,7 +671,7 @@ Async cancellation as a threat class (R-THR-5/R-STATE-6) · cross-request state 
 | KEM default | X25519MLKEM768 (PDF1, seed) | per listener + jurisdiction profiles; 0x11ED ours | `r3pq.hrr-acceptance-test` A, `r4e10.anssi-pg083-pure-nonconformant` A, `pq-share-telemetry` A, rustls #3293 |
 | TLS auth | ML-DSA-65 + Ed25519 (PDF1) | ECDSA-P256 public, ML-DSA-44 private, MTC later | `r3pq.cab-sc106-withdrawn` A, `r3pq.mldsa-handshake-measured` A |
 | release signing | SLH-DSA (seed) | Ed25519 + SLH-DSA-SHA2-128s + ML-DSA-87 | `pq-release-signing` B, `r4e10.golden-signature-profiles` B |
-| HTTP stack | hyper (PDF1) | hyper/h2 + AEGIS wrapper | R-TLS-1 A, `l5-transport-budget-invariant-tbi` B, `r4e07.hyper-h2-authority-host-unchecked` A |
+| HTTP stack | hyper (PDF1) | hyper/h2 + Monban wrapper | R-TLS-1 A, `l5-transport-budget-invariant-tbi` B, `r4e07.hyper-h2-authority-host-unchecked` A |
 | I/O model | spargio io_uring TPC (PDF1, seed) | epoll + tokio | `cal-spargio` A, `io-uring-security-record`, `cal-uring-370k` D |
 | HTTP/3 | quinn now (PDF1, seed) | off until h3 fixes | h3 #366 open; `r3pq.quic-amp-budget-mldsa` B; `r4c12.repo-ghsa-osv-blindspot` A |
 | handler isolation | Wasmtime pooling + MPK primary (PDF1, seed) | provenance tiers; fresh Wasm in cordons and fork+Wasm for P2 | `r4i04.blast-radius-table` B, `r4i04.m0-escape-rate-denominators` B, `wasmtime-pooling-local-bench` |

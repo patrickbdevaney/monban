@@ -22,7 +22,7 @@ PASS iff mode A or mode B holds. Exit codes: 0 PASS, 1 FAIL, 2 ERROR (cannot jud
 **Mode A, compiled-out.** All of these must hold:
 | check | what | source |
 |---|---|---|
-| M1 | `tls-client` is off in the cmvp feature set | `cargo metadata` resolve features (in the workspace: `aegis-tls` features via `cargo tree -e features`) |
+| M1 | `tls-client` is off in the cmvp feature set | `cargo metadata` resolve features (in the workspace: `monban-tls` features via `cargo tree -e features`) |
 | B0 | positive control: rustls::server symbols are present. If not, ERROR: the scan is blind (stripped or wrong artifact) | `nm -C` |
 | B1 | 0 `rustls::client::` symbols | `nm -C --defined-only` on the unstripped twin |
 | B2 | 0 `6rustls6client` sections (matches legacy and v0 mangling) | linker map of the **shipped** link (`-C link-arg=-Wl,-Map=…`) |
@@ -117,4 +117,4 @@ the mutants.
   through macros. It is a backstop, not a proof.
 - **The probe uses a well-behaved in-memory server**, not an active attacker.
 - **S1 and S2 cover first-party code only.**
-- **This prototype checks M1 on the root package.** The workspace version must check `aegis-tls`'s features.
+- **This prototype checks M1 on the root package.** The workspace version must check `monban-tls`'s features.

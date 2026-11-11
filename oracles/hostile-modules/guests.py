@@ -40,7 +40,7 @@ class G:
         self.f = {}
         if imports:
             for nm, ps, rs in IMPORTS:
-                self.f[nm] = self.m.import_func("aegis", nm, ps, rs)
+                self.f[nm] = self.m.import_func("monban", nm, ps, rs)
         if memory:
             self.m.mem(mem_pages, mem_max)
             self.m.export_memory()
@@ -167,15 +167,15 @@ def b_wrong_type_import(a):
     g = G(imports=False)
     for nm, ps, rs in IMPORTS:
         if nm == a["name"]:
-            g.f[nm] = g.m.import_func("aegis", nm, a["params"], a["results"])
+            g.f[nm] = g.m.import_func("monban", nm, a["params"], a["results"])
         else:
-            g.f[nm] = g.m.import_func("aegis", nm, ps, rs)
+            g.f[nm] = g.m.import_func("monban", nm, ps, rs)
     return g.finish([I.i32(0)])
 
 
 def b_import_memory(a):
     g = G(memory=False)
-    g.m.import_memory("aegis", "memory", 1)
+    g.m.import_memory("monban", "memory", 1)
     g.m.export_memory()
     return g.finish([I.i32(0)])
 

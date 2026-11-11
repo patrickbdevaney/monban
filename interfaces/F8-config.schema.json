@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aegis:interfaces:F8:config:1",
-  "title": "AEGIS configuration (frozen interface F8)",
+  "title": "Monban configuration (frozen interface F8)",
   "description": "Typed config; unknown fields rejected (deny_unknown_fields). Hard limits are schema maxima: no limit may be unbounded (INV-NONEMPTY: default boot has no effective None limit). CANON-2 per-clause reject/308/accept decided by spike q4-008. Max file size 1 MiB (CFG-2); on parse error the last-known-good config keeps serving (CFG-3). Phase 7 (P7-spec-001, PLAN-7 Interfaces) adds, all optional and off when absent: listeners[].proxy_protocol, listeners[].l4, listeners[].front, the root `tls` block, the root `admission` block and the backend engine families mariadb and crdb. A document without them means exactly what it meant before Phase 7, and its effective form and config_hash are unchanged. Phase 8 (P8-spec-001, PLAN-8 Interfaces) adds, additively: the root `runtime` block (worker_threads, default 2 = the former constant; not hashed when default) and the root `state` block (idempotency_retention_s, no default: absent = never expire), and refuses at load a route path that is not canonical (a route that could never match). A document without the new blocks and with canonical route paths means exactly what it meant before Phase 8, with the same effective form and config_hash.",
   "type": "object",
   "additionalProperties": false,
@@ -234,7 +234,7 @@
       "required": [
         "credentials"
       ],
-      "description": "Phase 7 (feature `mtc`, D-P7.4; SPEC_INVARIANTS F SEL-1..3). Absent: certificates come from the process options or systemd credentials (tls.crt/tls.key), as before Phase 7. Present: the CredentialSelector picks, per ClientHello and per listener, among the credentials that serve that listener: an `mtc` credential only when the client's trust_anchors extension names its trust_anchor_id (SEL-1); never an `mldsa` credential on a P-PUBLIC-WEB listener (SEL-2, the SC-106 withdrawal); with no matching credential the handshake fails with handshake_failure and never uses another listener's credential (SEL-3). AEGIS neither issues nor verifies MTCs: the MTC credential is an operator-supplied opaque blob. Credential ids are unique, mtc trust_anchor_ids are unique, every `listeners` entry names a declared HTTP listener, and an mldsa credential may not name a P-PUBLIC-WEB listener (all checked at load). A build without the `mtc` feature refuses a config with a tls block at boot (fail closed), never ignores it.",
+      "description": "Phase 7 (feature `mtc`, D-P7.4; SPEC_INVARIANTS F SEL-1..3). Absent: certificates come from the process options or systemd credentials (tls.crt/tls.key), as before Phase 7. Present: the CredentialSelector picks, per ClientHello and per listener, among the credentials that serve that listener: an `mtc` credential only when the client's trust_anchors extension names its trust_anchor_id (SEL-1); never an `mldsa` credential on a P-PUBLIC-WEB listener (SEL-2, the SC-106 withdrawal); with no matching credential the handshake fails with handshake_failure and never uses another listener's credential (SEL-3). Monban neither issues nor verifies MTCs: the MTC credential is an operator-supplied opaque blob. Credential ids are unique, mtc trust_anchor_ids are unique, every `listeners` entry names a declared HTTP listener, and an mldsa credential may not name a P-PUBLIC-WEB listener (all checked at load). A build without the `mtc` feature refuses a config with a tls block at boot (fail closed), never ignores it.",
       "properties": {
         "credentials": {
           "type": "array",
@@ -267,7 +267,7 @@
             "mldsa",
             "mtc"
           ],
-          "description": "x509: a classical WebPKI chain (the profile's F12 sigalgs apply); mldsa: an ML-DSA chain for private hops, never chosen on P-PUBLIC-WEB; mtc: a Merkle Tree Certificate credential (draft-ietf-plants-merkle-tree-certs), opaque to AEGIS."
+          "description": "x509: a classical WebPKI chain (the profile's F12 sigalgs apply); mldsa: an ML-DSA chain for private hops, never chosen on P-PUBLIC-WEB; mtc: a Merkle Tree Certificate credential (draft-ietf-plants-merkle-tree-certs), opaque to Monban."
         },
         "trust_anchor_id": {
           "type": "string",
@@ -377,7 +377,7 @@
     "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Phase 8 (P8-spec-001, D-P8.3, R5): serving-runtime sizing that was a constant in the assembly. worker_threads is the tokio multi-thread worker count; its default is the pre-Phase-8 aegis-bin constant 2, so an absent block is today's behaviour, and a block equal to the defaults is not printed in the hashed effective form (it hashes like an absent one). No timing or ordering invariant depends on the value.",
+      "description": "Phase 8 (P8-spec-001, D-P8.3, R5): serving-runtime sizing that was a constant in the assembly. worker_threads is the tokio multi-thread worker count; its default is the pre-Phase-8 monban-bin constant 2, so an absent block is today's behaviour, and a block equal to the defaults is not printed in the hashed effective form (it hashes like an absent one). No timing or ordering invariant depends on the value.",
       "properties": {
         "worker_threads": {
           "type": "integer",
@@ -438,7 +438,7 @@
         "path": {
           "type": "string",
           "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*$",
-          "description": "Exact canonical route path. Besides the pattern, the value must be a fixed point of CANON-2 (aegis_canon::canon_path returns it unchanged): no dot segment, no empty segment, no character CANON-2 forbids in a path (';', which the pattern admits), not over the path length cap. Phase 8 (R13) makes this a load-time refusal (error NotCanonical at this member); before Phase 8 such a route loaded but could never match a request, because routing compares canonical paths, so the refusal changes no served behaviour."
+          "description": "Exact canonical route path. Besides the pattern, the value must be a fixed point of CANON-2 (monban_canon::canon_path returns it unchanged): no dot segment, no empty segment, no character CANON-2 forbids in a path (';', which the pattern admits), not over the path length cap. Phase 8 (R13) makes this a load-time refusal (error NotCanonical at this member); before Phase 8 such a route loaded but could never match a request, because routing compares canonical paths, so the refusal changes no served behaviour."
         },
         "to": {
           "oneOf": [
@@ -552,7 +552,7 @@
             "mariadb",
             "crdb"
           ],
-          "description": "F4 EngineFamily name. Phase 7 (D-P7.8) adds the adapter families mariadb (feature `adapter-mariadb`, aegis-adapter-mysql) and crdb (feature `adapter-crdb`, the PG wire with the crdb dialect); both are network engines (dsn_ref env:/cred:). Their `pin` must name an engine-pins.toml entry whose `kind` is the same family name. A build without the family's feature refuses a backend of that family at boot (fail closed), and an endowment on it never resolves to another family."
+          "description": "F4 EngineFamily name. Phase 7 (D-P7.8) adds the adapter families mariadb (feature `adapter-mariadb`, monban-adapter-mysql) and crdb (feature `adapter-crdb`, the PG wire with the crdb dialect); both are network engines (dsn_ref env:/cred:). Their `pin` must name an engine-pins.toml entry whose `kind` is the same family name. A build without the family's feature refuses a backend of that family at boot (fail closed), and an endowment on it never resolves to another family."
         },
         "dsn_ref": {
           "type": "string",
@@ -663,12 +663,12 @@
         "worker": {
           "type": "string",
           "pattern": "^/[A-Za-z0-9._/-]{1,255}$",
-          "description": "Absolute path of the aegis-p2 worker binary; every zygote, cordon and compile process is a fresh execve of it (D8 exec respawn, never a fork of a template)."
+          "description": "Absolute path of the monban-p2 worker binary; every zygote, cordon and compile process is a fresh execve of it (D8 exec respawn, never a fork of a template)."
         },
         "cache_dir": {
           "type": "string",
           "pattern": "^/[A-Za-z0-9._/-]{1,255}$",
-          "description": "Directory (0700, service user) for this boot's .cwasm files produced by the sandboxed `aegis-p2 compile`; absent = $RUNTIME_DIRECTORY/p2. Never a source of modules: a .cwasm is loaded only if its sha256 equals the digest the supervisor recorded at this boot's compile (D4)."
+          "description": "Directory (0700, service user) for this boot's .cwasm files produced by the sandboxed `monban-p2 compile`; absent = $RUNTIME_DIRECTORY/p2. Never a source of modules: a .cwasm is loaded only if its sha256 equals the digest the supervisor recorded at this boot's compile (D4)."
         },
         "isolation": {
           "enum": [

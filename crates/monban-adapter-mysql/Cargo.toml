@@ -1,0 +1,26 @@
+[package]
+name = "monban-adapter-mysql"
+description = "MariaDB adapter (PREFLIGHT D-P7.8): owned MySQL wire client (binary prepared statements only), renderer of the lowering tree, live schema gate."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# Layer 4 (effects), like monban-adapter-pg. Pre-wired by P7-spec-002; the adapter is P7-adapter-mysql-001. Linked only
+# by monban-bin feature `adapter-mariadb` and by subjects/mariadb-subject (gate default-graph keeps it out of the
+# default build). Non-golden until lowering-read/write-mariadb and schema-gate-mariadb pass.
+[package.metadata.monban]
+layer = 4
+
+[dependencies]
+monban-types = { workspace = true }
+monban-data-ir = { workspace = true }
+# Root pins, already in the shipped graph; no new crate. aws-lc-rs: SHA-1 (mysql_native_password scramble) and
+# SHA-256 (caching_sha2, refused until a TLS path exists). rustix: socket options ("time" only because rustix
+# linux_raw sockopt needs it, as in monban-adapter-pg). The MySQL wire client is our own, over std::net / UDS.
+aws-lc-rs = { workspace = true }
+rustix = { workspace = true, features = ["time"] }
+
+[lints]
+workspace = true

@@ -1,8 +1,8 @@
-aegis-p2 v0.0.0 (/aegis/crates/aegis-p2)
-├── aegis-iso feature "default"
-│   └── aegis-iso v0.0.0 (/aegis/crates/aegis-iso)
-│       ├── aegis-types feature "default"
-│       │   └── aegis-types v0.0.0 (/aegis/crates/aegis-types)
+monban-p2 v0.0.0 (/monban/crates/monban-p2)
+├── monban-iso feature "default"
+│   └── monban-iso v0.0.0 (/monban/crates/monban-iso)
+│       ├── monban-types feature "default"
+│       │   └── monban-types v0.0.0 (/monban/crates/monban-types)
 │       ├── libc feature "std"
 │       │   └── libc v0.2.191
 │       ├── rustix feature "fs"
@@ -43,9 +43,9 @@ aegis-p2 v0.0.0 (/aegis/crates/aegis-p2)
 │       └── rustix feature "thread"
 │           ├── rustix v1.1.5 (*)
 │           └── linux-raw-sys feature "prctl" (*)
-├── aegis-types feature "default" (*)
-└── aegis-wasm feature "default"
-    └── aegis-wasm v0.0.0 (/aegis/crates/aegis-wasm)
+├── monban-types feature "default" (*)
+└── monban-wasm feature "default"
+    └── monban-wasm v0.0.0 (/monban/crates/monban-wasm)
         ├── sha2 v0.10.9
         │   ├── cfg-if feature "default"
         │   │   └── cfg-if v1.0.5
@@ -72,9 +72,9 @@ aegis-p2 v0.0.0 (/aegis/crates/aegis-p2)
         │           ├── digest v0.10.7 (*)
         │           └── digest feature "block-buffer"
         │               └── digest v0.10.7 (*)
-        ├── aegis-types feature "default" (*)
-        ├── aegis-budget feature "default"
-        │   └── aegis-budget v0.0.0 (/aegis/crates/aegis-budget)
+        ├── monban-types feature "default" (*)
+        ├── monban-budget feature "default"
+        │   └── monban-budget v0.0.0 (/monban/crates/monban-budget)
         ├── wasmtime feature "cranelift"
         │   ├── wasmtime v50.0.1
         │   │   ├── log v0.4.34

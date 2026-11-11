@@ -5,7 +5,7 @@ oracle-written F8 config that binds apps/notes routes to real engines, mints F5 
 drives the subject over TLS (HTTP/1.1, plus HTTP/2 for RST_STREAM), and judges every outcome against durable rows
 that it reads directly from the engines, never through the subject.
 
-aegis-bin has no data plane yet (P4-bin-001 builds it). For now the oracle runs against `ref_subject.py`, a small
+monban-bin has no data plane yet (P4-bin-001 builds it). For now the oracle runs against `ref_subject.py`, a small
 stdlib-Python server that follows the same contract. It PASSes on the reference, goes red on each reference mutant,
 and accepts `--subject` for the real binary.
 
@@ -15,20 +15,20 @@ and accepts `--subject` for the real binary.
 oracles/native-e2e/run                                   # reference subject, SQLite backend
 oracles/native-e2e/run --self-test                       # reference PASS + 6 reference mutants red
 ci/engines.sh with pg18,valkey -- oracles/native-e2e/run --pg @pg18 --kv @valkey [--self-test]
-ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/aegis --pg @pg17      # gate cmd
-oracles/native-e2e/run --self-test --subject target/release/aegis   # judges target/e2e-mutants/release/aegis
+ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/monban --pg @pg17      # gate cmd
+oracles/native-e2e/run --self-test --subject target/release/monban   # judges target/e2e-mutants/release/monban
 ```
 
 SQLite is always exercised. PostgreSQL (`--pg DSN`) and Valkey/Redis (`--kv URL`) are added when given, and each
 backend's suite runs in parallel. The last line is `NATIVE-E2E: PASS|FAIL (...)` or
 `NATIVE-E2E SELF-TEST: PASS|FAIL (...)`, and the exit code is 0 only on PASS. The oracle needs the `openssl` CLI (it
 mints a throwaway P-256 certificate). It is stdlib Python only, run as `python3 -I`. With `--self-test --subject X`
-the judged binary is `--mutant-subject` or `target/e2e-mutants/release/aegis`, built through `ci/heavy.sh` with
+the judged binary is `--mutant-subject` or `target/e2e-mutants/release/monban`, built through `ci/heavy.sh` with
 `--features e2e-mutants` if missing. That build must PASS unmutated first. Each mutant is then selected with
 `AEGIS_E2E_MUTANT=<name>`.
 
-There is no `default-subject` yet: aegis would fail until P4-bin-001 lands, so the integrator adds
-`target/release/aegis` there when that unit passes.
+There is no `default-subject` yet: monban would fail until P4-bin-001 lands, so the integrator adds
+`target/release/monban` there when that unit passes.
 
 ## Subject contract (what P4-bin-001 must implement)
 
@@ -41,7 +41,7 @@ idempotency replay must survive there or in the backends. Readiness is `GET /hea
 HTTP). A config the binary refuses means exit 78 before any listener accepts.
 
 **Config (F8, as written by the oracle).** One listener `P-PUBLIC-WEB`, alpn `["h2","http/1.1"]`, vhost
-`aegis.test`, plus:
+`monban.test`, plus:
 
 ```json
 "data": {"backends": [
@@ -56,7 +56,7 @@ routes (all "authz":"allow-all", all "to":{"upstream":"app:notes"}):
 ```
 
 - `to.upstream = "app:notes"` binds the route to the native apps/notes handler. F8 has no other way to name an app:
-  today `upstream` is `host:port` or `unix:/path`, and the `app:` prefix is new to aegis-bin's plan, not to F8.
+  today `upstream` is `host:port` or `unix:/path`, and the `app:` prefix is new to monban-bin's plan, not to F8.
 - The PG pin is `pg<major>` of the server the oracle connects to. The KV engine and pin are `valkey` if
   `INFO server` reports `valkey_version`, else `redis`.
 - `columns` names the user columns. The tenant column is `tenant`, bound by the host and never listed.
@@ -66,26 +66,26 @@ routes (all "authz":"allow-all", all "to":{"upstream":"app:notes"}):
 **Schema (created by the oracle before boot).** SQLite:
 `notes(tenant TEXT NOT NULL COLLATE BINARY, id TEXT NOT NULL COLLATE BINARY, body TEXT NOT NULL,
 PRIMARY KEY(tenant,id)) WITHOUT ROWID`, in WAL mode. PostgreSQL: the same with `COLLATE "C"`, provisioned so that
-it passes the live schema gate (oracles/schema-gate pg mode, `aegis_adapter_pg::check_live_schema`) and recreated on
+it passes the live schema gate (oracles/schema-gate pg mode, `monban_adapter_pg::check_live_schema`) and recreated on
 every run (role and tables dropped first):
-  - login role `aegis_app` (aegis-bin's `PG_RLS_ROLE`): `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE
+  - login role `monban_app` (monban-bin's `PG_RLS_ROLE`): `LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE
     NOREPLICATION NOINHERIT`, a fresh random password per run. It owns nothing and has no CREATE on any schema.
   - `public.notes` owned by the provisioning superuser, `ENABLE` + `FORCE ROW LEVEL SECURITY`, and the statements of
-    `aegis_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "aegis_app", "aegis.tenant")`: one policy
-    `aegis_tenant AS PERMISSIVE FOR ALL TO "aegis_app" USING ("tenant" = current_setting('aegis.tenant', true)
-    COLLATE "C") WITH CHECK (same)`. `GRANT SELECT, INSERT, UPDATE, DELETE` to `aegis_app`.
-  - `public.aegis_idem(tenant, principal, k, status integer, body, PRIMARY KEY(principal, k))`, all text
-    `COLLATE "C"`, same RLS shape, `GRANT SELECT, INSERT`: aegis-bin's in-band idempotency table, provisioned here so
+    `monban_adapter_pg::rls_policy(Some("public"), "notes", "tenant", "monban_app", "monban.tenant")`: one policy
+    `monban_tenant AS PERMISSIVE FOR ALL TO "monban_app" USING ("tenant" = current_setting('monban.tenant', true)
+    COLLATE "C") WITH CHECK (same)`. `GRANT SELECT, INSERT, UPDATE, DELETE` to `monban_app`.
+  - `public.monban_idem(tenant, principal, k, status integer, body, PRIMARY KEY(principal, k))`, all text
+    `COLLATE "C"`, same RLS shape, `GRANT SELECT, INSERT`: monban-bin's in-band idempotency table, provisioned here so
     the RLS role never needs CREATE or owns a table. A subject that keeps idempotency elsewhere ignores it.
 
-  `AEGIS_E2E_PG_DSN` logs in as `aegis_app`, never as the superuser. The subject binds each transaction with
-  `SET LOCAL ROLE "aegis_app"` and `set_config('aegis.tenant', <tenant text>, true)` (`aegis_adapter_pg::rls_bind`);
+  `AEGIS_E2E_PG_DSN` logs in as `monban_app`, never as the superuser. The subject binds each transaction with
+  `SET LOCAL ROLE "monban_app"` and `set_config('monban.tenant', <tenant text>, true)` (`monban_adapter_pg::rls_bind`);
   an unbound transaction sees no rows and can write none. The oracle provisions and reads durable rows with the
   superuser DSN it was given (a superuser is never subject to RLS). KV: key `t:{<tenant hex>}:notes:<id>`, value = body (F4 `kv_key`). In every
 engine the tenant is the 16-lower-hex text of the u64 (D4, `tenant_text`).
 
 **Tokens.** `Authorization: Bearer <base64url, no padding, of the F5 token-l CBOR>`. The oracle mints caveats
-`[aud "aegis.test", exp now+600, depth 2, ops <mask>, tenant T]`. Verification uses `aegis_token::verify` with
+`[aud "monban.test", exp now+600, depth 2, ops <mask>, tenant T]`. Verification uses `monban_token::verify` with
 `Req{aud = vhost host, ops = bit of the endpoint's OpKind, res = canonical path segments, tenant = the token's
 tenant caveat, holder = none, tool = "", now = wall clock}`. Each request is acted on as the principal that
 `verify` mints, and its tenant comes only from the token. A missing tenant caveat, an unknown kid, a bad tag, the
@@ -113,7 +113,7 @@ otherwise the uniform denial below. Ids match `[a-z0-9][a-z0-9-]{0,63}`. Bodies 
   write, inside the open transaction, before commit. `hold_after_ms` sleeps after commit, before the response is
   produced. They are app behaviour, so mutants do not touch them, and they let the oracle place a cancel exactly
   before or after CP.
-- **Deadline.** The request header `aegis-deadline-ms: 1..60000` can only lower the deadline (out of range gives 400).
+- **Deadline.** The request header `monban-deadline-ms: 1..60000` can only lower the deadline (out of range gives 400).
   The default deadline is the route backend's `op_budget_ms`.
   - Deadline before CP: 504, the transaction is rolled back, and nothing is durable.
   - Deadline after CP: 202 (`Idempotency-Key` echoed), and replaying the key returns the stored outcome once it is
@@ -156,7 +156,7 @@ otherwise the uniform denial below. Ids match `[a-z0-9][a-z0-9-]{0,63}`. Bodies 
 ## Provenance and in-repo runs
 
 Written for this unit. No research artifact was ported or executed. The F5 minting (`mint`) follows
-`interfaces/F5-token.cddl` and `crates/aegis-token/src/tier_l.rs` (HKDF info with length prefixes, HMAC chain).
+`interfaces/F5-token.cddl` and `crates/monban-token/src/tier_l.rs` (HKDF info with length prefixes, HMAC chain).
 The reference verifier in `ref_subject.py` is a separate implementation of the same rules. `wire.py` (PG v3 with
 SCRAM-SHA-256, RESP2, a locked TLS wrapper) is shared infrastructure with no contract logic in it.
 
@@ -170,12 +170,12 @@ Runs on 2026-10-30, laptop:
   `NATIVE-E2E: PASS (224 checks; backends sqlite+postgres+valkey; drain 1.93 s, 6/6 in-flight completed)`.
 - `ci/engines.sh with pg18,valkey -- ci/heavy.sh oracles/native-e2e/run --self-test --pg @pg18 --kv @valkey` →
   `SELF-TEST: PASS (6/6 ...; backends sqlite+postgres+valkey)`. Checks caught: 42, 20, 38, 11, 2, 12.
-- `run --subject target/release/aegis` (pre-P4-bin-001 build) → `NATIVE-E2E: FAIL (3 failed:
+- `run --subject target/release/monban` (pre-P4-bin-001 build) → `NATIVE-E2E: FAIL (3 failed:
   boot.empty-data-list.exit78, boot.undeclared-backend.exit78, harness)`, as expected: it has no data plane.
 
 ## Known limits
 
-- **Reference, not aegis.** The real binary has not been judged; that is P4-bin-001's acceptance. The reference's
+- **Reference, not monban.** The real binary has not been judged; that is P4-bin-001's acceptance. The reference's
   idempotency latch is a separate SQLite file written right after the data commit, not atomically with it. A crash
   in between is crash-harness territory (INV-DURABLE), not this oracle's.
 - **Timing.** Holds are 1.2 s, the cancel lands at 350 ms and inspection waits 1 s after the hold. An extremely
@@ -195,11 +195,11 @@ Runs on 2026-10-30, laptop:
 ## MariaDB backend (P8-oracle-001, gate native-e2e-mariadb; PREFLIGHT R4)
 
 ```
-ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/aegis   # gate (aegis --features adapter-mariadb)
+ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/monban   # gate (monban --features adapter-mariadb)
 ci/engines.sh with mariadb -- oracles/native-e2e/run --self-test --engine mariadb --dsn @mariadb                     # reference + mutants
 ```
 
-`--engine mariadb --dsn <mysql://root:..@127.0.0.1:P/aegis>` adds a backend `my` next to SQLite (`--binary` is an alias
+`--engine mariadb --dsn <mysql://root:..@127.0.0.1:P/monban>` adds a backend `my` next to SQLite (`--binary` is an alias
 of `--subject`; `--engine`/`--dsn` pair up in order). Every `<b>.*` check group above then runs for `my` too
 (CRUD, idempotency, cross-tenant uniform denial, auth, NC1, NC7, NC2), plus `cap.*` on SQLite and the NC8 drain over
 both backends.
@@ -209,24 +209,24 @@ and the route `{"id":N,"path":"/my/","to":{"upstream":"app:notes"},"authz":"allo
 "collection":"notes","ops":[all five],"columns":["id","body"]}]}`.
 
 **Schema (created by the oracle as root, recreated per run, database from the DSN path).** The golden MariaDB shape of
-oracles/schema-gate (`aegis_adapter_mysql::check_live_schema`):
+oracles/schema-gate (`monban_adapter_mysql::check_live_schema`):
 
 ```sql
 CREATE TABLE notes (tenant VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
                     id VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
                     body TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin NOT NULL,
                     PRIMARY KEY (tenant, id)) ENGINE=InnoDB;
-CREATE TABLE aegis_idem (tenant VARCHAR(16) .. nopad_bin NOT NULL, principal VARCHAR(255) .. nopad_bin NOT NULL,
+CREATE TABLE monban_idem (tenant VARCHAR(16) .. nopad_bin NOT NULL, principal VARCHAR(255) .. nopad_bin NOT NULL,
                          k VARCHAR(64) .. nopad_bin NOT NULL, status INT NOT NULL, body MEDIUMTEXT .. nopad_bin NOT NULL,
                          PRIMARY KEY (principal, k)) ENGINE=InnoDB;
 ```
 
-`aegis_idem` is the in-band idempotency table (PLAN D14) provisioned so the login user never needs DDL; a subject
+`monban_idem` is the in-band idempotency table (PLAN D14) provisioned so the login user never needs DDL; a subject
 that keeps idempotency elsewhere ignores it, and P8-bin-001 may ask the spec author for a different shape.
 MariaDB has no row-level security: tenant isolation is the rendered tenant conjunct alone. The subject logs in as
-`aegis_app@'%'` (`mysql_native_password`, fresh random password per run) with `SELECT, INSERT, UPDATE, DELETE` on
-`notes` and `SELECT, INSERT` on `aegis_idem`, and no global privilege (the oracle checks `Super_priv`, `File_priv`,
-`Create_priv` = N before boot). `AEGIS_E2E_MARIADB_DSN` = `mysql://aegis_app:<pw>@127.0.0.1:<port>/aegis`; root is
+`monban_app@'%'` (`mysql_native_password`, fresh random password per run) with `SELECT, INSERT, UPDATE, DELETE` on
+`notes` and `SELECT, INSERT` on `monban_idem`, and no global privilege (the oracle checks `Super_priv`, `File_priv`,
+`Create_priv` = N before boot). `AEGIS_E2E_MARIADB_DSN` = `mysql://monban_app:<pw>@127.0.0.1:<port>/monban`; root is
 never given to the subject. Durable rows are read as root.
 
 **Schema refusal (boot).** Before the real boot the oracle recreates `notes` wrongly and boots the subject with the
@@ -245,14 +245,14 @@ unique key, which the reference's boot check also requires, with InnoDB and byte
 
 **Mutant (reference only, run when `my` is present).** `drop-tenant`: the tenant conjunct is dropped from every
 MariaDB statement. Caught by the `my.xt.*` checks (a foreign row is read, updated or deleted through its id).
-aegis-bin's `e2e-mutants` build does not carry it; `--self-test --subject` runs the six shared mutants only (and
+monban-bin's `e2e-mutants` build does not carry it; `--self-test --subject` runs the six shared mutants only (and
 builds `native,e2e-mutants,adapter-mariadb` when `--engine mariadb` is given).
 
-Today (base 0e27b11) aegis-bin refuses every MariaDB backend at boot (`adapters.rs`: no F4 denylist family, no
+Today (base 0e27b11) monban-bin refuses every MariaDB backend at boot (`adapters.rs`: no F4 denylist family, no
 `allowlist.notes-mariadb.lock`), so the gate is red until P8-mariadb-001 and P8-bin-001 land. Recorded on kamrui (MariaDB 11.8.9 from ci/engines.sh):
 - `--self-test --engine mariadb --dsn @mariadb` → `NATIVE-E2E SELF-TEST: PASS (7/7 mutants caught: ..., drop-tenant;
   backends sqlite+mariadb)`, baseline 160 checks; drop-tenant caught by 8 `my.xt.*` checks.
-- `--engine mariadb --dsn @mariadb --binary target/release/aegis` (`--features adapter-mariadb`, base 0e27b11) →
+- `--engine mariadb --dsn @mariadb --binary target/release/monban` (`--features adapter-mariadb`, base 0e27b11) →
   `NATIVE-E2E: FAIL (1 failed: harness)`: exit 78 at start, "MariaDB is not servable by this build". The two
   schema-refusal boots pass vacuously today (every MariaDB boot is refused); they bite once the backend is servable.
 

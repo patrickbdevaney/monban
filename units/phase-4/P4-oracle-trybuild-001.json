@@ -19,7 +19,7 @@
   "spikes/q4-001 F7b mutants (D2 19/19 rejected)"
  ],
  "oracles": [
-  "sdk-trybuild: trybuild 1.0.122 corpus in its own workspace against the real sdk/aegis-sdk; app crates with no tokio/axum dependency; expected.txt frozen by the spec author before running; plus the clippy ban-list tier"
+  "sdk-trybuild: trybuild 1.0.122 corpus in its own workspace against the real sdk/monban-sdk; app crates with no tokio/axum dependency; expected.txt frozen by the spec author before running; plus the clippy ban-list tier"
  ],
  "acceptance": {
   "cmd": "ci/heavy.sh oracles/sdk-trybuild/run && ci/heavy.sh oracles/sdk-trybuild/run --self-test",
@@ -28,7 +28,7 @@
  "write_scope": [
   "oracles/sdk-trybuild/**"
  ],
- "notes": "Re-express each research mutant against F7 (sync, axum-free). A mutant whose construct has no F7 analogue is written as the closest attempt (e.g. import axum State) and is rejected by absence of the dependency; record this per id (decision D5). Note the host seam: an app calling aegis_sdk::host:: compiles; only xtask layering catches it, so the corpus runs `cargo xtask layering`-equivalent owner scan on each case (in-oracle) and counts it as the lint tier. Pin rustc (snapshots are rustc-specific). Delete target/ after run. The SDK privacy compile-fail checks from P4-spec-002 are doc tests; gate sdk-trybuild must also run `cargo test --doc -p aegis-sdk` (the tests gate's --all-targets skips doc tests).",
+ "notes": "Re-express each research mutant against F7 (sync, axum-free). A mutant whose construct has no F7 analogue is written as the closest attempt (e.g. import axum State) and is rejected by absence of the dependency; record this per id (decision D5). Note the host seam: an app calling monban_sdk::host:: compiles; only xtask layering catches it, so the corpus runs `cargo xtask layering`-equivalent owner scan on each case (in-oracle) and counts it as the lint tier. Pin rustc (snapshots are rustc-specific). Delete target/ after run. The SDK privacy compile-fail checks from P4-spec-002 are doc tests; gate sdk-trybuild must also run `cargo test --doc -p monban-sdk` (the tests gate's --all-targets skips doc tests).",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,

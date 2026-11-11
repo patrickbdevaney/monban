@@ -1,0 +1,10 @@
+// Cedar schema for the MCP listener gate's PDP requests (crates/monban-agent/src/authz.rs).
+namespace Mcp {
+  entity User;
+  entity Route;
+  action invoke appliesTo {
+    principal: [User],
+    resource: [Route],
+    context: { era: String, method: String, tool: String }
+  };
+}

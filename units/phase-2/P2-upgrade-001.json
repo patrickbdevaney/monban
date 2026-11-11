@@ -1,7 +1,7 @@
-{"id":"P2-upgrade-001","crates":["aegis-ops"],
+{"id":"P2-upgrade-001","crates":["monban-ops"],
  "spec_refs":["F11 interfaces/F11-upgrade-handover.cddl","F1#UP-1..7","ARCHITECTURE §3.11 upgrade (never a second-process SO_REUSEPORT bind; claim-or-close; two-phase GOAWAY; STEK by pipe; SO_PEERCRED; 0700 dir)"],
  "oracles":["oracles/upgrade-harness (new): N reloads under steady new-connection load, count refused/RST/dropped-before-drain; negative control = naive second-process SO_REUSEPORT bind must show drops"],
  "acceptance":{"cmd":"ci/heavy.sh oracles/upgrade-harness/run --subject target/release/upgrade-subject --reloads 100 && oracles/upgrade-harness/run --self-test","must":"UPGRADE-HARNESS: PASS dropped_before_D=0 refused=0 rst=0; SELF-TEST: naive REUSEPORT control shows drops"},
- "write_scope":["crates/aegis-ops/**","subjects/upgrade-subject/**","oracles/upgrade-harness/**"],
+ "write_scope":["crates/monban-ops/**","subjects/upgrade-subject/**","oracles/upgrade-harness/**"],
  "note":"harness written with the implementation for bootstrap; its negative control (naive REUSEPORT) is an independent reference behaviour",
  "infeasible_exit":true,"max_retries":30,"passes":false}

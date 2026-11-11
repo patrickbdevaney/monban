@@ -79,6 +79,6 @@ Built-in naive subjects (in `harness.py`, same CLI) that must be caught:
   drain's phase 1 closed a just-accepted connection whose first request had not arrived yet as "idle keep-alive");
   fixed in the subject (only connections that already got a response count as idle). The harness caught it.
 * Loopback only, plain HTTP/1.1. UP-3 (H2 GOAWAY last_stream_id), UP-5 (STEK) and UP-6 (CLOEXEC) are
-  not observable black-box here; they are covered by `aegis-ops` unit tests.
+  not observable black-box here; they are covered by `monban-ops` unit tests.
 * The client counts at connection granularity; a subject that answered with a wrong-but-200 body would pass.
 * Laptop timings are provisional; `client_err` would flag ephemeral-port exhaustion at much higher rates.

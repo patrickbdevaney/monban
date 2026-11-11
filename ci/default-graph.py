@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Gate default-graph (P7-spec-002; PLAN-7, PREFLIGHT D-P7.3): Phase 7 must not move the default aegis-bin build.
+"""Gate default-graph (P7-spec-002; PLAN-7, PREFLIGHT D-P7.3): Phase 7 must not move the default monban-bin build.
 
 Usage: python3 -I ci/default-graph.py | --self-test
 
 Checks, each with its own id in the failure lines:
-  G1 baseline  the package set of `cargo tree -p aegis-bin -e normal,build --target all --locked` (default features)
+  G1 baseline  the package set of `cargo tree -p monban-bin -e normal,build --target all --locked` (default features)
                equals ci/fixtures/default-graph/baseline.txt (recorded at e06550e) exactly: nothing added, removed or
                re-versioned.
-  G2 forbidden none of the Phase 7 crates (io-uring, aegis-wire, aegis-uring, aegis-adapter-mysql, aegis-otlp) is in
+  G2 forbidden none of the Phase 7 crates (io-uring, monban-wire, monban-uring, monban-adapter-mysql, monban-otlp) is in
                the default graph, nor in the `--features native` graph (the shipped native build).
-  G3 features  every Phase 7 feature exists (aegis-bin: proxy-protocol, l4, mtc, uring, adapter-mariadb,
-               adapter-crdb; aegis-tls: mtc; aegis-adapter-pg: crdb) and none is reachable from that crate's
+  G3 features  every Phase 7 feature exists (monban-bin: proxy-protocol, l4, mtc, uring, adapter-mariadb,
+               adapter-crdb; monban-tls: mtc; monban-adapter-pg: crdb) and none is reachable from that crate's
                `default` feature (closure over its own [features] table), read with `cargo metadata --no-deps`.
-  G4 enabled   in the real resolved default and native graphs, no Phase 7 feature is enabled on aegis-bin, aegis-tls
-               or aegis-adapter-pg (cargo's feature resolver, `{f}` of cargo tree), so no other crate can switch one
-               on behind aegis-bin's back.
+  G4 enabled   in the real resolved default and native graphs, no Phase 7 feature is enabled on monban-bin, monban-tls
+               or monban-adapter-pg (cargo's feature resolver, `{f}` of cargo tree), so no other crate can switch one
+               on behind monban-bin's back.
 
 The budget limits themselves (§6: size, crates, unsafe lines) are the carried `budget` gate; this gate keeps its
 input fixed. No network: cargo runs --offline first and only retries online if the offline resolve fails.
 
---self-test: fixture mutants under ci/fixtures/default-graph/ (io-uring in the default graph, aegis-adapter-mysql in
+--self-test: fixture mutants under ci/fixtures/default-graph/ (io-uring in the default graph, monban-adapter-mysql in
 the default graph, a changed default crate set, crdb enabled in the native graph) and feature-table mutants built
 from features-clean.json must each FAIL with their own check id; the clean fixtures must PASS. Then three live
 mutants run the real cargo resolver with `--features uring`, `--features adapter-mariadb` and `--features mtc`
@@ -31,11 +31,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIX = os.path.join(ROOT, "ci", "fixtures", "default-graph")
 BASELINE = os.path.join(FIX, "baseline.txt")
 
-FORBIDDEN = ["io-uring", "aegis-wire", "aegis-uring", "aegis-adapter-mysql", "aegis-otlp"]
+FORBIDDEN = ["io-uring", "monban-wire", "monban-uring", "monban-adapter-mysql", "monban-otlp"]
 P7_FEATURES = {
-    "aegis-bin": ["proxy-protocol", "l4", "mtc", "uring", "adapter-mariadb", "adapter-crdb"],
-    "aegis-tls": ["mtc"],
-    "aegis-adapter-pg": ["crdb"],
+    "monban-bin": ["proxy-protocol", "l4", "mtc", "uring", "adapter-mariadb", "adapter-crdb"],
+    "monban-tls": ["mtc"],
+    "monban-adapter-pg": ["crdb"],
 }
 TREE_FMT = "{p} |{f}|"
 LINE = re.compile(r"^(\S+) v(\S+)(?: \([^)]*\))?(?: \|([^|]*)\|)?")
@@ -91,7 +91,7 @@ def check_graph(pkgs, base, label="default"):
     names = {n for n, _ in pkgs}
     for c in FORBIDDEN:
         if c in names:
-            v.append(f"G2 forbidden: {c} is in the {label} aegis-bin graph")
+            v.append(f"G2 forbidden: {c} is in the {label} monban-bin graph")
     return v
 
 
@@ -128,7 +128,7 @@ def cargo(args):
 
 
 def tree(features=None):
-    args = ["tree", "-p", "aegis-bin", "-e", "normal,build", "--target", "all", "--prefix", "none", "-f", TREE_FMT]
+    args = ["tree", "-p", "monban-bin", "-e", "normal,build", "--target", "all", "--prefix", "none", "-f", TREE_FMT]
     if features:
         args += ["--features", features]
     return cargo(args)
@@ -184,43 +184,43 @@ def self_test():
     tables = json.loads(fixture("features-clean.json"))
     expect("clean features", check_features(tables), None)
 
-    # Mutant 1: aegis-bin default features pull io-uring (through aegis-uring).
+    # Mutant 1: monban-bin default features pull io-uring (through monban-uring).
     p, f = parse_tree(fixture("mutant-io-uring.tree"))
     expect("mutant io-uring in default", check_graph(p, base) + check_enabled(f, "default"),
-           ["G1 baseline: default graph gained aegis-uring", "G1 baseline: default graph gained io-uring",
-            "G2 forbidden: io-uring", "G2 forbidden: aegis-uring", "G4 enabled: aegis-bin/uring"])
-    # Mutant 2: aegis-adapter-mysql in the default graph.
+           ["G1 baseline: default graph gained monban-uring", "G1 baseline: default graph gained io-uring",
+            "G2 forbidden: io-uring", "G2 forbidden: monban-uring", "G4 enabled: monban-bin/uring"])
+    # Mutant 2: monban-adapter-mysql in the default graph.
     p, f = parse_tree(fixture("mutant-adapter-mysql.tree"))
-    expect("mutant aegis-adapter-mysql in default", check_graph(p, base) + check_enabled(f, "default"),
-           ["G1 baseline: default graph gained aegis-adapter-mysql", "G2 forbidden: aegis-adapter-mysql"])
+    expect("mutant monban-adapter-mysql in default", check_graph(p, base) + check_enabled(f, "default"),
+           ["G1 baseline: default graph gained monban-adapter-mysql", "G2 forbidden: monban-adapter-mysql"])
     # Mutant 3: a changed default crate set (one crate re-versioned, one added) with no Phase 7 crate.
     p, f = parse_tree(fixture("mutant-changed-set.tree"))
     expect("mutant changed default set", check_graph(p, base) + check_enabled(f, "default"),
            ["G1 baseline: default graph gained tokio 1.54.1", "G1 baseline: default graph lost tokio 1.53.3",
             "G1 baseline: default graph gained want"])
-    # Mutant 4: crdb enabled on aegis-adapter-pg in the native graph by another crate.
+    # Mutant 4: crdb enabled on monban-adapter-pg in the native graph by another crate.
     p, f = parse_tree(fixture("native-mutant-crdb.tree"))
     expect("mutant crdb on in native", check_graph(p, None, "native") + check_enabled(f, "native"),
-           ["G4 enabled: aegis-adapter-pg/crdb"])
+           ["G4 enabled: monban-adapter-pg/crdb"])
 
     # Feature-table mutants.
     def mut(fn):
         t = json.loads(json.dumps(tables))
         fn(t)
         return t
-    expect("mutant default = [uring]", check_features(mut(lambda t: t["aegis-bin"].update(default=["uring"]))),
-           ["G3 features: aegis-bin/uring is reachable from default"])
+    expect("mutant default = [uring]", check_features(mut(lambda t: t["monban-bin"].update(default=["uring"]))),
+           ["G3 features: monban-bin/uring is reachable from default"])
     expect("mutant default -> native -> l4",
-           check_features(mut(lambda t: (t["aegis-bin"].update(default=["native"]),
-                                         t["aegis-bin"]["native"].append("l4")))),
-           ["G3 features: aegis-bin/l4 is reachable from default"])
-    expect("mutant aegis-tls default = [mtc]", check_features(mut(lambda t: t["aegis-tls"].update(default=["mtc"]))),
-           ["G3 features: aegis-tls/mtc is reachable from default"])
-    expect("mutant missing feature", check_features(mut(lambda t: t["aegis-bin"].pop("adapter-crdb"))),
-           ["G3 features: aegis-bin has no feature adapter-crdb"])
+           check_features(mut(lambda t: (t["monban-bin"].update(default=["native"]),
+                                         t["monban-bin"]["native"].append("l4")))),
+           ["G3 features: monban-bin/l4 is reachable from default"])
+    expect("mutant monban-tls default = [mtc]", check_features(mut(lambda t: t["monban-tls"].update(default=["mtc"]))),
+           ["G3 features: monban-tls/mtc is reachable from default"])
+    expect("mutant missing feature", check_features(mut(lambda t: t["monban-bin"].pop("adapter-crdb"))),
+           ["G3 features: monban-bin has no feature adapter-crdb"])
 
     # Live mutants: the real resolver with one Phase 7 feature on, judged as if it were the default graph.
-    for feat, crate in [("uring", "io-uring"), ("adapter-mariadb", "aegis-adapter-mysql"), ("mtc", "aegis-wire")]:
+    for feat, crate in [("uring", "io-uring"), ("adapter-mariadb", "monban-adapter-mysql"), ("mtc", "monban-wire")]:
         try:
             p, f = parse_tree(tree(feat))
         except RuntimeError as e:

@@ -1,4 +1,4 @@
-# Oracle-local workspace (excluded from the main AEGIS workspace via its `exclude = ["oracles", ...]`).
+# Oracle-local workspace (excluded from the main Monban workspace via its `exclude = ["oracles", ...]`).
 # Built ONLY by the oracle itself (lowir.py SqliteExec.build -> ci/heavy.sh cargo build --locked) into a per-run
 # target directory under this folder that is deleted when the run ends (laptop disk rule, oracles/README.md).
 [workspace]

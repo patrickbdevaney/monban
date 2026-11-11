@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Reference PDP-1 client for the pdp-dst self-test, with deliberate mutants. Same stdin/stdout contract as
-aegis-pdp-probe: one hex request body per line in, `<decision> <combined>` per line out.
+monban-pdp-probe: one hex request body per line in, `<decision> <combined>` per line out.
 
   --mutant none             correct: exact 12-byte reply, magic/version/kind, matching id, decision in 0..2;
                             timeout/EOF/garbage => ERROR, connection reset after every fault

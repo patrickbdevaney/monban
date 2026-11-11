@@ -5,9 +5,9 @@ RUSTSEC-2026-0382 ledger entries; PLAN-6 D13). Ported from spikes/cmvp-client-po
   client-policy --mode compiled-out|pq-only --binary PATH [options]     judge one shipped (stripped) binary
   client-policy --self-test                                             fixtures + the spike's 12 mutants + D13
 
-Real cmvp run (gates/phase-6.toml): `--binary target/cmvp/release/aegis` and no other option. Then:
-  manifest = target/cmvp-src (re-prepared by `profiles/cmvp/build.sh --metadata`), package aegis-bin, features
-  aegis-bin/cmvp, relink = docker (the AL2023 image, mounts, env and cargo flags of profiles/cmvp/build.sh --check,
+Real cmvp run (gates/phase-6.toml): `--binary target/cmvp/release/monban` and no other option. Then:
+  manifest = target/cmvp-src (re-prepared by `profiles/cmvp/build.sh --metadata`), package monban-bin, features
+  monban-bin/cmvp, relink = docker (the AL2023 image, mounts, env and cargo flags of profiles/cmvp/build.sh --check,
   including --no-default-features). Path arguments are resolved to absolute paths when parsed.
 
 Evidence views
@@ -22,7 +22,7 @@ Evidence views
 
 Mode A, compiled-out (PASS line exactly `CLIENT-POLICY: PASS (compiled-out)`, the ledger's evidence_must):
   M0 rustls is in the graph (else nothing to judge -> ERROR)
-  M1 no first-party package has a client feature on (tls-client: aegis-tls, aegis-egress; acme: aegis-ops)
+  M1 no first-party package has a client feature on (tls-client: monban-tls, monban-egress; acme: monban-ops)
   B0 positive control: the twin has rustls::server symbols and the map has rustls::server sections; a missing or
      blind view (stripped, wrong artifact) -> ERROR. Both views are required for a compiled-out PASS.
   B1 0 `rustls::client::` symbols in the twin            B2 0 `6rustls6client` refs in the shipped map
@@ -167,14 +167,14 @@ def relink(kind, manifest, package, bin_name, features, target_dir, extra, image
         r = sh(cmd, env=dict(os.environ, CARGO_TARGET_DIR=target_dir), cwd=manifest)
     elif kind == "docker":
         # Mirrors profiles/cmvp/build.sh --check (image, mounts, env, --no-default-features); keep in sync. Without
-        # --no-default-features cargo passes `--cfg feature="default"` to aegis-bin, which changes its -C metadata
+        # --no-default-features cargo passes `--cfg feature="default"` to monban-bin, which changes its -C metadata
         # (symbol hashes) and so .text/.rodata: the relink is then not the shipped binary and R0 is ERROR.
         rustup = os.path.realpath(os.environ.get("RUSTUP_HOME", os.path.expanduser("~/.rustup")))
         go = os.path.realpath(os.environ.get("AEGIS_GO", os.path.expanduser("~/aegis-ci/go1.27.3")))
         chan = re.search(r'channel *= *"(.*)"', open(os.path.join(ROOT, "rust-toolchain.toml")).read()).group(1)
         tc = f"{rustup}/toolchains/{chan}-x86_64-unknown-linux-gnu"
         cf = os.path.join(ROOT, "deploy/build/al2023.Containerfile")
-        img = image or "aegis-al2023-build:" + sha256(cf)[:12]
+        img = image or "monban-al2023-build:" + sha256(cf)[:12]
         if sh(["docker", "image", "inspect", img]).returncode != 0:
             raise RuntimeError(f"relink: image {img} missing (run profiles/cmvp/build.sh first)")
         # extra args reference host paths under target_dir; rewrite them to the /out mount
@@ -445,9 +445,9 @@ def options_from_argv():
         "mode": arg("--mode"),
         "binary": arg("--binary"),
         "manifest": arg("--manifest", os.path.join(ROOT, "target/cmvp-src")),
-        "package": arg("--package", "aegis-bin" if real else None),
-        "bin_name": arg("--bin-name", "aegis" if real else None),
-        "features": arg("--features", "aegis-bin/cmvp" if real else ""),
+        "package": arg("--package", "monban-bin" if real else None),
+        "bin_name": arg("--bin-name", "monban" if real else None),
+        "features": arg("--features", "monban-bin/cmvp" if real else ""),
         "relink": arg("--relink", "docker" if real else "none"),
         "no_default_features": real,  # build.sh builds the cmvp packages with --no-default-features
         "target_dir": arg("--target-dir", os.path.join(os.path.realpath(os.path.join(ROOT, "target")), "cmvp")),

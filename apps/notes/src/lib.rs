@@ -24,8 +24,8 @@
 
 mod json;
 
-use aegis_sdk::query::{Op, OpKind, Pred, Value};
-use aegis_sdk::{Ctx, ScopedHandler, SdkError, TenantDb, op_code};
+use monban_sdk::query::{Op, OpKind, Pred, Value};
+use monban_sdk::{Ctx, ScopedHandler, SdkError, TenantDb, op_code};
 
 /// The app name routes bind to (`app:notes`).
 pub const NAME: &str = "notes";
@@ -41,9 +41,9 @@ pub const PERMITTED: [u32; 2] = [ID, BODY];
 /// Allowlist locks (`cargo xtask allowlist-lock`): every op shape this app can emit, per engine family.
 pub const ALLOWLIST_SQLITE: &str = include_str!("../allowlist.notes-sqlite.lock");
 pub const ALLOWLIST_PG: &str = include_str!("../allowlist.notes-pg.lock");
-/// MariaDB (family `mariadb`, F4 DENY-M; feature `adapter-mariadb` of aegis-bin, non-golden until
+/// MariaDB (family `mariadb`, F4 DENY-M; feature `adapter-mariadb` of monban-bin, non-golden until
 /// `native-e2e-mariadb` passes). The op shapes are the same five as on PostgreSQL; the dialect differences live in the
-/// adapter (aegis-adapter-mysql lower.rs), not here:
+/// adapter (monban-adapter-mysql lower.rs), not here:
 /// * upsert renders as `INSERT .. ON DUPLICATE KEY UPDATE c = IF(CAST(tenant AS BINARY) = CAST(VALUES(tenant) AS
 ///   BINARY), VALUES(c), c)`. ODKU arbitrates on any unique key, so the live schema gate also requires `(tenant, id)`
 ///   to be the only unique key, InnoDB, and a NO-PAD binary collation;
@@ -52,7 +52,7 @@ pub const ALLOWLIST_PG: &str = include_str!("../allowlist.notes-pg.lock");
 /// MariaDB has no row-level security: tenant isolation is the host-rendered tenant conjunct in every WHERE (and the
 /// ODKU guard) alone. **Connection model (host side, P8-bin-001):** one connection per request scope. The scope runs
 /// `START TRANSACTION` .. `COMMIT`/`ROLLBACK` on a connection it holds exclusively; on scope end the connection goes
-/// back to the pool only if `aegis_adapter_mysql::conn::Connection::is_reusable()` holds (not broken, no open
+/// back to the pool only if `monban_adapter_mysql::conn::Connection::is_reusable()` holds (not broken, no open
 /// transaction, no buffered or unsolicited bytes, peer not closed), and is otherwise terminated (COM_QUIT, close). A
 /// cancelled or deadline-hit scope never returns its connection (C8/NC3): it is dropped, so no session state or
 /// half-read result set survives into another tenant's request.

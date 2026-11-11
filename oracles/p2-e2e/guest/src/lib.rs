@@ -1,6 +1,6 @@
 //! p2-e2e guests (F14 core-module ABI). One build exports several candidate handlers `h_<kind>`; the oracle
 //! rewrites the export section of a copy per kind to exactly `memory` + `handle` (p2wire.select_handle), so each
-//! module the subject sees has the F14 export set. Imports: `aegis.req_head/resp_head/resp_write` only; the `fault`
+//! module the subject sees has the F14 export set. Imports: `monban.req_head/resp_head/resp_write` only; the `fault`
 //! build additionally imports the test-only `env.host_fault` and exports only `h_abort`.
 //!
 //! Kinds:
@@ -18,7 +18,7 @@ fn on_panic(_: &core::panic::PanicInfo) -> ! {
 
 #[cfg(not(feature = "fault"))]
 mod handlers {
-    #[link(wasm_import_module = "aegis")]
+    #[link(wasm_import_module = "monban")]
     extern "C" {
         fn req_head(dst: i32, cap: i32) -> i32;
         fn resp_head(status: i32, src: i32, len: i32) -> i32;

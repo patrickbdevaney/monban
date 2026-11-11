@@ -1,4 +1,4 @@
-"""TOKEN-DRT: differential test of the Rust Tier-L verifier (aegis-token) against the Lean Token model.
+"""TOKEN-DRT: differential test of the Rust Tier-L verifier (monban-token) against the Lean Token model.
 
 Stdlib only; run as `python3 -I`. See README.md for the case format, the pass criterion and known limits.
 """

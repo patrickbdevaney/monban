@@ -1,7 +1,7 @@
 {"id":"P2-budget-admission-001",
- "crates":["aegis-budget","aegis-admission"],
+ "crates":["monban-budget","monban-admission"],
  "spec_refs":["F1#Admission-I1..I11","F1#TBI-5","F1#TBI-9","oracles/admission-props/README.md#subject-event-protocol"],
  "oracles":["oracles/admission-props/run --subject target/release/admission-subject","oracles/admission-props/run --self-test"],
  "acceptance":{"cmd":"ci/heavy.sh cargo build --release --locked -p admission-subject && ci/heavy.sh oracles/admission-props/run --subject target/release/admission-subject","must":"last line ADMISSION-PROPS: PASS; 0 violations; no zero coverage counter"},
- "write_scope":["crates/aegis-budget/**","crates/aegis-admission/**","subjects/admission-subject/**"],
+ "write_scope":["crates/monban-budget/**","crates/monban-admission/**","subjects/admission-subject/**"],
  "infeasible_exit":true,"max_retries":30,"passes":false}

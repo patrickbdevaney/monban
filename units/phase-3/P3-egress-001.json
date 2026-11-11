@@ -1,7 +1,7 @@
 {
  "id": "P3-egress-001",
  "crates": [
-  "aegis-egress"
+  "monban-egress"
  ],
  "spec_refs": [
   "ARCHITECTURE \u00a73.9/\u00a73.3 resolved-address egress, redirect policy, NAT64/6to4, fetch host fn (never wasi-http)",
@@ -15,7 +15,7 @@
   "must": "PASS"
  },
  "write_scope": [
-  "crates/aegis-egress/**",
+  "crates/monban-egress/**",
   "subjects/egress-subject/**",
   "oracles/ssrf-corpus/**"
  ],

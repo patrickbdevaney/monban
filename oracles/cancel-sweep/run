@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: cancel sweep (INV-NOMUT-C NC1/NC2/NC3/NC5 + NC4, CRS C5). Contract: oracles/README.md.
+# Monban oracle: cancel sweep (INV-NOMUT-C NC1/NC2/NC3/NC5 + NC4, CRS C5). Contract: oracles/README.md.
 #   ./run [--seeds N] [--modes drop,rst,timeout,stage_timeout,crash]   reference model (default 200 seeds)
 #   ./run --self-test                                                   mutations that must be caught
 #   ./run --subject '<cmd>'                                             external subject (README event protocol)

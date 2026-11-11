@@ -53,7 +53,7 @@ With Delta = keys whose row differs (by the table's declared key):
   no reset) the connection is back to the login role and the tenant setting is empty.
 * **ACL** (Redis/Valkey kv_acl family) the per-tenant ACL user's key patterns are exactly `t:{<16hex>}:*`, it has
   no pub/sub channel, and every hostile command is denied (ACL DRYRUN) and refused live; the oracle's corpus covers
-  every item of the frozen RESP denylist (parsed from `crates/aegis-data-ir/src/ir.rs` at run time).
+  every item of the frozen RESP denylist (parsed from `crates/monban-data-ir/src/ir.rs` at run time).
 * **REFUSE** requests that must be refused were answered: non-canonical tenant handles; ops `merge`, `cte`,
   `replace`, `raw_sql`; invalid KV collection; KV key over 1024 bytes.
 
@@ -71,7 +71,7 @@ Families (SQLite; each 300 cases x 4 seeds per schema):
 | UPG upsert on a global-key table (reference refuses: arbiter must contain tenant) | plain, NOCASE |
 | W6 INSERT, unique-key and FK existence (S0 vs S1) | composite PK + composite FK; global id PK + composite FK (reference refuses); composite PK + global FK (reference refuses) |
 | refusals (non-canonical handles on update/upsert; merge, cte, replace, raw_sql ops) | once per engine |
-| redis kv (aegis_data_ir::kv_plan): SET / SET NX / SET XX / DEL / GET / SCAN per (tenant, collection, key) with adversarial keys (`b:c`, `}:x`, `*`, `?`, `[a]`) and prefixes; E = exact kv_plan effect and reply; refusals for bad handles, collections, >1024-byte keys | model (offline) or live |
+| redis kv (monban_data_ir::kv_plan): SET / SET NX / SET XX / DEL / GET / SCAN per (tenant, collection, key) with adversarial keys (`b:c`, `}:x`, `*`, `?`, `[a]`) and prefixes; E = exact kv_plan effect and reply; refusals for bad handles, collections, >1024-byte keys | model (offline) or live |
 
 PG (`--engine pg`): U/D/UP/UPG on plain id PK, composite PK, ICU nondeterministic tenant (`ci_nd`), the three W6
 schemas and the refusals, plus the RLS-native family below.
@@ -79,8 +79,8 @@ schemas and the refusals, plus the RLS-native family below.
 **RLS-native family (PG; research wp_run2/wp_run3, R-DB-1/R-DB-8).** Defence in depth behind the renderer, so the
 statements are composed by the ORACLE without a tenant conjunct and only the subject's policy and binding confine
 them. Setup per seed: table `rt(id int primary key, tenant, peer, grp, x, y, secret)` (global id PK; `peer` holds
-other tenants' handles), owned by a non-superuser `NOINHERIT` login role `aegis_rls_login`, which is a member of the
-NOLOGIN role `aegis_rls_app`; the subject's `rls_policy` statements are executed by the owner (no superuser). Per
+other tenants' handles), owned by a non-superuser `NOINHERIT` login role `monban_rls_login`, which is a member of the
+NOLOGIN role `monban_rls_app`; the subject's `rls_policy` statements are executed by the owner (no superuser). Per
 case (n per seed): `BEGIN`, the subject's `rls_bind` statements for a random tenant, one statement, whole-table
 snapshot through a superuser-owned SECURITY DEFINER function inside the same transaction, then `COMMIT` (read-only
 `sel`) or `ROLLBACK`. Statements: `sel` SELECT .. WHERE Pred, `upd` UPDATE SET x .. WHERE Pred RETURNING, `del`
@@ -95,7 +95,7 @@ stop the owner bypass; W-checks only). The binding is required to be transaction
 `set_config(.., true)`), because the oracle's pool runs nothing at checkin.
 
 **kv_acl hostile-command family (Redis/Valkey, live).** Per tenant in `KV_TEN` the oracle creates the ACL user
-`aegis_kv_<hex>` with `ACL SETUSER <user> reset on ><random password> <subject rules...>`, checks `ACL GETUSER`
+`monban_kv_<hex>` with `ACL SETUSER <user> reset on ><random password> <subject rules...>`, checks `ACL GETUSER`
 (keys exactly `~t:{<hex>}:*`, no selectors, no channels), runs the subject's own kv_set / kv_get / kv_setxx /
 kv_setnx / kv_del commands AS that user (E: they must work), then for each of 108 hostile commands requires
 `ACL DRYRUN` to deny and, executed live on a fresh connection as that user, an error reply and an unchanged keyspace
@@ -209,7 +209,7 @@ Example reference reply (postgres dialect):
 ```json
 {"v":2,"id":9,"sql":"INSERT INTO \"t\" (\"tenant\", \"id\", \"x\") VALUES ($1, $2, $3) ON CONFLICT (\"tenant\", \"id\") DO UPDATE SET \"x\" = excluded.\"x\" WHERE \"t\".\"tenant\" = excluded.\"tenant\" COLLATE \"C\" RETURNING \"id\", \"x\"","params":["0000000000acce55",7,"N"]}
 ```
-Redis/Valkey (aegis_data_ir::kv_plan; byte strings hex-encoded, keys and values UTF-8 text):
+Redis/Valkey (monban_data_ir::kv_plan; byte strings hex-encoded, keys and values UTF-8 text):
 `{"op":"kv_set"|"kv_setnx"|"kv_setxx","tenant":T,"collection":C,"key_hex":..,"value_hex":..}` (Upsert `SET k v`,
 Insert `SET k v NX`, Update `SET k v XX`), `{"op":"kv_del"|"kv_get","tenant":T,"collection":C,"key_hex":..}` →
 `{"commands":[["<hex arg>",...],...]}` (executed in order); `{"op":"kv_key",...}` → `{"key_hex":..}`;
@@ -231,29 +231,29 @@ keys work. Non-canonical T: refuse. Reference reply:
 `{"rules":["resetkeys","~t:{0000000000acce55}:*","resetchannels","-@all","+get","+set","+del"]}`.
 
 **rls_policy** `{"v":2,"id":N,"op":"rls_policy","dialect":"postgres","table":"rt","tenant_field":"tenant",
-"role":"aegis_rls_app","setting":"aegis.tenant","columns":{...}}` → `{"statements":["<sql>",...]}` (DDL, executed in
+"role":"monban_rls_app","setting":"monban.tenant","columns":{...}}` → `{"statements":["<sql>",...]}` (DDL, executed in
 order by the table owner over the simple protocol). Required: ENABLE and FORCE ROW LEVEL SECURITY; permissive
 policies covering all commands for `role` whose USING and an explicit WITH CHECK are both `tenant_field =
 current_setting('<setting>', true)` under a deterministic binary comparison (reference: `COLLATE "C"`), referencing
 no other column. Reference reply:
 ```json
 {"statements":["ALTER TABLE \"rt\" ENABLE ROW LEVEL SECURITY","ALTER TABLE \"rt\" FORCE ROW LEVEL SECURITY",
- "CREATE POLICY aegis_tenant ON \"rt\" AS PERMISSIVE FOR ALL TO \"aegis_rls_app\" USING (\"tenant\" = current_setting('aegis.tenant', true) COLLATE \"C\") WITH CHECK (\"tenant\" = current_setting('aegis.tenant', true) COLLATE \"C\")"]}
+ "CREATE POLICY monban_tenant ON \"rt\" AS PERMISSIVE FOR ALL TO \"monban_rls_app\" USING (\"tenant\" = current_setting('monban.tenant', true) COLLATE \"C\") WITH CHECK (\"tenant\" = current_setting('monban.tenant', true) COLLATE \"C\")"]}
 ```
 **rls_bind** `{"v":2,"id":N,"op":"rls_bind","dialect":"postgres","tenant":T,"role":R,"setting":S}` →
 `{"statements":[{"sql":"<sql>","params":[...]},...]}` executed in order right after the request's `BEGIN` (extended
 protocol, `$n` placeholders). Required: per request and transaction-scoped, i.e. switch to `role` and set `setting`
 to T so that both vanish at COMMIT / ROLLBACK (the oracle runs nothing at checkin). Non-canonical T: refuse.
-Reference reply: `{"statements":[{"sql":"SET LOCAL ROLE \"aegis_rls_app\"","params":[]},
-{"sql":"SELECT set_config($1, $2, true)","params":["aegis.tenant","0000000000acce55"]}]}`.
+Reference reply: `{"statements":[{"sql":"SET LOCAL ROLE \"monban_rls_app\"","params":[]},
+{"sql":"SELECT set_config($1, $2, true)","params":["monban.tenant","0000000000acce55"]}]}`.
 
 ## PG ON CONFLICT information run (unit note 7; never a gate)
 
 `run --pg-onconflict-info --dsn ...` sets up `rt` (global id PK) and `rt2` (composite PK (tenant,id)) with the
-subject's FORCE RLS policy, a non-leakproof `aegis_peek(text)` that raises a NOTICE with its argument, binds tenant A
+subject's FORCE RLS policy, a non-leakproof `monban_peek(text)` that raises a NOTICE with its argument, binds tenant A
 and probes row id 2 of tenant B (`x = 'secretB'`): P1 `INSERT .. ON CONFLICT (id) DO UPDATE SET x = excluded.x WHERE
-aegis_peek(rt.x)`; P2 the same on the composite arbiter; P3-P6 UPDATE / DELETE / MERGE WHEN MATCHED AND / SELECT
-with `aegis_peek` (controls); P7 PG19 `ON CONFLICT (id) DO SELECT RETURNING` on the RLS table; P8 the same through a
+monban_peek(rt.x)`; P2 the same on the composite arbiter; P3-P6 UPDATE / DELETE / MERGE WHEN MATCHED AND / SELECT
+with `monban_peek` (controls); P7 PG19 `ON CONFLICT (id) DO SELECT RETURNING` on the RLS table; P8 the same through a
 `security_barrier` view that filters the tenant (view-based tenancy, not RLS). It prints one line per probe and
 `LOWERING-WRITE PG-ONCONFLICT-INFO (information only, not a gate): ...`, and exits 0 whatever it finds.
 
@@ -261,7 +261,7 @@ with `aegis_peek` (controls); P7 PG19 `ON CONFLICT (id) DO SELECT RETURNING` on 
 `NOTICE AEGIS_PEEK secretB`: PG evaluated the user function in the DO UPDATE WHERE on tenant B's row, and only then
 refused with `42501 new row violates row-level security policy (USING expression)`. **It reproduces identically on
 17.11 and 18.6**, so it is not specific to 19 and the allowed pins carry it too. The controls (P3-P6) see only own
-rows on all three; the hardened form (P2, composite arbiter) never reaches B's row. AEGIS does not hit it because the
+rows on all three; the hardened form (P2, composite arbiter) never reaches B's row. Monban does not hit it because the
 mandated forms put no user expression in the upsert WHERE and require a composite arbiter (FORM + W-checks above).
 PG19-specific: P8, `ON CONFLICT DO SELECT` through a security_barrier view, **returned B's row** on 19rc1
 (`(2, '0000000000000a25', 'secretB')`); on the RLS table itself DO SELECT is refused (P7, 42501). 17/18 have no DO
@@ -301,7 +301,7 @@ In-repo: `spec/AegisIR/Lowering.lean` 5b79eac2615fdd02e5f7260919080d178e9f7fd242
 `spec/SPEC_INVARIANTS.md` 2d7444473fe2f878680c70ba87d721a52ba7a2a3348b1a24125a8363dab12ac1.
 `lowir.py` is byte-identical to `oracles/lowering-read/lowir.py` (sha256 3eb7d79037e2dbb57b276da12d529f5b00fbe8778a3afe2d609891223151b14f).
 
-In-repo: `crates/aegis-data-ir/src/ir.rs` 79af59aa6990e85f78dcf62c27ff0fb479d684f38a867e9e19f9a88a494a4a90 (RESP
+In-repo: `crates/monban-data-ir/src/ir.rs` 79af59aa6990e85f78dcf62c27ff0fb479d684f38a867e9e19f9a88a494a4a90 (RESP
 denylist, read at run time).
 
 ## Re-run in repo (2026-10-30, P4-oracle-lowering-001 pass 2: RLS, kv_acl, PG ON CONFLICT info; Python 3.12.9)

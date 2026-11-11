@@ -1,6 +1,6 @@
 # libcrux-provider: server-only rustls CryptoProvider on libcrux (P7-libcrux-001, PREFLIGHT D-P7.5)
 
-Question: can AEGIS's non-FIPS P-PUBLIC-WEB server side run on a rustls `CryptoProvider` built from libcrux-*
+Question: can Monban's non-FIPS P-PUBLIC-WEB server side run on a rustls `CryptoProvider` built from libcrux-*
 primitives on crates.io, and does that shrink the C surface compared with aws-lc-rs? The verdict and numbers are in
 `VERDICT.md`. This file covers layout, checks and how to reproduce.
 

@@ -2,7 +2,7 @@
  "id": "P4-spec-001",
  "role": "spec-author",
  "crates": [
-  "aegis-data-ir (F4)",
+  "monban-data-ir (F4)",
   "interfaces (F8, F10)"
  ],
  "depends_on": [],
@@ -21,12 +21,12 @@
   "python3 -I ci/interfaces.py self-test (re-freeze must keep the check red on a mutated file)"
  ],
  "acceptance": {
-  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/interfaces.py self-test && ci/heavy.sh cargo test --locked -q -p aegis-data-ir && cargo xtask layering",
+  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/interfaces.py self-test && ci/heavy.sh cargo test --locked -q -p monban-data-ir && cargo xtask layering",
   "must": "PASS; MANIFEST re-frozen in the same commit with the reason; F4 Op layout unchanged unless F10 is re-frozen with it"
  },
  "write_scope": [
-  "crates/aegis-data-ir/src/ir.rs",
-  "crates/aegis-data-ir/src/lib.rs",
+  "crates/monban-data-ir/src/ir.rs",
+  "crates/monban-data-ir/src/lib.rs",
   "interfaces/F8-config.schema.json",
   "interfaces/F10-module-wire.cddl",
   "interfaces/MANIFEST.sha256",

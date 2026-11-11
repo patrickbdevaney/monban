@@ -2,7 +2,7 @@
  "id": "P4-bin-001",
  "role": "implementer",
  "crates": [
-  "aegis-bin",
+  "monban-bin",
   "apps/notes (new example app, layer app)"
  ],
  "depends_on": [
@@ -25,13 +25,13 @@
   "oracles/native-e2e"
  ],
  "acceptance": {
-  "cmd": "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/aegis --pg @pg17 && oracles/native-e2e/run --self-test --subject target/release/aegis && cargo xtask budget",
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p monban-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features e2e-mutants && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/release/monban --pg @pg17 && oracles/native-e2e/run --self-test --subject target/release/monban && cargo xtask budget",
   "must": "PASS; allowlist locks for apps/notes committed and `cargo xtask allowlist-lock --check` green"
  },
  "write_scope": [
-  "crates/aegis-bin/src/**",
-  "crates/aegis-bin/Cargo.toml",
-  "crates/aegis-bin/tests/**",
+  "crates/monban-bin/src/**",
+  "crates/monban-bin/Cargo.toml",
+  "crates/monban-bin/tests/**",
   "apps/notes/**",
   "oracles/native-e2e/default-subject",
   "gates/phase-4.toml (hygiene line only: apps/* clippy ban list)"
@@ -39,6 +39,6 @@
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: native-e2e real binary 156 checks sqlite+pg17, self-test 6/6 vs real mutant build; budget default 5.34 MB / native 7.93 MB (X-12 ceiling 8.0); D14 aegis_idem verified-not-created; D18 KV refused at boot; transport drop-on-reset",
- "notes": " From P4-oracle-trybuild-001: apply oracles/sdk-trybuild/clippy.toml's ban list (mem::forget etc.) to apps/* in the hygiene gate, since M3/M12/N9 are only caught by it. Integrator scope update 2026-10-30: aegis-bin/Cargo.toml path edges to adapters/config/state allowed (D15; no new third-party crates without asking); default-subject for native-e2e once green; hygiene gate applies oracles/sdk-trybuild/clippy.toml ban list to apps/*."
+ "status": "pass: native-e2e real binary 156 checks sqlite+pg17, self-test 6/6 vs real mutant build; budget default 5.34 MB / native 7.93 MB (X-12 ceiling 8.0); D14 monban_idem verified-not-created; D18 KV refused at boot; transport drop-on-reset",
+ "notes": " From P4-oracle-trybuild-001: apply oracles/sdk-trybuild/clippy.toml's ban list (mem::forget etc.) to apps/* in the hygiene gate, since M3/M12/N9 are only caught by it. Integrator scope update 2026-10-30: monban-bin/Cargo.toml path edges to adapters/config/state allowed (D15; no new third-party crates without asking); default-subject for native-e2e once green; hygiene gate applies oracles/sdk-trybuild/clippy.toml ban list to apps/*."
 }

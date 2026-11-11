@@ -1,5 +1,5 @@
 """Independent address judgement for the SSRF-CORPUS oracle (stdlib `ipaddress`, written from the IANA special-purpose
-registries, not ported from aegis-egress). `judge(ip)` returns (class, readmittable)."""
+registries, not ported from monban-egress). `judge(ip)` returns (class, readmittable)."""
 import ipaddress as ia
 
 V4 = [  # (network, class); first match wins, most specific first

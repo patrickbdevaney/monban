@@ -11,7 +11,7 @@ plan's open items **double fault** (a crash during recovery) and **fsync EIO** (
 oracles/crash-harness/run                       # reduced run, ~3 min on the laptop, ~20k crash images
 oracles/crash-harness/run --self-test           # 7 mutations, all must be caught (~50 s incl. the build)
 oracles/crash-harness/run --full                # research-size run: CI/VPS job (see "Full size")
-oracles/crash-harness/run --subject '<cmd> {dir}'   # plug in the aegis-state store (see "Subject protocol")
+oracles/crash-harness/run --subject '<cmd> {dir}'   # plug in the monban-state store (see "Subject protocol")
   options: --txns N --cuts N --seeds 1,2,3 --eio N --double N --double-cuts N --jobs N --keep --keep-build
 ```
 
@@ -68,7 +68,7 @@ The run has three stages per subject:
    checked against the **first** crash's ack count.
 
 Reference subjects (`rust/refstore`): `sqlite:wal-full` (golden default), `redb:2pc` (passing alternative), `wal:crc`
-(own CRC-framed log with fdatasync per commit, the expected shape of aegis-state). All of them do the INV-DURABLE
+(own CRC-framed log with fdatasync per commit, the expected shape of monban-state). All of them do the INV-DURABLE
 bootstrap: fsync every file, then the directory, before `READY`.
 
 ## Pass criterion
@@ -92,10 +92,10 @@ With `--subject`, the self-test also runs the EIO-swallow mutation against the s
 either `ack_after_eio` or `lost_ack`.
 
 `no-mode-recheck` runs on `sqlite:wal-full`, not on `wal:crc` as the unit text P4-oracle-state-001 says. The own log
-has no journal mode that could fall back, so the mutation has no meaning there. aegis-state is SQLite WAL FULL
+has no journal mode that could fall back, so the mutation has no meaning there. monban-state is SQLite WAL FULL
 (P4-state-001), and the fallback was found on SQLite. refstore advertises the flag only for the sqlite store.
 
-## Subject protocol (for the future aegis-state store)
+## Subject protocol (for the future monban-state store)
 
 The subject is any executable; `{dir}` in `--subject` is replaced by the store directory (or appended). It speaks
 newline-terminated text over stdin/stdout:
@@ -124,7 +124,7 @@ Requirements, all checked:
   either is not what it set (q2-007 assertion 1). `--no-mode-recheck` skips that re-read; P4-state-001 must advertise
   and implement it.
 
-The trait the aegis-state crate should expose, so its CLI wrapper is ~40 lines:
+The trait the monban-state crate should expose, so its CLI wrapper is ~40 lines:
 
 ```rust
 pub trait CrashSubject {
@@ -222,7 +222,7 @@ states over 19 configurations, not "~130k".
 fresh file to WAL, SQLite 3.53.2 silently fell back to the rollback journal. `PRAGMA journal_mode=WAL` had already
 returned `wal` and no error surfaced. The store then served in DELETE mode and lost acked writes (research's `wl`
 has the same unchecked PRAGMA). refstore now re-reads `journal_mode` and `synchronous` after the schema write and
-refuses to start otherwise. **aegis-state must do the same.**
+refuses to start otherwise. **monban-state must do the same.**
 
 ## Known limits
 
@@ -236,5 +236,5 @@ refuses to start otherwise. **aegis-state must do the same.**
 - Double fault: one level (a crash during the first recovery). Recovery = open + DUMP + CHECK + clean close, which
   covers SQLite's WAL recovery/checkpoint/WAL delete on close and redb's repair inside `check_integrity`.
 - `init_*` (crash during first-time creation, before READY) is reported, not gated. redb leaves an unopenable file
-  ("magic number mismatch") when killed inside `Database::create`. aegis-state should create via temp file + rename
+  ("magic number mismatch") when killed inside `Database::create`. monban-state should create via temp file + rename
   + dir fsync, so that a crash during bootstrap can be retried.

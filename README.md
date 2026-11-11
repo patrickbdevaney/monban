@@ -1,4 +1,4 @@
-# AEGIS
+# Monban
 
 A single-binary reverse proxy and agent gateway with post-quantum TLS, whose core security rules are written down as
 machine-checked models and tested against the running code.
@@ -6,7 +6,7 @@ machine-checked models and tested against the running code.
 > [!IMPORTANT]
 > **Pre-release research software. Do not use in production.** There is no release yet, no external audit, and no
 > production deployment. Most of the code was written by AI agents working under the gates described below; no
-> human has reviewed all of it. "AEGIS" is a working name.
+> human has reviewed all of it. Formerly called AEGIS.
 
 ## Why
 
@@ -14,7 +14,7 @@ The layer between clients and applications (reverse proxies, API gateways) is wh
 confusion, cross-tenant data leaks, server-side request forgery and resource exhaustion usually happen. AI agents
 make this worse: more automated clients, and faster discovery of every parsing disagreement.
 
-AEGIS takes the approach of a **reference monitor**: every request and every extension call crosses one small
+Monban takes the approach of a **reference monitor**: every request and every extension call crosses one small
 pipeline (admission → canonicalization → authorization → capability-scoped effect). Each rule on that path is stated
 precisely, and each statement is either proved over a model or checked against the real binary by an independent
 test oracle. Where a property is only tested, or only trusted, the documentation says so.
@@ -24,7 +24,7 @@ test oracle. Where a property is only tested, or only trusted, the documentation
 | area | approach |
 |---|---|
 | **Post-quantum TLS** | TLS 1.3 only. Hybrid ML-KEM key exchange is preferred on public listeners and required on agent and API listeners, including SecP384r1MLKEM1024 (RFC 10024), interoperability-tested. |
-| **One reading per request** | Exactly one parser for each identity (path, host, query, headers, cookies, JSON). Ambiguous input is rejected, never repaired, so AEGIS and the application behind it cannot disagree about what a request means. |
+| **One reading per request** | Exactly one parser for each identity (path, host, query, headers, cookies, JSON). Ambiguous input is rejected, never repaired, so Monban and the application behind it cannot disagree about what a request means. |
 | **Fail-closed authorization** | Policy combination is tri-state: an error, timeout or crash means deny. Cedar policies run in a separate process. |
 | **Tenant-safe data access** | Data operations go through an intermediate language whose translation to SQL is proved, over a model, to return exactly the permitted rows. |
 | **Agent gateway** | Capability tokens that can only narrow when delegated, an MCP listener gate, and outbound fetches that cannot reach private or cloud-metadata addresses. |
@@ -37,10 +37,10 @@ Requirements: Linux x86_64 or aarch64, Rust 1.99.1 (picked automatically from `r
 to make a test certificate.
 
 ```sh
-cargo build --release --locked -p aegis-bin
-target/release/aegis                       # exits 78: no configuration, no listener (fail-closed boot)
-target/release/aegis check-config config.json --print-effective
-target/release/aegis --config config.json --cert tls.crt --key tls.key
+cargo build --release --locked -p monban-bin
+target/release/monban                       # exits 78: no configuration, no listener (fail-closed boot)
+target/release/monban check-config config.json --print-effective
+target/release/monban --config config.json --cert tls.crt --key tls.key
 ```
 
 A minimal `config.json` (schema: [`interfaces/F8-config.schema.json`](interfaces/F8-config.schema.json)):
@@ -80,9 +80,9 @@ base and are not verified by this project. Some AWS-LC parts (the ML-KEM and ML-
 arithmetic) are formally verified by their own maintainers; that work is theirs, not ours.
 
 **Not claimed:** side-channel isolation; the correctness of third-party extensions, adapters or applications; the
-security of any path that bypasses AEGIS.
+security of any path that bypasses Monban.
 
-**FIPS 140-3.** AEGIS is not a validated cryptographic module and makes no FIPS validation claim. The `cmvp` build
+**FIPS 140-3.** Monban is not a validated cryptographic module and makes no FIPS validation claim. The `cmvp` build
 profile uses only the AWS-LC FIPS 140-3 module (CMVP certificate #5314, the static module) and is built on Amazon
 Linux 2023, that module's validated environment. The hybrid key exchange as a whole is not FIPS-approved.
 
@@ -92,14 +92,14 @@ The full list, with every caveat, is [`SECURITY_CLAIMS.md`](SECURITY_CLAIMS.md).
 
 ```mermaid
 flowchart LR
-  C[Clients and agents] -->|TLS 1.3, hybrid PQ| T[aegis-transport<br/>HTTP/1.1 + HTTP/2<br/>budgets]
-  T --> A[aegis-admission<br/>rate limits]
-  A --> N[aegis-canon<br/>one reading per identity]
+  C[Clients and agents] -->|TLS 1.3, hybrid PQ| T[monban-transport<br/>HTTP/1.1 + HTTP/2<br/>budgets]
+  T --> A[monban-admission<br/>rate limits]
+  A --> N[monban-canon<br/>one reading per identity]
   N --> Z[authorization<br/>tokens + tri-state combiner]
-  Z -.->|over a Unix socket| P[(aegis-pdp<br/>Cedar, separate process)]
+  Z -.->|over a Unix socket| P[(monban-pdp<br/>Cedar, separate process)]
   Z --> U[upstream forwarding<br/>regenerated framing]
   Z --> D[data plane<br/>operation IR → adapters]
-  Z --> E[aegis-egress<br/>vetted-address fetch]
+  Z --> E[monban-egress<br/>vetted-address fetch]
   U --> O[Origin applications]
   D --> DB[(Databases)]
   subgraph observability

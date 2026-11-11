@@ -1,18 +1,18 @@
 [package]
 name = "ct-subject"
-description = "Oracle subject: times aegis-token's tag compare and Tier-L verify for the ct-dudect oracle. Never linked into aegis."
+description = "Oracle subject: times monban-token's tag compare and Tier-L verify for the ct-dudect oracle. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 [dependencies]
-aegis-token = { workspace = true }
-# The constant-time compare aegis-token's mac_valid uses (AWS-LC CRYPTO_memcmp), also timed in isolation as `cmp`.
+monban-token = { workspace = true }
+# The constant-time compare monban-token's mac_valid uses (AWS-LC CRYPTO_memcmp), also timed in isolation as `cmp`.
 aws-lc-rs = { workspace = true }
 
 [lints]

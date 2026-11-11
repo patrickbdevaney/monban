@@ -1,6 +1,6 @@
-# ct-dudect: constant-time tag compare in aegis-token (dudect)
+# ct-dudect: constant-time tag compare in monban-token (dudect)
 
-Leakage detection on the Tier-L MAC check of `aegis-token` (unit P3-dudect-001; IMPLEMENTATION_PLAN §3 Phase 3,
+Leakage detection on the Tier-L MAC check of `monban-token` (unit P3-dudect-001; IMPLEMENTATION_PLAN §3 Phase 3,
 "dudect on MAC compare, no leak"), following Reparaz, Balasch, Verbauwhede, *Dude, is my code constant time?*
 (DATE 2017) and the reference `dudect.h`. Implemented in stdlib Python; no new dependencies.
 
@@ -12,8 +12,8 @@ measurement with `std::time::Instant` in-process:
 
 - `cmp`: `aws_lc_rs::constant_time::verify_slices_are_equal(want, tag)`, the exact compare `mac_valid` calls
   (AWS-LC `CRYPTO_memcmp`), in isolation, so it is not masked by HMAC time.
-- `mac`: `aegis_token::mac_valid` (HKDF K_aud + HMAC chain + compare) with the presented tag.
-- `verify`: `aegis_token::verify` on encoded wire bytes carrying a forged tag (decode + MAC check + reject).
+- `mac`: `monban_token::mac_valid` (HKDF K_aud + HMAC chain + compare) with the presented tag.
+- `verify`: `monban_token::verify` on encoded wire bytes carrying a forged tag (decode + MAC check + reject).
 
 Classes (tag relative to the correct tag of the subject's fixed token): `equal`; `first` (differs only at byte 0);
 `last` (differs only at byte 31, i.e. a 31-byte matching prefix); `random` (fresh random tag per measurement).
@@ -68,7 +68,7 @@ measurement floor, second-order test), re-implemented here.
   meas)` and `CT-DUDECT SELF-TEST: PASS (early-exit mutant min |t|=645.2 > 10 on 4 tests; identical-class control
   max |t|=1.72 < 4.5; 2000000 meas/test)`.
 
-aegis-token needed no change: `mac_valid` already compares with `aws_lc_rs::constant_time::verify_slices_are_equal`.
+monban-token needed no change: `mac_valid` already compares with `aws_lc_rs::constant_time::verify_slices_are_equal`.
 
 ## Known limits
 

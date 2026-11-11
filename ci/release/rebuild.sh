@@ -5,11 +5,11 @@
 #   ci/release/rebuild.sh --self-test
 #
 # Build A: ci/release/pipeline.sh on kamrui through ci/remote.sh --host kamrui (the attested release: build, sbom,
-#   attest, sign, tuf). Its output, including the `RELEASE-PIPELINE: PASS (<profile>, artifacts/aegis-<profile> sha256
+#   attest, sign, tuf). Its output, including the `RELEASE-PIPELINE: PASS (<profile>, artifacts/monban-<profile> sha256
 #   <hex> ...` line that conformance/run reads from this gate's log, is streamed to stdout.
 # Build B: the dedicated GCP VM aegis-quiet (ssh alias `quiet`), started by ci/release/vm.sh and ALWAYS stopped again
 #   (EXIT trap; TERMINATED is checked with gcloud compute instances describe). B is provisioned independently of A:
-#   - docker from the VM's own apt (first use only; the VM is a dedicated AEGIS box);
+#   - docker from the VM's own apt (first use only; the VM is a dedicated Monban box);
 #   - the base image pulled by digest and the build image rebuilt from deploy/build/al2023.Containerfile
 #     (deploy/build/image.sh, < 500 MB asserted);
 #   - the Rust toolchain fetched on the VM from static.rust-lang.org (rustc, cargo, rust-std of the channel pinned in
@@ -48,7 +48,7 @@ CHECK_PY="$(mktemp)"; trap 'rm -f "$CHECK_PY"' EXIT
 
 # ------------------------------------------------------------------ the gate's check (laptop, python3 -I, stdlib)
 cat > "$CHECK_PY" << 'PYEOF'
-"""check.py --profile P --a DIR --b DIR: A = provenance.intoto.json, attest.pub.pem, aegis-P; B = aegis-P,
+"""check.py --profile P --a DIR --b DIR: A = provenance.intoto.json, attest.pub.pem, monban-P; B = monban-P,
 build-info.json, b-record.json. Last line REBUILD-CHECK: PASS (...) / FAIL (...)."""
 import base64, hashlib, json, os, subprocess, sys, tempfile
 
@@ -66,7 +66,7 @@ def sha(p):
 def main(argv):
     a = dict(zip(argv[::2], argv[1::2]))
     prof, A, B = a["--profile"], a["--a"], a["--b"]
-    art = f"artifacts/aegis-{prof}"
+    art = f"artifacts/monban-{prof}"
     errs = []
     env = json.load(open(os.path.join(A, "provenance.intoto.json")))
     if env.get("payloadType") != DSSE or len(env.get("signatures", [])) != 1:
@@ -91,8 +91,8 @@ def main(argv):
     if len(subj) != 1 or len(named) != 1:
         return f"FAIL ({prof}: provenance must have exactly one subject {art}, has {[s.get('name') for s in subj]})"
     d_att = named[0]["digest"]["sha256"]
-    d_a = sha(os.path.join(A, f"aegis-{prof}"))
-    d_b = sha(os.path.join(B, f"aegis-{prof}"))
+    d_a = sha(os.path.join(A, f"monban-{prof}"))
+    d_b = sha(os.path.join(B, f"monban-{prof}"))
     bi = json.load(open(os.path.join(B, "build-info.json")))
     br = json.load(open(os.path.join(B, "b-record.json")))
     if d_a != d_att:
@@ -162,13 +162,13 @@ self_test() {
   mkfix() {  # $1 dir, $2 artifact bytes, $3 attested digest override (empty = real) -> A/ and B/ in $1
     local d="$1" bytes="$2" att="$3" s
     mkdir -p "$d/A" "$d/B" "$d/w/key" "$d/w/out"; chmod 700 "$d/w/key"
-    printf '%s' "$bytes" > "$d/A/aegis-floor"; cp "$d/A/aegis-floor" "$d/B/aegis-floor"
-    s=$(sha256sum "$d/A/aegis-floor" | cut -d' ' -f1)
+    printf '%s' "$bytes" > "$d/A/monban-floor"; cp "$d/A/monban-floor" "$d/B/monban-floor"
+    s=$(sha256sum "$d/A/monban-floor" | cut -d' ' -f1)
     cat > "$d/B/build-info.json" << EOF
-{"profile": "floor", "artifact": "artifacts/aegis-floor", "sha256": "$s",
- "command": ["cargo", "auditable", "build", "--release", "--locked", "--offline", "-p", "aegis-bin"],
+{"profile": "floor", "artifact": "artifacts/monban-floor", "sha256": "$s",
+ "command": ["cargo", "auditable", "build", "--release", "--locked", "--offline", "-p", "monban-bin"],
  "source_date_epoch": 1793800658, "rustflags": "--remap-path-prefix=/src=/src -Cforce-frame-pointers=yes",
- "image": {"name": "aegis-al2023-build:1f326d0afbea", "id": "sha256:$(printf b | sha256sum | cut -c1-64)",
+ "image": {"name": "monban-al2023-build:1f326d0afbea", "id": "sha256:$(printf b | sha256sum | cut -c1-64)",
            "base": "amazonlinux@sha256:bb1c85fe00170acd8a653de5f68cf77c7ec67234a130b18fad7ca1de1f61e3d3",
            "containerfile_sha256": "$(printf c | sha256sum | cut -c1-64)"},
  "rustc_vV": "rustc 1.99.1", "cargo_V": "cargo 1.99.1", "go_version": "go version go1.27.3 linux/amd64",
@@ -184,16 +184,16 @@ EOF
     cp "$d/B/build-info.json" "$d/w/bi.json"
     if [ -n "$att" ]; then jset "$d/w/bi.json" "d['sha256']='$att'"; s="$att"; fi
     # The real attest job, with its own fresh throwaway key (shredded by the job), writes the provenance.
-    python3 -I "$REL/jobs/attest.py" --subject "artifacts/aegis-floor=$s" --sbom "$d/w/sbom.cdx.json" \
+    python3 -I "$REL/jobs/attest.py" --subject "artifacts/monban-floor=$s" --sbom "$d/w/sbom.cdx.json" \
       --build-info "$d/w/bi.json" --source "$d/w/source.json" --keydir "$d/w/key" --out "$d/w/out" > /dev/null
     cp "$d/w/out/provenance.intoto.json" "$d/A/"; cp "$d/w/out/attest/attest.pub.pem" "$d/A/"
   }
   echo "release-rebuild self-test (check() on real-format provenance from jobs/attest.py, throwaway keys)"
-  mkfix "$T/clean" "aegis floor binary" ""
+  mkfix "$T/clean" "monban floor binary" ""
   expect PASS clean x --profile floor --a "$T/clean/A" --b "$T/clean/B"
   cp -r "$T/clean" "$T/epoch"; jset "$T/epoch/B/build-info.json" "d['source_date_epoch'] += 1"
   expect FAIL "mutant B SOURCE_DATE_EPOCH+1" "recipe SOURCE_DATE_EPOCH" --profile floor --a "$T/epoch/A" --b "$T/epoch/B"
-  mkfix "$T/other" "aegis floor binary" "$(printf other | sha256sum | cut -c1-64)"
+  mkfix "$T/other" "monban floor binary" "$(printf other | sha256sum | cut -c1-64)"
   expect FAIL "attestation (validly signed) naming another digest" "!= attested" --profile floor --a "$T/other/A" --b "$T/other/B"
   cp -r "$T/clean" "$T/edit"
   python3 -I -c '
@@ -203,7 +203,7 @@ s["subject"][0]["digest"]["sha256"] = "0" * 64
 e["payload"] = base64.b64encode(json.dumps(s, sort_keys=True, separators=(",", ":")).encode()).decode()
 json.dump(e, open(p, "w"))' "$T/edit/A/provenance.intoto.json"
   expect FAIL "attestation payload edited to another digest" "signature does not verify" --profile floor --a "$T/edit/A" --b "$T/edit/B"
-  cp -r "$T/clean" "$T/bdig"; printf 'different' > "$T/bdig/B/aegis-floor"
+  cp -r "$T/clean" "$T/bdig"; printf 'different' > "$T/bdig/B/monban-floor"
   expect FAIL "B binary differs" "sha256(B)" --profile floor --a "$T/bdig/A" --b "$T/bdig/B"
   cp -r "$T/clean" "$T/bid"; jset "$T/bid/B/b-record.json" "d['builder_id']='urn:aegis:ci:kamrui:release-pipeline:v1'"
   expect FAIL "B reuses A's builder id" "builder ids" --profile floor --a "$T/bid/A" --b "$T/bid/B"
@@ -320,7 +320,7 @@ for P in "$@"; do
       --scratch "$RUN/job-$P" --out "$RUN/out-$P"); then
     echo "B-RESULT: $P FAIL build"; continue
   fi
-  s=$(sha256sum "$RUN/out-$P/aegis-$P" | cut -d' ' -f1)
+  s=$(sha256sum "$RUN/out-$P/monban-$P" | cut -d' ' -f1)
   printf '{"commit": "%s", "tree_sha256": "%s", "sha256": "%s", "builder_id": "%s", "host": "aegis-quiet"}\n' \
     "$COMMIT" "$TREE" "$s" "urn:aegis:ci:gcp-aegis-quiet:release-rebuild:v1" > "$RUN/out-$P/b-record.json"
   rm -rf "$RUN/job-$P" "$SRC"
@@ -341,7 +341,7 @@ gate() {
   COMMIT=$(git -C "$ROOT" rev-parse HEAD); EPOCH=$(git -C "$ROOT" log -1 --format=%ct HEAD)
   [ -z "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ] \
     || echo "rebuild: note: uncommitted changes; both builds use commit $COMMIT (A in tree mode would differ: checked)"
-  REPO=repo; [ "$(basename "$ROOT")" = aegis ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
+  REPO=repo; [ "$(basename "$ROOT")" = monban ] || REPO="repo-$(printf %s "$ROOT" | sha256sum | cut -c1-12)"
   mkdir -p "$OUTROOT"
   : > "$OUTROOT/b.log"  # this run's B log only: a B-RESULT line from an earlier run must never be read
   declare -A RES
@@ -353,14 +353,14 @@ gate() {
     local alog="$OUTROOT/$p/A/pipeline.log"
     "$ROOT/ci/remote.sh" --host kamrui bash -c "export AEGIS_RELEASE_COMMIT=$COMMIT AEGIS_RELEASE_EPOCH=$EPOCH; \
 ci/release/pipeline.sh --profile $p --out target/release-rebuild/A-$p" 2>&1 | tee "$alog" || true
-    local line; line=$(grep "^RELEASE-PIPELINE: PASS ($p, artifacts/aegis-$p sha256 " "$alog" | tail -1 || true)
+    local line; line=$(grep "^RELEASE-PIPELINE: PASS ($p, artifacts/monban-$p sha256 " "$alog" | tail -1 || true)
     if [ -z "$line" ]; then RES[$p]="A: release pipeline failed ($(grep '^RELEASE-PIPELINE:' "$alog" | tail -1 || echo 'no result line'))"; continue; fi
     ssh -o BatchMode=yes kamrui "tar -C aegis-ci/$REPO/target/release-rebuild/A-$p -cf - provenance.intoto.json \
-attest/attest.pub.pem SHA256SUMS artifacts/aegis-$p" | tar -x -C "$OUTROOT/$p/A" \
+attest/attest.pub.pem SHA256SUMS artifacts/monban-$p" | tar -x -C "$OUTROOT/$p/A" \
       || { RES[$p]="A: could not fetch the release from kamrui"; continue; }
-    mv "$OUTROOT/$p/A/attest/attest.pub.pem" "$OUTROOT/$p/A/"; mv "$OUTROOT/$p/A/artifacts/aegis-$p" "$OUTROOT/$p/A/"
+    mv "$OUTROOT/$p/A/attest/attest.pub.pem" "$OUTROOT/$p/A/"; mv "$OUTROOT/$p/A/artifacts/monban-$p" "$OUTROOT/$p/A/"
     rmdir "$OUTROOT/$p/A/attest" "$OUTROOT/$p/A/artifacts"
-    local la; la=$(sha256sum "$OUTROOT/$p/A/aegis-$p" | cut -d' ' -f1)
+    local la; la=$(sha256sum "$OUTROOT/$p/A/monban-$p" | cut -d' ' -f1)
     [[ "$line" == *"sha256 $la,"* ]] || { RES[$p]="A: fetched artifact sha256 $la differs from the pipeline's line"; continue; }
     okA+=("$p")
   done
@@ -392,7 +392,7 @@ print(json.loads(base64.b64decode(e["payload"]))["predicate"]["buildDefinition"]
     else
       local VMSSH=("$REL/vm.sh" ssh) W='$HOME/aegis-ci/rebuild' RUN id
       id=$(date +%Y%m%d%H%M%S); RUN="aegis-ci/rebuild/run-$id"
-      # first use: docker from the VM's apt (dedicated AEGIS VM; never on operator boxes)
+      # first use: docker from the VM's apt (dedicated Monban VM; never on operator boxes)
       "${VMSSH[@]}" 'command -v docker > /dev/null || { echo "B: installing docker.io (first use)";
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io > /dev/null; };
         id -nG | grep -qw docker || sudo usermod -aG docker "$USER"; df -h / | tail -1 | sed "s/^/B: disk /"'
@@ -416,7 +416,7 @@ print(json.loads(base64.b64decode(e["payload"]))["predicate"]["buildDefinition"]
       echo
       for p in "${okA[@]}"; do
         if grep -q "^B-RESULT: $p PASS" "$OUTROOT/b.log"; then
-          "${VMSSH[@]}" "tar -C $RUN/out-$p -cf - aegis-$p build-info.json b-record.json" | tar -x -C "$OUTROOT/$p/B" \
+          "${VMSSH[@]}" "tar -C $RUN/out-$p -cf - monban-$p build-info.json b-record.json" | tar -x -C "$OUTROOT/$p/B" \
             || RES[$p]="B: could not fetch B's output"
         else
           RES[$p]="B: build on aegis-quiet failed (rc $rc; see B: lines above)"
@@ -438,10 +438,10 @@ print(json.loads(base64.b64decode(e["payload"]))["predicate"]["buildDefinition"]
       local c; c=$(check "$p" "$OUTROOT/$p/A" "$OUTROOT/$p/B" | tail -1) || true
       echo "$c"
       if [[ "$c" == "REBUILD-CHECK: PASS"* ]]; then
-        local db; db=$(sha256sum "$OUTROOT/$p/B/aegis-$p" | cut -d' ' -f1)
-        echo "== kamrui: ci/release/verify.py --allow-test-keys --expect-sha256 artifacts/aegis-$p=<sha256(B)>"
+        local db; db=$(sha256sum "$OUTROOT/$p/B/monban-$p" | cut -d' ' -f1)
+        echo "== kamrui: ci/release/verify.py --allow-test-keys --expect-sha256 artifacts/monban-$p=<sha256(B)>"
         local v; v=$("$ROOT/ci/remote.sh" --host kamrui ci/release/verify.py --allow-test-keys \
-          --expect-sha256 "artifacts/aegis-$p=$db" "target/release-rebuild/A-$p" 2>&1 | tail -3) || true
+          --expect-sha256 "artifacts/monban-$p=$db" "target/release-rebuild/A-$p" 2>&1 | tail -3) || true
         echo "$v"
         if [[ "$(echo "$v" | tail -1)" == "RELEASE-VERIFY: PASS" ]]; then
           touch "$OUTROOT/$p/PASS"; passes+=("$p sha256 $db"); continue

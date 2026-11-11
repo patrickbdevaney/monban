@@ -1,12 +1,12 @@
-# bin-residuals: aegis-bin's Phase-7 residuals end to end
+# bin-residuals: monban-bin's Phase-7 residuals end to end
 
 Unit P8-oracle-001. Gate `bin-residuals` (gates/phase-8.toml, `remote = true`). Implementers P8-bin-001 (SEL through
 the binary, L4 idle) and P8-transport-001 (R6). Closes PREFLIGHT R7 (no gate drove the MTC selector through
-aegis-bin; the L4 idle timeout after routing had no oracle) and carries R6 (one bad chunk line yields two 400s) into
+monban-bin; the L4 idle timeout after routing had no oracle) and carries R6 (one bad chunk line yields two 400s) into
 the `mtc,l4` build.
 
 ```
-oracles/bin-residuals/run --binary target/release/aegis [-v] [--openssl PATH]   # aegis --features mtc,l4 (the gate)
+oracles/bin-residuals/run --binary target/release/monban [-v] [--openssl PATH]   # monban --features mtc,l4 (the gate)
 oracles/bin-residuals/run                                                       # the reference subject (ref_server.py)
 oracles/bin-residuals/run --self-test                                           # reference PASS, 8 reference mutants FAIL
 ```
@@ -40,7 +40,7 @@ The same CLI as oracles/proxy-l4 and oracles/proxy-e2e: `<binary> --config <f8.j
   {"id": "pub2-mtc",  "kind": "mtc",  "trust_anchor_id": "32473.2.7", "chain": "path:..", "key": "path:..", "listeners": ["pub2"]},
   {"id": "pq-x509",   "kind": "x509", "chain": "path:..", "key": "path:..", "listeners": ["pq"]},
   {"id": "any-mldsa", "kind": "mldsa", "chain": "path:..", "key": "path:.."}]},
- "vhosts": [{"host": "aegis.test", "routes": [{"id": 1, "path": "/api/", "to": {"upstream": "127.0.0.1:C"}, "authz": "allow-all"}]}]}
+ "vhosts": [{"host": "monban.test", "routes": [{"id": 1, "path": "/api/", "to": {"upstream": "127.0.0.1:C"}, "authz": "allow-all"}]}]}
 ```
 
 - `any-mldsa` has no `listeners`, so it serves every HTTP listener, the P-PUBLIC-WEB ones included. That is legal F8
@@ -122,7 +122,7 @@ as the certificate; it is never shown to a real binary.
 
 - Laptop (2026-11-06): `run` → `BIN-RESIDUALS: PASS (40 checks; pq controls skipped (reference))`; `run --self-test`
   → `BIN-RESIDUALS SELF-TEST: PASS (reference green; 8/8 mutants caught: ...)`, 16 s.
-- kamrui, **today's binary** (`ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features mtc,l4` at base
+- kamrui, **today's binary** (`ci/heavy.sh cargo build --release --locked -q -p monban-bin --features mtc,l4` at base
   0e27b11, run on kamrui instead of the desktop while the Phase-7 run holds the desktop): `BIN-RESIDUALS: FAIL (5
   failed: sel3.pub2-no-ta.alert40, sel3.pub2-pubs-ta.alert40, sel3.pub2-mldsa-offered.alert40,
   r6.chunk.bad-size.one-response, r6.chunk.bare-lf.one-response)`. 37 of 42 pass: SEL-1 and SEL-2 through the
@@ -132,7 +132,7 @@ as the certificate; it is never shown to a real binary.
 
 ## Known limits
 
-- Rung: SEL-1..3 through aegis-bin at R2 (black-box, directed cases on one config), on top of cred-select's R2 over
+- Rung: SEL-1..3 through monban-bin at R2 (black-box, directed cases on one config), on top of cred-select's R2 over
   the selector (>= 1e4 generated hellos). No MTC validity claim (D-P7.4).
 - Only X25519 + ChaCha20-Poly1305 hellos are probed by the stdlib client; ML-KEM groups are reached only through
   `openssl s_client` on `pq`, and only as positive controls.

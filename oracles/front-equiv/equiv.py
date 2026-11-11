@@ -1,4 +1,4 @@
-"""AEGIS oracle front-equiv (P7-oracle-uring-001): FRONT-1 and D-P7.3. Stdlib only; run as `python3 -I equiv.py`.
+"""Monban oracle front-equiv (P7-oracle-uring-001): FRONT-1 and D-P7.3. Stdlib only; run as `python3 -I equiv.py`.
 
 FRONT-1: responses and rejects are a function of the request bytes, never of the front. The same binary is started
 with `--front epoll` and then `--front uring` against one deterministic upstream; every corpus case (the proxy-e2e
@@ -260,7 +260,7 @@ class Client:
     def __init__(self, cafile):
         self.cafile = cafile
 
-    def tls(self, port, sni="aegis.test", alpn=("http/1.1",)):
+    def tls(self, port, sni="monban.test", alpn=("http/1.1",)):
         ctx = ssl.create_default_context(cafile=self.cafile)
         ctx.set_alpn_protocols(list(alpn))
         s = socket.create_connection(("127.0.0.1", port), 10)
@@ -312,7 +312,7 @@ def close_state(s, timeout=1.5, buf=b""):
 
 def corpus(P):
     """(name, steps, sni, reject). steps: ('send', bytes) | ('frag', bytes, n) | ('read', n) | ('sleep', s)."""
-    A = f"aegis.test:{P}".encode()
+    A = f"monban.test:{P}".encode()
 
     def get(path, host=A, extra=b"", conn=b""):
         return b"GET " + path + b" HTTP/1.1\r\nHost: " + host + b"\r\n" + extra + conn + b"\r\n"
@@ -326,7 +326,7 @@ def corpus(P):
     big_up = pattern(256 * 1024)
     C = []
     # --- forwarding (proxy-e2e corpus)
-    C.append(("get.canonical", [("send", get(b"/api/%7euser/%c3%a9?b=2&a=%7e1&b=3", b"AEGIS.test:%d" % P,
+    C.append(("get.canonical", [("send", get(b"/api/%7euser/%c3%a9?b=2&a=%7e1&b=3", b"Monban.test:%d" % P,
                                               b"X-Test:    spaced  value  \r\nConnection: keep-alive, X-Drop\r\n"
                                               b"X-Drop: hop\r\nKeep-Alive: timeout=5\r\n")), ("read", 1)], None, False))
     C.append(("post.chunked", [("send", chunked), ("read", 1)], None, False))
@@ -340,7 +340,7 @@ def corpus(P):
     C.append(("query.malformed-400", [("send", get(b"/api/q?a=%zz")), ("read", 1)], None, False))
     C.append(("empty-segment.308", [("send", get(b"/api//x?q=1")), ("read", 1)], None, False))
     C.append(("dot-segment.400", [("send", get(b"/api/a/../b")), ("read", 1)], None, False))
-    C.append(("sni-host.421", [("send", get(b"/api/x", b"other.test")), ("read", 1)], "aegis.test", False))
+    C.append(("sni-host.421", [("send", get(b"/api/x", b"other.test")), ("read", 1)], "monban.test", False))
     C.append(("other-vhost.200", [("send", get(b"/x", b"other.test")), ("read", 1)], "other.test", False))
     C.append(("noauthz.403", [("send", get(b"/noauthz/x")), ("read", 1)], None, False))
     C.append(("noauthz.post-403", [("send", post(b"/noauthz/x", b"x" * 10)), ("read", 1)], None, False))
@@ -368,7 +368,7 @@ def corpus(P):
     C.append(("expect.100-continue", [("send", b"POST /api/e HTTP/1.1\r\nHost: " + A +
                                        b"\r\nExpect: 100-continue\r\nContent-Length: 5\r\n\r\n"), ("sleep", 0.5),
                                       ("send", b"hello"), ("read", 2)], None, False))
-    # --- strict-H1 rejects (aegis-transport h1.rs); each must be a reject on both fronts
+    # --- strict-H1 rejects (monban-transport h1.rs); each must be a reject on both fronts
     R = []
     R.append(("reject.bare-lf", b"GET /api/x HTTP/1.1\nHost: " + A + b"\n\n"))
     R.append(("reject.obs-fold", get(b"/api/x", extra=b"X-A: a\r\n b\r\n")))
@@ -379,7 +379,7 @@ def corpus(P):
     R.append(("reject.te-not-chunked", b"POST /api/x HTTP/1.1\r\nHost: " + A +
               b"\r\nTransfer-Encoding: gzip, chunked\r\n\r\n0\r\n\r\n"))
     R.append(("reject.space-before-colon", b"GET /api/x HTTP/1.1\r\nHost : " + A + b"\r\n\r\n"))
-    R.append(("reject.absolute-form", b"GET https://aegis.test:%d/api/x HTTP/1.1\r\nHost: " % P + A + b"\r\n\r\n"))
+    R.append(("reject.absolute-form", b"GET https://monban.test:%d/api/x HTTP/1.1\r\nHost: " % P + A + b"\r\n\r\n"))
     R.append(("reject.leading-empty-line", b"\r\n" + get(b"/api/x")))
     R.append(("reject.nul-in-value", get(b"/api/x", extra=b"X-A: a\x00b\r\n")))
     R.append(("reject.te-on-http10", b"POST /api/x HTTP/1.0\r\nHost: " + A +
@@ -411,7 +411,7 @@ def run_case(cl, port, steps, sni):
     """Run one case. A failed write (the server closed while the client was still sending, e.g. after a 431) is a
     client-side timing artifact: later writes are skipped, but the reads still run, so the reject the server sent
     before closing is observed and compared, never the write error itself."""
-    s = cl.tls(port, sni or "aegis.test")
+    s = cl.tls(port, sni or "monban.test")
     resps, buf, state, send_failed = [], b"", "ok", False
     try:
         for st in steps:
@@ -504,7 +504,7 @@ class Front:
         self.env_extra = env_extra or {}
         self.cfg_front = cfg_front
         self.port, self.aport = free_port(), free_port()
-        self.cfg = os.path.join(d, f"aegis-{self.port}.json")
+        self.cfg = os.path.join(d, f"monban-{self.port}.json")
         self.proc = None
         self.conns = 0
 
@@ -522,7 +522,7 @@ class Front:
         if self.cfg_front is not None:
             lst["front"] = self.cfg_front
         return {"v": 1, "listeners": [lst], "admin": {"bind": f"127.0.0.1:{self.aport}"},
-                "vhosts": [{"host": "aegis.test", "routes": routes},
+                "vhosts": [{"host": "monban.test", "routes": routes},
                            {"host": "other.test", "routes": [{"id": 1, "path": "/", "to": {"upstream": u},
                                                               "authz": "allow-all"}]}]}
 
@@ -540,7 +540,7 @@ class Front:
     def start(self, wrap=None):
         with open(self.cfg, "w") as f:
             json.dump(self.config(), f)
-        self.log = open(os.path.join(self.d, f"aegis-{self.port}.log"), "wb")
+        self.log = open(os.path.join(self.d, f"monban-{self.port}.log"), "wb")
         self.proc = subprocess.Popen((wrap or []) + self.argv(), stdout=self.log, stderr=subprocess.STDOUT,
                                      env=self.env())
         until = time.time() + 20
@@ -569,7 +569,7 @@ class Front:
 
     def tail(self):
         try:
-            with open(os.path.join(self.d, f"aegis-{self.port}.log"), "rb") as f:
+            with open(os.path.join(self.d, f"monban-{self.port}.log"), "rb") as f:
                 return f.read()[-3000:].decode(errors="replace")
         except OSError:
             return ""
@@ -628,8 +628,8 @@ class Result:
 def mint_cert(d):
     key, crt = os.path.join(d, "key.pem"), os.path.join(d, "cert.pem")
     subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
-                    "-keyout", key, "-out", crt, "-days", "30", "-subj", "/CN=aegis.test",
-                    "-addext", "subjectAltName=DNS:aegis.test,DNS:other.test"], check=True, capture_output=True,
+                    "-keyout", key, "-out", crt, "-days", "30", "-subj", "/CN=monban.test",
+                    "-addext", "subjectAltName=DNS:monban.test,DNS:other.test"], check=True, capture_output=True,
                    timeout=30)
     return crt, key
 
@@ -639,8 +639,8 @@ def norm_resp(b, port):
 
 
 def curl_h2(port, crt, path, host=None, data=None):
-    cmd = ["curl", "-sS", "--http2", "--cacert", crt, "--resolve", f"aegis.test:{port}:127.0.0.1", "-D", "-",
-           "-o", "-", "-H", "X-H2:  spaced value ", f"https://aegis.test:{port}{path}"]
+    cmd = ["curl", "-sS", "--http2", "--cacert", crt, "--resolve", f"monban.test:{port}:127.0.0.1", "-D", "-",
+           "-o", "-", "-H", "X-H2:  spaced value ", f"https://monban.test:{port}{path}"]
     if host:
         cmd += ["-H", f"Host: {host}"]
     if data is not None:
@@ -687,8 +687,8 @@ def observe_front(binary, label, front_args, up, crt, key, d, res, env_extra=Non
         else:
             res.check(f"{label}.curl", False, "curl not found")
         # --- load (h2load): h2 stream cap, many conns, h1 conns, zero-window stall
-        A = f"https://aegis.test:{fr.port}"
-        # Each phase stays under aegis's per-IP admission burst (GCRA 1000/s, burst 2000, shared.rs) with a 2.5 s
+        A = f"https://monban.test:{fr.port}"
+        # Each phase stays under monban's per-IP admission burst (GCRA 1000/s, burst 2000, shared.rs) with a 2.5 s
         # refill pause before it, so no 429 depends on timing (a timing-dependent 429 would differ between fronts).
         for name, args, conns in [("load.h2-1conn-1000streams", ["-c", "1", "-m", "1000", "-n", "1000",
                                                                  f"{A}/api/load"], 1),
@@ -710,15 +710,15 @@ def observe_front(binary, label, front_args, up, crt, key, d, res, env_extra=Non
                                             "reaped<=13s": wall <= 13.0}
         ev["stall_wall"] = round(wall, 1)
         # --- reload (SIGHUP): new route served on the same front
-        r0 = fr.metric("aegis_proxy_config_reloads_total") or 0
+        r0 = fr.metric("monban_proxy_config_reloads_total") or 0
         with open(fr.cfg, "w") as f:
             json.dump(fr.config(extra_route=True), f)
         fr.proc.send_signal(signal.SIGHUP)
         until = time.time() + 10
-        while time.time() < until and (fr.metric("aegis_proxy_config_reloads_total") or 0) <= r0:
+        while time.time() < until and (fr.metric("monban_proxy_config_reloads_total") or 0) <= r0:
             time.sleep(0.1)
         n0 = up.mark()
-        resps, close, _ = run_case(cl, fr.port, [("send", b"GET /new/route HTTP/1.1\r\nHost: aegis.test:%d\r\n\r\n"
+        resps, close, _ = run_case(cl, fr.port, [("send", b"GET /new/route HTTP/1.1\r\nHost: monban.test:%d\r\n\r\n"
                                                   % fr.port), ("read", 1)], None)
         fr.conns += 1
         obs["reload.new-route"] = {"resp": [norm_resp(x, fr.port) for x in resps], "close": close,
@@ -726,7 +726,7 @@ def observe_front(binary, label, front_args, up, crt, key, d, res, env_extra=Non
         # --- identity evidence while a client connection is open
         s = cl.tls(fr.port)
         fr.conns += 1
-        s.sendall(b"GET /api/ident HTTP/1.1\r\nHost: aegis.test:%d\r\n\r\n" % fr.port)
+        s.sendall(b"GET /api/ident HTTP/1.1\r\nHost: monban.test:%d\r\n\r\n" % fr.port)
         read_one(s, b"")
         lport = s.getsockname()[1]
         time.sleep(0.2)
@@ -871,11 +871,11 @@ def cli_checks(binary, up, crt, key, d, res, env_extra):
             n = 0
             for _ in range(3):
                 n += 1
-                run_case(cl, fr.port, [("send", b"GET /api/cli HTTP/1.1\r\nHost: aegis.test:%d\r\n"
+                run_case(cl, fr.port, [("send", b"GET /api/cli HTTP/1.1\r\nHost: monban.test:%d\r\n"
                                         b"Connection: close\r\n\r\n" % fr.port), ("read", 1)], None)
             s = cl.tls(fr.port)
             n += 1
-            s.sendall(b"GET /api/cli HTTP/1.1\r\nHost: aegis.test:%d\r\n\r\n" % fr.port)
+            s.sendall(b"GET /api/cli HTTP/1.1\r\nHost: monban.test:%d\r\n\r\n" % fr.port)
             read_one(s, b"")
             time.sleep(0.2)
             ino = tcp_inode(fr.port, s.getsockname()[1])
@@ -916,7 +916,7 @@ def cli_checks(binary, up, crt, key, d, res, env_extra):
 
 def run_oracle(binary, unit, dropin, env_extra=None, sections=("cli", "equiv", "fallback", "unit"), fail_fast=False):
     res = Result()
-    d = tempfile.mkdtemp(prefix="aegis-front-equiv-")
+    d = tempfile.mkdtemp(prefix="monban-front-equiv-")
     up = Upstream()
     try:
         crt, key = mint_cert(d)
@@ -954,13 +954,13 @@ def run_oracle(binary, unit, dropin, env_extra=None, sections=("cli", "equiv", "
 # ------------------------------------------------------------------------------------------------ self-test
 
 
-def ensure_default_aegis():
-    p = os.path.join(REPO, "target", "release", "aegis")
+def ensure_default_monban():
+    p = os.path.join(REPO, "target", "release", "monban")
     if os.access(p, os.X_OK):
         return p
-    log("building the self-test backend (default aegis) through ci/heavy.sh ...")
+    log("building the self-test backend (default monban) through ci/heavy.sh ...")
     r = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q", "-p",
-                        "aegis-bin"], cwd=REPO)
+                        "monban-bin"], cwd=REPO)
     return p if r.returncode == 0 and os.access(p, os.X_OK) else None
 
 
@@ -984,15 +984,15 @@ def unit_mutant_files(d, unit_text, dropin_text):
 
 
 def self_test(unit, dropin):
-    backend = ensure_default_aegis()
+    backend = ensure_default_monban()
     if not backend:
-        log(f"{NAME} SELF-TEST: FAIL (could not build target/release/aegis)")
+        log(f"{NAME} SELF-TEST: FAIL (could not build target/release/monban)")
         return 1
-    ref = os.path.join(HERE, "aegis-front-ref")
-    d = tempfile.mkdtemp(prefix="aegis-front-equiv-st-")
+    ref = os.path.join(HERE, "monban-front-ref")
+    d = tempfile.mkdtemp(prefix="monban-front-equiv-st-")
     try:
         files = unit_mutant_files(d, open(unit).read(), open(dropin).read())
-        env = {"FRONT_REF_AEGIS": backend}
+        env = {"FRONT_REF_Monban": backend}
         log(f"self-test subject: {os.path.relpath(ref, REPO)} wrapping {backend}")
         log(f"self-test unit fixture: {os.path.relpath(unit, REPO)} + the io_uring deny line (unitcheck.fixture_good)")
         r = run_oracle(ref, *files["good"], env_extra=env)
@@ -1030,10 +1030,10 @@ def self_test(unit, dropin):
 
 def build_uring():
     target = os.path.join(REPO, "target", "front-equiv")
-    binp = os.path.join(target, "release", "aegis")
+    binp = os.path.join(target, "release", "monban")
     log(f"building {os.path.relpath(binp, REPO)} (--features uring) through ci/heavy.sh ...")
     r = subprocess.run([os.path.join(REPO, "ci", "heavy.sh"), "cargo", "build", "--release", "--locked", "-q", "-p",
-                        "aegis-bin", "--features", "uring"], cwd=REPO, env=dict(os.environ, CARGO_TARGET_DIR=target))
+                        "monban-bin", "--features", "uring"], cwd=REPO, env=dict(os.environ, CARGO_TARGET_DIR=target))
     return binp if r.returncode == 0 and os.access(binp, os.X_OK) else None
 
 
@@ -1041,10 +1041,10 @@ def main():
     global VERBOSE
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--binary", help="aegis built with --features uring")
+    g.add_argument("--binary", help="monban built with --features uring")
     g.add_argument("--binary-from-build", action="store_true", help="build it first (target/front-equiv)")
     g.add_argument("--self-test", action="store_true")
-    ap.add_argument("--unit", default=os.path.join(REPO, "deploy", "aegis-hardened.service"))
+    ap.add_argument("--unit", default=os.path.join(REPO, "deploy", "monban-hardened.service"))
     ap.add_argument("--dropin", default=os.path.join(REPO, "deploy", "uring.conf"))
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
@@ -1054,7 +1054,7 @@ def main():
     if a.binary_from_build:
         binary = build_uring()
         if not binary:
-            log(f"{NAME}: FAIL (cargo build -p aegis-bin --features uring failed)")
+            log(f"{NAME}: FAIL (cargo build -p monban-bin --features uring failed)")
             return 1
     else:
         binary = os.path.abspath(a.binary)

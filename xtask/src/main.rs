@@ -99,7 +99,7 @@ fn run(cmd: &mut Command) -> Result<String, String> {
 enum Layer {
     N(u8),
     Sdk,
-    /// Native handler applications (`apps/*`): may depend on aegis-sdk only; only L5 may depend on them.
+    /// Native handler applications (`apps/*`): may depend on monban-sdk only; only L5 may depend on them.
     App,
     Tool,
 }
@@ -111,36 +111,39 @@ struct Pkg {
     layer: Option<Layer>,
     /// (dependency name, kind, enabled features) for workspace-path dependencies only.
     deps: Vec<(String, String, Vec<String>)>,
-    /// Every value of the package's own `[features]` table (e.g. `"aegis-sdk/host"`), to catch forwarded gates.
+    /// Every value of the package's own `[features]` table (e.g. `"monban-sdk/host"`), to catch forwarded gates.
     fwd: Vec<String>,
 }
 
 /// Constructor-gate modules and the only crate allowed to use each: (defining crate, cargo feature, module, owner).
-/// aegis-types gates (REPO_LAYOUT §3, F2) and the SDK host driving loop (decision D2(b), P4-spec-002).
+/// monban-types gates (REPO_LAYOUT §3, F2) and the SDK host driving loop (decision D2(b), P4-spec-002).
 const OWNERS: &[(&str, &str, &str, &str)] = &[
-    ("aegis-types", "authn-path", "authn_path", "aegis-token"),
-    ("aegis-types", "canon-owner", "canon_owner", "aegis-canon"),
-    ("aegis-types", "raw-owner", "raw_owner", "aegis-transport"),
-    ("aegis-sdk", "host", "host", "aegis-adapter-host"),
+    ("monban-types", "authn-path", "authn_path", "monban-token"),
+    ("monban-types", "canon-owner", "canon_owner", "monban-canon"),
+    ("monban-types", "raw-owner", "raw_owner", "monban-transport"),
+    ("monban-sdk", "host", "host", "monban-adapter-host"),
 ];
 /// Same-layer edges allowed by the crate table (REPO_LAYOUT §4). Everything else must point strictly downward.
-const INTRA_LAYER: &[(&str, &str)] =
-    &[("aegis-admission", "aegis-budget"), ("aegis-config", "aegis-canon"), ("aegis-adapter-host", "aegis-state")];
+const INTRA_LAYER: &[(&str, &str)] = &[
+    ("monban-admission", "monban-budget"),
+    ("monban-config", "monban-canon"),
+    ("monban-adapter-host", "monban-state"),
+];
 /// Layered crates allowed to depend on the SDK (the F7 host; D2(b)). Apps and these are its only dependents.
-const SDK_HOSTS: &[&str] = &["aegis-adapter-host"];
+const SDK_HOSTS: &[&str] = &["monban-adapter-host"];
 /// Phase 7 crates whose layer PLAN-7 fixes (P7-spec-002): moving one in its manifest fails layering.
 const PINNED_LAYERS: &[(&str, u8)] =
-    &[("aegis-wire", 2), ("aegis-adapter-mysql", 4), ("aegis-uring", 4), ("aegis-otlp", 5)];
-/// Separate binaries (layer 5) that no package may depend on, of any kind: aegis-bin execs or sits beside them and
-/// never links them (X-8 aegis-pdp, X-13 aegis-p2, PREFLIGHT D-P7.6 aegis-otlp).
-const SEPARATE_BINARIES: &[&str] = &["aegis-pdp", "aegis-p2", "aegis-otlp"];
+    &[("monban-wire", 2), ("monban-adapter-mysql", 4), ("monban-uring", 4), ("monban-otlp", 5)];
+/// Separate binaries (layer 5) that no package may depend on, of any kind: monban-bin execs or sits beside them and
+/// never links them (X-8 monban-pdp, X-13 monban-p2, PREFLIGHT D-P7.6 monban-otlp).
+const SEPARATE_BINARIES: &[&str] = &["monban-pdp", "monban-p2", "monban-otlp"];
 /// Crates permitted to relax `forbid(unsafe_code)` (each site audited and capped by `cargo xtask unsafe-sites`).
-const UNSAFE_ALLOWED: &[&str] = &["aegis-iso", "aegis-wasm", "aegis-uring"];
-/// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): aegis-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
-/// setitimer, fd adoption, _exit); aegis-wasm ≤ 1 (the digest-checked `Module::deserialize_file`). Every crate in
-/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0. aegis-uring ≤ 6 (DEVIATIONS X-19:
+const UNSAFE_ALLOWED: &[&str] = &["monban-iso", "monban-wasm", "monban-uring"];
+/// Per-crate unsafe-site caps (PLAN-5 D4, DEVIATIONS X-14): monban-iso ≤ 20 (fork, prctl, seccomp, landlock_*,
+/// setitimer, fd adoption, _exit); monban-wasm ≤ 1 (the digest-checked `Module::deserialize_file`). Every crate in
+/// `UNSAFE_ALLOWED` must have a cap here; every other workspace crate has cap 0. monban-uring ≤ 6 (DEVIATIONS X-19:
 /// io-uring 0.7.15 `SubmissionQueue::push` and ring setup are `unsafe fn`; opt-in feature `uring` only).
-const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("aegis-iso", 20), ("aegis-wasm", 1), ("aegis-uring", 6)];
+const UNSAFE_SITE_CAPS: &[(&str, usize)] = &[("monban-iso", 20), ("monban-wasm", 1), ("monban-uring", 6)];
 
 fn workspace_model() -> Result<Vec<Pkg>, String> {
     let out = run(Command::new("cargo")
@@ -151,7 +154,7 @@ fn workspace_model() -> Result<Vec<Pkg>, String> {
     for p in meta.get("packages").map(Json::arr).unwrap_or(&[]) {
         let name = p.get("name").and_then(Json::str).unwrap_or_default().to_string();
         let manifest = PathBuf::from(p.get("manifest_path").and_then(Json::str).unwrap_or_default());
-        let layer = match p.path(&["metadata", "aegis", "layer"]) {
+        let layer = match p.path(&["metadata", "monban", "layer"]) {
             Some(Json::Num(n)) if *n >= 0.0 && *n <= 9.0 => Some(Layer::N(*n as u8)),
             Some(Json::Str(s)) if s == "sdk" => Some(Layer::Sdk),
             Some(Json::Str(s)) if s == "app" => Some(Layer::App),
@@ -206,7 +209,7 @@ fn check_layering(pkgs: &[Pkg]) -> Vec<String> {
             }
         }
         let Some(pl) = &p.layer else {
-            v.push(format!("{}: missing [package.metadata.aegis] layer", p.name));
+            v.push(format!("{}: missing [package.metadata.monban] layer", p.name));
             continue;
         };
         for (dn, kind, feats) in &p.deps {
@@ -292,7 +295,7 @@ fn source_violations(pkg: &str, file: &str, src: &str) -> Vec<String> {
         if pkg == *owner || pkg == *krate {
             continue;
         }
-        let hit = if *krate == "aegis-types" {
+        let hit = if *krate == "monban-types" {
             src.contains(&format!("{module}::")).then_some("path")
         } else {
             gated_module_ref(src, &krate.replace('-', "_"), module)
@@ -356,29 +359,29 @@ fn layering(self_test: bool) -> Result<(), String> {
     let mut pkgs = workspace_model()?;
     if self_test {
         // Negative control from IMPLEMENTATION_PLAN Phase 0: an injected upward edge must fail.
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-transport") {
-            t.deps.push(("aegis-adapter-pg".into(), "normal".into(), vec![]));
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-transport") {
+            t.deps.push(("monban-adapter-pg".into(), "normal".into(), vec![]));
         }
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-agent") {
-            t.deps.push(("aegis-types".into(), "normal".into(), vec!["authn-path".into()]));
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-agent") {
+            t.deps.push(("monban-types".into(), "normal".into(), vec!["authn-path".into()]));
         }
         // P4-spec-002 (D2(b)): a non-owner enabling the SDK host feature, directly or forwarded; an app reaching past
         // the SDK; a non-host layered crate depending on the SDK.
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-state") {
-            t.deps.push(("aegis-sdk".into(), "normal".into(), vec!["host".into()]));
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-state") {
+            t.deps.push(("monban-sdk".into(), "normal".into(), vec!["host".into()]));
         }
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-bin") {
-            t.fwd.push("aegis-sdk?/host".into());
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-bin") {
+            t.fwd.push("monban-sdk?/host".into());
         }
-        // P7-spec-002: aegis-bin linking the aegis-otlp exporter binary; the L2 parser crate reaching an L4 adapter;
+        // P7-spec-002: monban-bin linking the monban-otlp exporter binary; the L2 parser crate reaching an L4 adapter;
         // a Phase 7 crate moved off its PLAN-7 layer.
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-bin") {
-            t.deps.push(("aegis-otlp".into(), "normal".into(), vec![]));
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-bin") {
+            t.deps.push(("monban-otlp".into(), "normal".into(), vec![]));
         }
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-wire") {
-            t.deps.push(("aegis-adapter-mysql".into(), "normal".into(), vec![]));
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-wire") {
+            t.deps.push(("monban-adapter-mysql".into(), "normal".into(), vec![]));
         }
-        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "aegis-uring") {
+        if let Some(t) = pkgs.iter_mut().find(|p| p.name == "monban-uring") {
             t.layer = Some(Layer::N(3));
         }
         pkgs.push(Pkg {
@@ -386,8 +389,8 @@ fn layering(self_test: bool) -> Result<(), String> {
             dir: PathBuf::new(),
             layer: Some(Layer::App),
             deps: vec![
-                ("aegis-sdk".into(), "normal".into(), vec![]),
-                ("aegis-data-ir".into(), "normal".into(), vec![]),
+                ("monban-sdk".into(), "normal".into(), vec![]),
+                ("monban-data-ir".into(), "normal".into(), vec![]),
             ],
             fwd: vec![],
         });
@@ -397,23 +400,23 @@ fn layering(self_test: bool) -> Result<(), String> {
         v.extend(check_sources(&pkgs));
     }
     if self_test {
-        // Source mutants: every `use` spelling of aegis_sdk::host in a non-owner crate must be reported.
+        // Source mutants: every `use` spelling of monban_sdk::host in a non-owner crate must be reported.
         let mutants = [
-            "use aegis_sdk::host::Backend;",
-            "use aegis_sdk::{Ctx, host::{drive, Request}};",
-            "use aegis_sdk :: {\n    host,\n    Ctx,\n};",
-            "use aegis_sdk::*;\nfn f() { let _ = host::drive; }",
-            "extern crate aegis_sdk as sdk;",
+            "use monban_sdk::host::Backend;",
+            "use monban_sdk::{Ctx, host::{drive, Request}};",
+            "use monban_sdk :: {\n    host,\n    Ctx,\n};",
+            "use monban_sdk::*;\nfn f() { let _ = host::drive; }",
+            "extern crate monban_sdk as sdk;",
         ];
         for (i, m) in mutants.iter().enumerate() {
-            v.extend(source_violations("aegis-state", &format!("selftest-mutant-{i}.rs"), m));
+            v.extend(source_violations("monban-state", &format!("selftest-mutant-{i}.rs"), m));
         }
         // Controls that must stay clean: the owner itself, the defining crate, and look-alike paths.
         let clean = [
-            ("aegis-adapter-host", "use aegis_sdk::host::{drive, Backend};"),
-            ("aegis-sdk", "use crate::host::drive;"),
-            ("aegis-bin", "use aegis_adapter_host::pdp_uds; use aegis_sdk::{Ctx, ScopedHandler};"),
-            ("aegis-bin", "use aegis_sdk::*; fn f() { let _ = aegis_adapter_host::x; }"),
+            ("monban-adapter-host", "use monban_sdk::host::{drive, Backend};"),
+            ("monban-sdk", "use crate::host::drive;"),
+            ("monban-bin", "use monban_adapter_host::pdp_uds; use monban_sdk::{Ctx, ScopedHandler};"),
+            ("monban-bin", "use monban_sdk::*; fn f() { let _ = monban_adapter_host::x; }"),
         ];
         for (pkg, src) in clean {
             let bad = source_violations(pkg, "selftest-control.rs", src);
@@ -425,28 +428,28 @@ fn layering(self_test: bool) -> Result<(), String> {
             }
         }
         let mut wants: Vec<String> = [
-            "aegis-transport (N(3)) -> aegis-adapter-pg",
-            "aegis-agent enables aegis-types/authn-path",
-            "aegis-state enables aegis-sdk/host",
-            "aegis-state (N(4)) -> aegis-sdk (Sdk)",
-            "aegis-bin enables aegis-sdk/host (forwarded feature)",
-            "selftest-app (App) -> aegis-data-ir",
-            "aegis-bin -> aegis-otlp [normal]: aegis-otlp is a separate binary",
-            "aegis-bin (N(5)) -> aegis-otlp (N(5))",
-            "aegis-wire (N(2)) -> aegis-adapter-mysql (N(4))",
-            "aegis-uring: layer Some(N(3)), PLAN-7 fixes it at 4",
+            "monban-transport (N(3)) -> monban-adapter-pg",
+            "monban-agent enables monban-types/authn-path",
+            "monban-state enables monban-sdk/host",
+            "monban-state (N(4)) -> monban-sdk (Sdk)",
+            "monban-bin enables monban-sdk/host (forwarded feature)",
+            "selftest-app (App) -> monban-data-ir",
+            "monban-bin -> monban-otlp [normal]: monban-otlp is a separate binary",
+            "monban-bin (N(5)) -> monban-otlp (N(5))",
+            "monban-wire (N(2)) -> monban-adapter-mysql (N(4))",
+            "monban-uring: layer Some(N(3)), PLAN-7 fixes it at 4",
         ]
         .iter()
         .map(|s| s.to_string())
         .collect();
-        wants.extend((0..mutants.len()).map(|i| format!("aegis-state: selftest-mutant-{i}.rs uses aegis_sdk::host")));
+        wants.extend((0..mutants.len()).map(|i| format!("monban-state: selftest-mutant-{i}.rs uses monban_sdk::host")));
         for want in &wants {
             if !v.iter().any(|x| x.starts_with(want.as_str())) {
                 return Err(format!("LAYERING SELF-TEST: FAIL (injected violation not reported: {want})"));
             }
         }
-        if v.iter().any(|x| x.starts_with("selftest-app (App) -> aegis-sdk")) {
-            return Err("LAYERING SELF-TEST: FAIL (app -> aegis-sdk edge wrongly rejected)".into());
+        if v.iter().any(|x| x.starts_with("selftest-app (App) -> monban-sdk")) {
+            return Err("LAYERING SELF-TEST: FAIL (app -> monban-sdk edge wrongly rejected)".into());
         }
     }
     verdict("LAYERING", &v, self_test)
@@ -603,15 +606,15 @@ fn unsafe_sites_self_test() -> Result<(), String> {
     let deny = |pkgs: &[&str]| pkgs.iter().map(|p| (p.to_string(), "deny".to_string())).collect::<BTreeMap<_, _>>();
     let clean_bin = "// unsafe is not used here\nfn y() { let s = \"unsafe { }\"; let _c = 'u'; unsafe_fn(); }\n";
     let base: Vec<SrcFile> = vec![
-        mk("aegis-iso", src_n(20)),
-        mk("aegis-wasm", "fn d() {\n    let m = unsafe { g() }; // SAFETY: digest checked above.\n}\n".into()),
-        mk("aegis-bin", clean_bin.into()),
+        mk("monban-iso", src_n(20)),
+        mk("monban-wasm", "fn d() {\n    let m = unsafe { g() }; // SAFETY: digest checked above.\n}\n".into()),
+        mk("monban-bin", clean_bin.into()),
     ];
-    let manifests = deny(&["aegis-iso", "aegis-wasm"]);
+    let manifests = deny(&["monban-iso", "monban-wasm"]);
     let mut failures = Vec::new();
     let (v, counts) = check_unsafe_sites(&base, &manifests);
-    if v.is_empty() && counts.get("aegis-iso") == Some(&20) && counts.get("aegis-wasm") == Some(&1) {
-        println!("  control (aegis-iso 20, aegis-wasm 1, comments/strings ignored): PASS (as required)");
+    if v.is_empty() && counts.get("monban-iso") == Some(&20) && counts.get("monban-wasm") == Some(&1) {
+        println!("  control (monban-iso 20, monban-wasm 1, comments/strings ignored): PASS (as required)");
     } else {
         failures.push(format!("clean control rejected or miscounted: {v:?} {counts:?}"));
     }
@@ -622,43 +625,53 @@ fn unsafe_sites_self_test() -> Result<(), String> {
         f
     };
     let mutants: Vec<UnsafeMutant> = vec![
-        ("21st aegis-iso site", with("aegis-iso", src_n(21)), manifests.clone(), "aegis-iso: 21 unsafe sites > cap 20"),
-        ("2nd aegis-wasm site", with("aegis-wasm", src_n(2)), manifests.clone(), "aegis-wasm: 2 unsafe sites > cap 1"),
         (
-            "7th aegis-uring site",
-            with("aegis-uring", src_n(7)),
-            deny(&["aegis-iso", "aegis-wasm", "aegis-uring"]),
-            "aegis-uring: 7 unsafe sites > cap 6",
+            "21st monban-iso site",
+            with("monban-iso", src_n(21)),
+            manifests.clone(),
+            "monban-iso: 21 unsafe sites > cap 20",
+        ),
+        (
+            "2nd monban-wasm site",
+            with("monban-wasm", src_n(2)),
+            manifests.clone(),
+            "monban-wasm: 2 unsafe sites > cap 1",
+        ),
+        (
+            "7th monban-uring site",
+            with("monban-uring", src_n(7)),
+            deny(&["monban-iso", "monban-wasm", "monban-uring"]),
+            "monban-uring: 7 unsafe sites > cap 6",
         ),
         (
             "site without // SAFETY:",
-            with("aegis-iso", "fn z() {\n    // the fd is open\n    unsafe { f() };\n}\n".into()),
+            with("monban-iso", "fn z() {\n    // the fd is open\n    unsafe { f() };\n}\n".into()),
             manifests.clone(),
             "unsafe site without a `// SAFETY:` comment",
         ),
         (
             "unsafe in a third crate",
-            with("aegis-bin", src_n(1)),
+            with("monban-bin", src_n(1)),
             manifests.clone(),
-            "aegis-bin: 1 unsafe sites > cap 0",
+            "monban-bin: 1 unsafe sites > cap 0",
         ),
         (
             "third crate relaxes the lint in source",
-            with("aegis-bin", "#![allow(unsafe_code)]\nfn y() {}\n".into()),
+            with("monban-bin", "#![allow(unsafe_code)]\nfn y() {}\n".into()),
             manifests.clone(),
-            "aegis-bin: aegis-bin/src/lib.rs relaxes unsafe_code",
+            "monban-bin: monban-bin/src/lib.rs relaxes unsafe_code",
         ),
         (
             "third crate relaxes the lint in Cargo.toml",
             base.clone(),
-            deny(&["aegis-iso", "aegis-wasm", "aegis-bin"]),
-            "aegis-bin: Cargo.toml sets unsafe_code = \"deny\"",
+            deny(&["monban-iso", "monban-wasm", "monban-bin"]),
+            "monban-bin: Cargo.toml sets unsafe_code = \"deny\"",
         ),
         (
             "allowed crate sets unsafe_code = allow",
             base.clone(),
-            [("aegis-iso".to_string(), "allow".to_string())].into_iter().collect(),
-            "aegis-iso: Cargo.toml sets unsafe_code = \"allow\"",
+            [("monban-iso".to_string(), "allow".to_string())].into_iter().collect(),
+            "monban-iso: Cargo.toml sets unsafe_code = \"allow\"",
         ),
     ];
     for (label, files, m, want) in &mutants {
@@ -728,7 +741,7 @@ fn lock_targets(self_test: bool) -> Result<(), String> {
 
 fn curl_json(url: &str, post: Option<&str>) -> Result<Json, String> {
     let mut c = Command::new("curl");
-    c.args(["-sfL", "--retry", "3", "--max-time", "30", "-A", "aegis-xtask (supply-chain gate)"]);
+    c.args(["-sfL", "--retry", "3", "--max-time", "30", "-A", "monban-xtask (supply-chain gate)"]);
     let tok = std::env::var("GITHUB_TOKEN").ok().or_else(|| {
         Command::new("gh")
             .args(["auth", "token"])

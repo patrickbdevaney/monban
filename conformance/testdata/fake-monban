@@ -1,0 +1,72 @@
+#!/usr/bin/env -S python3 -I
+"""Stand-in for the monban CLI contract that conformance/boot-pin relies on (self-test only, never a subject).
+
+  fake-monban check-config <cfg>                     prints `monban: check-config <cfg>: OK (config hash H)` on stderr
+  fake-monban --config <cfg> --cert .. --key .. --audit-dir ..
+                                                    logs `monban[<pid>]: serving 1 listener(s), admin A, config H
+                                                    (generation 0), audit D` and serves GET /healthz on admin.bind
+
+H = sha256 of the stand-in's canonical form (json.dumps(cfg, sort_keys=True, separators=(',', ':'))). AEGIS_FAKE_MUTANT selects
+one disagreement (see conformance/boot-pin MUTANTS).
+"""
+import hashlib
+import http.server
+import json
+import os
+import signal
+import sys
+
+MUT = os.environ.get("AEGIS_FAKE_MUTANT", "")
+
+
+def eff(path):
+    return json.dumps(json.load(open(path)), sort_keys=True, separators=(",", ":")).encode()
+
+
+def main():
+    a = sys.argv[1:]
+    if a[:1] == ["check-config"]:
+        e = eff(a[1])
+        h = hashlib.sha256(e).hexdigest()
+        if MUT == "check-exit":
+            print(f"monban: check-config {a[1]}: invalid", file=sys.stderr)
+            return 78
+        if MUT == "check-two-lines":
+            print(f"monban: check-config {a[1]}: OK (config hash {hashlib.sha256(b'x').hexdigest()})", file=sys.stderr)
+        if MUT == "check-hash":
+            h = hashlib.sha256(b"other").hexdigest()
+        print(f"monban: check-config {a[1]}: OK (config hash {h})", file=sys.stderr)
+        return 0
+    cfg = a[a.index("--config") + 1]
+    e = eff(cfg)
+    h = hashlib.sha256(e).hexdigest()
+    other = hashlib.sha256(b"other").hexdigest()
+    if MUT == "exit-at-boot":
+        print(f"monban[{os.getpid()}]: listener bind failed", flush=True)
+        return 1
+    port = int(json.loads(e)["admin"]["bind"].rsplit(":", 1)[1])
+    hz = other if MUT == "healthz-hash" else h
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = (json.dumps({"status": "ok", "generation": 0, "config_hash": hz}, separators=(",", ":")) + "\n")
+            self.send_response(200 if self.path == "/healthz" else 404)
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body.encode())
+
+        def log_message(self, *x):
+            pass
+
+    srv = http.server.HTTPServer(("127.0.0.1", port), H)
+    signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
+    pid = os.getpid() + 1 if MUT == "bootline-pid" else os.getpid()
+    lh = other if MUT == "bootline-hash" else h
+    print(f"monban[{pid}]: serving 1 listener(s), admin 127.0.0.1:{port}, config {lh} (generation 0), audit x",
+          flush=True)
+    srv.serve_forever()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

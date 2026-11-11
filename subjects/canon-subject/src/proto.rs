@@ -1,5 +1,5 @@
 //! Minimal JSON reader/writer for the canon-diff line protocol (not an identity parser: it only frames the
-//! oracle's messages). Strings decode to WTF-8 bytes so that a lone surrogate the oracle sends reaches aegis-canon
+//! oracle's messages). Strings decode to WTF-8 bytes so that a lone surrogate the oracle sends reaches monban-canon
 //! as (invalid) bytes instead of being repaired.
 
 #[derive(Debug, Clone, PartialEq)]

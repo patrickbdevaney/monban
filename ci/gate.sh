@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS proof gate (core Lean 4.35.0, no Mathlib). Usage: ci/gate.sh [lean-project-dir]  (default: spec/)
+# Monban proof gate (core Lean 4.35.0, no Mathlib). Usage: ci/gate.sh [lean-project-dir]  (default: spec/)
 # Exit 0 only if every step passes:
 #   1 toolchain pin + no dependencies + no lakefile.lean
 #   2 lake build; any `sorry` warning fails

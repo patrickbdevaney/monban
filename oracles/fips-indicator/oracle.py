@@ -24,7 +24,7 @@ Required (any miss is FAIL):
   H  `handshake P-UNIVERSAL` (one in-memory TLS 1.3 handshake, client and server on 0x11ED only): group=0x11ed
      version=0x0304 suite in {0x1301,0x1302,0x1303} and an indicator verdict. The verdict is REPORTED, not required:
      the TLS 1.3 key schedule has no CAVP row (PREFLIGHT D-P8.1).
-  K  `kx-0x11ed` (the AEGIS SecP384r1MLKEM1024 group alone): match=1 and three verdicts, REPORTED.
+  K  `kx-0x11ed` (the Monban SecP384r1MLKEM1024 group alone): match=1 and three verdicts, REPORTED.
   P  exactly one answer line per request, same id and op, in order; no `error`; exit status 0.
 The approved and not-approved expectations of A3/C3 are AWS-LC 3.1.0's own rule (service_indicator.c), not a table
 the subject can choose. Last line `FIPS-INDICATOR: PASS (...)` or `FIPS-INDICATOR: FAIL (...)`; exit 0 only on PASS.

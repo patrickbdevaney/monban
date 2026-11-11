@@ -2,7 +2,7 @@
  "id": "P4-state-002",
  "role": "implementer",
  "crates": [
-  "aegis-state (idempotency, outbox, latch)"
+  "monban-state (idempotency, outbox, latch)"
  ],
  "depends_on": [
   "P4-state-001"
@@ -25,11 +25,11 @@
   "must": "PASS; subject mutants (--mutate idem-key-without-principal, replay-reexecutes) red"
  },
  "write_scope": [
-  "crates/aegis-state/src/idem.rs",
-  "crates/aegis-state/src/outbox.rs",
-  "crates/aegis-state/src/latch.rs",
-  "crates/aegis-state/src/lib.rs",
-  "crates/aegis-state/tests/props*.rs",
+  "crates/monban-state/src/idem.rs",
+  "crates/monban-state/src/outbox.rs",
+  "crates/monban-state/src/latch.rs",
+  "crates/monban-state/src/lib.rs",
+  "crates/monban-state/tests/props*.rs",
   "subjects/state-subject/**"
  ],
  "infeasible_exit": true,

@@ -1,9 +1,9 @@
-//! p2-subject: the P2 isolation code of aegis-iso and aegis-wasm over the oracles' subject protocols.
+//! p2-subject: the P2 isolation code of monban-iso and monban-wasm over the oracles' subject protocols.
 //!
 //! Usage:
 //!   `p2-subject probe --path forkwasm|cordon [--stage zygote] --probe <name> --allow-dir <dir> [--target <path>]
 //!   [--fd <n>] [--port <p>]`: the syscall-negative probe protocol (`oracles/syscall-negative/README.md`), run on
-//!   the real `aegis_iso::sandbox::install` profiles (zygote, fork child, cordon).
+//!   the real `monban_iso::sandbox::install` profiles (zygote, fork child, cordon).
 //!
 //!   `p2-subject serve forkwasm [--fuel N] [--wall-ms N] <guest.wasm> <data>`: the isolation-fi subject protocol
 //!   (`oracles/isolation-fi/README.md`) on the real fork+Wasm path. fd 3 is the oracle's listening socket.
@@ -18,9 +18,9 @@
 //! supervisor's compile step. It validates and compiles the guest (cached as a `.cwasm` in `$ISOFI_CWASM_DIR`, or
 //! the temp dir), hashes the file, and re-executes itself with `--module <cwasm> --sha256 <hex>`, so the zygote
 //! starts from the precompiled module with no compiler state (the isofi re-exec rule). The zygote loads the
-//! `.cwasm` through the digest-checked `aegis_wasm::engine::cwasm::load`, resolves the module once
+//! `.cwasm` through the digest-checked `monban_wasm::engine::cwasm::load`, resolves the module once
 //! (`InstancePre`), installs `Profile::zygote` (Landlock: read-only beneath the data file's directory; seccomp) and
-//! runs `aegis_iso::zygote::serve`: one fork child per connection with the child filter and `ITIMER_REAL` at
+//! runs `monban_iso::zygote::serve`: one fork child per connection with the child filter and `ITIMER_REAL` at
 //! `--wall-ms`, a fresh instance per request with `--fuel`.
 //!
 //! `serve cordon` follows the cordon layout (PLAN-5 D1; ARCHITECTURE §3.6 single-tenant row as amended by q4-006;
@@ -28,7 +28,7 @@
 //! (digest-checked), builds the pooling Engine (64 slots by default, 16 MiB, `--mpk` = the D11 MPK density option
 //! with the reservation and guards unchanged), installs `Profile::cordon` while still single-threaded (Landlock:
 //! read-only beneath the data file's directory; seccomp: threads only, no fork), starts the 1 ms epoch ticker and
-//! runs `aegis_iso::cordon::serve` with `--threads` serving threads. Every request gets a fresh Store and instance
+//! runs `monban_iso::cordon::serve` with `--threads` serving threads. Every request gets a fresh Store and instance
 //! with `--fuel` (default 15,000,000) and a `--wall-ms` (default 100) epoch deadline.
 //!
 //! In a `mutants` build `AEGIS_P2_MUTANT` selects a negative control. forkwasm: `no-fork` (the zygote serves
@@ -47,14 +47,14 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
-use aegis_iso::cordon;
-use aegis_iso::sandbox::{self, Forked, Profile};
-use aegis_iso::zygote::{self, ChildEnd, Spec};
-use aegis_wasm::engine::{FUEL_MAX, WALL_MS_MAX, cwasm};
-use aegis_wasm::fi::{self, FiWorker};
-use aegis_wasm::{EngineSettings, EpochTicker, P2Engine, P2Limits, RequestLimits};
+use monban_iso::cordon;
+use monban_iso::sandbox::{self, Forked, Profile};
+use monban_iso::zygote::{self, ChildEnd, Spec};
+use monban_wasm::engine::{FUEL_MAX, WALL_MS_MAX, cwasm};
+use monban_wasm::fi::{self, FiWorker};
+use monban_wasm::{EngineSettings, EpochTicker, P2Engine, P2Limits, RequestLimits};
 
-/// EX_CONFIG: the fail-closed exit code used across AEGIS.
+/// EX_CONFIG: the fail-closed exit code used across Monban.
 const EX_CONFIG: u8 = 78;
 /// EX_USAGE.
 const EX_USAGE: u8 = 64;
@@ -82,7 +82,7 @@ fn fail(code: u8, msg: &str) -> ExitCode {
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.split_first() {
-        Some((cmd, rest)) if cmd == "probe" => ExitCode::from(aegis_iso::sandbox::probe::run(rest)),
+        Some((cmd, rest)) if cmd == "probe" => ExitCode::from(monban_iso::sandbox::probe::run(rest)),
         Some((cmd, rest)) if cmd == "serve" => match rest.split_first() {
             Some((p, r)) if p == "forkwasm" => serve_forkwasm(r),
             Some((p, r)) if p == "cordon" => serve_cordon(r),
@@ -237,7 +237,7 @@ fn load_worker_engine(a: &Args) -> Result<(FiWorker, P2Engine), String> {
 }
 
 fn limits(fuel: u64, wall_ms: u64) -> Result<RequestLimits, String> {
-    P2Limits::new(fuel, wall_ms, aegis_wasm::engine::MEMORY_MIB_DEFAULT)
+    P2Limits::new(fuel, wall_ms, monban_wasm::engine::MEMORY_MIB_DEFAULT)
         .map(RequestLimits::from)
         .map_err(|e| e.to_string())
 }
@@ -306,8 +306,8 @@ fn serve_forkwasm(rest: &[String]) -> ExitCode {
     };
     let Some(data_dir) = data.parent().map(Path::to_path_buf) else { return fail(EX_USAGE, "<data> has no parent") };
     let mutant = mutant();
-    let wall_ms = a.wall_ms.unwrap_or(aegis_wasm::engine::WALL_MS_DEFAULT);
-    let fuel = a.fuel.unwrap_or(aegis_wasm::engine::FUEL_DEFAULT);
+    let wall_ms = a.wall_ms.unwrap_or(monban_wasm::engine::WALL_MS_DEFAULT);
+    let fuel = a.fuel.unwrap_or(monban_wasm::engine::FUEL_DEFAULT);
     let mut spec = Spec::fork_per_connection(Duration::from_millis(wall_ms));
     let mut lim = match limits(fuel, wall_ms) {
         Ok(l) => l,
@@ -396,13 +396,13 @@ fn call_reused(
     lim: RequestLimits,
     id: u32,
     fault: u32,
-) -> Result<u32, aegis_wasm::TrapKind> {
+) -> Result<u32, monban_wasm::TrapKind> {
     if kept.is_none() {
         *kept = Some(w.instance(lim)?);
     }
     match kept.as_mut() {
         Some(i) => w.call_on(i, lim, id, fault),
-        None => Err(aegis_wasm::TrapKind::Wasm),
+        None => Err(monban_wasm::TrapKind::Wasm),
     }
 }
 
@@ -413,7 +413,7 @@ fn call_reused(
     lim: RequestLimits,
     id: u32,
     fault: u32,
-) -> Result<u32, aegis_wasm::TrapKind> {
+) -> Result<u32, monban_wasm::TrapKind> {
     w.call(lim, id, fault)
 }
 
@@ -467,7 +467,7 @@ fn cordon_call(
     lim: RequestLimits,
     id: u32,
     fault: u32,
-) -> Result<u32, aegis_wasm::TrapKind> {
+) -> Result<u32, monban_wasm::TrapKind> {
     #[cfg(feature = "mutants")]
     match m {
         CordonMutant::SharedStore => {
@@ -481,7 +481,7 @@ fn cordon_call(
             }
             let r = match g.as_mut() {
                 Some(i) => w.call_on(i, lim, id, fault),
-                None => Err(aegis_wasm::TrapKind::Wasm),
+                None => Err(monban_wasm::TrapKind::Wasm),
             };
             if r.is_err() {
                 *g = None;
@@ -499,7 +499,7 @@ fn cordon_call(
                 *served = served.wrapping_add(1);
                 let r = match inst.as_mut() {
                     Some(i) => w.call_on(i, lim, id, fault),
-                    None => Err(aegis_wasm::TrapKind::Wasm),
+                    None => Err(monban_wasm::TrapKind::Wasm),
                 };
                 if r.is_err() {
                     *inst = None;
@@ -528,8 +528,8 @@ fn serve_cordon(rest: &[String]) -> ExitCode {
     };
     let Some(data_dir) = data.parent().map(Path::to_path_buf) else { return fail(EX_USAGE, "<data> has no parent") };
     let mutant = cordon_mutant();
-    let wall_ms = a.wall_ms.unwrap_or(aegis_wasm::engine::WALL_MS_DEFAULT);
-    let fuel = a.fuel.unwrap_or(aegis_wasm::engine::FUEL_DEFAULT);
+    let wall_ms = a.wall_ms.unwrap_or(monban_wasm::engine::WALL_MS_DEFAULT);
+    let fuel = a.fuel.unwrap_or(monban_wasm::engine::FUEL_DEFAULT);
     let mut threads = a.threads.unwrap_or(CORDON_THREADS_DEFAULT);
     let mut ticker_on = true;
     let mut lim = match limits(fuel, wall_ms) {
@@ -550,7 +550,7 @@ fn serve_cordon(rest: &[String]) -> ExitCode {
         CordonMutant::EpochOnly4 => {
             // MUTANT (research E4): the epoch alone at 100 ms (fuel at the F8 ceiling), 4 threads.
             threads = EPOCH_ONLY_THREADS;
-            lim = match limits(FUEL_MAX, aegis_wasm::engine::WALL_MS_DEFAULT) {
+            lim = match limits(FUEL_MAX, monban_wasm::engine::WALL_MS_DEFAULT) {
                 Ok(l) => l,
                 Err(e) => return fail(EX_CONFIG, &e),
             };
@@ -652,7 +652,7 @@ fn forkcost(rest: &[String]) -> ExitCode {
     };
     let Some(data_dir) = data.parent().map(Path::to_path_buf) else { return fail(EX_USAGE, "<data> has no parent") };
     let n = a.n.unwrap_or(2000);
-    let lim = match limits(a.fuel.unwrap_or(aegis_wasm::engine::FUEL_DEFAULT), 100) {
+    let lim = match limits(a.fuel.unwrap_or(monban_wasm::engine::FUEL_DEFAULT), 100) {
         Ok(l) => l,
         Err(e) => return fail(EX_CONFIG, &e),
     };

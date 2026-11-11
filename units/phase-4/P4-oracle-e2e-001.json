@@ -16,7 +16,7 @@
   "SPEC \u00a7E F7 tenant isolation (logical)"
  ],
  "oracles": [
-  "native-e2e: boots target/release/aegis with an oracle config (apps/notes routes on SQLite and PG backends, two tenants via test tokens); checks cross-tenant read/write/upsert/delete = uniform denial, client disconnect / RST / deadline before CP leaves zero durable rows, timer after CP -> 202 + Idempotency-Key retrieval, replay returns stored outcome, no response byte before commit, route without data caps cannot reach the DB"
+  "native-e2e: boots target/release/monban with an oracle config (apps/notes routes on SQLite and PG backends, two tenants via test tokens); checks cross-tenant read/write/upsert/delete = uniform denial, client disconnect / RST / deadline before CP leaves zero durable rows, timer after CP -> 202 + Idempotency-Key retrieval, replay returns stored outcome, no response byte before commit, route without data caps cannot reach the DB"
  ],
  "acceptance": {
   "cmd": "oracles/native-e2e/run --self-test",
@@ -28,5 +28,5 @@
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass: reference 88 checks (sqlite) / 224 (sqlite+pg18+valkey), self-test 6/6 incl NC8 no-drain/ack-then-drop; aegis binary FAILs until P4-bin-001"
+ "status": "pass: reference 88 checks (sqlite) / 224 (sqlite+pg18+valkey), self-test 6/6 incl NC8 no-drain/ack-then-drop; monban binary FAILs until P4-bin-001"
 }

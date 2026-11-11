@@ -1,0 +1,23 @@
+[package]
+name = "monban-state"
+description = "Idempotency, outbox, commit-point latch, durable store (INV-NOMUT-C, INV-IDEMP, INV-DURABLE)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+[dependencies]
+monban-types = { workspace = true }
+monban-audit = { workspace = true }
+# Pre-wired by P4-spec-002: durable store on bundled SQLite 3.54.1 (crash-harness pin; trusted, not verified C),
+# idempotency-key digests via aws-lc-rs, Op IR for the outbox.
+monban-data-ir = { workspace = true }
+aws-lc-rs = { workspace = true }
+rusqlite = { workspace = true }
+
+[lints]
+workspace = true

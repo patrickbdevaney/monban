@@ -3,7 +3,7 @@
 
 Backs gates pg-version-floor and pg19-blocked (owner P4-pg-001). Spec: ARCHITECTURE §3.8 R-DB-1 (PG >= 18.6 / 17.11,
 CVE-2026-14666; recycle pooled connections after a minor upgrade) and R-DB-8 (every 19.x refused until a named fix).
-Truth comes from supply-chain/engine-pins.toml; semantics follow aegis-data-ir EnginePin::admit (blocked major ->
+Truth comes from supply-chain/engine-pins.toml; semantics follow monban-data-ir EnginePin::admit (blocked major ->
 refuse; major without floor -> refuse; numeric (major, minor) < floor -> refuse) plus the pins file rule that
 pre-releases never satisfy a floor.
 

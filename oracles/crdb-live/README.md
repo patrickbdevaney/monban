@@ -1,11 +1,11 @@
-# crdb-live: aegis-bin adapter-crdb against a live CockroachDB
+# crdb-live: monban-bin adapter-crdb against a live CockroachDB
 
 Unit P8-oracle-001. Gate `crdb-live` (gates/phase-8.toml, `remote = "kamrui"`). Implementer P8-bin-001. Closes PREFLIGHT
 R8: the crdb adapter's 40001 handling was only unit-tested and CancelRequest was untested against a server through
 the binary.
 
 ```
-ci/engines.sh with crdb -- oracles/crdb-live/run --dsn @crdb --binary target/release/aegis   # aegis --features adapter-crdb (gate)
+ci/engines.sh with crdb -- oracles/crdb-live/run --dsn @crdb --binary target/release/monban   # monban --features adapter-crdb (gate)
 ci/engines.sh with crdb -- oracles/crdb-live/run --dsn @crdb                                 # the reference subject
 ci/engines.sh with crdb -- oracles/crdb-live/run --self-test --dsn @crdb                     # reference PASS, 3 mutants FAIL
 ```
@@ -21,21 +21,21 @@ BackendKeyData and CancelRequest; `ref_subject.py`: the reference, whose `crdb` 
 ## Subject contract
 
 The native-e2e contract (oracles/native-e2e/README.md "Subject contract": CLI, tokens, endpoints, idempotency,
-`hold_ms`, `aegis-deadline-ms`, NC1/NC2/NC7) with one backend:
+`hold_ms`, `monban-deadline-ms`, NC1/NC2/NC7) with one backend:
 
 ```json
 "data": {"backends": [{"id": "cr", "engine": "crdb", "dsn_ref": "env:AEGIS_E2E_CRDB_DSN", "pin": "crdb", "op_budget_ms": 5000}]},
-"vhosts": [{"host": "aegis.test", "routes": [{"id": 1, "path": "/cr/", "to": {"upstream": "app:notes"}, "authz": "allow-all",
+"vhosts": [{"host": "monban.test", "routes": [{"id": 1, "path": "/cr/", "to": {"upstream": "app:notes"}, "authz": "allow-all",
   "data": [{"backend": "cr", "collection": "notes", "ops": ["select","insert","update","delete","upsert"], "columns": ["id","body"]}]}]}]
 ```
 
 Provisioned by the oracle as root, recreated per run:
 - `public.notes (tenant STRING NOT NULL, id STRING NOT NULL, body STRING NOT NULL, PRIMARY KEY (tenant, id))`
   (the crdb schema gate's golden shape; CockroachDB has no RLS here, so isolation is the rendered tenant conjunct);
-- `public.aegis_idem` exactly as aegis-bin's `CRDB_IDEM_DDL`;
-- user `aegis_app` (insecure mode: no password) with `SELECT, INSERT, UPDATE, DELETE` on notes and `SELECT, INSERT`
-  on aegis_idem, nothing else. `AEGIS_E2E_CRDB_DSN` = `postgresql://aegis_app@127.0.0.1:<port>/defaultdb`; the
-  subject never sees root. The oracle finds the subject's sessions and queries by `user_name = 'aegis_app'`.
+- `public.monban_idem` exactly as monban-bin's `CRDB_IDEM_DDL`;
+- user `monban_app` (insecure mode: no password) with `SELECT, INSERT, UPDATE, DELETE` on notes and `SELECT, INSERT`
+  on monban_idem, nothing else. `AEGIS_E2E_CRDB_DSN` = `postgresql://monban_app@127.0.0.1:<port>/defaultdb`; the
+  subject never sees root. The oracle finds the subject's sessions and queries by `user_name = 'monban_app'`.
 
 What the subject must do (the residual):
 - **40001.** A transaction that fails with SQLSTATE 40001 is never answered as a success. Retrying the whole
@@ -55,9 +55,9 @@ What the subject must do (the residual):
 | `contention.<op><i>.never-wrong` | a 2xx ⇒ the durable row is the subject's answered value (update/upsert), gone (delete), the subject's insert; a non-2xx ⇒ the row is the oracle's value (no effect). A 201 on the insert round while the oracle's row stands is the stale answer | INV-DURABLE (ack ⇒ durable), NC7, R8 |
 | `contention.<op><i>.replay-latched` / `.replay-executes` | the same Idempotency-Key again: a 2xx is latched and returned unchanged; a failure before CP is not latched and re-executes now | INV-IDEMP |
 | `contention.produced-40001` | `crdb_internal.node_metrics` `txn.restarts.txnaborted` rose over the workload (6 contended requests: 2 update, 2 upsert, 1 delete, 1 insert) | the workload really produced 40001s |
-| `cancel.<update\|select>.answer-within-deadline` | the oracle holds an uncommitted write on the row; the subject's PATCH (or GET) with `aegis-deadline-ms: 800` blocks on it; the answer is a 504 within 0.8 + 0.7 s | NC1 deadline, R8 |
-| `cancel.*.statement-stopped` | 1 s after the deadline (lock still held): `SHOW CLUSTER QUERIES` lists no query of `aegis_app` | CancelRequest |
-| `cancel.*.connection-reset-or-retired` | at the same moment `crdb_internal.cluster_sessions` lists no `aegis_app` session with an open transaction (`kv_txn IS NOT NULL`; a cancelled statement leaves its session's transaction open and aborted until ROLLBACK, verified on v25.4.19) | C8/NC3 pool reset |
+| `cancel.<update\|select>.answer-within-deadline` | the oracle holds an uncommitted write on the row; the subject's PATCH (or GET) with `monban-deadline-ms: 800` blocks on it; the answer is a 504 within 0.8 + 0.7 s | NC1 deadline, R8 |
+| `cancel.*.statement-stopped` | 1 s after the deadline (lock still held): `SHOW CLUSTER QUERIES` lists no query of `monban_app` | CancelRequest |
+| `cancel.*.connection-reset-or-retired` | at the same moment `crdb_internal.cluster_sessions` lists no `monban_app` session with an open transaction (`kv_txn IS NOT NULL`; a cancelled statement leaves its session's transaction open and aborted until ROLLBACK, verified on v25.4.19) | C8/NC3 pool reset |
 | `cancel.*.no-late-effect` | after the lock is released, the row still has its pre-image | NC1 |
 | `cancel.*.pool-serves-after` | 6 × (PATCH, GET) afterwards all answer correctly | pool health |
 

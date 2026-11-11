@@ -13,7 +13,7 @@
 //!
 //! https (feature `tls-client`, oracles/egress-tls; PREFLIGHT R15): a live case may carry
 //! `"tls": {"profile": F12 name, "ca": PEM path, "client": id}`. The subject builds the product client config
-//! (`aegis_tls::client_config(profile, roots from ca)`), injects it with `TlsClient::from_config` and keeps one
+//! (`monban_tls::client_config(profile, roots from ca)`), injects it with `TlsClient::from_config` and keeps one
 //! `NetConnector` per client id for the whole run, so a second fetch through the same client is where resumption
 //! or early data would show if the config allowed them. `"echo_body": true` adds `"body_hex"` to a connect verdict
 //! (bodies up to 64 KiB). Without the feature, or without `tls`, a live https case gets the plain connector and fails
@@ -28,11 +28,11 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Mutex;
 use std::time::Duration;
 
-use aegis_egress::{
+use json::Pj;
+use monban_egress::{
     BoxFuture, Connector, Egress, EgressError, Exchanged, Hop, HostRule, NetConnector, Policy, Prefix, RawResponse,
     Request, Resolver, Url,
 };
-use json::Pj;
 
 struct Dns {
     sets: BTreeMap<String, Vec<Vec<IpAddr>>>,
@@ -206,14 +206,14 @@ fn tls_connector(t: &Pj) -> Result<NetConnector, String> {
     use rustls::pki_types::CertificateDer;
     use rustls::pki_types::pem::PemObject;
     let name = s(t.get("profile")).ok_or("tls.profile missing")?;
-    let profile = aegis_tls::Profile::from_name(&name).ok_or_else(|| format!("unknown profile {name}"))?;
+    let profile = monban_tls::Profile::from_name(&name).ok_or_else(|| format!("unknown profile {name}"))?;
     let ca = s(t.get("ca")).ok_or("tls.ca missing")?;
     let mut roots = rustls::RootCertStore::empty();
     for cert in CertificateDer::pem_file_iter(&ca).map_err(|e| format!("ca {ca}: {e}"))? {
         roots.add(cert.map_err(|e| format!("ca {ca}: {e}"))?).map_err(|e| format!("ca {ca}: {e}"))?;
     }
-    let cfg = aegis_tls::client_config(profile, roots).map_err(|e| format!("client_config {name}: {e}"))?;
-    let tls = aegis_egress::TlsClient::from_config(std::sync::Arc::new(cfg)).map_err(|e| e.to_string())?;
+    let cfg = monban_tls::client_config(profile, roots).map_err(|e| format!("client_config {name}: {e}"))?;
+    let tls = monban_egress::TlsClient::from_config(std::sync::Arc::new(cfg)).map_err(|e| e.to_string())?;
     Ok(NetConnector::with_tls(tls))
 }
 

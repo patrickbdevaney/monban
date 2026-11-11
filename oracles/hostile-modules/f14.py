@@ -134,7 +134,7 @@ def op(tenant, collection, kind, filt=("tt",), writes=(), returning=()):
             + seq([u(f) + value(v) for f, v in writes]) + seq([u(f) for f in returning]))
 
 
-MAX_PRED_DEPTH = 64  # F4 aegis_data_ir::lower::MAX_PRED_DEPTH
+MAX_PRED_DEPTH = 64  # F4 monban_data_ir::lower::MAX_PRED_DEPTH
 
 
 def dec_value(d):

@@ -56,7 +56,7 @@ under the simulator is part of v2.
 
 | source | sha256 | use |
 |---|---|---|
-| research/state/raw/round-003/07-work/swarm_sim.py | 8a5558be9fd69858c6217e46ae3aa7584c8e598d007e54541bb2182bb2fe92d9 | ported verbatim as `swarm_sim.py`. The only changes are lines tagged `# AEGIS-PORT:` (mutation hook, `run(mutate=)`, named configs, `__main__` removed). |
+| research/state/raw/round-003/07-work/swarm_sim.py | 8a5558be9fd69858c6217e46ae3aa7584c8e598d007e54541bb2182bb2fe92d9 | ported verbatim as `swarm_sim.py`. The only changes are lines tagged `# Monban-PORT:` (mutation hook, `run(mutate=)`, named configs, `__main__` removed). |
 | research/state/raw/round-003/07-work/cost_model.py | d529d7eaf614a930a25f2a7a2556e8f68d9019c328da0d99a2e58f5ad903334e | ported as `cost_model.py` (print and file write removed). Re-run here, its `out` equals research `cost_model.json` exactly. |
 | research/state/raw/round-003/07-work/cost_model.json | 5086f95148c08c8596f94874ae7b12dac0576a54a85e158bf7ac100e4d0be3bb | equality check above |
 | research/state/raw/round-003/07-work/tuned.json | 567201de35e33503944ee8b6522b6a47277a8fe08e16413de12f6e1f4902d5ea | embedded as `CONFIGS["TUNED"]` |
@@ -117,8 +117,8 @@ are in the prose summaries:
    reported on seeds 1–10.
 2. **Calibrated service and stage costs** in place of E-grade assumptions: the 1-vCPU handshake cost (q3-001),
    parse/classify/429/challenge costs, the handler cost distribution per class (not fixed 0.2/1/4/30 ms), and
-   the I/O multiple. That means measuring the real aegis pipeline on the target VPS class.
-3. **A trace-replay mode** that drives the simulator, and later the real `aegis-admission` crate through the
+   the I/O multiple. That means measuring the real monban pipeline on the target VPS class.
+3. **A trace-replay mode** that drives the simulator, and later the real `monban-admission` crate through the
    `--subject` hook, from recorded traces rather than synthetic Poisson actors. It should also cover the
    rdnlsmith and GNOME shapes named in the round-2 spec.
 4. **Out-of-sample seeds and nightly random seeds**, with the worst seed reported. Acceptance should be judged

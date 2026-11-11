@@ -1,4 +1,4 @@
-# q4-003: Do procurement texts require what AEGIS offers?
+# q4-003: Do procurement texts require what Monban offers?
 
 **Verdict: flip D-13** to "visible compliance, invisible proofs". Grade B. Date 2026-10-25.
 Machine-readable: `verdict.json`. Full scored table with one URL per row: `scores.csv`.
@@ -72,10 +72,10 @@ integration and operations. UZH's incumbent is Apache httpd + ModSecurity.
   stated requirements, not award decisions.
 
 ## Procurement-gating vs nice-to-have (for the Phase 4–6 decision)
-| AEGIS feature | status | phase effect |
+| Monban feature | status | phase effect |
 |---|---|---|
 | PQ hybrid KX by default, ML-KEM-1024 group (0x11ED) | **gating** (US fed/NSS 2027–2031, CA 2026, AU 2030, FR 2027) | keep; lead the copy with it |
-| PQC-signed tokens at the gateway (M-26-15) | **gating (federal, by plan dates)** | add to the R-PQC roadmap for aegis-token |
+| PQC-signed tokens at the gateway (M-26-15) | **gating (federal, by plan dates)** | add to the R-PQC roadmap for monban-token |
 | FIPS 140-3 profile (cmvp lock) | **gating** for DoD/NSS/Canada; SHOULD for FedRAMP Class C | Phase 6 justified by demand |
 | SBOM (CycloneDX/SPDX, ≥ top-level deps) | **gating** EU CRA 2027-12-11; SHOULD elsewhere | move into the Phase 2 release |
 | CBOM | emerging (ASD SHOULD; US guidance ~2027) | move into the Phase 2 release (cheap) |

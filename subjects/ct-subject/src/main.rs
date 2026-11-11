@@ -1,4 +1,4 @@
-//! ct-subject: timing subject for oracles/ct-dudect. Times aegis-token's tag compare in-process, one call per
+//! ct-subject: timing subject for oracles/ct-dudect. Times monban-token's tag compare in-process, one call per
 //! measurement, with `std::time::Instant` (no unsafe, no rdtsc).
 //!
 //! Protocol (binary, over stdin/stdout; see oracles/ct-dudect/README.md):
@@ -11,8 +11,8 @@
 //!
 //! The subject never sees class labels. Targets:
 //!   - `cmp`: `aws_lc_rs::constant_time::verify_slices_are_equal(want, tag)`, the exact call `mac_valid` makes.
-//!   - `mac`: `aegis_token::mac_valid(keys, token_with(tag), aud)` (HKDF + HMAC chain + compare).
-//!   - `verify`: `aegis_token::verify(wire_with(tag), keys, req)` on the encoded wire bytes (decode + MAC + rest).
+//!   - `mac`: `monban_token::mac_valid(keys, token_with(tag), aud)` (HKDF + HMAC chain + compare).
+//!   - `verify`: `monban_token::verify(wire_with(tag), keys, req)` on the encoded wire bytes (decode + MAC + rest).
 //!
 //! `--mutant early-exit` replaces the compare with a byte-by-byte early-exit loop (oracle self-test only).
 #![forbid(unsafe_code)]
@@ -21,7 +21,7 @@ use std::hint::black_box;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 
-use aegis_token::{Caveat, KeyRing, Req, TokenL, chain_tag, denote, mac_valid, verify};
+use monban_token::{Caveat, KeyRing, Req, TokenL, chain_tag, denote, mac_valid, verify};
 
 const TAG_LEN: usize = 32;
 const MAX_BATCH: usize = 1_000_000;

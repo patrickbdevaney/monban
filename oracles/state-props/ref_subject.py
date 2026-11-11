@@ -2,7 +2,7 @@
 """Reference subject for oracles/state-props (README "Subject protocol"). Run as `python3 -I ref_subject.py <dir>
 [--mutate <name>]...`. Stdlib only: SQLite (WAL, synchronous=FULL, single writer) through the `sqlite3` module.
 
-It is the shape P4-state-002 is expected to take in aegis-state: an idempotency table keyed by (principal, key) whose
+It is the shape P4-state-002 is expected to take in monban-state: an idempotency table keyed by (principal, key) whose
 outcome row commits in the same transaction as the request's user rows and its outbox rows (NC2 commit point, NC6
 outbox), an in-memory in-flight set (pre-CP state is never durable, so a SIGKILL frees the key: NC1), and an outbox
 relay that marks a row delivered only after its EFF line was written (at-least-once).

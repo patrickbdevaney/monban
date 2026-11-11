@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""AEGIS oracle otlp-export (unit P7-oracle-otlp-001, PREFLIGHT D-P7.6). Contract: oracles/README.md; exporter CLI
+"""Monban oracle otlp-export (unit P7-oracle-otlp-001, PREFLIGHT D-P7.6). Contract: oracles/README.md; exporter CLI
 contract and mapping rules: README.md next to this file.
 
 A loopback OTLP/HTTP collector validates every request against the opentelemetry-proto JSON mapping
 (docs/specification.md "JSON Protobuf Encoding" + metrics/logs/common/resource .proto, excerpts in
-proto-excerpts.txt), while a fake aegis admin listener (TCP and unix socket, same wire shape as
-crates/aegis-bin/src/admin.rs) serves recorded aegis /metrics text and the exporter reads recorded aegis log lines
+proto-excerpts.txt), while a fake monban admin listener (TCP and unix socket, same wire shape as
+crates/monban-bin/src/admin.rs) serves recorded monban /metrics text and the exporter reads recorded monban log lines
 on stdin.
 
   run                          against the reference exporter (ref_exporter.py)
-  run --exporter <path>        against a real exporter binary (gate: target/release/aegis-otlp)
+  run --exporter <path>        against a real exporter binary (gate: target/release/monban-otlp)
   run --self-test              reference must PASS; every mutant, a stub and an absent binary must FAIL
 """
 import argparse
@@ -33,10 +33,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(HERE, "fixtures")
 NAME = "OTLP-EXPORT"
-SERVICE = "aegis-oracle-svc"
+SERVICE = "monban-oracle-svc"
 MAX_LOG_LINE = 65536
 MAX_BODY = 32 * 1024 * 1024
-EXTRA_PREFIX = "aegis_otlp_"  # exporter self-metrics are the only metrics it may add
+EXTRA_PREFIX = "monban_otlp_"  # exporter self-metrics are the only metrics it may add
 SEV = {"TRACE": 1, "DEBUG": 5, "INFO": 9, "WARN": 13, "ERROR": 17, "FATAL": 21}
 RESERVED = ("ts", "level", "msg", "trace_id", "span_id")
 TS_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$")
@@ -58,8 +58,8 @@ RETRY_MAX_ATTEMPTS = 8             # ... and at most this often (bounded)
 RETRY_MIN_GAP_S = 0.1              # every retry waits at least this long after the previous attempt
 RETRY_GROWTH = 0.8                 # each gap >= 0.8 x the previous one (backoff never shrinks; 20 % jitter room)
 RETRY_BUDGET_S = 30.0              # all attempts of one request within this
-DROPPED_LOGS = "aegis_otlp_dropped_log_records"
-DROPPED_POINTS = "aegis_otlp_dropped_metric_points"
+DROPPED_LOGS = "monban_otlp_dropped_log_records"
+DROPPED_POINTS = "monban_otlp_dropped_metric_points"
 
 # ---------------------------------------------------------------- opentelemetry-proto JSON schema (lowerCamelCase)
 # Types: string bool uint32 fixed32 enum int64 fixed64 double bytes trace16 span8 ANY, a message name, or [type].
@@ -449,7 +449,7 @@ class Collector:
         self.srv.server_close()
 
 
-# ---------------------------------------------------------------- fake aegis admin listener (admin.rs wire shape)
+# ---------------------------------------------------------------- fake monban admin listener (admin.rs wire shape)
 class Admin:
     CT = "application/openmetrics-text; version=1.0.0; charset=utf-8"
 
@@ -770,12 +770,12 @@ def case_daemon(r, cmd, env, real_text):
         with lock:
             n = 100 + len(served)
             served.append(n)
-        return real_text.replace("aegis_proxy_requests_total 4\n", f"aegis_proxy_requests_total {n}\n")
+        return real_text.replace("monban_proxy_requests_total 4\n", f"monban_proxy_requests_total {n}\n")
 
     col, adm = Collector("/collector/"), Admin(provider)
     t0 = time.time_ns() - 2_000_000_000
     l1 = b'{"ts":"2026-11-06T12:30:00.000000042Z","level":"ERROR","msg":"streamed while running","n":1}\n'
-    l2 = b"aegis[4242]: plain stderr line streamed while running\n"
+    l2 = b"monban[4242]: plain stderr line streamed while running\n"
     try:
         p = subprocess.Popen(cmd + ["--scrape", adm.target, "--endpoint", col.url, "--service-name", SERVICE,
                                     "--interval-ms", "250"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
@@ -844,7 +844,7 @@ def case_daemon(r, cmd, env, real_text):
             if not o["name"].startswith(EXTRA_PREFIX):
                 errs.append(f"invented metric {o['name']}")
             continue
-        dyn = o["name"] == "aegis_proxy_requests"
+        dyn = o["name"] == "monban_proxy_requests"
         errs.extend(f"{o['name']}: {m}" for m in point_errors(e, o, window, check_value=not dyn))
         if dyn:
             req_pts.append(o)
@@ -854,7 +854,7 @@ def case_daemon(r, cmd, env, real_text):
     starts = {o["p"].get("startTimeUnixNano") for o in req_pts}
     with lock:
         served_set = set(served)
-    r.check(f"{name}.interval-exports", len(req_pts) >= 3, f"{len(req_pts)} exports of aegis_proxy_requests in ~5 s at 250 ms")
+    r.check(f"{name}.interval-exports", len(req_pts) >= 3, f"{len(req_pts)} exports of monban_proxy_requests in ~5 s at 250 ms")
     r.check(f"{name}.values-scraped", bool(vals) and all(v in served_set for v in vals) and vals == sorted(vals),
             f"exported {vals}, served {sorted(served_set)[:12]}")
     r.check(f"{name}.time-advances", all(b > a for a, b in zip(times, times[1:])), f"timeUnixNano {times}")
@@ -869,7 +869,7 @@ def case_daemon(r, cmd, env, real_text):
 
 # ---------------------------------------------------------------- P8-oracle-001: https, retry, drop-and-count (R9)
 def tls_material(d):
-    """A throwaway CA and a P-256 leaf for 127.0.0.1 (the aegis-tls P-PUBLIC-WEB client verifies
+    """A throwaway CA and a P-256 leaf for 127.0.0.1 (the monban-tls P-PUBLIC-WEB client verifies
     ecdsa_secp256r1_sha256 only, and webpki refuses a CA certificate used as the end entity), plus an unrelated CA.
     Returns (server ssl.SSLContext, ca.pem, other-ca.pem)."""
     if not shutil.which("openssl"):
@@ -881,7 +881,7 @@ def tls_material(d):
     j = lambda n: os.path.join(d, n)  # noqa: E731
     for ca in ("ca", "other-ca"):
         ossl("req", "-x509", *ec, "-keyout", j(f"{ca}.key"), "-out", j(f"{ca}.pem"), "-days", "2",
-             "-subj", f"/CN=aegis oracle {ca}", "-addext", "basicConstraints=critical,CA:TRUE",
+             "-subj", f"/CN=monban oracle {ca}", "-addext", "basicConstraints=critical,CA:TRUE",
              "-addext", "keyUsage=critical,keyCertSign")
     ossl("req", "-new", *ec, "-keyout", j("leaf.key"), "-out", j("leaf.csr"), "-subj", "/CN=127.0.0.1")
     with open(j("leaf.ext"), "w") as f:
@@ -1028,7 +1028,7 @@ def case_no_retry_400(r, cmd, env, real, logs):
 
 def case_daemon_drop(r, cmd, env, real):
     """Interval mode with /v1/logs always 503: metrics keep flowing, the log records are dropped after the retries
-    and counted in aegis_otlp_dropped_log_records, SIGTERM still exits 0 within 5 s."""
+    and counted in monban_otlp_dropped_log_records, SIGTERM still exits 0 within 5 s."""
     name = "daemon-drop"
     col = Collector(plan=lambda path, n: 503 if path.endswith("/v1/logs") else 200)
     adm = Admin(lambda: real)
@@ -1092,41 +1092,41 @@ def spots_real():
     def asint(v):
         return lambda o: o["kind"] in ("sum", "gauge") and o["p"].get("asInt") is not None and int(o["p"]["asInt"]) == v
     return [
-        ("budget-ip-sum-4", "aegis_budget_debits", (("scope", "ip"),), lambda o: o["kind"] == "sum" and asint(4)(o)),
-        ("cert-serving-gauge", "aegis_cert_seconds_to_expiry", (("slot", "serving"),),
+        ("budget-ip-sum-4", "monban_budget_debits", (("scope", "ip"),), lambda o: o["kind"] == "sum" and asint(4)(o)),
+        ("cert-serving-gauge", "monban_cert_seconds_to_expiry", (("slot", "serving"),),
          lambda o: o["kind"] == "gauge" and asint(2592000)(o)),
-        ("config-hash-exact", "aegis_config_generation_hash", (), asint(14283538101851)),
-        ("proxy-requests-sum-4", "aegis_proxy_requests", (), lambda o: o["kind"] == "sum" and o["mono"] is True and asint(4)(o)),
-        ("upstream-errors-2", "aegis_proxy_upstream_errors", (), asint(2)),
+        ("config-hash-exact", "monban_config_generation_hash", (), asint(14283538101851)),
+        ("proxy-requests-sum-4", "monban_proxy_requests", (), lambda o: o["kind"] == "sum" and o["mono"] is True and asint(4)(o)),
+        ("upstream-errors-2", "monban_proxy_upstream_errors", (), asint(2)),
     ]
 
 
 def spots_synth():
-    h = ("aegis_synth_request_duration_seconds", (("route", "api"),))
+    h = ("monban_synth_request_duration_seconds", (("route", "api"),))
     return [
         ("hist-buckets", *h, lambda o: o["kind"] == "histogram" and [int(x) for x in o["p"].get("bucketCounts", [])] == [2, 3, 4, 1]),
         ("hist-bounds", *h, lambda o: [float(x) for x in o["p"].get("explicitBounds", [])] == [0.005, 0.05, 0.5]),
         ("hist-count-sum", *h, lambda o: int(o["p"].get("count", 0)) == 10 and float(o["p"].get("sum", 0)) == 1.875),
         ("hist-created", *h, lambda o: abs(int(o["p"].get("startTimeUnixNano", 0)) - 1793900000500000000) <= 1000),
         ("hist-unit", *h, lambda o: o["unit"] == "seconds"),
-        ("counter-2^53+1-exact", "aegis_synth_events", (("kind", 'a"b'), ("path", "c\\d\ne")),
+        ("counter-2^53+1-exact", "monban_synth_events", (("kind", 'a"b'), ("path", "c\\d\ne")),
          lambda o: o["p"].get("asInt") is not None and int(o["p"]["asInt"]) == 9007199254740993),
-        ("counter-help-unescaped", "aegis_synth_events", (("kind", "plain"), ("path", "/")),
+        ("counter-help-unescaped", "monban_synth_events", (("kind", "plain"), ("path", "/")),
          lambda o: o["desc"] == 'Synthetic counter with "escapes", a back\\slash\nand a second line.'),
-        ("gauge-float", "aegis_synth_ratio", (("shard", "1"),),
+        ("gauge-float", "monban_synth_ratio", (("shard", "1"),),
          lambda o: o["kind"] == "gauge" and o["p"].get("asDouble") is not None and to_float(o["p"]["asDouble"]) == -1500.0),
-        ("gauge-negative-int", "aegis_synth_ratio", (("shard", "2"),), lambda o: str(o["p"].get("asInt")) == "-42"),
+        ("gauge-negative-int", "monban_synth_ratio", (("shard", "2"),), lambda o: str(o["p"].get("asInt")) == "-42"),
     ]
 
 
 def run_all(cmd, env, verbose, stop_early=False):
     r = Run(verbose, quiet=stop_early)
-    real = read_fixture("aegis-metrics.txt")
+    real = read_fixture("monban-metrics.txt")
     synth = read_fixture("synthetic-metrics.txt")
-    logs_a = read_fixture("aegis-stderr.log", "rb") + read_fixture("json-logs.jsonl", "rb")
+    logs_a = read_fixture("monban-stderr.log", "rb") + read_fixture("json-logs.jsonl", "rb")
     logs_b = b"x" * (100 * 1024) + b"\n" + b'{"ts":"2026-11-06T12:00:09Z","level":"INFO","msg":"after an oversize line"}\n'
     trunc = real[: real.rindex("# EOF")]
-    logs_r9 = b'{"ts":"2026-11-06T12:00:00Z","level":"INFO","msg":"r9 line","n":1}\naegis: plain r9 line\n'
+    logs_r9 = b'{"ts":"2026-11-06T12:00:00Z","level":"INFO","msg":"r9 line","n":1}\nmonban: plain r9 line\n'
     with tempfile.TemporaryDirectory(prefix="otlp-oracle-") as d:
         steps = [
             lambda: case_once(r, "once-tcp-real", cmd, env, real, logs_a, None, spots_real()),
@@ -1188,7 +1188,7 @@ def main():
         if not r.failures:
             survived.append(m)
     with tempfile.TemporaryDirectory(prefix="otlp-stub-") as d:
-        stub = os.path.join(d, "aegis-otlp")
+        stub = os.path.join(d, "monban-otlp")
         with open(stub, "w") as f:
             f.write("#!/bin/sh\nexit 0\n")
         os.chmod(stub, 0o755)

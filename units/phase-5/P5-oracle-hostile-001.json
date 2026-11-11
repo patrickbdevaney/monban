@@ -22,7 +22,7 @@
  ],
  "acceptance": {
   "cmd": "oracles/hostile-modules/run --self-test",
-  "must": "PASS; corpus files map each case to one invariant id; worker level drives aegis-p2 over F14 with the oracle as mock supervisor; host level drives the real aegis binary (feature p2) and judges by response bytes, the F9 audit log and an effect sink (audit-vs-effect diff); README lists every case, its invariant and the expected outcome"
+  "must": "PASS; corpus files map each case to one invariant id; worker level drives monban-p2 over F14 with the oracle as mock supervisor; host level drives the real monban binary (feature p2) and judges by response bytes, the F9 audit log and an effect sink (audit-vs-effect diff); README lists every case, its invariant and the expected outcome"
  },
  "write_scope": [
   "oracles/hostile-modules/**"

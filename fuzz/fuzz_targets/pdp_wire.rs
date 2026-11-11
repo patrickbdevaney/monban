@@ -1,4 +1,4 @@
-//! PDP-1 wire decode (aegis-authz `pdp::{decode_header, decode_request, decode_request_body, decode_reply}`).
+//! PDP-1 wire decode (monban-authz `pdp::{decode_header, decode_request, decode_request_body, decode_reply}`).
 //!
 //! Properties:
 //! - one logical request has exactly one encoding: `decode_request(f) = Ok((id, Ok(r)))` implies
@@ -7,12 +7,12 @@
 //! - structured requests: `encode` then `decode` then `encode` is stable, and every encodable request decodes.
 #![no_main]
 
-use aegis_authz::Decision;
-use aegis_authz::pdp::{
+use monban_authz::Decision;
+use monban_authz::pdp::{
     EntityData, HEADER_LEN, KIND_REQUEST, PdpRequest, REPLY_LEN, Uid, Value, decode_header, decode_reply,
     decode_request, decode_request_body, encode_reply, encode_request, encode_request_body,
 };
-use aegis_fuzz::{Unstructured, any_string, byte, flag, selftest, u64_};
+use monban_fuzz::{Unstructured, any_string, byte, flag, selftest, u64_};
 use libfuzzer_sys::fuzz_target;
 
 fn uid(u: &mut Unstructured<'_>) -> Uid {

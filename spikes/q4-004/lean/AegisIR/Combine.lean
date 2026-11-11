@@ -1,5 +1,5 @@
 /-
-AEGIS host combiner: three-valued module decisions, fail-closed combination.
+Monban host combiner: three-valued module decisions, fail-closed combination.
 r4 E01 (2026-10-25): FIRST Lean text for graph node vfg-policy-tristate-failclosed-invariant, which r2 graded A as
 "proven in Lean" although no Lean file existed in state/raw (overclaim; corrected here by an executed check).
 Semantics chosen (spec decision, flagged): empty decision list ⇒ deny (no policy = no access); any error ⇒ deny;

@@ -1,0 +1,107 @@
+[package]
+name = "monban-bin"
+description = "Assembly: reverse-proxy mode R (listeners, canonical forwarding, admin metrics, audit, reload, upgrade), native apps over the golden data plane (modes A/D); fail-closed boot."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 5
+
+[[bin]]
+name = "monban"
+path = "src/main.rs"
+
+[dependencies]
+monban-adapter-host = { workspace = true }
+# MariaDB adapter (PREFLIGHT D-P7.8): feature `adapter-mariadb` only.
+monban-adapter-mysql = { workspace = true, optional = true }
+monban-adapter-pg = { workspace = true, optional = true }
+monban-adapter-redis = { workspace = true, optional = true }
+monban-adapter-sqlite = { workspace = true, optional = true }
+monban-admission = { workspace = true }
+monban-agent = { workspace = true }
+monban-audit = { workspace = true }
+monban-authz = { workspace = true }
+monban-budget = { workspace = true }
+monban-canon = { workspace = true }
+monban-config = { workspace = true }
+monban-data-ir = { workspace = true, optional = true }
+monban-egress = { workspace = true }
+# P2 supervisor (spawn by execve, fd passing, respawn, crash budget): feature `p2` only. monban-wasm (wasmtime) is
+# never a dependency of monban-bin; the Wasm engine lives in the separate monban-p2 worker (PLAN-5 D3, DEVIATIONS X-13,
+# gate no-wasmtime-in-bin).
+monban-iso = { workspace = true, optional = true }
+monban-metrics = { workspace = true }
+monban-ops = { workspace = true }
+monban-state = { workspace = true, optional = true }
+monban-tls = { workspace = true }
+monban-token = { workspace = true }
+monban-transport = { workspace = true }
+monban-types = { workspace = true }
+# Phase 7 (P7-spec-002 pre-wiring; wired by P7-bin-001). The io_uring front: feature `uring` only (PREFLIGHT D-P7.3).
+monban-uring = { workspace = true, optional = true }
+# PROXY v2 header and ClientHello peek parsers (PREFLIGHT D-P7.2): features `proxy-protocol`, `l4`, `mtc` only.
+monban-wire = { workspace = true, optional = true }
+# Native applications (modes A/D, layer "app"): only L5 may depend on them (cargo xtask layering). monban-bin itself
+# never depends on monban-sdk (only monban-adapter-host and apps may); the SDK host loop stays in monban-adapter-host.
+notes = { path = "../../apps/notes", optional = true }
+# Already in the graph through monban-adapter-sqlite / monban-state (root pin, bundled C SQLite): named here only to
+# read row values back from `SqliteDb::run` (rusqlite::types::Value). No new crate.
+rusqlite = { workspace = true, optional = true }
+# Third-party: root pins only, every crate already in Cargo.lock. tokio: no `macros` (tokio-macros is not in the
+# lock) and no `signal` (signal-hook-registry is not in the lock; signals go through monban-ops sigwait).
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "time", "sync", "io-util"] }
+# h2 client (h2c upstream; inbound h2 is monban-transport). Its `Bytes` type is named through hyper's re-export.
+h2 = { workspace = true }
+# No features: only `hyper::body::Bytes` (re-export of `bytes`, which has no root pin). hyper's client needs `want`
+# and its http2 needs `futures-channel`, neither in the lock, so the H1 upstream client is hand-written.
+hyper = { workspace = true }
+http = { workspace = true }
+rustls = { workspace = true }
+
+[features]
+# The default build is the core (mode R, gateway G): the unchanged §6 budget (<= 6 MB stripped, <= 60 crates).
+default = []
+# Native data plane, modes A/D (PLAN D17, DEVIATIONS X-12): app routes (`app:<name>`), the golden SQLite/PG engines
+# (bundled C SQLite) and the linked apps. Its own budget ceiling: 8.0 MB stripped (`cargo xtask budget`).
+native = [
+    "dep:monban-adapter-pg",
+    "dep:monban-adapter-redis",
+    "dep:monban-adapter-sqlite",
+    "dep:monban-data-ir",
+    "dep:monban-state",
+    "dep:notes",
+    "dep:rusqlite",
+]
+# Oracle negative controls ONLY (oracles/proxy-e2e --self-test; oracles/native-e2e with `native,e2e-mutants`): env-var hooks that break forwarding, the
+# INV-NONEMPTY deny and last-known-good. Never part of a shipped build; the default build has no hook code.
+e2e-mutants = ["monban-transport/e2e-raw-target"]
+# P2 isolation (PLAN-5 D1/D3): `wasm:` routes served by exec-spawned monban-p2 workers. Adds only the monban-iso
+# supervisor and the F14 decoder; no wasmtime/cranelift and no new third-party crate (budget: the default and native
+# third-party counts stay unchanged with `p2`).
+p2 = ["dep:monban-iso"]
+# Oracle negative controls ONLY (oracles/p2-e2e, oracles/p2-hostile --self-test; PLAN-5 D15). Never shipped.
+p2-mutants = ["p2", "monban-iso/mutants"]
+# PLAN-6 D1: the cmvp build (profiles/cmvp/build.sh with the overlay lock). Forwards to the owning crates' cmvp cfg;
+# monban-iso/cmvp reads the linked module's version string for FipsStatus and FIPS-CMVP (D16; no new crate).
+cmvp = ["monban-tls/cmvp", "monban-audit/cmvp", "monban-token/cmvp", "dep:monban-iso", "monban-iso/cmvp"]
+# Phase 7 (IMPLEMENTATION_PLAN §3: "each off by default, own TCB line"). Pre-wired by P7-spec-002; the code behind each
+# is P7-bin-001. None is in `default`, and gate default-graph checks the default monban-bin graph stays the e06550e
+# baseline (no io-uring, no monban-wire, no monban-uring, no monban-adapter-mysql). Not part of the cmvp build.
+# PROXY protocol v2 on listeners with `proxy_protocol.trusted` CIDRs (F8; F1 PROXY-1..3). Own parser (D-P7.2).
+proxy-protocol = ["dep:monban-wire"]
+# L4 SNI passthrough listeners (F8 `listener.l4`; F1 L4-1, L4-2): ClientHello peek, route by SNI, splice.
+l4 = ["dep:monban-wire"]
+# MTC CredentialSelector (D-P7.4; F1 SEL-1..3): selection only, the MTC credential is an opaque operator blob.
+mtc = ["monban-tls/mtc", "dep:monban-wire"]
+# The io_uring front (`listener.front = "uring"` / `--front uring`; D-P7.3, F1 FRONT-1). Widens the kernel surface.
+uring = ["dep:monban-uring"]
+# Adapter families `mariadb` and `crdb` (D-P7.8) on the native data plane. Non-golden until their gates pass.
+adapter-mariadb = ["native", "dep:monban-adapter-mysql"]
+adapter-crdb = ["native", "monban-adapter-pg/crdb"]
+
+[lints]
+workspace = true

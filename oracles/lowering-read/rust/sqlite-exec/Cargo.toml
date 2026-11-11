@@ -1,5 +1,5 @@
 [package]
-name = "aegis-lowering-sqlite-exec"
+name = "monban-lowering-sqlite-exec"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true

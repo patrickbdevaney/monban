@@ -3,14 +3,14 @@
 
 Topology (lockstep, one request in flight):
 
-    client driver  --SEQPACKET-->  fault proxy  --SEQPACKET-->  aegis-pdp serve --listen
-    (aegis-pdp-probe, or the                                     (restarted after every kill)
+    client driver  --SEQPACKET-->  fault proxy  --SEQPACKET-->  monban-pdp serve --listen
+    (monban-pdp-probe, or the                                     (restarted after every kill)
      reference/mutant Python client)
 
 For each of the three example policy sets (policies/<set>/):
   1. startup: `check` passes; the PDP refuses to start on invalid.cedar (exit != 0, socket never bound).
-  2. reference: every case is decided by Cedar through its own JSON parsers (`aegis-pdp eval`); the answer must
-     equal the hand-written `expect` (Cedar's answer with the AEGIS mapping: request/schema error or any policy
+  2. reference: every case is decided by Cedar through its own JSON parsers (`monban-pdp eval`); the answer must
+     equal the hand-written `expect` (Cedar's answer with the Monban mapping: request/schema error or any policy
      evaluation error => ERROR).
   3. unfaulted: every case through driver -> proxy -> PDP must give exactly that answer, and combine() must give
      ALLOW only for ALLOW.
@@ -176,7 +176,7 @@ class Pdp:
         t0 = time.monotonic()
         while time.monotonic() - t0 < 15:
             if self.proc.poll() is not None:
-                raise RuntimeError(f"aegis-pdp exited at startup ({self.proc.returncode})")
+                raise RuntimeError(f"monban-pdp exited at startup ({self.proc.returncode})")
             if os.path.exists(self.path):
                 try:
                     s = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
@@ -186,7 +186,7 @@ class Pdp:
                 except OSError:
                     pass
             time.sleep(0.01)
-        raise RuntimeError("aegis-pdp did not start listening within 15 s")
+        raise RuntimeError("monban-pdp did not start listening within 15 s")
 
     def kill(self):
         if self.proc and self.proc.poll() is None:
@@ -498,10 +498,10 @@ def run_all(subject, driver_argv, deadline_ms, seed, fail_fast, out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", help="aegis-pdp binary (default: default-subject)")
-    ap.add_argument("--probe", help="client driver (default: aegis-pdp-probe next to the subject)")
+    ap.add_argument("--subject", help="monban-pdp binary (default: default-subject)")
+    ap.add_argument("--probe", help="client driver (default: monban-pdp-probe next to the subject)")
     ap.add_argument("--deadline-ms", type=int, default=300)
-    ap.add_argument("--seed", default="aegis-pdp-dst-1")
+    ap.add_argument("--seed", default="monban-pdp-dst-1")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     subject = a.subject or os.path.join(REPO, open(os.path.join(HERE, "default-subject")).readline().strip())
@@ -536,7 +536,7 @@ def main():
               f"mutants caught: {', '.join(caught)})")
         return 0
 
-    probe = a.probe or os.path.join(os.path.dirname(subject), "aegis-pdp-probe")
+    probe = a.probe or os.path.join(os.path.dirname(subject), "monban-pdp-probe")
     if not os.access(probe, os.X_OK):
         print(f"{NAME}: FAIL (probe {probe} not built)")
         return 1

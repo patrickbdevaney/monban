@@ -1,18 +1,18 @@
-"""AEGIS multi-core scaling harness (unit P7-scaling-001, PREFLIGHT D-P7.7). stdlib only; run through ./run.
+"""Monban multi-core scaling harness (unit P7-scaling-001, PREFLIGHT D-P7.7). stdlib only; run through ./run.
 
-Per core count N it starts the default-build `aegis` in reverse-proxy mode in front of a static HTTP/1.1 upstream
-(bench/scaling/upstream.rs), pins aegis to N CPUs and the upstream and h2load (the approved public load tool,
+Per core count N it starts the default-build `monban` in reverse-proxy mode in front of a static HTTP/1.1 upstream
+(bench/scaling/upstream.rs), pins monban to N CPUs and the upstream and h2load (the approved public load tool,
 nghttp2) to their own CPUs with `taskset -c`, all three sets disjoint, and records per point: req/s, p50/p99
-latency (from h2load's per-request --log-file), errors, and the CPU count aegis itself computes (crates/aegis-bin/
-src/cpus.rs, read back through `aegis check-config --print-effective` under the same taskset: `p2.usable_cpus`).
+latency (from h2load's per-request --log-file), errors, and the CPU count monban itself computes (crates/monban-bin/
+src/cpus.rs, read back through `monban check-config --print-effective` under the same taskset: `p2.usable_cpus`).
 
 The gate (`scaling`, advisory, record_only) passes when every requested core count ran with 0 errors and the report
 <out>/<host>-<date>.json was written. Numbers are provisional: the desktop is shared and the run is niced.
 
     run --cores 1,2,4,8,16,24 --record bench/scaling/out [--duration S] [--warmup S] [--client-cpus C]
-        [--upstream-cpus U] [--conns K] [--streams M] [--aegis BIN] [--h2load BIN]
+        [--upstream-cpus U] [--conns K] [--streams M] [--monban BIN] [--h2load BIN]
     run --gcp <machine-type> [--region R]   quota preflight for the large-VM run (see README); never creates a VM here
-    run --self-test                          judge + parser negative controls on a fake h2load (no aegis needed)
+    run --self-test                          judge + parser negative controls on a fake h2load (no monban needed)
 """
 import argparse
 import datetime
@@ -58,12 +58,12 @@ def cpu_order():
 
 
 def allocate(order, n, client, upstream):
-    """Disjoint sets: aegis takes the first n of `order`, h2load the last `client`, the upstream the `upstream`
+    """Disjoint sets: monban takes the first n of `order`, h2load the last `client`, the upstream the `upstream`
     before those. None when they do not fit (the point is refused: never overlap the client with the subject)."""
     if n < 1 or n + client + upstream > len(order):
         return None
     tail = order[len(order) - client - upstream:]
-    return {"aegis": order[:n], "upstream": tail[:upstream], "h2load": tail[upstream:]}
+    return {"monban": order[:n], "upstream": tail[:upstream], "h2load": tail[upstream:]}
 
 
 # ------------------------------------------------------------------------------------------------ h2load
@@ -162,7 +162,7 @@ def metric_delta(m0, m1, family):
     return {k: int(v - a.get(k, 0)) for k, v in b.items() if v - a.get(k, 0)}
 
 
-# S5 (aegis-admission pipeline.rs `reservation`): one class may hold its own reservation and borrow only what the other
+# S5 (monban-admission pipeline.rs `reservation`): one class may hold its own reservation and borrow only what the other
 # classes do not hold in reserve; the smallest reservation is 2/10 of the limit. A limit of at least this many times
 # the offered concurrency (conns x streams) never refuses the bench's single class for being over its share.
 S5_HEADROOM = 5
@@ -177,15 +177,15 @@ def s5_limit(conns, streams):
 
 
 def nofile_plan(soft, hard, conns, streams):
-    """(soft limit to set, None) or (None, refusal). aegis's H1 upstream client holds one connection per in-flight
-    stream (crates/aegis-bin/src/upstream.rs; only 32 stay idle per key), so aegis needs about conns x streams
+    """(soft limit to set, None) or (None, refusal). monban's H1 upstream client holds one connection per in-flight
+    stream (crates/monban-bin/src/upstream.rs; only 32 stay idle per key), so monban needs about conns x streams
     upstream fds plus the conns client fds. A soft RLIMIT_NOFILE of 1024 (the login default) is exceeded at
     256 x 16 and every further upstream connect fails with EMFILE (502): run B on c2d-standard-56, reproduced on
     kamrui (P8-bin-002). The children inherit the limit set here; a hard limit below the need refuses the run."""
     need = conns * streams + conns + 1024
     if hard != resource.RLIM_INFINITY and hard < need:
         return None, (f"RLIMIT_NOFILE hard limit {hard} < {need} fds needed for {conns} conns x {streams} streams "
-                      f"(aegis would answer 502 on EMFILE); raise the hard limit or lower the load")
+                      f"(monban would answer 502 on EMFILE); raise the hard limit or lower the load")
     target = max(soft if soft != resource.RLIM_INFINITY else need, need, 65536)
     if hard != resource.RLIM_INFINITY:
         target = min(target, hard)
@@ -197,7 +197,7 @@ def config_doc(port, aport, up_port, workers, s5=None):
     if s5 is not None:
         adm["concurrency"] = s5
     return {"v": 1,
-            # F8 runtime.worker_threads (D-P8.3, R5): one tokio worker per aegis core, so the curve measures core
+            # F8 runtime.worker_threads (D-P8.3, R5): one tokio worker per monban core, so the curve measures core
             # scaling, not the pre-Phase-8 fixed 2 workers (absent = 2 everywhere else).
             "runtime": {"worker_threads": workers},
             "listeners": [{"name": "pub", "bind": f"127.0.0.1:{port}", "profile": "P-PUBLIC-WEB",
@@ -212,8 +212,8 @@ def config_doc(port, aport, up_port, workers, s5=None):
                 {"id": 1, "path": "/", "to": {"upstream": f"127.0.0.1:{up_port}"}, "authz": "allow-all"}]}]}
 
 
-def aegis_usable_cpus(aegis, cpus, cfg):
-    """(usable_cpus, worker_threads): the CPU count aegis's own cpus.rs computes under this affinity (p2.usable_cpus
+def monban_usable_cpus(monban, cpus, cfg):
+    """(usable_cpus, worker_threads): the CPU count monban's own cpus.rs computes under this affinity (p2.usable_cpus
     of the effective dump), and the effective F8 runtime.worker_threads (printed only when not the default 2).
 
     The dump prints `usable_cpus` only inside a `p2` block, so the probe checks a copy of the served config with a
@@ -221,12 +221,12 @@ def aegis_usable_cpus(aegis, cpus, cfg):
     The served config itself has no p2 block."""
     with open(cfg) as f:
         doc = json.load(f)
-    doc["p2"] = {"worker": "/usr/libexec/aegis-p2", "modules": [
+    doc["p2"] = {"worker": "/usr/libexec/monban-p2", "modules": [
         {"id": "probe", "path": "/nonexistent/probe.wasm", "sha256": "0" * 64}]}
     probe = cfg + ".cpus-probe.json"
     with open(probe, "w") as f:
         json.dump(doc, f)
-    p = subprocess.run(["taskset", "-c", cpu_list(cpus), aegis, "check-config", probe, "--print-effective"],
+    p = subprocess.run(["taskset", "-c", cpu_list(cpus), monban, "check-config", probe, "--print-effective"],
                        capture_output=True, text=True, timeout=30)
     if p.returncode != 0:
         raise RuntimeError(f"check-config exit {p.returncode}: {p.stderr[-300:]}")
@@ -257,61 +257,61 @@ class Proc:
         self.log.close()
 
 
-def run_point(n, sets, args, aegis, upstream_bin, h2load, work):
+def run_point(n, sets, args, monban, upstream_bin, h2load, work):
     d = tempfile.mkdtemp(prefix=f"p{n}-", dir=work)
     crt, key = os.path.join(d, "c.pem"), os.path.join(d, "k.pem")
     subprocess.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-nodes",
                     "-keyout", key, "-out", crt, "-days", "30", "-subj", "/CN=localhost",
                     "-addext", "subjectAltName=DNS:localhost"], check=True, capture_output=True)
     port, aport, up_port = free_port(), free_port(), free_port()
-    cfg = os.path.join(d, "aegis.json")
+    cfg = os.path.join(d, "monban.json")
     with open(cfg, "w") as f:
         json.dump(config_doc(port, aport, up_port, n, s5_limit(args.conns, args.streams)), f)
     point = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "disjoint": True}
-    point["usable_cpus"], point["worker_threads"] = aegis_usable_cpus(aegis, sets["aegis"], cfg)
+    point["usable_cpus"], point["worker_threads"] = monban_usable_cpus(monban, sets["monban"], cfg)
     procs = []
     try:
         procs.append(Proc(["taskset", "-c", cpu_list(sets["upstream"]), upstream_bin, str(up_port)],
                           os.path.join(d, "upstream.log")))
-        a = Proc(["taskset", "-c", cpu_list(sets["aegis"]), aegis, "--config", cfg, "--cert", crt, "--key", key,
-                  "--audit-dir", os.path.join(d, "audit")], os.path.join(d, "aegis.log"))
+        a = Proc(["taskset", "-c", cpu_list(sets["monban"]), monban, "--config", cfg, "--cert", crt, "--key", key,
+                  "--audit-dir", os.path.join(d, "audit")], os.path.join(d, "monban.log"))
         procs.append(a)
         until = time.time() + 20
         while True:
             if a.p.poll() is not None:
-                raise RuntimeError(f"aegis exited {a.p.returncode} at start: {tail(os.path.join(d, 'aegis.log'))}")
+                raise RuntimeError(f"monban exited {a.p.returncode} at start: {tail(os.path.join(d, 'monban.log'))}")
             try:
                 if admin_get(aport, "/healthz")[0] == 200:
                     break
             except OSError:
                 pass
             if time.time() > until:
-                raise RuntimeError("aegis not healthy within 20 s")
+                raise RuntimeError("monban not healthy within 20 s")
             time.sleep(0.1)
         _, m0 = admin_get(aport, "/metrics")
         point.update(run_h2load(h2load, sets["h2load"], f"https://localhost:{port}/", args, d))
         _, m1 = admin_get(aport, "/metrics")
         # Over warm-up + measurement (h2load's counts cover the measurement window only).
-        by_stage = metric_delta(m0, m1, "aegis_admission_rejects")
-        point["aegis_admission_rejects_by_stage"] = by_stage
-        point["aegis_admission_rejects"] = sum(by_stage.values())
+        by_stage = metric_delta(m0, m1, "monban_admission_rejects")
+        point["monban_admission_rejects_by_stage"] = by_stage
+        point["monban_admission_rejects"] = sum(by_stage.values())
         if a.p.poll() is not None:
-            raise RuntimeError(f"aegis died during the run: {tail(os.path.join(d, 'aegis.log'))}")
+            raise RuntimeError(f"monban died during the run: {tail(os.path.join(d, 'monban.log'))}")
     finally:
         for p in reversed(procs):
             p.stop()
-        # Why aegis answered 5xx (P8-bin-002): its own per-exchange upstream error lines, by class, before the temp
+        # Why monban answered 5xx (P8-bin-002): its own per-exchange upstream error lines, by class, before the temp
         # dir (and the log) is deleted. Diagnostic only; the judge does not read it.
-        point["aegis_upstream_errors"] = upstream_error_classes(os.path.join(d, "aegis.log"))
+        point["monban_upstream_errors"] = upstream_error_classes(os.path.join(d, "monban.log"))
         shutil.rmtree(d, ignore_errors=True)
     return point
 
 
-UPSTREAM_ERR_RE = re.compile(r"^aegis: upstream \S+: (.*)$")
+UPSTREAM_ERR_RE = re.compile(r"^monban: upstream \S+: (.*)$")
 
 
 def upstream_error_classes(path):
-    """{class: count} of aegis's `aegis: upstream <target>: <error>` lines (proxy.rs); the class is the error text
+    """{class: count} of monban's `monban: upstream <target>: <error>` lines (proxy.rs); the class is the error text
     with digits folded, so `connect: Cannot assign requested address (os error 99)` stays one class."""
     out = {}
     try:
@@ -353,31 +353,31 @@ def judge(report_path, cores):
             bad.append(f"{n} cores: point missing")
         elif p.get("error"):
             bad.append(f"{n} cores: {p['error']}")
-        elif p.get("errors") != 0 or p.get("aegis_admission_rejects") != 0:
+        elif p.get("errors") != 0 or p.get("monban_admission_rejects") != 0:
             bad.append(f"{n} cores: {p.get('errors')} errors (4xx {p.get('status_4xx')}, 5xx {p.get('status_5xx')}, "
-                       f"admission rejects {p.get('aegis_admission_rejects')})")
+                       f"admission rejects {p.get('monban_admission_rejects')})")
         elif not (p.get("req_s", 0) > 0 and p.get("status_2xx", 0) > 0):
             bad.append(f"{n} cores: no successful requests")
         elif p.get("usable_cpus") != n:
-            bad.append(f"{n} cores: aegis cpus.rs counted {p.get('usable_cpus')}")
+            bad.append(f"{n} cores: monban cpus.rs counted {p.get('usable_cpus')}")
         elif p.get("worker_threads") != n:
-            bad.append(f"{n} cores: aegis ran {p.get('worker_threads')} tokio workers (runtime.worker_threads)")
+            bad.append(f"{n} cores: monban ran {p.get('worker_threads')} tokio workers (runtime.worker_threads)")
         elif not p.get("disjoint"):
             bad.append(f"{n} cores: cpusets not disjoint")
     return bad
 
 
 def table(rep):
-    rows = ["| cores | aegis cpus | usable_cpus (cpus.rs) | 2xx req/s | all responses/s | p50 ms | p99 ms | errors | "
+    rows = ["| cores | monban cpus | usable_cpus (cpus.rs) | 2xx req/s | all responses/s | p50 ms | p99 ms | errors | "
             "admission rejects |", "|---:|---|---:|---:|---:|---:|---:|---:|---:|"]
     for p in rep["points"]:
         if p.get("error"):
-            rows.append(f"| {p['cores']} | {p.get('cpus', {}).get('aegis', '-')} | - | - | - | - | - | - | "
+            rows.append(f"| {p['cores']} | {p.get('cpus', {}).get('monban', '-')} | - | - | - | - | - | - | "
                         f"{p['error'][:80]} |")
         else:
-            rows.append(f"| {p['cores']} | {p['cpus']['aegis']} | {p['usable_cpus']} | {p['req_s']:.0f} | "
+            rows.append(f"| {p['cores']} | {p['cpus']['monban']} | {p['usable_cpus']} | {p['req_s']:.0f} | "
                         f"{p['h2load_req_s']:.0f} | "
-                        f"{p['p50_ms']} | {p['p99_ms']} | {p['errors']} | {p['aegis_admission_rejects']} |")
+                        f"{p['p50_ms']} | {p['p99_ms']} | {p['errors']} | {p['monban_admission_rejects']} |")
     return "\n".join(rows)
 
 
@@ -399,12 +399,12 @@ def write_report(path, rep):
 
 
 def build(args):
-    """Default-feature release build of aegis and the std-only upstream (through ci/heavy.sh)."""
+    """Default-feature release build of monban and the std-only upstream (through ci/heavy.sh)."""
     heavy = os.path.join(REPO, "ci", "heavy.sh")
-    if not args.aegis:
-        subprocess.run([heavy, "cargo", "build", "--release", "--locked", "-q", "-p", "aegis-bin", "--bin", "aegis"],
+    if not args.monban:
+        subprocess.run([heavy, "cargo", "build", "--release", "--locked", "-q", "-p", "monban-bin", "--bin", "monban"],
                        cwd=REPO, check=True)
-        args.aegis = os.path.join(REPO, "target", "release", "aegis")
+        args.monban = os.path.join(REPO, "target", "release", "monban")
     out = os.path.join(REPO, "target", "scaling")
     os.makedirs(out, exist_ok=True)
     up = os.path.join(out, "scaling-upstream")
@@ -433,30 +433,30 @@ def cmd_run(args):
            "note": "advisory record_only (PREFLIGHT D-P7.7); shared host, run at nice 15 under the ci lock",
            "host_cpus": len(order), "cpu_order": ",".join(map(str, order)),
            "kernel": os.uname().release, "h2load": tool_version([h2load, "--version"]),
-           "aegis": {"binary": args.aegis, "build": "default features, --release --locked"},
+           "monban": {"binary": args.monban, "build": "default features, --release --locked"},
            "load": {"duration_s": args.duration, "warmup_s": args.warmup, "conns": args.conns,
                     "streams": args.streams, "client_cpus": args.client_cpus, "upstream_cpus": args.upstream_cpus,
                     "url": "https://localhost:<port>/ (TLS 1.3, h2, P-PUBLIC-WEB)", "upstream": "bench/scaling/upstream.rs",
                     "nofile": {"soft_before": soft, "soft": nofile, "hard": hard},
                     "s5_concurrency": s5_limit(args.conns, args.streams) or S5_DEFAULT},
            "points": []}
-    work = tempfile.mkdtemp(prefix="aegis-scaling-")
+    work = tempfile.mkdtemp(prefix="monban-scaling-")
     try:
         for n in cores:
             sets = allocate(order, n, args.client_cpus, args.upstream_cpus)
             if sets is None:
-                rep["points"].append({"cores": n, "error": f"does not fit disjointly: {n} aegis + {args.client_cpus} "
+                rep["points"].append({"cores": n, "error": f"does not fit disjointly: {n} monban + {args.client_cpus} "
                                       f"h2load + {args.upstream_cpus} upstream > {len(order)} CPUs"})
                 print(f"{TAG}: {n} cores refused (no disjoint cpusets on {len(order)} CPUs)", flush=True)
                 continue
             try:
-                p = run_point(n, sets, args, args.aegis, up, h2load, work)
+                p = run_point(n, sets, args, args.monban, up, h2load, work)
             except (RuntimeError, ValueError, OSError, subprocess.SubprocessError) as e:
                 p = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "error": str(e)[:600]}
             rep["points"].append(p)
             print(f"{TAG}: {n} cores: " + (p.get("error") or
                   f"{p['req_s']:.0f} 2xx req/s ({p['h2load_req_s']:.0f} responses/s) p50 {p['p50_ms']} ms p99 {p['p99_ms']} ms errors {p['errors']} "
-                  f"(admission rejects {p['aegis_admission_rejects']})"), flush=True)
+                  f"(admission rejects {p['monban_admission_rejects']})"), flush=True)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     path = os.path.join(args.record, f"{host}-{rep['date'][:10]}.json")
@@ -464,16 +464,16 @@ def cmd_run(args):
     print(table(rep))
     bad = judge(path, cores)
     if bad:
-        stages = {k for p in rep["points"] for k in (p.get("aegis_admission_rejects_by_stage") or {})}
+        stages = {k for p in rep["points"] for k in (p.get("monban_admission_rejects_by_stage") or {})}
         if any("S1" in k for k in stages):
-            bad.append("aegis admission refused load at S1 (per-IP GCRA; the bench lifts it through F8 admission.per_ip, "
+            bad.append("monban admission refused load at S1 (per-IP GCRA; the bench lifts it through F8 admission.per_ip, "
                        "see bench/scaling/INFEASIBLE_REPORT.md)")
         if any("S5" in k for k in stages):
-            bad.append("aegis admission refused load at S5 (the single anonymous class holds about 2/10 of "
+            bad.append("monban admission refused load at S5 (the single anonymous class holds about 2/10 of "
                        "admission.concurrency; see s5_limit and README run B)")
-        if any(p.get("aegis_upstream_errors") for p in rep["points"]):
-            bad.append("aegis upstream errors by class: " + "; ".join(
-                f"{p['cores']} cores {p['aegis_upstream_errors']}" for p in rep["points"] if p.get("aegis_upstream_errors")))
+        if any(p.get("monban_upstream_errors") for p in rep["points"]):
+            bad.append("monban upstream errors by class: " + "; ".join(
+                f"{p['cores']} cores {p['monban_upstream_errors']}" for p in rep["points"] if p.get("monban_upstream_errors")))
         print(f"{TAG}: FAIL ({'; '.join(bad)}; report {path})")
         return 1
     print(f"{TAG}: PASS ({len(cores)} points, 0 errors, report {path}; advisory, provisional numbers)")
@@ -573,7 +573,7 @@ print("status codes: %d 2xx, 0 3xx, %d 4xx, 0 5xx" % (done - fail - r429, r429))
 
 def cmd_self_test(_args):
     cores = [1, 2, 4, 8, 16, 24]
-    work = tempfile.mkdtemp(prefix="aegis-scaling-st-")
+    work = tempfile.mkdtemp(prefix="monban-scaling-st-")
     caught, problems = [], []
     try:
         fake = os.path.join(work, "h2load")
@@ -595,11 +595,11 @@ def cmd_self_test(_args):
                     env["FAKE_H2LOAD_429"] = "1"
                 sets = allocate(order, n, 4, 2)
                 p = {"cores": n, "cpus": {k: cpu_list(v) for k, v in sets.items()}, "disjoint": True,
-                     "usable_cpus": n, "aegis_admission_rejects": 0,
+                     "usable_cpus": n, "monban_admission_rejects": 0,
                      "worker_threads": 2 if variant == "workers-fixed-2" else n}
                 p.update(run_h2load(fake, [0], "https://localhost:1/", la, work, env=env))
                 if variant == "admission-rejects-unseen-by-h2load" and n == 2:
-                    p["aegis_admission_rejects"] = 5
+                    p["monban_admission_rejects"] = 5
                 pts.append(p)
             path = os.path.join(work, variant, "host-date.json")
             if variant != "no-report":
@@ -615,15 +615,15 @@ def cmd_self_test(_args):
             (caught if r else problems).append(variant if r else f"mutant {variant} judged PASS")
         # Disjointness: a point that does not fit is refused, never overlapped.
         if allocate(list(range(24)), 24, 4, 2) is not None:
-            problems.append("24 aegis cpus + client on 24 CPUs was not refused")
+            problems.append("24 monban cpus + client on 24 CPUs was not refused")
         s = allocate(list(range(24)), 16, 4, 2)
-        if not s or set(s["aegis"]) & (set(s["h2load"]) | set(s["upstream"])) or set(s["h2load"]) & set(s["upstream"]):
+        if not s or set(s["monban"]) & (set(s["h2load"]) | set(s["upstream"])) or set(s["h2load"]) & set(s["upstream"]):
             problems.append("allocation not disjoint at 16 of 24")
         # Run B (P8-bin-002): the harness must lift a 1024 soft fd limit for 256 x 16, refuse a hard limit that
         # cannot fit, and size S5 above the single class's share; the gate's 32 x 16 keeps the default config.
         nf, _ = nofile_plan(1024, 524288, 256, 16)
         if not nf or nf < 256 * 16 + 256:
-            problems.append(f"nofile: soft 1024 kept for 256 x 16 (got {nf}): aegis would 502 on EMFILE")
+            problems.append(f"nofile: soft 1024 kept for 256 x 16 (got {nf}): monban would 502 on EMFILE")
         else:
             caught.append("nofile-1024-at-256x16")
         if nofile_plan(1024, 2048, 256, 16)[0] is not None:
@@ -678,13 +678,13 @@ def main():
     ap.add_argument("--record", default=os.path.join(HERE, "out"))
     ap.add_argument("--duration", type=int, default=10)
     # Default 0: h2load does not count requests made during its warm-up, so a refusal there would be invisible to it
-    # (the judge also reads aegis's own admission-reject counter, which covers warm-up).
+    # (the judge also reads monban's own admission-reject counter, which covers warm-up).
     ap.add_argument("--warmup", type=int, default=0)
     ap.add_argument("--client-cpus", type=int, default=4)
     ap.add_argument("--upstream-cpus", type=int, default=2)
     ap.add_argument("--conns", type=int, default=32)
     ap.add_argument("--streams", type=int, default=16)
-    ap.add_argument("--aegis")
+    ap.add_argument("--monban")
     ap.add_argument("--h2load")
     ap.add_argument("--gcp", metavar="MACHINE_TYPE")
     ap.add_argument("--region", default="us-central1")

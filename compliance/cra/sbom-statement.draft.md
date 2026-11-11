@@ -2,11 +2,11 @@ Status: DRAFT, not published
 
 # SBOM statement (draft)
 
-Every AEGIS release carries a software bill of materials in CycloneDX JSON (CRA Annex I Part II (1); COMPLIANCE_MAP
+Every Monban release carries a software bill of materials in CycloneDX JSON (CRA Annex I Part II (1); COMPLIANCE_MAP
 §4 row SR-2/3/5).
 
 - **Where it comes from.** Release job 2 (`ci/release/jobs/sbom.sh`) runs the pinned `cargo-cyclonedx`
-  (`ci/tools.lock`) for `aegis-bin` with the profile's features, inside the same digest-pinned AL2023 build image,
+  (`ci/tools.lock`) for `monban-bin` with the profile's features, inside the same digest-pinned AL2023 build image,
   with no network. The pipeline is `ci/release/pipeline.sh --profile floor|cmvp`.
 - **What is shipped.** `sbom.cdx.json` in the release directory (layout v1, `ci/release/verify.py` docstring). It is
   listed in `SHA256SUMS`, so the triple signature (Ed25519 + SLH-DSA-SHA2-128s + ML-DSA-87) covers it, and it is a

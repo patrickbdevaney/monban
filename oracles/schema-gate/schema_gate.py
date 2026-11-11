@@ -3,7 +3,7 @@
 
 PASS iff, in every selected mode, every counterexample schema is refused with its expected class AND every golden
 schema is accepted. Modes: --static (F4 Schema JSON), --engine sqlite (DDL on a throwaway file), --engine pg
-(DDL on a throwaway PostgreSQL; the namespace `aegis_sg` is dropped and recreated per case).
+(DDL on a throwaway PostgreSQL; the namespace `monban_sg` is dropped and recreated per case).
 """
 import argparse, json, os, queue, shlex, sqlite3, subprocess, sys, tempfile, threading, time, tomllib, urllib.parse
 
@@ -14,7 +14,7 @@ from mywire import My, MyError  # noqa: E402
 
 NAME = "SCHEMA-GATE"
 REF = [sys.executable, "-I", os.path.join(HERE, "refsubject.py"), "serve"]
-NS = "aegis_sg"
+NS = "monban_sg"
 COLL = "notes"
 
 # ================================================================================================ declared schemas
@@ -168,7 +168,7 @@ SQ = [
 ]
 
 # ================================================================================================ PostgreSQL corpus
-POL = "tenant = current_setting('aegis.tenant')"
+POL = "tenant = current_setting('monban.tenant')"
 
 
 def rls(policy=f"create policy p on notes using ({POL}) with check ({POL})", force=True, enable=True):
@@ -219,16 +219,16 @@ PG = [
      {"NonBinaryCollation"}),
     ("tenant char(16) (bpchar: PAD SPACE semantics)",
      f"create table notes(tenant char(16) not null, id int not null, x text, y bigint, {PK});"
-     + rls(f"create policy p on notes using (tenant = current_setting('aegis.tenant')::bpchar) "
-           f"with check (tenant = current_setting('aegis.tenant')::bpchar)"), {"NonBinaryCollation"}),
+     + rls(f"create policy p on notes using (tenant = current_setting('monban.tenant')::bpchar) "
+           f"with check (tenant = current_setting('monban.tenant')::bpchar)"), {"NonBinaryCollation"}),
     ("key column nondeterministic ICU",
      f"create table notes({T}, id text collate ci_nd not null, x text, y bigint, {PK});" + rls(), {"NonBinaryCollation"}),
     ("sole unique index with COLLATE ci_nd on tenant (column C)",
      f"create table notes({T}, id int not null, x text, y bigint);"
      "create unique index notes_tk on notes(tenant collate ci_nd, id);" + rls(), {"NonBinaryCollation"}),
     ("tenant bigint", f"create table notes(tenant bigint not null, id int not null, x text, y bigint, {PK});"
-     + rls(f"create policy p on notes using (tenant = current_setting('aegis.tenant')::bigint) "
-           f"with check (tenant = current_setting('aegis.tenant')::bigint)"), {"TenantNotText"}),
+     + rls(f"create policy p on notes using (tenant = current_setting('monban.tenant')::bigint) "
+           f"with check (tenant = current_setting('monban.tenant')::bigint)"), {"TenantNotText"}),
     ("PK without tenant", f"create table notes({T}, id int primary key, x text, y bigint);" + rls(),
      {"UpsertArbiterNotTenantScoped"}),
     ("second unique index UNIQUE(id)",
@@ -254,14 +254,14 @@ PG = [
      + rls(), {"PartitionKeyMismatch"}),
     ("trigger on the collection (W5, D8)",
      f"create table notes({T}, id int not null, x text, y bigint, {PK});"
-     "create function aegis_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$;"
-     "create trigger notes_bi before insert on notes for each row execute function aegis_sg.tf();" + rls(),
+     "create function monban_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$;"
+     "create trigger notes_bi before insert on notes for each row execute function monban_sg.tf();" + rls(),
      {"TriggerOnCollection"}),
     ("trigger on a partition of a partitioned collection",
      f"create table notes({T}, id int not null, x text, y bigint, {PK}) partition by list (tenant);"
      "create table notes_p1 partition of notes for values in ('0000000000000001');"
-     "create function aegis_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$;"
-     "create trigger p1_bi before insert on notes_p1 for each row execute function aegis_sg.tf();" + rls(),
+     "create function monban_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$;"
+     "create trigger p1_bi before insert on notes_p1 for each row execute function monban_sg.tf();" + rls(),
      {"TriggerOnCollection"}),
     ("rewrite rule on the collection (DO ALSO INSERT; W5, D8)",
      f"create table notes({T}, id int not null, x text, y bigint, {PK}); create table audit(v text);"
@@ -307,7 +307,7 @@ PG_DEFAULT_COLL = ("tenant with the database default collation (non-C)",
 # ================================================================================================ MariaDB corpus
 # P7-oracle-adapters-001 (D-P7.8): spikes/q4-005 reproducers 1-6 and the W3 amendment (binary AND NO PAD, no prefix
 # key part, the arbiter is the ONLY unique index). Each case is a list of statements run in the throwaway database
-# `aegis_sg` (dropped and recreated per case); every table is InnoDB utf8mb4 unless the case says otherwise.
+# `monban_sg` (dropped and recreated per case); every table is InnoDB utf8mb4 unless the case says otherwise.
 MYT = "tenant varchar(32) collate utf8mb4_nopad_bin not null"
 MYE = "default charset=utf8mb4 engine=innodb"
 MYPK = "primary key (tenant, id)"
@@ -387,7 +387,7 @@ MY = [
 
 # ================================================================================================ CockroachDB corpus
 # STRING without COLLATE compares byte-wise on CockroachDB (binary, NO PAD); every COLLATE'd STRING is a locale
-# collation (q4-005: en_u_ks_level2 lets 'ACME' arbitrate onto 'acme'). Statements run one by one in schema aegis_sg.
+# collation (q4-005: en_u_ks_level2 lets 'ACME' arbitrate onto 'acme'). Statements run one by one in schema monban_sg.
 CRT = "tenant string not null"
 CR = [
     ("golden: STRING tenant, INT8 id, PK(tenant,id)", [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})"], None),
@@ -430,8 +430,8 @@ CR = [
      {"ForeignKeyAction"}),
     ("trigger on the collection (W5, D8)",
      [f"create table notes({CRT}, id int8 not null, x string, y int8, {PK})",
-      "create function aegis_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$",
-      "create trigger notes_bi before insert on notes for each row execute function aegis_sg.tf()"], {"TriggerOnCollection"}),
+      "create function monban_sg.tf() returns trigger language plpgsql as $f$ begin return new; end $f$",
+      "create trigger notes_bi before insert on notes for each row execute function monban_sg.tf()"], {"TriggerOnCollection"}),
     ("computed tenant column (STORED, from raw)",
      [f"create table notes(raw string not null, tenant string not null as (left(raw, 16)) stored, id int8 not null, x string, "
       f"y int8, {PK})"], {"GeneratedTenant"}),
@@ -604,9 +604,9 @@ def run_my(subj, log, dsn):
     try:
         for name, stmts, exp in MY:
             try:
-                my.simple("drop database if exists aegis_sg")
-                my.simple("create database aegis_sg default charset utf8mb4")
-                my.simple("use aegis_sg")
+                my.simple("drop database if exists monban_sg")
+                my.simple("create database monban_sg default charset utf8mb4")
+                my.simple("use monban_sg")
                 for st in stmts:
                     my.simple(st)
             except MyError as e:
@@ -617,7 +617,7 @@ def run_my(subj, log, dsn):
             if v:
                 fails.append(v)
             log(f"  mariadb {'FAIL' if v else 'ok  '} {name}: {got} {det or ''}")
-        my.simple("drop database if exists aegis_sg")
+        my.simple("drop database if exists monban_sg")
     finally:
         my.close()
     return fails, len(MY)
@@ -798,8 +798,8 @@ def main():
     ap.add_argument("--static", action="store_true", help="static mode (F4 Schema JSON)")
     ap.add_argument("--engine", action="append", choices=["sqlite", "pg", "mariadb", "crdb"], default=[], help="live engine mode")
     ap.add_argument("--dsn", action="append", default=[], help="throwaway DSN for a live mode, repeatable: postgresql:// (pg; "
-                    "crdb iff the server's version() says CockroachDB) or mysql:// (mariadb). pg/crdb: schema aegis_sg is "
-                    "dropped; mariadb: database aegis_sg is dropped")
+                    "crdb iff the server's version() says CockroachDB) or mysql:// (mariadb). pg/crdb: schema monban_sg is "
+                    "dropped; mariadb: database monban_sg is dropped")
     ap.add_argument("--skip-sqlite", action="store_true", help="no default static+sqlite modes (they are only the default "
                     "when no mode is given; accepted for the lowering-oracle CLI contract)")
     ap.add_argument("--engine-pin", action="store_true", help="the live engines must match supply-chain/engine-pins.toml")

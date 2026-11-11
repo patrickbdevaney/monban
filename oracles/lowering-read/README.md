@@ -78,7 +78,7 @@ Families (default run, SQLite 3.45.3 = Python's stdlib):
 4. **self-join** (plan: "add a self-join family"; PG dca6a9e32 self-join-elimination class): the same table twice,
    `t AS a JOIN t AS b` and a correlated `EXISTS (... t AS b ...)`, each alias with its own rendered predicate
    (`alias`, `param_offset` in the request).
-5. **redis keyspace** (aegis_data_ir::kv_plan, read side): logical rows (tenant, collection, key) are written under
+5. **redis keyspace** (monban_data_ir::kv_plan, read side): logical rows (tenant, collection, key) are written under
    the subject's own `kv_key` answers. Physical keys must be injective (a key shared by two logical rows is a LEAK).
    `kv_scan` (Select Tt / Pfx) must return exactly the tenant's keys in that collection with that key prefix
    (adversarial prefixes and keys containing `* ? [ ] \ : } {`). `kv_get` (Select Eq) must be a single `GET <key>`
@@ -152,7 +152,7 @@ tenant scoping: SQL conjunct, KV prefix, ACL key pattern). With `--engine pg` it
 like-prefix, two-valued-not, drop-tenant, lenient-handle. With `--engine redis` it adds kv-naive, kv-escaped-colon,
 kv-no-escape, drop-tenant.
 
-## Subject protocol (for aegis-data-ir / aegis-adapter-*)
+## Subject protocol (for monban-data-ir / monban-adapter-*)
 
 `--subject "<cmd>"` starts `<cmd>` once; the oracle writes one JSON object per line to its stdin and reads exactly
 one JSON object per line from its stdout (UTF-8; the oracle sends `ensure_ascii` JSON). Each request has `v` (=2) and
@@ -161,8 +161,8 @@ must accept `--mutant drop-tenant` (self-test, see above); any request it cannot
 `{"refuse": ...}`.
 
 **Protocol v2 (2026-10-30) changes from v1:** `tenant` is always the D4 text of a TenantId (exactly 16 lower-case hex
-digits, not all zero; `aegis_data_ir::parse_tenant_text`), anything else must be refused; KV ops carry `collection`
-and `key_hex` / `prefix_hex` (layout `t:{<16hex>}:<collection>:<key>`, aegis_data_ir::kv_plan) instead of
+digits, not all zero; `monban_data_ir::parse_tenant_text`), anything else must be refused; KV ops carry `collection`
+and `key_hex` / `prefix_hex` (layout `t:{<16hex>}:<collection>:<key>`, monban_data_ir::kv_plan) instead of
 `suffix_hex`; new ops `insert`, `kv_setnx`, `kv_setxx`, `kv_acl`, `rls_policy`, `rls_bind` (write README); write
 requests carry `unique` and `fks`; ops `merge`, `cte`, `replace`, `raw_sql` must be refused.
 

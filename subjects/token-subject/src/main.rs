@@ -1,15 +1,15 @@
 //! token-subject: evaluates oracles/token-drt cases (one per stdin line, format in oracles/token-drt/README.md)
-//! with aegis-token's public API, printing `<id> <verify><denote><depthOk><shapeOk>` per line.
+//! with monban-token's public API, printing `<id> <verify><denote><depthOk><shapeOk>` per line.
 //!
 //! The token is built exactly as the case says (issuer `chain_tag` over the minted list, holder `attenuate` for
-//! each appended caveat, then the tamper step), ENCODED to wire bytes, and judged by `aegis_token::verify` on those
+//! each appended caveat, then the tamper step), ENCODED to wire bytes, and judged by `monban_token::verify` on those
 //! bytes. `--mutant NAME` swaps in a deliberately wrong semantics (for the oracle's self-test only):
 //! leaf-only, plain-prefix, missing-arg-allow, depth-unchecked.
 #![forbid(unsafe_code)]
 
 use std::io::{BufRead, BufWriter, Write};
 
-use aegis_token::{
+use monban_token::{
     ArgPred, ArgVal, Caveat, KeyRing, Req, TokenL, attenuate, chain_tag, denote, depth_ok, mac_valid, mint_shape_ok,
     sat, verify,
 };

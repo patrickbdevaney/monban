@@ -15,11 +15,11 @@
   "otlp-export self-test"
  ],
  "acceptance": {
-  "cmd": "ci/remote.sh bash -c 'cargo build --release --locked -q -p aegis-otlp && oracles/otlp-export/run --exporter target/release/aegis-otlp'",
-  "must": "https endpoint via aegis-tls client profile + --ca-file; bounded retry with backoff then drop-and-count"
+  "cmd": "ci/remote.sh bash -c 'cargo build --release --locked -q -p monban-otlp && oracles/otlp-export/run --exporter target/release/monban-otlp'",
+  "must": "https endpoint via monban-tls client profile + --ca-file; bounded retry with backoff then drop-and-count"
  },
  "write_scope": [
-  "crates/aegis-otlp/src/**"
+  "crates/monban-otlp/src/**"
  ],
  "notes": ""
 }

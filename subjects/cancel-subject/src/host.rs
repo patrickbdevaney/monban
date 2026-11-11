@@ -24,8 +24,8 @@ use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 
-use aegis_adapter_pg::pool::PoolMutations;
-use aegis_adapter_pg::{
+use monban_adapter_pg::pool::PoolMutations;
+use monban_adapter_pg::{
     Charge, Checkout, ConnId, Epoch, Nc3Observer, PlainReuse, Pool, PoolConfig, PoolKey, Pooled, Release, TenantId,
 };
 
@@ -777,8 +777,8 @@ impl Host {
         };
         let name = co.peek().name.clone();
         match self.up.put_back(co) {
-            aegis_adapter_pg::Idled::Kept => self.ev("upstream_release", vec![("conn", s(&name))]),
-            aegis_adapter_pg::Idled::Closed => self.ev("upstream_close", vec![("conn", s(&name))]),
+            monban_adapter_pg::Idled::Kept => self.ev("upstream_release", vec![("conn", s(&name))]),
+            monban_adapter_pg::Idled::Closed => self.ev("upstream_close", vec![("conn", s(&name))]),
         }
         Ok(())
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SOAK oracle entry point (unit P8-soak-001, PREFLIGHT D-P8.4; oracles/README.md contract). Last line:
 #   SOAK: PASS|FAIL (...)  /  SOAK SELF-TEST: PASS|FAIL (...)  /  SOAK: RECORD (...) for the record-only --hours > 2
-#   run [--hours 2] [--aegis BIN --otlp BIN] [--record FILE]   builds aegis (native,proxy-protocol,mtc) + aegis-otlp
+#   run [--hours 2] [--monban BIN --otlp BIN] [--record FILE]   builds monban (native,proxy-protocol,mtc) + monban-otlp
 #                                                             into target/soak unless given; the gate runs on quiet
 #   run --self-test                                           fake subjects in scaled time (light, no build)
 # A measuring run is a long load test: it re-executes itself under ci/heavy.sh unless already inside it (ci/remote.sh

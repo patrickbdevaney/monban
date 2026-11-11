@@ -1,7 +1,7 @@
 # pdp-dst: fault injection on the Cedar PDP channel
 
-Unit P3-pdp-001. Judges `aegis-pdp` (the out-of-process Cedar PDP, DEVIATIONS X-8) together with the production
-client path, `aegis_authz::pdp::PdpClient` + `combine`, which `aegis-pdp-probe` drives over the UDS transport.
+Unit P3-pdp-001. Judges `monban-pdp` (the out-of-process Cedar PDP, DEVIATIONS X-8) together with the production
+client path, `monban_authz::pdp::PdpClient` + `combine`, which `monban-pdp-probe` drives over the UDS transport.
 
 ## What is checked
 - **INV-FAILCLOSED, host mapping** (spec/SPEC_INVARIANTS.md §A): a PDP stage timeout, crash or garbage reply ↦
@@ -18,9 +18,9 @@ client path, `aegis_authz::pdp::PdpClient` + `combine`, which `aegis-pdp-probe` 
     clients that keep a poisoned connection (a late reply read as the next answer).
 - **Cedar agreement**: three example policy sets in `policies/` (`rbac`: nested roles; `tenant`: tenant-scoped
   resources with a cross-tenant guard; `deny-overrides`: banking forbids, including an overflowing forbid). For
-  each case, `aegis-pdp eval` decides through Cedar's own JSON parsers, a path that shares nothing with the
+  each case, `monban-pdp eval` decides through Cedar's own JSON parsers, a path that shares nothing with the
   PDP-1 codec. Its answer must equal the hand-written `expect`, and so must the answer over the wire
-  (driver → proxy → PDP). AEGIS mapping: a request/schema error or any policy evaluation error is `ERROR`
+  (driver → proxy → PDP). Monban mapping: a request/schema error or any policy evaluation error is `ERROR`
   (ARCHITECTURE §3.5: "an error in a forbid yields Deny"). The overflow case records that Cedar alone would say
   Allow (`cedar_raw`).
 - **Startup validation**: `check` accepts each valid set. `serve` refuses each `invalid.cedar` (a strict-validation
@@ -36,8 +36,8 @@ mutants must FAIL: `timeout-allow` (a timeout is read as ALLOW), `ignore-id` (no
 fault). Mutant runs stop at the first violation.
 
 ## Subject
-`default-subject` = `target/release/aegis-pdp`. The probe is taken from the same directory
-(`aegis-pdp-probe`), or from `--probe`. Defaults: deadline `--deadline-ms 300`, seed `--seed aegis-pdp-dst-1`.
+`default-subject` = `target/release/monban-pdp`. The probe is taken from the same directory
+(`monban-pdp-probe`), or from `--probe`. Defaults: deadline `--deadline-ms 300`, seed `--seed monban-pdp-dst-1`.
 The fault schedule (which recovery case follows each fault, and the order) is a pure function of the seed.
 
 ## Provenance
@@ -63,7 +63,7 @@ Policy files (sha256):
     ca7a97e0782168aff2faf621848601a339bd7b84d3deaef1594a4e21531c7d50  policies/tenant/schema.cedarschema
 
 ## Re-run in repo (desktop via ci/remote.sh, 2026-10-26)
-- `oracles/pdp-dst/run --subject target/release/aegis-pdp`: PASS. 40 cases match Cedar; 224 faulted exchanges
+- `oracles/pdp-dst/run --subject target/release/monban-pdp`: PASS. 40 cases match Cedar; 224 faulted exchanges
   all ERROR→DENY; 224 recoveries; 32 PDP kills; 3 invalid sets refused; stdio mode OK.
 - `oracles/pdp-dst/run --self-test`: PASS. The reference client passes, and all four mutants are caught.
 
@@ -75,5 +75,5 @@ Policy files (sha256):
 - The deadline is the client's own SO_RCVTIMEO per exchange. Slow-loris on the PDP side (a slow request write)
   is not modeled.
 - The self-test mutants are Python re-implementations of the client. The Rust client's fault mapping is
-  also unit-tested with a scripted transport (`crates/aegis-authz/src/pdp.rs`).
+  also unit-tested with a scripted transport (`crates/monban-authz/src/pdp.rs`).
 - Rung: R1 (executed tests). No proof covers the Rust client or the Cedar Rust evaluator.

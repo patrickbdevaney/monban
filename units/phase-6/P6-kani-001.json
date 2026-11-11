@@ -15,12 +15,12 @@
   "kani-tbi unchanged (default args)"
  ],
  "acceptance": {
-  "cmd": "ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split",
+  "cmd": "ci/kani.sh --crate monban-tls --neg negative_control_indexing_split",
   "must": "PASS with all harnesses verified and the negative control FAILED as expected; kani-tbi still PASS"
  },
  "write_scope": [
   "ci/kani.sh",
-  "crates/aegis-tls/src/kani_proofs.rs"
+  "crates/monban-tls/src/kani_proofs.rs"
  ],
  "notes": "kani_proofs.rs is cfg(kani) only; the `mod kani_proofs;` line in lib.rs is added by P6-tls-001 (single writer)."
 }

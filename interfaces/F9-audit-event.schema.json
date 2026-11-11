@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aegis:interfaces:F9:audit-event:1",
-  "title": "AEGIS audit event (frozen interface F9)",
+  "title": "Monban audit event (frozen interface F9)",
   "description": "One JSON-lines leaf of the C2SP tlog-tiles audit log (RFC 6962 leaf hash). Single sequencer assigns seq gaplessly (Audit I2). Attacker-supplied strings are escaped and length-capped before logging.",
   "type": "object",
   "additionalProperties": false,

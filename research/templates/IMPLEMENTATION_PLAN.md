@@ -15,7 +15,7 @@ Hashed, read-only under `spec/` or `interfaces/`; CODEOWNERS + a PreToolUse deny
 | # | artifact | ratification at freeze |
 |---|---|---|
 | F1 | SPEC_INVARIANTS.md + Lean statement files | statement sha256 committed; proof PRs cannot touch them |
-| F2 | aegis-types API | Principal constructible only on the authn path |
+| F2 | monban-types API | Principal constructible only on the authn path |
 | F3 | Exchange + front-end hook trait | R-ING-1 reverses if a front end needs >2 hooks |
 | F4 | Op IR + Adapter + allowlist lock format | **3VL reference** (q4-004): `eval : Option Bool`, or reject Not over nullable fields at type check |
 | F5 | token CDDL, closed caveats, K_aud | D1 segment prefix, D2 op-bitmask subset, D3 depth at verify, D4 missing arg denies; mint-shape check |
@@ -90,7 +90,7 @@ Reading tasks in parallel: q4-003, q1-009. Go: every spike writes a journaled ve
 ### Phase 2 — reverse-proxy mode "R" (≈200–400 h): first shippable
 Scope: canon, budget, transport, tls (P-PUBLIC-WEB hybrid-first with PreferServerOrder backport; pq-required agent/API profile), admission S0–S3 (numbers provisional), config, ops (ACME, CERT, upgrade), audit, **metrics endpoint**, iso supervisor (socket holder), H1/H2 upstream with framing regeneration.
 Gates: CANON-DIFF green; Kani TBI H1–H5 (serial, 6 GB, OOM/timeout FAIL); fuzz resource-ratio over Rapid Reset, MadeYouReset, CONTINUATION, HTTP/2 Bomb, Header Accordion, VU#885548 corpus, 0 violations at 1e8 execs; HTTP Garden 0 new cells; h2spec 100%; verdicts.toml unchanged; fail-closed default boot; budget gate; systemd ≤2 + runtime test; CFG fuzz 1e7/0 panics + 3× oversize serves last-known-good; CERT-4 faketime; upgrade harness 0 drops before D over 100 reloads; **metrics gate**: admin endpoint present without any feature flag, all golden counters exported; **perf gate** (below).
-Go: ship `aegis-proxy` 0.1 only if every gate passes; otherwise stop and profile.
+Go: ship `monban-proxy` 0.1 only if every gate passes; otherwise stop and profile.
 
 ### Phase 3 — agent gateway "G" (≈150–300 h)
 Scope: agent (listener gate, both eras, sealed handles), authz (Cedar + combiner), token (Tier 0 + L; Tier X verify), egress, Web Bot Auth after S1.
@@ -98,7 +98,7 @@ Gates: 43-case corpus 100% with 0 handler invocations on rejects; 33 advisory ca
 
 ### Phase 4 — data plane + native handlers "A/D" (≈300–600 h; conditional)
 Scope: data-ir; PG/SQLite/Redis adapters; state (idempotency, outbox, latch); SDK B2 (+streaming if q4-001 passed); adapter-host.
-Gates: read oracle leak=0 ∧ miss=0, ≥100k cases at ENGINE_PIN; write oracle hardened forms 0/300 per family; schema gate refuses every counterexample schema; INV-NONEMPTY 100k/adapter; allowlist lock regenerates byte-identically; cancel sweep green + self-test red ≤100 seeds; CRS differentials incl. nginx CVE-2025-23419 replica; trybuild ≥25/32, residual as frozen; crash harness incl. double fault; PG minor floor asserted; PG19 blocked until ON CONFLICT fix; pg_query (if used) only at build time or out of process (`cargo metadata` check: no `pg_query` in `aegis-bin` graph).
+Gates: read oracle leak=0 ∧ miss=0, ≥100k cases at ENGINE_PIN; write oracle hardened forms 0/300 per family; schema gate refuses every counterexample schema; INV-NONEMPTY 100k/adapter; allowlist lock regenerates byte-identically; cancel sweep green + self-test red ≤100 seeds; CRS differentials incl. nginx CVE-2025-23419 replica; trybuild ≥25/32, residual as frozen; crash harness incl. double fault; PG minor floor asserted; PG19 blocked until ON CONFLICT fix; pg_query (if used) only at build time or out of process (`cargo metadata` check: no `pg_query` in `monban-bin` graph).
 
 ### Phase 5 — P2 isolation (≈150–300 h; conditional)
 Scope: iso full (exec zygote, per-tenant cordons, **fork+Wasm mode**, crash budgets, dumpable=0); wasm (fresh instance per request, fuel, epoch watchdog, MPK density option behind GHSA-6wgr/394w assertions). **Both P2 paths are built and gated**, because P(R1 fires within 12 months) ≈ 0.38 at the 2.21/yr planning rate; the Phase-1 verdict chooses the default.
@@ -116,7 +116,7 @@ HTTP/3 (after h3 #366/#377/#378 + 6 months without HIGH quinn advisory) · L4/PR
 ```yaml
 - name: perf-w1
   cmd: "bench/run --workload W1 --tier T1 --metric cgroup_us_per_req --reps 5 --abba --baseline nginx-1.31.8"
-  pass: "median(aegis_us) <= 2.0 * median(nginx_us) over >=5 ABBA reps, same run, same TLS group"   # >=0.5x nginx
+  pass: "median(monban_us) <= 2.0 * median(nginx_us) over >=5 ABBA reps, same run, same TLS group"   # >=0.5x nginx
   note: "provisional on laptop tier until T1 run; grade cap B"
 - name: goodput-w7         # ADVISORY until first run sets numbers [E]
   cmd: "bench/run --workload W7 --tier T1 --attack-rates corpus.toml"
@@ -149,7 +149,7 @@ go_no_go: "all gates pass && all negative controls fail"
 1. **Roles.** Spec author (F1–F13, Lean statements, oracle expectations, thresholds; never implements). Implementer (read-only on `spec/ oracles/ sdk/ ci/`). Prover (one lemma per session against hashed statements). Reviewer (different model family; a screen, never a gate). Proposers never score themselves.
 2. **INFEASIBLE exit.** Every prompt and the Stop gate accept a certified `INFEASIBLE_REPORT.md` (spec clause, failing case, minimal reason); an abort option cut cheating from 54% to 9% (`e-impossiblebench` B). Weakening a test is never a resolution.
 3. **Stop gate.** Block via stdout `{"decision":"block","reason":…}` with exit 0 (never exit 2: #99171 fails open); hash-pinned oracle path; internal timeout blocks on oracle error; refusal counter below `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` (8); at MAX_REFUSALS allow stop + write INFEASIBLE report.
-4. **Units and partitions.** Units <~1 h; driver owns the DAG; partition by crate per layering; hub files (`Cargo.toml`, `Cargo.lock`, `aegis-types`, `spec/`) integrator-only; leaves parallel, shared-interface writers serialized; worktrees created serially with absolute paths; assert `git merge-base --is-ancestor <integration-HEAD> HEAD`; test combined tree after each merge, bisect on failure.
+4. **Units and partitions.** Units <~1 h; driver owns the DAG; partition by crate per layering; hub files (`Cargo.toml`, `Cargo.lock`, `monban-types`, `spec/`) integrator-only; leaves parallel, shared-interface writers serialized; worktrees created serially with absolute paths; assert `git merge-base --is-ancestor <integration-HEAD> HEAD`; test combined tree after each merge, bisect on failure.
 5. **Laptop concurrency (§0e).** ≤2 compiling agents; every build under `heavy.sh` (6 GB, nice 15); `run_in_background` for builds waiting on the lock; progress file within 2 min; subagent depth 1, ≤5 spawns per worker, "do not spawn" line in every worker prompt.
 6. **Journaling.** Hash-chained journal keyed by (run_id, step, tool_use_id); pin Claude Code version, model ids, CLAUDE.md sha256; SDK resume is never replay.
 7. **Dependency intake.** Only via the `cargo add` wrapper and the G5 gate; sandbox has no crates.io token.
@@ -158,10 +158,10 @@ go_no_go: "all gates pass && all negative controls fail"
 
 Unit template (`units/<id>.json`; immutable except `passes`, `journal`):
 ```json
-{"id":"P2-transport-017","crate":"aegis-transport","spec_refs":["F1#TBI-8","F3"],
+{"id":"P2-transport-017","crate":"monban-transport","spec_refs":["F1#TBI-8","F3"],
  "spec_sha256":"…","oracles":["oracles/stall-dst --seeds 200","kani:tbi_h4"],
  "acceptance":{"cmd":"xtask gate unit P2-transport-017","must":"exit 0"},
- "write_scope":["crates/aegis-transport/src/stall.rs","crates/aegis-transport/tests/stall.rs"],
+ "write_scope":["crates/monban-transport/src/stall.rs","crates/monban-transport/tests/stall.rs"],
  "infeasible_exit":true,"max_retries":30,"passes":false}
 ```
 

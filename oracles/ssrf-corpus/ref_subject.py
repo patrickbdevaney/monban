@@ -280,7 +280,7 @@ def live_exchange(ctx, ip, u, deadline):
     except OSError as e:
         raise Reject("connect", str(e))
     try:
-        s.sendall(("GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: aegis-egress\r\nConnection: close\r\n\r\n"
+        s.sendall(("GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: monban-egress\r\nConnection: close\r\n\r\n"
                    % (u["path"], host_header(u))).encode())
         buf = b""
         while True:

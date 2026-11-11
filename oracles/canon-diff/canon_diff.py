@@ -20,7 +20,7 @@ NAME = "CANON-DIFF"
 
 
 def _load_ref():
-    sp = importlib.util.spec_from_file_location("aegis_canon_ref", os.path.join(HERE, "canon_ref.py"))
+    sp = importlib.util.spec_from_file_location("monban_canon_ref", os.path.join(HERE, "canon_ref.py"))
     m = importlib.util.module_from_spec(sp)
     sp.loader.exec_module(m)
     return m

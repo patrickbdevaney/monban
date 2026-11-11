@@ -6,7 +6,7 @@ it, never on an earlier request in a **different** scope. CRS scope σ = (cert-c
 PUBLIC, auth context, epoch) (SPEC_INVARIANTS CRS C1–C8 + C5b "R2 two-scope differentials").
 
 ```
-oracles/crs-diff/run --family tls-resume --subject target/release/aegis
+oracles/crs-diff/run --family tls-resume --subject target/release/monban
 oracles/crs-diff/run --family data --subject target/release/crs-subject --pg <dsn> --redis <url>
 oracles/crs-diff/run --self-test [--family tls-resume|data]        # default: both families
 ```
@@ -35,7 +35,7 @@ ticketer (P2-tls-002) instead of only a no-resumption server.
 
 ### Honest scope (binding; PLAN.md "Infeasible or blocked", unit notes)
 
-Against today's aegis the real-binary run **passes by construction**: aegis issues no TLS 1.3 session tickets
+Against today's monban the real-binary run **passes by construction**: monban issues no TLS 1.3 session tickets
 (`send_tls13_tickets = 0`, `NoServerSessionStorage`) and has no mTLS listener, so nothing is ever resumable and no
 cross-scope reuse is possible. This run is **not** evidence that ticket scoping is correct — there is no scoped
 ticketer yet to be correct. The gate's teeth are entirely in:
@@ -47,7 +47,7 @@ ticketer yet to be correct. The gate's teeth are entirely in:
 The vulnerable replica is a Python `ssl` server (per the unit notes): an SNI callback switches the connection to a
 client-cert-verifying context (`secure.test`) *after* the base context has already accepted a resumption ticket it
 minted on the open context (`a.test`), so the client-certificate check is skipped on resumption. This is caught (and
-the cross-ALPN reuse on the same context is caught too). The safe control (no tickets issued, like today's aegis)
+the cross-ALPN reuse on the same context is caught too). The safe control (no tickets issued, like today's monban)
 must pass, so the self-test proves both red-on-mutant and clean-on-good.
 
 ## Family `data` — two-scope data differential (C5b, R2)
@@ -71,7 +71,7 @@ Checks (each a two-scope differential):
 ### Subject wire protocol (what P4-crs-001's `crs-subject` must implement)
 
 One JSON object per line on **stdin**; one JSON reply per line on **stdout** (stderr ignored). Tenants are 16 lower-
-case hex digits of a u64 (`aegis_data_ir::tenant_text`). The subject connects to the engines itself from the `--pg`
+case hex digits of a u64 (`monban_data_ir::tenant_text`). The subject connects to the engines itself from the `--pg`
 / `--redis` arguments the oracle appends to its argv; the oracle reads only the observation fields below and never
 touches the engines directly.
 
@@ -115,8 +115,8 @@ descriptive). Specification sources, all in-repo:
 
 - `run --self-test` → both families PASS (tls: vulnerable replica caught [cross-vhost + cross-ALPN], safe control
   clean; data: reference clean, all 6 mutants caught).
-- `ci/heavy.sh cargo build --release --locked -q -p aegis-bin` then
-  `run --family tls-resume --subject target/release/aegis` → `CRS-DIFF: PASS (tls-resume: no cross-scope session
+- `ci/heavy.sh cargo build --release --locked -q -p monban-bin` then
+  `run --family tls-resume --subject target/release/monban` → `CRS-DIFF: PASS (tls-resume: no cross-scope session
   reuse; ... no resumable session issued (tickets off))` — the by-construction PASS described above.
 - The `--family data` real-subject run (against `target/release/crs-subject` over live pg17 + valkey) belongs to
   P4-crs-001, which builds that subject; this oracle supplies the checker and the data self-test.

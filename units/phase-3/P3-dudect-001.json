@@ -1,4 +1,4 @@
-{"id":"P3-dudect-001","crates":["aegis-token"],
+{"id":"P3-dudect-001","crates":["monban-token"],
  "spec_refs":["IMPLEMENTATION_PLAN §3 Phase 3 (dudect on MAC compare, no leak)","units/BACKLOG.md Token: dudect-quality constant-time testing"],
  "acceptance":{"cmd":"oracles/ct-dudect/run --subject target/release/ct-subject","must":"Welch t-test |t| < 4.5 over >=1e7 measurements for MAC/tag compare (equal vs first-byte-differs vs last-byte-differs classes) and for token verify on forged tags; self-test: a deliberately early-exit compare mutant shows |t| > 10"},
  "notes":"dudect method (Reparaz, Balasch, Verbauwhede 2017) implemented in-oracle with no new dependencies; percentile cropping; run on the LAN box with timing gates advisory only for the absolute numbers, never for the leak verdict",

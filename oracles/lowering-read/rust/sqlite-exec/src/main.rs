@@ -1,4 +1,4 @@
-//! sqlite-exec: executes SQL for the AEGIS lowering oracles at the adapter's SQLite pin (bundled 3.54.1) instead of
+//! sqlite-exec: executes SQL for the Monban lowering oracles at the adapter's SQLite pin (bundled 3.54.1) instead of
 //! Python's stdlib sqlite3. It never renders anything: the oracle sends the subject's SQL and parameters verbatim.
 //!
 //! Line protocol (stdin -> stdout, one request and one reply per line, byte strings hex-encoded):

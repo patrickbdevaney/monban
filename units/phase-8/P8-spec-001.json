@@ -15,14 +15,14 @@
   "data-ir denylist: each MariaDB denylist form in a fixture lock is refused"
  ],
  "acceptance": {
-  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/statements.py check spec && ci/remote.sh cargo test -p aegis-config --locked",
-  "must": "F8 runtime.worker_threads, state.idempotency_retention_s, route path canon refusal; F4/F10 EngineFamily::Mariadb + denylist (spec text + aegis-types/aegis-config parse); F1 FIPS-B1, SOAK-1; re-frozen same commit; absent fields = today's behaviour"
+  "cmd": "python3 -I ci/interfaces.py check && python3 -I ci/statements.py check spec && ci/remote.sh cargo test -p monban-config --locked",
+  "must": "F8 runtime.worker_threads, state.idempotency_retention_s, route path canon refusal; F4/F10 EngineFamily::Mariadb + denylist (spec text + monban-types/monban-config parse); F1 FIPS-B1, SOAK-1; re-frozen same commit; absent fields = today's behaviour"
  },
  "write_scope": [
   "spec/**",
   "interfaces/**",
-  "crates/aegis-config/**",
-  "crates/aegis-types/**"
+  "crates/monban-config/**",
+  "crates/monban-types/**"
  ],
  "notes": ""
 }

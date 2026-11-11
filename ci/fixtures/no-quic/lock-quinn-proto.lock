@@ -7,8 +7,8 @@ version = 4
 name = "acme-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-ops",
- "aegis-tls",
+ "monban-ops",
+ "monban-tls",
  "aws-lc-rs",
  "rustls",
 ]
@@ -26,110 +26,110 @@ dependencies = [
 name = "admission-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-admission",
- "aegis-budget",
+ "monban-admission",
+ "monban-budget",
 ]
 
 [[package]]
-name = "aegis-adapter-host"
+name = "monban-adapter-host"
 version = "0.0.0"
 dependencies = [
- "aegis-authz",
- "aegis-data-ir",
- "aegis-sdk",
- "aegis-state",
- "aegis-types",
+ "monban-authz",
+ "monban-data-ir",
+ "monban-sdk",
+ "monban-state",
+ "monban-types",
  "rustix",
  "tokio",
 ]
 
 [[package]]
-name = "aegis-adapter-pg"
+name = "monban-adapter-pg"
 version = "0.0.0"
 dependencies = [
- "aegis-data-ir",
- "aegis-types",
+ "monban-data-ir",
+ "monban-types",
  "aws-lc-rs",
  "rustix",
 ]
 
 [[package]]
-name = "aegis-adapter-redis"
+name = "monban-adapter-redis"
 version = "0.0.0"
 dependencies = [
- "aegis-data-ir",
- "aegis-types",
+ "monban-data-ir",
+ "monban-types",
  "rustix",
 ]
 
 [[package]]
-name = "aegis-adapter-sqlite"
+name = "monban-adapter-sqlite"
 version = "0.0.0"
 dependencies = [
- "aegis-data-ir",
- "aegis-types",
+ "monban-data-ir",
+ "monban-types",
  "rusqlite",
 ]
 
 [[package]]
-name = "aegis-admission"
+name = "monban-admission"
 version = "0.0.0"
 dependencies = [
- "aegis-budget",
- "aegis-types",
+ "monban-budget",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-agent"
+name = "monban-agent"
 version = "0.0.0"
 dependencies = [
- "aegis-authz",
- "aegis-canon",
- "aegis-token",
- "aegis-types",
+ "monban-authz",
+ "monban-canon",
+ "monban-token",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-audit"
+name = "monban-audit"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-authz"
+name = "monban-authz"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-bin"
+name = "monban-bin"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-host",
- "aegis-adapter-pg",
- "aegis-adapter-redis",
- "aegis-adapter-sqlite",
- "aegis-admission",
- "aegis-agent",
- "aegis-audit",
- "aegis-authz",
- "aegis-budget",
- "aegis-canon",
- "aegis-config",
- "aegis-data-ir",
- "aegis-egress",
- "aegis-iso",
- "aegis-metrics",
- "aegis-ops",
- "aegis-state",
- "aegis-tls",
- "aegis-token",
- "aegis-transport",
- "aegis-types",
+ "monban-adapter-host",
+ "monban-adapter-pg",
+ "monban-adapter-redis",
+ "monban-adapter-sqlite",
+ "monban-admission",
+ "monban-agent",
+ "monban-audit",
+ "monban-authz",
+ "monban-budget",
+ "monban-canon",
+ "monban-config",
+ "monban-data-ir",
+ "monban-egress",
+ "monban-iso",
+ "monban-metrics",
+ "monban-ops",
+ "monban-state",
+ "monban-tls",
+ "monban-token",
+ "monban-transport",
+ "monban-types",
  "h2",
  "http",
  "hyper",
@@ -140,65 +140,65 @@ dependencies = [
 ]
 
 [[package]]
-name = "aegis-budget"
+name = "monban-budget"
 version = "0.0.0"
 
 [[package]]
-name = "aegis-canon"
+name = "monban-canon"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-config"
+name = "monban-config"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-types",
+ "monban-canon",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-data-ir"
+name = "monban-data-ir"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-egress"
+name = "monban-egress"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-types",
+ "monban-canon",
+ "monban-types",
  "rustls",
  "tokio",
  "tokio-rustls",
 ]
 
 [[package]]
-name = "aegis-iso"
+name = "monban-iso"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
  "libc",
  "rustix",
 ]
 
 [[package]]
-name = "aegis-metrics"
+name = "monban-metrics"
 version = "0.0.0"
 
 [[package]]
-name = "aegis-ops"
+name = "monban-ops"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-config",
- "aegis-tls",
- "aegis-types",
+ "monban-canon",
+ "monban-config",
+ "monban-tls",
+ "monban-types",
  "aws-lc-rs",
  "rustix",
  "rustls",
@@ -207,70 +207,70 @@ dependencies = [
 ]
 
 [[package]]
-name = "aegis-p2"
+name = "monban-p2"
 version = "0.0.0"
 dependencies = [
- "aegis-iso",
- "aegis-types",
- "aegis-wasm",
+ "monban-iso",
+ "monban-types",
+ "monban-wasm",
 ]
 
 [[package]]
-name = "aegis-pdp"
+name = "monban-pdp"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-host",
- "aegis-authz",
- "aegis-types",
+ "monban-adapter-host",
+ "monban-authz",
+ "monban-types",
  "cedar-policy",
  "rustix",
 ]
 
 [[package]]
-name = "aegis-sdk"
+name = "monban-sdk"
 version = "0.0.0"
 dependencies = [
- "aegis-authz",
- "aegis-data-ir",
- "aegis-types",
+ "monban-authz",
+ "monban-data-ir",
+ "monban-types",
 ]
 
 [[package]]
-name = "aegis-state"
+name = "monban-state"
 version = "0.0.0"
 dependencies = [
- "aegis-audit",
- "aegis-data-ir",
- "aegis-types",
+ "monban-audit",
+ "monban-data-ir",
+ "monban-types",
  "aws-lc-rs",
  "rusqlite",
 ]
 
 [[package]]
-name = "aegis-tls"
+name = "monban-tls"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
  "rustls",
  "rustls-webpki",
 ]
 
 [[package]]
-name = "aegis-token"
+name = "monban-token"
 version = "0.0.0"
 dependencies = [
- "aegis-types",
+ "monban-types",
  "aws-lc-rs",
 ]
 
 [[package]]
-name = "aegis-transport"
+name = "monban-transport"
 version = "0.0.0"
 dependencies = [
- "aegis-budget",
- "aegis-canon",
- "aegis-types",
+ "monban-budget",
+ "monban-canon",
+ "monban-types",
  "h2",
  "http",
  "hyper",
@@ -279,15 +279,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "aegis-types"
+name = "monban-types"
 version = "0.0.0"
 
 [[package]]
-name = "aegis-wasm"
+name = "monban-wasm"
 version = "0.0.0"
 dependencies = [
- "aegis-budget",
- "aegis-types",
+ "monban-budget",
+ "monban-types",
  "sha2",
  "wasmtime",
 ]
@@ -373,8 +373,8 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 name = "audit-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-audit",
- "aegis-types",
+ "monban-audit",
+ "monban-types",
 ]
 
 

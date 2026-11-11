@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Which P2 path does the default config (`p2.isolation` absent = "auto") resolve to on this host? (PLAN-5 D23(b))
 
-Usage: python3 -I ci/p2-auto-resolve.py --subject target/p2/release/aegis --expect cordon|forkwasm|host
+Usage: python3 -I ci/p2-auto-resolve.py --subject target/p2/release/monban --expect cordon|forkwasm|host
        python3 -I ci/p2-auto-resolve.py --self-test
 
 Writes a minimal F8 config with one wasm route and a p2 block that omits `isolation`, runs
@@ -26,16 +26,16 @@ SHA = "0" * 64
 CONFIG = {
     "v": 1,
     "listeners": [{"name": "pub", "bind": "127.0.0.1:8443", "profile": "P-PUBLIC-WEB"}],
-    "vhosts": [{"host": "aegis.test", "routes": [{"id": 1, "path": "/a/", "to": {"wasm": "m"}, "authz": "allow-all"}]}],
-    "p2": {"worker": "/opt/aegis-p2", "modules": [{"id": "m", "path": "/srv/p2/m.wasm", "sha256": SHA}]},
+    "vhosts": [{"host": "monban.test", "routes": [{"id": 1, "path": "/a/", "to": {"wasm": "m"}, "authz": "allow-all"}]}],
+    "p2": {"worker": "/opt/monban-p2", "modules": [{"id": "m", "path": "/srv/p2/m.wasm", "sha256": SHA}]},
 }
 
 
 def judge(subject, expect):
     cpus = len(os.sched_getaffinity(0))
     want = expect if expect != "host" else ("cordon" if cpus < AUTO_CORDON_BELOW else "forkwasm")
-    with tempfile.TemporaryDirectory(prefix="aegis-auto-") as d:
-        cfg = os.path.join(d, "aegis.json")
+    with tempfile.TemporaryDirectory(prefix="monban-auto-") as d:
+        cfg = os.path.join(d, "monban.json")
         with open(cfg, "w") as f:
             json.dump(CONFIG, f)
         try:
@@ -87,7 +87,7 @@ print(json.dumps({"v": 1, "p2": p2}))
 
 
 def self_test():
-    with tempfile.TemporaryDirectory(prefix="aegis-auto-st-") as d:
+    with tempfile.TemporaryDirectory(prefix="monban-auto-st-") as d:
         fake = os.path.join(d, "fake.py")
         with open(fake, "w") as f:
             f.write(FAKE)

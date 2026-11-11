@@ -1,4 +1,4 @@
-# q4-001 scratch workspace (standalone; not a member of the AEGIS workspace).
+# q4-001 scratch workspace (standalone; not a member of the Monban workspace).
 [workspace]
 resolver = "2"
 members = ["f7x", "corpus"]

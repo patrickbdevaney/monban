@@ -1,10 +1,10 @@
-//! sqlite-subject: the production `aegis-adapter-sqlite` behind the oracle protocols.
+//! sqlite-subject: the production `monban-adapter-sqlite` behind the oracle protocols.
 //!
 //!   sqlite-subject lowering [--mutant drop-tenant]
 //!       lowering-read / lowering-write subject, protocol v2 (oracles/lowering-read/README.md, -write/README.md).
-//!       read/update/delete/insert/upsert are lowered by `aegis_data_ir::lower_op` and rendered by the adapter
+//!       read/update/delete/insert/upsert are lowered by `monban_data_ir::lower_op` and rendered by the adapter
 //!       (`render_where` for read filters, `render_lowered` for statements). kv_* ops are answered from
-//!       `aegis_data_ir::kv_plan` (the offline Redis model runs beside SQLite). merge/cte/replace/raw_sql, rls_*,
+//!       `monban_data_ir::kv_plan` (the offline Redis model runs beside SQLite). merge/cte/replace/raw_sql, rls_*,
 //!       kv_acl, non-sqlite dialects and anything malformed are refused.
 //!   sqlite-subject schema
 //!       schema-gate subject, protocol v1 (oracles/schema-gate/README.md): mode sqlite opens `path` read-only through
@@ -27,13 +27,13 @@
 
 mod json;
 
-use aegis_adapter_sqlite::{ForeignKey, OpenMode, Rendered, SqliteDb, Table, render_lowered, render_where};
-use aegis_data_ir::{
+use json::Json;
+use monban_adapter_sqlite::{ForeignKey, OpenMode, Rendered, SqliteDb, Table, render_lowered, render_where};
+use monban_data_ir::{
     Collation, Column, Fidelity, Field, KvCommand, Op, OpKind, Pred, Schema, Stmt, UniqueIndex, UpsertAction, Value,
     check_schema, kv_key_prefix, kv_plan, lower_op, parse_tenant_text,
 };
-use aegis_types::TenantId;
-use json::Json;
+use monban_types::TenantId;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufWriter, Write};
 use std::path::Path;
@@ -267,7 +267,7 @@ struct Lowering {
 impl Lowering {
     fn handle(&self, req: &Json) -> Res<String> {
         match req.get("op").and_then(Json::str).unwrap_or("") {
-            "hello" => Ok(r#""name":"aegis-adapter-sqlite","protocol":2"#.into()),
+            "hello" => Ok(r#""name":"monban-adapter-sqlite","protocol":2"#.into()),
             "read" => self.read(req),
             op @ ("update" | "delete" | "insert" | "upsert") => self.write(req, op),
             op @ ("kv_key" | "kv_get" | "kv_scan" | "kv_set" | "kv_setnx" | "kv_setxx" | "kv_del") => self.kv(req, op),
@@ -545,7 +545,7 @@ fn schema_gate(req: &Json) -> String {
             };
             match db.check_schema(&declared, &|_| None) {
                 Ok(_) => r#""ok":true"#.into(),
-                Err(aegis_adapter_sqlite::LiveError::Schema(e)) => format!("\"refuse\":{}", esc(&format!("{e:?}"))),
+                Err(monban_adapter_sqlite::LiveError::Schema(e)) => format!("\"refuse\":{}", esc(&format!("{e:?}"))),
                 Err(e) => format!("\"refuse\":{}", esc(&format!("{e:?}"))),
             }
         }

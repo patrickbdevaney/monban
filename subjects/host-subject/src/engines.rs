@@ -1,18 +1,18 @@
-//! The render step of the golden dispatch for each adapter, as `aegis_adapter_host::dispatch::Renderer`s.
+//! The render step of the golden dispatch for each adapter, as `monban_adapter_host::dispatch::Renderer`s.
 //!
-//! aegis-adapter-host cannot link the SQLite/PG/Redis adapters (same layer, no dependency edge), so the pairing of
+//! monban-adapter-host cannot link the SQLite/PG/Redis adapters (same layer, no dependency edge), so the pairing of
 //! a renderer with the host's pipeline happens in the assembly. These are the thin pairings host-subject drives:
-//! each `render` is exactly the adapter's production entry point (`aegis_adapter_sqlite::render`,
-//! `aegis_adapter_pg::render_op`, `aegis_data_ir::kv_plan` + `aegis_adapter_redis::command_args`), followed by the
-//! F4 denylist scan of the rendered SQL. The out-of-process renderer is aegis-adapter-host's own
+//! each `render` is exactly the adapter's production entry point (`monban_adapter_sqlite::render`,
+//! `monban_adapter_pg::render_op`, `monban_data_ir::kv_plan` + `monban_adapter_redis::command_args`), followed by the
+//! F4 denylist scan of the rendered SQL. The out-of-process renderer is monban-adapter-host's own
 //! (`host::oop::OopRenderer`).
 
 use std::collections::BTreeMap;
 
-use aegis_adapter_host::dispatch::{EngineError, Renderer};
-use aegis_adapter_pg::{PgClass, PgColumn, PgTable};
-use aegis_adapter_sqlite::Table;
-use aegis_data_ir::{EngineFamily, Fidelity, Op, Schema, denied_in_sql, kv_plan};
+use monban_adapter_host::dispatch::{EngineError, Renderer};
+use monban_adapter_pg::{PgClass, PgColumn, PgTable};
+use monban_adapter_sqlite::Table;
+use monban_data_ir::{EngineFamily, Fidelity, Op, Schema, denied_in_sql, kv_plan};
 
 fn deny_scan(family: EngineFamily, sql: &str) -> Result<(), EngineError> {
     match denied_in_sql(family, sql) {
@@ -44,7 +44,7 @@ impl SqliteRenderer {
 }
 
 impl Renderer for SqliteRenderer {
-    type Rendered = aegis_adapter_sqlite::Rendered;
+    type Rendered = monban_adapter_sqlite::Rendered;
     fn backend_id(&self) -> &str {
         &self.backend
     }
@@ -56,7 +56,7 @@ impl Renderer for SqliteRenderer {
     }
     fn render(&self, op: &Op, _schema: &Schema) -> Result<Self::Rendered, EngineError> {
         let table = self.tables.get(&op.collection).ok_or_else(|| EngineError::Refused("no table".into()))?;
-        let r = aegis_adapter_sqlite::render(op, table).map_err(|e| EngineError::Refused(format!("{e:?}")))?;
+        let r = monban_adapter_sqlite::render(op, table).map_err(|e| EngineError::Refused(format!("{e:?}")))?;
         deny_scan(EngineFamily::Sqlite, &r.sql)?;
         Ok(r)
     }
@@ -66,11 +66,11 @@ impl Renderer for SqliteRenderer {
 #[derive(Debug)]
 pub struct PgRenderer {
     backend: String,
-    tables: BTreeMap<String, aegis_adapter_pg::LiveTable>,
+    tables: BTreeMap<String, monban_adapter_pg::LiveTable>,
 }
 
 impl PgRenderer {
-    pub fn new(backend: &str, tables: Vec<aegis_adapter_pg::LiveTable>) -> PgRenderer {
+    pub fn new(backend: &str, tables: Vec<monban_adapter_pg::LiveTable>) -> PgRenderer {
         PgRenderer {
             backend: backend.into(),
             tables: tables.into_iter().map(|t| (t.schema.collection.clone(), t)).collect(),
@@ -79,7 +79,7 @@ impl PgRenderer {
 
     /// The renderer table for a schema the caller states is the introspected one: every column text, unique keys
     /// from the schema's unique indexes, no foreign keys, unqualified name.
-    pub fn live_of(schema: Schema) -> aegis_adapter_pg::LiveTable {
+    pub fn live_of(schema: Schema) -> monban_adapter_pg::LiveTable {
         let table = PgTable {
             namespace: None,
             name: schema.collection.clone(),
@@ -91,12 +91,12 @@ impl PgRenderer {
             unique: schema.unique_indexes.iter().filter(|u| !u.prefix).map(|u| u.fields.clone()).collect(),
             fks: Vec::new(),
         };
-        aegis_adapter_pg::LiveTable { schema, table }
+        monban_adapter_pg::LiveTable { schema, table }
     }
 }
 
 impl Renderer for PgRenderer {
-    type Rendered = aegis_adapter_pg::Rendered;
+    type Rendered = monban_adapter_pg::Rendered;
     fn backend_id(&self) -> &str {
         &self.backend
     }
@@ -108,7 +108,7 @@ impl Renderer for PgRenderer {
     }
     fn render(&self, op: &Op, schema: &Schema) -> Result<Self::Rendered, EngineError> {
         let lt = self.tables.get(&op.collection).ok_or_else(|| EngineError::Refused("no table".into()))?;
-        let r = aegis_adapter_pg::render_op(op, schema, &lt.table).map_err(|e| EngineError::Refused(e.to_string()))?;
+        let r = monban_adapter_pg::render_op(op, schema, &lt.table).map_err(|e| EngineError::Refused(e.to_string()))?;
         deny_scan(EngineFamily::Postgres, &r.sql)?;
         Ok(r)
     }
@@ -144,26 +144,26 @@ impl Renderer for KvRenderer {
     }
     fn render(&self, op: &Op, schema: &Schema) -> Result<Self::Rendered, EngineError> {
         let c = kv_plan(op, schema).map_err(|e| EngineError::Refused(format!("{e:?}")))?;
-        Ok(aegis_adapter_redis::command_args(&c))
+        Ok(monban_adapter_redis::command_args(&c))
     }
 }
 
 #[cfg(test)]
 mod tests {
     //! The full `dispatch::run` path (authorize → check_schema → pre-debit → render → execute) against a real
-    //! SQLite database through `aegis_adapter_sqlite::SqliteDb`, with a minimal executor.
+    //! SQLite database through `monban_adapter_sqlite::SqliteDb`, with a minimal executor.
     use super::*;
-    use aegis_adapter_host::dispatch::{self, Engine, Executor, Refusal, ScopeInfo};
-    use aegis_adapter_host::host::CancelToken;
-    use aegis_adapter_host::host::budget::{OpLimits, Remaining, RequestBudget, Usage};
-    use aegis_adapter_sqlite::{OpenMode, SqliteDb};
-    use aegis_data_ir::{CapSet, Caps, Collation, Column, DataCap, OpKind, OpMask, Pred, UniqueIndex, Value};
-    use aegis_types::TenantId;
+    use monban_adapter_host::dispatch::{self, Engine, Executor, Refusal, ScopeInfo};
+    use monban_adapter_host::host::CancelToken;
+    use monban_adapter_host::host::budget::{OpLimits, Remaining, RequestBudget, Usage};
+    use monban_adapter_sqlite::{OpenMode, SqliteDb};
+    use monban_data_ir::{CapSet, Caps, Collation, Column, DataCap, OpKind, OpMask, Pred, UniqueIndex, Value};
+    use monban_types::TenantId;
     use std::path::PathBuf;
 
     struct SqliteExec(PathBuf);
 
-    impl Executor<aegis_adapter_sqlite::Rendered> for SqliteExec {
+    impl Executor<monban_adapter_sqlite::Rendered> for SqliteExec {
         type Tx = SqliteDb;
         type Rows = usize;
         fn begin(&self, _s: &ScopeInfo<'_>) -> Result<SqliteDb, EngineError> {
@@ -175,7 +175,7 @@ mod tests {
         fn execute(
             &self,
             tx: &mut SqliteDb,
-            r: aegis_adapter_sqlite::Rendered,
+            r: monban_adapter_sqlite::Rendered,
             l: OpLimits,
         ) -> Result<(usize, Usage), EngineError> {
             let rows = tx.run(&r).map_err(|e| EngineError::Unavailable(e.to_string()))?;

@@ -1,7 +1,7 @@
 {
  "id": "P2-transport-002",
  "crates": [
-  "aegis-transport"
+  "monban-transport"
  ],
  "spec_refs": [
   "RFC 9113 \u00a75.1 stream states, \u00a75.4 error handling, \u00a76.9 flow control",
@@ -23,7 +23,7 @@
   "must": "H2-CONFORMANCE: PASS (only the allow-listed invalid-preface case may fail), stable over 5 consecutive runs"
  },
  "write_scope": [
-  "crates/aegis-transport/**",
+  "crates/monban-transport/**",
   "subjects/transport-subject/**"
  ],
  "infeasible_exit": true,

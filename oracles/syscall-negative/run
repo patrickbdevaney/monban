@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: syscall-negative (Phase-5 gate p2-syscall-negative). Contract: oracles/README.md.
+# Monban oracle: syscall-negative (Phase-5 gate p2-syscall-negative). Contract: oracles/README.md.
 # Last line: SYSCALL-NEGATIVE: PASS|FAIL (...)  /  SYSCALL-NEGATIVE SELF-TEST: PASS|FAIL (...)
 #   ./run                       judge the oracle's reference probe (hand-rolled Landlock + seccomp, isofi design)
 #   ./run --subject '<cmd>'     judge a real subject: the oracle appends
@@ -17,7 +17,7 @@ if [ -z "${AEGIS_SYSNEG_UNDER_HEAVY:-}" ]; then
 fi
 keep=0; args=()
 for x in "$@"; do if [ "$x" = "--keep-build" ]; then keep=1; else args+=("$x"); fi; done
-T="$HERE/rust/target"; W=$(mktemp -d "${TMPDIR:-/tmp}/aegis-sysneg.XXXXXX")
+T="$HERE/rust/target"; W=$(mktemp -d "${TMPDIR:-/tmp}/monban-sysneg.XXXXXX")
 cleanup() { [ "$keep" = 1 ] || rm -rf "$T"; rm -rf "$W"; }
 trap cleanup EXIT
 if ! "$HERE/rust/build.sh" "$T" >&2; then

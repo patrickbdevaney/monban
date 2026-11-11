@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS crash harness (oracle for INV-DURABLE). Run as `python3 -I crashsim.py`, normally via ./run.
+"""Monban crash harness (oracle for INV-DURABLE). Run as `python3 -I crashsim.py`, normally via ./run.
 
 Port of research round-002 `crashsim.py` (ALICE-style logical-op replay over an LD_PRELOAD trace), with:
   * the workload owned by the oracle and subjects reduced to a line protocol (README "Subject protocol");
@@ -25,7 +25,7 @@ import argparse, collections, concurrent.futures as cf, json, os, random, re, sh
 HERE = os.path.dirname(os.path.abspath(__file__))
 TGT = os.environ.get('AEGIS_CRASH_TARGET', os.path.join(HERE, 'rust', 'target', 'release'))
 REFSTORE = os.path.join(TGT, 'refstore')
-PRELOAD = os.path.join(TGT, 'libaegis_crash_open.so') + ':' + os.path.join(TGT, 'libaegis_crash_shim.so')
+PRELOAD = os.path.join(TGT, 'libmonban_crash_open.so') + ':' + os.path.join(TGT, 'libmonban_crash_shim.so')
 PAGE, SECT = 4096, 512
 POLICIES = [('dropall', 'journal'), ('dropall', 'fsfile'), ('dropall', 'strict'), ('all', 'full'),
             ('subset', 'journal'), ('subset', 'fsfile'), ('subset', 'strict'),

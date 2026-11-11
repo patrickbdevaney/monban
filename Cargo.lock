@@ -6,9 +6,9 @@ version = 4
 name = "acme-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-ops",
- "aegis-tls",
  "aws-lc-rs",
+ "monban-ops",
+ "monban-tls",
  "rustls",
 ]
 
@@ -25,311 +25,9 @@ dependencies = [
 name = "admission-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-admission",
- "aegis-budget",
+ "monban-admission",
+ "monban-budget",
 ]
-
-[[package]]
-name = "aegis-adapter-host"
-version = "0.0.0"
-dependencies = [
- "aegis-authz",
- "aegis-data-ir",
- "aegis-sdk",
- "aegis-state",
- "aegis-types",
- "rustix",
- "tokio",
-]
-
-[[package]]
-name = "aegis-adapter-mysql"
-version = "0.0.0"
-dependencies = [
- "aegis-data-ir",
- "aegis-types",
- "aws-lc-rs",
- "rustix",
-]
-
-[[package]]
-name = "aegis-adapter-pg"
-version = "0.0.0"
-dependencies = [
- "aegis-data-ir",
- "aegis-types",
- "aws-lc-rs",
- "rustix",
-]
-
-[[package]]
-name = "aegis-adapter-redis"
-version = "0.0.0"
-dependencies = [
- "aegis-data-ir",
- "aegis-types",
- "rustix",
-]
-
-[[package]]
-name = "aegis-adapter-sqlite"
-version = "0.0.0"
-dependencies = [
- "aegis-data-ir",
- "aegis-types",
- "rusqlite",
-]
-
-[[package]]
-name = "aegis-admission"
-version = "0.0.0"
-dependencies = [
- "aegis-budget",
- "aegis-types",
-]
-
-[[package]]
-name = "aegis-agent"
-version = "0.0.0"
-dependencies = [
- "aegis-authz",
- "aegis-canon",
- "aegis-token",
- "aegis-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "aegis-audit"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "aegis-authz"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
-]
-
-[[package]]
-name = "aegis-bin"
-version = "0.0.0"
-dependencies = [
- "aegis-adapter-host",
- "aegis-adapter-mysql",
- "aegis-adapter-pg",
- "aegis-adapter-redis",
- "aegis-adapter-sqlite",
- "aegis-admission",
- "aegis-agent",
- "aegis-audit",
- "aegis-authz",
- "aegis-budget",
- "aegis-canon",
- "aegis-config",
- "aegis-data-ir",
- "aegis-egress",
- "aegis-iso",
- "aegis-metrics",
- "aegis-ops",
- "aegis-state",
- "aegis-tls",
- "aegis-token",
- "aegis-transport",
- "aegis-types",
- "aegis-uring",
- "aegis-wire",
- "h2",
- "http",
- "hyper",
- "notes",
- "rusqlite",
- "rustls",
- "tokio",
-]
-
-[[package]]
-name = "aegis-budget"
-version = "0.0.0"
-
-[[package]]
-name = "aegis-canon"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
-]
-
-[[package]]
-name = "aegis-config"
-version = "0.0.0"
-dependencies = [
- "aegis-canon",
- "aegis-types",
-]
-
-[[package]]
-name = "aegis-data-ir"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "aegis-egress"
-version = "0.0.0"
-dependencies = [
- "aegis-canon",
- "aegis-types",
- "rustls",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
-name = "aegis-iso"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
- "aws-lc-rs",
- "libc",
- "rustix",
-]
-
-[[package]]
-name = "aegis-metrics"
-version = "0.0.0"
-
-[[package]]
-name = "aegis-ops"
-version = "0.0.0"
-dependencies = [
- "aegis-canon",
- "aegis-config",
- "aegis-tls",
- "aegis-types",
- "aws-lc-rs",
- "rustix",
- "rustls",
- "sd-notify",
- "tokio",
-]
-
-[[package]]
-name = "aegis-otlp"
-version = "0.0.0"
-dependencies = [
- "aegis-canon",
- "aegis-egress",
- "aegis-tls",
- "aegis-types",
- "http",
- "hyper",
- "rustls",
- "tokio",
-]
-
-[[package]]
-name = "aegis-p2"
-version = "0.0.0"
-dependencies = [
- "aegis-iso",
- "aegis-types",
- "aegis-wasm",
-]
-
-[[package]]
-name = "aegis-pdp"
-version = "0.0.0"
-dependencies = [
- "aegis-adapter-host",
- "aegis-authz",
- "aegis-types",
- "cedar-policy",
- "rustix",
-]
-
-[[package]]
-name = "aegis-sdk"
-version = "0.0.0"
-dependencies = [
- "aegis-authz",
- "aegis-data-ir",
- "aegis-types",
-]
-
-[[package]]
-name = "aegis-state"
-version = "0.0.0"
-dependencies = [
- "aegis-audit",
- "aegis-data-ir",
- "aegis-types",
- "aws-lc-rs",
- "rusqlite",
-]
-
-[[package]]
-name = "aegis-tls"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
- "aegis-wire",
- "aws-lc-rs",
- "rustls",
- "rustls-webpki",
-]
-
-[[package]]
-name = "aegis-token"
-version = "0.0.0"
-dependencies = [
- "aegis-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "aegis-transport"
-version = "0.0.0"
-dependencies = [
- "aegis-budget",
- "aegis-canon",
- "aegis-types",
- "h2",
- "http",
- "hyper",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
-name = "aegis-types"
-version = "0.0.0"
-
-[[package]]
-name = "aegis-uring"
-version = "0.0.0"
-dependencies = [
- "io-uring",
- "tokio",
-]
-
-[[package]]
-name = "aegis-wasm"
-version = "0.0.0"
-dependencies = [
- "aegis-budget",
- "aegis-types",
- "sha2",
- "wasmtime",
-]
-
-[[package]]
-name = "aegis-wire"
-version = "0.0.0"
 
 [[package]]
 name = "aho-corasick"
@@ -412,8 +110,8 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 name = "audit-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-audit",
- "aegis-types",
+ "monban-audit",
+ "monban-types",
 ]
 
 [[package]]
@@ -525,14 +223,14 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 name = "cancel-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-pg",
+ "monban-adapter-pg",
 ]
 
 [[package]]
 name = "canon-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
+ "monban-canon",
 ]
 
 [[package]]
@@ -828,7 +526,7 @@ checksum = "6f34b169b8cbbaed2b4995205f1d02d7eac4b2771df5479255fe5483e1334a39"
 name = "crash-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-state",
+ "monban-state",
 ]
 
 [[package]]
@@ -844,16 +542,16 @@ dependencies = [
 name = "crdb-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-pg",
+ "monban-adapter-pg",
 ]
 
 [[package]]
 name = "crs-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-pg",
- "aegis-adapter-redis",
- "aegis-state",
+ "monban-adapter-pg",
+ "monban-adapter-redis",
+ "monban-state",
 ]
 
 [[package]]
@@ -870,8 +568,8 @@ dependencies = [
 name = "ct-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-token",
  "aws-lc-rs",
+ "monban-token",
 ]
 
 [[package]]
@@ -912,8 +610,8 @@ dependencies = [
 name = "datair-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-data-ir",
- "aegis-types",
+ "monban-data-ir",
+ "monban-types",
 ]
 
 [[package]]
@@ -994,8 +692,8 @@ dependencies = [
 name = "egress-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-egress",
- "aegis-tls",
+ "monban-egress",
+ "monban-tls",
  "rustls",
  "tokio",
 ]
@@ -1271,16 +969,16 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 name = "host-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-host",
- "aegis-adapter-pg",
- "aegis-adapter-redis",
- "aegis-adapter-sqlite",
- "aegis-config",
- "aegis-data-ir",
- "aegis-sdk",
- "aegis-state",
- "aegis-token",
- "aegis-types",
+ "monban-adapter-host",
+ "monban-adapter-pg",
+ "monban-adapter-redis",
+ "monban-adapter-sqlite",
+ "monban-config",
+ "monban-data-ir",
+ "monban-sdk",
+ "monban-state",
+ "monban-token",
+ "monban-types",
 ]
 
 [[package]]
@@ -1648,7 +1346,7 @@ checksum = "dae608c151f68243f2b000364e1f7b186d9c29845f7d2d85bd31b9ad77ad552b"
 name = "mariadb-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-mysql",
+ "monban-adapter-mysql",
 ]
 
 [[package]]
@@ -1701,6 +1399,308 @@ dependencies = [
 ]
 
 [[package]]
+name = "monban-adapter-host"
+version = "0.0.0"
+dependencies = [
+ "monban-authz",
+ "monban-data-ir",
+ "monban-sdk",
+ "monban-state",
+ "monban-types",
+ "rustix",
+ "tokio",
+]
+
+[[package]]
+name = "monban-adapter-mysql"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-pg"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-redis"
+version = "0.0.0"
+dependencies = [
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-sqlite"
+version = "0.0.0"
+dependencies = [
+ "monban-data-ir",
+ "monban-types",
+ "rusqlite",
+]
+
+[[package]]
+name = "monban-admission"
+version = "0.0.0"
+dependencies = [
+ "monban-budget",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-agent"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-authz",
+ "monban-canon",
+ "monban-token",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-audit"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-authz"
+version = "0.0.0"
+dependencies = [
+ "monban-types",
+]
+
+[[package]]
+name = "monban-bin"
+version = "0.0.0"
+dependencies = [
+ "h2",
+ "http",
+ "hyper",
+ "monban-adapter-host",
+ "monban-adapter-mysql",
+ "monban-adapter-pg",
+ "monban-adapter-redis",
+ "monban-adapter-sqlite",
+ "monban-admission",
+ "monban-agent",
+ "monban-audit",
+ "monban-authz",
+ "monban-budget",
+ "monban-canon",
+ "monban-config",
+ "monban-data-ir",
+ "monban-egress",
+ "monban-iso",
+ "monban-metrics",
+ "monban-ops",
+ "monban-state",
+ "monban-tls",
+ "monban-token",
+ "monban-transport",
+ "monban-types",
+ "monban-uring",
+ "monban-wire",
+ "notes",
+ "rusqlite",
+ "rustls",
+ "tokio",
+]
+
+[[package]]
+name = "monban-budget"
+version = "0.0.0"
+
+[[package]]
+name = "monban-canon"
+version = "0.0.0"
+dependencies = [
+ "monban-types",
+]
+
+[[package]]
+name = "monban-config"
+version = "0.0.0"
+dependencies = [
+ "monban-canon",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-data-ir"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-egress"
+version = "0.0.0"
+dependencies = [
+ "monban-canon",
+ "monban-types",
+ "rustls",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
+name = "monban-iso"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "libc",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-metrics"
+version = "0.0.0"
+
+[[package]]
+name = "monban-ops"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-canon",
+ "monban-config",
+ "monban-tls",
+ "monban-types",
+ "rustix",
+ "rustls",
+ "sd-notify",
+ "tokio",
+]
+
+[[package]]
+name = "monban-otlp"
+version = "0.0.0"
+dependencies = [
+ "http",
+ "hyper",
+ "monban-canon",
+ "monban-egress",
+ "monban-tls",
+ "monban-types",
+ "rustls",
+ "tokio",
+]
+
+[[package]]
+name = "monban-p2"
+version = "0.0.0"
+dependencies = [
+ "monban-iso",
+ "monban-types",
+ "monban-wasm",
+]
+
+[[package]]
+name = "monban-pdp"
+version = "0.0.0"
+dependencies = [
+ "cedar-policy",
+ "monban-adapter-host",
+ "monban-authz",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-sdk"
+version = "0.0.0"
+dependencies = [
+ "monban-authz",
+ "monban-data-ir",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-state"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-audit",
+ "monban-data-ir",
+ "monban-types",
+ "rusqlite",
+]
+
+[[package]]
+name = "monban-tls"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+ "monban-wire",
+ "rustls",
+ "rustls-webpki",
+]
+
+[[package]]
+name = "monban-token"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-transport"
+version = "0.0.0"
+dependencies = [
+ "h2",
+ "http",
+ "hyper",
+ "monban-budget",
+ "monban-canon",
+ "monban-types",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
+name = "monban-types"
+version = "0.0.0"
+
+[[package]]
+name = "monban-uring"
+version = "0.0.0"
+dependencies = [
+ "io-uring",
+ "tokio",
+]
+
+[[package]]
+name = "monban-wasm"
+version = "0.0.0"
+dependencies = [
+ "monban-budget",
+ "monban-types",
+ "sha2",
+ "wasmtime",
+]
+
+[[package]]
+name = "monban-wire"
+version = "0.0.0"
+
+[[package]]
 name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1719,7 +1719,7 @@ dependencies = [
 name = "notes"
 version = "0.0.0"
 dependencies = [
- "aegis-sdk",
+ "monban-sdk",
 ]
 
 [[package]]
@@ -1768,8 +1768,8 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 name = "p2-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-iso",
- "aegis-wasm",
+ "monban-iso",
+ "monban-wasm",
 ]
 
 [[package]]
@@ -1809,7 +1809,7 @@ dependencies = [
 name = "pg-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-pg",
+ "monban-adapter-pg",
 ]
 
 [[package]]
@@ -1950,9 +1950,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 name = "redis-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-redis",
- "aegis-data-ir",
- "aegis-types",
+ "monban-adapter-redis",
+ "monban-data-ir",
+ "monban-types",
 ]
 
 [[package]]
@@ -2345,9 +2345,9 @@ dependencies = [
 name = "sqlite-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-adapter-sqlite",
- "aegis-data-ir",
- "aegis-types",
+ "monban-adapter-sqlite",
+ "monban-data-ir",
+ "monban-types",
 ]
 
 [[package]]
@@ -2373,7 +2373,7 @@ dependencies = [
 name = "state-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-state",
+ "monban-state",
 ]
 
 [[package]]
@@ -2506,9 +2506,9 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 name = "tls-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-iso",
- "aegis-tls",
  "aws-lc-rs",
+ "monban-iso",
+ "monban-tls",
  "rustls",
 ]
 
@@ -2516,7 +2516,7 @@ dependencies = [
 name = "token-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-token",
+ "monban-token",
 ]
 
 [[package]]
@@ -2581,12 +2581,12 @@ dependencies = [
 name = "transport-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-canon",
- "aegis-config",
- "aegis-tls",
- "aegis-transport",
- "aegis-types",
  "aws-lc-rs",
+ "monban-canon",
+ "monban-config",
+ "monban-tls",
+ "monban-transport",
+ "monban-types",
  "rustls",
  "tokio",
 ]
@@ -2662,7 +2662,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 name = "upgrade-subject"
 version = "0.0.0"
 dependencies = [
- "aegis-ops",
+ "monban-ops",
 ]
 
 [[package]]

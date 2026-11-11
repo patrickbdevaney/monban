@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# G3 double build (SUPPLY_CHAIN §B). Builds aegis-bin --release twice from two copies of the tree at different paths,
+# G3 double build (SUPPLY_CHAIN §B). Builds monban-bin --release twice from two copies of the tree at different paths,
 # with different CARGO_HOME, CARGO_TARGET_DIR and SOURCE_DATE_EPOCH, and requires byte-identical binaries.
 #   ci/repro.sh               -> REPRO: PASS iff sha256 equal
 #   ci/repro.sh --self-test   -> builds without the path remaps; PASS iff the binaries DIFFER (control is live)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-W="${AEGIS_REPRO_DIR:-${TMPDIR:-/tmp}/aegis-repro}"; rm -rf "$W"; mkdir -p "$W"
+W="${AEGIS_REPRO_DIR:-${TMPDIR:-/tmp}/monban-repro}"; rm -rf "$W"; mkdir -p "$W"
 trap 'rm -rf "$W"' EXIT
 selftest=0; [ "${1:-}" = --self-test ] && selftest=1
 build() {  # $1 = slot name, $2 = epoch
@@ -20,8 +20,8 @@ build() {  # $1 = slot name, $2 = epoch
   fi
   # The workspace .cargo/config.toml remaps /home; override it so only these flags apply.
   (cd "$src" && CARGO_PROFILE_RELEASE_DEBUG="${DEBUG_LEVEL:-0}" CARGO_PROFILE_RELEASE_STRIP="${STRIP:-symbols}" SOURCE_DATE_EPOCH="$2" CARGO_HOME="$home" CARGO_TARGET_DIR="$tgt" RUSTFLAGS="$flags -Cforce-frame-pointers=yes ${AEGIS_REPRO_EXTRA:-}" \
-     "$ROOT/ci/heavy.sh" cargo build --release --locked --offline -q -p aegis-bin)
-  sha256sum "$tgt/release/aegis" | cut -d' ' -f1
+     "$ROOT/ci/heavy.sh" cargo build --release --locked --offline -q -p monban-bin)
+  sha256sum "$tgt/release/monban" | cut -d' ' -f1
 }
 # Debug info embeds absolute source/registry paths (DW_AT_comp_dir etc.), so building with debuginfo=2 and no strip
 # is what makes the remap observable. PASS needs equality at both debug=0 (shipping) and debug=2; the self-test

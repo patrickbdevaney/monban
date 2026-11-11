@@ -1,5 +1,5 @@
 /-
-AEGIS TLS key-exchange group selection model: Select(model) of spec/SPEC_INVARIANTS.md section F and its
+Monban TLS key-exchange group selection model: Select(model) of spec/SPEC_INVARIANTS.md section F and its
 2026-11-04 addendum (PLAN-6 D3). Group selection only: the F12 oracle's two admission steps that run before it
 (no common version -> alert 70, no common sigalg -> alert 49) are outside this model.
 

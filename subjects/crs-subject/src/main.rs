@@ -6,8 +6,8 @@
 //! One JSON request per line on stdin, one JSON reply per line on stdout (`oracles/crs-diff/README.md`, "Subject
 //! wire protocol"). Everything observable comes from the production crates:
 //!
-//! * `do sql` ([`pg`]): one data request. A backend is checked out of an `aegis_adapter_pg::Pool` under the
-//!   request's [`PoolKey`](aegis_adapter_pg::PoolKey) (principal, tenant, per-tenant login role, epoch); a recycled
+//! * `do sql` ([`pg`]): one data request. A backend is checked out of an `monban_adapter_pg::Pool` under the
+//!   request's [`PoolKey`](monban_adapter_pg::PoolKey) (principal, tenant, per-tenant login role, epoch); a recycled
 //!   connection runs the adapter's C8 reset (DISCARD ALL + cache-generation bump) before its session is reachable.
 //!   The subject then reads `pg_backend_pid()` (`conn`) and whether any per-connection object survived (temp
 //!   relation, prepared statement, session GUC: `temp_residual`, read before the request dirties the session),
@@ -15,11 +15,11 @@
 //!   dirties the session (temp table, `PREPARE`, session-level GUC) and releases the connection through the NC3
 //!   path. `cache` is the pool connection id plus the driver cache generation it is bound to. The same request
 //!   also checks out a Valkey connection from a second pool under the same key shape, authenticated as the
-//!   tenant's ACL user (`aegis_adapter_redis::TenantUser`, R-DB-5), and probes it server side ([`kv`]): the
+//!   tenant's ACL user (`monban_adapter_redis::TenantUser`, R-DB-5), and probes it server side ([`kv`]): the
 //!   tenant's own key must be writable and another tenant's key refused with NOPERM. `guc.tenant` is the tenant
 //!   only when both engines agree on it; otherwise it names the disagreement, so a KV session bound to the wrong
 //!   tenant (or to no tenant) fails the oracle's GUC check.
-//! * `do idem` / `do outbox` ([`scoped`]): `aegis_state::State` in a private temporary directory. Idempotency is
+//! * `do idem` / `do outbox` ([`scoped`]): `monban_state::State` in a private temporary directory. Idempotency is
 //!   keyed by `IdemKey(principal, key)`; an outbox entry is an effect of a committed request and carries its
 //!   (principal, tenant) scope, and only entries of the current scope are listed.
 //!
@@ -32,7 +32,7 @@
 //! Mutants (oracle names; `--mutant` may repeat): `shared-pool` (one pool key for every scope, admin login),
 //! `pool-key-no-tenant` (the key keeps only the epoch: shared login, no tenant, no principal),
 //! `pool-key-no-epoch` (the adapter's hidden `PoolMutations::pool_key_no_epoch`), `no-reset-on-recycle`
-//! (`PoolMutations::recycle_no_reset`), `idem-key-without-principal` (aegis-state's hidden
+//! (`PoolMutations::recycle_no_reset`), `idem-key-without-principal` (monban-state's hidden
 //! `StateMutations::idem_key_without_principal`), `outbox-no-principal` (the listing ignores the scope).
 //!
 //! Epochs are pool-key coordinates only; the subject never calls `Pool::retire_before`, because the oracle's C5b
@@ -47,9 +47,9 @@ mod scoped;
 use std::io::{BufRead, Read, Write};
 use std::process::ExitCode;
 
-use aegis_adapter_pg::data_ir::parse_tenant_text;
-use aegis_adapter_pg::{KeyError, PoolKey, TenantId};
 use json::{Json, esc};
+use monban_adapter_pg::data_ir::parse_tenant_text;
+use monban_adapter_pg::{KeyError, PoolKey, TenantId};
 
 const MAX_LINE: u64 = 1 << 20;
 

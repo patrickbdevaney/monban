@@ -1,11 +1,11 @@
 Status: DRAFT, not published
 
-# AEGIS PSIRT runbook (draft)
+# Monban PSIRT runbook (draft)
 
-Draft procedure for handling a vulnerability in AEGIS (COMPLIANCE_MAP §5, §1 row 2026-09-11). Reports arrive through
-the channel in the root `SECURITY.md` (GitHub private vulnerability reporting). The CRA parts are not in force: AEGIS
+Draft procedure for handling a vulnerability in Monban (COMPLIANCE_MAP §5, §1 row 2026-09-11). Reports arrive through
+the channel in the root `SECURITY.md` (GitHub private vulnerability reporting). The CRA parts are not in force: Monban
 is distributed free and not monetised (operator decision 2026-11-11). The reporting deadlines below bind a
-manufacturer that makes AEGIS available on the market in the course of a commercial activity (CRA Art 14), and an
+manufacturer that makes Monban available on the market in the course of a commercial activity (CRA Art 14), and an
 open-source steward under Art 24(3) from 2027-12-11. Which role applies is an operator decision.
 
 ## Roles
@@ -18,8 +18,8 @@ open-source steward under Art 24(3) from 2027-12-11. Which role applies is an op
 
 ## Clock
 
-**T0 = the moment AEGIS becomes aware** of an actively exploited vulnerability or a severe incident. T0 is stamped as
-an event in the AEGIS audit tlog (tamper-evident, signed checkpoint), so the clock cannot be backdated.
+**T0 = the moment Monban becomes aware** of an actively exploited vulnerability or a severe incident. T0 is stamped as
+an event in the Monban audit tlog (tamper-evident, signed checkpoint), so the clock cannot be backdated.
 
 | deadline | action (manufacturer role, CRA Art 14) |
 |---|---|
@@ -35,7 +35,7 @@ policy in the root `SECURITY.md` applies.
 
 ## Procedure
 
-1. **Intake.** Record the report verbatim. Acknowledge within the CVD target. Assign an internal id `AEGIS-YYYY-NNNN`.
+1. **Intake.** Record the report verbatim. Acknowledge within the CVD target. Assign an internal id `Monban-YYYY-NNNN`.
 2. **Triage.** Reproduce on the golden build (floor and cmvp). Map it to a SECURITY_CLAIMS.md row: does it break a
    claim (which rung)? Is it in a trusted, not verified component (hyper, h2, tokio, rustls, AWS-LC C, rustc)? If
    upstream: report upstream, track the advisory, prepare a VEX statement.

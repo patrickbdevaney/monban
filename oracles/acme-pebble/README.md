@@ -1,7 +1,7 @@
 # acme-pebble: ACME issuance and renewal against Pebble, CERT-1..4
 
-This oracle checks the in-house ACME client in aegis-ops (feature `acme`, DEVIATIONS X-6) and the certificate
-lifecycle in `aegis_ops::cert`. Both run black-box through `subjects/acme-subject`, against the Let's Encrypt
+This oracle checks the in-house ACME client in monban-ops (feature `acme`, DEVIATIONS X-6) and the certificate
+lifecycle in `monban_ops::cert`. Both run black-box through `subjects/acme-subject`, against the Let's Encrypt
 Pebble test CA. Unit: P2-acme-cert-001.
 
 Clauses checked (`spec/SPEC_INVARIANTS.md` §G, ARCHITECTURE §3.11 "ACME and certs"):
@@ -103,7 +103,7 @@ Every case must be caught.
 | control `--no-renew` | the main check FAILs because no ARI renewal happens |
 | control `silence-alerts` | the CERT-4 check FAILs because no alerts fire |
 
-The mutation hooks are `aegis_ops::acme::Faults`, all off by default, plus the subject's `--mutate` flags.
+The mutation hooks are `monban_ops::acme::Faults`, all off by default, plus the subject's `--mutate` flags.
 
 ## Results (in-repo, 2026-10-25)
 
@@ -122,7 +122,7 @@ ACME-PEBBLE SELF-TEST: PASS (8/8 mutations caught: ...)
   - `Retry-After` is 21600 s;
   - `set-renewal-info` exists;
   - `replaces` is validated.
-- RFC 9773's certID example (Appendix A) is a unit test in `aegis_ops::acme::ari`.
+- RFC 9773's certID example (Appendix A) is a unit test in `monban_ops::acme::ari`.
 
 ## Known limits
 

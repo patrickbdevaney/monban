@@ -1,4 +1,4 @@
-//! MCP listener gate request classification (aegis-agent `Gate::check` / `Gate::complete`), sans-I/O.
+//! MCP listener gate request classification (monban-agent `Gate::check` / `Gate::complete`), sans-I/O.
 //!
 //! The input is a script: an authorizer decision list, then up to 8 operations, each either a request (method, path,
 //! authority, Origin / Sec-Fetch-Site / Cookie, Content-Type, a bearer JWT minted by the harness or arbitrary bytes,
@@ -33,20 +33,20 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use aegis_agent::authz::pdp_request;
-use aegis_agent::gate::{FORBIDDEN, META_PV, PRM_PREFIX, V_LEGACY, V_MODERN};
-use aegis_agent::jwt::mint_hs256;
-use aegis_agent::{
+use monban_agent::authz::pdp_request;
+use monban_agent::gate::{FORBIDDEN, META_PV, PRM_PREFIX, V_LEGACY, V_MODERN};
+use monban_agent::jwt::mint_hs256;
+use monban_agent::{
     AgentConfig, Authorizer, DenyAll, Forward, Gate, HttpRequest, Method, Response, Target, UpstreamReply, Verdict,
     b64, emit,
 };
-use aegis_authz::Decision;
-use aegis_authz::pdp::PdpRequest;
-use aegis_canon::{JsonValue, canon_json, canon_media_type, canon_origin, parse_json};
-use aegis_fuzz::{ALNUM, LOWER, Unstructured, byte, bytes, flag, selftest, string_from};
+use monban_authz::Decision;
+use monban_authz::pdp::PdpRequest;
+use monban_canon::{JsonValue, canon_json, canon_media_type, canon_origin, parse_json};
+use monban_fuzz::{ALNUM, LOWER, Unstructured, byte, bytes, flag, selftest, string_from};
 use libfuzzer_sys::fuzz_target;
 
-const SECRET: &[u8] = b"aegis-fuzz-mcp-gate-secret-NOT-FOR-PRODUCTION";
+const SECRET: &[u8] = b"monban-fuzz-mcp-gate-secret-NOT-FOR-PRODUCTION";
 const ISS: &str = "https://issuer.fuzz.test";
 const NOW: u64 = 1_800_000_000;
 const CRED: &str = "Bearer gw";
@@ -518,7 +518,7 @@ fn parse_req(u: &mut Unstructured<'_>) -> Req {
 
 // ---------------------------------------------------------------- properties
 
-fn verdict_norm(side: &Side, v: &Verdict) -> (Option<Response>, Option<Vec<aegis_agent::UpstreamCall>>) {
+fn verdict_norm(side: &Side, v: &Verdict) -> (Option<Response>, Option<Vec<monban_agent::UpstreamCall>>) {
     match v {
         Verdict::Reply(r) => (Some(side.norm(r)), None),
         Verdict::Forward(f) => (None, Some(f.calls().to_vec())),

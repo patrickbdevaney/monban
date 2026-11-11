@@ -9,7 +9,7 @@ property for the code it reaches. The obligations below are listed as not checke
 - Spec clause: acceptance.must, "client key-share encoding length".
 - Failing case: no harness can build an `Active`, or reach `Active::new`. Both take an `agreement::PrivateKey` and a
   `kem::DecapsulationKey`. Only aws-lc C code can produce these (through `EVP_PKEY_keygen` / `CBB_finish`
-  out-parameters). aegis-tls is `#![forbid(unsafe_code)]`, so a Kani stub cannot write those out-parameters. A
+  out-parameters). monban-tls is `#![forbid(unsafe_code)]`, so a Kani stub cannot write those out-parameters. A
   `-Z c-ffi` havoc leaves the out-pointers unwritten, so keygen always fails, and it also creates spurious
   out-of-bounds reports in aws-lc-rs (`PublicKey::as_ref` slices by a C-returned length).
 - Minimal reason: the encoding sits inline in a constructor whose arguments are opaque C handles.
@@ -39,7 +39,7 @@ property for the code it reaches. The obligations below are listed as not checke
   `DecapsulationKey::decapsulate`. Neither one checks the length in Rust (aws-lc-rs 1.18.2 `kem.rs`). The ML-KEM-1024
   ciphertext length bound for a 0x0202 client is enforced only in AWS-LC C (`EVP_PKEY_decapsulate`). That code is
   trusted, not verified (SECURITY_CLAIMS). No Kani proof on Rust code can show this bound. One option for a later
-  unit: an AEGIS wrapper around rustls' MLKEM1024 / SECP256R1MLKEM768 client groups that checks the exact
+  unit: an Monban wrapper around rustls' MLKEM1024 / SECP256R1MLKEM768 client groups that checks the exact
   server-share length before it delegates. Kani could check that wrapper with a mock inner `ActiveKeyExchange`.
 - Minimal reason: the client-side state is built only by C, and the length check under test is in C (0x0202).
 

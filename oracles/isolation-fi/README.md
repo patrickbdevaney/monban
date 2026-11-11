@@ -46,7 +46,7 @@ the guest export `handle(id, fault) -> u32` and replies with 8 bytes, `id` then 
 `work(id, 0x5a17c0de, data.bin)` (see `rust/work.rs`); any other value counts as a wrong answer. A trap means the
 server closes the connection without replying. The guest imports `env.host_fault(code: u32)`. Code 1 must take the
 serving host process down (abort); code 2 must corrupt that process's host state so that every later reply from the
-process is wrong (the reference XORs results with 0x5a5a). Real AEGIS hosts wire these two codes in a test-only
+process is wrong (the reference XORs results with 0x5a5a). Real Monban hosts wire these two codes in a test-only
 build. A subject that does not honour them cannot claim the host-fault rows.
 
 Reference subjects (built from `rust/`, Wasmtime 50.0.1, pooling allocator, 16 MiB limiter, default guards,

@@ -5,19 +5,19 @@
 //!                 [--handover-ms 5000] [--runtime-dir DIR]
 //! ```
 //! `--listen` may repeat (1..=`MAX_HANDOVER_LISTENERS` listeners, served by one accept thread each).
-//! SIGHUP or SIGUSR2: re-exec itself as the upgrade child through `aegis_ops::handover` (every listener handed over
+//! SIGHUP or SIGUSR2: re-exec itself as the upgrade child through `monban_ops::handover` (every listener handed over
 //! by SCM_RIGHTS on the handover socket, never a second SO_REUSEPORT bind). The pidfile is (re)written atomically by
 //! whichever process currently owns the listeners, once the handover is complete. SIGTERM/SIGINT: drain and exit.
 //! Every response is `200 OK` with body `ok <pid>\n`; keep-alive is honoured until the drain starts.
 #![forbid(unsafe_code)]
 
-use aegis_ops::drain::{ConnGuard, ConnTracker, accept_loop};
-use aegis_ops::fdcheck::describe_tcp;
-use aegis_ops::handover::{self, LeakPolicy, MAX_HANDOVER_LISTENERS, Offered, ParentConfig, ParentHooks};
-use aegis_ops::notify::Notifier;
-use aegis_ops::signals::{Sig, Signals};
-use aegis_ops::stek::StekRing;
-use aegis_ops::wire::ListenerDesc;
+use monban_ops::drain::{ConnGuard, ConnTracker, accept_loop};
+use monban_ops::fdcheck::describe_tcp;
+use monban_ops::handover::{self, LeakPolicy, MAX_HANDOVER_LISTENERS, Offered, ParentConfig, ParentHooks};
+use monban_ops::notify::Notifier;
+use monban_ops::signals::{Sig, Signals};
+use monban_ops::stek::StekRing;
+use monban_ops::wire::ListenerDesc;
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};

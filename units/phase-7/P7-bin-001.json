@@ -23,11 +23,11 @@
   "proxy-l4 and front-equiv self-tests"
  ],
  "acceptance": {
-  "cmd": "ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features proxy-protocol,l4 && oracles/proxy-l4/run --binary target/release/aegis' && ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features uring && oracles/front-equiv/run --binary target/release/aegis' && python3 -I ci/default-graph.py",
-  "must": "PASS; aegis-bin wires PROXY (before TLS, trusted CIDR from F8), L4 listeners (peek, route by SNI, splice with idle/stall deadlines), --front uring, the mtc selector and the mariadb/crdb adapter families, each behind its feature; every carried gate still PASS; default graph unchanged; F8 admission.per_ip (P7-spec-001) wired into admission_config() with absent = today's values; bench/scaling passes with a config raising the per-IP limit"
+  "cmd": "ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p monban-bin --features proxy-protocol,l4 && oracles/proxy-l4/run --binary target/release/monban' && ci/remote.sh bash -c 'ci/heavy.sh cargo build --release --locked -q -p monban-bin --features uring && oracles/front-equiv/run --binary target/release/monban' && python3 -I ci/default-graph.py",
+  "must": "PASS; monban-bin wires PROXY (before TLS, trusted CIDR from F8), L4 listeners (peek, route by SNI, splice with idle/stall deadlines), --front uring, the mtc selector and the mariadb/crdb adapter families, each behind its feature; every carried gate still PASS; default graph unchanged; F8 admission.per_ip (P7-spec-001) wired into admission_config() with absent = today's values; bench/scaling passes with a config raising the per-IP limit"
  },
  "write_scope": [
-  "crates/aegis-bin/src/**"
+  "crates/monban-bin/src/**"
  ],
  "notes": ""
 }

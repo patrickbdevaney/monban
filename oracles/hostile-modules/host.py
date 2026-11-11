@@ -1,6 +1,6 @@
 """Host level of the hostile-modules oracle (gate p2-hostile-host).
 
-Boots the subject (the real aegis binary with feature p2, or the reference supervisor ref_host.py) with an
+Boots the subject (the real monban binary with feature p2, or the reference supervisor ref_host.py) with an
 oracle-written F8 config, drives it over TLS (HTTP/1.1) with F5 Tier-L tokens, and judges by
   - response bytes (I5: no module byte before an Allow completion, host re-serialization; I7: every failure equals
     the host's explicit-Deny response),
@@ -34,7 +34,7 @@ import guests
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-VHOST = "aegis.test"
+VHOST = "monban.test"
 OP_BUDGET_MS = 5000
 GRACE_MS = 2000
 HOLD_S = 0.8          # audit-order: how long the oracle holds the SQLite write lock at most
@@ -308,7 +308,7 @@ class Boot:
             "p2": {"worker": self.worker, "cache_dir": self.cache, "isolation": self.iso, "modules": mods},
             "vhosts": [{"host": VHOST, "routes": routes}],
         }
-        self.cfg_path = os.path.join(d, "aegis.json")
+        self.cfg_path = os.path.join(d, "monban.json")
         with open(self.cfg_path, "w") as f:
             json.dump(self.cfg, f, indent=1)
 

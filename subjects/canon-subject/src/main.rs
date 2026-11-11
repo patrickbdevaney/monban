@@ -1,5 +1,5 @@
 //! canon-subject: speaks the canon-diff line protocol (oracles/canon-diff/README.md) on stdin/stdout using only
-//! aegis-canon's public API.
+//! monban-canon's public API.
 //!
 //! In:  `{"id": N, "kind": K, "input": X}` per line.
 //! Out: `{"id": N, "accept": <canonical>}` or `{"id": N, "reject": "<status> <reason>"}` per line.
@@ -11,7 +11,7 @@ mod proto;
 
 use std::io::{BufRead, BufWriter, Write};
 
-use aegis_canon::{
+use monban_canon::{
     Proto, QueryMode, Reject, RequestIdentity, Scheme, Vhost, canon_cookie, canon_headers, canon_json,
     canon_media_type, canon_origin, canon_path, canon_query, canon_request, canon_sni, canon_tenant, header_fields,
 };

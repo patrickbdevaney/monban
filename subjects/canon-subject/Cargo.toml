@@ -1,18 +1,18 @@
 [package]
 name = "canon-subject"
-description = "Oracle subject: exposes aegis-canon over the canon-diff JSON-lines protocol. Never linked into aegis."
+description = "Oracle subject: exposes monban-canon over the canon-diff JSON-lines protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # Zero external dependencies: the protocol's JSON lines are read by the small parser in src/proto.rs.
 [dependencies]
-aegis-canon = { workspace = true }
+monban-canon = { workspace = true }
 
 [lints]
 workspace = true

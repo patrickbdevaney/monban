@@ -13,13 +13,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IFACES = [
     ("F1", "spec/SPEC_INVARIANTS.md", "frozen"),
     ("F1", "spec/STATEMENTS.sha256", "frozen"),
-    ("F2", "crates/aegis-types/src/lib.rs", "frozen"),
-    ("F3", "crates/aegis-transport/src/exchange.rs", "frozen"),
-    ("F4", "crates/aegis-data-ir/src/ir.rs", "provisional:q4-004"),
+    ("F2", "crates/monban-types/src/lib.rs", "frozen"),
+    ("F3", "crates/monban-transport/src/exchange.rs", "frozen"),
+    ("F4", "crates/monban-data-ir/src/ir.rs", "provisional:q4-004"),
     ("F5", "interfaces/F5-token.cddl", "frozen"),
-    ("F6", "crates/aegis-authz/src/combine.rs", "frozen"),
-    ("F7", "sdk/aegis-sdk/src/surface.rs", "frozen"),
-    ("F7b", "sdk/aegis-sdk/src/streaming.rs", "frozen"),
+    ("F6", "crates/monban-authz/src/combine.rs", "frozen"),
+    ("F7", "sdk/monban-sdk/src/surface.rs", "frozen"),
+    ("F7b", "sdk/monban-sdk/src/streaming.rs", "frozen"),
     ("F8", "interfaces/F8-config.schema.json", "frozen"),
     ("F9", "interfaces/F9-audit-event.schema.json", "frozen"),
     ("F10", "interfaces/F10-module-wire.cddl", "frozen"),
@@ -66,7 +66,7 @@ def main():
             for _, path, _ in IFACES + [("", MANIFEST, "")]:
                 os.makedirs(os.path.dirname(os.path.join(d, path)), exist_ok=True)
                 shutil.copy(os.path.join(ROOT, path), os.path.join(d, path))
-            with open(os.path.join(d, "crates/aegis-authz/src/combine.rs"), "a") as f:
+            with open(os.path.join(d, "crates/monban-authz/src/combine.rs"), "a") as f:
                 f.write("\n// mutated: pretend someone loosened the combiner\n")
             bad = check(d)
         if any("combine.rs: changed" in b for b in bad):

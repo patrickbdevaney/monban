@@ -30,7 +30,7 @@ impl Json {
     }
 }
 
-/// Nesting bound of the reader (requests carry IR predicates; `aegis_data_ir::MAX_PRED_DEPTH` = 64 levels of Pred,
+/// Nesting bound of the reader (requests carry IR predicates; `monban_data_ir::MAX_PRED_DEPTH` = 64 levels of Pred,
 /// and `andN`/`orN` add an array level each).
 const MAX_DEPTH: usize = 160;
 

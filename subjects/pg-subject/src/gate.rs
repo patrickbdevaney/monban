@@ -1,6 +1,6 @@
 //! `pg-subject schema`: the schema-gate subject protocol (oracles/schema-gate/README.md).
 //!
-//! * `pg` mode: connect to `dsn` (version-gated, `connect_admitted`), then `aegis_adapter_pg::check_live_schema` on
+//! * `pg` mode: connect to `dsn` (version-gated, `connect_admitted`), then `monban_adapter_pg::check_live_schema` on
 //!   `namespace`.`collection`: the live catalog decides collations, NULL-ability, unique indexes, types, triggers,
 //!   rules, FKs, partitioning and RLS; `declared` contributes only names, field numbers, roles and `permitted`.
 //! * `static` mode: F4 `check_schema` on the admission probe (as datair-subject), for completeness.
@@ -13,9 +13,9 @@ use std::collections::HashMap;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
-use aegis_adapter_pg::TenantId;
-use aegis_adapter_pg::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
-use aegis_adapter_pg::{ConnectConfig, ConnectError, Connection, check_live_schema, connect_admitted};
+use monban_adapter_pg::TenantId;
+use monban_adapter_pg::data_ir::{Collation, Column, Fidelity, Op, OpKind, Pred, Schema, UniqueIndex, check_schema};
+use monban_adapter_pg::{ConnectConfig, ConnectError, Connection, check_live_schema, connect_admitted};
 
 use crate::json::{self, Json, emit, esc};
 

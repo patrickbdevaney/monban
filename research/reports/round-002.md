@@ -1,4 +1,4 @@
-# AEGIS round 2 report (2026-10-25)
+# Monban round 2 report (2026-10-25)
 
 Integrator: sole writer of map state for round 2. Inputs: 12 explorers (raw JSON in `state/raw/round-002/`) and 12 two-sided verifier passes. Blind research rule (§0a) held: the integrator did not open `state/prior_treatments/` or `state/seed_conversation.md`.
 
@@ -74,7 +74,7 @@ Crash recovery note: the laptop crashed from memory exhaustion during the explor
    - Grep-verified in h2 0.4.20 / hyper 1.12.0: no header field-count cap, no stall or send timeout anywhere, and handlers spawned by hyper outlive h2's reset accounting (the MadeYouReset gap). Raw h2 defaults allow unlimited streams and a 16 MiB header list (`l4-h2-budget-mechanics-0.4.20`).
    - Only s2n-quic has Kani proofs, and none covers resource budgets (`l4-transport-harness-census-2026-10`).
    - CERT VU#885548 (stalled flow control, 2026-07-22, JVN) is the advisory instance of the missing stall deadline (`r2e11.h2-stalled-flowcontrol`, A).
-   - → golden config pins plus an AEGIS wrapper (fields ≤128, handler permits with a 4× queue, RST bucket, 10 s stall deadline) and a Kani/Verus/Lean/fuzz/DST tool split per clause (`l5-transport-budget-invariant-tbi`, `l5-tbi-tool-assignment`, `l5-config-pin-table-transport`).
+   - → golden config pins plus an Monban wrapper (fields ≤128, handler permits with a 4× queue, RST bucket, 10 s stall deadline) and a Kani/Verus/Lean/fuzz/DST tool split per clause (`l5-transport-budget-invariant-tbi`, `l5-tbi-tool-assignment`, `l5-config-pin-table-transport`).
 3. **Crash-consistency experiment: which embedded stores lose acknowledged writes, under which config.** [A]
    - About 130k crash images across 7 stores, with controls: the no-fsync control loses acks in ~99% of drop-all cuts, the CRC+fdatasync+dir-fsync control in 0/8020.
    - PASS: SQLite WAL+FULL, redb 2PC+Immediate, fjall SyncAll, canopydb `commit_with(true)`, LMDB defaults.
@@ -152,7 +152,7 @@ Full text is in `ARCHITECTURE-DRAFT.md`. Round 2 adds 30 rules and changes 27 ro
 - `+R-DB-3/4/5/6`: INV-NONEMPTY [A/B]; build-time allowlist lock with family denylists [C]; native per-tenant credentials and no cross-tenant connection sharing [B]; adapter isolation by driver type [B].
 - `+R-ING-1` [C]: one normalization core plus feature-gated front ends; translation seams buffer and budget before downgrade. `+R-TLS-8` [A]: one TLS mode per port, no `Upgrade: TLS`.
 - `+R-MOD-1` [B]: Cargo features; no dlopen; compiler-bearing modules out of process or precompiled+MACed. `+R-PERF-1/2` [B]: lean budget and benchmark protocol.
-- `R-TLS-1` amended: golden hyper pins plus the AEGIS wrapper. `+R-TLS-7` [B]: TBI-1..9 as a named invariant with tool assignment. `R-TLS-2` amended: H3 off in the golden; quinn `receive_window` 4 MiB.
+- `R-TLS-1` amended: golden hyper pins plus the Monban wrapper. `+R-TLS-7` [B]: TBI-1..9 as a named invariant with tool assignment. `R-TLS-2` amended: H3 off in the golden; quinn `receive_window` 4 MiB.
 - `R-PQC-1` amended: carve-outs and a mandatory HRR acceptance test. `R-PQC-2` **B → C**: the byte-identical FIPS pin is unresolved. `+R-PQC-6` [A/B]: scoped ticketers, STEK hygiene, 0-RTT off.
 - `R-ISO-1` amended: measured inputs; an OS sandbox always wraps Wasm. `R-ISO-2` amended: exact pin (≥36.0.19 on the 36 line, or ≥43), explicit memory64/gc off, never density-tune, MDWX worker split. `+R-ISO-4` [A]: Landlock then seccomp, installed once per worker.
 - `+R-AUTHZ-5` [A/B]: tri-state fail-closed combiner. `R-AUTHZ-1` amended: TCB wording (Lean compiler via native_decide; cvc5). `R-AUTHZ-2` amended: no JWT.

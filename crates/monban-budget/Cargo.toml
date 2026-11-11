@@ -1,0 +1,17 @@
+[package]
+name = "monban-budget"
+description = "Sans-IO resource ledgers: RST bucket, GCRA, window/stream ledgers, per-request resource ledger (TBI-1..9)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 2
+
+[dependencies]
+
+
+[lints]
+workspace = true

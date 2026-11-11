@@ -2,7 +2,7 @@
  "id": "P4-redis-001",
  "role": "implementer",
  "crates": [
-  "aegis-adapter-redis"
+  "monban-adapter-redis"
  ],
  "depends_on": [
   "P4-spec-001",
@@ -30,8 +30,8 @@
   "must": "leak=miss=0 >= 100k per engine; W1=W2=W7=0; ACL corpus: every hostile command refused by the server under the generated ACL user"
  },
  "write_scope": [
-  "crates/aegis-adapter-redis/src/**",
-  "crates/aegis-adapter-redis/tests/**",
+  "crates/monban-adapter-redis/src/**",
+  "crates/monban-adapter-redis/tests/**",
   "subjects/redis-subject/**"
  ],
  "notes": "SCAN MATCH patterns must glob-escape the suffix (* ? [ ] \\); keys are binary-safe (hex in protocol).",

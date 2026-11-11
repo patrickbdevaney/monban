@@ -1,10 +1,10 @@
 //! `host-subject sdk-host`: oracles/sdk-host subject protocol (README "Subject protocol").
 //!
-//! The host is `aegis_adapter_host::host::Host`: every open, step, message, call, hold and job goes through its
-//! bounded pool and its `aegis_sdk::host` driving loop; streams are its `GenStream`/`WsStream` (budgets and close
+//! The host is `monban_adapter_host::host::Host`: every open, step, message, call, hold and job goes through its
+//! bounded pool and its `monban_sdk::host` driving loop; streams are its `GenStream`/`WsStream` (budgets and close
 //! reasons are decided there); jobs are its queue (kept on error, run with the session as it is now); sessions are
 //! its `SessionHandle`. This file is the scripted test application, the instrumented `Backend`, and the protocol
-//! plumbing (printing what the host decided). Principals are minted through aegis-token's Tier-0 path.
+//! plumbing (printing what the host decided). Principals are minted through monban-token's Tier-0 path.
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::io::{BufRead, Write};
@@ -12,18 +12,18 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use aegis_adapter_host::host::pool::PoolMutations;
-use aegis_adapter_host::host::{
+use monban_adapter_host::host::pool::PoolMutations;
+use monban_adapter_host::host::{
     Backends, BlockingPool, CancelToken, CloseReason, GenStream, Host, HostMutations, ScopeOutcome, SessionHandle,
     StepRefused, StreamBudget, Ticket, WsStream,
 };
-use aegis_data_ir::{CapSet, Caps, DataCap, OpMask, Pred, tenant_text};
-use aegis_sdk::query::{Op, OpKind};
-use aegis_sdk::{
+use monban_data_ir::{CapSet, Caps, DataCap, OpMask, Pred, tenant_text};
+use monban_sdk::query::{Op, OpKind};
+use monban_sdk::{
     BodyHandler, Chunk, Committed, Ctx, DataCap as Cap, Event, Granted, Job, Open, ScopedHandler, SdkError, SseHandler,
     Step, StreamGen, TenantDb, Tx, WsHandler, WsMsg, WsReply, WsSession,
 };
-use aegis_types::RouteId;
+use monban_types::RouteId;
 
 use crate::json::{self, Json};
 
@@ -140,7 +140,7 @@ struct SubjBackend {
     fail: Arc<AtomicBool>,
 }
 
-impl aegis_sdk::host::Backend for SubjBackend {
+impl monban_sdk::host::Backend for SubjBackend {
     type Rows = ();
     fn begin(&self) -> Result<(), SdkError> {
         self.out.ev(&[("ev", esc("backend")), ("call", esc("begin"))]);
@@ -576,7 +576,7 @@ impl Subject {
             }
             "session" => {
                 let name = s_of(req, "session")?.to_string();
-                let tenant = aegis_data_ir::parse_tenant_text(s_of(req, "tenant")?).ok_or("bad tenant")?;
+                let tenant = monban_data_ir::parse_tenant_text(s_of(req, "tenant")?).ok_or("bad tenant")?;
                 let permits = ops_mask(&strings(req.get("permits"))?)?;
                 let principal = crate::token::principal(tenant)?;
                 let handle = SessionHandle::new(principal, route(), Some(endowment()?), permits);

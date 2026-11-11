@@ -1,4 +1,4 @@
-//! otlp-footprint spike: representative AEGIS "hello" server.
+//! otlp-footprint spike: representative Monban "hello" server.
 //! base: tokio (multi-thread, 1 worker) + hyper 1.12 (h1+h2 via hyper-util auto) + rustls 0.23.46 / aws-lc-rs 1.18.2,
 //!       TLS on 127.0.0.1:8443 (env HELLO_PORT), PQ-preferring default provider.
 //! +metrics: hand-written OpenMetrics text endpoint on a separate loopback admin listener (127.0.0.1:9100).
@@ -101,10 +101,10 @@ mod metrics {
         let mut s = String::with_capacity(512);
         let _ = write!(
             s,
-            "# TYPE aegis_requests counter\n# HELP aegis_requests Requests served.\naegis_requests_total {}\n\
-             # TYPE aegis_tls_handshake_failures counter\naegis_tls_handshake_failures_total {}\n\
-             # TYPE aegis_fips_status gauge\naegis_fips_status{{module=\"none\"}} 0\n\
-             # TYPE aegis_config_generation info\naegis_config_generation_info{{hash=\"0000\"}} 1\n# EOF\n",
+            "# TYPE monban_requests counter\n# HELP monban_requests Requests served.\nmonban_requests_total {}\n\
+             # TYPE monban_tls_handshake_failures counter\nmonban_tls_handshake_failures_total {}\n\
+             # TYPE monban_fips_status gauge\nmonban_fips_status{{module=\"none\"}} 0\n\
+             # TYPE monban_config_generation info\nmonban_config_generation_info{{hash=\"0000\"}} 1\n# EOF\n",
             COUNTERS.requests.load(Ordering::Relaxed),
             COUNTERS.tls_failures.load(Ordering::Relaxed),
         );
@@ -185,7 +185,7 @@ mod otel {
             opentelemetry_otlp::SpanExporter::builder().with_tonic().with_endpoint(base.clone()).build()?,
             opentelemetry_otlp::MetricExporter::builder().with_tonic().with_endpoint(base).build()?,
         );
-        let res = Resource::builder().with_service_name("aegis-hello").build();
+        let res = Resource::builder().with_service_name("monban-hello").build();
         let tp = SdkTracerProvider::builder()
             .with_span_processor(BatchSpanProcessor::builder(spans, Tokio).build())
             .with_resource(res.clone())
@@ -200,13 +200,13 @@ mod otel {
             )
             .with_resource(res)
             .build();
-        let _ = REQS.set(mp.meter("aegis").u64_counter("aegis.requests").build());
+        let _ = REQS.set(mp.meter("monban").u64_counter("monban.requests").build());
         // INFO cap (as `fmt().init()` in the logs variant) also keeps the exporter's own hyper-client TRACE events out
         // of the pipeline (otherwise exports generate spans that get exported: a feedback loop seen in run 1).
         tracing_subscriber::registry()
             .with(tracing_subscriber::filter::LevelFilter::INFO)
             .with(tracing_subscriber::fmt::layer().json().with_writer(std::io::stderr))
-            .with(tracing_opentelemetry::layer().with_tracer(tp.tracer("aegis")))
+            .with(tracing_opentelemetry::layer().with_tracer(tp.tracer("monban")))
             .init();
         Ok(Guard(tp, mp))
     }

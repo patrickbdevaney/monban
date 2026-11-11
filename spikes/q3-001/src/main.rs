@@ -24,7 +24,7 @@ use std::time::{Duration, Instant};
 
 const RESP_429: &[u8] =
     b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-const REQ: &[u8] = b"GET / HTTP/1.1\r\nHost: aegis.test\r\nUser-Agent: hsbench\r\n\r\n";
+const REQ: &[u8] = b"GET / HTTP/1.1\r\nHost: monban.test\r\nUser-Agent: hsbench\r\n\r\n";
 
 fn arg(a: &[String], k: &str, d: &str) -> String {
     a.iter().position(|x| x == k).and_then(|i| a.get(i + 1)).cloned().unwrap_or_else(|| d.to_string())
@@ -77,7 +77,7 @@ fn server(a: &[String]) {
     let label = arg(a, "--label", "");
 
     let kp = rcgen::KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256).unwrap();
-    let cert = rcgen::CertificateParams::new(vec!["aegis.test".to_string()]).unwrap().self_signed(&kp).unwrap();
+    let cert = rcgen::CertificateParams::new(vec!["monban.test".to_string()]).unwrap().self_signed(&kp).unwrap();
     let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(kp.serialize_der()));
     let mut cfg = ServerConfig::builder_with_provider(provider(&g))
         .with_protocol_versions(&[&rustls::version::TLS13])
@@ -312,7 +312,7 @@ fn client(a: &[String]) {
                     sock.set_nodelay(true)?;
                     sock.set_read_timeout(Some(Duration::from_secs(3)))?;
                     sock.set_write_timeout(Some(Duration::from_secs(3)))?;
-                    let mut c = ClientConnection::new(cfg.clone(), ServerName::try_from("aegis.test").unwrap())
+                    let mut c = ClientConnection::new(cfg.clone(), ServerName::try_from("monban.test").unwrap())
                         .map_err(std::io::Error::other)?;
                     while c.is_handshaking() {
                         c.complete_io(&mut sock)?;

@@ -1,11 +1,11 @@
 //! kx-interop reference subject: implements the oracle's subject interop contract (README "Subject contract") on
 //! plain rustls 0.23.46 + aws-lc-rs + the spike q4-026 0x11ED group, so the oracle's self-test has a subject that
-//! can be green, and mutants of it that must be red. Never linked into AEGIS.
+//! can be green, and mutants of it that must be red. Never linked into Monban.
 //!
 //!   kx-ref [--mutant M] interop-server <PROFILE>
 //!   kx-ref [--mutant M] interop-client <PROFILE> <CA_PEM> <NONCE>
 //!
-//! Profiles (written from ARCHITECTURE 3.2 / F12, independently of aegis-tls): P-UNIVERSAL [0x11ED],
+//! Profiles (written from ARCHITECTURE 3.2 / F12, independently of monban-tls): P-UNIVERSAL [0x11ED],
 //! P-BSI-ALT [0x11ED, 0x11EB], P-CNSA [0x0202] (ML-DSA-87 credential), P-PUBLIC-WEB [0x11EC, 0x11EB, X25519, P-256].
 //! Mutants: `order` (0x11ED combiner ML-KEM first), `x25519-fallback` (P-UNIVERSAL also accepts X25519),
 //! `no-echo` (server: never echoes; client: never sends the nonce but still reports success), `bsi-11eb-first`
@@ -80,7 +80,7 @@ fn seq(parts: &[&[u8]]) -> Vec<u8> {
 const OID_ML_DSA_87: &[u8] = &[0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x13];
 const OID_CN: &[u8] = &[0x55, 0x04, 0x03];
 const OID_SAN: &[u8] = &[0x55, 0x1d, 0x11];
-const HOST: &[u8] = b"aegis.test";
+const HOST: &[u8] = b"monban.test";
 
 /// Self-signed ML-DSA-87 certificate (rcgen 0.14.10 has no ML-DSA signer without its unstable feature).
 fn mldsa87() -> R<(Vec<u8>, Vec<u8>)> {
@@ -103,7 +103,7 @@ fn mldsa87() -> R<(Vec<u8>, Vec<u8>)> {
 
 fn ecdsa(alg: &'static rcgen::SignatureAlgorithm) -> R<(Vec<u8>, Vec<u8>)> {
     let kp = rcgen::KeyPair::generate_for(alg).map_err(|e| format!("ecdsa: {e}"))?;
-    let params = rcgen::CertificateParams::new(vec!["aegis.test".to_string()]).map_err(|e| format!("params: {e}"))?;
+    let params = rcgen::CertificateParams::new(vec!["monban.test".to_string()]).map_err(|e| format!("params: {e}"))?;
     let cert = params.self_signed(&kp).map_err(|e| format!("self_signed: {e}"))?;
     Ok((cert.der().to_vec(), kp.serialize_der()))
 }
@@ -120,7 +120,7 @@ fn server_config(profile: &str, m: Mutant) -> R<Arc<ServerConfig>> {
         .with_no_client_auth()
         .with_single_cert(vec![CertificateDer::from(cert)], PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key)))
         .map_err(|e| format!("credential: {e}"))?;
-    // As aegis-tls server_config (no resumption before P-PQ3).
+    // As monban-tls server_config (no resumption before P-PQ3).
     cfg.send_tls13_tickets = 0;
     Ok(Arc::new(cfg))
 }
@@ -216,7 +216,7 @@ fn serve(profile: &str, m: Mutant) -> R<()> {
 }
 
 fn client(profile: &str, ca: &str, nonce: &str, m: Mutant) -> R<()> {
-    let name = ServerName::try_from("aegis.test").map_err(|e| e.to_string())?;
+    let name = ServerName::try_from("monban.test").map_err(|e| e.to_string())?;
     let mut c: Connection =
         ClientConnection::new(client_config(profile, ca, m)?, name).map_err(|e| e.to_string())?.into();
     let (mut input, mut out) = (std::io::stdin().lock(), std::io::stdout().lock());

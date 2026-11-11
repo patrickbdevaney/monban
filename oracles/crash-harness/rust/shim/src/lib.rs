@@ -1,4 +1,4 @@
-//! AEGIS crash-harness tracing shim (LD_PRELOAD cdylib). Port of research round-002 `shim.c` to Rust, plus
+//! Monban crash-harness tracing shim (LD_PRELOAD cdylib). Port of research round-002 `shim.c` to Rust, plus
 //! fsync-EIO injection and protocol ack markers.
 //!
 //! Environment:
@@ -14,7 +14,7 @@
 //!
 //! Limits (see README): raw syscalls (rustix linux_raw, io_uring, static binaries) bypass LD_PRELOAD; mmap stores are
 //! only flagged (MMAPW), not modelled. x86_64/aarch64 Linux glibc. The C-variadic `open/open64/openat/openat64`
-//! live in `open_shim.c` (companion preload library built by build.rs) and call `aegis_shim_after_open`.
+//! live in `open_shim.c` (companion preload library built by build.rs) and call `monban_shim_after_open`.
 #![allow(clippy::missing_safety_doc)]
 use libc::{c_char, c_int, c_uint, c_void, iovec, mode_t, off_t, size_t, ssize_t};
 use std::cell::Cell;
@@ -212,7 +212,7 @@ fn after_open(dirfd: c_int, path: *const c_char, flags: c_int, rfd: c_int) -> c_
 /// Called by the C variadic `open*` entry points in `open_shim.c` (stable Rust cannot define C-variadics, and rustc
 /// 1.99 rejects any fixed-arity definition of std's runtime `open` symbol), after the real call returned `rfd`.
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_shim_after_open(dirfd: c_int, path: *const c_char, flags: c_int, rfd: c_int) -> c_int {
+pub extern "C" fn monban_shim_after_open(dirfd: c_int, path: *const c_char, flags: c_int, rfd: c_int) -> c_int {
     after_open(dirfd, path, flags, rfd)
 }
 #[unsafe(no_mangle)]

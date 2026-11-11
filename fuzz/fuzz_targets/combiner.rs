@@ -1,4 +1,4 @@
-//! F6: tri-state fail-closed combiner inputs (aegis-authz `combine`, `pdp::PdpStage` / `PdpClient` host mapping).
+//! F6: tri-state fail-closed combiner inputs (monban-authz `combine`, `pdp::PdpStage` / `PdpClient` host mapping).
 //!
 //! The input is a script: a list of stage decisions plus, for each PDP call, what the (fake) transport does:
 //! fault, return raw bytes with a chosen true length, or echo a well-formed reply under the right or a wrong id.
@@ -10,12 +10,12 @@
 //! - combining PDP decisions with other stages yields Allow only if every PDP answer was Allow.
 #![no_main]
 
-use aegis_authz::pdp::{
+use monban_authz::pdp::{
     HEADER_LEN, KIND_REQUEST, PdpClient, PdpRequest, PdpStage, PdpTransport, REPLY_LEN, TransportFault, Uid,
     decode_header, encode_reply,
 };
-use aegis_authz::{Decision, PolicyStage, combine};
-use aegis_fuzz::{Unstructured, byte, bytes, selftest};
+use monban_authz::{Decision, PolicyStage, combine};
+use monban_fuzz::{Unstructured, byte, bytes, selftest};
 use libfuzzer_sys::fuzz_target;
 
 #[derive(Default)]

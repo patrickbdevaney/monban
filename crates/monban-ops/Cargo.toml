@@ -1,0 +1,45 @@
+[package]
+name = "monban-ops"
+description = "ACME, certificate lifecycle CERT-1..4, zero-downtime upgrade UP-1..7, sd-notify."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata.monban]
+layer = 4
+
+[dependencies]
+monban-types = { workspace = true }
+monban-config = { workspace = true }
+# rustix: the only syscall layer here (P2-ops-rustix-001; nix removed). All APIs used are safe, so first-party code
+# stays forbid(unsafe_code). Features: "net" (workspace) = SEQPACKET handover socket, SCM_RIGHTS sendmsg/recvmsg,
+# SO_PEERCRED / SO_TYPE / SO_ACCEPTCONN, getsockname; "time" = needed by rustix's net sockopt code on linux_raw and
+# by poll timeouts; "event" = poll for the accept loop's stop flag; "fs" = mkfifoat for the STEK pipe; "process" =
+# getuid for the 0700-dir / peer-uid checks (and kill in a test).
+rustix = { workspace = true, features = ["time", "event", "fs", "process"] }
+# tokio (root pin): only for lifecycle signals ("signal" adds signal-hook-registry; "rt" = a private current-thread
+# runtime that drives the signal driver). rustix offers sigprocmask/sigwait only as unsafe, unstable runtime APIs.
+tokio = { workspace = true, features = ["rt", "signal"] }
+sd-notify = { workspace = true }
+# CERT-1..4 (always on): the swappable server cert store (rustls ResolvesServerCert, server side only), preflight
+# signature checks (aws-lc-rs) and the profile sigalg rules (monban-tls).
+monban-tls = { workspace = true }
+rustls = { workspace = true }
+aws-lc-rs = { workspace = true }
+# ACME (feature `acme`, DEVIATIONS X-6): strict JSON from the one parser.
+monban-canon = { workspace = true, optional = true }
+
+[features]
+default = []
+# In-house RFC 8555 / RFC 9773 client. This is the only code in monban-ops that builds a rustls ClientConfig; with the
+# feature off no rustls client code is linked (spikes/cmvp-client-policy, compiled-out mode).
+acme = ["dep:monban-canon"]
+# PREFLIGHT R11 (P8-spec-002 pre-wiring; P8-hardening-001 moves the code): `acme::Faults` (fault injection for the
+# acme-pebble oracle) exists only with this feature. Off by default and never enabled by a release graph (default,
+# native, any shipped profile, cmvp): gate no-test-faults (ci/no-test-faults.py). Only subjects/acme-subject enables it.
+test-faults = ["acme"]
+
+[lints]
+workspace = true

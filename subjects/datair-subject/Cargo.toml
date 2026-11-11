@@ -1,19 +1,19 @@
 [package]
 name = "datair-subject"
-description = "Oracle subject: exposes aegis-data-ir (check_schema, allowlist lock generator) over the schema-gate JSON-lines protocol. Never linked into aegis."
+description = "Oracle subject: exposes monban-data-ir (check_schema, allowlist lock generator) over the schema-gate JSON-lines protocol. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # Zero external dependencies: JSON via the small strict parser in src/json.rs.
 [dependencies]
-aegis-data-ir = { workspace = true }
-aegis-types = { workspace = true }
+monban-data-ir = { workspace = true }
+monban-types = { workspace = true }
 
 [lints]
 workspace = true

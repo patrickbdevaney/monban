@@ -1,14 +1,14 @@
 //! Static HTTP/1.1 upstream for bench/scaling (std only, built with plain `rustc -O`, no dependencies).
 //!
 //! `scaling-upstream <port>`: listens on 127.0.0.1:<port>, one thread per connection, keep-alive, and answers every
-//! request head with the same fixed 200 response. Request bodies are skipped by `content-length` (aegis regenerates
+//! request head with the same fixed 200 response. Request bodies are skipped by `content-length` (monban regenerates
 //! framing and never sends chunked upstream). It is the "static upstream" of the scaling harness, not a load client.
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::os::fd::AsRawFd;
 
-// std's TcpListener listens with a fixed small backlog; under a burst of new aegis upstream connections at high core
-// counts the accept queue overflowed, SYNs were dropped and aegis reported `connect: timeout` (Phase 8 run 1, 16 cores,
+// std's TcpListener listens with a fixed small backlog; under a burst of new monban upstream connections at high core
+// counts the accept queue overflowed, SYNs were dropped and monban reported `connect: timeout` (Phase 8 run 1, 16 cores,
 // 40 of 1.1M requests). Linux lets listen() be called again on a listening socket to raise the backlog (the kernel caps
 // it at net.core.somaxconn). libc is already linked by std; no dependency is added.
 extern "C" {

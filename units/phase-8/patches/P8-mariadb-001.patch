@@ -1,7 +1,7 @@
 P8-mariadb-001 patch (outside write scope: xtask/). Rationale: the allowlist-lock gate's independent generator
 (xtask/src/allowlist.rs) knew only sqlite/postgres/redis/valkey and its Deny::hit sent every unknown family to the
 RESP table, so apps/notes/allowlist.notes-mariadb.lock (committed by this unit) fails `--check` with "bad family
-line". This patch adds `mariadb` to FAMILIES, reads the MARIADB_DENY table from crates/aegis-data-ir/src/ir.rs
+line". This patch adds `mariadb` to FAMILIES, reads the MARIADB_DENY table from crates/monban-data-ir/src/ir.rs
 (fail closed if missing), gives Deny::hit explicit arms (redis|valkey -> RESP, mariadb -> MARIADB; any other family
 denies every word instead of silently using RESP), and mirrors lock.rs native_words for the MariaDB upsert skeleton
 (ODKU, or INSERT .. SELECT .. FROM DUAL WHERE NOT EXISTS when nothing is set; never ON CONFLICT DO, since DO is
@@ -18,19 +18,19 @@ diff --git a/xtask/src/allowlist.rs b/xtask/src/allowlist.rs
 --- a/xtask/src/allowlist.rs
 +++ b/xtask/src/allowlist.rs
 @@ -5,10 +5,13 @@
- //! xtask has no dependencies on purpose (see its Cargo.toml), so it cannot link `aegis_data_ir`. This file is
+ //! xtask has no dependencies on purpose (see its Cargo.toml), so it cannot link `monban_data_ir`. This file is
  //! therefore an independent second implementation of the F4 lock format and the lock.rs declaration rules, with its
  //! own FIPS 180-4 SHA-256. The denylist is not copied: it is read from the F4 source (`DenyEntry { item: ".." }` in
--//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` tables of crates/aegis-data-ir/src/ir.rs), and a missing or empty
--//! table fails the gate. The production generator is `aegis_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI:
--//! `datair-subject lock <decl>`); crates/aegis-data-ir/tests/lock.rs regenerates every committed lock with it, so
+-//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` tables of crates/monban-data-ir/src/ir.rs), and a missing or empty
+-//! table fails the gate. The production generator is `monban_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI:
+-//! `datair-subject lock <decl>`); crates/monban-data-ir/tests/lock.rs regenerates every committed lock with it, so
 -//! both implementations must agree byte for byte on every lock in the repository.
-+//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` / `MARIADB_DENY` tables of crates/aegis-data-ir/src/ir.rs), and a
++//! the `SQLITE_DENY` / `PG_DENY` / `RESP_DENY` / `MARIADB_DENY` tables of crates/monban-data-ir/src/ir.rs), and a
 +//! missing or empty table fails the gate. MariaDB's non-word form entries (`@`, `;`, `/*!`, `--`, ODKU without the
 +//! tenant guard) are named constants outside the inline items: they constrain rendered SQL text (the adapter's
 +//! `denied_in_sql` scan), never a word of the lock skeleton, exactly as in lock.rs. The production generator is
-+//! `aegis_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI: `datair-subject lock <decl>`);
-+//! crates/aegis-data-ir/tests/lock.rs regenerates every committed lock with it, so both implementations must agree
++//! `monban_data_ir::generate` (lock.rs + AWS-LC SHA-256, CLI: `datair-subject lock <decl>`);
++//! crates/monban-data-ir/tests/lock.rs regenerates every committed lock with it, so both implementations must agree
 +//! byte for byte on every lock in the repository.
  //!
  //! `--check` (default): find every declaration/lock pair (orphans fail; zero pairs fail), regenerate each lock
@@ -75,7 +75,7 @@ diff --git a/xtask/src/allowlist.rs b/xtask/src/allowlist.rs
 +        })
      }
      fn load(root: &Path) -> Result<Deny, String> {
-         let p = root.join("crates/aegis-data-ir/src/ir.rs");
+         let p = root.join("crates/monban-data-ir/src/ir.rs");
 @@ -141,7 +151,10 @@
          let list = match family {
              "sqlite" => &self.sqlite,
@@ -170,7 +170,7 @@ diff --git a/xtask/src/allowlist.rs b/xtask/src/allowlist.rs
 +    }
 +    // The MariaDB skeleton words are checked against the MariaDB table: a denylist source that also denies
 +    // DUPLICATE (an ODKU skeleton word) refuses the fixture's upsert, and a MariaDB lock is not a PostgreSQL one.
-+    let src_dup = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?.replacen(
++    let src_dup = read(&root.join("crates/monban-data-ir/src/ir.rs"))?.replacen(
 +        "const MARIADB_DENY: &[DenyEntry] = &[",
 +        "const MARIADB_DENY: &[DenyEntry] = &[\n    DenyEntry { item: \"DUPLICATE\", trace: \"self-test\" },",
 +        1,
@@ -189,7 +189,7 @@ diff --git a/xtask/src/allowlist.rs b/xtask/src/allowlist.rs
      expect_red(
          "kv-delete-all",
 @@ -942,6 +999,13 @@
-     let src = read(&root.join("crates/aegis-data-ir/src/ir.rs"))?;
+     let src = read(&root.join("crates/monban-data-ir/src/ir.rs"))?;
      let no_resp = src.replace("const RESP_DENY", "const RESP_DENY_GONE");
      expect_red("denylist-table-missing", Deny::parse(&no_resp).map(|_| 0), "not found");
 +    let no_my = src.replace("const MARIADB_DENY", "const MARIADB_DENY_GONE");

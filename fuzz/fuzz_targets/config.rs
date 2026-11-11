@@ -1,4 +1,4 @@
-//! F8: config parse (aegis-config `parse_config`, `ConfigStore`).
+//! F8: config parse (monban-config `parse_config`, `ConfigStore`).
 //!
 //! Properties:
 //! - `parse_config` is total; an error always carries a JSON pointer that is empty or starts with `/`;
@@ -8,9 +8,9 @@
 //!   config on success.
 #![no_main]
 
-use aegis_canon::canon_json;
-use aegis_config::{ConfigStore, MAX_CONFIG_BYTES, parse_config, sha256};
-use aegis_fuzz::selftest;
+use monban_canon::canon_json;
+use monban_config::{ConfigStore, MAX_CONFIG_BYTES, parse_config, sha256};
+use monban_fuzz::selftest;
 use libfuzzer_sys::fuzz_target;
 
 const GOOD: &[u8] = br#"{"v":1,"listeners":[{"name":"a","bind":"b","profile":"P-CNSA"}],

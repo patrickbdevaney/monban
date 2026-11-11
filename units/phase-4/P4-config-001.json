@@ -2,7 +2,7 @@
  "id": "P4-config-001",
  "role": "implementer",
  "crates": [
-  "aegis-config"
+  "monban-config"
  ],
  "depends_on": [
   "P4-spec-001",
@@ -22,13 +22,13 @@
   "config-totality (carried, 1e6 iters)"
  ],
  "acceptance": {
-  "cmd": "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && python3 -I ci/unrestricted.py check && AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config",
+  "cmd": "ci/heavy.sh cargo build --release --locked -q -p monban-bin && python3 -I ci/unrestricted.py check && AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p monban-config",
   "must": "PASS; absent data block => no data capability (never unrestricted); `unrestricted` only as an explicit literal"
  },
  "write_scope": [
-  "crates/aegis-config/**"
+  "crates/monban-config/**"
  ],
- "notes": "aegis-bin check-config --print-effective must print the data block; if that needs bin changes, hand back (bin is P4-bin-001's scope).",
+ "notes": "monban-bin check-config --print-effective must print the data block; if that needs bin changes, hand back (bin is P4-bin-001's scope).",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,

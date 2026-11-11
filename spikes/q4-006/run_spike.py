@@ -81,7 +81,7 @@ elif phase == "forkcost":
     with open(os.path.join(out, "forkcost.jsonl"), "a") as res:
         for t in range(1, trials + 1):
             # zygote_mode: "compiled" = module compiled inside the zygote; "cwasm" = zygote loads the cached
-            # precompiled module (the AEGIS design). The first run of each pool mode fills the cache.
+            # precompiled module (the Monban design). The first run of each pool mode fills the cache.
             for pool, zmode in (("ondemand", "compiled"), ("ondemand", "cwasm"), ("pool", "compiled"), ("pool", "cwasm")):
                 cache = os.path.join(work, "fc-cache-" + pool)
                 if zmode == "compiled":

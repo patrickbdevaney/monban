@@ -114,16 +114,16 @@ def decode_req_head(b):
 WASM_MAGIC = b"\0asm\x01\0\0\0"
 I32 = 0x7F
 
-# F14 Part 1: module "aegis" allowlist, (params, results) in Wasm value types.
+# F14 Part 1: module "monban" allowlist, (params, results) in Wasm value types.
 F14_IMPORTS = {
-    ("aegis", "req_head"): ((I32, I32), (I32,)),
-    ("aegis", "req_body_read"): ((I32, I32), (I32,)),
-    ("aegis", "resp_head"): ((I32, I32, I32), (I32,)),
-    ("aegis", "resp_write"): ((I32, I32), (I32,)),
-    ("aegis", "log"): ((I32, I32, I32), (I32,)),
-    ("aegis", "data_run"): ((I32, I32), (I32,)),
-    ("aegis", "result_read"): ((I32, I32, I32), (I32,)),
-    ("aegis", "handle_drop"): ((I32,), ()),
+    ("monban", "req_head"): ((I32, I32), (I32,)),
+    ("monban", "req_body_read"): ((I32, I32), (I32,)),
+    ("monban", "resp_head"): ((I32, I32, I32), (I32,)),
+    ("monban", "resp_write"): ((I32, I32), (I32,)),
+    ("monban", "log"): ((I32, I32, I32), (I32,)),
+    ("monban", "data_run"): ((I32, I32), (I32,)),
+    ("monban", "result_read"): ((I32, I32, I32), (I32,)),
+    ("monban", "handle_drop"): ((I32,), ()),
 }
 F14_TEST_IMPORT = {("env", "host_fault"): ((I32,), ())}
 
@@ -257,9 +257,9 @@ def check_f14(wasm, allow_test_import=False):
 
 
 def stub_module(kind):
-    """A minimal valid core module carrying only a custom section `aegis-e2e-ref` = kind. Used with the reference
+    """A minimal valid core module carrying only a custom section `monban-e2e-ref` = kind. Used with the reference
     (mock) worker, which reads the kind instead of executing Wasm; a real worker would refuse it (no exports)."""
-    name = enc_tstr("aegis-e2e-ref")
+    name = enc_tstr("monban-e2e-ref")
     payload = name + kind.encode()
     return WASM_MAGIC + b"\x00" + uvarint(len(payload)) + payload
 
@@ -268,6 +268,6 @@ def stub_kind(wasm):
     for sid, p in sections(wasm):
         if sid == 0:
             r = Reader(p)
-            if r.tstr() == "aegis-e2e-ref":
+            if r.tstr() == "monban-e2e-ref":
                 return r.b[r.i:].decode()
     return None

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Reference subject for the schema-gate oracle (stdlib only, run as `python3 -I refsubject.py serve [--mutant M]`).
 
-It answers the schema-gate protocol (README.md) the way aegis-data-ir / aegis-adapter-sqlite / aegis-adapter-pg must:
+It answers the schema-gate protocol (README.md) the way monban-data-ir / monban-adapter-sqlite / monban-adapter-pg must:
 
-* static: a port of F4 `check_schema` (crates/aegis-data-ir/src/ir.rs) applied to the admission probe
+* static: a port of F4 `check_schema` (crates/monban-data-ir/src/ir.rs) applied to the admission probe
   Op{collection = schema.collection, kind = Upsert, filter = Tt, writes = [], returning = []} at Fidelity::Exact;
 * sqlite / pg: introspect the LIVE catalog (never the declared Schema), fill an F4 Schema from it, run the same
   F4 checks, plus the live-only checks (W5 closure / D8, D7, FORCE RLS, partition key, tenant type).
@@ -460,7 +460,7 @@ def tenant_scoped(expr, tname):
     """Heuristic (README known limits): the expression compares the tenant column with current_setting(...) and
     has no OR / constant-true escape."""
     e = expr.lower()
-    # current_setting(name, true) is the missing_ok form aegis_adapter_pg::rls_policy emits; that `true` is an argument,
+    # current_setting(name, true) is the missing_ok form monban_adapter_pg::rls_policy emits; that `true` is an argument,
     # not a constant-true escape, so it is removed before the OR/true scan.
     scan = re.sub(r"current_setting\(\s*'[^']*'(::text)?\s*,\s*true\s*\)", "current_setting(_)", e)
     return (re.search(r'(^|[^a-z0-9_])"?' + re.escape(tname.lower()) + r'"?([^a-z0-9_]|$)', e) is not None

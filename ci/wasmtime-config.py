@@ -9,12 +9,12 @@ Expectation: supply-chain/wasmtime-config.toml (frozen; the advisory shapes of G
 GHSA-394w-hwhg-8vgm are quoted there verbatim with URL and read date).
 
 check, static half (no build needed):
-  - `cargo tree --offline --locked -e features -p aegis-p2` (or --tree FILE): the wasmtime feature nodes equal the
+  - `cargo tree --offline --locked -e features -p monban-p2` (or --tree FILE): the wasmtime feature nodes equal the
     frozen set exactly; wasmtime and every wasmtime-* crate is at the pinned version; no forbidden crate
     (wasmtime-wasi, wasmtime-wasi-http, winch, fiber, ...).
   - Cargo.lock (or --lock FILE): exactly one `wasmtime` package, at the pin; wasmtime-* at the pin; no wasi crates.
-  - Source scan of crates/ and subjects/: exactly one Module/Component deserialize call, under crates/aegis-wasm/src/.
-check, runtime half (needs the aegis-p2 binary):
+  - Source scan of crates/ and subjects/: exactly one Module/Component deserialize call, under crates/monban-wasm/src/.
+check, runtime half (needs the monban-p2 binary):
   - `<worker> config --json` equals [effective] exactly; `<worker> config --json --mpk` equals [effective] with only
     [effective_mpk] keys changed. Both are also judged by named rules (GHSA shapes, reservation, guard, memory64,
     gc, threads, component model, epoch, fuel, MPK value) so a failure names its cause.
@@ -107,8 +107,8 @@ def judge_expect(exp):
         if c not in tree.get("forbidden_crates", []):
             out.append((f"expect-invalid:forbidden:{c}", f"{c} must stay forbidden"))
     de = exp.get("deserialize", {})
-    if de.get("expected_sites") != 1 or de.get("site_prefix") != "crates/aegis-wasm/src/":
-        out.append(("expect-invalid:deserialize", "exactly one deserialize site, in crates/aegis-wasm/src/"))
+    if de.get("expected_sites") != 1 or de.get("site_prefix") != "crates/monban-wasm/src/":
+        out.append(("expect-invalid:deserialize", "exactly one deserialize site, in crates/monban-wasm/src/"))
     return out
 
 
@@ -136,7 +136,7 @@ def judge_tree(text, exp):
     t = exp["cargo_tree"]
     crates, feats = tree_facts(text)
     if "wasmtime" not in crates:
-        return [("tree:wasmtime-absent", "no `wasmtime vX` node in the cargo tree of aegis-p2")]
+        return [("tree:wasmtime-absent", "no `wasmtime vX` node in the cargo tree of monban-p2")]
     for name, vers in sorted(crates.items()):
         if name == "wasmtime" or name.startswith("wasmtime-"):
             for v in sorted(vers):
@@ -211,7 +211,7 @@ def judge_sites(sites, exp):
                                          f"{sites}"))
     for s in sites:
         if not s.startswith(d["site_prefix"]):
-            out.append(("deserialize-outside-aegis-wasm", f"deserialize site outside {d['site_prefix']}: {s}"))
+            out.append(("deserialize-outside-monban-wasm", f"deserialize site outside {d['site_prefix']}: {s}"))
     return out
 
 

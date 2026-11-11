@@ -44,7 +44,7 @@ Header:
           mldsa65 (0x0905)
           mldsa87 (0x0906)
         extension_type=server_name(0), length=15
-          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....aegis.test
+          0000 - 00 0d 00 00 0a 61 65 67-69 73 2e 74 65 73 74   .....monban.test
         extension_type=status_request(5), length=5
           0000 - 01 00 00 00 00                                 .....
         extension_type=supported_versions(43), length=3
@@ -111,11 +111,11 @@ Certificate:
         Serial Number:
             38:fa:f6:3d:60:7f:cb:0c:8f:65:51:c0:b9:53:2a:9b:d0:c7:fb:22
         Signature Algorithm: ecdsa-with-SHA256
-        Issuer: CN = aegis.test
+        Issuer: CN = monban.test
         Validity
             Not Before: Oct 25 12:42:55 2026 GMT
             Not After : Oct 26 12:42:55 2026 GMT
-        Subject: CN = aegis.test
+        Subject: CN = monban.test
         Subject Public Key Info:
             Public Key Algorithm: id-ecPublicKey
                 Public-Key: (384 bit)

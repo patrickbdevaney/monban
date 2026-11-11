@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AEGIS cancel sweep (oracle for INV-NOMUT-C NC1/NC2/NC3/NC5, plus NC4 and CRS C5). Run as `python3 -I`, via ./run.
+"""Monban cancel sweep (oracle for INV-NOMUT-C NC1/NC2/NC3/NC5, plus NC4 and CRS C5). Run as `python3 -I`, via ./run.
 
 Specified, never executed, in research round-003/06 (node ac.l5-cancel-sweep-harness): cancellation can only happen at
 await points, so for each seed the oracle runs the request uncancelled to count its await points K, then re-runs it
@@ -560,7 +560,7 @@ def as_subject(mut):
     """Serve the reference model over the subject protocol (stdin/stdout JSON lines)."""
     for ln in sys.stdin:
         m = json.loads(ln)
-        if m['op'] == 'hello': print(json.dumps({'ev': 'hello', 'impl': 'aegis-cancel-sweep reference model', 'host': 'async', 'modes': MODES, 'mutations': mut}), flush=True)
+        if m['op'] == 'hello': print(json.dumps({'ev': 'hello', 'impl': 'monban-cancel-sweep reference model', 'host': 'async', 'modes': MODES, 'mutations': mut}), flush=True)
         elif m['op'] == 'run':
             for e in reference_run(m, mut): print(json.dumps(e), flush=True)
         elif m['op'] == 'quit': break

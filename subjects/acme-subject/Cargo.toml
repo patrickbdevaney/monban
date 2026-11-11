@@ -1,19 +1,19 @@
 [package]
 name = "acme-subject"
-description = "Oracle subject for oracles/acme-pebble: obtains, serves and renews a certificate through aegis-ops (feature acme) and the CERT-1..4 store."
+description = "Oracle subject for oracles/acme-pebble: obtains, serves and renews a certificate through monban-ops (feature acme) and the CERT-1..4 store."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 [dependencies]
 # `test-faults` (PREFLIGHT R11): this oracle subject drives `acme::Faults`; the only crate that enables it.
-aegis-ops = { workspace = true, features = ["acme", "test-faults"] }
-aegis-tls = { workspace = true }
+monban-ops = { workspace = true, features = ["acme", "test-faults"] }
+monban-tls = { workspace = true }
 rustls = { workspace = true }
 aws-lc-rs = { workspace = true }
 

@@ -129,7 +129,7 @@ fn engine(fuel: bool, epoch: bool, pool: bool) -> Engine {
 
 fn load(eng: &Engine, guest: &str) -> (InstancePre<Lim>, bool) {
     let mut compiled = true;
-    // Restart cost: like the AEGIS design (locally precompiled .cwasm), a compiled artifact produced by this host
+    // Restart cost: like the Monban design (locally precompiled .cwasm), a compiled artifact produced by this host
     // is cached next to the guest (ISOFI_CWASM_DIR) and reused on respawn; never bytes from elsewhere.
     let m = match std::env::var("ISOFI_CWASM_DIR") {
         Ok(dir) => {

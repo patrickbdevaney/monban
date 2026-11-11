@@ -1,0 +1,57 @@
+# TYPE monban_admission_rejects counter
+# HELP monban_admission_rejects Requests rejected by the admission pipeline, by stage.
+monban_admission_rejects_total{stage="S0"} 0
+monban_admission_rejects_total{stage="S1"} 0
+monban_admission_rejects_total{stage="S2"} 0
+monban_admission_rejects_total{stage="S3"} 0
+monban_admission_rejects_total{stage="S3A"} 0
+monban_admission_rejects_total{stage="S4"} 0
+monban_admission_rejects_total{stage="S5"} 0
+monban_admission_rejects_total{stage="S6"} 0
+# TYPE monban_budget_debits counter
+# HELP monban_budget_debits Successful budget debits, by budget scope.
+monban_budget_debits_total{scope="ip"} 4
+monban_budget_debits_total{scope="identity"} 4
+monban_budget_debits_total{scope="expensive_tier"} 0
+# TYPE monban_crash_budget_trips counter
+# HELP monban_crash_budget_trips Times a per-principal crash budget tripped.
+monban_crash_budget_trips_total 0
+# TYPE monban_cert_seconds_to_expiry gauge
+# HELP monban_cert_seconds_to_expiry Seconds until the certificate in this slot expires; negative once expired.
+monban_cert_seconds_to_expiry{slot="serving"} 2592000
+monban_cert_seconds_to_expiry{slot="admin"} 0
+monban_cert_seconds_to_expiry{slot="upstream_client"} 0
+# TYPE monban_fips_status gauge
+# HELP monban_fips_status 1 when the FIPS-validated crypto provider is active, else 0.
+monban_fips_status 0
+# TYPE monban_config_generation_hash gauge
+# HELP monban_config_generation_hash First 48 bits (big-endian) of the active config generation hash.
+monban_config_generation_hash 14283538101851
+# TYPE monban_config_lkg_fallbacks counter
+# HELP monban_config_lkg_fallbacks Config loads that failed and fell back to the last-known-good generation.
+monban_config_lkg_fallbacks_total 0
+# TYPE monban_upgrade_forced_closes counter
+# HELP monban_upgrade_forced_closes Connections force-closed at the upgrade drain deadline.
+monban_upgrade_forced_closes_total 0
+# TYPE monban_proxy_requests counter
+# HELP monban_proxy_requests Inbound requests that reached the proxy pipeline.
+monban_proxy_requests_total 4
+# TYPE monban_proxy_forwarded counter
+# HELP monban_proxy_forwarded Requests forwarded upstream that got a response.
+monban_proxy_forwarded_total 0
+# TYPE monban_proxy_authz_denied counter
+# HELP monban_proxy_authz_denied Requests denied by the route authz requirement (INV-NONEMPTY / unknown policy).
+monban_proxy_authz_denied_total 1
+# TYPE monban_proxy_canon_rejects counter
+# HELP monban_proxy_canon_rejects Requests refused by canonicalization or routing (308/400/404/421/501...).
+monban_proxy_canon_rejects_total 1
+# TYPE monban_proxy_upstream_errors counter
+# HELP monban_proxy_upstream_errors Upstream exchanges that failed (502/504).
+monban_proxy_upstream_errors_total 2
+# TYPE monban_proxy_upstream_connects counter
+# HELP monban_proxy_upstream_connects New upstream connections opened.
+monban_proxy_upstream_connects_total 0
+# TYPE monban_proxy_config_reloads counter
+# HELP monban_proxy_config_reloads Config reloads applied (SIGHUP).
+monban_proxy_config_reloads_total 1
+# EOF

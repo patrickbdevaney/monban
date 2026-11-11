@@ -19,7 +19,7 @@ remote = true
 
 [[gate]]
 name = "tests"
-cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q && ci/heavy.sh cargo test -p aegis-bin --features native --all-targets --locked -q"
+cmd = "ci/heavy.sh cargo test --workspace --all-targets --locked -q && ci/heavy.sh cargo test -p monban-bin --features native --all-targets --locked -q"
 remote = true
 
 [[gate]]
@@ -76,13 +76,13 @@ remote = true
 
 [[gate]]
 name = "fail-closed-boot"
-cmd = "ci/heavy.sh cargo build --locked -q -p aegis-bin && { target/debug/aegis; test $? -eq 78; }"
+cmd = "ci/heavy.sh cargo build --locked -q -p monban-bin && { target/debug/monban; test $? -eq 78; }"
 remote = true
 
 [[gate]]
 name = "oracles-remote"
-cmd = "cargo build --release --locked -q -p transport-subject -p aegis-bin -p audit-subject -p upgrade-subject -p egress-subject -p aegis-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
-selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p aegis-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
+cmd = "cargo build --release --locked -q -p transport-subject -p monban-bin -p audit-subject -p upgrade-subject -p egress-subject -p monban-pdp && CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && AEGIS_TIMING_GATES=advisory ci/oracles.sh run --where remote"
+selftest = "CARGO_TARGET_DIR=target/e2e-mutants cargo build --release --locked -q -p monban-bin --features e2e-mutants && ci/oracles.sh self-test --where remote"
 heavy = true
 remote = true
 
@@ -103,8 +103,8 @@ name = "oracles-quiet"
 # 5 s during the run, and voids any attempt with a window above 2.0 cores (re-run, up to 6; none valid = exit 75,
 # red). A valid FAIL is final. Timing criteria are gated here (no AEGIS_TIMING_GATES=advisory). Builds are separate
 # cargo invocations per feature set (D18). The selftest also proves the guard voids a run under foreign load.
-cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/oracles.sh run --where quiet"
-selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; ci/quiet-selftest.sh && cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p aegis-bin --features native && CARGO_TARGET_DIR=target/native-mutants cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-mutants cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/oracles.sh self-test --where quiet"
+cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p monban-bin --features native && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p monban-bin --features monban-bin/p2 -p monban-p2 && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && ci/oracles.sh run --where quiet"
+selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; ci/quiet-selftest.sh && cargo build --release --locked -q -p ct-subject && CARGO_TARGET_DIR=target/native cargo build --release --locked -q -p monban-bin --features native && CARGO_TARGET_DIR=target/native-mutants cargo build --release --locked -q -p monban-bin --features native,e2e-mutants && CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p monban-bin --features monban-bin/p2 -p monban-p2 && CARGO_TARGET_DIR=target/p2-mutants cargo build --release --locked -q -p monban-bin --features monban-bin/p2,monban-bin/p2-mutants -p monban-p2 --features monban-p2/mutants && CARGO_TARGET_DIR=target/p2-test cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && ci/oracles.sh self-test --where quiet"
 heavy = true
 remote = "quiet"
 
@@ -163,7 +163,7 @@ remote = true
 
 [[gate]]
 name = "config-totality"
-cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p aegis-config"
+cmd = "AEGIS_CONFIG_ITERS=1000000 ci/heavy.sh cargo test --release --locked -q -p monban-config"
 remote = true
 
 [[gate]]
@@ -174,7 +174,7 @@ remote = true
 
 [[gate]]
 name = "systemd-hardening"
-cmd = "s=$(systemd-analyze security --offline=yes deploy/aegis-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
+cmd = "s=$(systemd-analyze security --offline=yes deploy/monban-hardened.service 2>&1 | grep -oE 'Overall exposure level for .*: [0-9.]+' | grep -oE '[0-9.]+$'); echo exposure=$s; python3 -c \"import sys; sys.exit(0 if float('$s') <= 2.0 else 1)\""
 
 [[gate]]
 name = "kani-tbi"
@@ -191,23 +191,23 @@ heavy = true
 # OPEN (not yet a gate): perf-w1 vs nginx (provisional on laptop).
 [[gate]]
 name = "reverse-proxy-e2e"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && CARGO_TARGET_DIR=target/e2e-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features e2e-mutants && oracles/proxy-e2e/run --subject target/release/monban"
 selftest = "oracles/proxy-e2e/run --self-test"
 remote = true
 
 
 [[gate]]
 name = "mcp-gateway"
-# Launches target/release/aegis with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
+# Launches target/release/monban with the oracle gateway profile (agent listener -> oracle mock upstream) and runs the
 # full corpus against it, including the needs-* cases. Defined by P3-agent-001's subject wiring.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin -p aegis-pdp && ci/mcp-gate.sh run --flood-n 20000"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin -p monban-pdp && ci/mcp-gate.sh run --flood-n 20000"
 selftest = "oracles/mcp-corpus/run --self-test && ci/mcp-gate.sh self-test"
 remote = true
 
 [[gate]]
 name = "no-cedar-in-bin"
-cmd = "! cargo tree --locked -e normal,build -p aegis-bin --prefix none | grep -q '^cedar-policy'"
-selftest = "cargo tree --locked -e normal,build -p aegis-pdp --prefix none | grep -q '^cedar-policy'"
+cmd = "! cargo tree --locked -e normal,build -p monban-bin --prefix none | grep -q '^cedar-policy'"
+selftest = "cargo tree --locked -e normal,build -p monban-pdp --prefix none | grep -q '^cedar-policy'"
 
 [[gate]]
 name = "fuzz"
@@ -282,7 +282,7 @@ remote = true
 
 [[gate]]
 name = "unrestricted-ledger"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && python3 -I ci/unrestricted.py check"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && python3 -I ci/unrestricted.py check"
 selftest = "python3 -I ci/unrestricted.py --self-test"
 remote = true
 
@@ -301,7 +301,7 @@ remote = true
 [[gate]]
 name = "crs-tls"
 # nginx CVE-2025-23419 replica (cross-vhost / cross-epoch / cross-ALPN resumption). Needs the host openssl client.
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/crs-diff/run --family tls-resume --subject target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && oracles/crs-diff/run --family tls-resume --subject target/release/monban"
 selftest = "oracles/crs-diff/run --self-test --family tls-resume"
 
 [[gate]]
@@ -354,15 +354,15 @@ heavy = true
 
 [[gate]]
 name = "no-pg-query-in-bin"
-cmd = "ci/no-crate.sh aegis-bin pg_query libpg_query pg_query_sys"
+cmd = "ci/no-crate.sh monban-bin pg_query libpg_query pg_query_sys"
 selftest = "ci/no-crate.sh --self-test"
 
 [[gate]]
 name = "native-e2e"
 # PLAN D17: the data plane is the `native` build (own target dirs, so the core build in target/release and the
 # proxy-e2e `e2e-mutants` build in target/e2e-mutants are never overwritten).
-cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/aegis --pg @pg17"
-selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/aegis --mutant-subject target/native-mutants/release/aegis"
+cmd = "CARGO_TARGET_DIR=target/native ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native && ci/engines.sh with pg17 -- oracles/native-e2e/run --subject target/native/release/monban --pg @pg17"
+selftest = "CARGO_TARGET_DIR=target/native-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features native,e2e-mutants && oracles/native-e2e/run --self-test && oracles/native-e2e/run --self-test --subject target/native/release/monban --mutant-subject target/native-mutants/release/monban"
 heavy = true
 
 # ======================================================================== Phase 5 additions
@@ -398,7 +398,7 @@ name = "p2-syscall-negative"
 # Laptop: Linux 6.17 with kernel.apparmor_restrict_unprivileged_userns=1 (PLAN D2). Pass only on the filter's own
 # signature (SIGSYS from KILL_PROCESS; ENOSYS for clone3), never on EPERM; every probe runs an unfiltered control
 # first and records host facts. Probes both the p2-subject (both paths) and the real worker (test-hooks build).
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && oracles/syscall-negative/run --subject 'target/p2-test/release/aegis-p2 probe'"
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p p2-subject && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && oracles/syscall-negative/run --subject 'target/p2/release/p2-subject probe' && oracles/syscall-negative/run --subject 'target/p2-test/release/monban-p2 probe'"
 # Red on: no-clone-flag-filter, no-denylist, eperm-instead-of-kill, clone3-allowed, dumpable-1, no-landlock,
 # no-child-filter (oracle reference mutants).
 selftest = "oracles/syscall-negative/run --self-test"
@@ -407,21 +407,21 @@ heavy = true
 [[gate]]
 name = "p2-hostile-worker"
 # Corpus I1 (imports, handles) and I2 (fuel, epoch, memory, table, stack, host-call and byte quotas) against the
-# aegis-p2 worker with the oracle as mock supervisor over F14. Count criteria only, so the desktop is fine.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && oracles/hostile-modules/run --level worker --subject target/p2/release/aegis-p2"
+# monban-p2 worker with the oracle as mock supervisor over F14. Count criteria only, so the desktop is fine.
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-p2 && oracles/hostile-modules/run --level worker --subject target/p2/release/monban-p2"
 # Red on: extra-import, handle-not-cleared, no-hostcall-quota, no-fuel-no-epoch, no-limiter.
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis-p2"
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/mutants && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level worker --subject target/p2/release/monban-p2 --mutant-subject target/p2-mutants/release/monban-p2"
 heavy = true
 remote = true
 
 [[gate]]
 name = "p2-hostile-host"
-# Corpus I1 (capabilities at the supervisor), I5, I6-host, I7 end to end through the real aegis binary (p2 + native:
+# Corpus I1 (capabilities at the supervisor), I5, I6-host, I7 end to end through the real monban binary (p2 + native:
 # data_run reaches the Phase-4 adapters; SQLite only, no engine container) and the release worker.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native -p aegis-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 && echo \"CONFORMANCE-ARTIFACT: aegis-p2 sha256 $(sha256sum target/p2/release/aegis-p2 | cut -d' ' -f1)\""
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-bin --features monban-bin/p2,monban-bin/native -p monban-p2 && oracles/hostile-modules/run --level host --subject target/p2/release/monban --worker target/p2/release/monban-p2 && echo \"CONFORMANCE-ARTIFACT: monban-p2 sha256 $(sha256sum target/p2/release/monban-p2 | cut -d' ' -f1)\""
 # Red on: raw-passthrough, double-response-accepted, audit-after-effect, no-audit-on-trap, trap-maps-to-allow,
 # data-run-skips-authorize, tenant-not-overwritten.
-selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/native,aegis-bin/p2-mutants -p aegis-p2 && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2"
+selftest = "CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features monban-bin/p2,monban-bin/native,monban-bin/p2-mutants -p monban-p2 && oracles/hostile-modules/run --self-test && oracles/hostile-modules/run --self-test --level host --subject target/p2/release/monban --worker target/p2/release/monban-p2 --mutant-subject target/p2-mutants/release/monban --mutant-worker target/p2-mutants/release/monban-p2"
 heavy = true
 remote = true
 
@@ -431,7 +431,7 @@ name = "wasmtime-config"
 # winch/wasi/wasi-http/component-model-async; memory64=false, gc=false; 4 GiB reservation + 32 MiB guard never shrunk
 # (GHSA-6wgr, GHSA-394w shapes as recorded from the advisories); MPK only with those values unchanged; epoch + fuel on;
 # exactly one Module::deserialize site. Expected values: supply-chain/wasmtime-config.toml.
-cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2"
+cmd = "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/monban-p2"
 selftest = "python3 -I ci/wasmtime-config.py --self-test"
 remote = true
 
@@ -452,9 +452,9 @@ name = "p2-fault-vps"
 #    explicit `isolation: "forkwasm"` on a small host is outside what kamrui's numbers support (claims <= B);
 #  - cordon also runs with the MPK density option (PLAN D11), fully gated, same thresholds: kamrui is the Intel
 #    runner with PKU (wasmtime 50 enables MPK only on Intel CPUs, so the AMD desktop cannot run it);
-#  - the last step builds aegis (feature p2) and checks that the default config resolves to cordon on this host
+#  - the last step builds monban (feature p2) and checks that the default config resolves to cordon on this host
 #    (ci/p2-auto-resolve.py: `check-config --print-effective` shows isolation auto -> cordon at 4 usable CPUs).
-cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; echo 'p2-fault-vps: forkwasm timing (G3 recovery p99, G4 loop) is report-only on kamrui by PLAN-5 D23 option (b); its count criteria stay gated'; oracles/isolation-fi/run --timing advisory --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 && python3 -I ci/p2-auto-resolve.py --subject target/p2/release/aegis --expect cordon || rc=1; exit \\$rc\""
+cmd = "ci/remote.sh --host kamrui bash -c \"cargo build --release --locked -q -p p2-subject || exit 1; rc=0; echo 'p2-fault-vps: forkwasm timing (G3 recovery p99, G4 loop) is report-only on kamrui by PLAN-5 D23 option (b); its count criteria stay gated'; oracles/isolation-fi/run --timing advisory --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path forkwasm --subject 'target/release/p2-subject serve forkwasm {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 {guest} {data}' || rc=1; oracles/isolation-fi/run --trials 3 --server-core 1 --client-cores 2,3 --reference gates/p2-runner-reference.json --path cordon --subject 'target/release/p2-subject serve cordon --threads 64 --mpk {guest} {data}' || rc=1; oracles/syscall-negative/run --subject 'target/release/p2-subject probe' || rc=1; CARGO_TARGET_DIR=target/p2 cargo build --release --locked -q -p monban-bin --features monban-bin/p2 && python3 -I ci/p2-auto-resolve.py --subject target/p2/release/monban --expect cordon || rc=1; exit \\$rc\""
 # The oracles must still catch their mutants on this host (a runner where the checks cannot go red proves nothing).
 # isolation-fi --self-test always gates timing (its no-deadline mutants are caught through it).
 selftest = "ci/remote.sh --host kamrui bash -c 'oracles/isolation-fi/run --self-test --server-core 1 --client-cores 2,3 && oracles/syscall-negative/run --self-test && python3 -I ci/p2-auto-resolve.py --self-test'"
@@ -462,32 +462,32 @@ heavy = true
 
 [[gate]]
 name = "p2-e2e"
-# Quiet runner (oracle needs=quiet-host). Real aegis (feature p2) + release worker; the exec-respawn family
+# Quiet runner (oracle needs=quiet-host). Real monban (feature p2) + release worker; the exec-respawn family
 # uses the test-hooks worker (load-base report). Families: wasm: routes under both paths and across a reload that
 # switches the default; one cordon per principal; the default isolation "auto" (PLAN-5 D23(b)) under taskset: 4 CPUs
 # -> cordon per principal, no zygote; 8 CPUs -> zygote (this host needs >= 8 usable CPUs, else that check FAILs); exec respawn (new pid, new load base); crash budget 3/60 s -> 429
 # for 600 s (scaled knobs + effective defaults from the config dump); dumpable=0 (root-owned /proc/<pid>);
 # fail-closed boot (missing worker, Landlock ABI < 4, shared-cordon config) -> exit 78.
-cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2 -p aegis-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2"
+cmd = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-bin --features monban-bin/p2 -p monban-p2 && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --subject target/p2/release/monban --worker target/p2/release/monban-p2 --test-worker target/p2-test/release/monban-p2"
 # Red on: shared-cordon, fork-respawn, global-crash-budget, no-crash-budget, budget-counts-healthy, dumpable-1,
 # no-reload-switch, boot-without-landlock-accepted, auto-ignores-cpus.
 # --mutant-test-worker: the respawn family needs a mutants+test-hooks worker (env.host_fault abort guest); a
 # mutants-only worker refuses that guest and the baseline fails on respawn.harness (P5-bin-001, D22).
-selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features aegis-bin/p2,aegis-bin/p2-mutants -p aegis-p2 --features aegis-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/mutants,aegis-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p aegis-p2 --features aegis-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --self-test && ci/quiet.py oracles/p2-e2e/run --self-test --subject target/p2/release/aegis --worker target/p2/release/aegis-p2 --test-worker target/p2-test/release/aegis-p2 --mutant-subject target/p2-mutants/release/aegis --mutant-worker target/p2-mutants/release/aegis-p2 --mutant-test-worker target/p2-mutants-test/release/aegis-p2"
+selftest = "rustup target add wasm32-unknown-unknown >/dev/null 2>&1; CARGO_TARGET_DIR=target/p2-mutants ci/heavy.sh cargo build --release --locked -q -p monban-bin --features monban-bin/p2,monban-bin/p2-mutants -p monban-p2 --features monban-p2/mutants && CARGO_TARGET_DIR=target/p2-mutants-test ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/mutants,monban-p2/test-hooks && CARGO_TARGET_DIR=target/p2-test ci/heavy.sh cargo build --release --locked -q -p monban-p2 --features monban-p2/test-hooks && ci/quiet.py oracles/p2-e2e/run --self-test && ci/quiet.py oracles/p2-e2e/run --self-test --subject target/p2/release/monban --worker target/p2/release/monban-p2 --test-worker target/p2-test/release/monban-p2 --mutant-subject target/p2-mutants/release/monban --mutant-worker target/p2-mutants/release/monban-p2 --mutant-test-worker target/p2-mutants-test/release/monban-p2"
 heavy = true
 remote = "quiet"
 # Quiet runner under ci/quiet.py (see oracles-quiet); the run voids itself under foreign load.
 
 [[gate]]
 name = "no-wasmtime-in-bin"
-# PLAN D3 / X-13: wasmtime and cranelift link only into the aegis-p2 worker, never into any aegis-bin build.
-cmd = "! cargo tree --locked -e normal,build -p aegis-bin --all-features --prefix none | grep -qE '^(wasmtime|wasmtime-environ|cranelift-codegen) '"
+# PLAN D3 / X-13: wasmtime and cranelift link only into the monban-p2 worker, never into any monban-bin build.
+cmd = "! cargo tree --locked -e normal,build -p monban-bin --all-features --prefix none | grep -qE '^(wasmtime|wasmtime-environ|cranelift-codegen) '"
 # Positive control: the same filter finds wasmtime where it must be (as no-cedar-in-bin).
-selftest = "cargo tree --locked -e normal,build -p aegis-p2 --prefix none | grep -q '^wasmtime '"
+selftest = "cargo tree --locked -e normal,build -p monban-p2 --prefix none | grep -q '^wasmtime '"
 
 [[gate]]
 name = "unsafe-sites"
-# PLAN D4 / X-14: aegis-iso <= 20 unsafe sites, aegis-wasm exactly 1 (Module::deserialize after the digest check),
+# PLAN D4 / X-14: monban-iso <= 20 unsafe sites, monban-wasm exactly 1 (Module::deserialize after the digest check),
 # every site with // SAFETY:, no other crate relaxes forbid(unsafe_code).
 cmd = "cargo xtask unsafe-sites"
 selftest = "cargo xtask unsafe-sites --self-test"
@@ -501,14 +501,14 @@ selftest = "cargo xtask fips-lock --self-test && ci/cmvp-supply.sh --self-test"
 
 [[gate]]
 name = "fips-binary"
-cmd = "profiles/cmvp/build.sh && oracles/cmvp-binary/run --binary target/cmvp/release/aegis"
+cmd = "profiles/cmvp/build.sh && oracles/cmvp-binary/run --binary target/cmvp/release/monban"
 selftest = "oracles/cmvp-binary/run --self-test"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "cmvp-client-policy"
-cmd = "profiles/cmvp/build.sh && oracles/cmvp-binary/client-policy --mode compiled-out --binary target/cmvp/release/aegis"
+cmd = "profiles/cmvp/build.sh && oracles/cmvp-binary/client-policy --mode compiled-out --binary target/cmvp/release/monban"
 selftest = "oracles/cmvp-binary/client-policy --self-test"
 heavy = true
 remote = "kamrui"
@@ -538,34 +538,34 @@ heavy = true
 
 [[gate]]
 name = "kx-kat"
-cmd = "ci/heavy.sh cargo test -p aegis-tls --locked -q kx::"
-selftest = "ci/heavy.sh bash -c '! cargo test -p aegis-tls --locked -q --features order-mutant kx::tests::kat_composite_decapsulation'"
+cmd = "ci/heavy.sh cargo test -p monban-tls --locked -q kx::"
+selftest = "ci/heavy.sh bash -c '! cargo test -p monban-tls --locked -q --features order-mutant kx::tests::kat_composite_decapsulation'"
 heavy = true
 remote = true
 
 [[gate]]
 name = "kx-interop"
 cmd = "oracles/kx-interop/run"
-selftest = "oracles/kx-interop/run --self-test && ci/heavy.sh cargo build --release --locked -q -p tls-subject --features aegis-tls/order-mutant --target-dir target/order-mutant && oracles/kx-interop/run --subject target/order-mutant/release/tls-subject | tail -1 | grep -qxF 'KX-INTEROP: FAIL (6/20 cells failed: ED-OSSL-SRV, ED-OSSL-CLI, ED-OSSL-SRV-HRR, ED-GO-SRV, ED-GO-CLI, ED-GO-SRV-HRR)'"
+selftest = "oracles/kx-interop/run --self-test && ci/heavy.sh cargo build --release --locked -q -p tls-subject --features monban-tls/order-mutant --target-dir target/order-mutant && oracles/kx-interop/run --subject target/order-mutant/release/tls-subject | tail -1 | grep -qxF 'KX-INTEROP: FAIL (6/20 cells failed: ED-OSSL-SRV, ED-OSSL-CLI, ED-OSSL-SRV-HRR, ED-GO-SRV, ED-GO-CLI, ED-GO-SRV-HRR)'"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "kani-kx"
-cmd = "ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split"
-selftest = "ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split --expect-neg-only"
+cmd = "ci/kani.sh --crate monban-tls --neg negative_control_indexing_split"
+selftest = "ci/kani.sh --crate monban-tls --neg negative_control_indexing_split --expect-neg-only"
 heavy = true
 
 [[gate]]
 name = "release-verify"
-cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out && python3 -I conformance/boot-pin --subject aegis-bin-floor --binary target/release-out/artifacts/aegis-floor"
+cmd = "ci/release/pipeline.sh --profile floor --out target/release-out && ci/release/verify.py --allow-test-keys target/release-out && python3 -I conformance/boot-pin --subject monban-bin-floor --binary target/release-out/artifacts/monban-floor"
 selftest = "ci/release/verify.py --self-test"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "release-rebuild"
-cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && python3 -I conformance/boot-pin --subject aegis-bin-cmvp --binary target/release-rebuild/cmvp/A/aegis-cmvp"
+cmd = "ci/release/rebuild.sh --a kamrui --b quiet --profiles floor,cmvp && python3 -I conformance/boot-pin --subject monban-bin-cmvp --binary target/release-rebuild/cmvp/A/monban-cmvp"
 selftest = "ci/release/rebuild.sh --self-test"
 heavy = true
 
@@ -586,7 +586,7 @@ selftest = "python3 -I ci/no-quic.py --self-test"
 
 [[gate]]
 name = "no-otel-in-bin"
-cmd = "! cargo tree --locked -e normal,build --target all -p aegis-bin --all-features --prefix none | grep -qE '^(opentelemetry[a-z_-]*|prost|tonic) '"
+cmd = "! cargo tree --locked -e normal,build --target all -p monban-bin --all-features --prefix none | grep -qE '^(opentelemetry[a-z_-]*|prost|tonic) '"
 # Positive control: the filter finds prost/opentelemetry in a fixture tree that contains them.
 selftest = "python3 -I ci/no-quic.py --self-test-otel"
 
@@ -598,15 +598,15 @@ remote = true
 
 [[gate]]
 name = "proxy-l4"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features proxy-protocol,l4 && oracles/proxy-l4/run --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin --features proxy-protocol,l4 && oracles/proxy-l4/run --binary target/release/monban"
 selftest = "oracles/proxy-l4/run --self-test"
 heavy = true
 remote = true
 
 [[gate]]
 name = "kani-wire"
-cmd = "ci/kani.sh --serial --mem 6G -p aegis-wire"
-selftest = "ci/kani.sh --self-test -p aegis-wire"
+cmd = "ci/kani.sh --serial --mem 6G -p monban-wire"
+selftest = "ci/kani.sh --self-test -p monban-wire"
 heavy = true
 # no remote key: ci/kani.sh itself drives kamrui (as kani-tbi / kani-kx)
 
@@ -661,14 +661,14 @@ remote = "kamrui"
 
 [[gate]]
 name = "front-equiv"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features uring && oracles/front-equiv/run --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin --features uring && oracles/front-equiv/run --binary target/release/monban"
 selftest = "oracles/front-equiv/run --self-test"
 heavy = true
 remote = true
 
 [[gate]]
 name = "otlp-export"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-otlp && oracles/otlp-export/run --exporter target/release/aegis-otlp"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-otlp && oracles/otlp-export/run --exporter target/release/monban-otlp"
 selftest = "oracles/otlp-export/run --self-test"
 heavy = true
 remote = true
@@ -707,8 +707,8 @@ remote = "kamrui"
 
 [[gate]]
 name = "kani-kx-client"
-cmd = "ci/kani.sh --serial --mem 6G -p aegis-tls --only client_"
-selftest = "ci/kani.sh --self-test -p aegis-tls --only client_"
+cmd = "ci/kani.sh --serial --mem 6G -p monban-tls --only client_"
+selftest = "ci/kani.sh --self-test -p monban-tls --only client_"
 heavy = true
 
 [[gate]]
@@ -718,7 +718,7 @@ selftest = "python3 -I conformance/run --self-test --require C0,C1,C2,C3,C4 --co
 
 [[gate]]
 name = "native-e2e-mariadb"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features adapter-mariadb && ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin --features adapter-mariadb && ci/engines.sh with mariadb -- oracles/native-e2e/run --engine mariadb --dsn @mariadb --binary target/release/monban"
 selftest = "ci/engines.sh with mariadb -- oracles/native-e2e/run --self-test --engine mariadb --dsn @mariadb"
 heavy = true
 remote = "kamrui"
@@ -727,21 +727,21 @@ remote = "kamrui"
 name = "bin-residuals"
 # OpenSSL >= 3.5 is needed for the ML-DSA-44 credential and the P-PQ-REQUIRED s_client controls (kamrui: 3.5.3, the
 # system openssl); the desktop's is not known to be >= 3.5 (P8-oracle-001 patch).
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features mtc,l4 && oracles/bin-residuals/run --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin --features mtc,l4 && oracles/bin-residuals/run --binary target/release/monban"
 selftest = "oracles/bin-residuals/run --self-test"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "crdb-live"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin --features adapter-crdb && ci/engines.sh with crdb -- oracles/crdb-live/run --dsn @crdb --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin --features adapter-crdb && ci/engines.sh with crdb -- oracles/crdb-live/run --dsn @crdb --binary target/release/monban"
 selftest = "ci/engines.sh with crdb -- oracles/crdb-live/run --self-test --dsn @crdb"
 heavy = true
 remote = "kamrui"
 
 [[gate]]
 name = "tlog-mldsa-openssl"
-cmd = "ci/heavy.sh cargo build --release --locked -q -p aegis-bin && oracles/tlog-verify/run --openssl-mldsa --binary target/release/aegis"
+cmd = "ci/heavy.sh cargo build --release --locked -q -p monban-bin && oracles/tlog-verify/run --openssl-mldsa --binary target/release/monban"
 selftest = "oracles/tlog-verify/run --openssl-mldsa --self-test"
 heavy = true
 remote = "kamrui"

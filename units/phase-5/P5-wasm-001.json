@@ -2,7 +2,7 @@
  "id": "P5-wasm-001",
  "role": "implementer",
  "crates": [
-  "aegis-wasm (engine, cwasm, store, budgets, MPK)"
+  "monban-wasm (engine, cwasm, store, budgets, MPK)"
  ],
  "depends_on": [
   "P5-spec-001",
@@ -22,20 +22,20 @@
   "ci/wasmtime-config.py check (+ --self-test)"
  ],
  "acceptance": {
-  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p aegis-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/aegis-p2 && python3 -I ci/wasmtime-config.py --self-test && ci/remote.sh ci/heavy.sh cargo test --locked -q -p aegis-wasm && cargo xtask unsafe-sites",
-  "must": "PASS; `aegis-p2 config --json [--mpk]` equals supply-chain/wasmtime-config.toml; exactly one unsafe site (Module::deserialize_file) preceded by the sha256 check; tests: fresh Store per request (poison guest returns the correct answer on request n+1), fuel exhaustion traps, epoch deadline traps a loop within wall_ms, limiter denies growth past memory_mib, cwasm with a wrong digest refused before deserialize"
+  "cmd": "CARGO_TARGET_DIR=target/p2 ci/heavy.sh cargo build --release --locked -q -p monban-p2 && python3 -I ci/wasmtime-config.py check --worker target/p2/release/monban-p2 && python3 -I ci/wasmtime-config.py --self-test && ci/remote.sh ci/heavy.sh cargo test --locked -q -p monban-wasm && cargo xtask unsafe-sites",
+  "must": "PASS; `monban-p2 config --json [--mpk]` equals supply-chain/wasmtime-config.toml; exactly one unsafe site (Module::deserialize_file) preceded by the sha256 check; tests: fresh Store per request (poison guest returns the correct answer on request n+1), fuel exhaustion traps, epoch deadline traps a loop within wall_ms, limiter denies growth past memory_mib, cwasm with a wrong digest refused before deserialize"
  },
  "write_scope": [
-  "crates/aegis-wasm/src/lib.rs",
-  "crates/aegis-wasm/src/engine/**",
-  "crates/aegis-wasm/src/store/**",
-  "crates/aegis-wasm/src/abi/mod.rs (fail-closed stub with the F14 signatures only)",
-  "crates/aegis-wasm/tests/engine*.rs",
-  "crates/aegis-p2/src/config.rs (the `config --json` and `compile` subcommands only)"
+  "crates/monban-wasm/src/lib.rs",
+  "crates/monban-wasm/src/engine/**",
+  "crates/monban-wasm/src/store/**",
+  "crates/monban-wasm/src/abi/mod.rs (fail-closed stub with the F14 signatures only)",
+  "crates/monban-wasm/tests/engine*.rs",
+  "crates/monban-p2/src/config.rs (the `config --json` and `compile` subcommands only)"
  ],
- "notes": "Engine is built once per process from F8 values; the pooling allocator with default reservation and guards; MPK via memory_protection_keys only when F8 p2.mpk = true. `aegis-p2 compile` runs sandboxed (P5-iso-001 cordon profile without the network) and writes the .cwasm; the supervisor computes and passes the expected digest. crates/aegis-p2/src/main.rs is owned by P5-iso-002; config.rs is a separate module it wires in.",
+ "notes": "Engine is built once per process from F8 values; the pooling allocator with default reservation and guards; MPK via memory_protection_keys only when F8 p2.mpk = true. `monban-p2 compile` runs sandboxed (P5-iso-001 cordon profile without the network) and writes the .cwasm; the supervisor computes and passes the expected digest. crates/monban-p2/src/main.rs is owned by P5-iso-002; config.rs is a separate module it wires in.",
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": true,
- "status": "pass (with one wiring caveat): aegis-wasm engine/cwasm/store/abi-stub + aegis-p2 config.rs. Acceptance: release build target/p2 OK; wasmtime-config check PASS (pin 50.0.1, 9 features exact, 1 deserialize site; static + runtime) and --self-test PASS (clean green, 25/25 mutants red); cargo test -p aegis-wasm 10/10 on desktop (ci/remote.sh, load 1.1) and 10/10 on laptop (load 6.6, MPK path built); xtask unsafe-sites PASS (aegis-wasm 1/1, aegis-iso 0/20), self-test 7/7. CAVEAT: the runtime half needs `mod config;` + a 4-line dispatch in crates/aegis-p2/src/main.rs, which is owned by P5-iso-002 (outside this write scope). It was verified with that wiring applied temporarily and NOT committed; on this commit alone `aegis-p2 config --json` still exits 78 until P5-iso-002 (or the integrator) wires config::dispatch. Deserialize site is Module::deserialize over the in-memory bytes that were hashed (not deserialize_file, which reopens the path: TOCTOU)."
+ "status": "pass (with one wiring caveat): monban-wasm engine/cwasm/store/abi-stub + monban-p2 config.rs. Acceptance: release build target/p2 OK; wasmtime-config check PASS (pin 50.0.1, 9 features exact, 1 deserialize site; static + runtime) and --self-test PASS (clean green, 25/25 mutants red); cargo test -p monban-wasm 10/10 on desktop (ci/remote.sh, load 1.1) and 10/10 on laptop (load 6.6, MPK path built); xtask unsafe-sites PASS (monban-wasm 1/1, monban-iso 0/20), self-test 7/7. CAVEAT: the runtime half needs `mod config;` + a 4-line dispatch in crates/monban-p2/src/main.rs, which is owned by P5-iso-002 (outside this write scope). It was verified with that wiring applied temporarily and NOT committed; on this commit alone `monban-p2 config --json` still exits 78 until P5-iso-002 (or the integrator) wires config::dispatch. Deserialize site is Module::deserialize over the in-memory bytes that were hashed (not deserialize_file, which reopens the path: TOCTOU)."
 }

@@ -7,7 +7,7 @@ defaultTargets = ["select-drt"]
 leanOptions = { autoImplicit = false }
 
 [[require]]
-name = "aegisIR"
+name = "monbanIR"
 path = "../../spec"
 
 [[lean_exe]]

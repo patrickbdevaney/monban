@@ -1,6 +1,0 @@
-aegis[895963]: warning: /vhosts/0/routes/1: no authz policy; every request is denied (INV-NONEMPTY)
-aegis[895963]: serving 1 listener(s), admin 127.0.0.1:18444, config 0cfda536f65bff1f644c9612134887418d12563ef98e08718f71f0e7efc35521 (generation 1), audit /var/lib/aegis/audit/1793967516277-895963
-aegis: upstream 127.0.0.1:18445: connect: Connection refused (os error 111)
-aegis: upstream 127.0.0.1:18445: connect: Connection refused (os error 111)
-aegis[895963]: config generation 2 applied (0cfda536f65bff1f644c9612134887418d12563ef98e08718f71f0e7efc35521)
-aegis[895963]: terminated, forced closes 0

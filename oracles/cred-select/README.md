@@ -50,18 +50,18 @@ is answered with `<case> error <reason>`, and the oracle counts it as a divergen
 Schemes used: x509 ∈ {0403, 0503, 0807}, mldsa ∈ {0904, 0905, 0906}, mtc ∈ {0403, 0503, 0904, 0906}. The subject
 builds each credential with a fresh key of that scheme:
 - x509 and mldsa: a self-signed chain, as tls-subject already does;
-- mtc: the chain is any opaque bytes, because AEGIS neither issues nor verifies MTCs (D-P7.4).
+- mtc: the chain is any opaque bytes, because Monban neither issues nor verifies MTCs (D-P7.4).
 
 Only the id is compared. The subject may build a fresh `CredentialSelector` per line.
 
 How the subject must decide:
-- It must run the aegis-tls `CredentialSelector` (feature `mtc`) on `aegis_wire::tls_peek::client_hello` of the
+- It must run the monban-tls `CredentialSelector` (feature `mtc`) on `monban_wire::tls_peek::client_hello` of the
   bytes. Driving it through a rustls `ServerConnection` with the selector as `ResolvesServerCert` is allowed, but
   the answer must equal the table.
 - A rustls refusal before the resolver runs does not excuse a divergence. The generated hellos are kept close to
   real ones to make that path workable: TLS 1.3, suites 1301..1303, groups [X25519, X25519MLKEM768, P-256, P-384,
   SecP256r1MLKEM768, ML-KEM-1024], one X25519 share. The selection itself is defined on the peek.
-- A credential set that aegis-bin's config loader would refuse (for example an mldsa credential on a P-PUBLIC-WEB
+- A credential set that monban-bin's config loader would refuse (for example an mldsa credential on a P-PUBLIC-WEB
   listener) is still a valid request here. The selector must just never choose such a credential.
 
 ## Decision table (the reference: `ref_selector.select`)
@@ -94,7 +94,7 @@ sigalgs does not matter, and neither do SNI, ALPN or supported_versions.
   "not an IANA defined extension number"), as deployed in Chrome's MTC experiment.
 - It is one constant: `clienthello.TRUST_ANCHORS_EXT` in oracles/proxy-l4, mirrored as `TA_CODEPOINT` in
   oracle.py. Check `constant.ta-codepoint` fails if the two differ. When IANA assigns the value, both lines change
-  together, and so does aegis-wire.
+  together, and so does monban-wire.
 - Extension body: `TrustAnchorID RequestedTrustAnchorList<0..2^16-1>`, with `opaque TrustAnchorID<1..32>`.
 
 ## Generator

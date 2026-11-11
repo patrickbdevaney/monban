@@ -1,4 +1,4 @@
 own-gate
 # Own phase gate (gates/phase-8.toml crdb-live, remote = "kamrui"): it needs a live CockroachDB from
-# `ci/engines.sh with crdb` (the pinned image is staged on kamrui) and an aegis built with --features adapter-crdb,
+# `ci/engines.sh with crdb` (the pinned image is staged on kamrui) and an monban built with --features adapter-crdb,
 # which no aggregate builds. ci/oracles.sh skips own-gate oracles in every aggregate.

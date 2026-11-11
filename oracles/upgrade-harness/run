@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: upgrade harness (UP-1..7 under load). Contract: oracles/README.md.
+# Monban oracle: upgrade harness (UP-1..7 under load). Contract: oracles/README.md.
 # Last line: UPGRADE-HARNESS: PASS|FAIL (...)  /  UPGRADE-HARNESS SELF-TEST: PASS|FAIL (...).
 #   ./run --subject target/release/upgrade-subject [--reloads 100] [--interval 0.2] [--rate 2000] [--drain-ms 2000]
 #   ./run --self-test        naive REUSEPORT / close-rebind / deaf upgraders must be caught

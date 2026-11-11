@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS oracle: egress TLS end to end (P8-hardening-001; PREFLIGHT R15). Contract: oracles/README.md; details: README.md.
+# Monban oracle: egress TLS end to end (P8-hardening-001; PREFLIGHT R15). Contract: oracles/README.md; details: README.md.
 #   ./run --subject PATH [--only REGEX]   egress-subject built with --features tls-client (the gate builds it first)
 #   ./run --self-test                     reference fake (openssl s_client) green, then 6 mutant fakes each red
 # Last line: EGRESS-TLS: PASS|FAIL (...) / EGRESS-TLS SELF-TEST: PASS|FAIL (...). Exit 0 only on PASS.

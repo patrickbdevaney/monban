@@ -42,7 +42,7 @@ KEYROOT=/dev/shm; [ -d /dev/shm ] && [ -w /dev/shm ] || KEYROOT="$WORK"
 KEYDIRS=()
 PASSDIR=
 newkeydir() {  # own key dir per keyed job, mode 0700, on tmpfs
-  local d; d="$(mktemp -d "$KEYROOT/aegis-release-keys.$1.XXXXXX")"; chmod 700 "$d"; KEYDIRS+=("$d"); KD="$d"
+  local d; d="$(mktemp -d "$KEYROOT/monban-release-keys.$1.XXXXXX")"; chmod 700 "$d"; KEYDIRS+=("$d"); KD="$d"
 }
 cleanup() {
   local d

@@ -20,7 +20,7 @@ evidence and velocity, not procurement), so the operator should confirm GO befor
 | crash harness incl. double fault | crash-harness (full ~170k images, remote) | P4-state-001 |
 | PG minor floor asserted | pg-version-floor | P4-pg-001 |
 | PG19 blocked until ON CONFLICT fix | pg19-blocked | P4-pg-001 |
-| no pg_query in aegis-bin graph | no-pg-query-in-bin | P4-spec-002 |
+| no pg_query in monban-bin graph | no-pg-query-in-bin | P4-spec-002 |
 | (added) F7b host obligations, APPLIED q4-001 | sdk-host | P4-host-001 |
 | (added) INV-IDEMP, NC2 latch, NC6 outbox | state-props | P4-state-002 |
 | (added) modes A/D end to end, NC1/NC2/NC7 | native-e2e | P4-bin-001 |
@@ -56,7 +56,7 @@ W2  P4-sqlite-001   → datair, oracle-lowering, oracle-schema
 W3  P4-pg-003       → pg-002, state-002, oracle-state          (pool, NC3, C8 reset; cancel DST subject)
     P4-host-001     → datair, sqlite-001, pg-002, redis-001, state-002, oracle-nonempty, oracle-host
 W4  P4-crs-001      → pg-003, redis-001, state-002, oracle-crs
-    P4-bin-001      → host-001, pg-003, config-001, oracle-e2e (wires apps/notes into aegis-bin)
+    P4-bin-001      → host-001, pg-003, config-001, oracle-e2e (wires apps/notes into monban-bin)
 GO  python3 -I ci/run-gates.py --phase 4
 ```
 
@@ -82,9 +82,9 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
   Proposal (P4-spec-001): additive types only (CapSet with no empty constructor, canonical lock format, denylist as
   data, EnginePin), keeping the Op/Pred/Schema layout so F10 (which mirrors Op) stays byte-compatible.
 - **D2 F7 cannot be hosted as frozen.** `Ctx`, `Granted` and `Tx` have private fields and no constructor anywhere, so no
-  host crate can mint them. Option (a): `aegis_sdk::host` minting functions, with the owner (aegis-adapter-host)
+  host crate can mint them. Option (a): `monban_sdk::host` minting functions, with the owner (monban-adapter-host)
   enforced by xtask OWNERS. Weakness: xtask scans only workspace crates, so an out-of-tree app could call `host::`;
-  trybuild cannot catch this, only the lint tier can. Option (b): move the host driving loop into aegis-sdk so minting
+  trybuild cannot catch this, only the lint tier can. Option (b): move the host driving loop into monban-sdk so minting
   stays `pub(crate)`, with adapter-host implementing a backend trait. (b) is stronger but grows the SDK trust zone.
   Recommendation: (b) if the SDK owner accepts it, else (a).
 - **D3 Driver choice (DEVIATIONS X-10, proposed): owned PG v3 and RESP2 clients.** The budget is 41/60 third-party
@@ -116,7 +116,7 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
   unverified. pg19-blocked therefore asserts refusal of every 19.x. Lifting it is a spec change naming the fixed minor
   plus a passing lowering-write RLS ON CONFLICT family on that image. Not infeasible, but permanently red-to-lift by
   design.
-- **CVE-2025-23419 replica against aegis.** aegis disables tickets and has no mTLS listener, so the real-binary run
+- **CVE-2025-23419 replica against monban.** monban disables tickets and has no mTLS listener, so the real-binary run
   passes by construction today. The gate is meaningful only through its self-test (an in-oracle vulnerable server)
   and as a guard for the future scoped ticketer (P2-tls-002). State this in claims; it is not evidence of a scoped
   ticketer.
@@ -135,7 +135,7 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
    (drain within T_drain) has no gate. Add one to native-e2e (shutdown during in-flight data requests)?
 4. Real-driver regression corpus (sqlx #4393, tokio-postgres #1374, redis-py #2624): with owned drivers, only their
    shapes can be replayed against our client. Is that accepted as coverage?
-5. With rusqlite in aegis-bin, budget and the cmvp FIPS lock: SQLite is non-crypto C, but confirm it adds no
+5. With rusqlite in monban-bin, budget and the cmvp FIPS lock: SQLite is non-crypto C, but confirm it adds no
    aws-lc/ring node.
 
 ---
@@ -146,8 +146,8 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
   Phases 0→7, and Phases 2–3 each closed in about 2 days of wall time.
 - **D1:** accepted. Additive F4 types only (CapSet with no empty constructor, canonical lock format, denylist as data,
   EnginePin). The Op/Pred/Schema layout stays as it is (F10 compatible). Re-freeze in P4-spec-001.
-- **D2:** option (b). The host driving loop lives in aegis-sdk and minting stays `pub(crate)`. adapter-host implements a
-  backend trait. The SDK stays L1/L2-pure: the trait is the only effect seam, and no tokio or IO enters aegis-sdk.
+- **D2:** option (b). The host driving loop lives in monban-sdk and minting stays `pub(crate)`. adapter-host implements a
+  backend trait. The SDK stays L1/L2-pure: the trait is the only effect seam, and no tokio or IO enters monban-sdk.
 - **D3:** accepted as DEVIATIONS X-10: owned PG v3 and RESP2 clients. P4-spec-002 records the cargo tree count it
   avoids. rusqlite (bundled) enters the TCB ledger as trusted, unverified C, the same tier as the AWS-LC C code in
   SECURITY_CLAIMS.md.
@@ -193,27 +193,27 @@ gates run locally (no `remote`), because the LAN box is not known to have Docker
 - **R-DB-8 restated:** the ON CONFLICT WHERE peek reproduces on 17.11 and 18.6 too. Only the mandated composite-arbiter
   form with no user WHERE protects us, and claims must say so. PG19 stays blocked (19 also leaks through DO SELECT via a
   security_barrier view).
-- **D13: app-facing query surface.** aegis-sdk re-exports the F4 query types apps need (`aegis_data_ir::{Op, OpKind,
-  Pred, Value, Field}`) from a new non-frozen module `aegis_sdk::query`, so apps under the layering rule (SDK only)
+- **D13: app-facing query surface.** monban-sdk re-exports the F4 query types apps need (`monban_data_ir::{Op, OpKind,
+  Pred, Value, Field}`) from a new non-frozen module `monban_sdk::query`, so apps under the layering rule (SDK only)
   can build ops. Safety still rests on the SDK: `host::Backend::run` receives the op only after the SDK has checked
   `op.kind == K` against the grant and overwritten `op.tenant`. No F7 re-freeze, because surface.rs is unchanged.
-  P4-host-001 owns the module (add `sdk/aegis-sdk/src/query.rs` and its `mod`/`pub use` line in lib.rs to its scope).
-- **D14: idempotency outcome is atomic with the data (INV-IDEMP, NC2).** The host must not commit the aegis-state lease
+  P4-host-001 owns the module (add `sdk/monban-sdk/src/query.rs` and its `mod`/`pub use` line in lib.rs to its scope).
+- **D14: idempotency outcome is atomic with the data (INV-IDEMP, NC2).** The host must not commit the monban-state lease
   after a separately committed backend transaction: a crash between the two would re-run a committed request on
   replay. For each transactional backend (SQLite, PG), the outcome record is written in the same backend transaction
-  as the user rows, in a per-backend `aegis_idem` table keyed by (principal, key). The cancel-subject already models
-  it this way. aegis-state stays the store for the commit latch and outbox of non-transactional work. For Redis (no
+  as the user rows, in a per-backend `monban_idem` table keyed by (principal, key). The cancel-subject already models
+  it this way. monban-state stays the store for the commit latch and outbox of non-transactional work. For Redis (no
   multi-key transactions across the idem key and user keys outside one MULTI/EXEC), the outcome key lives in the
   same MULTI/EXEC under the tenant prefix. P4-bin-001 wires this; native-e2e's crash and replay checks must cover it.
 - **D15: dependency edges for the bin wiring.** The adapter `Renderer`/`Executor` pairings and the
-  aegis-config→Endowment conversion live in aegis-bin (L5), which may depend on every adapter and on aegis-config.
+  monban-config→Endowment conversion live in monban-bin (L5), which may depend on every adapter and on monban-config.
   No same-layer edges are added between adapter-host and the adapters.
 - **D16: native-e2e contract choices accepted.** Route target `app:<name>` (the F8 `upstream` is a free string, so no
-  re-freeze is needed), CLI flag `--token-keyring <file>` (Tier-L KeyRing JSON), header `aegis-deadline-ms` (can only
+  re-freeze is needed), CLI flag `--token-keyring <file>` (Tier-L KeyRing JSON), header `monban-deadline-ms` (can only
   lower the deadline), and T_drain = 10 s for NC8. Mutants live behind the `e2e-mutants` cargo feature
   (AEGIS_E2E_MUTANT); the golden build never enables it, which P4-bin-001 asserts.
 - **D17: native data plane is an optional build feature.** ARCHITECTURE's "≤6 MB core" covers the front-proxy core
-  (steer §0b: lean core, optional modules). aegis-bin gains a cargo feature `native` (data plane + adapters + bundled
+  (steer §0b: lean core, optional modules). monban-bin gains a cargo feature `native` (data plane + adapters + bundled
   SQLite). The default build is the core and keeps the unchanged budget (≤6 MB, ≤60 crates). The `native` build gets
   its own explicit ceiling of 8.0 MB stripped, recorded as DEVIATIONS X-12 (bundled SQLite is about 2.6 MB of C). The
   budget gate measures both builds, and the native-e2e gate builds with `--features native`.

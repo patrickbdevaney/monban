@@ -8,7 +8,7 @@
   "auth": {
    "scheme": "Bearer JWT",
    "alg": "HS256",
-   "secret": "aegis-oracle-test-secret-NOT-FOR-PRODUCTION",
+   "secret": "monban-oracle-test-secret-NOT-FOR-PRODUCTION",
    "iss": "https://issuer.oracle.test",
    "aud": "the full route URL (RFC 8707 resource), e.g. http://127.0.0.1:PORT/mcp"
   },
@@ -136,7 +136,7 @@
    "advisories": [
     "GHSA-wmjf-2m46-2352"
    ],
-   "basis": "AEGIS hardening (not spec MUST)",
+   "basis": "Monban hardening (not spec MUST)",
    "eras": [
     "legacy",
     "modern"
@@ -144,7 +144,7 @@
    "executable": "yes",
    "expected": "no Origin + ambient cookie + Sec-Fetch-Site cross-site -> 4xx",
    "research_manifest_expect": "no Origin + ambient credential -> 403; no Origin + bearer -> allowed",
-   "research_status_vs_2026_07_28": "KEEP as AEGIS-only; spec only requires rejecting PRESENT invalid Origin; 13/14 FAIL"
+   "research_status_vs_2026_07_28": "KEEP as Monban-only; spec only requires rejecting PRESENT invalid Origin; 13/14 FAIL"
   },
   {
    "id": "token-not-to-app-origin",

@@ -2,7 +2,7 @@
  "id": "P4-state-001",
  "role": "implementer",
  "crates": [
-  "aegis-state (store)"
+  "monban-state (store)"
  ],
  "depends_on": [
   "P4-spec-002",
@@ -26,9 +26,9 @@
   "must": "0 counted violations over main/eio/double at full size (~170k images); subject advertises mutations=ack-early,no-dirsync,no-mode-recheck and each is caught"
  },
  "write_scope": [
-  "crates/aegis-state/src/lib.rs",
-  "crates/aegis-state/src/store/**",
-  "crates/aegis-state/tests/store*.rs",
+  "crates/monban-state/src/lib.rs",
+  "crates/monban-state/src/store/**",
+  "crates/monban-state/tests/store*.rs",
   "subjects/crash-subject/**"
  ],
  "notes": "SQLite WAL synchronous=FULL single writer (q2-007 keep); redb 2PC stays the documented alternative, not built.",

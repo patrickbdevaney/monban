@@ -1,4 +1,4 @@
-//! Shared helpers for the AEGIS fuzz targets (fuzz workspace only; nothing here ships).
+//! Shared helpers for the Monban fuzz targets (fuzz workspace only; nothing here ships).
 //!
 //! Every target must be total on its own: it may only fail through an `assert!` of a property of the code under
 //! test (or through a panic inside that code). Structured inputs are drawn with `arbitrary::Unstructured`, whose

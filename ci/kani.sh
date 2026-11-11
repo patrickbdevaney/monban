@@ -5,15 +5,15 @@
 #   ci/kani.sh [--crate C] [--neg N] --expect-neg-only  only the negative control N (it must FAIL on its own
 #                                                       assertion); --self-test is the same mode
 #
-# Defaults: --crate aegis-budget --neg negative_control_unclamped_refill, so the kani-tbi invocations
+# Defaults: --crate monban-budget --neg negative_control_unclamped_refill, so the kani-tbi invocations
 # (`ci/kani.sh`, `ci/kani.sh --self-test`) are unchanged. kani-kx is
-# `ci/kani.sh --crate aegis-tls --neg negative_control_indexing_split`.
-# kani-wire (P7-spec-002) is `ci/kani.sh --serial --mem 6G -p aegis-wire` / `ci/kani.sh --self-test -p aegis-wire`:
+# `ci/kani.sh --crate monban-tls --neg negative_control_indexing_split`.
+# kani-wire (P7-spec-002) is `ci/kani.sh --serial --mem 6G -p monban-wire` / `ci/kani.sh --self-test -p monban-wire`:
 # `-p C` is `--crate C`; `--mem M` sets the per-harness MemoryMax (as KANI_MEM); `--serial` is accepted for clarity
-# (harnesses always run one at a time). Without --neg the negative control is the crate's own: aegis-wire
-# negative_control_planted_oob, every other crate negative_control_unclamped_refill (the aegis-budget one, as before).
-# kani-kx-client (P8-kani-001) is `ci/kani.sh --serial --mem 6G -p aegis-tls --only client_` / `... --self-test
-# -p aegis-tls --only client_`: `--only P` selects the harnesses whose name starts with P. Without --neg, its negative
+# (harnesses always run one at a time). Without --neg the negative control is the crate's own: monban-wire
+# negative_control_planted_oob, every other crate negative_control_unclamped_refill (the monban-budget one, as before).
+# kani-kx-client (P8-kani-001) is `ci/kani.sh --serial --mem 6G -p monban-tls --only client_` / `... --self-test
+# -p monban-tls --only client_`: `--only P` selects the harnesses whose name starts with P. Without --neg, its negative
 # control is the one selected harness whose name contains "negative_control" (exactly one, else FAIL). An --only run
 # uses its own remote work dir (kani-<crate>-<P without trailing _>), so it never rsyncs over a concurrent
 # full-crate run.
@@ -21,8 +21,8 @@
 # the default) names the required one, and any other selected negative control runs too and must also FAIL on its own
 # "NEGATIVE CONTROL" assertion (so a full-crate run such as kani-kx also runs the client_ negative control red).
 #
-# The script syncs the crate (and any aegis-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/<dir> with a
-# generated minimal workspace manifest (<dir> = p2-kani for aegis-budget, kani-<crate> otherwise). Third-party
+# The script syncs the crate (and any monban-* path deps it declares) to $KANI_HOST:~/aegis-ci/work/<dir> with a
+# generated minimal workspace manifest (<dir> = p2-kani for monban-budget, kani-<crate> otherwise). Third-party
 # `workspace = true` deps of the synced crates are copied verbatim from the root [workspace.dependencies], and
 # then the root Cargo.lock is synced too, so they resolve to the locked versions. If the proofs file uses
 # `kani::stub`, the harnesses run with `-Z stubbing`. It asserts the Kani checkout is a descendant of the PR #4910
@@ -41,7 +41,7 @@ HOST=${KANI_HOST:-kamrui}
 MEM=${KANI_MEM:-6G}
 TMO=${KANI_TIMEOUT:-1800}
 PR4910_MERGE=16c774cf
-CRATE=aegis-budget
+CRATE=monban-budget
 NEG=
 ONLY=
 
@@ -61,14 +61,14 @@ done
 [ -z "$ONLY" ] || [[ "$ONLY" =~ ^[a-z][a-z0-9_]*$ ]] || { echo "kani.sh: bad --only prefix $ONLY" >&2; exit 2; }
 if [ -z "$NEG" ] && [ -z "$ONLY" ]; then
   case "$CRATE" in
-    aegis-wire) NEG=negative_control_planted_oob ;;
+    monban-wire) NEG=negative_control_planted_oob ;;
     *) NEG=negative_control_unclamped_refill ;;
   esac
 fi
 [[ "$MEM" =~ ^[0-9]+[KMG]$ ]] || { echo "kani.sh: bad --mem $MEM (e.g. 6G)" >&2; exit 2; }
-[[ "$CRATE" =~ ^aegis-[a-z0-9-]+$ ]] || { echo "kani.sh: bad crate name $CRATE" >&2; exit 2; }
+[[ "$CRATE" =~ ^monban-[a-z0-9-]+$ ]] || { echo "kani.sh: bad crate name $CRATE" >&2; exit 2; }
 [ -z "$NEG" ] || [[ "$NEG" =~ ^[a-z_0-9]+$ ]] || { echo "kani.sh: bad harness name $NEG" >&2; exit 2; }
-if [ "$CRATE" = aegis-budget ]; then WDIR=p2-kani; else WDIR=kani-$CRATE; fi
+if [ "$CRATE" = monban-budget ]; then WDIR=p2-kani; else WDIR=kani-$CRATE; fi
 [ -z "$ONLY" ] || WDIR=kani-$CRATE-${ONLY%_}
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -95,18 +95,18 @@ done
 if [ -n "${KANI_HARNESSES:-}" ]; then read -r -a POS <<<"$KANI_HARNESSES"; fi
 [ "$MODE" = self ] && POS=()
 
-# Crates to sync: the crate plus aegis-* path deps declared in its [dependencies].
+# Crates to sync: the crate plus monban-* path deps declared in its [dependencies].
 CRATES=("$CRATE")
-mapfile -t DEPS < <(awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^aegis-[a-z0-9-]+ *=/{sub(/ *=.*/, ""); print}' \
+mapfile -t DEPS < <(awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^monban-[a-z0-9-]+ *=/{sub(/ *=.*/, ""); print}' \
   "$ROOT/crates/$CRATE/Cargo.toml")
 for d in "${DEPS[@]}"; do [ -n "$d" ] && CRATES+=("$d"); done
 
 # Third-party `workspace = true` deps of the synced crates ([dependencies] only), taken from the root manifest.
 mapfile -t EXT < <(for c in "${CRATES[@]}"; do
-  awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^[a-z0-9_-]+ *= *\{.*workspace *= *true/ && !/^aegis-/{sub(/ *=.*/, ""); print}' \
+  awk '/^\[dependencies\]/{d=1; next} /^\[/{d=0} d && /^[a-z0-9_-]+ *= *\{.*workspace *= *true/ && !/^monban-/{sub(/ *=.*/, ""); print}' \
     "$ROOT/crates/$c/Cargo.toml"; done | sort -u)
 
-# Minimal workspace manifest: members + [workspace.package] + [workspace.lints.*] + aegis-* path deps
+# Minimal workspace manifest: members + [workspace.package] + [workspace.lints.*] + monban-* path deps
 # + the third-party deps above, verbatim from the root [workspace.dependencies].
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
@@ -203,7 +203,7 @@ run_one() { # name rustflags is_negative(0|1)
   echo "RESULT $h $verdict rc=$rc_in wall=${wall:-na}s peak=$mb ${cov:-} ${why:+($why)}"
 }
 for h in "$@"; do run_one "$h" "" 0; done
-for n in "${NEGS[@]}"; do run_one "$n" "--cfg aegis_kani_negative" 1; done
+for n in "${NEGS[@]}"; do run_one "$n" "--cfg monban_kani_negative" 1; done
 REMOTE
 
 OUT=$STAGE/out.txt

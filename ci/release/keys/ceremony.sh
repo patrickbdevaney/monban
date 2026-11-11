@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AEGIS release key ceremony (solo maintainer; runbook: ci/release/keys/README.md).
+# Monban release key ceremony (solo maintainer; runbook: ci/release/keys/README.md).
 #
 #   ceremony.sh new --private DIR --public DIR [--root-days N] [--root-pass-fd N] [--online-pass-fd N]
 #       Makes every production key once: 5 TUF root keys (Ed25519), the TUF targets/snapshot/timestamp keys (Ed25519),
@@ -100,7 +100,7 @@ genkey() {  # $1 name, $2 algorithm, $3 passfile, $4 encrypted output; plaintext
 
 write_keys_txt() {  # $1 = public dir
   {
-    echo "AEGIS release public keys (ci/release/keys/README.md). sha256 = sha256 of the SPKI DER public key."
+    echo "Monban release public keys (ci/release/keys/README.md). sha256 = sha256 of the SPKI DER public key."
     echo "Written by ci/release/keys/ceremony.sh $CMD on $(date -u +%Y-%m-%dT%H:%M:%SZ)."
     echo
     local n
@@ -115,7 +115,7 @@ write_keys_txt() {  # $1 = public dir
 
 storage_text() {  # $1 = private dir
   cat << EOF
-AEGIS release keys: where each encrypted file goes (ci/release/keys/README.md has the full runbook).
+Monban release keys: where each encrypted file goes (ci/release/keys/README.md has the full runbook).
 Every file here is passphrase-encrypted. A copy alone is useless without its passphrase; a passphrase alone is
 useless without the file. Keep the two apart.
 
@@ -131,7 +131,7 @@ never two on the same device, never all on this computer:
   Then delete the root files from this computer:  shred -u $1/root-*.key.enc.pem
 
 ONLINE KEYS (online/, used for every release; one passphrase for all 7):
-  online/  -> the build box that runs ci/release/pipeline.sh (kamrui: ~/aegis-release-keys/online, mode 0700)
+  online/  -> the build box that runs ci/release/pipeline.sh (kamrui: ~/monban-release-keys/online, mode 0700)
            -> plus one backup copy on external drive A (next to root-1 is fine: they have different passphrases)
   Online passphrase: password manager. If online keys leak, replace them (ceremony.sh next-root --replace-online).
 EOF

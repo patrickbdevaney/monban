@@ -1,7 +1,7 @@
 {
  "id": "P2-proxy-001",
  "crates": [
-  "aegis-bin"
+  "monban-bin"
  ],
  "spec_refs": [
   "IMPLEMENTATION_PLAN Phase 2 scope (reverse-proxy mode R)",
@@ -13,19 +13,19 @@
   "ARCHITECTURE \u00a73.10 metrics on admin listener, audit for admin events"
  ],
  "oracles": [
-  "oracles/proxy-e2e (new): stdlib Python upstream that records exactly what it receives; drives aegis over TLS (h1 + h2) and checks forwarding, canonical re-serialization, 421/308/400 behaviours, admission rejects, metrics endpoint, config LKG on bad reload, fail-closed boot"
+  "oracles/proxy-e2e (new): stdlib Python upstream that records exactly what it receives; drives monban over TLS (h1 + h2) and checks forwarding, canonical re-serialization, 421/308/400 behaviours, admission rejects, metrics endpoint, config LKG on bad reload, fail-closed boot"
  ],
  "acceptance": {
-  "cmd": "ci/heavy.sh cargo build --release -p aegis-bin && oracles/proxy-e2e/run --subject target/release/aegis && oracles/proxy-e2e/run --self-test",
+  "cmd": "ci/heavy.sh cargo build --release -p monban-bin && oracles/proxy-e2e/run --subject target/release/monban && oracles/proxy-e2e/run --self-test",
   "must": "PROXY-E2E: PASS and SELF-TEST: PASS"
  },
  "write_scope": [
-  "crates/aegis-bin/**",
+  "crates/monban-bin/**",
   "oracles/proxy-e2e/**",
   "deploy/**"
  ],
  "infeasible_exit": true,
  "max_retries": 30,
  "passes": false,
- "status": "partial\u2192mostly done: serves through aegis_transport::Server (P2-transport-003); budget unsafe fixed (P2-ops-rustix-001); open: idle RSS measurement in xtask budget needs a config; upstream response is an 8 MiB bounded buffer, not a stream; upstream TLS later"
+ "status": "partial\u2192mostly done: serves through monban_transport::Server (P2-transport-003); budget unsafe fixed (P2-ops-rustix-001); open: idle RSS measurement in xtask budget needs a config; upstream response is an 8 MiB bounded buffer, not a stream; upstream TLS later"
 }

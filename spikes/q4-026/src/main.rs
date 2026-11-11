@@ -63,7 +63,7 @@ fn provider(groups: Vec<&'static dyn SupportedKxGroup>) -> Arc<CryptoProvider> {
 
 fn server_config(groups: Vec<&'static dyn SupportedKxGroup>) -> Res<Arc<ServerConfig>> {
     let kp = rcgen::KeyPair::generate_for(&rcgen::PKCS_ECDSA_P384_SHA384)?;
-    let cert = rcgen::CertificateParams::new(vec!["aegis.test".to_string(), "localhost".to_string()])?
+    let cert = rcgen::CertificateParams::new(vec!["monban.test".to_string(), "localhost".to_string()])?
         .self_signed(&kp)?;
     let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(kp.serialize_der()));
     let cfg = ServerConfig::builder_with_provider(provider(groups))
@@ -237,7 +237,7 @@ fn handshake_wire(
     mut cmod: Option<WireMod>,
     mut smod: Option<WireMod>,
 ) -> Res<Outcome> {
-    let mut c = ClientConnection::new(ccfg, ServerName::try_from("aegis.test")?)?;
+    let mut c = ClientConnection::new(ccfg, ServerName::try_from("monban.test")?)?;
     let mut s = ServerConnection::new(scfg)?;
     let mut out = Outcome {
         ok: false,
@@ -706,7 +706,7 @@ fn server_with(port: &str, count: usize, group: &'static dyn SupportedKxGroup) -
 fn client(addr: &str) -> Res<()> {
     let cfg = client_config(vec![SECP384R1MLKEM1024])?;
     let mut sock = TcpStream::connect(addr)?;
-    let mut conn = ClientConnection::new(cfg, ServerName::try_from("aegis.test")?)?;
+    let mut conn = ClientConnection::new(cfg, ServerName::try_from("monban.test")?)?;
     while conn.is_handshaking() {
         conn.complete_io(&mut sock)?;
     }
@@ -717,7 +717,7 @@ fn client(addr: &str) -> Res<()> {
         conn.protocol_version()
     );
     let mut tls = rustls::Stream::new(&mut conn, &mut sock);
-    tls.write_all(b"GET / HTTP/1.0\r\nHost: aegis.test\r\n\r\n")?;
+    tls.write_all(b"GET / HTTP/1.0\r\nHost: monban.test\r\n\r\n")?;
     let mut resp = Vec::new();
     let _ = tls.read_to_end(&mut resp);
     let s = String::from_utf8_lossy(&resp);

@@ -1,6 +1,6 @@
 # Release keys: operator runbook
 
-This is the setup for signing real AEGIS releases as a solo maintainer. No hardware tokens needed.
+This is the setup for signing real Monban releases as a solo maintainer. No hardware tokens needed.
 
 The rules the verifier enforces do not change. A release needs three signatures over its checksums (Ed25519,
 SLH-DSA-SHA2-128s, ML-DSA-87), a provenance signed by a separate attest key, and TUF metadata whose root is 5
@@ -27,7 +27,7 @@ terminal (`ssh -t`), not through `ci/remote.sh`, because it asks for passphrases
 
 ```sh
 cd ~/aegis-ci/repo            # or your checkout
-ci/release/keys/ceremony.sh new --private ~/aegis-keys-ceremony --public release-keys
+ci/release/keys/ceremony.sh new --private ~/monban-keys-ceremony --public release-keys
 ```
 
 - `--private` must be outside the repo (and outside any git checkout), and empty or missing. The script refuses
@@ -41,7 +41,7 @@ ci/release/keys/ceremony.sh new --private ~/aegis-keys-ceremony --public release
 - When it finishes, check the result and commit the public half:
 
 ```sh
-ci/release/keys/ceremony.sh check --private ~/aegis-keys-ceremony --public release-keys
+ci/release/keys/ceremony.sh check --private ~/monban-keys-ceremony --public release-keys
 git add release-keys && git commit -m "release keys: production root v1"
 ```
 
@@ -55,11 +55,11 @@ git add release-keys && git commit -m "release keys: production root v1"
 | `root-4.key.enc.pem` | encrypted cloud backup or a password-manager file attachment | |
 | `root-5.key.enc.pem` | USB stick D, in a second other building | |
 | root passphrase | password manager, plus a paper copy in a sealed envelope | never stored with a USB stick |
-| `online/` (7 files) | the build box: `kamrui:~/aegis-release-keys/online` (mode 0700) | plus one backup on drive A |
+| `online/` (7 files) | the build box: `kamrui:~/monban-release-keys/online` (mode 0700) | plus one backup on drive A |
 | online passphrase | password manager | |
 
 Never put two root copies on one device, and never leave all of them on one computer. When the copies are in
-place, remove the root files from the ceremony folder: `shred -u ~/aegis-keys-ceremony/root-*.key.enc.pem`.
+place, remove the root files from the ceremony folder: `shred -u ~/monban-keys-ceremony/root-*.key.enc.pem`.
 Once a year, check that each copy still opens (any 3 is enough):
 
 ```sh
@@ -77,7 +77,7 @@ ssh -t kamrui
 cd ~/aegis-ci/repo
 export RUSTUP_HOME=~/aegis-ci/rustup CARGO_HOME=~/aegis-ci/cargo AEGIS_TOOLS=~/aegis-ci/tools
 export PATH=~/aegis-ci/cargo/bin:~/aegis-ci/tools/bin:$PATH
-ci/release/pipeline.sh --profile floor --out target/release-prod --keys ~/aegis-release-keys/online
+ci/release/pipeline.sh --profile floor --out target/release-prod --keys ~/monban-release-keys/online
 ci/release/verify.py --trusted-root release-keys/1.root.json target/release-prod
 ```
 
@@ -111,11 +111,11 @@ verifier holding `1.root.json` walks the chain to the newest one. Nobody needs a
 **One root copy lost or stolen.** Replace that key using 3 of the others:
 
 ```sh
-ci/release/keys/ceremony.sh next-root --public release-keys --replace-root 2 --new-private ~/aegis-keys-new \
+ci/release/keys/ceremony.sh next-root --public release-keys --replace-root 2 --new-private ~/monban-keys-new \
   --root-key /media/a/root-1.key.enc.pem --root-key /media/c/root-3.key.enc.pem --root-key /media/d/root-4.key.enc.pem
 ```
 
-Store `~/aegis-keys-new/root-2.key.enc.pem` where the old copy lived, and commit `release-keys`. The old root-2 can
+Store `~/monban-keys-new/root-2.key.enc.pem` where the old copy lived, and commit `release-keys`. The old root-2 can
 no longer sign anything. Two copies lost or stolen: do the same with `--replace-root` given twice. Three or more:
 you can no longer prove a new root. Run a fresh `ceremony.sh new`, publish the new `1.root.json` through a separate
 channel, and tell users to re-pin it.
@@ -124,11 +124,11 @@ channel, and tell users to re-pin it.
 This also needs 3 root copies:
 
 ```sh
-ci/release/keys/ceremony.sh next-root --public release-keys --replace-online --new-private ~/aegis-keys-new \
+ci/release/keys/ceremony.sh next-root --public release-keys --replace-online --new-private ~/monban-keys-new \
   --root-key ... --root-key ... --root-key ...
 ```
 
-Copy `~/aegis-keys-new/online` to the build box and its backup, shred the old `online/`, and commit `release-keys`.
+Copy `~/monban-keys-new/online` to the build box and its backup, shred the old `online/`, and commit `release-keys`.
 Releases signed with the old keys still verify through their own root version. The new root no longer trusts the
 old TUF online keys for new metadata.
 

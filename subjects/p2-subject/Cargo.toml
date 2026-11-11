@@ -1,29 +1,29 @@
 [package]
 name = "p2-subject"
-description = "Oracle subject: drives the aegis-iso P2 sandbox and the P2 serve paths over the oracles' --subject protocols. Never linked into aegis."
+description = "Oracle subject: drives the monban-iso P2 sandbox and the P2 serve paths over the oracles' --subject protocols. Never linked into monban."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
 
-[package.metadata.aegis]
+[package.metadata.monban]
 layer = "tool"
 
 # Path dependencies only (PLAN-5 "Roles"): no third-party crate, never wasmtime directly.
 [dependencies]
-# `test-hooks` brings the syscall probe (oracles/syscall-negative probe protocol); in aegis-iso it only adds the
+# `test-hooks` brings the syscall probe (oracles/syscall-negative probe protocol); in monban-iso it only adds the
 # probe module and never changes what `sandbox::install` does.
-aegis-iso = { workspace = true, features = ["test-hooks"] }
+monban-iso = { workspace = true, features = ["test-hooks"] }
 # The P2 Wasm runtime (engine, digest-checked .cwasm load). `test-hooks` brings the isolation-fi guest ABI
 # (`handle(id, fault)`, `env.host_fault`), which the isolation-fi oracle's guest needs (PLAN-5 D15). Because of
-# these features p2-subject is never built in the same cargo invocation as a shipped aegis-p2 (PLAN-5 D18).
-aegis-wasm = { workspace = true, features = ["test-hooks"] }
+# these features p2-subject is never built in the same cargo invocation as a shipped monban-p2 (PLAN-5 D18).
+monban-wasm = { workspace = true, features = ["test-hooks"] }
 
 [features]
 # Oracle negative controls selected at run time by AEGIS_P2_MUTANT (isolation-fi --mutant-subject): forkwasm
 # no-fork, no-deadline, reuse-instance. Built only into target/p2-mutants (PLAN-5 D15).
-mutants = ["aegis-iso/mutants", "aegis-wasm/mutants"]
+mutants = ["monban-iso/mutants", "monban-wasm/mutants"]
 
 [lints]
 workspace = true

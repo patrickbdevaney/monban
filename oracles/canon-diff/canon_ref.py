@@ -1,4 +1,4 @@
-"""AEGIS canon-diff reference canonicalizer (spec-by-code for SPEC_INVARIANTS D: CANON-1..8, H1(c) header rules).
+"""Monban canon-diff reference canonicalizer (spec-by-code for SPEC_INVARIANTS D: CANON-1..8, H1(c) header rules).
 
 Ported and reviewed from research/state/raw/round-004/07-work/canon_ref.py (see README.md for provenance and every
 deliberate deviation). Python stdlib only; run under `python3 -I`. No I/O, no IDNA, no WHATWG parsing.

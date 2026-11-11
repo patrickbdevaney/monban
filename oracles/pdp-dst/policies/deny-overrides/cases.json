@@ -20,7 +20,7 @@
     {"name": "transfer ok", "p": ["Bank::Customer", "cy"], "a": "transfer", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 10, "country": "FR", "flags": {"__set": ["new-device", "travel"]}}, "expect": "ALLOW"},
     {"name": "fraud flag", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": {"__set": ["travel", "fraud-suspected"]}}, "expect": "DENY"},
     {"name": "risk exposure", "p": ["Bank::Customer", "hr"], "a": "transfer", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": 300000, "country": "FR", "flags": {"__set": []}}, "expect": "DENY"},
-    {"name": "overflow in a forbid: Cedar would Allow, AEGIS errors", "p": ["Bank::Customer", "hr"], "a": "transfer", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": 4611686018427387904, "country": "FR", "flags": {"__set": []}}, "expect": "ERROR", "cedar_raw": "cedar=Allow"},
+    {"name": "overflow in a forbid: Cedar would Allow, Monban errors", "p": ["Bank::Customer", "hr"], "a": "transfer", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": 4611686018427387904, "country": "FR", "flags": {"__set": []}}, "expect": "ERROR", "cedar_raw": "cedar=Allow"},
     {"name": "i64::MIN amount withdraw", "p": ["Bank::Customer", "hr"], "a": "withdraw", "r": ["Bank::Account", "hr-1"], "ctx": {"amount": -9223372036854775808, "country": "FR", "flags": {"__set": []}}, "expect": "ALLOW"},
     {"name": "flags must be a set", "p": ["Bank::Customer", "cy"], "a": "view", "r": ["Bank::Account", "cy-1"], "ctx": {"amount": 0, "country": "FR", "flags": "travel"}, "expect": "ERROR"}
   ]

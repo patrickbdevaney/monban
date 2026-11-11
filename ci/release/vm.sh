@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start, stop and reach the dedicated AEGIS GCP VM aegis-quiet (PLAN-6 D7, PREFLIGHT D-P5), from the laptop.
+# Start, stop and reach the dedicated Monban GCP VM aegis-quiet (PLAN-6 D7, PREFLIGHT D-P5), from the laptop.
 #
 #   ci/release/vm.sh start      start the VM (idempotent), wait for RUNNING and for ssh; prints `VM: ... RUNNING <ip>`
 #   ci/release/vm.sh stop       stop the VM and wait until `gcloud compute instances describe` says TERMINATED;

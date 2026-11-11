@@ -1,6 +1,6 @@
 # nonempty-props: INV-NONEMPTY property oracle (gate `nonempty-props`)
 
-A blocking gate for `aegis-adapter-host` (P4-host-001). It checks INV-NONEMPTY (`spec/SPEC_INVARIANTS.md` §A: "An
+A blocking gate for `monban-adapter-host` (P4-host-001). It checks INV-NONEMPTY (`spec/SPEC_INVARIANTS.md` §A: "An
 empty capability set denies; `Unrestricted` is explicit and CI-gated ... proptest 100k/adapter") on seeded
 (capset, op) pairs for each of the four adapters `sqlite`, `pg`, `redis` and `oop` (out of process). A subject is
 judged only by its replies. Until host-subject exists, the subject is the stdlib reference in `ref_subject.py`.
@@ -130,7 +130,7 @@ subject must be clean, and each `<cmd> --mutate m` for the five required mutants
 | research/state/raw/round-003/01-dataplane-ir-lowering-soundness.json | 6a0f3a81a2b9853cec9a2d92c82383b26c5eef2302200839c4b0fa79ee5fc8cd | `irl-empty-or-widening-family` (A): the same failure at expression level (empty Or rendered as no condition), basis for the near-cover and split-pair families |
 | research/ARCHITECTURE.md | 22848c5159ea2c6479def0f6e53aaa92c6b47458d3fced567fa5e7e0993a6dae | P-3 fail-closed floor (LiteLLM CVE-2026-59822: an error produced an empty principal → the `null` category) |
 | spec/SPEC_INVARIANTS.md | 666bac8b28e5453dea87ec4c70a10cf28d3cf4e8750d36a17fce58968a808072 | INV-NONEMPTY statement and test obligation (100k/adapter) |
-| crates/aegis-data-ir/src/ir.rs | 4a89c4c4e949734ff55c1c0f1de0ddb9d12bfd7deb57fb9be4f10f954f454c4a | OpKind, Op, Schema and check_schema rules the generated ops satisfy (pre-P4-spec-001 F4) |
+| crates/monban-data-ir/src/ir.rs | 4a89c4c4e949734ff55c1c0f1de0ddb9d12bfd7deb57fb9be4f10f954f454c4a | OpKind, Op, Schema and check_schema rules the generated ops satisfy (pre-P4-spec-001 F4) |
 | interfaces/F10-module-wire.cddl | dac0f21de4ecb9a871d0490f7ba9376f48f5f70281b5133988ebb02c90e9d7dc | positional pred encoding |
 
 No research code was ported. The research gives the failure pattern only, so the generator, checker and reference
@@ -151,7 +151,7 @@ are new.
 ## Known limits
 
 - Authorization is judged at the reply boundary. The oracle cannot see whether host-subject wires the same
-  `authorize` that aegis-bin uses. P4-host-001's subject must call the production dispatch path, and review should
+  `authorize` that monban-bin uses. P4-host-001's subject must call the production dispatch path, and review should
   check that.
 - `rendered` is self-reported by the subject. RENDER-ON-DENY catches a pipeline that reports its order honestly,
   not one that lies.

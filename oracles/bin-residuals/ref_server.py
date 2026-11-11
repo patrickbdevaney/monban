@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin-residuals reference subject (stdlib only). Not a model of aegis internals: it follows the observable contract
+"""bin-residuals reference subject (stdlib only). Not a model of monban internals: it follows the observable contract
 in README.md so the oracle can be shown to PASS on a correct subject and to go red on each mutant.
 
     ref_server.py --config <f8.json> --cert <pem> --key <pem> [--audit-dir d]
@@ -146,7 +146,7 @@ class Server:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((host, int(port)))
         s.listen(128)
-        # candidates as aegis-config TlsBlock::candidates: scoped to the listener, minus mldsa on P-PUBLIC-WEB
+        # candidates as monban-config TlsBlock::candidates: scoped to the listener, minus mldsa on P-PUBLIC-WEB
         own = [c for c in self.pool if c["listener"] == l["name"]
                and not (c["kind"] == "mldsa" and l["profile"] == ref_selector.PUBLIC_WEB)]
         if "l4" in l:

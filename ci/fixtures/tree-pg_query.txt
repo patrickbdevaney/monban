@@ -1,14 +1,14 @@
 # Fixture (synthetic mutant, P4-spec-002) for ci/no-crate.sh --self-test: the head of the real
-# `cargo tree -e normal,build --target all -p aegis-bin --prefix none --no-dedupe` output (2026-10-30, paths
+# `cargo tree -e normal,build --target all -p monban-bin --prefix none --no-dedupe` output (2026-10-30, paths
 # normalized to /repo) with a pg_query normalizer (pg_query 6.1.0 and part of its build graph) linked into
-# aegis-adapter-pg.
-aegis-bin v0.0.0 (/repo/crates/aegis-bin)
-aegis-adapter-host v0.0.0 (/repo/crates/aegis-adapter-host)
-aegis-authz v0.0.0 (/repo/crates/aegis-authz)
-aegis-types v0.0.0 (/repo/crates/aegis-types)
-aegis-data-ir v0.0.0 (/repo/crates/aegis-data-ir)
-aegis-types v0.0.0 (/repo/crates/aegis-types)
-aegis-adapter-pg v0.0.0 (/repo/crates/aegis-adapter-pg)
+# monban-adapter-pg.
+monban-bin v0.0.0 (/repo/crates/monban-bin)
+monban-adapter-host v0.0.0 (/repo/crates/monban-adapter-host)
+monban-authz v0.0.0 (/repo/crates/monban-authz)
+monban-types v0.0.0 (/repo/crates/monban-types)
+monban-data-ir v0.0.0 (/repo/crates/monban-data-ir)
+monban-types v0.0.0 (/repo/crates/monban-types)
+monban-adapter-pg v0.0.0 (/repo/crates/monban-adapter-pg)
 pg_query v6.1.0
 prost v0.13.5
 bytes v1.12.1

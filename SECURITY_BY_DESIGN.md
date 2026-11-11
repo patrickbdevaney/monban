@@ -1,6 +1,6 @@
 # The path to security by design
 
-How AEGIS turns a finite amount of code and proof into security that holds for an unbounded number of uses, where
+How Monban turns a finite amount of code and proof into security that holds for an unbounded number of uses, where
 that security stops, and the ordered path to strengthen it. Companion to `SECURITY_CLAIMS.md` (what is claimed
 today, at which rung) and `research/ARCHITECTURE.md` (the design).
 
@@ -22,7 +22,7 @@ Users and extensions may only speak to the server in **grammars we define and pr
 | canonical requests (paths, hosts, queries, headers, cookies, JSON) | F2, F8, CANON-1..8 | one reading per identity; no component disagrees about what a request means |
 | data operations (Op / Pred IR) | F4 | tenant isolation; exactly the permitted rows on exact backends (three-valued semantics); writes never touch another tenant |
 | authority (capability tokens) | F5 | delegation only narrows; audience, expiry and depth bound |
-| policy decisions | F6 + Cedar via `aegis-pdp` | any error, timeout or crash ⇒ deny |
+| policy decisions | F6 + Cedar via `monban-pdp` | any error, timeout or crash ⇒ deny |
 | extension calls | F7, F7b, F10, Wasm linker | an extension receives only work already authorized and tenant-bound; everything it returns is validated |
 | resources | TBI-1..9, admission I1–I11 | no client, swarm or extension exceeds its budget or starves others |
 
@@ -41,7 +41,7 @@ Users and extensions may only speak to the server in **grammars we define and pr
 
 | | golden build (us) | downstream users | neither (residual) |
 |---|---|---|---|
-| owns | the reference monitor, the grammars, the proofs and oracles, the release chain | their intent (policies), their extensions' logic within the authority granted, their clients, any path that bypasses AEGIS | the trusted computing base until it is replaced or verified; side channels |
+| owns | the reference monitor, the grammars, the proofs and oracles, the release chain | their intent (policies), their extensions' logic within the authority granted, their clients, any path that bypasses Monban | the trusted computing base until it is replaced or verified; side channels |
 | holds regardless of downstream code | budgets and admission; fail-closed authorization; tenant binding of every extension input; host-side validation of extension output; crash containment; isolation of tenants on golden adapters | — | — |
 | holds only for golden components | row-exactness of lowering, write-subset W1–W7, store durability | — | — |
 
@@ -80,13 +80,13 @@ guarantee, the conformance suite it must pass, and the label its report carries 
 2. **Wasm handlers** (P2): capability-only linker; per-handler fuel derived from measured cost (≤100× handler
    cost); fork+Wasm per principal by default; host-state corruption is a tested fault class.
 3. **SDK handlers** (F7, F7b): sealed capabilities; host-driven streaming; jobs only after commit.
-4. **Policies** (Cedar via `aegis-pdp`): validation and SMT checks at deploy; deny when absent.
+4. **Policies** (Cedar via `monban-pdp`): validation and SMT checks at deploy; deny when absent.
 
 ## 7. Recipes (developer onboarding, tested against the real binary in CI)
 
-1. **Ingress (client → AEGIS):** React/Next.js, Vue/Nuxt, SvelteKit, htmx, mobile, plain fetch; agents over MCP.
+1. **Ingress (client → Monban):** React/Next.js, Vue/Nuxt, SvelteKit, htmx, mobile, plain fetch; agents over MCP.
    Each covers the auth flow (cookies vs DPoP-bound tokens), Origin/CORS binding, CSRF, streaming, exact config.
-2. **Egress (AEGIS → backends):** Postgres, SQLite, MariaDB, CockroachDB, Redis/Valkey (golden or golden-eligible);
+2. **Egress (Monban → backends):** Postgres, SQLite, MariaDB, CockroachDB, Redis/Valkey (golden or golden-eligible);
    MySQL, Mongo and managed platforms as non-golden adapters until their oracles pass; upstream app servers
    (Node, PHP-FPM, Go, Python) in reverse-proxy mode.
 3. **Reverse direction:** webhooks with raw-byte signature verification, the outbox pattern, server-sent events.

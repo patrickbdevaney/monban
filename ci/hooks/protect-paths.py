@@ -10,7 +10,7 @@ Output follows the hook contract: JSON decision on stdout, exit 0 (never exit 2,
 import json, os, re, sys
 
 PROTECTED = ("spec/", "oracles/", "sdk/", "ci/", "gates/", "interfaces/", "tls/verdicts.toml", "Cargo.lock",
-             "Cargo.toml", ".github/", "supply-chain/", "deny.toml", "rust-toolchain.toml", "crates/aegis-types/",
+             "Cargo.toml", ".github/", "supply-chain/", "deny.toml", "rust-toolchain.toml", "crates/monban-types/",
              "CODEOWNERS", ".claude/", "CLAUDE.md")
 ROLE = os.environ.get("AEGIS_ROLE", "implementer")
 

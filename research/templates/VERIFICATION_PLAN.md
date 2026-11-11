@@ -6,24 +6,24 @@ Source: ARCHITECTURE.md v4 §4–§5, R-FORMAL-2..6, R-ASSURE-1..4. Rungs R0–R
 
 | component | rung now | target | mechanisms | spec-fidelity check |
 |---|---|---|---|---|
-| aegis-types (Decision, Principal) | R3 | R3 + R4 DRT | sealed types; DRT to Lean Decision | vacuity: Decision has 3 inhabitants |
-| aegis-canon | R2 (CANON-DIFF executed) | R3 + optional R5 (Verus canon_path) | G1 proptest ≥100k; G2 pinned WPT + IdnaTestV2 through every identity parser; G3 34 dated regressions; G4 lock bans; Kani totality | executable reference canonicalizer; mutation (relax any clause ⇒ G3 red) |
+| monban-types (Decision, Principal) | R3 | R3 + R4 DRT | sealed types; DRT to Lean Decision | vacuity: Decision has 3 inhabitants |
+| monban-canon | R2 (CANON-DIFF executed) | R3 + optional R5 (Verus canon_path) | G1 proptest ≥100k; G2 pinned WPT + IdnaTestV2 through every identity parser; G3 34 dated regressions; G4 lock bans; Kani totality | executable reference canonicalizer; mutation (relax any clause ⇒ G3 red) |
 | H1 framing | R2 | R4 (Lean grammar + DRT, Lean `Std.Http` second oracle) | HTTP Garden; framing corpus | grammar spec reviewed by a human; round-trip vacuity witness |
-| aegis-budget / transport wrapper | R1 | R5 (Kani TBI-5/6/9; Verus TBI-1/4/7) + R4 Lean composition | fuzz resource-ratio oracle; DST stall | oracle mutation: remove stall timer ⇒ red |
-| aegis-tls group selection, 0x11ED | R1 (verdicts PUB-T1..T6, FIPS-F1..F6) | **R4 Lean selection model + R5 Kani share parsing (Phase-6 gates)** | verdicts.toml; KATs; interop OpenSSL 3.5+/BoringSSL | model checked against every verdict id |
-| aegis-authz combiner | **R4 checked** | R4 + R1 host-mapping DST | Combine.lean (4 theorems) | vacuity; DST injects timeout/crash/panic |
+| monban-budget / transport wrapper | R1 | R5 (Kani TBI-5/6/9; Verus TBI-1/4/7) + R4 Lean composition | fuzz resource-ratio oracle; DST stall | oracle mutation: remove stall timer ⇒ red |
+| monban-tls group selection, 0x11ED | R1 (verdicts PUB-T1..T6, FIPS-F1..F6) | **R4 Lean selection model + R5 Kani share parsing (Phase-6 gates)** | verdicts.toml; KATs; interop OpenSSL 3.5+/BoringSSL | model checked against every verdict id |
+| monban-authz combiner | **R4 checked** | R4 + R1 host-mapping DST | Combine.lean (4 theorems) | vacuity; DST injects timeout/crash/panic |
 | Cedar evaluator | DRT | DRT + axiom audit | `#print axioms` on CI | until run, Cedar theorems cited at B |
-| aegis-token | **R4 checked (model only)** | R4 + DRT + mint-shape lemma | Token.lean T1–T5 (16 thm); fuzz F1–F9 1e8; dudect | EUF-CMA, codec round-trip, CT compare listed as hypotheses with tests |
-| aegis-data-ir lowering | **R4 checked** + R2 executed (leak=0, miss=0) | + 3VL re-proof; renderer DRT 1e7 Preds | Lowering.lean; two-sided oracles per ENGINE_PIN; schema gate | Backend.Refines/Exact are hypotheses tested by oracle; Vacuity.lean |
+| monban-token | **R4 checked (model only)** | R4 + DRT + mint-shape lemma | Token.lean T1–T5 (16 thm); fuzz F1–F9 1e8; dudect | EUF-CMA, codec round-trip, CT compare listed as hypotheses with tests |
+| monban-data-ir lowering | **R4 checked** + R2 executed (leak=0, miss=0) | + 3VL re-proof; renderer DRT 1e7 Preds | Lowering.lean; two-sided oracles per ENGINE_PIN; schema gate | Backend.Refines/Exact are hypotheses tested by oracle; Vacuity.lean |
 | write path | R2 (W1/W2/W4 executed) | R4 Lean W1–W6 abstract engine + R2 all families | write oracle N=300/variant | engine-violation corpus (#19645, ON CONFLICT) |
-| aegis-state (NOMUT, durability) | R1 | R2 DST + TLA+/P model | cancel sweep (8 modes × 8 oracles); crash harness ~130k images (+double fault, EIO) | oracle self-test: "always reusable" checkin ⇒ red ≤100 seeds |
+| monban-state (NOMUT, durability) | R1 | R2 DST + TLA+/P model | cancel sweep (8 modes × 8 oracles); crash harness ~130k images (+double fault, EIO) | oracle self-test: "always reusable" checkin ⇒ red ≤100 seeds |
 | CRS | R2 partial | R2 all scopes | two-scope differentials; nginx CVE-2025-23419 replica | remove epoch from pool key ⇒ C5 red |
-| aegis-admission | R1 (sim, uncalibrated, D) | R2 held-out seeds + TLA+ I3/I4/I6/I9/I10 + Kani I8 | swarm DST | per-scenario reporting, no in-sample tuning |
-| aegis-agent listener gate | R1 executed (43 cases) + R3 type | same | corpus with zero-handler counter | corpus derived from advisories, not from our code |
-| aegis-iso / aegis-wasm | R1 executed (FI gate 740 cells) + R3 kernel | same on VPS runner | negative syscall tests; hostile-module corpus | poison test must be red for instance reuse |
-| aegis-audit | R0 | R1 Kani/proptest I1–I3 + Tessera oracle | log-vs-effect diff | — |
-| aegis-config | R0 | R1 Kani totality + fuzz 1e7 | 3× oversize LKG test | — |
-| aegis-ops upgrade | R0 | R1 harness + TLA+ UP model | 200 upgrades at 5/s under 2k conn/s; naive REUSEPORT control must fail | — |
+| monban-admission | R1 (sim, uncalibrated, D) | R2 held-out seeds + TLA+ I3/I4/I6/I9/I10 + Kani I8 | swarm DST | per-scenario reporting, no in-sample tuning |
+| monban-agent listener gate | R1 executed (43 cases) + R3 type | same | corpus with zero-handler counter | corpus derived from advisories, not from our code |
+| monban-iso / monban-wasm | R1 executed (FI gate 740 cells) + R3 kernel | same on VPS runner | negative syscall tests; hostile-module corpus | poison test must be red for instance reuse |
+| monban-audit | R0 | R1 Kani/proptest I1–I3 + Tessera oracle | log-vs-effect diff | — |
+| monban-config | R0 | R1 Kani totality + fuzz 1e7 | 3× oversize LKG test | — |
+| monban-ops upgrade | R0 | R1 harness + TLA+ UP model | 200 upgrades at 5/s under 2k conn/s; naive REUSEPORT control must fail | — |
 | SDK B2 | R3 (25/32 mutants) | R3 + streaming | trybuild corpus | mutant set self-built: add externally sourced mutants |
 
 ## 2. Proof obligations (statements in SPEC_INVARIANTS.md)
@@ -76,7 +76,7 @@ evidence:                                     # ≥2 distinct kinds
 hypotheses_trusted: [Backend.Exact(pg17.11, binary collation), renderer = lower]
 hypothesis_tests: [DRT renderer-vs-Lean AST, schema gate]
 vacuity_witness: spec/AegisIR/Vacuity.lean#keeps_nonvacuous
-tcb_delta: [aegis-data-ir renderer, tokio-postgres@<rev>, PG planner]
+tcb_delta: [monban-data-ir renderer, tokio-postgres@<rev>, PG planner]
 residual: [timing/scoring channels, engine optimizer bugs between pins]
 reversal: "any leak or miss > 0 at a new ENGINE_PIN; Lean pin bump fails the gate"
 reverify_on: [engine bump, Lean bump, IR change, checker soundness advisory within 7 d]

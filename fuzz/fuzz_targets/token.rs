@@ -1,4 +1,4 @@
-//! F5: capability token decode + verify (aegis-token: Tier L det-CBOR HMAC chain, Tier X COSE ML-DSA-65, Tier 0
+//! F5: capability token decode + verify (monban-token: Tier L det-CBOR HMAC chain, Tier X COSE ML-DSA-65, Tier 0
 //! handles).
 //!
 //! Properties (raw bytes):
@@ -15,13 +15,13 @@
 
 use std::sync::OnceLock;
 
-use aegis_fuzz::{ALNUM, LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};
-use aegis_token::tier_x::{decode_envelope, envelope};
-use aegis_token::{
+use monban_fuzz::{ALNUM, LOWER, Unstructured, byte, bytes, flag, selftest, string_from, u64_};
+use monban_token::tier_x::{decode_envelope, envelope};
+use monban_token::{
     ArgPred, ArgVal, Caveat, KeyRing, MintParams, Req, Tier0Table, TokenL, VerifyError, XKeyRing, XPayload, attenuate,
     mac_valid, mint, verify, verify_x,
 };
-use aegis_types::TenantId;
+use monban_types::TenantId;
 use libfuzzer_sys::fuzz_target;
 
 const KID: &[u8] = b"k1";
@@ -48,7 +48,7 @@ fn fixture() -> Option<&'static Fixture> {
         raw_keys.insert(KID, MASTER_RAW).ok()?;
         let mut xkeys = XKeyRing::new();
         // A fixed byte pattern of the right length: no signature can verify under it except by forgery.
-        let pk: Vec<u8> = (0..aegis_token::tier_x::MLDSA65_PK_LEN).map(|i| (i % 251) as u8).collect();
+        let pk: Vec<u8> = (0..monban_token::tier_x::MLDSA65_PK_LEN).map(|i| (i % 251) as u8).collect();
         xkeys.insert(b"kx", &pk).ok()?;
         let mut tier0 = Tier0Table::new();
         let h = tier0.insert(TenantId::new(1).ok()?, b"subject", vec![Caveat::Tenant(1)]).ok()?;

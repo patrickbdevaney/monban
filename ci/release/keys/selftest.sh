@@ -67,16 +67,16 @@ verify() { python3 -I "$REL/verify.py" "$@"; }
 mkstage() {  # $1 = dir: a small fake release before the keyed jobs (artifact, SBOM, SHA256SUMS, build record, source)
   local d="$1" s
   mkdir -p "$d/stage/artifacts" "$d/w"
-  head -c 4096 /dev/urandom > "$d/stage/artifacts/aegis-floor"
+  head -c 4096 /dev/urandom > "$d/stage/artifacts/monban-floor"
   printf '{"bomFormat": "CycloneDX", "specVersion": "1.6", "version": 1, "components": []}\n' > "$d/stage/sbom.cdx.json"
-  (cd "$d/stage" && sha256sum artifacts/aegis-floor sbom.cdx.json | LC_ALL=C sort -k2 > SHA256SUMS)
-  s=$(sha256sum "$d/stage/artifacts/aegis-floor" | cut -d' ' -f1)
+  (cd "$d/stage" && sha256sum artifacts/monban-floor sbom.cdx.json | LC_ALL=C sort -k2 > SHA256SUMS)
+  s=$(sha256sum "$d/stage/artifacts/monban-floor" | cut -d' ' -f1)
   h() { printf '%s' "$1" | sha256sum | cut -c1-64; }
   cat > "$d/bi.json" << EOF
-{"profile": "floor", "artifact": "artifacts/aegis-floor", "sha256": "$s",
- "command": ["cargo", "auditable", "build", "--release", "--locked", "--offline", "-p", "aegis-bin"],
+{"profile": "floor", "artifact": "artifacts/monban-floor", "sha256": "$s",
+ "command": ["cargo", "auditable", "build", "--release", "--locked", "--offline", "-p", "monban-bin"],
  "source_date_epoch": 1793800658, "rustflags": "--remap-path-prefix=/src=/src",
- "image": {"name": "aegis-al2023-build:selftest", "id": "sha256:$(h b)", "base": "amazonlinux@sha256:$(h a)",
+ "image": {"name": "monban-al2023-build:selftest", "id": "sha256:$(h b)", "base": "amazonlinux@sha256:$(h a)",
            "containerfile_sha256": "$(h c)"},
  "rustc_vV": "rustc selftest", "cargo_V": "cargo selftest", "go_version": "go selftest", "cc_version": "gcc selftest",
  "cargo_auditable_sha256": "$(h d)", "cargo_lock_sha256": "$(h e)",
@@ -88,7 +88,7 @@ EOF
 # signrel DIR KEYS PUBDIR FD-of-passphrase: the production signing path on DIR's stage
 signrel() {
   local d="$1" keys="$2" pub="$3" fd="$4"
-  bash "$REL/sign-release.sh" --stage "$d/stage" --artifact artifacts/aegis-floor --build-info "$d/bi.json" \
+  bash "$REL/sign-release.sh" --stage "$d/stage" --artifact artifacts/monban-floor --build-info "$d/bi.json" \
     --source "$d/source.json" --work "$d/w" --keys "$keys" --pubdir "$pub" --passphrase-fd "$fd" \
     3< <(printf '%s\n' "$RP") 4< <(printf '%s\n' "$OP") 5< <(printf '%s\n' "$NP") 6< <(printf 'wrong-passphrase\n')
 }
@@ -205,7 +205,7 @@ run "next-root signed with the replaced root-2" FAIL "is not one of the current 
   --root-key "$T/priv/root-3.key.enc.pem" --root-pass-fd 3
 
 echo "== leftovers"
-left=$(find /dev/shm -maxdepth 1 \( -name 'aegis-release-keys.*' -o -name 'aegis-release-pass.*' -o -name 'aegis-ceremony.*' \) \
+left=$(find /dev/shm -maxdepth 1 \( -name 'monban-release-keys.*' -o -name 'monban-release-pass.*' -o -name 'monban-ceremony.*' \) \
   -user "$(id -u)" -newer "$T/.start" 2> /dev/null | head -3)
 [ -z "$left" ] || BAD+=("decrypted key / passphrase dirs left on tmpfs: $left")
 keylib_shred_dir "$T"

@@ -2,7 +2,7 @@
  "id": "P4-pg-003",
  "role": "implementer",
  "crates": [
-  "aegis-adapter-pg (pool, NC3)",
+  "monban-adapter-pg (pool, NC3)",
   "cancel DST subject"
  ],
  "depends_on": [
@@ -28,10 +28,10 @@
   "must": "PASS; every subject-side mutation listed by the oracle red within 100 seeds"
  },
  "write_scope": [
-  "crates/aegis-adapter-pg/src/pool.rs",
-  "crates/aegis-adapter-pg/src/checkin.rs",
-  "crates/aegis-adapter-pg/src/lib.rs",
-  "crates/aegis-adapter-pg/tests/pool*.rs",
+  "crates/monban-adapter-pg/src/pool.rs",
+  "crates/monban-adapter-pg/src/checkin.rs",
+  "crates/monban-adapter-pg/src/lib.rs",
+  "crates/monban-adapter-pg/tests/pool*.rs",
   "subjects/cancel-subject/**"
  ],
  "notes": "The subject embeds the DST shell (CancelAt at host-call sites + interleave shim) and a pgwire fake that reports server truth; the fake is test-only code inside the subject crate.",

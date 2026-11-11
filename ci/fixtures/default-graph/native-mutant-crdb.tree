@@ -1,28 +1,28 @@
-# Mutant: crdb enabled on aegis-adapter-pg in the native graph (ci/default-graph.py --self-test). Generated from `cargo tree -p aegis-bin -e normal,build --target all
+# Mutant: crdb enabled on monban-adapter-pg in the native graph (ci/default-graph.py --self-test). Generated from `cargo tree -p monban-bin -e normal,build --target all
 # --prefix none -f '{p} |{f}|' --features native` with path suffixes dropped.
-# Must FAIL G4 (aegis-adapter-pg/crdb).
-aegis-adapter-host v0.0.0 ||
-aegis-adapter-pg v0.0.0 |crdb,default|
-aegis-adapter-redis v0.0.0 ||
-aegis-adapter-sqlite v0.0.0 ||
-aegis-admission v0.0.0 ||
-aegis-agent v0.0.0 ||
-aegis-audit v0.0.0 ||
-aegis-authz v0.0.0 ||
-aegis-bin v0.0.0 |default,native|
-aegis-budget v0.0.0 ||
-aegis-canon v0.0.0 ||
-aegis-config v0.0.0 ||
-aegis-data-ir v0.0.0 ||
-aegis-egress v0.0.0 |default|
-aegis-metrics v0.0.0 ||
-aegis-ops v0.0.0 |default|
-aegis-sdk v0.0.0 |default,host|
-aegis-state v0.0.0 ||
-aegis-tls v0.0.0 |default|
-aegis-token v0.0.0 ||
-aegis-transport v0.0.0 ||
-aegis-types v0.0.0 |authn-path,canon-owner,raw-owner|
+# Must FAIL G4 (monban-adapter-pg/crdb).
+monban-adapter-host v0.0.0 ||
+monban-adapter-pg v0.0.0 |crdb,default|
+monban-adapter-redis v0.0.0 ||
+monban-adapter-sqlite v0.0.0 ||
+monban-admission v0.0.0 ||
+monban-agent v0.0.0 ||
+monban-audit v0.0.0 ||
+monban-authz v0.0.0 ||
+monban-bin v0.0.0 |default,native|
+monban-budget v0.0.0 ||
+monban-canon v0.0.0 ||
+monban-config v0.0.0 ||
+monban-data-ir v0.0.0 ||
+monban-egress v0.0.0 |default|
+monban-metrics v0.0.0 ||
+monban-ops v0.0.0 |default|
+monban-sdk v0.0.0 |default,host|
+monban-state v0.0.0 ||
+monban-tls v0.0.0 |default|
+monban-token v0.0.0 ||
+monban-transport v0.0.0 ||
+monban-types v0.0.0 |authn-path,canon-owner,raw-owner|
 atomic-waker v1.1.2 ||
 aws-lc-rs v1.18.2 |aws-lc-sys,prebuilt-nasm|
 aws-lc-sys v0.46.0 |prebuilt-nasm|

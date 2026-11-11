@@ -1,6 +1,6 @@
 # kx-interop: PQ key-exchange interop matrix (PLAN-6 D4, PREFLIGHT D-P4)
 
-Runs real TLS 1.3 handshakes between the AEGIS subject and three independent TLS stacks, over loopback TCP on
+Runs real TLS 1.3 handshakes between the Monban subject and three independent TLS stacks, over loopback TCP on
 kamrui, and checks the negotiated group, HelloRetryRequest, handshake completion and an application-data echo.
 
 ```
@@ -25,7 +25,7 @@ Peers (all on kamrui):
 |---|---|---|
 | OpenSSL | 3.5.3 (`/usr/bin/openssl`, checked by `run`) | `s_client` / `s_server` |
 | Go crypto/tls | go1.27.3 (`~/aegis-ci/go1.27.3`, `GOTOOLCHAIN=local`, `GOPROXY=off`, stdlib only) | `go/main.go` (`gopeer`) |
-| BoringSSL | commit `e651545da6e2` (2026-10-26, pinned 2026-11-04 in `bssl/LOCK` with tarball sha256) | `bssl client` / `bssl server` in image `aegis-bssl:e651545da6e2` (267 MB) |
+| BoringSSL | commit `e651545da6e2` (2026-10-26, pinned 2026-11-04 in `bssl/LOCK` with tarball sha256) | `bssl client` / `bssl server` in image `monban-bssl:e651545da6e2` (267 MB) |
 
 BoringSSL is built by `bssl/build.sh` in a throwaway `amazonlinux:2023` container pinned by digest (cmake,
 gcc-c++, libstdc++-static from dnf; static `bssl`), then copied into a runtime image of the same base
@@ -73,7 +73,7 @@ for each name. A cell claiming a peer x group that the probe says is absent (for
 whole matrix refused. So does a matrix that lacks any cell of the required coverage (`REQUIRED`, `REQUIRED_REFUSE` in
 `oracle.py`), which means the matrix can't be thinned.
 
-Peer server credential: an ECDSA P-384 leaf for `aegis.test` under a fresh ECDSA P-384 test CA, generated with
+Peer server credential: an ECDSA P-384 leaf for `monban.test` under a fresh ECDSA P-384 test CA, generated with
 `openssl` per run and deleted afterwards. The subject client gets the CA file.
 
 ## Subject contract (what P6-tls-001 must add to tls-subject)
@@ -83,7 +83,7 @@ records on stdin/stdout, as the existing `serve` does, and need no networking.
 
 ```
 CMD ARGS interop-server <PROFILE>
-    One TLS server connection on stdin/stdout, config from aegis_tls::server_config(PROFILE, <credential>), with a
+    One TLS server connection on stdin/stdout, config from monban_tls::server_config(PROFILE, <credential>), with a
     credential valid for the profile's sigalgs (P-UNIVERSAL/P-BSI-ALT: ECDSA-P384 or ML-DSA-87; P-CNSA: ML-DSA-87;
     P-PUBLIC-WEB: ECDSA-P256).
     After the handshake: print to stderr exactly one line
@@ -92,8 +92,8 @@ CMD ARGS interop-server <PROFILE>
     exit 0. On a TLS error: write any pending alert to stdout, print "interop: error <msg>" to stderr, exit 1.
 
 CMD ARGS interop-client <PROFILE> <CA_PEM> <NONCE>
-    One TLS client connection on stdin/stdout to server name "aegis.test", config from
-    aegis_tls::client_config(PROFILE, roots), where roots = the certificates in CA_PEM (no other trust anchors, no
+    One TLS client connection on stdin/stdout to server name "monban.test", config from
+    monban_tls::client_config(PROFILE, roots), where roots = the certificates in CA_PEM (no other trust anchors, no
     verifier override). Write the ClientHello before reading anything.
     After the handshake: print the same "interop: handshake ok ..." line, send "<NONCE>\n" as application data,
     read until "<NONCE>\n" has come back, print "interop: echo=ok", send close_notify, flush, exit 0.
@@ -104,9 +104,9 @@ An unknown mode must exit non-zero with a line containing `usage` on stderr. The
 `subject has no interop-<role> mode` for that cell, and the cell is red (fail closed).
 
 What P6-tls-001 needs beyond `subjects/tls-subject/src/**`:
-- `interop-client` uses `aegis_tls::client_config`. That function only exists with aegis-tls feature `tls-client`,
+- `interop-client` uses `monban_tls::client_config`. That function only exists with monban-tls feature `tls-client`,
   so `subjects/tls-subject/Cargo.toml` must enable it:
-  `aegis-tls = { workspace = true, features = ["tls-client"] }`. That file is outside P6-tls-001's `write_scope`
+  `monban-tls = { workspace = true, features = ["tls-client"] }`. That file is outside P6-tls-001's `write_scope`
   (`subjects/tls-subject/src/**`), so the integrator (or a write_scope change) has to make this edit.
 - P-UNIVERSAL, P-BSI-ALT and P-CNSA must be Active (today `server_config`/`client_config` refuse them as Pending).
 
@@ -130,11 +130,11 @@ The reference subject is plain rustls 0.23.46 + aws-lc-rs 1.18.2 + a copy of the
 | M6 `matrix-missing-cell` | Go 0x11ED HRR cell removed | matrix refused |
 | M7 `matrix-missing-refusal` | X25519-only refusal cells removed | matrix refused |
 
-The unit's order mutant is "the aegis-tls `order-mutant` feature" (PLAN-6 D4). That feature doesn't exist yet: it is
-defined by P6-spec-002 in `crates/aegis-tls/Cargo.toml`, and the KAT half is gated as kx-kat by P6-tls-001. Until it
+The unit's order mutant is "the monban-tls `order-mutant` feature" (PLAN-6 D4). That feature doesn't exist yet: it is
+defined by P6-spec-002 in `crates/monban-tls/Cargo.toml`, and the KAT half is gated as kx-kat by P6-tls-001. Until it
 exists, M1 runs the same mutation (ECDHE/ML-KEM order swapped in the combiner) on the reference subject. Once the
 feature is there, `run --subject "<target-dir>/release/tls-subject"` with a binary built with
-`--features aegis-tls/order-mutant` must turn every 0x11ED cell red. That run is the same check against the
+`--features monban-tls/order-mutant` must turn every 0x11ED cell red. That run is the same check against the
 production code.
 
 ## Provenance

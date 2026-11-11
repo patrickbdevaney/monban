@@ -1,10 +1,10 @@
 # sdk-trybuild frozen expectation (decision D5, units/phase-4/PLAN.md). Frozen by the spec author on 2026-10-30
-# BEFORE the first run of the corpus against the real sdk/aegis-sdk. Changing any line below is a spec change and
+# BEFORE the first run of the corpus against the real sdk/monban-sdk. Changing any line below is a spec change and
 # needs its own commit with the reason; the oracle never rewrites this file.
 #
 # Categories (oracle.py):
 #   caught       rejected by rustc (type rule or dependency/API absence) or by the lint tier
-#                (forbid(unsafe_code), clippy ban list, in-oracle owner scan for aegis_sdk::host)
+#                (forbid(unsafe_code), clippy ban list, in-oracle owner scan for monban_sdk::host)
 #   neutralized  compiles and passes the lint tier, but the runtime harness (the SDK's own host loop over a recording
 #                backend) shows the host defeats it: no violation reaches the backend
 #   residual     compiles, passes the lint tier, and the runtime harness observes a violation (or has no check)

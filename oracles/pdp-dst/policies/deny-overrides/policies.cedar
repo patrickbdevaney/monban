@@ -20,7 +20,7 @@ when { ["XX", "YY"].contains(context.country) };
 forbid(principal, action, resource) when { context.flags.contains("fraud-suspected") };
 
 // Risk-weighted exposure. `amount * risk` can overflow: Cedar then skips this forbid (and would Allow);
-// AEGIS treats any evaluation error as Error, hence Deny.
+// Monban treats any evaluation error as Error, hence Deny.
 @id("risk-exposure")
 forbid(principal, action == Bank::Action::"transfer", resource)
 when { context.amount * principal.risk > 1000000 };
