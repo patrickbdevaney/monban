@@ -43,11 +43,15 @@ read it and agrees.
 This needs 5 TUF root holders, hardware tokens and a ceremony (Phase 6 PREFLIGHT §P4 item 3). Test keys are used
 everywhere until then. Nothing blocks on it before a public release.
 
-## 4. License, CRA publication, GitHub Actions: deferred by you on 2026-11-04
+## 4. License, vulnerability reporting, CRA: DONE 2026-11-11 (operator decision)
 
-These are your decisions, and you said "not yet", so the agent has not chosen a license or published anything.
-The CRA drafts exist (D-P1, drafts only). The legal deadline is 2027-12-11, for SECURITY.md contact, CVD policy,
-support period and EU DoC. To start, say which license to use and the agent will do the rest.
+- License: Apache-2.0. Root `LICENSE` (apache.org text, sha256-checked by the `compliance` gate) and `NOTICE`.
+- Vulnerability reporting: root `SECURITY.md`, channel = GitHub private vulnerability reporting. It works only once
+  the GitHub repository is public and the feature is switched on (repo Settings → Code security → Private
+  vulnerability reporting). Both steps are the operator's.
+- CRA: distributed free and not monetised, so no manufacturer or steward role today (COMPLIANCE_MAP §5). The drafts
+  in `compliance/cra/` stay drafts for the day AEGIS is sold or offered with paid support.
+- GitHub Actions: still off.
 
 ## Already closed
 

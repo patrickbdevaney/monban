@@ -237,13 +237,17 @@ rustls PR #3376 was closed unmerged on 2026-10-30 (R-PQC-4 trigger void): rustls
 
 ## 5. CRA steward / manufacturer file set
 
-All drafts, headed `Status: DRAFT, not published` (PREFLIGHT D-P1). Nothing is at the repository root: no root
-SECURITY.md, no LICENSE, no GitHub private vulnerability reporting, no contact channel. Publishing is an operator
-step (PREFLIGHT §P4 item 1; operator decision 2026-11-04: "not now"); the CRA publication date is 2027-12-11.
+Operator decision 2026-11-11: AEGIS is licensed Apache-2.0 (root `LICENSE`, `NOTICE`) and distributed free of
+charge, not monetised. The vulnerability-reporting policy is live as the root `SECURITY.md`; its channel is GitHub
+private vulnerability reporting, which works once the GitHub repository is public. The CRA's obligations bind
+products made available in the course of a commercial activity; free software that is not monetised is outside
+them, so no manufacturer or steward role is taken today. The files below stay drafts, headed `Status: DRAFT, not
+published`, ready for the day AEGIS is sold, offered with paid support, or backed by a steward (re-check before
+any of those; the CRA's main obligations apply from 2027-12-11, reporting from 2026-09-11). Not legal advice.
 
 | file | content |
 |---|---|
-| `compliance/cra/SECURITY.draft.md` | CVD policy; contact `<operator to supply>` |
+| `SECURITY.md` (repo root, live) | CVD policy; channel: GitHub private vulnerability reporting; 7 d ack, 14 d triage, 90 d embargo |
 | `compliance/cra/PSIRT-runbook.md` | T0 = "aware" stamped as a tlog event; T+24 h early warning via SRP (manufacturer distributors); T+72 h notification; final report ≤14 d after the fix |
 | `compliance/cra/csaf/advisory-template.json` | CSAF 2.0 security advisory template, `tracking.status = draft` |
 | `compliance/cra/csaf/vex-template.json` | CSAF 2.0 VEX template, one per release |
@@ -268,7 +272,7 @@ advice; obtain counsel before export to embargoed destinations.
 
 ## 8. Licenses
 
-AEGIS itself has no license yet (operator decision 2026-11-04; PREFLIGHT D-P3); the `compliance` gate fails if a root
-LICENSE appears before that decision changes. Dependencies: cargo-deny 11-SPDX allowlist (`deny.toml`, from
+AEGIS is licensed Apache-2.0 (operator decision 2026-11-11, superseding PREFLIGHT D-P3 of 2026-11-04): the root
+`LICENSE` is the apache.org text, checked byte for byte by the `compliance` gate, and `NOTICE` names the project. Dependencies: cargo-deny 11-SPDX allowlist (`deny.toml`, from
 `sc3.deny-golden-duplicates`); GPL tools (HTTP Garden) run as external containers, never linked; vendored EverParse
 output keeps its license header. The vendored CSAF schema is an OASIS work product (see `schemas/SOURCES.txt`).

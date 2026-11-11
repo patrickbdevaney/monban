@@ -1,0 +1,6 @@
+AEGIS
+Copyright 2026 the AEGIS authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party components keep their own licenses; see Cargo.lock and deny.toml for the dependency set.
