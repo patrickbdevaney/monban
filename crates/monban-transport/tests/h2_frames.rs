@@ -225,9 +225,9 @@ impl Peer {
 
     /// The connection is still served: a PING is answered.
     async fn expect_alive(&mut self) {
-        self.send(&frame(PING, 0, 0, b"monban-01")).await;
+        self.send(&frame(PING, 0, 0, b"monban01")).await;
         let f = self.expect("PING ack", |f| f.ty == PING || f.ty == GOAWAY).await;
-        assert!(f.ty == PING && f.flags & ACK == ACK && f.payload == b"monban-01", "{f:?}");
+        assert!(f.ty == PING && f.flags & ACK == ACK && f.payload == b"monban01", "{f:?}");
     }
 }
 
