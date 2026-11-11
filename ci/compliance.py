@@ -23,15 +23,21 @@ check fails (last line `COMPLIANCE: FAIL (<tag>: ...; ...)`, exit 1) on:
   draft-header    a CRA file whose first line is not `Status: DRAFT, not published` (JSON: a document.notes entry
                   starting with it, and tracking.status == "draft"), or an unknown file type under compliance/cra/
   support-period  support-period.draft.md has no `Support period:` line
-  contact-address an e-mail address in a CRA draft (D-P1: no contact channel; the contact is a placeholder)
+  contact-address an e-mail address in a CRA draft or in SECURITY.md (the reporting channel is GitHub private
+                  vulnerability reporting, not an address)
   csaf            a CSAF file that is not JSON, fails the vendored CSAF 2.0 schema, or fails the profile checks used
                   here (category per file, product-id references, VEX product-status rules, no `scores`)
   cyclonedx       a *.cdx.json under compliance/ that is not structurally CycloneDX
   schema-pin      the vendored CSAF schema is missing or its sha256 differs from the pin
-  root-file       SECURITY.md at the repo root, in .github/ or docs/ (GitHub/Forgejo treat it as live policy), or a
-                  LICENSE/LICENCE/COPYING/UNLICENSE file at the root (operator: no license yet)
+  root-file       a SECURITY file in .github/ or docs/ (one live policy, at the root only), or a license-like file
+                  at the root other than LICENSE and NOTICE (LICENCE, COPYING, UNLICENSE, LICENSE-MIT, ...)
+  license         LICENSE missing at the root, or not byte for byte the Apache License 2.0 text (sha256
+                  LICENSE_SHA256; operator decision 2026-11-11: Apache-2.0), or the workspace manifest not declaring
+                  `license = "Apache-2.0"`
+  security-policy SECURITY.md missing at the root, without the GitHub private-reporting link (SECURITY_LINK), with
+                  an `<operator to supply>` placeholder left, or without its "Supported versions" section
   wording-fedramp "FedRAMP-ready/-authorized/-certified/-compliant" anywhere under compliance/
-  wording-waf     "WAF" or "web application firewall" anywhere under compliance/, or a line that puts admission and
+  wording-waf     "WAF" or "web application firewall" anywhere under compliance/ or in SECURITY.md, or a line that puts admission and
                   firewall together (template wording rule: admission control is rate limiting)
   wording-fips    a line mentioning "approved mode" without AL2023 / Amazon Linux 2023
 
@@ -41,10 +47,11 @@ the exact expected tag set. Last line `COMPLIANCE SELF-TEST: PASS|FAIL (...)`.
 import hashlib, json, os, re, shutil, sys, tempfile, tomllib
 
 DRAFT = "Status: DRAFT, not published"
+LICENSE_SHA256 = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"  # apache.org LICENSE-2.0.txt
+SECURITY_LINK = "/security/advisories/new"
 CSAF_SCHEMA = "compliance/cra/schemas/csaf_json_schema.json"
 CSAF_SCHEMA_SHA256 = "29c114b35b0a30831f1674f2ab8b3ed9b2890cfeaa63b924ac6ed9d70ef44262"
 CRA_REQUIRED = {
-    "SECURITY.draft.md": None,
     "PSIRT-runbook.md": None,
     "sbom-statement.draft.md": None,
     "support-period.draft.md": None,
@@ -252,6 +259,8 @@ def text_files(root):
             if os.path.relpath(p, root) == CSAF_SCHEMA:
                 continue  # third-party, pinned by hash
             yield p
+    if os.path.isfile(os.path.join(root, "SECURITY.md")):
+        yield os.path.join(root, "SECURITY.md")  # the live policy follows the same wording rules
 
 
 # ----------------------------------------------------------------------------------------------------------- check
@@ -261,15 +270,41 @@ def check(root):
     mp = os.path.join(root, "compliance/COMPLIANCE_MAP.md")
 
     # root files (GitHub/Forgejo live-policy locations; license)
-    for d in ("", ".github", "docs"):
+    for d in (".github", "docs"):
         dd = os.path.join(root, d)
         if os.path.isdir(dd):
             for n in os.listdir(dd):
                 if n.lower() in ("security.md", "security.rst", "security.txt", "security"):
-                    E("root-file", f"{os.path.join(d, n)} exists (D-P1: no live security policy)")
+                    E("root-file", f"{os.path.join(d, n)} exists (the one live policy is the root SECURITY.md)")
     for n in os.listdir(root):
-        if re.match(r"(?i)^(un)?licen[cs]e|^copying", n):
-            E("root-file", f"{n} exists at the repo root (operator: no license yet)")
+        if re.match(r"(?i)^(un)?licen[cs]e|^copying", n) and n not in ("LICENSE",):
+            E("root-file", f"{n} exists at the repo root (the license is LICENSE, Apache-2.0)")
+        elif n.lower() in ("security.rst", "security.txt", "security"):
+            E("root-file", f"{n} exists at the repo root (the policy file is SECURITY.md)")
+    lic = os.path.join(root, "LICENSE")
+    if not os.path.isfile(lic):
+        E("license", "LICENSE missing at the repo root (operator decision 2026-11-11: Apache-2.0)")
+    elif hashlib.sha256(open(lic, "rb").read()).hexdigest() != LICENSE_SHA256:
+        E("license", "LICENSE is not the Apache License 2.0 text byte for byte")
+    try:
+        ws = tomllib.load(open(os.path.join(root, "Cargo.toml"), "rb"))
+        if ws.get("workspace", {}).get("package", {}).get("license") != "Apache-2.0":
+            E("license", 'Cargo.toml [workspace.package] does not declare license = "Apache-2.0"')
+    except Exception as e:
+        E("license", f"Cargo.toml unreadable: {e}")
+    sec = os.path.join(root, "SECURITY.md")
+    if not os.path.isfile(sec):
+        E("security-policy", "SECURITY.md missing at the repo root")
+    else:
+        body = open(sec, encoding="utf-8").read()
+        if SECURITY_LINK not in body:
+            E("security-policy", f"SECURITY.md does not link the private reporting form (...{SECURITY_LINK})")
+        if "<operator to supply>" in body:
+            E("security-policy", "SECURITY.md still has an <operator to supply> placeholder")
+        if not re.search(r"^## Supported versions\s*$", body, re.M):
+            E("security-policy", "SECURITY.md has no '## Supported versions' section")
+        if EMAIL.search(body):
+            E("contact-address", "SECURITY.md contains an e-mail address (the channel is private reporting)")
 
     # gates and statements
     try:
@@ -453,7 +488,7 @@ def check(root):
             if not ok:
                 E("cyclonedx", f"{os.path.relpath(p, root)}: not structurally CycloneDX 1.4-1.6")
 
-    # wording rules over everything under compliance/
+    # wording rules over everything under compliance/ and the root SECURITY.md
     for p in text_files(root):
         try:
             body = open(p, encoding="utf-8").read()
@@ -483,7 +518,7 @@ def run_check(root):
     print(f"COMPLIANCE: PASS ({st.get('rows', 0)} control rows, {st.get('gids', 0)} gate ids in gates/phase-6.toml, "
           f"{st.get('thm', 0)} SA-17(1) theorems frozen in spec/STATEMENTS.sha256, {st['draft']} CRA drafts unpublished, "
           f"{st['csaf']} CSAF 2.0 documents schema-valid (validator: builtin{'+jsonschema' if st['js'] else ''}), "
-          f"{st['cdx']} CycloneDX; no root SECURITY.md, no LICENSE)")
+          f"{st['cdx']} CycloneDX; LICENSE is Apache-2.0, SECURITY.md has the private-reporting link)")
     return 0
 
 
@@ -521,12 +556,20 @@ MUTANTS = [
     ("cra-json-final", {"draft-header"}, lambda r: _json_edit(f"{r}/{CRA}/csaf/vex-template.json", lambda d: d["document"]["tracking"].update(status="final"))),
     ("cra-file-missing", {"cra-missing"}, lambda r: os.remove(f"{r}/{CRA}/steward-attestation.draft.md")),
     ("support-period-line", {"support-period"}, lambda r: _edit(f"{r}/{CRA}/support-period.draft.md", "Support period: `", "Period: `")),
-    ("contact-email", {"contact-address"}, lambda r: _edit(f"{r}/{CRA}/SECURITY.draft.md", "- Contact: `<operator to supply>`", "- Contact: psirt@example.org")),
-    ("root-security-md", {"root-file"}, lambda r: _append(f"{r}/SECURITY.md", "# Security\n")),
+    ("contact-email", {"contact-address"}, lambda r: _edit(f"{r}/{CRA}/PSIRT-runbook.md", "| role | holder |", "| role | holder psirt@example.org |")),
+    ("security-md-email", {"contact-address"}, lambda r: _append(f"{r}/SECURITY.md", "\nOr write to psirt@example.org.\n")),
+    ("security-md-missing", {"security-policy"}, lambda r: os.remove(f"{r}/SECURITY.md")),
+    ("security-md-no-link", {"security-policy"}, lambda r: _edit(f"{r}/SECURITY.md", SECURITY_LINK, "/issues", count=-1)),
+    ("security-md-placeholder", {"security-policy"}, lambda r: _append(f"{r}/SECURITY.md", "\nContact: `<operator to supply>`\n")),
+    ("security-md-waf", {"wording-waf"}, lambda r: _append(f"{r}/SECURITY.md", "\nAEGIS is a WAF.\n")),
+    ("security-md-no-versions", {"security-policy"}, lambda r: _edit(f"{r}/SECURITY.md", "## Supported versions", "## Versions")),
     ("github-security-md", {"root-file"}, lambda r: (os.makedirs(f"{r}/.github", exist_ok=True), _append(f"{r}/.github/SECURITY.md", "x\n"))),
-    ("root-license", {"root-file"}, lambda r: _append(f"{r}/LICENSE", "MIT\n")),
+    ("root-copying", {"root-file"}, lambda r: _append(f"{r}/COPYING", "MIT\n")),
+    ("license-altered", {"license"}, lambda r: _append(f"{r}/LICENSE", "MIT\n")),
+    ("license-missing", {"license"}, lambda r: os.remove(f"{r}/LICENSE")),
+    ("license-manifest", {"license"}, lambda r: _edit(f"{r}/Cargo.toml", 'license = "Apache-2.0"', 'license = "MIT"')),
     ("fedramp-ready", {"wording-fedramp"}, lambda r: _append(f"{r}/{MAP}", "\nAEGIS is FedRAMP-ready.\n")),
-    ("waf-admission", {"wording-waf"}, lambda r: _append(f"{r}/{CRA}/SECURITY.draft.md", "\nAdmission control works as a WAF.\n")),
+    ("waf-admission", {"wording-waf"}, lambda r: _append(f"{r}/{CRA}/PSIRT-runbook.md", "\nAdmission control works as a WAF.\n")),
     ("firewall-admission", {"wording-waf"}, lambda r: _append(f"{r}/{MAP}", "\nThe admission layer is a firewall.\n")),
     ("approved-mode-debian", {"wording-fips"}, lambda r: _append(f"{r}/{MAP}", "\nFIPS approved mode also on Debian.\n")),
     ("invalid-csaf-version", {"csaf"}, lambda r: _json_edit(f"{r}/{CRA}/csaf/advisory-template.json", lambda d: d["document"].update(csaf_version="2.1"))),
@@ -553,6 +596,8 @@ def self_test(src):
             shutil.copytree(os.path.join(src, "compliance"), os.path.join(r, "compliance"))
             shutil.copy(os.path.join(src, "gates/phase-6.toml"), os.path.join(r, "gates/phase-6.toml"))
             shutil.copy(os.path.join(src, "spec/STATEMENTS.sha256"), os.path.join(r, "spec/STATEMENTS.sha256"))
+            for f in ("LICENSE", "SECURITY.md", "Cargo.toml"):
+                shutil.copy(os.path.join(src, f), os.path.join(r, f))
             return r
         bad = []
         errs, _ = check(fresh())

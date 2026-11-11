@@ -2,8 +2,9 @@ Status: DRAFT, not published
 
 # AEGIS PSIRT runbook (draft)
 
-Draft procedure for handling a vulnerability in AEGIS (COMPLIANCE_MAP §5, §1 row 2026-09-11). It is not in force:
-no contact channel exists and nothing is published (PREFLIGHT D-P1). The reporting deadlines below bind a
+Draft procedure for handling a vulnerability in AEGIS (COMPLIANCE_MAP §5, §1 row 2026-09-11). Reports arrive through
+the channel in the root `SECURITY.md` (GitHub private vulnerability reporting). The CRA parts are not in force: AEGIS
+is distributed free and not monetised (operator decision 2026-11-11). The reporting deadlines below bind a
 manufacturer that makes AEGIS available on the market in the course of a commercial activity (CRA Art 14), and an
 open-source steward under Art 24(3) from 2027-12-11. Which role applies is an operator decision.
 
@@ -30,7 +31,7 @@ an event in the AEGIS audit tlog (tamper-evident, signed checkpoint), so the clo
 | at fix | inform impacted users (CSAF advisory + VEX), in a structured, machine-readable format |
 
 For vulnerabilities that are not actively exploited, the Art 14 notification duties do not start, but the CVD
-policy in `SECURITY.draft.md` applies.
+policy in the root `SECURITY.md` applies.
 
 ## Procedure
 

@@ -18,7 +18,7 @@ wording rules). Whether AEGIS falls under Annex III at all is `<operator to supp
 6. Harmonised standards or common specifications applied: `<operator to supply>` (none harmonised for this product
    category at the time of drafting).
 7. Notified body: none (internal control, module A), unless the operator's legal review finds otherwise.
-8. Additional information: support period (`support-period.draft.md`); vulnerability handling (`SECURITY.draft.md`,
+8. Additional information: support period (`support-period.draft.md`); vulnerability handling (`SECURITY.md` at the repo root,
    `PSIRT-runbook.md`); technical documentation: `research/ARCHITECTURE.md`, SECURITY_CLAIMS.md,
    `compliance/COMPLIANCE_MAP.md` and the gate logs of the release run.
 
