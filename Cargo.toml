@@ -54,7 +54,7 @@ tokio-rustls = { version = "0.26.6", default-features = false }
 aws-lc-rs = { version = "1.18.2", default-features = false, features = ["aws-lc-sys"] }
 sd-notify = { version = "0.5.0", default-features = false }
 cedar-policy = { version = "4.14.0", default-features = false }   # monban-pdp only (X-8: out of process); 4.14 is the GHSA-m84h floor
-rustix = { version = "1.1.5", default-features = false, features = ["std", "net"] }   # safe SCM_RIGHTS (OwnedFd) for F11
+rustix = { version = "1.1.6", default-features = false, features = ["std", "net"] }   # safe SCM_RIGHTS (OwnedFd) for F11
 # Embedded SQL store and SQLite adapter (monban-state, monban-adapter-sqlite). Bundled C SQLite: lock target
 # libsqlite3-sys 0.39.1 = SQLite 3.54.1 (golden floor >= 3.54.0, RUSTSEC-2026-0459; crash-harness pin).
 # Trusted, not verified C (D3).

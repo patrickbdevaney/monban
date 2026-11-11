@@ -31,7 +31,8 @@ windows_x86_64_msvc:0.52.6  windows-only, not built on linux targets
 sd-notify:0.5.0  systemd readiness protocol (tiny)
 bitflags:2.13.2  macro-only flags type (nix)
 # Added 2026-10-25 with P2-upgrade-002 (safe SCM_RIGHTS).
-rustix:1.1.5  safe syscall API (OwnedFd SCM_RIGHTS); replaces unsafe RawFd handling
+# Replaced 2026-11-11 (RUSTSEC-2026-0486, unsound xattr zero-length buffer, fixed in 1.1.6): same entry, no new crate.
+rustix:1.1.6  safe syscall API (OwnedFd SCM_RIGHTS); replaces unsafe RawFd handling
 linux-raw-sys:0.12.1  generated Linux ABI bindings (rustix)
 # Added 2026-10-25 with P2-transport-001 (tokio/hyper/h2 stack).
 bytes:1.12.1  byte buffers

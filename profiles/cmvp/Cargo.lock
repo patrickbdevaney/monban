@@ -6,9 +6,9 @@ version = 4
 name = "acme-subject"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
  "monban-ops",
  "monban-tls",
- "aws-lc-rs",
  "rustls",
 ]
 
@@ -28,308 +28,6 @@ dependencies = [
  "monban-admission",
  "monban-budget",
 ]
-
-[[package]]
-name = "monban-adapter-host"
-version = "0.0.0"
-dependencies = [
- "monban-authz",
- "monban-data-ir",
- "monban-sdk",
- "monban-state",
- "monban-types",
- "rustix",
- "tokio",
-]
-
-[[package]]
-name = "monban-adapter-mysql"
-version = "0.0.0"
-dependencies = [
- "monban-data-ir",
- "monban-types",
- "aws-lc-rs",
- "rustix",
-]
-
-[[package]]
-name = "monban-adapter-pg"
-version = "0.0.0"
-dependencies = [
- "monban-data-ir",
- "monban-types",
- "aws-lc-rs",
- "rustix",
-]
-
-[[package]]
-name = "monban-adapter-redis"
-version = "0.0.0"
-dependencies = [
- "monban-data-ir",
- "monban-types",
- "rustix",
-]
-
-[[package]]
-name = "monban-adapter-sqlite"
-version = "0.0.0"
-dependencies = [
- "monban-data-ir",
- "monban-types",
- "rusqlite",
-]
-
-[[package]]
-name = "monban-admission"
-version = "0.0.0"
-dependencies = [
- "monban-budget",
- "monban-types",
-]
-
-[[package]]
-name = "monban-agent"
-version = "0.0.0"
-dependencies = [
- "monban-authz",
- "monban-canon",
- "monban-token",
- "monban-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "monban-audit"
-version = "0.0.0"
-dependencies = [
- "monban-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "monban-authz"
-version = "0.0.0"
-dependencies = [
- "monban-types",
-]
-
-[[package]]
-name = "monban-bin"
-version = "0.0.0"
-dependencies = [
- "monban-adapter-host",
- "monban-adapter-mysql",
- "monban-adapter-pg",
- "monban-adapter-redis",
- "monban-adapter-sqlite",
- "monban-admission",
- "monban-agent",
- "monban-audit",
- "monban-authz",
- "monban-budget",
- "monban-canon",
- "monban-config",
- "monban-data-ir",
- "monban-egress",
- "monban-iso",
- "monban-metrics",
- "monban-ops",
- "monban-state",
- "monban-tls",
- "monban-token",
- "monban-transport",
- "monban-types",
- "monban-uring",
- "monban-wire",
- "h2",
- "http",
- "hyper",
- "notes",
- "rusqlite",
- "rustls",
- "tokio",
-]
-
-[[package]]
-name = "monban-budget"
-version = "0.0.0"
-
-[[package]]
-name = "monban-canon"
-version = "0.0.0"
-dependencies = [
- "monban-types",
-]
-
-[[package]]
-name = "monban-config"
-version = "0.0.0"
-dependencies = [
- "monban-canon",
- "monban-types",
-]
-
-[[package]]
-name = "monban-data-ir"
-version = "0.0.0"
-dependencies = [
- "monban-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "monban-egress"
-version = "0.0.0"
-dependencies = [
- "monban-canon",
- "monban-types",
- "rustls",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
-name = "monban-iso"
-version = "0.0.0"
-dependencies = [
- "monban-types",
- "aws-lc-rs",
- "libc",
- "rustix",
-]
-
-[[package]]
-name = "monban-metrics"
-version = "0.0.0"
-
-[[package]]
-name = "monban-ops"
-version = "0.0.0"
-dependencies = [
- "monban-canon",
- "monban-config",
- "monban-tls",
- "monban-types",
- "aws-lc-rs",
- "rustix",
- "rustls",
- "sd-notify",
- "tokio",
-]
-
-[[package]]
-name = "monban-otlp"
-version = "0.0.0"
-dependencies = [
- "monban-canon",
- "monban-egress",
- "monban-tls",
- "monban-types",
- "http",
- "hyper",
- "rustls",
- "tokio",
-]
-
-[[package]]
-name = "monban-p2"
-version = "0.0.0"
-dependencies = [
- "monban-iso",
- "monban-types",
- "monban-wasm",
-]
-
-[[package]]
-name = "monban-pdp"
-version = "0.0.0"
-dependencies = [
- "monban-adapter-host",
- "monban-authz",
- "monban-types",
- "cedar-policy",
- "rustix",
-]
-
-[[package]]
-name = "monban-sdk"
-version = "0.0.0"
-dependencies = [
- "monban-authz",
- "monban-data-ir",
- "monban-types",
-]
-
-[[package]]
-name = "monban-state"
-version = "0.0.0"
-dependencies = [
- "monban-audit",
- "monban-data-ir",
- "monban-types",
- "aws-lc-rs",
- "rusqlite",
-]
-
-[[package]]
-name = "monban-tls"
-version = "0.0.0"
-dependencies = [
- "monban-types",
- "monban-wire",
- "aws-lc-rs",
- "rustls",
- "rustls-webpki",
-]
-
-[[package]]
-name = "monban-token"
-version = "0.0.0"
-dependencies = [
- "monban-types",
- "aws-lc-rs",
-]
-
-[[package]]
-name = "monban-transport"
-version = "0.0.0"
-dependencies = [
- "monban-budget",
- "monban-canon",
- "monban-types",
- "h2",
- "http",
- "hyper",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
-name = "monban-types"
-version = "0.0.0"
-
-[[package]]
-name = "monban-uring"
-version = "0.0.0"
-dependencies = [
- "io-uring",
- "tokio",
-]
-
-[[package]]
-name = "monban-wasm"
-version = "0.0.0"
-dependencies = [
- "monban-budget",
- "monban-types",
- "sha2",
- "wasmtime",
-]
-
-[[package]]
-name = "monban-wire"
-version = "0.0.0"
 
 [[package]]
 name = "aho-corasick"
@@ -914,8 +612,8 @@ dependencies = [
 name = "ct-subject"
 version = "0.0.0"
 dependencies = [
- "monban-token",
  "aws-lc-rs",
+ "monban-token",
 ]
 
 [[package]]
@@ -1755,6 +1453,308 @@ dependencies = [
 ]
 
 [[package]]
+name = "monban-adapter-host"
+version = "0.0.0"
+dependencies = [
+ "monban-authz",
+ "monban-data-ir",
+ "monban-sdk",
+ "monban-state",
+ "monban-types",
+ "rustix",
+ "tokio",
+]
+
+[[package]]
+name = "monban-adapter-mysql"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-pg"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-redis"
+version = "0.0.0"
+dependencies = [
+ "monban-data-ir",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-adapter-sqlite"
+version = "0.0.0"
+dependencies = [
+ "monban-data-ir",
+ "monban-types",
+ "rusqlite",
+]
+
+[[package]]
+name = "monban-admission"
+version = "0.0.0"
+dependencies = [
+ "monban-budget",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-agent"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-authz",
+ "monban-canon",
+ "monban-token",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-audit"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-authz"
+version = "0.0.0"
+dependencies = [
+ "monban-types",
+]
+
+[[package]]
+name = "monban-bin"
+version = "0.0.0"
+dependencies = [
+ "h2",
+ "http",
+ "hyper",
+ "monban-adapter-host",
+ "monban-adapter-mysql",
+ "monban-adapter-pg",
+ "monban-adapter-redis",
+ "monban-adapter-sqlite",
+ "monban-admission",
+ "monban-agent",
+ "monban-audit",
+ "monban-authz",
+ "monban-budget",
+ "monban-canon",
+ "monban-config",
+ "monban-data-ir",
+ "monban-egress",
+ "monban-iso",
+ "monban-metrics",
+ "monban-ops",
+ "monban-state",
+ "monban-tls",
+ "monban-token",
+ "monban-transport",
+ "monban-types",
+ "monban-uring",
+ "monban-wire",
+ "notes",
+ "rusqlite",
+ "rustls",
+ "tokio",
+]
+
+[[package]]
+name = "monban-budget"
+version = "0.0.0"
+
+[[package]]
+name = "monban-canon"
+version = "0.0.0"
+dependencies = [
+ "monban-types",
+]
+
+[[package]]
+name = "monban-config"
+version = "0.0.0"
+dependencies = [
+ "monban-canon",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-data-ir"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-egress"
+version = "0.0.0"
+dependencies = [
+ "monban-canon",
+ "monban-types",
+ "rustls",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
+name = "monban-iso"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "libc",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-metrics"
+version = "0.0.0"
+
+[[package]]
+name = "monban-ops"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-canon",
+ "monban-config",
+ "monban-tls",
+ "monban-types",
+ "rustix",
+ "rustls",
+ "sd-notify",
+ "tokio",
+]
+
+[[package]]
+name = "monban-otlp"
+version = "0.0.0"
+dependencies = [
+ "http",
+ "hyper",
+ "monban-canon",
+ "monban-egress",
+ "monban-tls",
+ "monban-types",
+ "rustls",
+ "tokio",
+]
+
+[[package]]
+name = "monban-p2"
+version = "0.0.0"
+dependencies = [
+ "monban-iso",
+ "monban-types",
+ "monban-wasm",
+]
+
+[[package]]
+name = "monban-pdp"
+version = "0.0.0"
+dependencies = [
+ "cedar-policy",
+ "monban-adapter-host",
+ "monban-authz",
+ "monban-types",
+ "rustix",
+]
+
+[[package]]
+name = "monban-sdk"
+version = "0.0.0"
+dependencies = [
+ "monban-authz",
+ "monban-data-ir",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-state"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-audit",
+ "monban-data-ir",
+ "monban-types",
+ "rusqlite",
+]
+
+[[package]]
+name = "monban-tls"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+ "monban-wire",
+ "rustls",
+ "rustls-webpki",
+]
+
+[[package]]
+name = "monban-token"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "monban-types",
+]
+
+[[package]]
+name = "monban-transport"
+version = "0.0.0"
+dependencies = [
+ "h2",
+ "http",
+ "hyper",
+ "monban-budget",
+ "monban-canon",
+ "monban-types",
+ "tokio",
+ "tokio-rustls",
+]
+
+[[package]]
+name = "monban-types"
+version = "0.0.0"
+
+[[package]]
+name = "monban-uring"
+version = "0.0.0"
+dependencies = [
+ "io-uring",
+ "tokio",
+]
+
+[[package]]
+name = "monban-wasm"
+version = "0.0.0"
+dependencies = [
+ "monban-budget",
+ "monban-types",
+ "sha2",
+ "wasmtime",
+]
+
+[[package]]
+name = "monban-wire"
+version = "0.0.0"
+
+[[package]]
 name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2143,9 +2143,9 @@ checksum = "bfe6f213fb658c8fb95baabd5420393438cf5a98d707f5dd701d9197c705f71e"
 
 [[package]]
 name = "rustix"
-version = "1.1.5"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891efababe418670775f199f0d233d84843c227a0949a883ce15b37c78d6629d"
+checksum = "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa"
 dependencies = [
  "bitflags 2.13.2",
  "errno",
@@ -2580,9 +2580,9 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 name = "tls-subject"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
  "monban-iso",
  "monban-tls",
- "aws-lc-rs",
  "rustls",
 ]
 
@@ -2655,12 +2655,12 @@ dependencies = [
 name = "transport-subject"
 version = "0.0.0"
 dependencies = [
+ "aws-lc-rs",
  "monban-canon",
  "monban-config",
  "monban-tls",
  "monban-transport",
  "monban-types",
- "aws-lc-rs",
  "rustls",
  "tokio",
 ]
