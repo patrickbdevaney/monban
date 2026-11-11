@@ -2,8 +2,8 @@
 """Real-money tripwire for the Monban GCP project (operator request 2026-11-06: "stop us from spending real cc money").
 
 The billing budget "aegis tripwire: any real-money spend" (USD 1, creditTypesTreatment INCLUDE_ALL_CREDITS) measures
-spend net of the trial/promotional credit and publishes its state to Pub/Sub topic `monban-budget` several times a day.
-This script drains subscription `monban-budget-guard`, keeps the newest state in ~/.cache/aegis-tools/gcp-budget.json,
+spend net of the trial/promotional credit and publishes its state to Pub/Sub topic `aegis-budget` several times a day.
+This script drains subscription `aegis-budget-guard`, keeps the newest state in ~/.cache/aegis-tools/gcp-budget.json,
 and trips when the net cost of the current period is above zero. That happens when the credit is used up or has
 expired.
 
@@ -18,7 +18,7 @@ emails go to the billing account's admins as well (default IAM recipients).
 import base64, json, os, subprocess, sys
 
 PROJECT = "project-333565b3-9b4b-4ae4-b75"
-SUB = "monban-budget-guard"
+SUB = "aegis-budget-guard"
 STATE = os.path.expanduser("~/.cache/aegis-tools/gcp-budget.json")
 TRIP_EPS = 0.005  # USD; costAmount is a float, net of credits
 
