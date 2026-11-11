@@ -4,8 +4,8 @@ A single-binary, post-quantum, formally specified reverse proxy and agent gatewa
 API infrastructure, built so that its security properties hold for every request that passes through it.
 
 > [!IMPORTANT]
-> **Pre-release research software. Do not use in production.** Phases 0–2 of 7 have passed their gates; the
-> agent-gateway phase is in progress. Interfaces may change only through recorded specification changes, and no
+> **Pre-release research software. Do not use in production.** Phases 0–8 have passed their gates (Phase 1
+> is the closed experiment phase). Interfaces may change only through recorded specification changes, and no
 > release, signed artifact or support commitment exists yet. "AEGIS" is a working name.
 
 ## Overview
@@ -67,12 +67,17 @@ Crates are layered (types → pure logic → protocol shells → effects → ass
 | 0 | Repository, pins, frozen interfaces F1–F13, verification wall | GO (`gates/phase-0.verdict.json`) |
 | 1 | 21 decision experiments; 10 design changes applied | closed (`spikes/APPLIED.md`) |
 | 2 | Reverse-proxy mode: transport, TLS, canonicalization, admission, config, audit, metrics, ACME, zero-downtime upgrade | GO, 55/55 gate steps (`gates/phase-2.verdict.json`) |
-| 3 | Agent gateway: capability tokens, Cedar decision process, SSRF-guarded egress, MCP listener gate | in progress (3 of 4 units complete) |
-| 4–7 | Data plane and native handlers; process/Wasm isolation; compliance profiles and signed releases; deferred modules | planned |
+| 3 | Agent gateway: capability tokens, Cedar decision process, SSRF-guarded egress, MCP listener gate | GO, 61/61 gate steps (`gates/phase-3.verdict.json`) |
+| 4 | Data plane and native handlers | GO, 107/107 gate steps (`gates/phase-4.verdict.json`) |
+| 5 | Process and Wasm isolation (P2), both paths | GO, 129/129 gate steps (`gates/phase-5.verdict.json`) |
+| 6 | Compliance profiles (including the cmvp build), release tooling | GO, 157/157 gate steps (`gates/phase-6.verdict.json`) |
+| 7 | Deferred modules, each off by default with its own TCB line: PROXY protocol, L4, io_uring, MTC, MariaDB and CockroachDB adapters, OTLP exporter, libcrux provider spike. HTTP/3 and WebTransport stay deferred (re-check 2027-03-30) | GO, 191/191 gate steps (`gates/phase-7.verdict.json`) |
+| 8 | Residuals R1–R17 and hardening; no new feature surface | GO, 215/215 gate steps (`gates/phase-8.verdict.json`) |
 
 Measured on the Phase-2 build (2026-10-26, x86_64 Linux): 4.96 MB stripped binary, 41 third-party crates shipped,
 6.2 MB idle resident memory, systemd exposure score 1.6. Throughput figures are not published yet; laptop and LAN
-measurements are provisional until repeated on a reference VPS.
+measurements are provisional until repeated on a reference VPS. Later measurements, including the
+64-core scaling run, are recorded in [`SECURITY_CLAIMS.md`](SECURITY_CLAIMS.md) and are also provisional.
 
 ## Getting started
 
@@ -100,7 +105,7 @@ A minimal configuration (schema: [`interfaces/F8-config.schema.json`](interfaces
 A route without an `authz` policy is denied. Running the full gate set for a phase:
 
 ```sh
-python3 -I ci/run-gates.py --phase 2      # every gate plus its negative control; writes a hash-chained journal
+python3 -I ci/run-gates.py --phase 8      # every gate plus its negative control; writes a hash-chained journal
 ```
 
 ## Security and assurance
@@ -162,8 +167,8 @@ accepted only when its independent oracle passes and that oracle's negative cont
 ## Provenance
 
 Builds are pinned to Rust 1.99.1 and a locked dependency graph and are byte-for-byte reproducible across build
-directories (`ci/repro.sh`). Release signing (Ed25519, SLH-DSA-SHA2-128s, ML-DSA-87), SBOMs and build provenance are
-planned for the release phase and do not exist yet.
+directories (`ci/repro.sh`). The release pipeline (`ci/release/`: Ed25519, SLH-DSA-SHA2-128s and ML-DSA-87 signing, SBOMs, build provenance) is
+built and gated, but no release keys exist, so no signed artifact has been published.
 
 ## License
 
