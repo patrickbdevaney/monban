@@ -4,12 +4,15 @@ Ed25519 key (a fresh per-run test key, D-P2). It reads only the build job's outp
 SBOM (never the artifact), and writes an in-toto Statement v1 with SLSA provenance v1 as a DSSE envelope.
 
   attest.py --subject artifacts/<name>=<sha256> [--subject ...] --sbom FILE --build-info FILE --source FILE
-            --keydir DIR --out DIR
+            --keydir DIR --out DIR [--enc-key FILE --passfile FILE --expect-pub FILE]
 
 Writes OUT/provenance.intoto.json and OUT/attest/attest.pub.pem (release layout contract v1, ci/release/verify.py).
 The provenance records what an independent rebuild (D7) must match: source commit and SOURCE_DATE_EPOCH, the build
 image (base digest, Containerfile sha256, image id), rustc -vV, Go and gcc versions, RUSTFLAGS, the command, and the
 sha256 of Cargo.lock and cargo-auditable.
+Production mode (--enc-key, ci/release/keys/README.md): no key is generated; the encrypted attest key is decrypted
+into the job's key directory (openssl pkey -passin file:PASSFILE), its public key must equal --expect-pub (the
+committed release-keys/attest.pub.pem) byte for byte, and externalParameters carries no test_keys field.
 Before it exits, the job checks its outputs against its key (jobs/leakcheck.py --keys) and shreds the key directory.
 """
 
@@ -53,7 +56,8 @@ def parse(argv):
     i = 0
     while i < len(argv):
         k = argv[i]
-        if k not in ("--subject", "--sbom", "--build-info", "--source", "--keydir", "--out") or i + 1 >= len(argv):
+        if k not in ("--subject", "--sbom", "--build-info", "--source", "--keydir", "--out", "--enc-key", "--passfile",
+                     "--expect-pub") or i + 1 >= len(argv):
             die(f"bad argument {k!r}")
         if k == "--subject":
             a["subject"].append(argv[i + 1])
@@ -65,6 +69,10 @@ def parse(argv):
             die(f"missing --{k.replace('_', '-')}")
     if not a["subject"]:
         die("need at least one --subject")
+    prod = [k for k in ("enc_key", "passfile", "expect_pub") if k in a]
+    if prod and len(prod) != 3:
+        die("production mode needs --enc-key, --passfile and --expect-pub together")
+    a["prod"] = bool(prod)
     return a
 
 
@@ -89,9 +97,20 @@ def main(argv):
         die("key directory must exist and be empty")
     try:
         key = os.path.join(kd, "attest.key.pem")
-        run([OPENSSL, "genpkey", "-algorithm", "ED25519", "-out", key])
+        if a["prod"]:
+            os.close(os.open(key, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
+            r = subprocess.run([OPENSSL, "pkey", "-in", a["enc_key"], "-passin", "file:" + a["passfile"], "-out", key],
+                               capture_output=True, check=False)
+            if r.returncode != 0:
+                die(f"cannot decrypt {a['enc_key']} (wrong passphrase or not an encrypted key)")
+        else:
+            run([OPENSSL, "genpkey", "-algorithm", "ED25519", "-out", key])
         os.chmod(key, 0o600)
         pub = run([OPENSSL, "pkey", "-in", key, "-pubout"])
+        if a["prod"]:
+            with open(a["expect_pub"], "rb") as f:
+                if f.read() != pub:
+                    die(f"{a['enc_key']} is not the key of the committed {a['expect_pub']}")
         pub_der = run([OPENSSL, "pkey", "-in", key, "-pubout", "-outform", "DER"])
         keyid = hashlib.sha256(pub_der).hexdigest()
         now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -108,7 +127,7 @@ def main(argv):
                         "command": bi["command"],
                         "source": {"commit": src["commit"], "kind": src["kind"], "tree_sha256": src["tree_sha256"]},
                         "source_date_epoch": bi["source_date_epoch"],
-                        "test_keys": True,
+                        **({} if a["prod"] else {"test_keys": True}),
                     },
                     "internalParameters": {
                         "rustflags": bi["rustflags"],
@@ -174,7 +193,8 @@ def main(argv):
         shred_dir(kd)
     if os.listdir(kd):
         die("key directory not empty after shred")
-    print(f"attest: provenance for {len(subjects)} subject(s), attest key {keyid[:16]} (destroyed)")
+    kind = "production attest key" if a["prod"] else "attest key"
+    print(f"attest: provenance for {len(subjects)} subject(s), {kind} {keyid[:16]} (destroyed)")
     return 0
 
 

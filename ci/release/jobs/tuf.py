@@ -3,13 +3,22 @@
 (~/aegis-ci/py-tuf, versions checked against the `#py:` rows of ci/tools.lock).
 
   tuf.py --release DIR --keydir DIR [--expires-days N]
+  tuf.py --release DIR --keydir DIR --enc-keys DIR --passfile FILE --roots DIR [--expires-days N]   (production)
 
-Generates fresh per-run test keys in its own key directory: 5 Ed25519 root keys (threshold 3) and one Ed25519 key each
+Test-key mode (the default) generates fresh per-run test keys in its own key directory: 5 Ed25519 root keys (threshold 3) and one Ed25519 key each
 for targets, snapshot and timestamp (openssl genpkey, loaded into securesystemslib CryptoSigner). Writes
 DIR/tuf/1.root.json, targets.json, snapshot.json, timestamp.json, all version 1, consistent_snapshot false, with
 `"test_keys": true` in every role's `signed` (D-P2). targets.json lists every file of DIR outside tuf/ with length and
 sha256. The job then checks its metadata (root 3 of 5 signatures verify, every role verifies with the root's keys),
 checks its output against its keys (jobs/leakcheck.py --keys) and shreds the key directory.
+
+Production mode (--enc-keys, ci/release/keys/README.md): no key is generated. The job decrypts targets, snapshot and
+timestamp .key.enc.pem from --enc-keys into its own key directory (openssl pkey -passin file:PASSFILE), checks the
+committed root chain in --roots (ci/release/keys/root.py check: 3 of 5 Ed25519, no test_keys) and that each decrypted
+key is the one the latest root names for its role, copies --roots/1.root.json .. N.root.json byte for byte into
+tuf/, and writes targets/snapshot/timestamp with no test_keys marker and version = the current Unix time (so every
+release is newer than the last for a client keeping state). It refuses a release that carries a TEST_KEYS file.
+The root keys are never needed for a release.
 """
 
 import os
@@ -56,12 +65,18 @@ def shred_dir(d):
 
 def main(argv):
     args = dict(zip(argv[0::2], argv[1::2]))
+    prod_args = {"--enc-keys", "--passfile", "--roots"}
     if len(argv) % 2 or not {"--release", "--keydir"} <= set(args) or set(args) - {"--release", "--keydir",
-                                                                                    "--expires-days"}:
-        die("usage: tuf.py --release DIR --keydir DIR [--expires-days N]")
+                                                                                    "--expires-days"} - prod_args:
+        die("usage: tuf.py --release DIR --keydir DIR [--expires-days N] [--enc-keys DIR --passfile F --roots DIR]")
+    prod = bool(prod_args & set(args))
+    if prod and not prod_args <= set(args):
+        die("production mode needs --enc-keys, --passfile and --roots together")
     rel, kd = args["--release"], args["--keydir"]
     days = int(args.get("--expires-days", "7"))
     check_pins()
+    if prod:
+        return main_prod(rel, kd, days, args["--enc-keys"], args["--passfile"], args["--roots"])
     from cryptography.hazmat.primitives.serialization import load_pem_private_key
     from securesystemslib.signer import CryptoSigner
     from tuf.api.metadata import Metadata, MetaFile, Role, Root, Snapshot, TargetFile, Targets, Timestamp
@@ -145,6 +160,92 @@ def main(argv):
         die("key directory not empty after shred")
     print(f"tuf: root v1 (3 of 5 Ed25519), targets/snapshot/timestamp v1, {len(tfiles)} targets, test_keys true; "
           "8 keys destroyed")
+    return 0
+
+
+def main_prod(rel, kd, days, enc, passfile, roots_dir):
+    import importlib.util
+
+    from cryptography.hazmat.primitives.serialization import load_pem_private_key
+    from securesystemslib.signer import CryptoSigner
+    from tuf.api.metadata import Metadata, MetaFile, Snapshot, TargetFile, Targets, Timestamp
+    from tuf.api.serialization.json import JSONSerializer
+
+    spec = importlib.util.spec_from_file_location("aegis_keys_root", os.path.join(HERE, "..", "keys", "root.py"))
+    rootlib = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rootlib)
+
+    if not os.path.isdir(kd) or os.listdir(kd):
+        die("key directory must exist and be empty")
+    tdir = os.path.join(rel, "tuf")
+    if os.path.exists(tdir):
+        die("release already has tuf/")
+    if os.path.exists(os.path.join(rel, "TEST_KEYS")):
+        die("production mode: the release carries a TEST_KEYS file")
+    try:
+        try:
+            chain, root = rootlib.check_chain(roots_dir)
+        except rootlib.Fail as e:
+            die(f"committed root chain in {roots_dir} refused: {e}")
+
+        def signer(name):
+            src = os.path.join(enc, name + ".key.enc.pem")
+            p = os.path.join(kd, name + ".key.pem")
+            r = subprocess.run([OPENSSL, "pkey", "-in", src, "-passin", f"file:{passfile}", "-out", p],
+                               capture_output=True, check=False)
+            if r.returncode != 0:
+                die(f"cannot decrypt {src} (wrong passphrase or not an encrypted key)")
+            os.chmod(p, 0o600)
+            with open(p, "rb") as f:
+                s = CryptoSigner(load_pem_private_key(f.read(), password=None))
+            if root.roles[name].keyids != [s.public_key.keyid]:
+                die(f"{src} is not the {name} key named by the committed root v{root.version}")
+            return s
+
+        targets_s, snapshot_s, timestamp_s = signer("targets"), signer("snapshot"), signer("timestamp")
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        ver = int(now.timestamp())
+        tfiles = {}
+        for dp, dns, fns in os.walk(rel):
+            dns.sort()
+            for fn in sorted(fns):
+                p = os.path.join(dp, fn)
+                if os.path.islink(p) or not os.path.isfile(p):
+                    die(f"{p} is not a regular file")
+                r = os.path.relpath(p, rel)
+                tfiles[r] = TargetFile.from_file(r, p, ["sha256"])
+        if not tfiles:
+            die("nothing to list in targets")
+        targets = Metadata(Targets(version=ver, expires=now + timedelta(days=days), targets=tfiles))
+        targets.sign(targets_s)
+        snapshot = Metadata(Snapshot(version=ver, expires=now + timedelta(days=days),
+                                     meta={"targets.json": MetaFile(ver)}))
+        snapshot.sign(snapshot_s)
+        timestamp = Metadata(Timestamp(version=ver, expires=now + timedelta(days=1), snapshot_meta=MetaFile(ver)))
+        timestamp.sign(timestamp_s)
+        for name, md in (("targets", targets), ("snapshot", snapshot), ("timestamp", timestamp)):
+            root.verify_delegate(name, md.signed_bytes, md.signatures)
+            if "test_keys" in md.signed.unrecognized_fields:
+                die(f"{name} carries a test_keys marker")
+
+        os.makedirs(tdir)
+        for fn, data in chain:
+            with open(os.path.join(tdir, fn), "wb") as f:
+                f.write(data)
+        ser = JSONSerializer(compact=False)
+        targets.to_file(os.path.join(tdir, "targets.json"), ser)
+        snapshot.to_file(os.path.join(tdir, "snapshot.json"), ser)
+        timestamp.to_file(os.path.join(tdir, "timestamp.json"), ser)
+        lc = subprocess.run([sys.executable, "-I", os.path.join(HERE, "leakcheck.py"), "--keys", kd, rel],
+                            capture_output=True, text=True, check=False)
+        if lc.returncode != 0:
+            die("private key material in the release:\n" + lc.stdout)
+    finally:
+        shred_dir(kd)
+    if os.listdir(kd):
+        die("key directory not empty after shred")
+    print(f"tuf: production root chain 1..{len(chain)} (3 of 5 Ed25519), targets/snapshot/timestamp v{ver}, "
+          f"{len(tfiles)} targets, no test_keys; 3 decrypted online keys destroyed")
     return 0
 
 
