@@ -58,7 +58,7 @@ pin-project-lite v0.2.17 ||
 pkg-config v0.3.34 ||
 r-efi v6.0.0 ||
 rusqlite v0.41.1 |bundled,modern_sqlite|
-rustix v1.1.5 |alloc,event,fs,net,process,std,time|
+rustix v1.1.6 |alloc,event,fs,net,process,std,time|
 rustls v0.23.46 |aws-lc-rs,aws_lc_rs,prefer-post-quantum,std|
 rustls-pki-types v1.15.1 |alloc,default,std|
 rustls-webpki v0.103.16 |alloc,aws-lc-rs,std|
