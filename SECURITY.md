@@ -4,7 +4,7 @@
 
 Please report vulnerabilities privately through GitHub's private vulnerability reporting: open the repository's
 **Security** tab and choose **Report a vulnerability**
-(<https://github.com/patrickbdevaney/aegis/security/advisories/new>). Do not open a public issue for a security
+(<https://github.com/patrickbdevaney/monban/security/advisories/new>). Do not open a public issue for a security
 problem.
 
 Please include:
